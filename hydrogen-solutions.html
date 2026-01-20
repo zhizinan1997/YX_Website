@@ -15,33 +15,44 @@
         }
 
         .vs-nav__item--has-mega {
-            position: relative !important; /* Changed from static to allow relative positioning */
+            position: relative !important; /* Anchored for vertical alignment */
         }
 
         .vs-mega-menu {
             position: absolute;
-            top: calc(100% - 2px);
-            left: 50%;
-            transform: translateX(-50%) translateY(10px);
-            width: 1000px; /* Constrained width */
+            top: 100%; /* Directly below the nav item */
+            left: -30px; /* Offset to align 'New' text (with 30px padding) with 'Product' text */
+            width: 1000px;
             background: var(--color-white);
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transition: opacity 0.25s ease, visibility 0.25s ease;
             z-index: 999;
             display: flex;
             min-height: 440px;
-            border-radius: 8px; /* Rounded corners for floating look */
-            overflow: hidden;
+            border-radius: 8px; /* Restoring full rounded corners */
+            overflow: visible;
             pointer-events: none;
             border: 1px solid rgba(0,0,0,0.05);
+            margin-top: -2px; /* Slight overlap for connectivity */
+        }
+
+        /* Bridge relative to the Nav Item */
+        .vs-mega-menu::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: -50px;
+            width: 400px; /* Covers the sidebar area + buffer */
+            height: 50px;
+            background: transparent;
+            z-index: -1;
         }
 
         .vs-nav__item--has-mega:hover .vs-mega-menu {
             opacity: 1;
             visibility: visible;
-            transform: translateX(-50%) translateY(0);
             pointer-events: auto;
         }
 
@@ -51,6 +62,7 @@
             background: #f4f6f8;
             border-right: 1px solid #eee;
             padding: 15px 0;
+            border-radius: 8px 0 0 8px; /* Match parent's left corners */
         }
 
         .vs-mega-tab {
@@ -63,6 +75,10 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+        }
+
+        .vs-mega-tab:first-child {
+            border-top-left-radius: 8px; /* Ensure 1st tab doesn't overflow */
         }
 
         .vs-mega-tab:hover, .vs-mega-tab.active {
@@ -80,6 +96,7 @@
             flex: 1;
             padding: 40px 50px;
             background: var(--color-white);
+            border-radius: 0 8px 8px 0; /* Match parent's right corners */
         }
 
         .vs-mega-panel {
@@ -165,17 +182,19 @@
             background: var(--color-primary);
             color: var(--color-white);
         }
+        /* Specialized Menu for Contact Us */
+        .vs-mega-menu--contact {
+            width: 480px; /* Narrower to stay on screen */
+            left: -30px; /* Precisely align '加' text (with 30px padding) with '联' */
+            min-height: 280px;
+        }
 
-        /* Bridge pseudo-element: Creates an invisible safety area for diagonal mouse movement */
-        .vs-mega-menu::before {
-            content: '';
-            position: absolute;
-            top: -40px; /* Bridge the gap to the header */
-            left: -100px; /* Extend horizontally for diagonal movements */
-            right: -100px;
-            height: 45px;
-            background: transparent;
-            z-index: -1;
+        .vs-mega-menu--contact .vs-mega-sidebar {
+            width: 180px; /* Slightly narrower sidebar for consistency */
+        }
+
+        .vs-mega-menu--contact .vs-mega-grid-v2 {
+            grid-template-columns: 1fr; /* Single column layout for links */
         }
     </style>
 </head>
@@ -326,7 +345,45 @@
                     <li class="vs-nav__item"><a href="#" class="vs-nav__link">服务案例</a></li>
                     <li class="vs-nav__item"><a href="#" class="vs-nav__link">公司简介</a></li>
                     <li class="vs-nav__item"><a href="#" class="vs-nav__link">线上店铺</a></li>
-                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">联系我们</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="contact.aspx_page_contact.html" class="vs-nav__link">联系我们</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    加入我们 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    联系方式 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>加入我们</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li>
+                                            <li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li>
+                                            <li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li>
+                                            <li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>联系方式</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="contact.aspx_page_contact.html">联系我们</a></li>
+                                            <li><a href="feedbook.aspx.html">在线留言</a></li>
+                                            <li><a href="contact.aspx_page_contact.html">联系电话</a></li>
+                                            <li><a href="contact.aspx_page_contact.html">公司邮箱</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
                 </ul>
             </nav>
 
@@ -343,6 +400,13 @@
             tab.classList.add('active');
             document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
             document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
         }
     </script>
 
