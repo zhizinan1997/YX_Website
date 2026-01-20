@@ -35,16 +35,13 @@
         .vs-mega-menu--contact .vs-mega-grid-v2 { grid-template-columns: 1fr; }
 
         /* Page Specific */
-        .concept-section { padding: 100px 0; }
-        .concept-item { display: flex; gap: 60px; align-items: center; margin-bottom: 80px; }
-        .concept-item:nth-child(even) { flex-direction: row-reverse; }
-        .concept-text { flex: 1; }
-        .concept-text h3 { font-size: 32px; color: var(--color-primary); margin-bottom: 24px; position: relative; }
-        .concept-text h3::after { content: ''; display: block; width: 60px; height: 3px; background: var(--color-accent-orange); margin-top: 15px; }
-        .concept-text p { font-size: 17px; line-height: 1.8; color: #555; }
-        .concept-img { flex: 1; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-        .concept-img img { width: 100%; height: auto; transition: transform 0.5s; }
-        .concept-img:hover img { transform: scale(1.05); }
+        .concept-section { padding: 80px 0; background: #f9f9f9; }
+        .content-box { max-width: 900px; margin: 0 auto; }
+        .concept-card { background: white; padding: 50px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); margin-bottom: 40px; }
+        .concept-card h3 { font-size: 28px; color: var(--color-primary); margin-bottom: 20px; font-weight: 700; }
+        .concept-card h3::after { content: ''; display: block; width: 60px; height: 4px; background: var(--color-accent-orange); margin-top: 15px; border-radius: 2px; }
+        .concept-card p { font-size: 17px; line-height: 2; color: #555; margin-top: 20px; }
+        .concept-img { max-width: 100%; border-radius: 12px; margin-top: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
     </style>
 </head>
 
@@ -74,25 +71,34 @@
                             <div class="vs-mega-content">
                                 <div id="panel-contact-join" class="vs-mega-panel active">
                                     <h3>加入我们</h3>
-                                    <ul class="vs-mega-list-v2">
-                                        <li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li>
-                                        <li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li>
-                                        <li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li>
-                                        <li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li>
-                                    </ul>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li>
+                                            <li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li>
+                                            <li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li>
+                                            <li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li>
+                                        </ul>
+                                    </div>
                                 </div>
                                 <div id="panel-contact-contact" class="vs-mega-panel">
                                     <h3>联系方式</h3>
-                                    <ul class="vs-mega-list-v2">
-                                        <li><a href="contact.aspx_page_contact.html">联系我们</a></li>
-                                        <li><a href="feedbook.aspx.html">在线留言</a></li>
-                                    </ul>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="contact.aspx_page_contact.html">联系我们</a></li>
+                                            <li><a href="feedbook.aspx.html">在线留言</a></li>
+                                            <li><a href="contact.aspx_page_contact.html">联系电话</a></li>
+                                            <li><a href="contact.aspx_page_contact.html">公司邮箱</a></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </li>
                 </ul>
             </nav>
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#"><i class="fas fa-search"></i></a>
+            </div>
         </div>
     </header>
 
@@ -106,41 +112,32 @@
 
         <section class="concept-section">
             <div class="vs-container">
-                <div class="concept-item">
-                    <div class="concept-text">
-                        <h3>求人观</h3>
-                        <p><strong>“能力主义”而非“学历主义”</strong><br><br>
-                        有能力又有责任心的员工是杰出员工，有能力而没有责任心的员工是不合格的员工。我们更看重实战能力与岗位适配度。</p>
+                <div class="content-box">
+                    <div class="concept-card">
+                        <h3><i class="fas fa-search" style="margin-right: 15px; color: var(--color-accent-orange);"></i>求人观</h3>
+                        <p><strong style="font-size: 20px;">"能力主义"而非"学历主义"</strong></p>
+                        <p>有能力又有责任心的员工是杰出员工，有能力而没有责任心的员工是不合格的员工。</p>
                     </div>
-                    <div class="concept-img">
-                        <img src="upload/202301/31/202301311638016477.jpg" alt="人才理念">
-                    </div>
-                </div>
 
-                <div class="concept-item">
-                    <div class="concept-text">
-                        <h3>用人观</h3>
-                        <p><strong>“岗能相宜”</strong><br><br>
-                        岗适其能、人得其位。我们致力于为每个岗位选择最适合的人，也为每个人找到最能发挥潜力的舞台。</p>
+                    <div class="concept-card">
+                        <h3><i class="fas fa-user-check" style="margin-right: 15px; color: var(--color-accent-orange);"></i>用人观</h3>
+                        <p><strong style="font-size: 20px;">"岗能相宜"</strong></p>
+                        <p>岗适其能、人得其位。每个岗位选择适合的人，每个人都能找到适合自己的岗位。</p>
                     </div>
-                    <div class="concept-img">
-                        <img src="templates/lqgd/images/section2_bj.jpg" alt="用人观" style="filter: grayscale(0.5);">
-                    </div>
-                </div>
 
-                <div class="concept-item">
-                    <div class="concept-text">
-                        <h3>留人观</h3>
-                        <p><strong>“事业留人、待遇留人、情感留人”</strong><br><br>
-                        通过广阔的事业平台、竞争力的薪酬体系以及温暖的团队氛围，让每一位优秀人才在元芯扎根成长。</p>
+                    <div class="concept-card">
+                        <h3><i class="fas fa-heart" style="margin-right: 15px; color: var(--color-accent-orange);"></i>留人观</h3>
+                        <p><strong style="font-size: 20px;">"事业留人、待遇留人、情感留人"</strong></p>
+                        <p>通过广阔的事业平台、竞争力的薪酬体系以及温暖的团队氛围，让每一位优秀人才在元芯扎根成长。</p>
+                        <img src="upload/202301/31/202301311638016477.jpg" alt="人才理念" class="concept-img">
                     </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer class="vs-footer" style="background: #001e3e; color: white; padding: 40px 0; text-align: center;">
-        <p style="opacity: 0.5; font-size: 13px;">Copyright © 2023 湖南元芯传感科技有限责任公司</p>
+    <footer class="vs-footer" style="background: #001e3e; color: white; padding: 60px 0 30px; text-align: center;">
+        <p style="opacity: 0.5; font-size: 13px;">Copyright © 2023 湖南元芯传感科技有限责任公司. 湘ICP备2023004701号-1</p>
     </footer>
 
     <script>

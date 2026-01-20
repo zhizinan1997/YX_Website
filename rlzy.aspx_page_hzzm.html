@@ -9,7 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Shared Styles from Hydrogen Solutions */
+        /* Compact Inficon-style Mega Menu - Identical to main page */
+        .vs-header .vs-container, .vs-header__inner, .vs-nav, .vs-nav__list { height: 100%; }
         .vs-nav__item--has-mega { position: relative !important; }
         .vs-mega-menu {
             position: absolute; top: 100%; left: -30px; width: 1000px;
@@ -22,29 +23,40 @@
         .vs-nav__item--has-mega:hover .vs-mega-menu { opacity: 1; visibility: visible; pointer-events: auto; }
         .vs-mega-sidebar { width: 260px; background: #f4f6f8; border-right: 1px solid #eee; padding: 15px 0; border-radius: 8px 0 0 8px; }
         .vs-mega-tab { padding: 14px 30px; font-size: 15px; font-weight: 600; color: #444; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; }
+        .vs-mega-tab:first-child { border-top-left-radius: 8px; }
         .vs-mega-tab:hover, .vs-mega-tab.active { background: var(--color-primary); color: var(--color-white); }
+        .vs-mega-tab i { font-size: 10px; opacity: 0.4; }
         .vs-mega-content { flex: 1; padding: 40px 50px; background: var(--color-white); border-radius: 0 8px 8px 0; }
         .vs-mega-panel { display: none; animation: fadeIn 0.3s ease; }
         .vs-mega-panel.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .vs-mega-panel h3 { font-size: 20px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; border-bottom: 2px solid var(--color-accent-orange); display: inline-block; padding-bottom: 4px; }
         .vs-mega-grid-v2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; }
+        .vs-mega-sublist-title { font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px; display: block; }
         .vs-mega-list-v2 { list-style: none; }
         .vs-mega-list-v2 li { margin-bottom: 10px; }
         .vs-mega-list-v2 a { font-size: 14px; color: #333; transition: all 0.2s; }
         .vs-mega-list-v2 a:hover { color: var(--color-accent-blue); padding-left: 5px; }
-
+        .vs-mega-action { margin-top: 30px; padding-top: 25px; border-top: 1px solid #eee; }
+        .vs-btn-search { display: inline-flex; align-items: center; gap: 10px; padding: 10px 24px; border: 1px solid var(--color-primary); color: var(--color-primary); font-weight: 600; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .vs-btn-search:hover { background: var(--color-primary); color: var(--color-white); }
         .vs-mega-menu--contact { width: 480px; left: -30px; min-height: 280px; }
         .vs-mega-menu--contact .vs-mega-sidebar { width: 180px; }
         .vs-mega-menu--contact .vs-mega-grid-v2 { grid-template-columns: 1fr; }
 
-        /* Page Specific */
-        .recruitment-section { padding: 100px 0; background: white; }
-        .content-box { max-width: 900px; margin: 0 auto; line-height: 1.8; color: #444; }
-        .content-box h2 { font-size: 32px; color: var(--color-primary); margin-bottom: 30px; text-align: center; }
-        .recruitment-card { border-left: 4px solid var(--color-accent-orange); padding-left: 24px; margin-bottom: 40px; }
-        .recruitment-card h4 { font-size: 20px; margin-bottom: 12px; color: #333; }
-        .recruitment-img { width: 100%; border-radius: 12px; margin: 20px 0; }
+        /* Page Specific Styles */
+        .recruitment-section { padding: 80px 0; background: white; }
+        .content-box { max-width: 1100px; margin: 0 auto; line-height: 1.8; color: #444; }
+        .section-title { font-size: 36px; color: var(--color-primary); margin: 60px 0 30px; text-align: center; font-weight: 700; }
+        .section-title:first-child { margin-top: 0; }
+        .intro-text { font-size: 16px; line-height: 2; margin-bottom: 30px; }
+        .recruitment-card { border-left: 4px solid var(--color-accent-orange); padding-left: 24px; margin-bottom: 30px; background: #f9f9f9; padding: 20px 24px; border-radius: 0 8px 8px 0; }
+        .recruitment-card h4 { font-size: 18px; margin-bottom: 10px; color: #333; }
+        .recruitment-card p { margin: 0; color: #555; }
+        .product-img, .section-img { max-width: 100%; margin: 20px auto; display: block; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .contact-info-box { background: #f4f6f8; padding: 40px; border-radius: 12px; text-align: center; margin-top: 40px; }
+        .contact-info-box p { margin: 10px 0; font-size: 16px; }
+        .contact-info-box strong { color: var(--color-primary); }
     </style>
 </head>
 
@@ -57,6 +69,7 @@
                     METACHIP
                 </a>
             </div>
+
             <nav class="vs-nav">
                 <ul class="vs-nav__list">
                     <li class="vs-nav__item vs-nav__item--has-mega">
@@ -67,10 +80,45 @@
                                 <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">行业分类 <i class="fas fa-chevron-right"></i></div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('target', this)">测量对象 <i class="fas fa-chevron-right"></i></div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('type', this)">产品种类 <i class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">产品列表 <i class="fas fa-chevron-right"></i></div>
                             </div>
                             <div class="vs-mega-content">
-                                <div id="panel-new" class="vs-mega-panel active"><h3>新品推荐</h3><div class="vs-mega-grid-v2"><div><ul class="vs-mega-list-v2"><li><a href="#">LD-H2-Gen5 氢气传感器</a></li></ul></div></div></div>
-                                <div id="panel-industry" class="vs-mega-panel"><h3>行业分类</h3><div class="vs-mega-grid-v2"><div><ul class="vs-mega-list-v2"><li><a href="#">氢能源产业链</a></li></ul></div></div></div>
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>新品推荐</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div><span class="vs-mega-sublist-title">最新发布</span><ul class="vs-mega-list-v2"><li><a href="#">LD-H2-Gen5 第五代氢气传感器</a></li><li><a href="#">车载高集成氢气安全监测模组</a></li></ul></div>
+                                        <div><span class="vs-mega-sublist-title">应用领域</span><ul class="vs-mega-list-v2"><li><a href="#">加氢站安全监测</a></li><li><a href="#">燃料电池车辆</a></li></ul></div>
+                                    </div>
+                                    <div class="vs-mega-action"><a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a></div>
+                                </div>
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>行业分类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">氢能源产业链</a></li><li><a href="#">智慧电力安全</a></li><li><a href="#">工业检漏监测</a></li></ul></div>
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">绿色能源存储</a></li><li><a href="#">大气环境监测</a></li></ul></div>
+                                    </div>
+                                </div>
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>测量对象</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">氢气 (H2)</a></li><li><a href="#">湿度 (RH)</a></li><li><a href="#">溶解氢</a></li></ul></div>
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">油中水含量</a></li><li><a href="#">露点 (Td)</a></li><li><a href="#">压力 (P)</a></li></ul></div>
+                                    </div>
+                                </div>
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>产品种类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">MEMS 传感器芯片</a></li><li><a href="#">高集成封装模组</a></li></ul></div>
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">智能手持终端设备</a></li><li><a href="#">在线监测分析系统</a></li></ul></div>
+                                    </div>
+                                </div>
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>产品列表</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">传感探头系列</a></li><li><a href="#">物联网无线终端</a></li><li><a href="#">核心传感模块</a></li></ul></div>
+                                        <div><ul class="vs-mega-list-v2"><li><a href="#">OEM 定制化方案</a></li><li><a href="#">便携式测量仪</a></li><li><a href="#">精密分析仪表</a></li></ul></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </li>
@@ -88,68 +136,24 @@
                             <div class="vs-mega-content">
                                 <div id="panel-contact-join" class="vs-mega-panel active">
                                     <h3>加入我们</h3>
-                                    <ul class="vs-mega-list-v2">
-                                        <li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li>
-                                        <li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li>
-                                        <li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li>
-                                        <li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li>
-                                    </ul>
+                                    <div class="vs-mega-grid-v2"><ul class="vs-mega-list-v2"><li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li><li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li><li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li><li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li></ul></div>
                                 </div>
                                 <div id="panel-contact-contact" class="vs-mega-panel">
                                     <h3>联系方式</h3>
-                                    <ul class="vs-mega-list-v2">
-                                        <li><a href="contact.aspx_page_contact.html">联系我们</a></li>
-                                        <li><a href="feedbook.aspx.html">在线留言</a></li>
-                                    </ul>
+                                    <div class="vs-mega-grid-v2"><ul class="vs-mega-list-v2"><li><a href="contact.aspx_page_contact.html">联系我们</a></li><li><a href="feedbook.aspx.html">在线留言</a></li><li><a href="contact.aspx_page_contact.html">联系电话</a></li><li><a href="contact.aspx_page_contact.html">公司邮箱</a></li></ul></div>
                                 </div>
                             </div>
                         </div>
                     </li>
                 </ul>
             </nav>
+
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
                 <a href="#"><i class="fas fa-search"></i></a>
                 <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
             </div>
         </div>
     </header>
-
-    <main style="padding-top: 90px;">
-        <section class="vs-hero" style="height: 40vh; min-height: 300px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; background: #003366;">
-            <div class="vs-container" style="position: relative; z-index: 10; color: white; text-align: center;">
-                <h1 style="font-size: 42px; font-weight: 700; margin-bottom: 10px;">代理商招募</h1>
-                <p style="font-size: 18px; opacity: 0.9;">共享氢能产业发展机遇，携手开启传感新篇章。</p>
-            </div>
-        </section>
-
-        <section class="recruitment-section">
-            <div class="vs-container">
-                <div class="content box">
-                    <h2>湖南元芯传感 - 合作伙伴计划</h2>
-                    <p>湖南元芯传感是由北京大学科研团队孵化的国家高新技术企业，致力于先进的生物与化学传感产品研发与制造。即日起针对公司氢安全系列产品启动合作伙伴招募。</p>
-                    
-                    <div class="recruitment-card" style="margin-top: 50px;">
-                        <h4>招募范围</h4>
-                        <p>（1）招募区域：全国范围内省级、省会城市、直辖市及下属地级市。<br>
-                           （2）行业范围：工业安全、消防安全、环境保护、仪器仪表、自动化设备、气体检测等。<br>
-                           （3）授权产品：元芯传感氢安全系列产品。</p>
-                    </div>
-
-                    <div class="recruitment-card">
-                        <h4>联系参与</h4>
-                        <p>请将资料发送至招募邮箱：<strong>eigteens@126.com</strong><br>
-                           咨询电话：张经理 <strong>19375105326</strong></p>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="vs-footer" style="background: #001e3e; color: white; padding: 60px 0 30px;">
-        <div class="vs-container" style="text-align: center; opacity: 0.5; font-size: 12px;">
-            <p>Copyright © 2023 湖南元芯传感科技有限责任公司</p>
-        </div>
-    </footer>
 
     <script>
         function showPanel(panelId, tab) {
@@ -166,5 +170,73 @@
             document.getElementById('panel-contact-' + panelId).classList.add('active');
         }
     </script>
+
+    <main style="padding-top: 90px;">
+        <section class="vs-hero" style="height: 40vh; min-height: 300px; display: flex; align-items: center; justify-content: center; background: #003366;">
+            <div class="vs-container" style="color: white; text-align: center;">
+                <h1 style="font-size: 42px; font-weight: 700; margin-bottom: 10px;">代理商招募</h1>
+                <p style="font-size: 18px; opacity: 0.9;">共享氢能产业发展机遇，携手开启传感新篇章。</p>
+            </div>
+        </section>
+
+        <section class="recruitment-section">
+            <div class="vs-container">
+                <div class="content-box">
+                    <h2 class="section-title" style="margin-top: 0;">代理商招募</h2>
+                    <p class="intro-text">湖南元芯传感是由北京大学科研团队孵化的国家高新技术企业，致力于先进的生物与化学传感产品研发与制造，公司研发的高灵敏氢气传感器及其检测仪广泛应用于氮氢示踪检漏、电化学储能及氢能源汽车等领域。为了更好地拓展市场，及与更多经销商、集成商分享氢能产业发展的机会，元芯传感即日起将针对公司氢安全系列产品启动合作伙伴的招募活动。</p>
+                    <div class="recruitment-card">
+                        <h4>代理商招募范围</h4>
+                        <p>（1）招募区域：全国范围内省级、省会城市、直辖市及下属地级市。</p>
+                        <p>（2）行业范围：从事工业安全、消防安全、环境保护、仪器仪表、自动化设备、气体检测/分析设备、实验室设备、暖通空调等相关领域的销售或系统集成的公司</p>
+                        <p>（3）招募授权产品：</p>
+                    </div>
+                    <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202505201614092725.png" alt="产品" class="product-img">
+                    <h2 class="section-title">市场机遇</h2>
+                    <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202505201617288840.png" alt="市场机遇" class="section-img">
+                    <h2 class="section-title">合作优势</h2>
+                    <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202505201620022228.png" alt="合作优势" class="section-img">
+                    <h2 class="section-title">合作流程</h2>
+                    <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202505201622575008.png" alt="合作流程" class="section-img">
+                    <h2 class="section-title">合作支持</h2>
+                    <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202505201625308302.png" alt="合作支持" class="section-img">
+                    <h2 class="section-title">合作条件</h2>
+                    <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202505201627219423.png" alt="合作条件" class="section-img">
+                    <h2 class="section-title">联系我们</h2>
+                    <div class="contact-info-box">
+                        <p>请将真实填写您的资料，并以文档格式发送至元芯传感的代理商招募邮箱：</p>
+                        <p><strong style="font-size: 20px;">eigteens@126.com</strong></p>
+                        <p>如有问题，请咨询张经理 <strong>19375105326</strong></p>
+                        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+                        <p>◎ 代理区域：全国空白区域均可（填写贵公司的意向代理区域）</p>
+                        <p>◎ 代理产品：元芯传感氢安全系列产品</p>
+                        <p>◎ 个人/企业相关信息：身份证照片或营业执照照片、联系人姓名、联系方式、从事行业及时间、公司主营业务及时间、电子邮箱、业务覆盖区域以及合作留言。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer" style="background: #001e3e; color: white; padding: 80px 0 40px;">
+        <div class="vs-container">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 80px; margin-bottom: 60px;">
+                <div>
+                    <img src="templates/lqgd/images/logo.png" style="height: 40px; margin-bottom: 24px; filter: brightness(0) invert(1);">
+                    <p style="opacity: 0.6; line-height: 1.8; max-width: 400px;">湖南元芯传感科技有限责任公司，致力于先进生物与化学传感技术，为全球提供高精度的传感芯片与系统解决方案。</p>
+                </div>
+                <div>
+                    <h4 style="font-size: 16px; margin-bottom: 24px;">快捷链接</h4>
+                    <ul style="list-style: none; opacity: 0.6;"><li style="margin-bottom: 12px;"><a href="index.html" style="color: white;">首页</a></li><li style="margin-bottom: 12px;"><a href="hydrogen-solutions.html" style="color: white;">解决方案</a></li><li style="margin-bottom: 12px;"><a href="contact.aspx_page_contact.html" style="color: white;">联系我们</a></li></ul>
+                </div>
+                <div>
+                    <h4 style="font-size: 16px; margin-bottom: 24px;">关注我们</h4>
+                    <div style="display: flex; gap: 20px;"><img src="templates/lqgd/images/wx.jpg" style="width: 80px; height: 80px; border-radius: 4px;"><img src="templates/lqgd/images/sj.jpg" style="width: 80px; height: 80px; border-radius: 4px;"></div>
+                </div>
+            </div>
+            <div style="padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; opacity: 0.5; font-size: 13px;">
+                <p>Copyright © 2023 元芯传感. 湘ICP备2023004701号-1</p>
+                <div style="display: flex; gap: 30px;"><a href="#" style="color: white;">隐私政策</a><a href="#" style="color: white;">使用条款</a></div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
