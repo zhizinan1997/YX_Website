@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绿色能源存储解决方案 - 元芯传感</title>
+    <link rel="stylesheet" href="templates/lqgd/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Standardized Header Styles from Mother Page */
+        .vs-header .vs-container,
+        .vs-header__inner,
+        .vs-nav,
+        .vs-nav__list {
+            height: 100%;
+        }
+
+        .vs-nav__item--has-mega {
+            position: relative !important;
+        }
+
+        .vs-mega-menu {
+            position: absolute;
+            top: 100%;
+            left: -30px;
+            width: 1000px;
+            background: var(--color-white);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            z-index: 999;
+            display: flex;
+            min-height: 440px;
+            border-radius: 8px;
+            overflow: visible;
+            pointer-events: none;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: -2px;
+        }
+
+        .vs-mega-menu::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: -50px;
+            width: 400px;
+            height: 50px;
+            background: transparent;
+            z-index: -1;
+        }
+
+        .vs-nav__item--has-mega:hover .vs-mega-menu {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .vs-mega-sidebar {
+            width: 260px;
+            background: #f4f6f8;
+            border-right: 1px solid #eee;
+            padding: 15px 0;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .vs-mega-tab {
+            padding: 14px 30px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vs-mega-tab:hover,
+        .vs-mega-tab.active {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .vs-mega-tab i {
+            font-size: 10px;
+            opacity: 0.4;
+        }
+
+        .vs-mega-content {
+            flex: 1;
+            padding: 40px 50px;
+            background: var(--color-white);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .vs-mega-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .vs-mega-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .vs-mega-panel h3 {
+            font-size: 20px;
+            color: var(--color-primary);
+            margin-bottom: 24px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--color-accent-orange);
+            display: inline-block;
+            padding-bottom: 4px;
+        }
+
+        .vs-mega-grid-v2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .vs-mega-list-v2 {
+            list-style: none;
+        }
+
+        .vs-mega-list-v2 li {
+            margin-bottom: 10px;
+        }
+
+        .vs-mega-list-v2 a {
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .vs-mega-list-v2 a:hover {
+            color: var(--color-accent-blue);
+            padding-left: 5px;
+        }
+
+        /* Vaisala-style Interactive Layout */
+        .vs-industry-tabs-section {
+            background: #f8f9fa;
+            padding: 80px 0;
+        }
+
+        .vs-industry-container {
+            display: flex;
+            background: var(--color-white);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            min-height: 600px;
+        }
+
+        .vs-industry-sidebar {
+            width: 320px;
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .vs-industry-tab {
+            padding: 24px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 16px;
+            opacity: 0.7;
+        }
+
+        .vs-industry-tab:hover,
+        .vs-industry-tab.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--color-accent-orange);
+        }
+
+        .vs-industry-content {
+            flex: 1;
+            padding: 60px;
+            position: relative;
+        }
+
+        .vs-industry-panel {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .vs-industry-panel.active {
+            display: block;
+        }
+
+        .vs-industry-panel h2 {
+            font-size: 32px;
+            color: var(--color-primary);
+            margin-bottom: 30px;
+        }
+
+        .vs-industry-panel img {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .vs-industry-panel p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="index.html" class="vs-logo">
+                    <img src="templates/lqgd/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="#" class="vs-nav__link">产品</a>
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab" onmouseover="showPanel('new', this)">新品推荐 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab active" onmouseover="showPanel('industry', this)">行业分类 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">测量对象 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">产品种类 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">产品列表 <i
+                                        class="fas fa-chevron-right"></i></div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-industry" class="vs-mega-panel active">
+                                    <h3>行业分类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="industry-hydrogen.html">氢能源产业链</a></li>
+                                                <li><a href="industry-power-safety.html">智慧电力安全</a></li>
+                                                <li><a href="industry-leak-detection.html">工业检漏监测</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="industry-energy-storage.html">绿色能源存储</a></li>
+                                                <li><a href="industry-environment.html">大气环境监测</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="hydrogen-solutions.html" class="vs-nav__link">解决方案</a></li>
+                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">服务案例</a></li>
+                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">线上店铺</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="contact.aspx_page_contact.html" class="vs-nav__link">联系我们</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">加入我们 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">联系方式 <i
+                                        class="fas fa-chevron-right"></i></div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>加入我们</h3>
+                                    <ul class="vs-mega-list-v2">
+                                        <li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li>
+                                        <li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
+            </div>
+        </div>
+    </header>
+
+    <main style="padding-top: 90px;">
+        <section class="vs-hero-v2">
+            <div class="vs-hero-v2__bg">
+                <img src="https://images.unsplash.com/photo-1509391366360-fe5bb58583bb?auto=format&fit=crop&w=1920"
+                    alt="Energy Storage">
+            </div>
+            <div class="vs-hero-v2__breadcrumbs">
+                <a href="index.html">首页</a> / <a>行业分类</a> / <span>绿色能源存储</span>
+            </div>
+            <div class="vs-hero-v2__content">
+                <h1 class="vs-hero-v2__title">绿色能源存储</h1>
+                <p class="vs-hero-v2__subtitle">聚焦储能电站本质安全，提供电芯级热失控预警与全维度环控应用。</p>
+            </div>
+        </section>
+
+        <section class="vs-industry-tabs-section">
+            <div class="vs-container">
+                <div class="vs-industry-container">
+                    <div class="vs-industry-sidebar">
+                        <div class="vs-industry-tab active" onclick="switchIndustryTab(0, this)">电芯级热失控预警</div>
+                        <div class="vs-industry-tab" onclick="switchIndustryTab(1, this)">储能站环境综合监测</div>
+                        <div class="vs-industry-tab" onclick="switchIndustryTab(2, this)">电解液泄漏极早侦测</div>
+                        <div class="vs-industry-tab" onclick="switchIndustryTab(3, this)">智慧储能消防联动</div>
+                    </div>
+                    <div class="vs-industry-content">
+                        <div class="vs-industry-panel active">
+                            <h2>毫秒级电芯热失控预警</h2>
+                            <img src="https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=1200"
+                                alt="Battery Cell Monitoring">
+                            <p>
+                                电池热失控是储能电站最大的安全隐患。元芯开发的嵌入式 MEMS 传感器，能够实时监测电池包内部特征气体（如 CO, H2,
+                                VOC）的异常涌动。由于传感器距离热源更近且响应速度极快，可在电池发生可见烟雾前 5-10 分钟发出警报，为系统切断电流和启动消防赢得宝贵时间。
+                            </p>
+                        </div>
+                        <div class="vs-industry-panel">
+                            <h2>大规模储能站环境综合管控</h2>
+                            <img src="https://images.unsplash.com/photo-1569000100714-3d02677b63f2?auto=format&fit=crop&w=1200"
+                                alt="Storage Station">
+                            <p>
+                                针对集装箱式储能站，我们提供涵盖温湿度、氢气浓度、烟雾及水浸的多维度传感终端。所有数据通过数字化总线上传至 EMS
+                                系统。通过智能化的环控算法方案，系统可联动排风和空调设备，确保储能柜始终运行在最佳温湿度窗口。
+                            </p>
+                        </div>
+                        <div class="vs-industry-panel">
+                            <h2>电解液泄漏监测与防范</h2>
+                            <img src="https://images.unsplash.com/photo-1588713868194-32d5bd75d980?auto=format&fit=crop&w=1200"
+                                alt="Electrolyte Leak">
+                            <p>
+                                电解液泄漏不仅会导致电池性能下降，更是火灾的前兆。元芯的高灵敏 VOC
+                                传感器可对电解液挥发出的特定酯类化合物进行极低浓度的监测。这种专一性的检测能力，能有效区分环境杂质干扰，实现泄漏的极早期识别。
+                            </p>
+                        </div>
+                        <div class="vs-industry-panel">
+                            <h2>智慧消防与应急联动升级</h2>
+                            <img src="https://images.unsplash.com/photo-1516216628859-9bccecab13ca?auto=format&fit=crop&w=1200"
+                                alt="Fire Safety">
+                            <p>
+                                我们将传感数据与消防自动喷淋、全氟己酮抑爆系统深度集成。通过精准的定位告警，消防系统可以实现“点对点”精准喷淋，最大限度减少事故对邻近电池簇的影响，将损失降到最低，实现本质安全化的储能运营。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__bottom">
+                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            const panel = document.getElementById('panel-' + panelId);
+            if (panel) panel.classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            const panel = document.getElementById('panel-contact-' + panelId);
+            if (panel) panel.classList.add('active');
+        }
+        function switchIndustryTab(index, tab) {
+            document.querySelectorAll('.vs-industry-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-industry-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.vs-industry-panel')[index].classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

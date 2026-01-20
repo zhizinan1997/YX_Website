@@ -10,18 +10,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Compact Inficon-style Mega Menu */
-        .vs-header .vs-container, .vs-header__inner, .vs-nav, .vs-nav__list {
+        .vs-header .vs-container,
+        .vs-header__inner,
+        .vs-nav,
+        .vs-nav__list {
             height: 100%;
         }
 
         .vs-nav__item--has-mega {
-            position: relative !important; /* Anchored for vertical alignment */
+            position: relative !important;
+            /* Anchored for vertical alignment */
         }
 
         .vs-mega-menu {
             position: absolute;
-            top: 100%; /* Directly below the nav item */
-            left: -30px; /* Offset to align 'New' text (with 30px padding) with 'Product' text */
+            top: 100%;
+            /* Directly below the nav item */
+            left: -30px;
+            /* Offset to align 'New' text (with 30px padding) with 'Product' text */
             width: 1000px;
             background: var(--color-white);
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
@@ -31,11 +37,13 @@
             z-index: 999;
             display: flex;
             min-height: 440px;
-            border-radius: 8px; /* Restoring full rounded corners */
+            border-radius: 8px;
+            /* Restoring full rounded corners */
             overflow: visible;
             pointer-events: none;
-            border: 1px solid rgba(0,0,0,0.05);
-            margin-top: -2px; /* Slight overlap for connectivity */
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: -2px;
+            /* Slight overlap for connectivity */
         }
 
         /* Bridge relative to the Nav Item */
@@ -44,7 +52,8 @@
             position: absolute;
             top: -40px;
             left: -50px;
-            width: 400px; /* Covers the sidebar area + buffer */
+            width: 400px;
+            /* Covers the sidebar area + buffer */
             height: 50px;
             background: transparent;
             z-index: -1;
@@ -58,11 +67,13 @@
 
         /* Sidebar (Left) */
         .vs-mega-sidebar {
-            width: 260px; /* Slightly narrower */
+            width: 260px;
+            /* Slightly narrower */
             background: #f4f6f8;
             border-right: 1px solid #eee;
             padding: 15px 0;
-            border-radius: 8px 0 0 8px; /* Match parent's left corners */
+            border-radius: 8px 0 0 8px;
+            /* Match parent's left corners */
         }
 
         .vs-mega-tab {
@@ -78,10 +89,12 @@
         }
 
         .vs-mega-tab:first-child {
-            border-top-left-radius: 8px; /* Ensure 1st tab doesn't overflow */
+            border-top-left-radius: 8px;
+            /* Ensure 1st tab doesn't overflow */
         }
 
-        .vs-mega-tab:hover, .vs-mega-tab.active {
+        .vs-mega-tab:hover,
+        .vs-mega-tab.active {
             background: var(--color-primary);
             color: var(--color-white);
         }
@@ -96,7 +109,8 @@
             flex: 1;
             padding: 40px 50px;
             background: var(--color-white);
-            border-radius: 0 8px 8px 0; /* Match parent's right corners */
+            border-radius: 0 8px 8px 0;
+            /* Match parent's right corners */
         }
 
         .vs-mega-panel {
@@ -109,8 +123,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .vs-mega-panel h3 {
@@ -182,19 +203,24 @@
             background: var(--color-primary);
             color: var(--color-white);
         }
+
         /* Specialized Menu for Contact Us */
         .vs-mega-menu--contact {
-            width: 480px; /* Narrower to stay on screen */
-            left: -30px; /* Precisely align '加' text (with 30px padding) with '联' */
+            width: 480px;
+            /* Narrower to stay on screen */
+            left: -30px;
+            /* Precisely align '加' text (with 30px padding) with '联' */
             min-height: 280px;
         }
 
         .vs-mega-menu--contact .vs-mega-sidebar {
-            width: 180px; /* Slightly narrower sidebar for consistency */
+            width: 180px;
+            /* Slightly narrower sidebar for consistency */
         }
 
         .vs-mega-menu--contact .vs-mega-grid-v2 {
-            grid-template-columns: 1fr; /* Single column layout for links */
+            grid-template-columns: 1fr;
+            /* Single column layout for links */
         }
     </style>
 </head>
@@ -205,7 +231,8 @@
         <div class="vs-container vs-header__inner">
             <div style="display: flex; align-items: center;">
                 <a href="index.html" class="vs-logo">
-                    <img src="templates/lqgd/images/logo.png" alt="Metachip Logo" style="filter: brightness(0) invert(1);">
+                    <img src="templates/lqgd/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
                     METACHIP
                 </a>
             </div>
@@ -264,15 +291,15 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">氢能源产业链</a></li>
-                                                <li><a href="#">智慧电力安全</a></li>
-                                                <li><a href="#">工业检漏监测</a></li>
+                                                <li><a href="industry-hydrogen.html">氢能源产业链</a></li>
+                                                <li><a href="industry-power-safety.html">智慧电力安全</a></li>
+                                                <li><a href="industry-leak-detection.html">工业检漏监测</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">绿色能源存储</a></li>
-                                                <li><a href="#">大气环境监测</a></li>
+                                                <li><a href="industry-energy-storage.html">绿色能源存储</a></li>
+                                                <li><a href="industry-environment.html">大气环境监测</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -414,10 +441,13 @@
         <!-- Hero for Subpage -->
         <section class="vs-hero" style="height: 60vh; min-height: 400px;">
             <div class="vs-hero__video-bg">
-                <img src="templates/lqgd/images/section2_bj.jpg" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.5);">
+                <img src="templates/lqgd/images/section2_bj.jpg"
+                    style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.5);">
             </div>
             <div class="vs-container" style="position: relative; z-index: 10; color: white; text-align: center;">
-                <span style="display: inline-block; padding: 6px 16px; background: var(--color-accent-orange); font-size: 12px; font-weight: 700; border-radius: 20px; margin-bottom: 24px; letter-spacing: 1px;">METACHIP HYDROGEN</span>
+                <span
+                    style="display: inline-block; padding: 6px 16px; background: var(--color-accent-orange); font-size: 12px; font-weight: 700; border-radius: 20px; margin-bottom: 24px; letter-spacing: 1px;">METACHIP
+                    HYDROGEN</span>
                 <h1 style="font-size: 56px; font-weight: 700; margin-bottom: 20px;">先进氢气传感解决方案</h1>
                 <p style="font-size: 20px; max-width: 850px; margin: 0 auto; opacity: 0.9; font-weight: 300;">
                     深耕碳基电子与 MEMS 传感技术，为全球氢能全产业链提供实时、精准、高可靠的安全监测保障。
@@ -461,7 +491,8 @@
                 <div class="vs-product-grid">
                     <div class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png" alt="H2 Sensor">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png"
+                                alt="H2 Sensor">
                         </div>
                         <div class="vs-card__content">
                             <span class="vs-card__tag">制氢环节</span>
@@ -472,7 +503,8 @@
                     </div>
                     <div class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png" alt="H2 Sensor">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
+                                alt="H2 Sensor">
                         </div>
                         <div class="vs-card__content">
                             <span class="vs-card__tag">储运加注</span>
@@ -483,7 +515,8 @@
                     </div>
                     <div class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png" alt="H2 Sensor">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
+                                alt="H2 Sensor">
                         </div>
                         <div class="vs-card__content">
                             <span class="vs-card__tag">终端应用</span>
