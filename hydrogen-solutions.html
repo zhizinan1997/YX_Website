@@ -9,54 +9,55 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Inficon-style Mega Menu Improvements */
+        /* Compact Inficon-style Mega Menu */
         .vs-header .vs-container, .vs-header__inner, .vs-nav, .vs-nav__list {
             height: 100%;
         }
 
         .vs-nav__item--has-mega {
-            position: static !important;
+            position: relative !important; /* Changed from static to allow relative positioning */
         }
 
         .vs-mega-menu {
             position: absolute;
-            top: calc(var(--header-height) - 1px);
-            left: 0;
-            width: 100%;
+            top: calc(100% - 2px);
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            width: 1000px; /* Constrained width */
             background: var(--color-white);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
             opacity: 0;
             visibility: hidden;
-            transform: translateY(10px);
             transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
             z-index: 999;
-            border-top: 1px solid var(--color-border);
-            display: flex; /* Split layout */
-            min-height: 480px;
+            display: flex;
+            min-height: 440px;
+            border-radius: 8px; /* Rounded corners for floating look */
             overflow: hidden;
             pointer-events: none;
+            border: 1px solid rgba(0,0,0,0.05);
         }
 
         .vs-nav__item--has-mega:hover .vs-mega-menu {
             opacity: 1;
             visibility: visible;
-            transform: translateY(0);
+            transform: translateX(-50%) translateY(0);
             pointer-events: auto;
         }
 
         /* Sidebar (Left) */
         .vs-mega-sidebar {
-            width: 320px;
-            background: #f8f9fa;
-            border-right: 1px solid var(--color-border);
-            padding: 20px 0;
+            width: 260px; /* Slightly narrower */
+            background: #f4f6f8;
+            border-right: 1px solid #eee;
+            padding: 15px 0;
         }
 
         .vs-mega-tab {
-            padding: 16px 40px;
-            font-size: 16px;
+            padding: 14px 30px;
+            font-size: 15px;
             font-weight: 600;
-            color: var(--color-text-main);
+            color: #444;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
@@ -70,15 +71,14 @@
         }
 
         .vs-mega-tab i {
-            font-size: 12px;
-            opacity: 0.5;
+            font-size: 10px;
+            opacity: 0.4;
         }
 
         /* Content Area (Right) */
         .vs-mega-content {
             flex: 1;
-            padding: 48px 60px;
-            position: relative;
+            padding: 40px 50px;
             background: var(--color-white);
         }
 
@@ -92,30 +92,33 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(10px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .vs-mega-panel h3 {
-            font-size: 24px;
+            font-size: 20px;
             color: var(--color-primary);
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             font-weight: 700;
+            border-bottom: 2px solid var(--color-accent-orange);
+            display: inline-block;
+            padding-bottom: 4px;
         }
 
         .vs-mega-grid-v2 {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 40px;
+            gap: 30px;
         }
 
         .vs-mega-sublist-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
-            color: var(--color-accent-blue);
+            color: #888;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
             display: block;
         }
 
@@ -124,36 +127,37 @@
         }
 
         .vs-mega-list-v2 li {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .vs-mega-list-v2 a {
-            font-size: 15px;
-            color: var(--color-text-body);
-            transition: color 0.2s;
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
         }
 
         .vs-mega-list-v2 a:hover {
-            color: var(--color-accent-orange);
-            padding-left: 4px;
+            color: var(--color-accent-blue);
+            padding-left: 5px;
         }
 
-        /* Action Button (Inficon Style) */
+        /* Action Button */
         .vs-mega-action {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 1px solid var(--color-border);
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #eee;
         }
 
         .vs-btn-search {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 32px;
-            border: 2px solid var(--color-primary);
+            gap: 10px;
+            padding: 10px 24px;
+            border: 1px solid var(--color-primary);
             color: var(--color-primary);
-            font-weight: 700;
+            font-weight: 600;
             border-radius: 4px;
+            font-size: 14px;
             transition: all 0.2s;
         }
 
@@ -162,15 +166,16 @@
             color: var(--color-white);
         }
 
-        /* Bridge pseudo-element */
+        /* Bridge pseudo-element: Creates an invisible safety area for diagonal mouse movement */
         .vs-mega-menu::before {
             content: '';
             position: absolute;
-            top: -30px;
-            left: 0;
-            width: 100%;
-            height: 30px;
+            top: -40px; /* Bridge the gap to the header */
+            left: -100px; /* Extend horizontally for diagonal movements */
+            right: -100px;
+            height: 45px;
             background: transparent;
+            z-index: -1;
         }
     </style>
 </head>
@@ -190,7 +195,7 @@
                 <ul class="vs-nav__list">
                     <li class="vs-nav__item vs-nav__item--has-mega">
                         <a href="#" class="vs-nav__link">产品</a>
-                        <!-- Inficon Style Mega Menu -->
+                        <!-- Compact Inficon Style Mega Menu -->
                         <div class="vs-mega-menu">
                             <div class="vs-mega-sidebar">
                                 <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
@@ -230,7 +235,7 @@
                                         </div>
                                     </div>
                                     <div class="vs-mega-action">
-                                        <a href="#" class="vs-btn-search">产品搜索器 <i class="fas fa-search"></i></a>
+                                        <a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a>
                                     </div>
                                 </div>
 
@@ -257,7 +262,7 @@
                                 <!-- Panel: Target -->
                                 <div id="panel-target" class="vs-mega-panel">
                                     <h3>测量对象</h3>
-                                    <div class="vs-mega-grid-v2" style="grid-template-columns: repeat(3, 1fr);">
+                                    <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
                                                 <li><a href="#">氢气 (H2)</a></li>
@@ -270,13 +275,6 @@
                                                 <li><a href="#">油中水含量</a></li>
                                                 <li><a href="#">露点 (Td)</a></li>
                                                 <li><a href="#">压力 (P)</a></li>
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <ul class="vs-mega-list-v2">
-                                                <li><a href="#">氢纯度</a></li>
-                                                <li><a href="#">六氟化硫 (SF6)</a></li>
-                                                <li><a href="#">甲烷 (CH4)</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -341,14 +339,9 @@
 
     <script>
         function showPanel(panelId, tab) {
-            // Remove active class from all tabs
             document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            // Add active class to current tab
             tab.classList.add('active');
-            
-            // Hide all panels
             document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            // Show target panel
             document.getElementById('panel-' + panelId).classList.add('active');
         }
     </script>
@@ -359,7 +352,6 @@
             <div class="vs-hero__video-bg">
                 <img src="templates/lqgd/images/section2_bj.jpg" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.5);">
             </div>
-            <div class="vs-hero__overlay" style="background: linear-gradient(180deg, rgba(0,55,100,0.4) 0%, rgba(0,55,100,0.7) 100%);"></div>
             <div class="vs-container" style="position: relative; z-index: 10; color: white; text-align: center;">
                 <span style="display: inline-block; padding: 6px 16px; background: var(--color-accent-orange); font-size: 12px; font-weight: 700; border-radius: 20px; margin-bottom: 24px; letter-spacing: 1px;">METACHIP HYDROGEN</span>
                 <h1 style="font-size: 56px; font-weight: 700; margin-bottom: 20px;">先进氢气传感解决方案</h1>
@@ -455,7 +447,6 @@
                         湖南省长沙市岳麓区国家大学科技园
                     </p>
                 </div>
-                <!-- Other footer cols simplified for brevity -->
             </div>
             <div class="vs-footer__bottom">
                 <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
