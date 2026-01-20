@@ -399,34 +399,44 @@ img {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #FFC107;
-    /* Amber */
-    color: #003764;
-    /* Brand Navy */
+
+    /* Glassmorphism Style */
+    background: rgba(255, 255, 255, 0.15);
+    /* Semi-transparent white */
+    backdrop-filter: blur(12px);
+    /* Blur effect */
+    -webkit-backdrop-filter: blur(12px);
+    /* Safari support */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    /* Subtle border */
+
+    color: #FFFFFF;
+    /* White text for contrast */
     font-weight: 700;
-    font-size: 18px;
-    /* Slightly refined size */
+    font-size: 24px;
+    /* Slightly refined size *上面一行是两个事业部的文字大小 */
     padding: 18px 40px;
     min-width: 320px;
-    /* Ensure buttons have good width */
     text-decoration: none;
     text-align: center;
     font-family: var(--font-stack);
-    border-radius: 4px;
-    /* Slight rounded corners for modern feel */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+
+    border-radius: 50px;
+    /* Pill shape (Option A) */
+
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 .vs-hero__btn-block:hover {
-    transform: translateY(-2px);
-    /* Lift up effect */
-    background-color: #FFD54F;
-    /* Lighter Amber */
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-    color: #003764;
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.3);
+    /* Brighter on hover */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    color: #FFFFFF;
 }
 
 /* ========================================
@@ -439,7 +449,7 @@ img {
     margin-top: -60px;
     /* 向上重叠 */
     border-top: 4px solid var(--color-accent-blue);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 30px rgba(216, 220, 2, 0.1);
 }
 
 .vs-stats-grid {
