@@ -1,0 +1,872 @@
+/*
+ * Vaisala Style Design System v2.0
+ * 更精准的高保真复刻
+ */
+
+/* ========================================
+   1. Design Tokens (Refined)
+======================================== */
+:root {
+    /* 品牌色 - 更精准的 Vaisala 色板 */
+    --color-primary: #003764;
+    /* Vaisala 官方深蓝 */
+    --color-primary-dark: #002848;
+    /* 页脚深蓝 */
+    --color-accent-blue: #00a1df;
+    /* 亮蓝 (用于链接/图标) */
+    --color-accent-orange: #f37021;
+    /* 品牌橙 (CTA) */
+
+    /* 中性色 */
+    --color-white: #ffffff;
+    --color-off-white: #f8f9fa;
+    /* 极浅灰背景 */
+    --color-border: #e6e6e6;
+    /* 细边框颜色 */
+    --color-text-main: #212121;
+    /* 主要文字 (非纯黑) */
+    --color-text-body: #444444;
+    /* 正文文字 */
+    --color-text-muted: #666666;
+    /* 弱化文字 */
+
+    /* 字体 - 工业风 */
+    --font-stack: "Inter", "Roboto", "Helvetica Neue", "Arial", sans-serif;
+
+    /* 布局 */
+    --container-width: 1320px;
+    /* 更宽的容器 */
+    --header-height: 90px;
+    /* 更大气的导航栏高度 */
+
+    /* 质感 */
+    --radius-xs: 2px;
+    /* 极小的圆角，强调精密 */
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
+    --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   2. Base Styles
+======================================== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-stack);
+    color: var(--color-text-body);
+    background: var(--color-white);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    /* 文字抗锯齿 */
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+/* ========================================
+   3. Utility Classes
+======================================== */
+.vs-container {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 32px;
+}
+
+.vs-section {
+    padding: 100px 0;
+    /* 增加留白 */
+}
+
+.vs-section--gray {
+    background-color: var(--color-off-white);
+}
+
+.vs-title {
+    font-size: 36px;
+    font-weight: 300;
+    /* 细字体标题 */
+    color: var(--color-text-main);
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+}
+
+.vs-text {
+    font-size: 18px;
+    color: var(--color-text-muted);
+    max-width: 800px;
+    margin-bottom: 40px;
+}
+
+/* ========================================
+   4. Header & Navigation (Mega Menu Style)
+======================================== */
+.vs-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--header-height);
+    background: rgba(0, 55, 100, 0.95);
+    /* 深蓝半透明 */
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vs-header__inner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vs-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--color-white);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 1px;
+}
+
+.vs-logo img {
+    height: 48px;
+}
+
+.vs-nav__list {
+    display: flex;
+    gap: 40px;
+    list-style: none;
+}
+
+.vs-nav__item {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.vs-nav__link {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 15px;
+    font-weight: 500;
+    padding: 10px 0;
+    position: relative;
+}
+
+.vs-nav__link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-accent-orange);
+    transition: width 0.3s ease;
+}
+
+.vs-nav__item:hover .vs-nav__link {
+    color: var(--color-white);
+}
+
+.vs-nav__item:hover .vs-nav__link::after {
+    width: 100%;
+}
+
+/* 简单的 Dropdown 模拟 Mega Menu */
+.vs-dropdown {
+    position: absolute;
+    top: 60px;
+    /* 稍微下移 */
+    left: -20px;
+    background: var(--color-white);
+    min-width: 240px;
+    padding: 12px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border-top: 3px solid var(--color-accent-orange);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.vs-nav__item:hover .vs-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.vs-dropdown__link {
+    display: block;
+    padding: 12px 24px;
+    color: var(--color-text-main);
+    font-size: 14px;
+    border-bottom: 1px solid var(--color-off-white);
+}
+
+.vs-dropdown__link:hover {
+    background: var(--color-off-white);
+    color: var(--color-accent-blue);
+    padding-left: 30px;
+    /* 位置移动动效 */
+}
+
+/* ========================================
+   5. Hero Section (Left Aligned)
+======================================== */
+.vs-hero {
+    height: 90vh;
+    min-height: 700px;
+    background-color: var(--color-primary);
+    /* background-image removed for video */
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    /* Ensure video doesn't overflow */
+}
+
+.vs-hero__video-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.vs-hero__video-bg video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 渐变遮罩 - 独立层，确保在视频之上，内容之下 */
+.vs-hero__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            rgba(0, 30, 50, 0.95) 0%,
+            rgba(0, 30, 50, 0.7) 40%,
+            rgba(0, 30, 50, 0.2) 100%);
+    z-index: 1;
+}
+
+.vs-hero__content {
+    position: relative;
+    z-index: 2;
+    color: var(--color-white);
+    max-width: 700px;
+    /* 限制宽度，左侧布局 */
+}
+
+.vs-hero__label {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--color-accent-orange);
+    margin-bottom: 20px;
+}
+
+.vs-hero__title {
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 24px;
+}
+
+.vs-hero__desc {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 48px;
+    font-weight: 300;
+}
+
+.vs-btn-group {
+    display: flex;
+    gap: 20px;
+}
+
+.vs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--radius-xs);
+    /* 锐利圆角 */
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.vs-btn--primary {
+    background: var(--color-accent-orange);
+    color: var(--color-white);
+    border: 2px solid var(--color-accent-orange);
+}
+
+.vs-btn--primary:hover {
+    background: #d65b12;
+    border-color: #d65b12;
+}
+
+.vs-btn--outline {
+    background: transparent;
+    color: var(--color-white);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.vs-btn--outline:hover {
+    border-color: var(--color-white);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ========================================
+   6. Key Stats (Strip Style)
+======================================== */
+.vs-stats-strip {
+    background: var(--color-white);
+    position: relative;
+    z-index: 10;
+    margin-top: -60px;
+    /* 向上重叠 */
+    border-top: 4px solid var(--color-accent-blue);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.vs-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 40px 0;
+}
+
+.vs-stat__item {
+    border-right: 1px solid var(--color-border);
+    padding: 0 40px;
+}
+
+.vs-stat__item:last-child {
+    border-right: none;
+}
+
+.vs-stat__number {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.vs-stat__desc {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ========================================
+   7. Featured Products (Card Grid)
+======================================== */
+.vs-product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.vs-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.vs-card:hover {
+    border-color: var(--color-accent-blue);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-card);
+}
+
+.vs-card__img-wrapper {
+    height: 240px;
+    background: var(--color-off-white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.vs-card__img-wrapper img {
+    max-height: 100%;
+    transition: transform 0.4s ease;
+}
+
+.vs-card:hover .vs-card__img-wrapper img {
+    transform: scale(1.08);
+    /* 悬停缩放 */
+}
+
+.vs-card__content {
+    padding: 32px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.vs-card__tag {
+    color: var(--color-accent-blue);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.vs-card__title {
+    font-size: 20px;
+    color: var(--color-text-main);
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.vs-card__desc {
+    font-size: 15px;
+    color: var(--color-text-muted);
+    margin-bottom: 24px;
+    flex: 1;
+    /* 推到底部 */
+}
+
+.vs-link-arrow {
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vs-link-arrow::after {
+    content: '→';
+    transition: transform 0.2s;
+}
+
+.vs-card:hover .vs-link-arrow {
+    color: var(--color-accent-blue);
+}
+
+.vs-card:hover .vs-link-arrow::after {
+    transform: translateX(5px);
+}
+
+/* ========================================
+   8. Application Areas (Image Overlay)
+======================================== */
+.vs-app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    /* 极细间距 */
+}
+
+.vs-app-item {
+    position: relative;
+    height: 300px;
+    overflow: hidden;
+    background: var(--color-primary);
+}
+
+.vs-app-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+    transition: opacity 0.4s, transform 0.4s;
+}
+
+.vs-app-item:hover img {
+    opacity: 0.3;
+    transform: scale(1.1);
+}
+
+.vs-app-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 32px;
+    transition: transform 0.3s;
+}
+
+.vs-app-title {
+    color: var(--color-white);
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.vs-app-desc {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s;
+}
+
+.vs-app-item:hover .vs-app-desc {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* ========================================
+   9. Footer (Corporate)
+======================================== */
+.vs-footer {
+    background: var(--color-primary-dark);
+    color: var(--color-white);
+    padding: 80px 0 32px;
+    font-size: 14px;
+}
+
+.vs-footer__grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 60px;
+    padding-bottom: 60px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vs-footer__col h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: var(--color-white);
+}
+
+.vs-footer__link {
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 12px;
+}
+
+.vs-footer__link:hover {
+    color: var(--color-white);
+}
+
+.vs-footer__bottom {
+    padding-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ========================================
+   10. Application Areas (Zigzag Layout) - V3.0 Final
+   用户定制：Vaisala 棋盘式全宽布局 (无缝对齐 + 深蓝背景 + 胶囊按钮)
+======================================== */
+.vs-app-zigzag {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: var(--container-width);
+    /* 限制为标准容器宽度 */
+    margin: 0 auto;
+    /* 居中对齐 */
+    padding: 0;
+}
+
+.vs-zigzag-row {
+    display: flex;
+    min-height: 500px;
+    /* 增加高度，展现大图冲击力 */
+    border-bottom: none;
+    /* 移除分隔线，实现无缝对接 */
+}
+
+/* 移除最后一行底边框 */
+.vs-zigzag-row:last-child {
+    border-bottom: none;
+}
+
+.vs-zigzag-row:nth-child(even) {
+    flex-direction: row-reverse;
+}
+
+.vs-zigzag-img {
+    flex: 0 0 50%;
+    max-width: 50%;
+    position: relative;
+    overflow: hidden;
+}
+
+.vs-zigzag-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s ease;
+}
+
+.vs-zigzag-row:hover .vs-zigzag-img img {
+    transform: scale(1.05);
+}
+
+.vs-zigzag-text {
+    flex: 0 0 50%;
+    max-width: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* 居中对齐 */
+    text-align: center;
+    /* 文字居中 */
+    padding: 60px 80px;
+    background-color: var(--color-primary-dark);
+    /* 深蓝背景 */
+    color: var(--color-white);
+    /* 白色文字 */
+    border: none;
+    /* 移除边框 */
+}
+
+/* 偶数行也保持深蓝背景，或者稍微变化色调 */
+.vs-zigzag-row:nth-child(even) .vs-zigzag-text {
+    background-color: #0d3c55;
+    /* 稍微亮一点点的深蓝，形成微弱对比 */
+    border: none;
+}
+
+.vs-zigzag-title {
+    font-size: 36px;
+    font-weight: 500;
+    color: var(--color-white);
+    margin-bottom: 24px;
+    line-height: 1.3;
+    max-width: 600px;
+    letter-spacing: 0;
+}
+
+.vs-zigzag-desc {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    /* 半透明白色 */
+    margin-bottom: 40px;
+    max-width: 500px;
+    font-weight: 300;
+    line-height: 1.6;
+}
+
+/* 胶囊按钮基础样式 */
+.vs-zigzag-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    padding: 0 40px;
+    border-radius: 24px;
+    /* 胶囊圆角 */
+    font-weight: 600;
+    font-size: 15px;
+    color: #1a1a1a;
+    /* 深色文字 */
+    text-transform: none;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    /* 阴影 */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    text-decoration: none;
+}
+
+.vs-zigzag-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.vs-zigzag-link::after {
+    content: none;
+    /* 移除箭头 */
+}
+
+/* 奇数行按钮：橙色 */
+.vs-zigzag-row:nth-child(odd) .vs-zigzag-link {
+    background-color: var(--color-accent-orange);
+    color: var(--color-white);
+}
+
+.vs-zigzag-row:nth-child(odd) .vs-zigzag-link:hover {
+    background-color: #ff7f2a;
+}
+
+/* 偶数行按钮：亮黄色/酸橙绿 (参考图样式) */
+.vs-zigzag-row:nth-child(even) .vs-zigzag-link {
+    background-color: #cddc39;
+    /* 酸橙绿 */
+    color: #003764;
+    /* 深蓝文字 */
+}
+
+.vs-zigzag-row:nth-child(even) .vs-zigzag-link:hover {
+    background-color: #dce775;
+}
+
+@media (max-width: 900px) {
+    .vs-zigzag-row {
+        flex-direction: column;
+    }
+
+    .vs-zigzag-row:nth-child(even) {
+        flex-direction: column;
+    }
+
+    .vs-zigzag-img {
+        height: 300px;
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+
+    .vs-zigzag-text {
+        max-width: 100%;
+        flex: 0 0 100%;
+        padding: 40px 24px;
+        background-color: var(--color-primary-dark) !important;
+        /* 手机端强制深色 */
+    }
+
+    .vs-zigzag-desc {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+}
+
+/* ========================================
+   11. Careers Section (Join Us)
+   用户定制：全宽背景图 + 居中白色大字 + 胶囊按钮
+======================================== */
+.vs-careers {
+    position: relative;
+    height: 600px;
+    background-image: url('../images/careers-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    /* 视差滚动效果 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--color-white);
+}
+
+.vs-careers::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    /* 深色遮罩，保证文字清晰 */
+    z-index: 1;
+}
+
+.vs-careers__content {
+    position: relative;
+    z-index: 2;
+    padding: 0 20px;
+    max-width: 1000px;
+}
+
+.vs-careers__title {
+    font-size: 56px;
+    font-weight: 600;
+    margin-bottom: 40px;
+    line-height: 1.2;
+    letter-spacing: -1px;
+}
+
+.vs-careers .vs-btn {
+    padding: 18px 48px;
+    border-radius: 50px;
+    /* 胶囊按钮 */
+    font-size: 18px;
+    background: #cddc39;
+    /* 酸橙绿 */
+    color: #003764;
+    /* 深蓝文字 */
+    border: none;
+    font-weight: 700;
+}
+
+.vs-careers .vs-btn:hover {
+    background: #dce775;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+    .vs-careers {
+        height: 400px;
+    }
+
+    .vs-careers__title {
+        font-size: 32px;
+    }
+}
+
+/* ========================================
+   12. Product Filter Tabs
+   圆角胶囊切换按钮
+======================================== */
+.vs-filter-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 50px;
+    flex-wrap: wrap;
+}
+
+.vs-filter-btn {
+    padding: 10px 32px;
+    border-radius: 50px;
+    border: 1px solid #e0e0e0;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.vs-filter-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.vs-filter-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+    box-shadow: 0 4px 12px rgba(0, 55, 100, 0.2);
+}
