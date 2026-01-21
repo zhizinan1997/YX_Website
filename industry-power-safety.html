@@ -213,10 +213,10 @@
 
         .vs-industry-panel img {
             width: 100%;
-            height: 350px;
-            object-fit: cover;
+            height: auto;
             border-radius: 8px;
             margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
         }
 
         .vs-industry-panel p {
@@ -340,23 +340,78 @@
         <section class="vs-industry-tabs-section">
             <div class="vs-container">
                 <div class="vs-industry-container">
-                    <div class="vs-industry-sidebar">
-                        <div class="vs-industry-tab active" onclick="switchIndustryTab(0, this)">变压器在线监测</div>
-                        <div class="vs-industry-tab" onclick="switchIndustryTab(1, this)">GIS 设备及 SF6 监控</div>
-                        <div class="vs-industry-tab" onclick="switchIndustryTab(2, this)">电缆及开关柜测温</div>
-                        <div class="vs-industry-tab" onclick="switchIndustryTab(3, this)">数字化配电网</div>
-                    </div>
+
                     <div class="vs-industry-content">
-                        <div class="vs-industry-panel active">
+                        <div class="vs-industry-panel active" style="display: block; margin-bottom: 80px;">
                             <h2>变压器及油中气体在线监测</h2>
-                            <img src="https://images.unsplash.com/photo-1574044111306-69f20e402a78?auto=format&fit=crop&w=1200"
-                                alt="Transformer Monitor">
-                            <p>
-                                变压器是电网的核心设备。元芯传感提供的油中溶解氢在线监测仪，能够实时捕捉变压器内部潜伏性故障产生的特征气体。通过高灵敏度的 MEMS
-                                传感器，我们可以在故障初期实现精准预警，有效避免灾难性事故的发生，延长电力资产的使用寿命。
-                            </p>
+                            <img src="images/fadian.png" alt="Transformer Monitor">
+                            <div class="vs-industry-details" style="margin-top: 40px;">
+                                <style>
+                                    .feature-grid {
+                                        display: grid;
+                                        grid-template-columns: repeat(2, 1fr);
+                                        gap: 20px;
+                                    }
+
+                                    .feature-card {
+                                        background: #f8f9fa;
+                                        border: 1px solid #eee;
+                                        border-radius: 8px;
+                                        padding: 24px;
+                                        transition: transform 0.2s, box-shadow 0.2s;
+                                    }
+
+                                    .feature-card:hover {
+                                        transform: translateY(-2px);
+                                        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+                                        border-color: var(--color-accent-blue);
+                                    }
+
+                                    .feature-card h4 {
+                                        color: var(--color-primary);
+                                        font-size: 18px;
+                                        margin-bottom: 12px;
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 10px;
+                                    }
+
+                                    .feature-card h4 i {
+                                        color: var(--color-accent-orange);
+                                    }
+
+                                    .feature-card p {
+                                        font-size: 14px;
+                                        color: #666;
+                                        line-height: 1.6;
+                                        margin: 0;
+                                    }
+                                </style>
+                                <div class="feature-grid">
+                                    <div class="feature-card">
+                                        <h4><i class="fas fa-bolt"></i> 行业痛点</h4>
+                                        <p>大型油浸式变压器在长期高压、高热环境下，绝缘材料老化是不可逆的风险。传统巡检难以发现内部潜伏性故障，一旦失效将引发电网重大事故。</p>
+                                    </div>
+                                    <div class="feature-card">
+                                        <h4><i class="fas fa-flask"></i> 气生机理</h4>
+                                        <p>当绝缘油或绝缘纸在内部发生微放电或过热时，其碳氢分子链会断裂重组，<strong>氢气 (H2)</strong>
+                                            是最早产生且最敏感的特征气体，被称为故障“晴雨表”。</p>
+                                    </div>
+                                    <div class="feature-card">
+                                        <h4><i class="fas fa-chart-line"></i> 在线智测</h4>
+                                        <p>超越传统人工取样的滞后性，实现 <strong>7*24h
+                                                全天候监测</strong>。通过氢气浓度趋势分析，系统能在故障演变为灾难前数周发出预警，变“被动抢修”为“主动运维”。</p>
+                                    </div>
+                                    <div class="feature-card">
+                                        <h4><i class="fas fa-microchip"></i> 核心科技</h4>
+                                        <p>搭载自主研发的<strong>碳基 MEMS
+                                                芯片</strong>，利用电子能带效应检测氢分子。具备<strong>免维护、长寿命、抗干扰</strong>三大优势，是变压器全生命周期管理的理想之选。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="vs-industry-panel">
+                        <div class="vs-industry-panel active" style="display: block; margin-bottom: 80px;">
                             <h2>GIS 组合电器及 SF6 气体监控</h2>
                             <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200"
                                 alt="GIS Equipment">
@@ -365,7 +420,7 @@
                                 泄漏，确保环境安全，还能通过数字化接口与变电站综合自动化系统无缝对接，实现设备运行状态的全天候掌控。
                             </p>
                         </div>
-                        <div class="vs-industry-panel">
+                        <div class="vs-industry-panel active" style="display: block;">
                             <h2>高压电缆及开关柜智能测温</h2>
                             <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200"
                                 alt="Cable Monitoring">
@@ -373,14 +428,7 @@
                                 电缆接头和开关柜触头是电力系统的易发热点。元芯开发的无线、无源测温系统，彻底解决了高电压环境下的绝缘和取电难题。系统实时监测触点温度，通过智能算法识别异常发热趋势，在造成停电事故前触发预警。
                             </p>
                         </div>
-                        <div class="vs-industry-panel">
-                            <h2>数字化配电网与资产管理</h2>
-                            <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200"
-                                alt="Digital Grid">
-                            <p>
-                                随着新型电力系统的建设，配电网的数字化转型势在必行。元芯传感系列智能传感终端，为配电网提供了丰富的基础数据支撑。通过云平台的资产健康评估模型，电力运营商可以实现从“故障报修”向“主动运维”的跨越。
-                            </p>
-                        </div>
+
                     </div>
                 </div>
             </div>
