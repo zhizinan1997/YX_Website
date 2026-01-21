@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  website:
+    build: .
+    container_name: yx-website
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - SECRET_KEY=your-secret-key-change-in-production
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+    restart: unless-stopped
