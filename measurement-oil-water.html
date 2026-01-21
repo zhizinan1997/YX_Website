@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MEMS 传感器芯片 - 元芯传感</title>
+    <title>油中水含量测量与监测 - 元芯传感</title>
     <link rel="stylesheet" href="templates/lqgd/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -173,81 +173,244 @@
             opacity: 0.5;
         }
 
-        /* Category Hero with Background Image */
-        .vs-category-hero {
-            min-height: 500px;
+        /* Measurement Hero - Vaisala Style */
+        .vs-measurement-hero {
+            min-height: 520px;
             display: flex;
             align-items: center;
             position: relative;
             overflow: hidden;
-            background-size: cover;
-            background-position: center top;
-            background-repeat: no-repeat;
+            background: linear-gradient(135deg, #1a4a6e 0%, #2c7da0 100%);
         }
 
-        .vs-category-hero::before {
-            content: '';
+        .vs-measurement-hero::before {
+            display: none;
+        }
+
+        .vs-measurement-hero__video {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, rgba(0, 55, 100, 0.92) 0%, rgba(0, 55, 100, 0.75) 50%, rgba(0, 55, 100, 0.5) 100%);
+            object-fit: cover;
+            opacity: 0.6;
             z-index: 1;
         }
 
-        .vs-category-hero__content {
-            max-width: 600px;
+        .jjfa-breadcrumb {
+            position: absolute;
+            top: 40px;
+            left: 5%;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 0;
+            z-index: 10;
+            color: white;
+        }
+
+        .jjfa-breadcrumb a {
+            color: white;
+            opacity: 0.8;
+            text-decoration: none;
+        }
+
+        .jjfa-breadcrumb a:hover {
+            opacity: 1;
+        }
+
+        .vs-measurement-hero__content {
+            max-width: 850px;
             color: #fff;
             z-index: 2;
             position: relative;
+            padding-right: 50px;
         }
 
-        .vs-category-hero__title {
-            font-size: 56px;
+        .vs-measurement-hero__subtitle {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 16px;
+        }
+
+        .vs-measurement-hero__title {
+            font-size: 52px;
             font-weight: 700;
             margin-bottom: 24px;
-            line-height: 1.1;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            line-height: 1.15;
         }
 
-        .vs-category-hero__desc {
+        .vs-measurement-hero__desc {
             font-size: 18px;
-            line-height: 1.7;
+            line-height: 1.8;
             opacity: 0.9;
-            margin-bottom: 36px;
         }
 
-        /* Section Title Row */
-        .vs-section-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 48px;
+        /* Content Sections */
+        .vs-content-section {
+            padding: 80px 0;
         }
 
-        .vs-section-title-row h2 {
-            font-size: 32px;
+        .vs-content-section--gray {
+            background: #f7f9fb;
+        }
+
+        .vs-content-section h2 {
+            font-size: 36px;
             font-weight: 300;
-            color: var(--color-text-main);
-        }
-
-        .vs-browse-all {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            font-weight: 600;
             color: var(--color-primary);
-            border: 1px solid var(--color-primary);
-            padding: 10px 20px;
-            border-radius: 30px;
-            transition: all 0.2s;
+            margin-bottom: 24px;
         }
 
-        .vs-browse-all:hover {
-            background: var(--color-primary);
-            color: #fff;
+        .vs-content-section p {
+            font-size: 17px;
+            line-height: 1.9;
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        .vs-content-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .vs-content-section ul li {
+            position: relative;
+            padding-left: 28px;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .vs-content-section ul li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 8px;
+            height: 8px;
+            background: var(--color-accent-orange);
+            border-radius: 50%;
+        }
+
+        /* Two Column Layout */
+        .vs-two-col {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .vs-two-col--reverse {
+            direction: rtl;
+            grid-template-columns: 1fr 1.2fr;
+        }
+
+        .vs-two-col--reverse>* {
+            direction: ltr;
+        }
+
+        .vs-two-col__image {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .vs-two-col__image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Benefits Grid */
+        .vs-benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 50px;
+            margin-top: 60px;
+        }
+
+        .vs-benefit-card {
+            text-align: center;
+            padding: 50px 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .vs-benefit-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 60px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-benefit-card__icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+        }
+
+        .vs-benefit-card__icon--blue {
+            background: linear-gradient(135deg, #00AAE4, #0077BE);
+        }
+
+        .vs-benefit-card__icon--orange {
+            background: linear-gradient(135deg, #F5821F, #E55C00);
+        }
+
+        .vs-benefit-card__icon--green {
+            background: linear-gradient(135deg, #00A88E, #008F7A);
+        }
+
+        /* Expertise Section - Image Left, Text Right */
+        .vs-expertise-section .vs-two-col {
+            grid-template-columns: 1fr 1.2fr;
+        }
+
+        /* Benefits Grid Headers */
+        .vs-benefit-card h4 {
+            font-size: 22px;
+            font-weight: 400;
+            /* Lighter weight like Vaisala */
+            color: var(--color-primary);
+            margin-bottom: 20px;
+        }
+
+        .vs-benefit-card p {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Section Title Centered */
+        .vs-section-title-centered {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .vs-section-title-centered h2 {
+            font-size: 36px;
+            font-weight: 300;
+            color: var(--color-primary);
+            margin-bottom: 16px;
+        }
+
+        .vs-section-title-centered p {
+            font-size: 17px;
+            color: #666;
+            max-width: 700px;
+            margin: 0 auto;
         }
     </style>
 </head>
@@ -309,15 +472,15 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">氢能源产业链</a></li>
-                                                <li><a href="#">智慧电力安全</a></li>
-                                                <li><a href="#">工业检漏监测</a></li>
+                                                <li><a href="industry-hydrogen.html">氢能源产业链</a></li>
+                                                <li><a href="industry-power-safety.html">智慧电力安全</a></li>
+                                                <li><a href="industry-leak-detection.html">工业检漏监测</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">绿色能源存储</a></li>
-                                                <li><a href="#">大气环境监测</a></li>
+                                                <li><a href="industry-energy-storage.html">绿色能源存储</a></li>
+                                                <li><a href="industry-environment.html">大气环境监测</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -336,6 +499,7 @@
                                             <ul class="vs-mega-list-v2">
                                                 <li><a href="measurement-oil-water.html">油中水含量</a></li>
                                                 <li><a href="measurement-dewpoint.html">露点 (Td)</a></li>
+                                                <li><a href="#">压力 (P)</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -403,112 +567,187 @@
     </script>
 
     <main style="padding-top: 90px;">
-        <!-- Breadcrumb -->
-        <div style="background: var(--color-primary);">
-            <div class="vs-container vs-breadcrumb">
-                <a href="index.html">首页</a>
-                <span>|</span>
-                <a href="products.aspx_category_id_0.html">产品</a>
-                <span>|</span>
-                MEMS 传感器芯片
-            </div>
-        </div>
-
-        <!-- Category Hero with Background Image -->
-        <section class="vs-category-hero"
-            style="background-image: url('http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101350333118.png');">
+        <!-- Hero Section -->
+        <section class="vs-measurement-hero">
+            <video class="vs-measurement-hero__video" autoplay muted loop playsinline>
+                <source src="Video/hero-mio-moisture-in-oil-1920x525.mp4" type="video/mp4">
+            </video>
+            <p class="jjfa-breadcrumb">
+                <a href="index.html">首页</a> - <a href="#">测量对象</a> - <span>油中水含量</span>
+            </p>
             <div class="vs-container" style="position: relative; z-index: 2;">
-                <div class="vs-category-hero__content">
-                    <h1 class="vs-category-hero__title">MEMS 传感器芯片</h1>
-                    <p class="vs-category-hero__desc">
-                        元芯传感专注于先进半导体微纳工艺，基于碳基场效应、金属氧化物、催化燃烧等多种技术路线，为全球客户提供高精度、高一致性、高可靠性的MEMS传感核心芯片。
+                <div class="vs-measurement-hero__content">
+                    <h1 class="vs-measurement-hero__title">油中水含量测量与监测</h1>
+                    <p class="vs-measurement-hero__desc">
+                        绝缘油和润滑油中的水分含量是影响设备运行可靠性的关键指标。精准测量油中水含量，可以有效预防变压器绝缘劣化、轴承磨损加剧等问题，延长关键设备的使用寿命，降低维护成本。
                     </p>
-                    <a href="#products" class="vs-btn vs-btn--primary">浏览所有产品</a>
                 </div>
             </div>
         </section>
 
-        <!-- Product Section -->
-        <section class="vs-section" id="products">
+
+        <!-- Expertise Section -->
+        <section class="vs-content-section vs-expertise-section">
             <div class="vs-container">
-                <div class="vs-section-title-row">
-                    <h2>产品</h2>
-                    <a href="products.aspx_category_id_0.html" class="vs-browse-all">
-                        浏览所有产品 <i class="fas fa-arrow-right"></i>
-                    </a>
+                <div class="vs-two-col">
+                    <div class="vs-two-col__image">
+                        <img src="templates/lqgd/images/oil_sensor_tech.png" alt="油中水分测量专业知识">
+                    </div>
+                    <div>
+                        <h2>油中水分测量专业知识</h2>
+                        <p>
+                            经验丰富是元芯的一大优点。拥有多年的气体和油品电容式湿度传感器开发和制造经验，元芯的客户遍及全球。
+                        </p>
+                        <p>
+                            专业是元芯的又一优点。从电力变压器到润滑系统，从航运到纸浆和造纸，元芯服务行业范围广。传感器在我们自己的洁净室中制作而成，我们可靠的技术能实现长期稳定的准确测量。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technology Section -->
+        <section class="vs-content-section vs-content-section--gray">
+            <div class="vs-container">
+                <div class="vs-two-col vs-two-col--reverse">
+                    <div class="vs-two-col__image">
+                        <img src="templates/lqgd/images/oil_sensor_tech.png" alt="油中水传感器">
+                    </div>
+                    <div>
+                        <h2>是什么让我们的油中水测量精确？</h2>
+                        <p>
+                            元芯传感采用先进的薄膜电容技术，直接在油中测量相对饱和度(%RS)，避免了传统方法需要取样、运输、实验室分析的繁琐流程。
+                        </p>
+                        <ul>
+                            <li><strong>在线连续监测</strong> - 无需取样，实时掌握油品状态</li>
+                            <li><strong>高精度传感</strong> - 测量精度可达 ±2% RS，满足高端应用需求</li>
+                            <li><strong>耐油污设计</strong> - 传感器不受油品污染物影响，长期稳定工作</li>
+                            <li><strong>宽温度范围</strong> - 适应 -40°C 到 +180°C 的极端工况</li>
+                            <li><strong>免维护</strong> - 无需耗材或机械部件，降低运维成本</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="vs-content-section vs-content-section--gray">
+            <div class="vs-container">
+                <div class="vs-section-title-centered">
+                    <h2>获得收益</h2>
+                </div>
+
+                <div class="vs-benefits-grid">
+                    <div class="vs-benefit-card">
+                        <div class="vs-benefit-card__icon vs-benefit-card__icon--blue">
+                            <i class="fas fa-check-shield"></i>
+                        </div>
+                        <h4>可靠性</h4>
+                        <p style="text-align: left;">在快速变化的条件下准确测量水饱和度和 PPM。<br>所有设备均接受校准，并可现场校准。<br>变送器中无移动部件。</p>
+                    </div>
+                    <div class="vs-benefit-card">
+                        <div class="vs-benefit-card__icon vs-benefit-card__icon--orange">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h4>长期稳定性</h4>
+                        <p style="text-align: left;">薄膜聚合物传感器设计可抵御污染，并且仅对水分具有高度选择性。<br>电容技术提供长期稳定的测量。<br>对油中的添加剂和污染物不敏感。
+                        </p>
+                    </div>
+                    <div class="vs-benefit-card">
+                        <div class="vs-benefit-card__icon vs-benefit-card__icon--green">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <h4>快速响应</h4>
+                        <p style="text-align: left;">可现场实时测量油中水分的实际相对饱和度 (%RS)。<br>无需对水分进行采样和实验室分析。<br>即使在变压器通电的情况下也可安装。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Related Products -->
+        <section class="vs-content-section vs-content-section--gray">
+            <div class="vs-container">
+                <div class="vs-section-title-centered">
+                    <h2>相关产品</h2>
+                    <p>覆盖从传感芯片到在线监测系统的完整油中水检测产品线</p>
                 </div>
 
                 <div class="vs-product-grid">
                     <!-- Product 1 -->
-                    <a href="products_show.aspx_id_70.html" class="vs-card">
+                    <a href="#" class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101350333118.png"
-                                alt="氢气检测探头">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
+                                alt="油中水传感模块">
                         </div>
                         <div class="vs-card__content">
-                            <span class="vs-card__tag">氢气传感</span>
-                            <h3 class="vs-card__title">氢气检测探头</h3>
-                            <p class="vs-card__desc">搭载碳基场效应传感器芯片，采用标准半导体微纳工艺制造，具有极高的灵敏度与稳定性。</p>
-                            <span class="vs-link-arrow">了解详情</span>
+                            <span class="vs-card__tag">传感模组</span>
+                            <h3 class="vs-card__title">油中水传感模块</h3>
+                            <p class="vs-card__desc">高精度油中水分测量模块，支持多种输出接口，适用于OEM集成</p>
+                            <span class="vs-link-arrow">了解更多</span>
                         </div>
                     </a>
 
                     <!-- Product 2 -->
-                    <a href="products_show.aspx_id_73.html" class="vs-card">
+                    <a href="#" class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191120311735.png"
-                                alt="MCHM-1.0型氢气传感器">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240905459196.png"
+                                alt="便携式油中水检测仪">
                         </div>
                         <div class="vs-card__content">
-                            <span class="vs-card__tag">氢气传感</span>
-                            <h3 class="vs-card__title">MCHM-1.0型氢气传感器</h3>
-                            <p class="vs-card__desc">金属氧化物半导体材料，对氢气特异性强，适用于低成本、多场景的氢气监测应用。</p>
-                            <span class="vs-link-arrow">了解详情</span>
+                            <span class="vs-card__tag">手持设备</span>
+                            <h3 class="vs-card__title">便携式油中水检测仪</h3>
+                            <p class="vs-card__desc">现场快速检测油品水分含量，操作简便，结果准确</p>
+                            <span class="vs-link-arrow">了解更多</span>
                         </div>
                     </a>
 
                     <!-- Product 3 -->
-                    <a href="products_show.aspx_id_72.html" class="vs-card">
+                    <a href="#" class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191122589747.png"
-                                alt="催化燃烧型氢气传感器">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240906128294.png"
+                                alt="在线油中水监测系统">
                         </div>
                         <div class="vs-card__content">
-                            <span class="vs-card__tag">催化燃烧</span>
-                            <h3 class="vs-card__title">催化燃烧型氢气传感器</h3>
-                            <p class="vs-card__desc">基于催化燃烧原理，响应速度快，重现性好，具有优秀的长寿命与线性度特性。</p>
-                            <span class="vs-link-arrow">了解详情</span>
+                            <span class="vs-card__tag">在线系统</span>
+                            <h3 class="vs-card__title">在线油中水监测系统</h3>
+                            <p class="vs-card__desc">24小时连续监测，数据远程传输，支持预警阈值设置</p>
+                            <span class="vs-link-arrow">了解更多</span>
                         </div>
                     </a>
 
                     <!-- Product 4 -->
-                    <a href="products_show.aspx_id_57.html" class="vs-card">
+                    <a href="#" class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101350160649.png"
-                                alt="钯合金薄膜氢气传感器">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
+                                alt="变压器油状态监测系统">
                         </div>
                         <div class="vs-card__content">
-                            <span class="vs-card__tag">薄膜工艺</span>
-                            <h3 class="vs-card__title">钯合金薄膜氢气传感器</h3>
-                            <p class="vs-card__desc">专有合金薄膜工艺，对氢气具有强特异性，不受环境干扰气体影响，选择性极佳。</p>
-                            <span class="vs-link-arrow">了解详情</span>
-                        </div>
-                    </a>
-
-                    <!-- Product 5 -->
-                    <a href="products_show.aspx_id_71.html" class="vs-card">
-                        <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101351152977.png"
-                                alt="碳基场效应型氢气传感器">
-                        </div>
-                        <div class="vs-card__content">
-                            <span class="vs-card__tag">碳基场效应</span>
-                            <h3 class="vs-card__title">碳基场效应型氢气传感器</h3>
-                            <p class="vs-card__desc">集成度高的半导体微纳工艺芯片，适配多种封装，可在无氧工况下稳定运行。</p>
-                            <span class="vs-link-arrow">了解详情</span>
+                            <span class="vs-card__tag">综合系统</span>
+                            <h3 class="vs-card__title">变压器油状态监测系统</h3>
+                            <p class="vs-card__desc">集成水分、氢气、温度等多参数监测，全面掌握变压器健康状态</p>
+                            <span class="vs-link-arrow">了解更多</span>
                         </div>
                     </a>
                 </div>
+
+                <div style="text-align: center; margin-top: 60px;">
+                    <a href="products.aspx_category_id_0.html" class="vs-btn vs-btn--primary">查看全部产品</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section
+            style="background: linear-gradient(135deg, #1a4a6e 0%, #2c7da0 100%); padding: 80px 0; color: white; text-align: center;">
+            <div class="vs-container">
+                <h2 style="font-size: 36px; font-weight: 300; margin-bottom: 20px;">需要油中水监测解决方案？</h2>
+                <p
+                    style="font-size: 18px; opacity: 0.9; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    我们的技术团队将根据您的具体应用场景，为您推荐最适合的产品与方案
+                </p>
+                <a href="contact.aspx_page_contact.html" class="vs-btn vs-btn--primary"
+                    style="background: white; color: var(--color-primary);">联系我们</a>
             </div>
         </section>
     </main>
