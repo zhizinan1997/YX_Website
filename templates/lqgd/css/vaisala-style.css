@@ -1154,6 +1154,25 @@ img {
     grid-template-columns: 1fr;
 }
 
+/* Fix for News Mega Menu overflow */
+.vs-mega-menu--news {
+    width: 650px;
+    /* Slightly wider to accommodate content comfortably */
+    min-height: auto;
+    left: -20px;
+    /* Left align with parent nav item */
+    right: auto;
+}
+
+.vs-mega-menu--news .vs-mega-sidebar {
+    width: 180px;
+}
+
+.vs-mega-menu--news .vs-mega-content {
+    padding: 30px;
+    flex: 1;
+}
+
 /* ========================================
    14. Hero V2 (Industry Specific Layout)
 ======================================== */

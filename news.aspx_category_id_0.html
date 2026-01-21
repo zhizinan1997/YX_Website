@@ -935,6 +935,16 @@
                     filterAndPaginate(false);
                 });
             });
+
+            // Handle URL Hash for direct linking to categories
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const targetBtn = document.querySelector(`#categoryTabs .vs-filter-btn[data-category="${hash}"]`);
+                if (targetBtn) {
+                    // Slight delay to ensure DOM is ready and visual transition feels right
+                    setTimeout(() => targetBtn.click(), 100);
+                }
+            }
         });
     </script>
 </body>
