@@ -224,6 +224,29 @@
             line-height: 1.8;
             color: #555;
         }
+
+        /* Hero Enlargement */
+        .vs-hero-v2 {
+            height: 75vh;
+            min-height: 600px;
+        }
+
+        .vs-hero-v2__bg::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 31, 63, 0) 0%, rgba(0, 31, 63, 0.2) 100%);
+            z-index: 2;
+        }
+
+        .vs-hero-v2__title {
+            font-size: 56px;
+            font-weight: 700;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 
@@ -313,8 +336,7 @@
     <main style="padding-top: 90px;">
         <section class="vs-hero-v2">
             <div class="vs-hero-v2__bg">
-                <img src="https://images.unsplash.com/photo-1509391366360-fe5bb58583bb?auto=format&fit=crop&w=1920"
-                    alt="Energy Storage">
+                <img src="images/green.jpeg" alt="Energy Storage">
             </div>
             <div class="vs-hero-v2__breadcrumbs">
                 <a href="index.html">首页</a> / <a>行业分类</a> / <span>绿色能源存储</span>
@@ -346,11 +368,14 @@
                         </div>
                         <div class="vs-industry-panel">
                             <h2>大规模储能站环境综合管控</h2>
-                            <img src="https://images.unsplash.com/photo-1569000100714-3d02677b63f2?auto=format&fit=crop&w=1200"
-                                alt="Storage Station">
+                            <img src="images/2.png" alt="Storage Station">
                             <p>
-                                针对集装箱式储能站，我们提供涵盖温湿度、氢气浓度、烟雾及水浸的多维度传感终端。所有数据通过数字化总线上传至 EMS
-                                系统。通过智能化的环控算法方案，系统可联动排风和空调设备，确保储能柜始终运行在最佳温湿度窗口。
+                                面向兆瓦级集装箱储能站与工商业储能柜，元芯传感打造了全空间环境感知网。方案核心部署 <strong>MC-H2-Pro
+                                    复合气体探测器</strong>（集成H2/CO/VOCs检测），精准安装于<strong>电池簇顶部易积聚区</strong>及<strong>通风死角</strong>，配合安装于<strong>舱顶</strong>的
+                                <strong>MC-THS 智能温湿度传感终端</strong>。
+                                <br><br>
+                                该系统基于元芯独有的碳基芯片技术，具备抗硅中毒与长寿命优势，能在热失控早期的不可见烟阶段（Off-gas Release）主要特征气体析出时即刻报警。通过与 EMS
+                                本地控制器的毫秒级联动，自动触发一级排风与二级消防抑制，将事故风险“扼杀于摇篮”，为大规模储能资产构建一道不可逾越的安全防火墙。
                             </p>
                         </div>
                         <div class="vs-industry-panel">
