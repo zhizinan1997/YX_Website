@@ -37,11 +37,14 @@
             <nav class="vs-nav">
                 <ul class="vs-nav__list">
                     <li class="vs-nav__item vs-nav__item--has-mega">
-                        <a href="#" class="vs-nav__link">产品</a>
+                        <a href="products.aspx_category_id_0.html" class="vs-nav__link">产品</a>
                         <div class="vs-mega-menu">
                             <div class="vs-mega-sidebar">
                                 <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
                                     新品推荐 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    产品种类 <i class="fas fa-chevron-right"></i>
                                 </div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
                                     行业分类 <i class="fas fa-chevron-right"></i>
@@ -51,6 +54,23 @@
                                 </div>
                             </div>
                             <div class="vs-mega-content">
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>产品种类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="products_mems.html">MEMS 传感器芯片</a></li>
+                                                <li><a href="#">高集成封装模组</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">智能手持终端设备</a></li>
+                                                <li><a href="#">在线监测分析系统</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div id="panel-industry" class="vs-mega-panel">
                                     <h3>行业分类</h3>
                                     <div class="vs-mega-grid-v2">
@@ -96,9 +116,8 @@
 
 
                 <li><a class="" href="products.aspx_category_id_38.html" title="生物传感">生物传感</a></li>
-
                 <li><a class="" href="products.aspx_category_id_37.html" title="气体传感">气体传感</a></li>
-
+                <li><a class="" href="products_mems.html" title="MEMS 传感器芯片">MEMS 传感器芯片</a></li>
                 <li><a class="" href="products.aspx_category_id_36.html" title="OEM产品">OEM产品</a></li>
 
 

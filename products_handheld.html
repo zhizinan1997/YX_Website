@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>先进氢气传感解决方案 - 元芯传感</title>
+    <title>智能手持终端设备 - 元芯传感</title>
     <link rel="stylesheet" href="templates/lqgd/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -19,15 +19,12 @@
 
         .vs-nav__item--has-mega {
             position: relative !important;
-            /* Anchored for vertical alignment */
         }
 
         .vs-mega-menu {
             position: absolute;
             top: 100%;
-            /* Directly below the nav item */
             left: -30px;
-            /* Offset to align 'New' text (with 30px padding) with 'Product' text */
             width: 1000px;
             background: var(--color-white);
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
@@ -38,22 +35,18 @@
             display: flex;
             min-height: 440px;
             border-radius: 8px;
-            /* Restoring full rounded corners */
             overflow: visible;
             pointer-events: none;
             border: 1px solid rgba(0, 0, 0, 0.05);
             margin-top: -2px;
-            /* Slight overlap for connectivity */
         }
 
-        /* Bridge relative to the Nav Item */
         .vs-mega-menu::before {
             content: '';
             position: absolute;
             top: -40px;
             left: -50px;
             width: 400px;
-            /* Covers the sidebar area + buffer */
             height: 50px;
             background: transparent;
             z-index: -1;
@@ -65,15 +58,12 @@
             pointer-events: auto;
         }
 
-        /* Sidebar (Left) */
         .vs-mega-sidebar {
             width: 260px;
-            /* Slightly narrower */
             background: #f4f6f8;
             border-right: 1px solid #eee;
             padding: 15px 0;
             border-radius: 8px 0 0 8px;
-            /* Match parent's left corners */
         }
 
         .vs-mega-tab {
@@ -88,11 +78,6 @@
             justify-content: space-between;
         }
 
-        .vs-mega-tab:first-child {
-            border-top-left-radius: 8px;
-            /* Ensure 1st tab doesn't overflow */
-        }
-
         .vs-mega-tab:hover,
         .vs-mega-tab.active {
             background: var(--color-primary);
@@ -104,13 +89,11 @@
             opacity: 0.4;
         }
 
-        /* Content Area (Right) */
         .vs-mega-content {
             flex: 1;
             padding: 40px 50px;
             background: var(--color-white);
             border-radius: 0 8px 8px 0;
-            /* Match parent's right corners */
         }
 
         .vs-mega-panel {
@@ -150,16 +133,6 @@
             gap: 30px;
         }
 
-        .vs-mega-sublist-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 15px;
-            display: block;
-        }
-
         .vs-mega-list-v2 {
             list-style: none;
         }
@@ -179,48 +152,102 @@
             padding-left: 5px;
         }
 
-        /* Action Button */
-        .vs-mega-action {
-            margin-top: 30px;
-            padding-top: 25px;
-            border-top: 1px solid #eee;
+        /* Breadcrumb */
+        .vs-breadcrumb {
+            padding: 12px 0;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .vs-btn-search {
+        .vs-breadcrumb a {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .vs-breadcrumb a:hover {
+            color: #fff;
+        }
+
+        .vs-breadcrumb span {
+            margin: 0 8px;
+            opacity: 0.5;
+        }
+
+        /* Category Hero with Background Image */
+        .vs-category-hero {
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center top;
+            background-repeat: no-repeat;
+        }
+
+        .vs-category-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(0, 55, 100, 0.92) 0%, rgba(0, 55, 100, 0.75) 50%, rgba(0, 55, 100, 0.5) 100%);
+            z-index: 1;
+        }
+
+        .vs-category-hero__content {
+            max-width: 600px;
+            color: #fff;
+            z-index: 2;
+            position: relative;
+        }
+
+        .vs-category-hero__title {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            line-height: 1.1;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .vs-category-hero__desc {
+            font-size: 18px;
+            line-height: 1.7;
+            opacity: 0.9;
+            margin-bottom: 36px;
+        }
+
+        /* Section Title Row */
+        .vs-section-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 48px;
+        }
+
+        .vs-section-title-row h2 {
+            font-size: 32px;
+            font-weight: 300;
+            color: var(--color-text-main);
+        }
+
+        .vs-browse-all {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 24px;
-            border: 1px solid var(--color-primary);
-            color: var(--color-primary);
-            font-weight: 600;
-            border-radius: 4px;
+            gap: 8px;
             font-size: 14px;
+            font-weight: 600;
+            color: var(--color-primary);
+            border: 1px solid var(--color-primary);
+            padding: 10px 20px;
+            border-radius: 30px;
             transition: all 0.2s;
         }
 
-        .vs-btn-search:hover {
+        .vs-browse-all:hover {
             background: var(--color-primary);
-            color: var(--color-white);
-        }
-
-        /* Specialized Menu for Contact Us */
-        .vs-mega-menu--contact {
-            width: 480px;
-            /* Narrower to stay on screen */
-            left: -30px;
-            /* Precisely align '加' text (with 30px padding) with '联' */
-            min-height: 280px;
-        }
-
-        .vs-mega-menu--contact .vs-mega-sidebar {
-            width: 180px;
-            /* Slightly narrower sidebar for consistency */
-        }
-
-        .vs-mega-menu--contact .vs-mega-grid-v2 {
-            grid-template-columns: 1fr;
-            /* Single column layout for links */
+            color: #fff;
         }
     </style>
 </head>
@@ -240,8 +267,7 @@
             <nav class="vs-nav">
                 <ul class="vs-nav__list">
                     <li class="vs-nav__item vs-nav__item--has-mega">
-                        <a href="#" class="vs-nav__link">产品</a>
-                        <!-- Compact Inficon Style Mega Menu -->
+                        <a href="products.aspx_category_id_0.html" class="vs-nav__link">产品</a>
                         <div class="vs-mega-menu">
                             <div class="vs-mega-sidebar">
                                 <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
@@ -261,51 +287,41 @@
                                 </div>
                             </div>
                             <div class="vs-mega-content">
-                                <!-- Panel: New -->
                                 <div id="panel-new" class="vs-mega-panel active">
                                     <h3>新品推荐</h3>
                                     <div class="vs-mega-grid-v2">
                                         <div>
-                                            <span class="vs-mega-sublist-title">最新发布</span>
                                             <ul class="vs-mega-list-v2">
                                                 <li><a href="#">LD-H2-Gen5 第五代氢气传感器</a></li>
                                                 <li><a href="#">车载高集成氢气安全监测模组</a></li>
                                             </ul>
                                         </div>
                                         <div>
-                                            <span class="vs-mega-sublist-title">应用领域</span>
                                             <ul class="vs-mega-list-v2">
                                                 <li><a href="#">加氢站安全监测</a></li>
                                                 <li><a href="#">燃料电池车辆</a></li>
                                             </ul>
                                         </div>
                                     </div>
-                                    <div class="vs-mega-action">
-                                        <a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a>
-                                    </div>
                                 </div>
-
-                                <!-- Panel: Industry -->
                                 <div id="panel-industry" class="vs-mega-panel">
                                     <h3>行业分类</h3>
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="industry-hydrogen.html">氢能源产业链</a></li>
-                                                <li><a href="industry-power-safety.html">智慧电力安全</a></li>
-                                                <li><a href="industry-leak-detection.html">工业检漏监测</a></li>
+                                                <li><a href="#">氢能源产业链</a></li>
+                                                <li><a href="#">智慧电力安全</a></li>
+                                                <li><a href="#">工业检漏监测</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="industry-energy-storage.html">绿色能源存储</a></li>
-                                                <li><a href="industry-environment.html">大气环境监测</a></li>
+                                                <li><a href="#">绿色能源存储</a></li>
+                                                <li><a href="#">大气环境监测</a></li>
                                             </ul>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Panel: Target -->
                                 <div id="panel-target" class="vs-mega-panel">
                                     <h3>测量对象</h3>
                                     <div class="vs-mega-grid-v2">
@@ -320,13 +336,10 @@
                                             <ul class="vs-mega-list-v2">
                                                 <li><a href="#">油中水含量</a></li>
                                                 <li><a href="#">露点 (Td)</a></li>
-                                                <li><a href="#">压力 (P)</a></li>
                                             </ul>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Panel: Type -->
                                 <div id="panel-type" class="vs-mega-panel">
                                     <h3>产品种类</h3>
                                     <div class="vs-mega-grid-v2">
@@ -344,8 +357,6 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Panel: List -->
                                 <div id="panel-list" class="vs-mega-panel">
                                     <h3>产品列表</h3>
                                     <div class="vs-mega-grid-v2">
@@ -368,49 +379,10 @@
                             </div>
                         </div>
                     </li>
-                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">解决方案</a></li>
-                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">服务案例</a></li>
-                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">公司简介</a></li>
-                    <li class="vs-nav__item"><a href="#" class="vs-nav__link">线上店铺</a></li>
-                    <li class="vs-nav__item vs-nav__item--has-mega">
-                        <a href="contact.aspx_page_contact.html" class="vs-nav__link">联系我们</a>
-                        <div class="vs-mega-menu vs-mega-menu--contact">
-                            <div class="vs-mega-sidebar">
-                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
-                                    加入我们 <i class="fas fa-chevron-right"></i>
-                                </div>
-                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
-                                    联系方式 <i class="fas fa-chevron-right"></i>
-                                </div>
-                            </div>
-                            <div class="vs-mega-content">
-                                <!-- Panel: Join -->
-                                <div id="panel-contact-join" class="vs-mega-panel active">
-                                    <h3>加入我们</h3>
-                                    <div class="vs-mega-grid-v2">
-                                        <ul class="vs-mega-list-v2">
-                                            <li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li>
-                                            <li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li>
-                                            <li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li>
-                                            <li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <!-- Panel: Contact -->
-                                <div id="panel-contact-contact" class="vs-mega-panel">
-                                    <h3>联系方式</h3>
-                                    <div class="vs-mega-grid-v2">
-                                        <ul class="vs-mega-list-v2">
-                                            <li><a href="contact.aspx_page_contact.html">联系我们</a></li>
-                                            <li><a href="feedbook.aspx.html">在线留言</a></li>
-                                            <li><a href="contact.aspx_page_contact.html">联系电话</a></li>
-                                            <li><a href="contact.aspx_page_contact.html">公司邮箱</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
+                    <li class="vs-nav__item"><a href="hydrogen-solutions.html" class="vs-nav__link">解决方案</a></li>
+                    <li class="vs-nav__item"><a href="news.aspx_category_id_0.html" class="vs-nav__link">洞察与资讯</a></li>
+                    <li class="vs-nav__item"><a href="about.aspx_page_about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="contact.aspx_page_contact.html" class="vs-nav__link">联系我们</a></li>
                 </ul>
             </nav>
 
@@ -428,103 +400,130 @@
             document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
             document.getElementById('panel-' + panelId).classList.add('active');
         }
-        function showPanelContact(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-contact-' + panelId).classList.add('active');
-        }
     </script>
 
     <main style="padding-top: 90px;">
-        <!-- Hero for Subpage -->
-        <section class="vs-hero" style="height: 60vh; min-height: 400px;">
-            <div class="vs-hero__video-bg">
-                <img src="templates/lqgd/images/section2_bj.jpg"
-                    style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.5);">
-            </div>
-            <div class="vs-container" style="position: relative; z-index: 10; color: white; text-align: center;">
-                <span
-                    style="display: inline-block; padding: 6px 16px; background: var(--color-accent-orange); font-size: 12px; font-weight: 700; border-radius: 20px; margin-bottom: 24px; letter-spacing: 1px;">METACHIP
-                    HYDROGEN</span>
-                <h1 style="font-size: 56px; font-weight: 700; margin-bottom: 20px;">先进氢气传感解决方案</h1>
-                <p style="font-size: 20px; max-width: 850px; margin: 0 auto; opacity: 0.9; font-weight: 300;">
-                    深耕碳基电子与 MEMS 传感技术，为全球氢能全产业链提供实时、精准、高可靠的安全监测保障。
-                </p>
-            </div>
-        </section>
-
-        <!-- Stats Strip -->
-        <div class="vs-container">
-            <div class="vs-stats-strip" style="margin-top: -40px;">
-                <div class="vs-stats-grid">
-                    <div class="vs-stat__item">
-                        <div class="vs-stat__number">0.1<span style="font-size: 20px">%</span></div>
-                        <div class="vs-stat__desc">检测下限</div>
-                    </div>
-                    <div class="vs-stat__item">
-                        <div class="vs-stat__number">&lt;1<span style="font-size: 20px">s</span></div>
-                        <div class="vs-stat__desc">响应时间</div>
-                    </div>
-                    <div class="vs-stat__item">
-                        <div class="vs-stat__number">10<span style="font-size: 20px">年+</span></div>
-                        <div class="vs-stat__desc">设计寿命</div>
-                    </div>
-                    <div class="vs-stat__item">
-                        <div class="vs-stat__number">IP67</div>
-                        <div class="vs-stat__desc">防护等级</div>
-                    </div>
-                </div>
+        <!-- Breadcrumb -->
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="index.html">首页</a>
+                <span>|</span>
+                <a href="products.aspx_category_id_0.html">产品</a>
+                <span>|</span>
+                智能手持终端设备
             </div>
         </div>
 
-        <section class="vs-section">
-            <div class="vs-container">
-                <div style="text-align: center; margin-bottom: 80px;">
-                    <h2 class="vs-title">全产业链覆盖</h2>
-                    <p class="vs-text" style="margin: 0 auto;">
-                        元芯传感针对制氢、储运、加注及终端应用等不同环节的需求，提供定制化的传感技术支持。
+        <!-- Category Hero with Background Image -->
+        <section class="vs-category-hero"
+            style="background-image: url('https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240903418674.png');">
+            <div class="vs-container" style="position: relative; z-index: 2;">
+                <div class="vs-category-hero__content">
+                    <h1 class="vs-category-hero__title">智能手持终端设备</h1>
+                    <p class="vs-category-hero__desc">
+                        元芯传感智能手持终端设备系列，集成先进传感技术与便携设计，实现现场快速检测。操作简便、响应迅速，广泛应用于氢能安全、生物医疗、环境监测等多个领域，为用户提供高效可靠的移动检测解决方案。
                     </p>
+                    <a href="#products" class="vs-btn vs-btn--primary">浏览所有产品</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Section -->
+        <section class="vs-section" id="products">
+            <div class="vs-container">
+                <div class="vs-section-title-row">
+                    <h2>产品</h2>
+                    <a href="products.aspx_category_id_0.html" class="vs-browse-all">
+                        浏览所有产品 <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
 
                 <div class="vs-product-grid">
-                    <div class="vs-card">
+                    <!-- Product 1: 便携式手持生物检测仪 -->
+                    <a href="products_show.aspx_id_86.html" class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png"
-                                alt="H2 Sensor">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240903418674.png"
+                                alt="便携式手持生物检测仪">
                         </div>
                         <div class="vs-card__content">
-                            <span class="vs-card__tag">制氢环节</span>
-                            <h3 class="vs-card__title">高纯氢在线分析仪</h3>
-                            <p class="vs-card__desc">实时监测氢气纯度及微量杂质，确保制氢工艺稳定。支持多组分并行分析。</p>
+                            <span class="vs-card__tag">生物传感</span>
+                            <h3 class="vs-card__title">便携式手持生物检测仪</h3>
+                            <p class="vs-card__desc">具备纳安级电流测量精度，专为微弱电流信号便捷测量设计，支持手持实时查看测试情况，应用于现场检测疾病标志物与偏远地区综合生化分析。
+                            </p>
                             <span class="vs-link-arrow">了解详情</span>
                         </div>
-                    </div>
-                    <div class="vs-card">
+                    </a>
+
+                    <!-- Product 2: LD-H2型氢气检测仪 -->
+                    <a href="products_show.aspx_id_70.html" class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
-                                alt="H2 Sensor">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240905459196.png"
+                                alt="LD-H2型氢气检测仪">
                         </div>
                         <div class="vs-card__content">
-                            <span class="vs-card__tag">储运加注</span>
-                            <h3 class="vs-card__title">防爆型氢气检测器</h3>
-                            <p class="vs-card__desc">专为加氢站、储氢罐区设计的工业级防爆设备，支持 4-20mA/RS485 输出。</p>
+                            <span class="vs-card__tag">氢气检测</span>
+                            <h3 class="vs-card__title">LD-H2型氢气检测仪</h3>
+                            <p class="vs-card__desc">搭载高性能氢气传感器，响应速度快、动态范围宽、测量精度高，低功耗设计续航长，广泛应用于氢能源汽车、氢气供给站、制氢储氢场景。</p>
                             <span class="vs-link-arrow">了解详情</span>
                         </div>
-                    </div>
-                    <div class="vs-card">
+                    </a>
+
+                    <!-- Product 3: 碳基离子检测仪 -->
+                    <a href="#" class="vs-card">
                         <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
-                                alt="H2 Sensor">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240904506437.png"
+                                alt="碳基离子检测仪">
                         </div>
                         <div class="vs-card__content">
-                            <span class="vs-card__tag">终端应用</span>
-                            <h3 class="vs-card__title">车载氢泄漏模组</h3>
-                            <p class="vs-card__desc">符合车规级标准，快速响应燃料电池系统内的氢气泄漏，保障行车安全。</p>
+                            <span class="vs-card__tag">离子检测</span>
+                            <h3 class="vs-card__title">碳基离子检测仪</h3>
+                            <p class="vs-card__desc">便携式现场实时分析设备，采用离子选择性电极技术，快速实现钠、钾、铅、氢离子等多种离子检测，应用于环境监测、食品安全、水质检测等领域。
+                            </p>
                             <span class="vs-link-arrow">了解详情</span>
                         </div>
-                    </div>
+                    </a>
+
+                    <!-- Product 4: MC-WD穿戴式氢气报警器 -->
+                    <a href="#" class="vs-card">
+                        <div class="vs-card__img-wrapper">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240906128294.png"
+                                alt="MC-WD穿戴式氢气报警器">
+                        </div>
+                        <div class="vs-card__content">
+                            <span class="vs-card__tag">氢气监测</span>
+                            <h3 class="vs-card__title">MC-WD穿戴式氢气报警器</h3>
+                            <p class="vs-card__desc">体积小巧、机身轻便的便携性氢气浓度报警装备，24小时监测身周氢气浓度，声光震三重预警，有效守护人员与财产安全。</p>
+                            <span class="vs-link-arrow">了解详情</span>
+                        </div>
+                    </a>
+
+                    <!-- Product 5: MC-TD-01型氮氢示踪检漏仪 -->
+                    <a href="#" class="vs-card">
+                        <div class="vs-card__img-wrapper">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240907028753.png"
+                                alt="MC-TD-01型氮氢示踪检漏仪">
+                        </div>
+                        <div class="vs-card__content">
+                            <span class="vs-card__tag">工业检漏</span>
+                            <h3 class="vs-card__title">MC-TD-01型氮氢示踪检漏仪</h3>
+                            <p class="vs-card__desc">采用低成本绿色环保的氮氢混合气体为示踪气体，响应速度快，漏孔尺寸检测范围宽，满足多种工业场景下生产与检修的检漏需求。</p>
+                            <span class="vs-link-arrow">了解详情</span>
+                        </div>
+                    </a>
+
+                    <!-- Product 6: 便携式血钾检测芯片 -->
+                    <a href="#" class="vs-card">
+                        <div class="vs-card__img-wrapper">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240904209099.png"
+                                alt="便携式血钾检测芯片">
+                        </div>
+                        <div class="vs-card__content">
+                            <span class="vs-card__tag">生物医疗</span>
+                            <h3 class="vs-card__title">便携式血钾检测芯片</h3>
+                            <p class="vs-card__desc">采用离子敏感场效应晶体管检测技术，在体外诊断领域属于国内首创。结合便携式生化分析仪，可实现床旁快速检测血钾浓度。</p>
+                            <span class="vs-link-arrow">了解详情</span>
+                        </div>
+                    </a>
                 </div>
             </div>
         </section>
@@ -540,8 +539,7 @@
                     </a>
                     <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
                         湖南元芯传感科技有限责任公司<br>
-                        先进氢气传感事业部<br>
-                        湖南省长沙市岳麓区国家大学科技园
+                        湖南省湘潭市高新区双马街道书院路38号
                     </p>
                 </div>
             </div>
