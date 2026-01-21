@@ -10,48 +10,249 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Compact Inficon-style Mega Menu - Identical to main page */
-        .vs-header .vs-container, .vs-header__inner, .vs-nav, .vs-nav__list { height: 100%; }
-        .vs-nav__item--has-mega { position: relative !important; }
-        .vs-mega-menu {
-            position: absolute; top: 100%; left: -30px; width: 1000px;
-            background: var(--color-white); box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
-            opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease;
-            z-index: 999; display: flex; min-height: 440px; border-radius: 8px;
-            overflow: visible; pointer-events: none; border: 1px solid rgba(0,0,0,0.05); margin-top: -2px;
+        .vs-header .vs-container,
+        .vs-header__inner,
+        .vs-nav,
+        .vs-nav__list {
+            height: 100%;
         }
-        .vs-mega-menu::before { content: ''; position: absolute; top: -40px; left: -50px; width: 400px; height: 50px; background: transparent; z-index: -1; }
-        .vs-nav__item--has-mega:hover .vs-mega-menu { opacity: 1; visibility: visible; pointer-events: auto; }
-        .vs-mega-sidebar { width: 260px; background: #f4f6f8; border-right: 1px solid #eee; padding: 15px 0; border-radius: 8px 0 0 8px; }
-        .vs-mega-tab { padding: 14px 30px; font-size: 15px; font-weight: 600; color: #444; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; }
-        .vs-mega-tab:first-child { border-top-left-radius: 8px; }
-        .vs-mega-tab:hover, .vs-mega-tab.active { background: var(--color-primary); color: var(--color-white); }
-        .vs-mega-tab i { font-size: 10px; opacity: 0.4; }
-        .vs-mega-content { flex: 1; padding: 40px 50px; background: var(--color-white); border-radius: 0 8px 8px 0; }
-        .vs-mega-panel { display: none; animation: fadeIn 0.3s ease; }
-        .vs-mega-panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .vs-mega-panel h3 { font-size: 20px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; border-bottom: 2px solid var(--color-accent-orange); display: inline-block; padding-bottom: 4px; }
-        .vs-mega-grid-v2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; }
-        .vs-mega-sublist-title { font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px; display: block; }
-        .vs-mega-list-v2 { list-style: none; }
-        .vs-mega-list-v2 li { margin-bottom: 10px; }
-        .vs-mega-list-v2 a { font-size: 14px; color: #333; transition: all 0.2s; }
-        .vs-mega-list-v2 a:hover { color: var(--color-accent-blue); padding-left: 5px; }
-        .vs-mega-action { margin-top: 30px; padding-top: 25px; border-top: 1px solid #eee; }
-        .vs-btn-search { display: inline-flex; align-items: center; gap: 10px; padding: 10px 24px; border: 1px solid var(--color-primary); color: var(--color-primary); font-weight: 600; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
-        .vs-btn-search:hover { background: var(--color-primary); color: var(--color-white); }
-        .vs-mega-menu--contact { width: 480px; left: -30px; min-height: 280px; }
-        .vs-mega-menu--contact .vs-mega-sidebar { width: 180px; }
-        .vs-mega-menu--contact .vs-mega-grid-v2 { grid-template-columns: 1fr; }
+
+        .vs-nav__item--has-mega {
+            position: relative !important;
+        }
+
+        .vs-mega-menu {
+            position: absolute;
+            top: 100%;
+            left: -30px;
+            width: 1000px;
+            background: var(--color-white);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            z-index: 999;
+            display: flex;
+            min-height: 440px;
+            border-radius: 8px;
+            overflow: visible;
+            pointer-events: none;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: -2px;
+        }
+
+        .vs-mega-menu::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: -50px;
+            width: 400px;
+            height: 50px;
+            background: transparent;
+            z-index: -1;
+        }
+
+        .vs-nav__item--has-mega:hover .vs-mega-menu {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .vs-mega-sidebar {
+            width: 260px;
+            background: #f4f6f8;
+            border-right: 1px solid #eee;
+            padding: 15px 0;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .vs-mega-tab {
+            padding: 14px 30px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vs-mega-tab:first-child {
+            border-top-left-radius: 8px;
+        }
+
+        .vs-mega-tab:hover,
+        .vs-mega-tab.active {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .vs-mega-tab i {
+            font-size: 10px;
+            opacity: 0.4;
+        }
+
+        .vs-mega-content {
+            flex: 1;
+            padding: 40px 50px;
+            background: var(--color-white);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .vs-mega-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .vs-mega-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .vs-mega-panel h3 {
+            font-size: 20px;
+            color: var(--color-primary);
+            margin-bottom: 24px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--color-accent-orange);
+            display: inline-block;
+            padding-bottom: 4px;
+        }
+
+        .vs-mega-grid-v2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .vs-mega-sublist-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .vs-mega-list-v2 {
+            list-style: none;
+        }
+
+        .vs-mega-list-v2 li {
+            margin-bottom: 10px;
+        }
+
+        .vs-mega-list-v2 a {
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .vs-mega-list-v2 a:hover {
+            color: var(--color-accent-blue);
+            padding-left: 5px;
+        }
+
+        .vs-mega-action {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #eee;
+        }
+
+        .vs-btn-search {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 24px;
+            border: 1px solid var(--color-primary);
+            color: var(--color-primary);
+            font-weight: 600;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .vs-btn-search:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .vs-mega-menu--contact {
+            width: 480px;
+            left: -30px;
+            min-height: 280px;
+        }
+
+        .vs-mega-menu--contact .vs-mega-sidebar {
+            width: 180px;
+        }
+
+        .vs-mega-menu--contact .vs-mega-grid-v2 {
+            grid-template-columns: 1fr;
+        }
 
         /* Page Specific */
-        .concept-section { padding: 80px 0; background: #f9f9f9; }
-        .content-box { max-width: 900px; margin: 0 auto; }
-        .concept-card { background: white; padding: 50px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); margin-bottom: 40px; }
-        .concept-card h3 { font-size: 28px; color: var(--color-primary); margin-bottom: 20px; font-weight: 700; }
-        .concept-card h3::after { content: ''; display: block; width: 60px; height: 4px; background: var(--color-accent-orange); margin-top: 15px; border-radius: 2px; }
-        .concept-card p { font-size: 17px; line-height: 2; color: #555; margin-top: 20px; }
-        .concept-img { max-width: 100%; border-radius: 12px; margin-top: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        .concept-section {
+            padding: 80px 0;
+            background: #f9f9f9;
+        }
+
+        .content-box {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .concept-card {
+            background: white;
+            padding: 50px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+            margin-bottom: 40px;
+        }
+
+        .concept-card h3 {
+            font-size: 28px;
+            color: var(--color-primary);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .concept-card h3::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: var(--color-accent-orange);
+            margin-top: 15px;
+            border-radius: 2px;
+        }
+
+        .concept-card p {
+            font-size: 17px;
+            line-height: 2;
+            color: #555;
+            margin-top: 20px;
+        }
+
+        .concept-img {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
     </style>
 </head>
 
@@ -60,7 +261,8 @@
         <div class="vs-container vs-header__inner">
             <div style="display: flex; align-items: center;">
                 <a href="index.html" class="vs-logo">
-                    <img src="templates/lqgd/images/logo.png" alt="Metachip Logo" style="filter: brightness(0) invert(1);">
+                    <img src="templates/lqgd/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
                     METACHIP
                 </a>
             </div>
@@ -71,25 +273,110 @@
                         <a href="#" class="vs-nav__link">产品</a>
                         <div class="vs-mega-menu">
                             <div class="vs-mega-sidebar">
-                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">新品推荐 <i class="fas fa-chevron-right"></i></div>
-                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">行业分类 <i class="fas fa-chevron-right"></i></div>
-                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">测量对象 <i class="fas fa-chevron-right"></i></div>
-                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">产品种类 <i class="fas fa-chevron-right"></i></div>
-                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">产品列表 <i class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">新品推荐 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">行业分类 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">测量对象 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">产品种类 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">产品列表 <i
+                                        class="fas fa-chevron-right"></i></div>
                             </div>
                             <div class="vs-mega-content">
                                 <div id="panel-new" class="vs-mega-panel active">
                                     <h3>新品推荐</h3>
                                     <div class="vs-mega-grid-v2">
-                                        <div><span class="vs-mega-sublist-title">最新发布</span><ul class="vs-mega-list-v2"><li><a href="#">LD-H2-Gen5 第五代氢气传感器</a></li><li><a href="#">车载高集成氢气安全监测模组</a></li></ul></div>
-                                        <div><span class="vs-mega-sublist-title">应用领域</span><ul class="vs-mega-list-v2"><li><a href="#">加氢站安全监测</a></li><li><a href="#">燃料电池车辆</a></li></ul></div>
+                                        <div><span class="vs-mega-sublist-title">最新发布</span>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">LD-H2-Gen5 第五代氢气传感器</a></li>
+                                                <li><a href="#">车载高集成氢气安全监测模组</a></li>
+                                            </ul>
+                                        </div>
+                                        <div><span class="vs-mega-sublist-title">应用领域</span>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">加氢站安全监测</a></li>
+                                                <li><a href="#">燃料电池车辆</a></li>
+                                            </ul>
+                                        </div>
                                     </div>
-                                    <div class="vs-mega-action"><a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a></div>
+                                    <div class="vs-mega-action"><a href="#" class="vs-btn-search">搜索产品 <i
+                                                class="fas fa-search"></i></a></div>
                                 </div>
-                                <div id="panel-industry" class="vs-mega-panel"><h3>行业分类</h3><div class="vs-mega-grid-v2"><div><ul class="vs-mega-list-v2"><li><a href="#">氢能源产业链</a></li><li><a href="#">智慧电力安全</a></li><li><a href="#">工业检漏监测</a></li></ul></div><div><ul class="vs-mega-list-v2"><li><a href="#">绿色能源存储</a></li><li><a href="#">大气环境监测</a></li></ul></div></div></div>
-                                <div id="panel-target" class="vs-mega-panel"><h3>测量对象</h3><div class="vs-mega-grid-v2"><div><ul class="vs-mega-list-v2"><li><a href="#">氢气 (H2)</a></li><li><a href="#">湿度 (RH)</a></li><li><a href="#">溶解氢</a></li></ul></div><div><ul class="vs-mega-list-v2"><li><a href="#">油中水含量</a></li><li><a href="#">露点 (Td)</a></li><li><a href="#">压力 (P)</a></li></ul></div></div></div>
-                                <div id="panel-type" class="vs-mega-panel"><h3>产品种类</h3><div class="vs-mega-grid-v2"><div><ul class="vs-mega-list-v2"><li><a href="#">MEMS 传感器芯片</a></li><li><a href="#">高集成封装模组</a></li></ul></div><div><ul class="vs-mega-list-v2"><li><a href="#">智能手持终端设备</a></li><li><a href="#">在线监测分析系统</a></li></ul></div></div></div>
-                                <div id="panel-list" class="vs-mega-panel"><h3>产品列表</h3><div class="vs-mega-grid-v2"><div><ul class="vs-mega-list-v2"><li><a href="#">传感探头系列</a></li><li><a href="#">物联网无线终端</a></li><li><a href="#">核心传感模块</a></li></ul></div><div><ul class="vs-mega-list-v2"><li><a href="#">OEM 定制化方案</a></li><li><a href="#">便携式测量仪</a></li><li><a href="#">精密分析仪表</a></li></ul></div></div></div>
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>行业分类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">氢能源产业链</a></li>
+                                                <li><a href="#">智慧电力安全</a></li>
+                                                <li><a href="#">工业检漏监测</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">绿色能源存储</a></li>
+                                                <li><a href="#">大气环境监测</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>测量对象</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">氢气 (H2)</a></li>
+                                                <li><a href="#">湿度 (RH)</a></li>
+                                                <li><a href="#">溶解氢</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">油中水含量</a></li>
+                                                <li><a href="#">露点 (Td)</a></li>
+                                                <li><a href="#">压力 (P)</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>产品种类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="products_mems.html">MEMS 传感器芯片</a></li>
+                                                <li><a href="#">高集成封装模组</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">智能手持终端设备</a></li>
+                                                <li><a href="#">在线监测分析系统</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>产品列表</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">传感探头系列</a></li>
+                                                <li><a href="#">物联网无线终端</a></li>
+                                                <li><a href="#">核心传感模块</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">OEM 定制化方案</a></li>
+                                                <li><a href="#">便携式测量仪</a></li>
+                                                <li><a href="#">精密分析仪表</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </li>
@@ -101,12 +388,34 @@
                         <a href="contact.aspx_page_contact.html" class="vs-nav__link">联系我们</a>
                         <div class="vs-mega-menu vs-mega-menu--contact">
                             <div class="vs-mega-sidebar">
-                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">加入我们 <i class="fas fa-chevron-right"></i></div>
-                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">联系方式 <i class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">加入我们 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">联系方式 <i
+                                        class="fas fa-chevron-right"></i></div>
                             </div>
                             <div class="vs-mega-content">
-                                <div id="panel-contact-join" class="vs-mega-panel active"><h3>加入我们</h3><div class="vs-mega-grid-v2"><ul class="vs-mega-list-v2"><li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li><li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li><li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li><li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li></ul></div></div>
-                                <div id="panel-contact-contact" class="vs-mega-panel"><h3>联系方式</h3><div class="vs-mega-grid-v2"><ul class="vs-mega-list-v2"><li><a href="contact.aspx_page_contact.html">联系我们</a></li><li><a href="feedbook.aspx.html">在线留言</a></li><li><a href="contact.aspx_page_contact.html">联系电话</a></li><li><a href="contact.aspx_page_contact.html">公司邮箱</a></li></ul></div></div>
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>加入我们</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="rlzy.aspx_page_hzzm.html">合作招募</a></li>
+                                            <li><a href="rlzy.aspx_page_jskj.html">成长空间</a></li>
+                                            <li><a href="rlzy.aspx_page_rcln.html">人才理念</a></li>
+                                            <li><a href="jobs.aspx_category_id_0.html">在线招聘</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>联系方式</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="contact.aspx_page_contact.html">联系我们</a></li>
+                                            <li><a href="feedbook.aspx.html">在线留言</a></li>
+                                            <li><a href="contact.aspx_page_contact.html">联系电话</a></li>
+                                            <li><a href="contact.aspx_page_contact.html">公司邮箱</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </li>
@@ -137,7 +446,8 @@
     </script>
 
     <main style="padding-top: 90px;">
-        <section class="vs-hero" style="height: 40vh; min-height: 300px; display: flex; align-items: center; background: #002244;">
+        <section class="vs-hero"
+            style="height: 40vh; min-height: 300px; display: flex; align-items: center; background: #002244;">
             <div class="vs-container" style="text-align: center; color: white;">
                 <h1 style="font-size: 42px; font-weight: 700;">人才理念</h1>
                 <p style="font-size: 18px; margin-top: 15px; opacity: 0.8;">志同道合，元芯共图。发现你的不凡，成就共同的卓越。</p>
@@ -148,19 +458,22 @@
             <div class="vs-container">
                 <div class="content-box">
                     <div class="concept-card">
-                        <h3><i class="fas fa-search" style="margin-right: 15px; color: var(--color-accent-orange);"></i>求人观</h3>
+                        <h3><i class="fas fa-search"
+                                style="margin-right: 15px; color: var(--color-accent-orange);"></i>求人观</h3>
                         <p><strong style="font-size: 20px;">"能力主义"而非"学历主义"</strong></p>
                         <p>有能力又有责任心的员工是杰出员工，有能力而没有责任心的员工是不合格的员工。</p>
                     </div>
 
                     <div class="concept-card">
-                        <h3><i class="fas fa-user-check" style="margin-right: 15px; color: var(--color-accent-orange);"></i>用人观</h3>
+                        <h3><i class="fas fa-user-check"
+                                style="margin-right: 15px; color: var(--color-accent-orange);"></i>用人观</h3>
                         <p><strong style="font-size: 20px;">"岗能相宜"</strong></p>
                         <p>岗适其能、人得其位。每个岗位选择适合的人，每个人都能找到适合自己的岗位。</p>
                     </div>
 
                     <div class="concept-card">
-                        <h3><i class="fas fa-heart" style="margin-right: 15px; color: var(--color-accent-orange);"></i>留人观</h3>
+                        <h3><i class="fas fa-heart"
+                                style="margin-right: 15px; color: var(--color-accent-orange);"></i>留人观</h3>
                         <p><strong style="font-size: 20px;">"事业留人、待遇留人、情感留人"</strong></p>
                         <p>通过广阔的事业平台、竞争力的薪酬体系以及温暖的团队氛围，让每一位优秀人才在元芯扎根成长。</p>
                         <img src="upload/202301/31/202301311638016477.jpg" alt="人才理念" class="concept-img">
@@ -174,4 +487,5 @@
         <p style="opacity: 0.5; font-size: 13px;">Copyright © 2023 湖南元芯传感科技有限责任公司. 湘ICP备2023004701号-1</p>
     </footer>
 </body>
+
 </html>
