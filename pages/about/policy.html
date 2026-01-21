@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>隐私政策</title>
+	 <script type="text/javascript" src="../../assets/js/jquery-3.7.0.min.js"></script>
+	 <script type="text/javascript" src="../../assets/js/jquery.SuperSlide.2.1.3.js"></script>
+	 
+	<style>
+		.ny_policy{max-width:1200px; height:auto; margin:0px auto; background:#fff; padding:10vh 6vh; width:80%}
+		.ny_policy h4{color:#000000; font-size:36px; font-weight:bold; text-align:center}
+		.ny_policy_info{width:100%; height:auto; overflow:hidden; margin-top:54px; margin-bottom:80px}
+		.ny_policy_info p{font-size:16px; color:#555555; line-height:40px; text-indent:2rem}
+		.ny_policy_info span{font-weight:bold;}
+		.ny_policy_num{width:auto; height:50px; line-height:50px; background:#eee; display:table; margin:0px auto; border-radius: 25px; padding: 0 32px; cursor:pointer}
+		.ny_policy_num.active{background:#2eb6e8; color:#fff}
+	</style>
+
+
+</head>
+<body style="background:#f3f3f3">
+
+	
+    
+	<div class="ny_policy">
+		<h4>隐私政策</h4>
+	
+		<div class="ny_policy_info">
+			<p>我们致力于保护您在使用我们网站时所提供的私隐、私人资料以及个人的资料（统称“个人资料”)，使我们在收集、使用、储存和传送个人资料方面符合（与个人资料私隐有关的法律法规）及消费者保护方面的标准。为确保您对我们在处理个人资料上有充分信心，<span>您切要详细阅读及理解隐私政策的条文。</span></p>
+			<p>特别是您一旦<span>使用我们的网站</span>，将被视为接受、同意、承诺和确认；您在自愿下连同所需的同意向我们披露个人资料；您会遵守本隐私政策的全部条款和限制；您在我们的网站上作登记、资料会被收集；您同意日后我们对隐私政策的任何修改；您同意我们的分公司、附属公司、雇员、就您可能会感兴趣的产品和服务与您联络（除非您已经表示不想收到该等讯息）。被收集的个人资料的种类经您的同意，我们会收集、管理和监控个人资料。</p>
+			<p>为了向您提供我们的各项服务，您需要提供个人资料信息，其中包括个人资料和不具名的资料，包括但不限于：<span>个人资料（您的姓名、性别、年龄、出生日期、电话号码、传真号码、住址或通讯地址、电子邮箱地址）。</span></p>
+			<p><span>收集个人资料及不具名的资料的目的及用途如下：</span></p>
+			<p>通过我们的网站向您提供我们的各项服务；当您使用我们的网站时，能辨认以及确认您的身份；让您使用我们的网站时得到为您而设的服务；我们的顾客服务人员有需要时可以与您联系；统计我们网站使用量的数据；让您在使用我们网站时更方便；为改进我们的产品、服务及网站内容而进行市场研究调查；为我们搞的活动、市场销售和推广计划收集资料；<span>遵守法律、政府和监管机关的规定</span>包括但不限于对个人资料披露及通知的规定；就我们提供的各项服务、分析、核对或审查您的信用、付款或地位；处理在您要求下的任何付款指示，直接扣帐或信用安排；使您能运作您的账户以及使我们能从账户支取尚欠的服务费；您提供给我们的个人资料及不具名资料，只保留到搜集的目的已达到的时候，除非应适用的法律法规之规定而继续保留。<span>个人资料的拥有权及披露在我们网站上所搜集的一切资料都由我们所拥有，不会出租或出售给任何无关的第三方。</span></p>
+
+		</div>
+		
+		<div class="ny_policy_num"><span id="Time">5</span>我已阅读并同意</div>
+	
+	</div>
+	
+	
+	
+	<script>
+			
+			function countDown(){
+				var btn = document.getElementById("policy_num");
+				var time = document.getElementById("Time");
+				//alert(time.innerHTML);
+				if(time.innerHTML == 0){
+					//等于0时清除计时
+					$(".ny_policy_num").addClass("active");
+					time.style.display = "none";
+					
+					$(".ny_policy_num").click(function(){
+				
+						window.close();
+					})
+					
+				}else{
+					time.innerHTML = time.innerHTML-1;
+				
+					
+				}
+			}
+			
+			setInterval(countDown,1000);
+
+			
+	</script>
+	
+	
+	
+	
+	
+	
+</body>
+</html>

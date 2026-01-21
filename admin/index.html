@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 元芯传感</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #003366;
+            --secondary-color: #001f3f;
+            --accent-color: #007bff;
+            --text-color: #333;
+            --bg-color: #f4f6f9;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Login Page --- */
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary-color);
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+
+        /* --- Dashboard --- */
+        .dashboard {
+            display: none;
+            display: flex; /* Hidden by default via JS */
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--secondary-color);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            height: 70px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+            flex: 1;
+        }
+
+        .menu-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            color: white;
+            background: rgba(255,255,255,0.1);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .menu-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .top-bar {
+            height: 70px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .content-area {
+            padding: 30px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        /* Data Table */
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            color: #333;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: #fcfcfc;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-danger {
+            background: #ffebeb;
+            color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #ffd6d6;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        /* Settings Page */
+        .settings-view {
+            max-width: 600px;
+        }
+        
+        .section-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Utils */
+        .view-section {
+            display: none;
+        }
+        .view-section.active {
+            display: block;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <div class="login-logo">
+                <i class="fas fa-shield-alt"></i> 元芯传感后台
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" class="form-control" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="password" class="form-control" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn-primary">登 录</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+            <div style="margin-top: 20px;">
+                <a href="/" style="color: #888; font-size: 13px; text-decoration: none;">← 返回网站首页</a>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="dashboard" style="display: none;">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-cube" style="margin-right: 10px;"></i> 元芯管理系统
+            </div>
+            <div class="sidebar-menu">
+                <div class="menu-item active" onclick="switchView('messages')">
+                    <i class="fas fa-envelope"></i> 留言管理
+                </div>
+                <div class="menu-item" onclick="switchView('settings')">
+                    <i class="fas fa-cog"></i> 账号设置
+                </div>
+                <div class="menu-item" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="page-title" id="pageTitle">留言管理</div>
+                <div style="font-size: 14px; color: #666;">
+                    <i class="far fa-user-circle"></i> 管理员
+                </div>
+            </div>
+
+            <div class="content-area">
+                
+                <!-- Messages View -->
+                <div id="view-messages" class="view-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">总留言数</div>
+                            <div class="stat-value" id="totalCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">今日新增</div>
+                            <div class="stat-value" id="todayCount">0</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>姓名</th>
+                                        <th>联系电话</th>
+                                        <th>内容摘要</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="messagesTableBody">
+                                    <!-- Messages will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div id="view-settings" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <h3 class="section-header">修改管理员账号</h3>
+                        <form id="settingsForm">
+                            <div class="form-group">
+                                <label>原密码</label>
+                                <input type="password" id="oldPassword" class="form-control" required placeholder="验证身份">
+                            </div>
+                            <div class="form-group">
+                                <label>新用户名</label>
+                                <input type="text" id="newUsername" class="form-control" required value="admin">
+                            </div>
+                            <div class="form-group">
+                                <label>新密码</label>
+                                <input type="password" id="newPassword" class="form-control" required placeholder="设置新密码">
+                            </div>
+                            <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存修改</button>
+                            <div id="settingsMsg" class="error-message" style="color: #28a745;"></div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Init ---
+        checkLoginStatus();
+
+        // --- Auth Functions ---
+        async function checkLoginStatus() {
+            try {
+                const res = await fetch('/admin/check');
+                const data = await res.json();
+                if (data.logged_in) {
+                    showDashboard();
+                } else {
+                    document.getElementById('loginPage').style.display = 'flex';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const err = document.getElementById('loginError');
+            
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+            err.textContent = '';
+
+            try {
+                const res = await fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showDashboard();
+                } else {
+                    err.textContent = data.message || '登录失败';
+                }
+            } catch (e) {
+                err.textContent = '网络错误';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登 录';
+            }
+        });
+
+        async function logout() {
+            if(!confirm('确定要退出登录吗？')) return;
+            await fetch('/admin/logout', {method: 'POST'});
+            location.reload();
+        }
+
+        function showDashboard() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+            loadMessages();
+        }
+
+
+        // --- Navigation ---
+        function switchView(viewName) {
+            // Update Menu
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            const activeMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.textContent.includes(viewName === 'messages' ? '留言' : '设置'));
+            if(activeMenu) activeMenu.classList.add('active');
+
+            // Update View
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+
+            // Update Title
+            document.getElementById('pageTitle').textContent = viewName === 'messages' ? '留言管理' : '账号设置';
+            
+            if (viewName === 'messages') loadMessages();
+        }
+
+
+        // --- Messages Logic ---
+        async function loadMessages() {
+            const tbody = document.getElementById('messagesTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            
+            try {
+                const res = await fetch('/api/messages');
+                const messages = await res.json();
+                
+                const today = new Date().toISOString().split('T')[0];
+                let todayCount = 0;
+                
+                if (messages.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="no-data">暂无留言数据</td></tr>';
+                    document.getElementById('totalCount').textContent = '0';
+                    document.getElementById('todayCount').textContent = '0';
+                    return;
+                }
+
+                tbody.innerHTML = messages.map(msg => {
+                    const dateStr = msg.timestamp.split('T')[0];
+                    if (dateStr === today) todayCount++;
+                    
+                    return `
+                        <tr>
+                            <td>
+                                <div style="font-weight:500;">${dateStr}</div>
+                                <div style="font-size:12px; color:#888;">${msg.timestamp.substring(11, 16)}</div>
+                            </td>
+                            <td>
+                                <div style="font-weight:600;">${escapeHtml(msg.name)}</div>
+                                <div style="font-size:12px; color:#888;">${msg.ip}</div>
+                            </td>
+                            <td>${escapeHtml(msg.phone)}</td>
+                            <td>
+                                <div title="${escapeHtml(msg.content)}" style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    ${escapeHtml(msg.content)}
+                                </div>
+                                ${msg.email ? `<div style="font-size:12px; color:#888; margin-top:2px;"><i class="far fa-envelope"></i> ${escapeHtml(msg.email)}</div>` : ''}
+                            </td>
+                            <td>
+                                <button class="btn-sm btn-danger" onclick="deleteMessage('${msg.id}')">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('totalCount').textContent = messages.length;
+                document.getElementById('todayCount').textContent = todayCount;
+
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败</td></tr>';
+            }
+        }
+
+        async function deleteMessage(id) {
+            if (!confirm('确定删除这条留言吗？此操作无法撤销。')) return;
+            try {
+                const res = await fetch(`/api/messages/${id}`, {method: 'DELETE'});
+                if (res.ok) loadMessages();
+                else alert('删除失败');
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+
+        // --- Settings Logic ---
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const msg = document.getElementById('settingsMsg');
+            
+            btn.disabled = true;
+            msg.textContent = '';
+            msg.style.color = '#dc3545'; // default error color
+
+            try {
+                const res = await fetch('/admin/change-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        oldPassword: document.getElementById('oldPassword').value,
+                        newUsername: document.getElementById('newUsername').value,
+                        newPassword: document.getElementById('newPassword').value
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '修改成功！下次登录请使用新账号密码。';
+                    e.target.reset();
+                } else {
+                    msg.textContent = data.message || '修改失败';
+                }
+            } catch (e) {
+                msg.textContent = '网络错误';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
