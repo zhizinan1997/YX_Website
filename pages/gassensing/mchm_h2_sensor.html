@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCHM-1.0型氢气传感器 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Product Detail Page - Premium Styles (Aligned with ID_79) */
+        .vs-product-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            padding: 120px 0 80px;
+            color: white;
+        }
+
+        .vs-product-hero__inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        /* Image Gallery */
+        .vs-product-gallery {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .vs-gallery-main {
+            width: 100%;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .vs-gallery-main img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .vs-gallery-thumbs {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 8px 0;
+            justify-content: center;
+        }
+
+        .vs-gallery-thumb {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vs-gallery-thumb:hover,
+        .vs-gallery-thumb.active {
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-gallery-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .vs-product-hero__content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .vs-product-hero__desc {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .vs-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .vs-feature-list li {
+            padding: 12px 16px 12px 44px;
+            position: relative;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .vs-feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 16px;
+            color: #4ADE80;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Section Styles */
+        .vs-product-section {
+            padding: 80px 0;
+        }
+
+        .vs-product-section.alt-bg {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .vs-product-section__title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 32px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .vs-product-section__title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
+            border-radius: 2px;
+        }
+
+        .vs-product-section__content {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #4a5568;
+        }
+
+        .vs-product-section__content p {
+            margin-bottom: 16px;
+        }
+
+        /* Advantages Grid */
+        .vs-advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .vs-advantage-card {
+            background: white;
+            padding: 32px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-align: center;
+            border: 1px solid #f1f5f9;
+        }
+
+        .vs-advantage-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-advantage-card i {
+            font-size: 40px;
+            color: var(--color-accent-orange);
+            margin-bottom: 18px;
+            display: block;
+        }
+
+        .vs-advantage-card h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 10px;
+        }
+
+        .vs-advantage-card p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* Application Grid */
+        .vs-applications-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .vs-application-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-application-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-app-img-wrap {
+            width: 100%;
+            aspect-ratio: 16/10;
+            overflow: hidden;
+        }
+
+        .vs-application-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .vs-application-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .vs-application-label {
+            padding: 24px;
+            background: white;
+            flex-grow: 1;
+        }
+
+        .vs-application-label h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--color-primary);
+            margin-top: 0;
+        }
+
+        .vs-application-label h4 i {
+            color: var(--color-accent-orange);
+            font-size: 18px;
+        }
+
+        .vs-application-label p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            color: #64748b;
+        }
+
+        /* Specs Table */
+        .vs-specs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .vs-specs-table td {
+            padding: 18px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 15px;
+        }
+
+        .vs-specs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vs-specs-table tr td:first-child {
+            background: var(--color-primary);
+            color: white;
+            font-weight: 600;
+            width: 250px;
+        }
+
+        .vs-specs-table tr td:last-child {
+            background: white;
+            color: #334155;
+        }
+
+        .vs-specs-table tr:nth-child(even) td:last-child {
+            background: #f8fafc;
+        }
+
+        /* Related Products */
+        .vs-related-products {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 80px 0;
+        }
+
+        .vs-related-products h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .vs-related-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .vs-related-item {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .vs-related-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-related-item img {
+            width: 100%;
+            height: 160px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 20px;
+        }
+
+        .vs-related-item h4 {
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+        }
+
+        /* CTA Section */
+        .vs-cta-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #004d8c 100%);
+            padding: 80px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .vs-cta-section h3 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .vs-cta-section p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 36px;
+        }
+
+        .vs-breadcrumb {
+            padding: 16px 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .vs-breadcrumb a {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+        }
+
+        .vs-breadcrumb a:hover {
+            color: white;
+        }
+
+        .vs-breadcrumb span {
+            margin: 0 12px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .vs-related-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-product-hero__inner {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-product-hero__content h1 {
+                font-size: 32px;
+            }
+
+            .vs-related-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-advantages-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item"><a href="../../pages/products/index.html"
+                            class="vs-nav__link">产品</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a>
+                    </li>
+                    <li class="vs-nav__item"><a href="../../pages/news/news.html" class="vs-nav__link">洞察与资讯</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/about/about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/contact/contact.html" class="vs-nav__link">联系我们</a>
+                    </li>
+                </ul>
+            </nav>
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
+            </div>
+        </div>
+    </header>
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index.html">首页</a><span>|</span>
+                <a href="../../pages/products/index.html">产品</a><span>|</span>
+                <a href="../../pages/products/gas_sensors.html">气体传感</a><span>|</span>
+                MCHM-1.0型氢气传感器
+            </div>
+        </div>
+
+        <!-- Product Hero with Gallery -->
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <!-- Image Gallery -->
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <img id="mainImage"
+                                src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191120311735.png"
+                                alt="MCHM-1.0型氢气传感器">
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active"
+                                onclick="changeImage(this, 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191120311735.png')">
+                                <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191120311735.png"
+                                    alt="正面视图">
+                            </div>
+                            <div class="vs-gallery-thumb"
+                                onclick="changeImage(this, 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191120366631.png')">
+                                <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191120366631.png"
+                                    alt="侧面视图">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="vs-product-hero__content">
+                        <h1>MCHM-1.0型氢气传感器</h1>
+                        <p class="vs-product-hero__desc">采用先进金属氧化物半导体(MOS)材料，专为电化学储能、冶金及氢化工领域设计的长寿命、低成本氢气检测方案</p>
+                        <ul class="vs-feature-list">
+                            <li>优异的耐热性与耐腐蚀性，适应恶劣工业环境</li>
+                            <li>高检测灵敏度，对氢气具有独特的特异性响应</li>
+                            <li>秒级快速响应，实时捕捉泄露风险</li>
+                            <li>低功耗设计，长期运行稳定性极佳</li>
+                            <li>高性价比制造成本，适合大规模部署</li>
+                        </ul>
+                        <div>
+                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary"
+                                style="padding: 14px 32px; font-size: 16px;">
+                                <i class="fas fa-file-alt" style="margin-right: 10px;"></i>获取规格书
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Details -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品详情</h2>
+                <div class="vs-product-section__content">
+                    <p>MCHM-1.0型氢气传感器核心采用高性能金属氧化物半导体（MOS）敏感材料，该材料对氢气分子表现出极强的吸附敏感性与特异性选择性，能有效屏蔽其他干扰气体的误报。</p>
+                    <p>在结构设计上，传感器采用标准的工业级 TO
+                        封装，并内置了一层长效物理过滤膜。这种设计不仅赋予了器件极强的抗环境干扰能力，还有效阻隔了粉尘与油污，大大延长了传感器的使用寿命。配合简单的驱动电路即可实现高精度的信号输出，是工业物联网与安全监测终端的理想核心元件。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Advantages -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品优势</h2>
+                <div class="vs-advantages-grid">
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-bolt"></i>
+                        <h4>极速响应特性</h4>
+                        <p>材料表面的纳米级微结构提供了巨大的反应比表面积，接触氢气瞬间即可发生电阻突变，实现快速报警响应。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-search-plus"></i>
+                        <h4>超低检测下限</h4>
+                        <p>具备优异的痕量气体捕捉能力，能在氢气浓度极低的初期阶段发出预警，将安全隐患消灭在萌芽状态。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-shield-alt"></i>
+                        <h4>强抗干扰能力</h4>
+                        <p>独特的敏感电极配方结合物理过滤层，有效抑制了酒精、一氧化碳等常见工业干扰气体的交叉敏感。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Applications -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">主要应用</h2>
+                <div class="vs-applications-grid">
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101458010900.jpg"
+                                alt="电化学储能站">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-battery-full"></i> 电化学储能站</h4>
+                            <p>监测锂电池热失控早期释放的微量氢气，联动温控与消防系统，构筑储能舱第一道安全防线。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101458385385.jpg"
+                                alt="冶金工业">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-burn"></i> 冶金工业</h4>
+                            <p>在高温退火与还原气氛控制中，实时监控保护气中的氢含量，确保工艺质量并防止炉内爆炸事故。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101459210141.png"
+                                alt="氢化工">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-flask"></i> 氢化工</h4>
+                            <p>广泛应用于合成氨、甲醇制造等化工制程，监测管道法兰与反应釜周边的氢气泄漏，保障厂区安全。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101459562399.jpg"
+                                alt="氢能源汽车">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-car-side"></i> 氢能源汽车</h4>
+                            <p>部署于燃料电池堆、储氢瓶阀口及车厢内部，实时感知氢气浓度，确保持续、安全的绿色出行。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Specifications -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术指标</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>产品型号</td>
+                        <td>MCHM-1.0</td>
+                    </tr>
+                    <tr>
+                        <td>检测原理</td>
+                        <td>金属氧化物半导体 (MOS / Chemical Resistor)</td>
+                    </tr>
+                    <tr>
+                        <td>检测对象</td>
+                        <td>氢气 (H2)</td>
+                    </tr>
+                    <tr>
+                        <td>检测范围</td>
+                        <td>0 ~ 100% LEL</td>
+                    </tr>
+                    <tr>
+                        <td>加热器功耗</td>
+                        <td>典型值 280 mW (低功耗设计)</td>
+                    </tr>
+                    <tr>
+                        <td>标准测试条件</td>
+                        <td>20±2℃, 65±5% RH</td>
+                    </tr>
+                    <tr>
+                        <td>回路电压</td>
+                        <td>5.0 ± 0.1V DC</td>
+                    </tr>
+                    <tr>
+                        <td>工作环境</td>
+                        <td>﹣10℃ ~ +70℃，≤95% RH (非冷凝)</td>
+                    </tr>
+                    <tr>
+                        <td>封装形式</td>
+                        <td>标准金属 TO 封装 (带滤膜)</td>
+                    </tr>
+                    <tr>
+                        <td>设计寿命</td>
+                        <td>≥ 5 年 (清洁空气中)</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- Related Products -->
+        <section class="vs-related-products">
+            <div class="vs-container">
+                <h2>相关产品</h2>
+                <div class="vs-related-grid">
+                    <a href="ld_h2_detector.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
+                            alt="LD-H2型氢气检测仪">
+                        <h4>LD-H2型氢气检测仪</h4>
+                    </a>
+                    <a href="mchf_carbon_fet_h2.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101351152977.png"
+                            alt="碳基场效应型传感器">
+                        <h4>碳基场效应型传感器</h4>
+                    </a>
+                    <a href="mchc_catalytic_h2.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191122589747.png"
+                            alt="催化燃烧型氢气传感器">
+                        <h4>催化燃烧型氢气传感器</h4>
+                    </a>
+                    <a href="mc_hfev_module.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101352116691.png"
+                            alt="多用途氢气检测模块">
+                        <h4>多用途氢气检测模块</h4>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <h3>寻找高性价比的氢气传感核心？</h3>
+                <p>MCHM-1.0 系列传感器现已开放大批量订购，支持免费样品申请与技术对接</p>
+                <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--secondary"
+                    style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
+                    <i class="fas fa-comments" style="margin-right: 10px;"></i>联系销售团队
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
+                        湖南元芯传感科技有限责任公司<br>湖南省湘潭市高新区双马街道书院路38号
+                    </p>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Image Gallery Functionality
+        function changeImage(thumb, src) {
+            // Update main image
+            document.getElementById('mainImage').src = src;
+
+            // Update active thumbnail
+            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        }
+    </script>
+
+</body>
+
+</html>

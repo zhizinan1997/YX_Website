@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>碳基生物封装芯片 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Product Detail Page - Premium Styles */
+        .vs-product-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            padding: 120px 0 80px;
+            color: white;
+        }
+        
+        .vs-product-hero__inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        .vs-product-hero__image {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        
+        .vs-product-hero__image img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+        
+        .vs-product-hero__content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .vs-product-hero__desc {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+        
+        .vs-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+        
+        .vs-feature-list li {
+            padding: 12px 16px 12px 44px;
+            position: relative;
+            font-size: 15px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .vs-feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 16px;
+            color: #4ADE80;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        /* Section Styles */
+        .vs-product-section {
+            padding: 80px 0;
+        }
+        
+        .vs-product-section.alt-bg {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+        
+        .vs-product-section__title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 32px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .vs-product-section__title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
+            border-radius: 2px;
+        }
+        
+        .vs-product-section__content {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #4a5568;
+        }
+        
+        .vs-product-section__content p {
+            margin-bottom: 16px;
+        }
+        
+        .vs-product-section__content img {
+            max-width: 280px;
+            height: auto;
+            border-radius: 12px;
+            margin: 12px 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        /* Specs Table */
+        .vs-specs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+        
+        .vs-specs-table td {
+            padding: 18px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 15px;
+        }
+        
+        .vs-specs-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .vs-specs-table tr td:first-child {
+            background: var(--color-primary);
+            color: white;
+            font-weight: 600;
+            width: 220px;
+        }
+        
+        .vs-specs-table tr td:last-child {
+            background: white;
+            color: #334155;
+        }
+        
+        .vs-specs-table tr:nth-child(even) td:last-child {
+            background: #f8fafc;
+        }
+        
+        /* Advantages Grid */
+        .vs-advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+        
+        .vs-advantage-card {
+            background: white;
+            padding: 36px 28px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+            border: 1px solid #f1f5f9;
+        }
+        
+        .vs-advantage-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+            border-color: var(--color-accent-orange);
+        }
+        
+        .vs-advantage-card i {
+            font-size: 44px;
+            color: var(--color-accent-orange);
+            margin-bottom: 20px;
+        }
+        
+        .vs-advantage-card h4 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+        
+        /* Related Products */
+        .vs-related-products {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 80px 0;
+        }
+        
+        .vs-related-products h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        .vs-related-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+        
+        .vs-related-item {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .vs-related-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+        }
+        
+        .vs-related-item img {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 24px;
+        }
+        
+        .vs-related-item h4 {
+            padding: 20px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+        }
+        
+        /* Related News */
+        .vs-related-news {
+            padding: 80px 0;
+        }
+        
+        .vs-related-news h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        .vs-news-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+        }
+        
+        .vs-news-item {
+            display: flex;
+            gap: 24px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .vs-news-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        }
+        
+        .vs-news-item img {
+            width: 200px;
+            height: 160px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        
+        .vs-news-item__content {
+            padding: 24px 24px 24px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .vs-news-item__content h4 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        
+        .vs-news-item__content p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.7;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* CTA Section */
+        .vs-cta-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #004d8c 100%);
+            padding: 80px 0;
+            text-align: center;
+            color: white;
+        }
+        
+        .vs-cta-section h3 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        
+        .vs-cta-section p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 36px;
+        }
+        
+        .vs-breadcrumb {
+            padding: 16px 0;
+            font-size: 14px;
+            color: rgba(255,255,255,0.85);
+        }
+        
+        .vs-breadcrumb a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+        }
+        
+        .vs-breadcrumb a:hover {
+            color: white;
+        }
+        
+        .vs-breadcrumb span {
+            margin: 0 12px;
+            opacity: 0.5;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .vs-related-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        
+        @media (max-width: 768px) {
+            .vs-product-hero__inner { grid-template-columns: 1fr; gap: 40px; }
+            .vs-product-hero__content h1 { font-size: 32px; }
+            .vs-news-grid { grid-template-columns: 1fr; }
+            .vs-related-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 576px) {
+            .vs-related-grid { grid-template-columns: 1fr; }
+            .vs-news-item { flex-direction: column; }
+            .vs-news-item img { width: 100%; height: 200px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo" style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item"><a href="../../pages/products/index.html" class="vs-nav__link">产品</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/news/news.html" class="vs-nav__link">洞察与资讯</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/about/about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/contact/contact.html" class="vs-nav__link">联系我们</a></li>
+                </ul>
+            </nav>
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
+            </div>
+        </div>
+    </header>
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index.html">首页</a><span>|</span>
+                <a href="../../pages/products/index.html">产品</a><span>|</span>碳基生物封装芯片
+            </div>
+        </div>
+
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <div class="vs-product-hero__image">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101346080807.png" alt="碳基生物封装芯片">
+                    </div>
+                    <div class="vs-product-hero__content">
+                        <h1>碳基生物封装芯片</h1>
+                        <p class="vs-product-hero__desc">采用碳基场效应晶体管传感原理，适用于⼀次性快检产品。</p>
+                        <ul class="vs-feature-list">
+                        <li>响应时间秒量级</li>
+                        <li>可数字化检测低至飞摩级别浓度的生物分子</li>
+                        <li>8通道同时检测</li>
+                        <li>现场检测，即插即用</li>
+                        </ul>
+                        <div>
+                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary" style="padding: 14px 32px; font-size: 16px;">
+                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品详情</h2>
+                <div class="vs-product-section__content"><p>MCB-P系列碳基生物封装芯片采用碳基场效应晶体管传感原理，具有高均一、微型化、高灵敏、稳定</p><p>性好、使用简单的特点。可应用于低成本、消费级、⼀次性快速检测终端的传感产品。</p><p style="text-align: center;"><br/></p></div>
+            </div>
+        </section>
+
+
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品优势</h2>
+                <div class="vs-advantages-grid">
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-bolt"></i>
+                        <h4>快响应</h4>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-shield-alt"></i>
+                        <h4>宽范围</h4>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-microchip"></i>
+                        <h4>高稳定</h4>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">主要应用</h2>
+                <div class="vs-product-section__content"><p ><span style="font-size: 20px;"><strong>                   急诊快检                                      基因筛查                                      食品检测</strong></span></p><p ><img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501061233419618.jpg" title="制氢.jpg" alt="制氢.jpg" style="display:none"/><img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101515059858.jpg" title="急诊快检.jpg" alt="急诊快检.jpg" width="242" height="168" style="width: 242px; height: 168px;"/>  <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101516143265.jpg" title="基因筛查.jpg" alt="基因筛查.jpg" width="249" height="168" style="width: 249px; height: 168px;"/>  <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101516505446.jpg" title="食品检测.jpg" alt="食品检测.jpg" width="254" height="169" style="width: 254px; height: 169px;"/></p></div>
+            </div>
+        </section>
+
+
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术指标</h2>
+                <div class="vs-product-section__content"><table class="vs-specs-table"><tr ><td   >  产品型号</td><td   >  MC-PB系列<br/></td></tr><tr><td   >  传感器原理</td><td   >  碳基场效应</td></tr><tr><td   >  检测对象</td><td   >  生物样本</td></tr><tr><td   >  响应时间</td><td   >  ＜60秒</td></tr><tr><td   align="left" >  检测限</td><td   ><p>  ＜1fm</p></td></tr><tr><td   align="left" >  工作电压</td><td   ><p>  ﹣0.1V DC</p></td></tr><tr><td  align="left" colspan="1" rowspan="1" >  工作环境</td><td  align="left" colspan="1" rowspan="1" >  生物离子液体</td></tr><tr><td  align="left" colspan="1" rowspan="1" >  工作温度<br/></td><td  align="left" colspan="1" rowspan="1" >  10℃~40℃</td></tr><tr><td  align="left" colspan="1" rowspan="1" >  产品尺寸</td><td  align="left" colspan="1" rowspan="1" >  35mm*10mm*5mm</td></tr></table></div>
+            </div>
+        </section>
+
+
+        <section class="vs-related-news">
+            <div class="vs-container">
+                <h2>相关新闻</h2>
+                <div class="vs-news-grid">
+                    <a href="../../pages/news/news_show.aspx_id_35.html" class="vs-news-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202411271124342476.png" alt="致力氢能安全，元芯传感LD-H2氢气检测仪成功通过国家防爆与计量认证！">
+                        <div class="vs-news-item__content">
+                            <h4>致力氢能安全，元芯传感LD-H2氢气检测仪成功通过国家防爆与计量认证！</h4>
+                            <p>近日，湖南元芯传感科技有限责任公司的LD-H2氢气检测仪成功通过了国家防爆与计量认证，获得CNEX防爆证书与中国计量院校准证书。这意味着元芯传感的氢气…</p>
+                        </div>
+                    </a>
+                    <a href="../../pages/news/news_show.aspx_id_33.html" class="vs-news-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202407010925018525.jpg" alt="元芯传感--2024国际传感器&仪器仪表&物联网展览会">
+                        <div class="vs-news-item__content">
+                            <h4>元芯传感--2024国际传感器&仪器仪表&物联网展览会</h4>
+                            <p>闪耀国际传感器展览会，创新力量引领行业未来！ 2024年6月28日--30日，备受瞩目的2024国际传感器&仪器仪表&物联网展览会在湖南长沙国际会展中心…</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+
+
+        <section class="vs-related-products">
+            <div class="vs-container">
+                <h2>相关产品</h2>
+                <div class="vs-related-grid">
+                    <a href="../../pages/products/mc_bw_bio_workstation.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141610379601.jpg" alt="生物传感工作站">
+                        <h4>生物传感工作站</h4>
+                    </a>
+                    <a href="../../pages/products/ion_detector.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141553278669.png" alt="离子检测仪">
+                        <h4>离子检测仪</h4>
+                    </a>
+                    <a href="../../pages/products/portable_bio_detector.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141535249134.png" alt="便携式手持生物检测仪">
+                        <h4>便携式手持生物检测仪</h4>
+                    </a>
+                    <a href="../../pages/products/carbon_bio_package_chip.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101346080807.png" alt="碳基生物封装芯片">
+                        <h4>碳基生物封装芯片</h4>
+                    </a>
+                    <a href="../../pages/products/blood_potassium_chip.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141545220675.bmp" alt="便携式血钾检测芯片">
+                        <h4>便携式血钾检测芯片</h4>
+                    </a>
+                    <a href="../../pages/products/chlorine_detection_chip.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141602163019.png" alt="余氯检测芯片">
+                        <h4>余氯检测芯片</h4>
+                    </a>
+                    <a href="../../pages/products/carbon_bio_platform.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345491479.png" alt="碳基生物传感平台">
+                        <h4>碳基生物传感平台</h4>
+                    </a>
+                    <a href="../../pages/products/respiratory_virus_chip.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202510200917507059.png" alt="急性呼吸道病毒检测芯片">
+                        <h4>急性呼吸道病毒检测芯片</h4>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <h3>需要了解更多？</h3>
+                <p>我们的技术团队随时为您提供专业的产品咨询和解决方案</p>
+                <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--secondary" style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
+                    <i class="fas fa-phone" style="margin-right: 10px;"></i>联系我们
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
+                        湖南元芯传感科技有限责任公司<br>湖南省湘潭市高新区双马街道书院路38号
+                    </p>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
