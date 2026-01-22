@@ -4,6 +4,14 @@
  */
 
 const GAS_SENSING_PRODUCTS = [
+    // 物联网平台 - 放在首位作为重点推荐
+    {
+        id: 'mcs_iot_platform',
+        name: 'MCS-IoT工业级气体监测物联网平台',
+        image: '../../assets/images/iot2.png',
+        description: '专为工业气体监测场景设计的物联网云平台，支持实时数据采集、可视化大屏、智能报警、设备管理和AI分析。一键部署，Docker容器化架构。',
+        category: 'iot'
+    },
     {
         id: 'ld_h2_detector',
         name: 'LD-H2型氢气检测仪',
@@ -259,10 +267,12 @@ function addFilterListeners() {
     // 筛选按钮配置
     const filters = [
         { key: 'all', label: '全部产品' },
+        { key: 'iot', label: '物联网平台' },
         { key: 'sensor', label: '传感器' },
         { key: 'module', label: '检测模块' },
         { key: 'detector', label: '检测仪' },
         { key: 'alarm', label: '报警器' },
+        { key: 'system', label: '监测系统' },
         { key: 'service', label: '定制服务' }
     ];
 

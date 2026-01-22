@@ -204,6 +204,8 @@
             opacity: 1;
         }
     </style>
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
 
 <body>
@@ -253,7 +255,7 @@
             </nav>
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
-                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
                 <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
             </div>
         </div>
@@ -947,6 +949,9 @@
             }
         });
     </script>
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
 </body>
 
 </html>
