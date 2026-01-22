@@ -11,48 +11,90 @@
     <style>
         /* Product Detail Page - Premium Styles */
         .vs-product-hero {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            background: linear-gradient(135deg, #004d8c 0%, var(--color-primary-dark) 100%);
             padding: 120px 0 80px;
             color: white;
         }
-        
+
         .vs-product-hero__inner {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 60px;
-            align-items: center;
+            align-items: start;
         }
-        
-        .vs-product-hero__image {
+
+        /* Image Gallery */
+        .vs-product-gallery {
             background: white;
             border-radius: 20px;
-            padding: 40px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .vs-gallery-main {
+            width: 100%;
+            height: 380px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
         }
-        
-        .vs-product-hero__image img {
+
+        .vs-gallery-main img {
             max-width: 100%;
-            max-height: 400px;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .vs-gallery-thumbs {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 8px 0;
+            justify-content: center;
+        }
+
+        .vs-gallery-thumb {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vs-gallery-thumb:hover,
+        .vs-gallery-thumb.active {
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-gallery-thumb img {
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
-        
+
         .vs-product-hero__content h1 {
             font-size: 42px;
             font-weight: 700;
             margin-bottom: 20px;
             line-height: 1.2;
         }
-        
+
         .vs-product-hero__desc {
             font-size: 18px;
             opacity: 0.95;
             line-height: 1.8;
             margin-bottom: 28px;
         }
-        
+
         .vs-feature-list {
             list-style: none;
             padding: 0;
@@ -60,16 +102,16 @@
             display: grid;
             gap: 10px;
         }
-        
+
         .vs-feature-list li {
             padding: 12px 16px 12px 44px;
             position: relative;
             font-size: 15px;
-            background: rgba(255,255,255,0.12);
+            background: rgba(255, 255, 255, 0.12);
             border-radius: 10px;
             backdrop-filter: blur(10px);
         }
-        
+
         .vs-feature-list li::before {
             content: '✓';
             position: absolute;
@@ -78,16 +120,16 @@
             font-weight: bold;
             font-size: 18px;
         }
-        
+
         /* Section Styles */
         .vs-product-section {
             padding: 80px 0;
         }
-        
+
         .vs-product-section.alt-bg {
             background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
         }
-        
+
         .vs-product-section__title {
             font-size: 32px;
             font-weight: 700;
@@ -96,7 +138,7 @@
             position: relative;
             display: inline-block;
         }
-        
+
         .vs-product-section__title::after {
             content: '';
             position: absolute;
@@ -107,25 +149,126 @@
             background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
             border-radius: 2px;
         }
-        
+
         .vs-product-section__content {
             font-size: 16px;
             line-height: 1.9;
             color: #4a5568;
         }
-        
-        .vs-product-section__content p {
-            margin-bottom: 16px;
+
+        /* Advantages Grid */
+        .vs-advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 24px;
         }
-        
-        .vs-product-section__content img {
-            max-width: 280px;
-            height: auto;
-            border-radius: 12px;
-            margin: 12px 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+
+        .vs-advantage-card {
+            background: white;
+            padding: 40px 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-align: center;
+            border: 1px solid #f1f5f9;
         }
-        
+
+        .vs-advantage-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-advantage-card i {
+            font-size: 48px;
+            color: var(--color-accent-orange);
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        .vs-advantage-card h4 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 12px;
+        }
+
+        .vs-advantage-card p {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* Application Grid */
+        .vs-applications-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 24px;
+        }
+
+        .vs-application-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-application-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-app-img-wrap {
+            width: 100%;
+            aspect-ratio: 16/10;
+            overflow: hidden;
+        }
+
+        .vs-application-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .vs-application-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .vs-application-label {
+            padding: 24px;
+            background: white;
+            flex-grow: 1;
+        }
+
+        .vs-application-label h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--color-primary);
+            margin-top: 0;
+        }
+
+        .vs-application-label h4 i {
+            color: var(--color-accent-orange);
+            font-size: 18px;
+        }
+
+        .vs-application-label p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            color: #64748b;
+        }
+
         /* Specs Table */
         .vs-specs-table {
             width: 100%;
@@ -133,77 +276,41 @@
             border-spacing: 0;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
-        
+
         .vs-specs-table td {
             padding: 18px 24px;
             border-bottom: 1px solid #e2e8f0;
             font-size: 15px;
         }
-        
+
         .vs-specs-table tr:last-child td {
             border-bottom: none;
         }
-        
+
         .vs-specs-table tr td:first-child {
             background: var(--color-primary);
             color: white;
             font-weight: 600;
-            width: 220px;
+            width: 240px;
         }
-        
+
         .vs-specs-table tr td:last-child {
             background: white;
             color: #334155;
         }
-        
+
         .vs-specs-table tr:nth-child(even) td:last-child {
             background: #f8fafc;
         }
-        
-        /* Advantages Grid */
-        .vs-advantages-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 24px;
-            margin-top: 24px;
-        }
-        
-        .vs-advantage-card {
-            background: white;
-            padding: 36px 28px;
-            border-radius: 16px;
-            text-align: center;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-            transition: all 0.3s ease;
-            border: 1px solid #f1f5f9;
-        }
-        
-        .vs-advantage-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 16px 48px rgba(0,0,0,0.12);
-            border-color: var(--color-accent-orange);
-        }
-        
-        .vs-advantage-card i {
-            font-size: 44px;
-            color: var(--color-accent-orange);
-            margin-bottom: 20px;
-        }
-        
-        .vs-advantage-card h4 {
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--color-primary);
-        }
-        
+
         /* Related Products */
         .vs-related-products {
             background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
             padding: 80px 0;
         }
-        
+
         .vs-related-products h2 {
             font-size: 32px;
             font-weight: 700;
@@ -211,168 +318,103 @@
             text-align: center;
             margin-bottom: 48px;
         }
-        
+
         .vs-related-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 24px;
         }
-        
+
         .vs-related-item {
             background: white;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
             transition: all 0.3s ease;
             text-decoration: none;
         }
-        
+
         .vs-related-item:hover {
             transform: translateY(-8px);
-            box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
         }
-        
+
         .vs-related-item img {
             width: 100%;
-            height: 180px;
+            height: 160px;
             object-fit: contain;
             background: #f8fafc;
-            padding: 24px;
-        }
-        
-        .vs-related-item h4 {
             padding: 20px;
-            font-size: 15px;
-            font-weight: 600;
-            color: #1e293b;
-            text-align: center;
         }
-        
-        /* Related News */
-        .vs-related-news {
-            padding: 80px 0;
-        }
-        
-        .vs-related-news h2 {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--color-primary);
-            text-align: center;
-            margin-bottom: 48px;
-        }
-        
-        .vs-news-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 32px;
-        }
-        
-        .vs-news-item {
-            display: flex;
-            gap: 24px;
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-        
-        .vs-news-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
-        }
-        
-        .vs-news-item img {
-            width: 200px;
-            height: 160px;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-        
-        .vs-news-item__content {
-            padding: 24px 24px 24px 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .vs-news-item__content h4 {
-            font-size: 17px;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-        
-        .vs-news-item__content p {
+
+        .vs-related-item h4 {
+            padding: 16px;
             font-size: 14px;
-            color: #64748b;
-            line-height: 1.7;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        /* CTA Section */
-        .vs-cta-section {
-            background: linear-gradient(135deg, var(--color-primary) 0%, #004d8c 100%);
-            padding: 80px 0;
+            font-weight: 600;
+            color: #1e293b;
             text-align: center;
-            color: white;
         }
-        
-        .vs-cta-section h3 {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-        
-        .vs-cta-section p {
-            font-size: 18px;
-            opacity: 0.9;
-            margin-bottom: 36px;
-        }
-        
+
         .vs-breadcrumb {
             padding: 16px 0;
             font-size: 14px;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255, 255, 255, 0.85);
         }
-        
+
         .vs-breadcrumb a {
-            color: rgba(255,255,255,0.85);
+            color: rgba(255, 255, 255, 0.85);
             text-decoration: none;
         }
-        
+
         .vs-breadcrumb a:hover {
             color: white;
         }
-        
+
         .vs-breadcrumb span {
             margin: 0 12px;
             opacity: 0.5;
         }
-        
+
         /* Responsive */
         @media (max-width: 1024px) {
-            .vs-related-grid { grid-template-columns: repeat(3, 1fr); }
+            .vs-related-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-advantages-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
-        
+
         @media (max-width: 768px) {
-            .vs-product-hero__inner { grid-template-columns: 1fr; gap: 40px; }
-            .vs-product-hero__content h1 { font-size: 32px; }
-            .vs-news-grid { grid-template-columns: 1fr; }
-            .vs-related-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        
-        @media (max-width: 576px) {
-            .vs-related-grid { grid-template-columns: 1fr; }
-            .vs-news-item { flex-direction: column; }
-            .vs-news-item img { width: 100%; height: 200px; }
+            .vs-product-hero__inner {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-product-hero__content h1 {
+                font-size: 32px;
+            }
+
+            .vs-related-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-advantages-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
 
 <body>
@@ -381,21 +423,25 @@
         <div class="vs-container vs-header__inner">
             <div style="display: flex; align-items: center;">
                 <a href="../../index.html" class="vs-logo">
-                    <img src="../../assets/images/logo.png" alt="Metachip Logo" style="filter: brightness(0) invert(1);">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
                     METACHIP
                 </a>
             </div>
             <nav class="vs-nav">
                 <ul class="vs-nav__list">
-                    <li class="vs-nav__item"><a href="../../pages/products/index.html" class="vs-nav__link">产品</a></li>
-                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/products/index.html"
+                            class="vs-nav__link">产品</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a>
+                    </li>
                     <li class="vs-nav__item"><a href="../../pages/news/news.html" class="vs-nav__link">洞察与资讯</a></li>
                     <li class="vs-nav__item"><a href="../../pages/about/about.html" class="vs-nav__link">公司简介</a></li>
-                    <li class="vs-nav__item"><a href="../../pages/contact/contact.html" class="vs-nav__link">联系我们</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/contact/contact.html" class="vs-nav__link">联系我们</a>
+                    </li>
                 </ul>
             </nav>
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
-                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
                 <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
             </div>
         </div>
@@ -405,28 +451,46 @@
         <div style="background: var(--color-primary);">
             <div class="vs-container vs-breadcrumb">
                 <a href="../../index.html">首页</a><span>|</span>
-                <a href="../../pages/products/index.html">产品</a><span>|</span>便携式血钾检测芯片
+                <a href="../../pages/products/index.html">产品</a><span>|</span>
+                <a href="../../pages/products/index.html">生物传感</a><span>|</span>
+                便携式血钾检测芯片
             </div>
         </div>
 
+        <!-- Product Hero with Gallery -->
         <section class="vs-product-hero">
             <div class="vs-container">
                 <div class="vs-product-hero__inner">
-                    <div class="vs-product-hero__image">
-                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141545220675.bmp" alt="便携式血钾检测芯片">
+                    <!-- Image Gallery -->
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <img id="mainImage"
+                                src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141545220675.bmp"
+                                alt="便携式血钾检测芯片">
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active"
+                                onclick="changeImage(this, 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141545220675.bmp')">
+                                <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141545220675.bmp"
+                                    alt="产品全景图">
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Product Info -->
                     <div class="vs-product-hero__content">
                         <h1>便携式血钾检测芯片</h1>
-                        <p class="vs-product-hero__desc">采用离子敏感场效应晶体管检测方法，在体外诊断行业为国内首创。</p>
+                        <p class="vs-product-hero__desc">采用离子敏感场效应晶体管检测方法，在体外诊断行业为国内首创，开启床旁快速血钾检测新时代。</p>
                         <ul class="vs-feature-list">
-                        <li>线性范围宽</li>
-                        <li>选择性好</li>
-                        <li>灵敏度高</li>
-                        <li>响应时间短</li>
+                            <li>线性范围宽 (100μM - 100mM)，覆盖临床常见浓度区间</li>
+                            <li>选择性好，有效抑制其他离子干扰，确保检测准确性</li>
+                            <li>灵敏度高，可精准捕捉血钾浓度的微小变化</li>
+                            <li>响应时间短 (＜60秒)，实现即时检测与快速诊断</li>
                         </ul>
                         <div>
-                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary" style="padding: 14px 32px; font-size: 16px;">
-                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价
+                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary"
+                                style="padding: 14px 32px; font-size: 16px;">
+                                <i class="fas fa-vial" style="margin-right: 10px;"></i>申请试用
                             </a>
                         </div>
                     </div>
@@ -434,123 +498,154 @@
             </div>
         </section>
 
+        <!-- Product Details -->
         <section class="vs-product-section">
             <div class="vs-container">
                 <h2 class="vs-product-section__title">产品详情</h2>
-                <div class="vs-product-section__content"><p>便携式血钾检测芯片，采用离子敏感场效应晶体管检测方法，在体外诊断行业为国内首创。本产品操作简便，测试快速，灵敏度更高，选择性更好，线性范围更宽。结合便携式生化分析仪，可实现床旁快速测试血钾浓度，对于避免因高钾血症的发生和复发影响疾病预后有着重要意义</p></div>
+                <div class="vs-product-section__content">
+                    <p>便携式血钾检测芯片采用离子敏感场效应晶体管（ISFET）检测方法，在体外诊断行业为国内首创。本产品操作简便，测试快速，灵敏度更高，选择性更好，线性范围更宽。</p>
+                    <p>结合便携式生化分析仪，可实现床旁快速测试血钾浓度，对于避免因高钾血症的发生和复发影响疾病预后有着重要意义。该芯片特别适用于急诊科、ICU、肾内科等需要快速获取血钾数据的临床场景。</p>
+                </div>
             </div>
         </section>
 
-
+        <!-- Product Advantages -->
         <section class="vs-product-section alt-bg">
             <div class="vs-container">
                 <h2 class="vs-product-section__title">产品优势</h2>
                 <div class="vs-advantages-grid">
                     <div class="vs-advantage-card">
-                        <i class="fas fa-bolt"></i>
+                        <i class="fas fa-hand-pointer"></i>
                         <h4>操作简便</h4>
+                        <p>无需复杂的样本前处理，一键式操作流程，医护人员快速上手，降低操作误差</p>
                     </div>
                     <div class="vs-advantage-card">
-                        <i class="fas fa-shield-alt"></i>
+                        <i class="fas fa-tachometer-alt"></i>
                         <h4>响应快速</h4>
+                        <p>60秒内完成检测，为急危重症患者争取宝贵的抢救时间，提升临床诊疗效率</p>
                     </div>
                     <div class="vs-advantage-card">
-                        <i class="fas fa-microchip"></i>
+                        <i class="fas fa-bullseye"></i>
                         <h4>测试精准</h4>
+                        <p>准确度与精密度均≤5%，检测结果可靠，为临床诊断与治疗决策提供坚实数据支撑</p>
                     </div>
                 </div>
             </div>
         </section>
 
-
-
+        <!-- Main Applications -->
         <section class="vs-product-section">
             <div class="vs-container">
                 <h2 class="vs-product-section__title">主要应用</h2>
-                <div class="vs-product-section__content"><p><span style="font-size: 20px;"><strong>              脑脊液检测                                    尿液检测                                  血清检测</strong></span></p><p><img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501061233419618.jpg" title="制氢.jpg" alt="制氢.jpg" style="display:none"/><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141549446382.jpeg" title="脑脊液检测.jpeg" alt="脑脊液检测.jpeg" width="233" height="137" style="width: 233px; height: 137px;"/>   <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141551082705.jpg" title="尿液检测.jpg" alt="尿液检测.jpg" width="231" height="136" style="width: 231px; height: 136px;"/>  <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141551496410.jpg" title="血清检测.jpg" alt="血清检测.jpg" width="239" height="135" style="width: 239px; height: 135px;"/></p></div>
-            </div>
-        </section>
-
-
-        <section class="vs-product-section alt-bg">
-            <div class="vs-container">
-                <h2 class="vs-product-section__title">技术指标</h2>
-                <div class="vs-product-section__content"><table class="vs-specs-table"><tr ><td   >  检测范围</td><td   >  100μM - 100mM</td></tr><tr><td   >  检测对象</td><td   >  血清，尿，脑脊液<br/></td></tr><tr><td   >  响应时间</td><td   >  ＜60s</td></tr><tr><td   >  准确度</td><td   >  5%</td></tr><tr><td   >  精密度</td><td   >  5%</td></tr><tr><td   >  工作温度</td><td   >  10℃-40℃</td></tr><tr><td   >  产品尺寸</td><td   >  35*10*5mm</td></tr></table></div>
-            </div>
-        </section>
-
-
-        <section class="vs-related-news">
-            <div class="vs-container">
-                <h2>相关新闻</h2>
-                <div class="vs-news-grid">
-                    <a href="../../pages/news/news_show.aspx_id_35.html" class="vs-news-item">
-                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202411271124342476.png" alt="致力氢能安全，元芯传感LD-H2氢气检测仪成功通过国家防爆与计量认证！">
-                        <div class="vs-news-item__content">
-                            <h4>致力氢能安全，元芯传感LD-H2氢气检测仪成功通过国家防爆与计量认证！</h4>
-                            <p>近日，湖南元芯传感科技有限责任公司的LD-H2氢气检测仪成功通过了国家防爆与计量认证，获得CNEX防爆证书与中国计量院校准证书。这意味着元芯传感的氢气…</p>
+                <div class="vs-applications-grid">
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141549446382.jpeg"
+                                alt="脑脊液检测">
                         </div>
-                    </a>
-                    <a href="../../pages/news/news_show.aspx_id_33.html" class="vs-news-item">
-                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202407010925018525.jpg" alt="元芯传感--2024国际传感器&仪器仪表&物联网展览会">
-                        <div class="vs-news-item__content">
-                            <h4>元芯传感--2024国际传感器&仪器仪表&物联网展览会</h4>
-                            <p>闪耀国际传感器展览会，创新力量引领行业未来！ 2024年6月28日--30日，备受瞩目的2024国际传感器&仪器仪表&物联网展览会在湖南长沙国际会展中心…</p>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-brain"></i> 脑脊液检测</h4>
+                            <p>用于神经内科、神经外科患者的脑脊液电解质分析，辅助诊断中枢神经系统疾病与代谢异常。</p>
                         </div>
-                    </a>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141551082705.jpg"
+                                alt="尿液检测">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-flask"></i> 尿液检测</h4>
+                            <p>应用于肾内科、泌尿科的尿液钾离子浓度监测，评估肾脏排钾功能与电解质平衡状态。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141551496410.jpg"
+                                alt="血清检测">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-heartbeat"></i> 血清检测</h4>
+                            <p>广泛应用于急诊、ICU、心内科等科室的血清钾浓度快速检测，及时发现并处理高/低钾血症。</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
+        <!-- Technical Specifications -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术指标</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>检测范围</td>
+                        <td>100 μM - 100 mM</td>
+                    </tr>
+                    <tr>
+                        <td>检测对象</td>
+                        <td>血清 / 尿液 / 脑脊液</td>
+                    </tr>
+                    <tr>
+                        <td>响应时间</td>
+                        <td>＜ 60 秒</td>
+                    </tr>
+                    <tr>
+                        <td>准确度</td>
+                        <td>≤ 5%</td>
+                    </tr>
+                    <tr>
+                        <td>精密度</td>
+                        <td>≤ 5%</td>
+                    </tr>
+                    <tr>
+                        <td>工作温度</td>
+                        <td>10℃ - 40℃</td>
+                    </tr>
+                    <tr>
+                        <td>产品尺寸</td>
+                        <td>35mm * 10mm * 5mm</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
 
-
+        <!-- Related Products -->
         <section class="vs-related-products">
             <div class="vs-container">
                 <h2>相关产品</h2>
                 <div class="vs-related-grid">
-                    <a href="../../pages/products/mc_bw_bio_workstation.html" class="vs-related-item">
-                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141610379601.jpg" alt="生物传感工作站">
+                    <a href="mc_bw_bio_workstation.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141610379601.jpg"
+                            alt="生物传感工作站">
                         <h4>生物传感工作站</h4>
                     </a>
-                    <a href="../../pages/products/ion_detector.html" class="vs-related-item">
-                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141553278669.png" alt="离子检测仪">
+                    <a href="ion_detector.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141553278669.png"
+                            alt="离子检测仪">
                         <h4>离子检测仪</h4>
                     </a>
-                    <a href="../../pages/products/portable_bio_detector.html" class="vs-related-item">
-                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141535249134.png" alt="便携式手持生物检测仪">
+                    <a href="portable_bio_detector.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141535249134.png"
+                            alt="便携式手持生物检测仪">
                         <h4>便携式手持生物检测仪</h4>
                     </a>
-                    <a href="../../pages/products/carbon_bio_package_chip.html" class="vs-related-item">
-                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101346080807.png" alt="碳基生物封装芯片">
+                    <a href="carbon_bio_package_chip.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101346080807.png"
+                            alt="碳基生物封装芯片">
                         <h4>碳基生物封装芯片</h4>
-                    </a>
-                    <a href="../../pages/products/blood_potassium_chip.html" class="vs-related-item">
-                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141545220675.bmp" alt="便携式血钾检测芯片">
-                        <h4>便携式血钾检测芯片</h4>
-                    </a>
-                    <a href="../../pages/products/chlorine_detection_chip.html" class="vs-related-item">
-                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141602163019.png" alt="余氯检测芯片">
-                        <h4>余氯检测芯片</h4>
-                    </a>
-                    <a href="../../pages/products/carbon_bio_platform.html" class="vs-related-item">
-                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345491479.png" alt="碳基生物传感平台">
-                        <h4>碳基生物传感平台</h4>
-                    </a>
-                    <a href="../../pages/products/respiratory_virus_chip.html" class="vs-related-item">
-                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202510200917507059.png" alt="急性呼吸道病毒检测芯片">
-                        <h4>急性呼吸道病毒检测芯片</h4>
                     </a>
                 </div>
             </div>
         </section>
 
-
+        <!-- CTA Section -->
         <section class="vs-cta-section">
             <div class="vs-container">
-                <h3>需要了解更多？</h3>
-                <p>我们的技术团队随时为您提供专业的产品咨询和解决方案</p>
-                <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--secondary" style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
-                    <i class="fas fa-phone" style="margin-right: 10px;"></i>联系我们
+                <h3>助力临床精准诊疗</h3>
+                <p>元芯传感致力于为医疗机构提供快速、精准、便捷的床旁检测解决方案</p>
+                <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--secondary"
+                    style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
+                    <i class="fas fa-hospital" style="margin-right: 10px;"></i>了解临床应用案例
                 </a>
             </div>
         </section>
@@ -575,5 +670,21 @@
         </div>
     </footer>
 
+    <script>
+        // Image Gallery Functionality
+        function changeImage(thumb, src) {
+            // Update main image
+            document.getElementById('mainImage').src = src;
+
+            // Update active thumbnail
+            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        }
+    </script>
+
+
+    <!-- 全站搜索 -->
+    <script src="../../assets/js/search.js"></script>
 </body>
+
 </html>

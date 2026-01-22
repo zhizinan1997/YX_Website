@@ -75,20 +75,7 @@ const BIOSENSING_PRODUCTS = [
         category: 'device'
     },
     // 定制服务
-    {
-        id: '../customization/custom_gas_sensing_module',
-        name: '定制气体传感模组',
-        image: 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101352513746.png',
-        description: '针对客户应用需求，提供包含器件封装、驱动电路、信号变换模组等多项目的定制化服务与解决方案。',
-        category: 'instrument'
-    },
-    {
-        id: '../customization/custom_instrument_dev',
-        name: '定制仪器仪表开发',
-        image: 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101353274954.png',
-        description: '提供气体检测仪表从设计、加工与测试，包括传感器芯片的封装与探测器的制造，仪器仪表结构的设计与开发等。',
-        category: 'instrument'
-    },
+
     {
         id: '../customization/micronano_fabrication',
         name: '微纳加工服务',

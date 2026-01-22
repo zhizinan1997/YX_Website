@@ -747,6 +747,211 @@ def admin_check():
     return jsonify({'logged_in': session.get('admin_logged_in', False)})
 
 
+# ============ Site Search API ============
+
+# Search index cache
+_search_index = {
+    'pages': [],
+    'last_updated': 0
+}
+_search_lock = threading.Lock()
+
+def extract_text_from_html(html_content):
+    """Extract readable text from HTML content."""
+    from html.parser import HTMLParser
+    
+    class TextExtractor(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.text_parts = []
+            self.skip_tags = {'script', 'style', 'nav', 'header', 'footer', 'noscript'}
+            self.current_tag = None
+            self.skip_depth = 0
+            
+        def handle_starttag(self, tag, attrs):
+            self.current_tag = tag
+            if tag in self.skip_tags:
+                self.skip_depth += 1
+                
+        def handle_endtag(self, tag):
+            if tag in self.skip_tags and self.skip_depth > 0:
+                self.skip_depth -= 1
+                
+        def handle_data(self, data):
+            if self.skip_depth == 0:
+                text = data.strip()
+                if text and len(text) > 1:
+                    self.text_parts.append(text)
+                    
+        def get_text(self):
+            return ' '.join(self.text_parts)
+    
+    try:
+        parser = TextExtractor()
+        parser.feed(html_content)
+        return parser.get_text()
+    except:
+        return ""
+
+def extract_title_from_html(html_content):
+    """Extract title from HTML content."""
+    import re
+    # Try to find <title> tag
+    title_match = re.search(r'<title[^>]*>([^<]+)</title>', html_content, re.IGNORECASE)
+    if title_match:
+        return title_match.group(1).strip()
+    # Try to find <h1> tag
+    h1_match = re.search(r'<h1[^>]*>([^<]+)</h1>', html_content, re.IGNORECASE)
+    if h1_match:
+        return h1_match.group(1).strip()
+    return ""
+
+def build_search_index():
+    """Build search index from all HTML pages."""
+    global _search_index
+    
+    with _search_lock:
+        pages_dir = Path(__file__).parent / 'pages'
+        index_file = Path(__file__).parent / 'index.html'
+        
+        pages = []
+        
+        # Index main page
+        if index_file.exists():
+            try:
+                content = index_file.read_text(encoding='utf-8')
+                title = extract_title_from_html(content)
+                text = extract_text_from_html(content)
+                pages.append({
+                    'url': '/',
+                    'title': title or '首页',
+                    'content': text[:2000],  # Limit content size
+                    'path': 'index.html'
+                })
+            except:
+                pass
+        
+        # Index all pages in pages directory
+        for html_file in pages_dir.rglob('*.html'):
+            # Skip admin pages
+            if 'admin' in str(html_file).lower():
+                continue
+                
+            try:
+                content = html_file.read_text(encoding='utf-8')
+                title = extract_title_from_html(content)
+                text = extract_text_from_html(content)
+                
+                # Get relative URL
+                rel_path = html_file.relative_to(Path(__file__).parent)
+                url = '/' + str(rel_path).replace('\\', '/')
+                
+                pages.append({
+                    'url': url,
+                    'title': title or html_file.stem,
+                    'content': text[:2000],
+                    'path': str(rel_path)
+                })
+            except Exception as e:
+                print(f"Error indexing {html_file}: {e}")
+                continue
+        
+        _search_index['pages'] = pages
+        _search_index['last_updated'] = time.time()
+        
+        return pages
+
+def search_pages(query, limit=20):
+    """Search indexed pages for query."""
+    global _search_index
+    
+    # Rebuild index if empty or stale (older than 5 minutes)
+    if not _search_index['pages'] or time.time() - _search_index['last_updated'] > 300:
+        build_search_index()
+    
+    if not query:
+        return []
+    
+    query_lower = query.lower()
+    results = []
+    
+    for page in _search_index['pages']:
+        score = 0
+        snippet = ""
+        
+        title = page.get('title', '')
+        content = page.get('content', '')
+        
+        title_lower = title.lower()
+        content_lower = content.lower()
+        
+        # Title match (higher score)
+        if query_lower in title_lower:
+            score += 100
+            snippet = title
+        
+        # Content match
+        if query_lower in content_lower:
+            score += 50
+            # Extract snippet around the match
+            idx = content_lower.find(query_lower)
+            start = max(0, idx - 50)
+            end = min(len(content), idx + len(query) + 100)
+            snippet = content[start:end]
+            if start > 0:
+                snippet = '...' + snippet
+            if end < len(content):
+                snippet = snippet + '...'
+        
+        # Partial word match in title
+        for word in query_lower.split():
+            if len(word) >= 2:
+                if word in title_lower:
+                    score += 30
+                if word in content_lower:
+                    score += 10
+        
+        if score > 0:
+            results.append({
+                'url': page['url'],
+                'title': title,
+                'snippet': snippet or content[:150] + '...' if content else '',
+                'score': score
+            })
+    
+    # Sort by score and limit results
+    results.sort(key=lambda x: x['score'], reverse=True)
+    return results[:limit]
+
+
+@app.route('/api/search')
+def api_search():
+    """Search API endpoint."""
+    query = request.args.get('q', '').strip()
+    limit = request.args.get('limit', 20, type=int)
+    
+    if not query:
+        return jsonify({'results': [], 'query': ''})
+    
+    results = search_pages(query, limit)
+    return jsonify({
+        'results': results,
+        'query': query,
+        'total': len(results)
+    })
+
+
+@app.route('/api/search/rebuild')
+@login_required
+def api_search_rebuild():
+    """Force rebuild search index (admin only)."""
+    pages = build_search_index()
+    return jsonify({
+        'success': True,
+        'message': f'索引重建完成，共索引 {len(pages)} 个页面'
+    })
+
+
 # ============ Static Files ============
 
 @app.route('/')
