@@ -1,0 +1,35 @@
+# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Runtime Data (JSON Database)
+data/messages/*
+!data/messages/.gitkeep
+data/rate_limits.json
+data/config.json
+
+# Archive / Backup
+archive/
+*.bak
+*.tmp
+
+# Temporary/Cache
+.pytest_cache/
+.coverage
+htmlcov/
