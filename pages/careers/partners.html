@@ -476,12 +476,158 @@
     </script>
 
     <main style="padding-top: 90px;">
-        <section class="vs-hero"
-            style="height: 40vh; min-height: 300px; display: flex; align-items: center; justify-content: center; background: #003366;">
-            <div class="vs-container" style="color: white; text-align: center;">
-                <h1 style="font-size: 42px; font-weight: 700; margin-bottom: 10px;">代理商招募</h1>
-                <p style="font-size: 18px; opacity: 0.9;">共享氢能产业发展机遇，携手开启传感新篇章。</p>
+        <section class="vs-hero" id="hero-section"
+            style="height: 40vh; min-height: 300px; display: flex; align-items: center; justify-content: center; background: #001e3e; position: relative; overflow: hidden;">
+
+            <!-- 神经连接特效 Canvas -->
+            <canvas id="neuroCanvas"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+
+            <div class="vs-container"
+                style="color: white; text-align: center; position: relative; z-index: 2; pointer-events: none;">
+                <h1
+                    style="font-size: 42px; font-weight: 700; margin-bottom: 10px; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                    代理商招募</h1>
+                <p style="font-size: 18px; opacity: 0.9; text-shadow: 0 2px 5px rgba(0,0,0,0.5);">共享氢能产业发展机遇，携手开启传感新篇章。
+                </p>
             </div>
+
+            <script>
+                (function () {
+                    const canvas = document.getElementById('neuroCanvas');
+                    const ctx = canvas.getContext('2d');
+                    let width, height;
+                    let particles = [];
+                    const particleCount = 60; // 粒子数量
+                    const connectionDistance = 150; // 连接距离
+                    const mouseDistance = 250; // 鼠标连接距离
+
+                    let mouse = { x: null, y: null };
+
+                    // 粒子类
+                    class Particle {
+                        constructor() {
+                            this.x = Math.random() * width;
+                            this.y = Math.random() * height;
+                            this.vx = (Math.random() - 0.5) * 1.5;
+                            this.vy = (Math.random() - 0.5) * 1.5;
+                            this.size = Math.random() * 2 + 1;
+                            this.color = `rgba(0, 161, 223, ${Math.random() * 0.5 + 0.3})`; // Vaisala Blue
+                        }
+
+                        update() {
+                            this.x += this.vx;
+                            this.y += this.vy;
+
+                            // 边界反弹
+                            if (this.x < 0 || this.x > width) this.vx *= -1;
+                            if (this.y < 0 || this.y > height) this.vy *= -1;
+                        }
+
+                        draw() {
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                            ctx.fillStyle = this.color;
+                            ctx.fill();
+                        }
+                    }
+
+                    // 初始化
+                    function init() {
+                        width = canvas.width = document.getElementById('hero-section').offsetWidth;
+                        height = canvas.height = document.getElementById('hero-section').offsetHeight;
+
+                        particles = [];
+                        for (let i = 0; i < particleCount; i++) {
+                            particles.push(new Particle());
+                        }
+                    }
+
+                    // 动画循环
+                    function animate() {
+                        ctx.clearRect(0, 0, width, height);
+
+                        // 更新和绘制粒子
+                        particles.forEach(p => {
+                            p.update();
+                            p.draw();
+                        });
+
+                        // 绘制连接线
+                        for (let i = 0; i < particles.length; i++) {
+                            const p1 = particles[i];
+
+                            // 粒子间连接
+                            for (let j = i + 1; j < particles.length; j++) {
+                                const p2 = particles[j];
+                                const dx = p1.x - p2.x;
+                                const dy = p1.y - p2.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                if (dist < connectionDistance) {
+                                    ctx.beginPath();
+                                    ctx.strokeStyle = `rgba(0, 161, 223, ${1 - dist / connectionDistance})`;
+                                    ctx.lineWidth = 1;
+                                    ctx.moveTo(p1.x, p1.y);
+                                    ctx.lineTo(p2.x, p2.y);
+                                    ctx.stroke();
+                                }
+                            }
+
+                            // 鼠标连接
+                            if (mouse.x != null) {
+                                const dx = p1.x - mouse.x;
+                                const dy = p1.y - mouse.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                if (dist < mouseDistance) {
+                                    // 连接线
+                                    ctx.beginPath();
+                                    ctx.strokeStyle = `rgba(243, 112, 33, ${1 - dist / mouseDistance})`; // Vaisala Orange for interaction
+                                    ctx.lineWidth = 1.5;
+                                    ctx.moveTo(p1.x, p1.y);
+                                    ctx.lineTo(mouse.x, mouse.y);
+                                    ctx.stroke();
+
+                                    // 粒子受鼠标吸引（轻微移动）
+                                    if (dist > 50) { // 避免过于聚集
+                                        p1.x -= dx * 0.02;
+                                        p1.y -= dy * 0.02;
+                                    }
+                                }
+                            }
+                        }
+
+                        // 绘制鼠标核心点
+                        if (mouse.x != null) {
+                            ctx.beginPath();
+                            ctx.arc(mouse.x, mouse.y, 4, 0, Math.PI * 2);
+                            ctx.fillStyle = '#f37021'; // Orange
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = '#f37021';
+                            ctx.fill();
+                            ctx.shadowBlur = 0;
+                        }
+
+                        requestAnimationFrame(animate);
+                    }
+
+                    // 事件监听
+                    window.addEventListener('resize', init);
+                    document.getElementById('hero-section').addEventListener('mousemove', (e) => {
+                        const rect = canvas.getBoundingClientRect();
+                        mouse.x = e.clientX - rect.left;
+                        mouse.y = e.clientY - rect.top;
+                    });
+                    document.getElementById('hero-section').addEventListener('mouseleave', () => {
+                        mouse.x = null;
+                        mouse.y = null;
+                    });
+
+                    init();
+                    animate();
+                })();
+            </script>
         </section>
 
         <section class="recruitment-section">
