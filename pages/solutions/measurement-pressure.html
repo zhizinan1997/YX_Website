@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>压力 (P) 测量 - 工业压力传感与监测解决方案 - 元芯传感</title>
+    <meta name="description" content="元芯传感提供高精度压力测量解决方案，涵盖工业过程控制、气体管路监测、液压系统等应用场景，确保生产安全与效率。">
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Compact Inficon-style Mega Menu */
+        .vs-header .vs-container,
+        .vs-header__inner,
+        .vs-nav,
+        .vs-nav__list {
+            height: 100%;
+        }
+
+        .vs-nav__item--has-mega {
+            position: relative !important;
+        }
+
+        .vs-mega-menu {
+            position: absolute;
+            top: 100%;
+            left: -30px;
+            width: 1000px;
+            background: var(--color-white);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            z-index: 999;
+            display: flex;
+            min-height: 440px;
+            border-radius: 8px;
+            overflow: visible;
+            pointer-events: none;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: -2px;
+        }
+
+        .vs-mega-menu::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: -50px;
+            width: 400px;
+            height: 50px;
+            background: transparent;
+            z-index: -1;
+        }
+
+        .vs-nav__item--has-mega:hover .vs-mega-menu {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .vs-mega-sidebar {
+            width: 260px;
+            background: #f4f6f8;
+            border-right: 1px solid #eee;
+            padding: 15px 0;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .vs-mega-tab {
+            padding: 14px 30px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vs-mega-tab:hover,
+        .vs-mega-tab.active {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .vs-mega-tab i {
+            font-size: 10px;
+            opacity: 0.4;
+        }
+
+        .vs-mega-content {
+            flex: 1;
+            padding: 40px 50px;
+            background: var(--color-white);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .vs-mega-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .vs-mega-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .vs-mega-panel h3 {
+            font-size: 20px;
+            color: var(--color-primary);
+            margin-bottom: 24px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--color-accent-orange);
+            display: inline-block;
+            padding-bottom: 4px;
+        }
+
+        .vs-mega-grid-v2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .vs-mega-list-v2 {
+            list-style: none;
+        }
+
+        .vs-mega-list-v2 li {
+            margin-bottom: 10px;
+        }
+
+        .vs-mega-list-v2 a {
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .vs-mega-list-v2 a:hover {
+            color: var(--color-accent-blue);
+            padding-left: 5px;
+        }
+
+        /* Breadcrumb */
+        .jjfa-breadcrumb {
+            position: absolute;
+            top: 40px;
+            left: 5%;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 0;
+            z-index: 10;
+            color: white;
+        }
+
+        .jjfa-breadcrumb a {
+            color: white;
+            opacity: 0.8;
+            text-decoration: none;
+        }
+
+        .jjfa-breadcrumb a:hover {
+            opacity: 1;
+        }
+
+        /* Measurement Hero - Video Style */
+        .vs-measurement-hero {
+            min-height: 525px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a365d 0%, #2563eb 100%);
+        }
+
+        .vs-measurement-hero__video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        .vs-measurement-hero__overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(26, 54, 93, 0.4) 0%, rgba(37, 99, 235, 0.3) 100%);
+            z-index: 1;
+        }
+
+        .vs-measurement-hero__content {
+            max-width: 850px;
+            color: #fff;
+            z-index: 2;
+            position: relative;
+            padding-right: 50px;
+        }
+
+        .vs-measurement-hero__subtitle {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 16px;
+        }
+
+        .vs-measurement-hero__title {
+            font-size: 52px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            line-height: 1.15;
+        }
+
+        .vs-measurement-hero__desc {
+            font-size: 18px;
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        .vs-measurement-hero__cta {
+            margin-top: 32px;
+        }
+
+        .vs-measurement-hero__cta .vs-btn {
+            background: var(--color-accent-orange);
+            color: white;
+            padding: 14px 32px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .vs-measurement-hero__cta .vs-btn:hover {
+            background: #e55c00;
+            transform: translateY(-2px);
+        }
+
+        /* Content Sections */
+        .vs-content-section {
+            padding: 80px 0;
+        }
+
+        .vs-content-section--gray {
+            background: #f7f9fb;
+        }
+
+        .vs-content-section h2 {
+            font-size: 36px;
+            font-weight: 300;
+            color: var(--color-primary);
+            margin-bottom: 24px;
+        }
+
+        .vs-content-section p {
+            font-size: 17px;
+            line-height: 1.9;
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        .vs-content-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .vs-content-section ul li {
+            position: relative;
+            padding-left: 28px;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .vs-content-section ul li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 8px;
+            height: 8px;
+            background: var(--color-accent-orange);
+            border-radius: 50%;
+        }
+
+        /* Two Column Layout */
+        .vs-two-col {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .vs-two-col--reverse {
+            direction: rtl;
+            grid-template-columns: 1fr 1.2fr;
+        }
+
+        .vs-two-col--reverse>* {
+            direction: ltr;
+        }
+
+        .vs-two-col__image {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .vs-two-col__image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Benefits Grid */
+        .vs-benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 50px;
+            margin-top: 60px;
+        }
+
+        .vs-benefit-card {
+            text-align: center;
+            padding: 50px 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .vs-benefit-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 60px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-benefit-card__icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+        }
+
+        .vs-benefit-card__icon--blue {
+            background: linear-gradient(135deg, #00AAE4, #0077BE);
+        }
+
+        .vs-benefit-card__icon--orange {
+            background: linear-gradient(135deg, #F5821F, #E55C00);
+        }
+
+        .vs-benefit-card__icon--green {
+            background: linear-gradient(135deg, #00A88E, #008F7A);
+        }
+
+        .vs-benefit-card__icon--purple {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+        }
+
+        .vs-benefit-card h4 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 16px;
+        }
+
+        .vs-benefit-card p {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Section Title Centered */
+        .vs-section-title-centered {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .vs-section-title-centered h2 {
+            font-size: 36px;
+            font-weight: 300;
+            color: var(--color-primary);
+            margin-bottom: 16px;
+        }
+
+        .vs-section-title-centered p {
+            font-size: 17px;
+            color: #666;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* Technology Features */
+        .vs-tech-features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .vs-tech-feature {
+            display: flex;
+            gap: 20px;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .vs-tech-feature:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .vs-tech-feature__icon {
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #1a365d, #2563eb);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .vs-tech-feature__content h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+
+        .vs-tech-feature__content p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Application Scenarios */
+        .vs-app-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .vs-app-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .vs-app-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-app-card__img {
+            height: 140px;
+            background: linear-gradient(135deg, #1a365d 0%, #2563eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 40px;
+        }
+
+        .vs-app-card__content {
+            padding: 20px;
+        }
+
+        .vs-app-card__content h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 10px;
+        }
+
+        .vs-app-card__content p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Pressure Types Grid */
+        .vs-pressure-types {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .vs-pressure-type {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid var(--color-accent-orange);
+            transition: all 0.3s ease;
+        }
+
+        .vs-pressure-type:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .vs-pressure-type h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 12px;
+        }
+
+        .vs-pressure-type p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .vs-two-col {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-two-col--reverse {
+                direction: ltr;
+            }
+
+            .vs-benefits-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-tech-features {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-app-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-pressure-types {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-measurement-hero__title {
+                font-size: 36px;
+            }
+
+            .vs-benefits-grid,
+            .vs-app-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../../pages/products/products.aspx_category_id_0.html" class="vs-nav__link">产品</a>
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    新品推荐 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    行业分类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    测量对象 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    产品种类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    产品列表 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>新品推荐</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">LD-H2-Gen5 第五代氢气传感器</a></li>
+                                                <li><a href="#">车载高集成氢气安全监测模组</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">加氢站安全监测</a></li>
+                                                <li><a href="#">燃料电池车辆</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>行业分类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../../pages/solutions/industry-hydrogen.html">氢能源产业链</a>
+                                                </li>
+                                                <li><a
+                                                        href="../../pages/solutions/industry-power-safety.html">智慧电力安全</a>
+                                                </li>
+                                                <li><a
+                                                        href="../../pages/solutions/industry-leak-detection.html">工业检漏监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../../pages/solutions/industry-energy-storage.html">绿色能源存储</a>
+                                                </li>
+                                                <li><a href="../../pages/solutions/industry-environment.html">大气环境监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>测量对象</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../../pages/solutions/measurement-hydrogen.html">氢气
+                                                        (H2)</a></li>
+                                                <li><a href="../../pages/solutions/measurement-humidity.html">湿度
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../../pages/solutions/measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../../pages/solutions/measurement-oil-water.html">油中水含量</a>
+                                                </li>
+                                                <li><a href="../../pages/solutions/measurement-dewpoint.html">露点
+                                                        (Td)</a></li>
+                                                <li><a href="../../pages/solutions/measurement-pressure.html">压力 (P)</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>产品种类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../../pages/products/products_mems.html">MEMS 传感器芯片</a>
+                                                </li>
+                                                <li><a href="../../pages/products/products_modules.html">高集成封装模组</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../../pages/products/products_handheld.html">智能手持终端设备</a>
+                                                </li>
+                                                <li><a href="../../pages/products/products_systems.html">在线监测分析系统</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>产品列表</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">传感探头系列</a></li>
+                                                <li><a href="#">物联网无线终端</a></li>
+                                                <li><a href="#">核心传感模块</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="#">OEM 定制化方案</a></li>
+                                                <li><a href="#">便携式测量仪</a></li>
+                                                <li><a href="#">精密分析仪表</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a>
+                    </li>
+                    <li class="vs-nav__item"><a href="../../pages/news/news.html" class="vs-nav__link">洞察与资讯</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/about/about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/contact/contact.html" class="vs-nav__link">联系我们</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
+            </div>
+        </div>
+    </header>
+
+    <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+    </script>
+
+    <main style="padding-top: 0;">
+        <!-- Modern Full-Width Hero -->
+        <section class="vs-measurement-hero" style="height: 100vh;">
+            <video class="vs-measurement-hero__video" autoplay muted loop playsinline>
+                <source src="../../assets/video/hero-pressure-page-1920x525_1.mp4" type="video/mp4">
+            </video>
+            <div class="vs-measurement-hero__overlay"
+                style="background: linear-gradient(135deg, rgba(0, 30, 60, 0.6) 0%, rgba(0, 50, 90, 0.4) 100%);"></div>
+
+            <p class="jjfa-breadcrumb">
+                <a href="../../index.html">首页</a> - <a href="#">测量对象</a> - <span>压力 (P)</span>
+            </p>
+
+            <div class="vs-container"
+                style="position: relative; z-index: 2; height: 100%; display: flex; align-items: center;">
+                <div class="vs-measurement-hero__content" style="max-width: 800px;">
+                    <p class="vs-measurement-hero__subtitle"
+                        style="font-size: 16px; letter-spacing: 3px; color: #f37021;">PRECISION SENSING</p>
+                    <h1 class="vs-measurement-hero__title" style="font-size: 64px; margin-bottom: 30px;">工业压力 (P) 测量与控制
+                    </h1>
+                    <p class="vs-measurement-hero__desc" style="font-size: 20px; font-weight: 300; opacity: 1;">
+                        在最严苛的工业环境中，元芯提供毫秒级响应的高精度压力监测方案。保障工艺安全，优化能源效率。
+                    </p>
+                    <div class="vs-measurement-hero__cta">
+                        <a href="#products" class="vs-btn" style="border-radius: 30px; padding: 16px 40px;">探索我们的产品</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Strip -->
+        <div class="vs-stats-strip">
+            <div class="vs-container">
+                <div class="vs-stats-grid">
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">0.1%</div>
+                        <div class="vs-stat__desc">高精度测量</div>
+                    </div>
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">10<span>ms</span></div>
+                        <div class="vs-stat__desc">超快响应速度</div>
+                    </div>
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">IP68</div>
+                        <div class="vs-stat__desc">工业防护等级</div>
+                    </div>
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">24/7</div>
+                        <div class="vs-stat__desc">全天候监测</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Layout: Why Measure (Zig-Zag) -->
+        <section class="vs-app-zigzag" id="applications">
+            <!-- Row 1 -->
+            <div class="vs-zigzag-row">
+                <div class="vs-zigzag-img">
+                    <img src="../../assets/images/LIFT-pipes-industrial-plant-800x450.jpg" alt="Industrial Pipes">
+                </div>
+                <div class="vs-zigzag-text">
+                    <h3 class="vs-zigzag-title">为何高精度压力控制至关重要？</h3>
+                    <p class="vs-zigzag-desc">
+                        压力波动不仅影响工艺稳定性，更是安全事故的潜在诱因。精确的压力控制能够防止管道破裂、优化流体输送效率，并在关键时刻触发安全联锁，保护资产与人员安全。
+                    </p>
+                    <a href="#" class="vs-zigzag-link">了解行业标准</a>
+                </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="vs-zigzag-row">
+                <div class="vs-zigzag-img">
+                    <!-- Using generic tech image or similar if specific is missing, reusing a high quality one -->
+                    <img src="../../assets/images/LIFT-oil-and-gas-800x450px.jpg" alt="Technology">
+                </div>
+                <div class="vs-zigzag-text" style="background-color: #0d3c55;">
+                    <h3 class="vs-zigzag-title">BAROCAP® 硅电容传感技术</h3>
+                    <p class="vs-zigzag-desc">
+                        元芯核心的 MEMS 传感器技术，采用独特的单晶硅微结构。具有卓越的抗过载能力和极低的温度漂移，即使在频繁的压力循环中也能保持长期的测量稳定性。
+                    </p>
+                    <a href="#" class="vs-zigzag-link">查看技术白皮书</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Overlay Card Grid for Applications -->
+        <section class="vs-section--full-width" style="padding: 0; background: #fff;">
+            <div class="vs-section-title-centered" style="padding-top: 100px;">
+                <h2>应用领域</h2>
+                <p>从微小压差到高压液压系统，全方位覆盖</p>
+            </div>
+            <div class="vs-overlay-card-grid">
+                <div class="vs-overlay-card-item">
+                    <img src="../../assets/images/LIFT-oil-rig-offshore-closeup-800x450.jpg" class="vs-overlay-card-img"
+                        alt="Oil & Gas">
+                    <div class="vs-overlay-text-box">
+                        <h3>石油与天然气</h3>
+                        <p>监测井口压力、输油管道及分离器压力，确保开采与输送过程的安全高效。</p>
+                    </div>
+                </div>
+                <div class="vs-overlay-card-item">
+                    <img src="../../assets/images/LIFT-pulp-paper-and-wood-800x450px.jpg" class="vs-overlay-card-img"
+                        alt="Industrial Manufacturing">
+                    <div class="vs-overlay-text-box">
+                        <h3>工业制造过程</h3>
+                        <p>无论是在造纸、化工还是制药领域，精准的压力变送器都是自动化控制系统的“神经末梢”。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Highlight (Horizontal Card) -->
+        <section class="vs-content-section" id="products">
+            <div class="vs-container">
+                <div class="vs-section-title-centered">
+                    <h2>推荐测压产品</h2>
+                </div>
+
+                <div class="vs-two-col">
+                    <div class="vs-two-col__image" style="box-shadow: none;">
+                        <!-- Placeholder for product image -->
+                        <div
+                            style="background: #f4f6f8; height: 100%; min-height: 400px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                            <i class="fas fa-tachometer-alt" style="font-size: 80px; color: #ccc;"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span
+                            style="color: var(--color-accent-orange); font-weight: 600; text-transform: uppercase;">旗舰产品</span>
+                        <h3 style="font-size: 32px; margin: 10px 0 20px;">PT-3000 智能压力变送器</h3>
+                        <p>专为苛刻工业应用设计。全不锈钢外壳，抗腐蚀，内置智能诊断功能。</p>
+                        <ul style="margin-bottom: 30px;">
+                            <li><i class="fas fa-check"
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 量程覆盖 -1 至 1000 bar
+                            </li>
+                            <li><i class="fas fa-check"
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 输出信号 4...20 mA,
+                                HART, Modbus</li>
+                            <li><i class="fas fa-check"
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 本质安全认证 Ex ia IIC
+                                T4</li>
+                        </ul>
+                        <a href="#" class="vs-btn">查看产品详情</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col">
+                    <a href="../../index.html" class="vs-logo" style="margin-bottom: 20px;">
+                        <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                            style="filter: brightness(0) invert(1);">
+                        METACHIP
+                    </a>
+                    湖南元芯传感科技有限责任公司<br>
+                    湖南省湘潭市高新区双马街道书院路38号
+                    </p>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

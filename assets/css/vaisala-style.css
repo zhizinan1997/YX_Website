@@ -683,10 +683,9 @@ img {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: var(--container-width);
-    /* 限制为标准容器宽度 */
-    margin: 0 auto;
-    /* 居中对齐 */
+    /* Full viewport width default */
+    max-width: 100%;
+    margin: 0;
     padding: 0;
 }
 
@@ -712,6 +711,8 @@ img {
     max-width: 50%;
     position: relative;
     overflow: hidden;
+    min-height: 500px;
+    /* Ensure height */
 }
 
 .vs-zigzag-img img {
@@ -784,6 +785,7 @@ img {
     font-size: 15px;
     color: #1a1a1a;
     /* 深色文字 */
+    background: white;
     text-transform: none;
     letter-spacing: 0.5px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -795,6 +797,117 @@ img {
 .vs-zigzag-link:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   11. Full Width Sections (New)
+======================================== */
+.vs-section--full-width {
+    width: 100%;
+    max-width: 100%;
+    padding: 100px 0;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    /* For parallax effects if needed */
+}
+
+.vs-section--full-width::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    /* Default overlay for text readability */
+    z-index: 1;
+}
+
+.vs-container--fluid {
+    width: 100%;
+    max-width: 1600px;
+    /* Wider constraint */
+    margin: 0 auto;
+    padding: 0 50px;
+    position: relative;
+    z-index: 2;
+}
+
+/* New Modern Card Grid Overlay Style */
+.vs-overlay-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    width: 100%;
+}
+
+.vs-overlay-card-item {
+    position: relative;
+    height: 600px;
+    overflow: hidden;
+}
+
+.vs-overlay-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+}
+
+.vs-overlay-card-item:hover .vs-overlay-card-img {
+    transform: scale(1.05);
+    /* Slight zoom */
+}
+
+.vs-overlay-text-box {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    right: 50px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    backdrop-filter: blur(10px);
+    border-left: 5px solid var(--color-accent-orange);
+    transition: transform 0.3s ease;
+    transform: translateY(20px);
+    opacity: 0.9;
+}
+
+.vs-overlay-card-item:hover .vs-overlay-text-box {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.vs-overlay-text-box h3 {
+    font-size: 24px;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+}
+
+.vs-overlay-text-box p {
+    font-size: 16px;
+    color: #444;
+}
+
+/* Responsive adjust */
+@media (max-width: 1024px) {
+    .vs-zigzag-row {
+        flex-direction: column !important;
+        /* Stack on mobile */
+        height: auto;
+    }
+
+    .vs-zigzag-img,
+    .vs-zigzag-text {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+
+    .vs-overlay-card-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .vs-zigzag-link::after {
@@ -1329,7 +1442,6 @@ img {
     display: flex;
     flex-direction: column;
     text-decoration: none;
-    group: all;
     background: #fff;
     /* White Card Background */
     border-radius: 12px;
@@ -1403,6 +1515,7 @@ img {
     line-height: 1.7;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     margin: 0 24px 32px 24px;
