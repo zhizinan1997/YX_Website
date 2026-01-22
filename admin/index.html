@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +44,7 @@
             background: white;
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
             width: 100%;
             max-width: 400px;
             text-align: center;
@@ -114,7 +115,8 @@
         /* --- Dashboard --- */
         .dashboard {
             display: none;
-            display: flex; /* Hidden by default via JS */
+            display: flex;
+            /* Hidden by default via JS */
             height: 100vh;
         }
 
@@ -132,7 +134,7 @@
             display: flex;
             align-items: center;
             padding: 0 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             font-weight: 700;
             font-size: 18px;
             letter-spacing: 0.5px;
@@ -148,15 +150,16 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
         }
 
-        .menu-item:hover, .menu-item.active {
+        .menu-item:hover,
+        .menu-item.active {
             color: white;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-left: 4px solid var(--accent-color);
         }
 
@@ -206,7 +209,7 @@
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
         .stat-label {
@@ -226,7 +229,7 @@
         .card {
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             overflow: hidden;
         }
 
@@ -293,7 +296,7 @@
         .settings-view {
             max-width: 600px;
         }
-        
+
         .section-header {
             margin-bottom: 20px;
             padding-bottom: 15px;
@@ -304,12 +307,182 @@
         .view-section {
             display: none;
         }
+
         .view-section.active {
             display: block;
         }
-        
+
+        /* Chatbot Config Styles */
+        .chatbot-config-section {
+            margin-bottom: 30px;
+        }
+
+        .file-upload-zone {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #fafafa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .file-upload-zone:hover,
+        .file-upload-zone.dragover {
+            border-color: var(--primary-color);
+            background: #f0f4f8;
+        }
+
+        .file-upload-zone i {
+            font-size: 40px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .file-item .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-item .file-info i {
+            color: #c0392b;
+            font-size: 24px;
+        }
+
+        .file-item .file-meta {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked+.toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-color);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-indicator.enabled {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-indicator.disabled {
+            background: #ffebee;
+            color: #c62828;
+        }
     </style>
 </head>
+
 <body>
 
     <!-- LOGIN PAGE -->
@@ -347,6 +520,9 @@
                 <div class="menu-item active" onclick="switchView('messages')">
                     <i class="fas fa-envelope"></i> 留言管理
                 </div>
+                <div class="menu-item" onclick="switchView('chatbot')">
+                    <i class="fas fa-robot"></i> AI客服设置
+                </div>
                 <div class="menu-item" onclick="switchView('settings')">
                     <i class="fas fa-cog"></i> 账号设置
                 </div>
@@ -365,7 +541,7 @@
             </div>
 
             <div class="content-area">
-                
+
                 <!-- Messages View -->
                 <div id="view-messages" class="view-section active">
                     <div class="stats-grid">
@@ -399,6 +575,115 @@
                     </div>
                 </div>
 
+                <!-- Chatbot View -->
+                <div id="view-chatbot" class="view-section">
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="switchChatbotTab('config', this)">API 配置</button>
+                        <button class="tab-btn" onclick="switchChatbotTab('knowledge', this)">知识库管理</button>
+                    </div>
+
+                    <!-- API Config Tab -->
+                    <div id="chatbot-tab-config" class="tab-content active">
+                        <div class="card" style="padding: 30px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">AI客服配置
+                                </h3>
+                                <div id="chatbotStatus" class="status-indicator enabled">
+                                    <i class="fas fa-circle" style="font-size: 8px;"></i>
+                                    <span>已启用</span>
+                                </div>
+                            </div>
+
+                            <form id="chatbotConfigForm">
+                                <div class="form-group">
+                                    <label>启用智能客服</label>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="chatbotEnabled" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>API Key</label>
+                                    <input type="password" id="chatbotApiKey" class="form-control" placeholder="sk-...">
+                                    <div class="form-hint">支持 OpenAI 及兼容 API（如 DeepSeek、智谱等）</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>API Base URL</label>
+                                    <input type="text" id="chatbotApiBase" class="form-control"
+                                        value="https://api.openai.com/v1">
+                                    <div class="form-hint">OpenAI: https://api.openai.com/v1，DeepSeek:
+                                        https://api.deepseek.com</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>模型名称</label>
+                                    <input type="text" id="chatbotModel" class="form-control" value="gpt-3.5-turbo">
+                                    <div class="form-hint">如: gpt-3.5-turbo, gpt-4, deepseek-chat</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>系统提示词</label>
+                                    <textarea id="chatbotSystemPrompt" class="form-control" rows="6"></textarea>
+                                    <div class="form-hint">定义AI助手的角色和行为</div>
+                                </div>
+
+                                <div style="display: flex; gap: 20px;">
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>最大 Tokens</label>
+                                        <input type="number" id="chatbotMaxTokens" class="form-control" value="1000"
+                                            min="100" max="100000">
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>Temperature</label>
+                                        <input type="number" id="chatbotTemperature" class="form-control" value="0.7"
+                                            min="0" max="2" step="0.1">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary"
+                                    style="width: auto; padding: 12px 30px;">保存配置</button>
+                                <div id="chatbotConfigMsg" class="error-message" style="color: #28a745;"></div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Knowledge Base Tab -->
+                    <div id="chatbot-tab-knowledge" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">知识库文件管理</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                上传PDF文档作为AI客服的知识库。AI将根据这些文档内容回答用户问题。
+                            </p>
+
+                            <div id="pdfSupportWarning" class="chat-error" style="display: none; margin-bottom: 20px;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                服务器未安装 PyPDF2，PDF解析功能不可用。请安装: pip install PyPDF2
+                            </div>
+
+                            <div class="file-upload-zone" id="uploadZone">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放PDF文件到此处</div>
+                                <div style="font-size: 13px; color: #888;">或点击选择文件</div>
+                                <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+                            </div>
+
+                            <div id="uploadProgress" style="display: none; margin-top: 15px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>正在上传...</span>
+                                </div>
+                            </div>
+
+                            <div class="file-list" id="knowledgeFileList">
+                                <!-- Files will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Settings View -->
                 <div id="view-settings" class="view-section">
                     <div class="card" style="padding: 30px;">
@@ -406,7 +691,8 @@
                         <form id="settingsForm">
                             <div class="form-group">
                                 <label>原密码</label>
-                                <input type="password" id="oldPassword" class="form-control" required placeholder="验证身份">
+                                <input type="password" id="oldPassword" class="form-control" required
+                                    placeholder="验证身份">
                             </div>
                             <div class="form-group">
                                 <label>新用户名</label>
@@ -414,9 +700,11 @@
                             </div>
                             <div class="form-group">
                                 <label>新密码</label>
-                                <input type="password" id="newPassword" class="form-control" required placeholder="设置新密码">
+                                <input type="password" id="newPassword" class="form-control" required
+                                    placeholder="设置新密码">
                             </div>
-                            <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存修改</button>
+                            <button type="submit" class="btn-primary"
+                                style="width: auto; padding: 12px 30px;">保存修改</button>
                             <div id="settingsMsg" class="error-message" style="color: #28a745;"></div>
                         </form>
                     </div>
@@ -450,7 +738,7 @@
             e.preventDefault();
             const btn = e.target.querySelector('button');
             const err = document.getElementById('loginError');
-            
+
             btn.disabled = true;
             btn.textContent = '登录中...';
             err.textContent = '';
@@ -458,14 +746,14 @@
             try {
                 const res = await fetch('/admin/login', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         username: document.getElementById('username').value,
                         password: document.getElementById('password').value
                     })
                 });
                 const data = await res.json();
-                
+
                 if (data.success) {
                     showDashboard();
                 } else {
@@ -480,8 +768,8 @@
         });
 
         async function logout() {
-            if(!confirm('确定要退出登录吗？')) return;
-            await fetch('/admin/logout', {method: 'POST'});
+            if (!confirm('确定要退出登录吗？')) return;
+            await fetch('/admin/logout', { method: 'POST' });
             location.reload();
         }
 
@@ -496,17 +784,29 @@
         function switchView(viewName) {
             // Update Menu
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            const activeMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.textContent.includes(viewName === 'messages' ? '留言' : '设置'));
-            if(activeMenu) activeMenu.classList.add('active');
+            const menuTitles = {
+                'messages': '留言',
+                'chatbot': 'AI客服',
+                'settings': '设置'
+            };
+            const activeMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.textContent.includes(menuTitles[viewName] || ''));
+            if (activeMenu) activeMenu.classList.add('active');
 
             // Update View
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${viewName}`).classList.add('active');
 
             // Update Title
-            document.getElementById('pageTitle').textContent = viewName === 'messages' ? '留言管理' : '账号设置';
-            
+            const titles = {
+                'messages': '留言管理',
+                'chatbot': 'AI客服设置',
+                'settings': '账号设置'
+            };
+            document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
+
+            // Load data for the view
             if (viewName === 'messages') loadMessages();
+            if (viewName === 'chatbot') loadChatbotConfig();
         }
 
 
@@ -514,14 +814,14 @@
         async function loadMessages() {
             const tbody = document.getElementById('messagesTableBody');
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">加载中...</td></tr>';
-            
+
             try {
                 const res = await fetch('/api/messages');
                 const messages = await res.json();
-                
+
                 const today = new Date().toISOString().split('T')[0];
                 let todayCount = 0;
-                
+
                 if (messages.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" class="no-data">暂无留言数据</td></tr>';
                     document.getElementById('totalCount').textContent = '0';
@@ -532,7 +832,7 @@
                 tbody.innerHTML = messages.map(msg => {
                     const dateStr = msg.timestamp.split('T')[0];
                     if (dateStr === today) todayCount++;
-                    
+
                     return `
                         <tr>
                             <td>
@@ -570,7 +870,7 @@
         async function deleteMessage(id) {
             if (!confirm('确定删除这条留言吗？此操作无法撤销。')) return;
             try {
-                const res = await fetch(`/api/messages/${id}`, {method: 'DELETE'});
+                const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
                 if (res.ok) loadMessages();
                 else alert('删除失败');
             } catch (e) {
@@ -584,7 +884,7 @@
             e.preventDefault();
             const btn = e.target.querySelector('button');
             const msg = document.getElementById('settingsMsg');
-            
+
             btn.disabled = true;
             msg.textContent = '';
             msg.style.color = '#dc3545'; // default error color
@@ -592,7 +892,7 @@
             try {
                 const res = await fetch('/admin/change-password', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         oldPassword: document.getElementById('oldPassword').value,
                         newUsername: document.getElementById('newUsername').value,
@@ -600,7 +900,7 @@
                     })
                 });
                 const data = await res.json();
-                
+
                 if (data.success) {
                     msg.style.color = '#28a745';
                     msg.textContent = '修改成功！下次登录请使用新账号密码。';
@@ -621,6 +921,222 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+
+        // --- Chatbot Config Logic ---
+        function switchChatbotTab(tabName, btn) {
+            document.querySelectorAll('#view-chatbot .tab-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('#view-chatbot .tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`chatbot-tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'knowledge') loadKnowledgeFiles();
+        }
+
+        async function loadChatbotConfig() {
+            try {
+                const res = await fetch('/api/chatbot/config');
+                const config = await res.json();
+
+                document.getElementById('chatbotEnabled').checked = config.enabled !== false;
+                document.getElementById('chatbotApiKey').placeholder = config.api_key || 'sk-...';
+                document.getElementById('chatbotApiBase').value = config.api_base || 'https://api.openai.com/v1';
+                document.getElementById('chatbotModel').value = config.model || 'gpt-3.5-turbo';
+                document.getElementById('chatbotSystemPrompt').value = config.system_prompt || '';
+                document.getElementById('chatbotMaxTokens').value = config.max_tokens || 1000;
+                document.getElementById('chatbotTemperature').value = config.temperature || 0.7;
+
+                updateStatusIndicator(config.enabled !== false);
+
+                // Also load knowledge files
+                loadKnowledgeFiles();
+            } catch (e) {
+                console.error('Failed to load chatbot config:', e);
+            }
+        }
+
+        function updateStatusIndicator(enabled) {
+            const status = document.getElementById('chatbotStatus');
+            if (enabled) {
+                status.className = 'status-indicator enabled';
+                status.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i><span>已启用</span>';
+            } else {
+                status.className = 'status-indicator disabled';
+                status.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i><span>已禁用</span>';
+            }
+        }
+
+        document.getElementById('chatbotEnabled').addEventListener('change', function () {
+            updateStatusIndicator(this.checked);
+        });
+
+        document.getElementById('chatbotConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const msg = document.getElementById('chatbotConfigMsg');
+
+            btn.disabled = true;
+            msg.textContent = '';
+            msg.style.color = '#dc3545';
+
+            const apiKeyInput = document.getElementById('chatbotApiKey');
+            const apiKey = apiKeyInput.value.trim();
+
+            try {
+                const res = await fetch('/api/chatbot/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enabled: document.getElementById('chatbotEnabled').checked,
+                        api_key: apiKey || undefined,
+                        api_base: document.getElementById('chatbotApiBase').value,
+                        model: document.getElementById('chatbotModel').value,
+                        system_prompt: document.getElementById('chatbotSystemPrompt').value,
+                        max_tokens: parseInt(document.getElementById('chatbotMaxTokens').value),
+                        temperature: parseFloat(document.getElementById('chatbotTemperature').value)
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '配置保存成功！';
+                    apiKeyInput.value = '';
+                    loadChatbotConfig();
+                } else {
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                msg.textContent = '网络错误';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+
+        // --- Knowledge Base Logic ---
+        async function loadKnowledgeFiles() {
+            const listEl = document.getElementById('knowledgeFileList');
+            listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
+
+            try {
+                const res = await fetch('/api/chatbot/knowledge');
+                const data = await res.json();
+
+                // Show warning if PDF support is not available
+                document.getElementById('pdfSupportWarning').style.display = data.pdf_support ? 'none' : 'block';
+
+                if (data.files.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无知识库文件</div>';
+                    return;
+                }
+
+                listEl.innerHTML = data.files.map(file => `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <i class="fas fa-file-pdf"></i>
+                            <div>
+                                <div style="font-weight: 500;">${escapeHtml(file.name)}</div>
+                                <div class="file-meta">${formatFileSize(file.size)} · ${formatDate(file.modified)}</div>
+                            </div>
+                        </div>
+                        <button class="btn-sm btn-danger" onclick="deleteKnowledgeFile('${escapeHtml(file.name)}')">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                `).join('');
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function formatDate(isoString) {
+            return isoString.split('T')[0];
+        }
+
+        async function deleteKnowledgeFile(filename) {
+            if (!confirm(`确定删除文件 "${filename}" 吗？此操作无法撤销。`)) return;
+
+            try {
+                const res = await fetch(`/api/chatbot/knowledge/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadKnowledgeFiles();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        // File upload handling
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) uploadFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadFile(fileInput.files[0]);
+            }
+        });
+
+        async function uploadFile(file) {
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('只支持 PDF 文件');
+                return;
+            }
+
+            const progress = document.getElementById('uploadProgress');
+            progress.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const res = await fetch('/api/chatbot/knowledge/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    loadKnowledgeFiles();
+                } else {
+                    alert(data.message || '上传失败');
+                }
+            } catch (e) {
+                alert('上传失败: 网络错误');
+            } finally {
+                progress.style.display = 'none';
+                fileInput.value = '';
+            }
+        }
     </script>
 </body>
+
 </html>

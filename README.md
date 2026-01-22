@@ -29,6 +29,43 @@
 └── README.md               # 项目说明
 ```
 
+## 💻 本地开发
+
+### 环境要求
+
+- Python 3.11+
+- pip
+
+### 启动步骤
+
+1. **安装依赖**
+
+```bash
+cd /path/to/YX_Website
+pip3 install -r requirements.txt
+```
+
+> **提示**: 如果遇到 SSL 证书错误，可以使用以下命令：
+>
+> ```bash
+> pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+> ```
+
+1. **启动开发服务器**
+
+```bash
+python3 server.py
+```
+
+1. **访问网站**
+
+   - **前台首页**: <http://localhost:8000>
+   - **管理后台**: <http://localhost:8000/admin>
+
+开发服务器默认运行在 **8000** 端口，支持热重载（debug 模式）。
+
+---
+
 ## 🚀 Docker 部署
 
 ### 方式一：Docker Run (推荐)

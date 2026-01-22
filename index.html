@@ -17,6 +17,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- AI Chatbot -->
+  <link rel="stylesheet" href="assets/css/chatbot.css" />
 </head>
 
 <body>
@@ -58,8 +61,7 @@
                   style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
                   行业动态 <i class="fas fa-chevron-right"></i>
                 </a>
-                <a href="pages/news/news.html#science" class="vs-mega-tab"
-                  onmouseover="showPanelNews('science', this)"
+                <a href="pages/news/news.html#science" class="vs-mega-tab" onmouseover="showPanelNews('science', this)"
                   style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
                   科普知识 <i class="fas fa-chevron-right"></i>
                 </a>
@@ -198,7 +200,7 @@
                     <ul class="vs-mega-list-v2">
                       <li><a href="pages/contact/contact.html">联系我们</a></li>
                       <li><a href="pages/contact/feedback.html">在线留言</a></li>
-                      </ul>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -227,29 +229,10 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
+        background: url('assets/images/1zhen.jpg') center center / cover no-repeat;
         z-index: 1;
         transition: opacity 0.8s ease;
       ">
-        <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          text-align: center;
-          color: white;
-        ">
-          <div class="video-loading-spinner" style="
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255,255,255,0.2);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-          "></div>
-          <span style="font-size: 14px; opacity: 0.8;">加载中...</span>
-        </div>
       </div>
       <style>
         @keyframes spin {
@@ -259,10 +242,9 @@
         }
       </style>
       <!-- 优化的视频播放器 -->
-      <video id="heroVideo" muted playsinline preload="metadata"
-        poster="assets/images/industry_h2.png"
+      <video id="heroVideo" muted playsinline preload="auto" poster="assets/images/1zhen.jpg"
         style="opacity: 0; transition: opacity 0.8s ease;">
-        <source src="https://data.zhizinan.top/video.mp4" type="video/mp4" />
+        <source src="https://data.zhizinan.top/video6.mp4" type="video/mp4" />
       </video>
       <script>
         (function () {
@@ -684,6 +666,9 @@
 
   <!-- 新闻预览自动加载器 -->
   <script src="assets/js/news-preview-loader.js"></script>
+
+  <!-- AI智能客服 -->
+  <script src="assets/js/chatbot.js"></script>
 </body>
 
 </html>
