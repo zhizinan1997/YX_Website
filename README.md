@@ -1,6 +1,15 @@
-# 元芯传感官网 (YX Website)
+# 元芯传感官网 (Metachip Website)
 
-湖南元芯传感科技有限责任公司官方网站。基于 Flask 开发，支持 Docker 容器化部署。
+湖南元芯传感科技有限责任公司官方网站源码。
+
+元芯传感是一家专注于**生物与化学传感技术**的高新技术企业，提供气体检测、露点监测、湿度传感等领域的创新解决方案。本项目是其官方网站的完整实现，采用现代化技术栈构建，支持容器化部署。
+
+**主要功能**：
+
+- 🏢 企业展示：产品中心、解决方案、新闻资讯、关于我们
+- 💬 在线留言：访客可提交咨询，支持 IP 限流防刷
+- 🛡️ 管理后台：查看留言、修改管理员密码
+- 🐳 一键部署：Docker 容器化，GitHub Actions 自动构建
 
 ## 🛠️ 技术栈
 
@@ -70,17 +79,18 @@ python3 server.py
 
 ### 方式一：Docker Run (推荐)
 
-如果你已从 GHCR 拉取了镜像，或本地构建了镜像。
-
 ```bash
+# 先创建数据目录
+mkdir -p /root/yxwebsite/data
+
+# 然后运行容器
 docker run -d \
   --name yx-website \
   --restart unless-stopped \
   --network bridge \
   -p 2026:8000 \
-  -v $(pwd)/data:/app/data \
-  -e SECRET_KEY=your-secret-key-production \
-  ghcr.io/zhizinan1997/yx-website:latest
+  -v /root/yxwebsite/data:/app/data \
+  yx_website-website:latest
 ```
 
 ### 方式二：Docker Compose
@@ -95,7 +105,7 @@ docker-compose up -d
 
 - **访问地址**: `http://localhost:2026/admin`
 - **默认账号**: `admin`
-- **默认密码**: `metachip2024`
+- **默认密码**: `admin123`
 
 _建议首次登录后立即在“账号设置”中修改默认密码。_
 
