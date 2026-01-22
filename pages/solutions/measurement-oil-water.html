@@ -8,411 +8,7 @@
     <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Compact Inficon-style Mega Menu */
-        .vs-header .vs-container,
-        .vs-header__inner,
-        .vs-nav,
-        .vs-nav__list {
-            height: 100%;
-        }
 
-        .vs-nav__item--has-mega {
-            position: relative !important;
-        }
-
-        .vs-mega-menu {
-            position: absolute;
-            top: 100%;
-            left: -30px;
-            width: 1000px;
-            background: var(--color-white);
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.25s ease, visibility 0.25s ease;
-            z-index: 999;
-            display: flex;
-            min-height: 440px;
-            border-radius: 8px;
-            overflow: visible;
-            pointer-events: none;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            margin-top: -2px;
-        }
-
-        .vs-mega-menu::before {
-            content: '';
-            position: absolute;
-            top: -40px;
-            left: -50px;
-            width: 400px;
-            height: 50px;
-            background: transparent;
-            z-index: -1;
-        }
-
-        .vs-nav__item--has-mega:hover .vs-mega-menu {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-        }
-
-        .vs-mega-sidebar {
-            width: 260px;
-            background: #f4f6f8;
-            border-right: 1px solid #eee;
-            padding: 15px 0;
-            border-radius: 8px 0 0 8px;
-        }
-
-        .vs-mega-tab {
-            padding: 14px 30px;
-            font-size: 15px;
-            font-weight: 600;
-            color: #444;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .vs-mega-tab:hover,
-        .vs-mega-tab.active {
-            background: var(--color-primary);
-            color: var(--color-white);
-        }
-
-        .vs-mega-tab i {
-            font-size: 10px;
-            opacity: 0.4;
-        }
-
-        .vs-mega-content {
-            flex: 1;
-            padding: 40px 50px;
-            background: var(--color-white);
-            border-radius: 0 8px 8px 0;
-        }
-
-        .vs-mega-panel {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .vs-mega-panel.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .vs-mega-panel h3 {
-            font-size: 20px;
-            color: var(--color-primary);
-            margin-bottom: 24px;
-            font-weight: 700;
-            border-bottom: 2px solid var(--color-accent-orange);
-            display: inline-block;
-            padding-bottom: 4px;
-        }
-
-        .vs-mega-grid-v2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
-        }
-
-        .vs-mega-list-v2 {
-            list-style: none;
-        }
-
-        .vs-mega-list-v2 li {
-            margin-bottom: 10px;
-        }
-
-        .vs-mega-list-v2 a {
-            font-size: 14px;
-            color: #333;
-            transition: all 0.2s;
-        }
-
-        .vs-mega-list-v2 a:hover {
-            color: var(--color-accent-blue);
-            padding-left: 5px;
-        }
-
-        /* Breadcrumb */
-        .vs-breadcrumb {
-            padding: 12px 0;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .vs-breadcrumb a {
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .vs-breadcrumb a:hover {
-            color: #fff;
-        }
-
-        .vs-breadcrumb span {
-            margin: 0 8px;
-            opacity: 0.5;
-        }
-
-        /* Measurement Hero - Vaisala Style */
-        .vs-measurement-hero {
-            min-height: 520px;
-            display: flex;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, #1a4a6e 0%, #2c7da0 100%);
-        }
-
-        .vs-measurement-hero::before {
-            display: none;
-        }
-
-        .vs-measurement-hero__video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.6;
-            z-index: 1;
-        }
-
-        .jjfa-breadcrumb {
-            position: absolute;
-            top: 40px;
-            left: 5%;
-            font-size: 13px;
-            opacity: 0.8;
-            margin-top: 0;
-            z-index: 10;
-            color: white;
-        }
-
-        .jjfa-breadcrumb a {
-            color: white;
-            opacity: 0.8;
-            text-decoration: none;
-        }
-
-        .jjfa-breadcrumb a:hover {
-            opacity: 1;
-        }
-
-        .vs-measurement-hero__content {
-            max-width: 850px;
-            color: #fff;
-            z-index: 2;
-            position: relative;
-            padding-right: 50px;
-        }
-
-        .vs-measurement-hero__subtitle {
-            font-size: 14px;
-            font-weight: 500;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            opacity: 0.8;
-            margin-bottom: 16px;
-        }
-
-        .vs-measurement-hero__title {
-            font-size: 52px;
-            font-weight: 700;
-            margin-bottom: 24px;
-            line-height: 1.15;
-        }
-
-        .vs-measurement-hero__desc {
-            font-size: 18px;
-            line-height: 1.8;
-            opacity: 0.9;
-        }
-
-        /* Content Sections */
-        .vs-content-section {
-            padding: 80px 0;
-        }
-
-        .vs-content-section--gray {
-            background: #f7f9fb;
-        }
-
-        .vs-content-section h2 {
-            font-size: 36px;
-            font-weight: 300;
-            color: var(--color-primary);
-            margin-bottom: 24px;
-        }
-
-        .vs-content-section p {
-            font-size: 17px;
-            line-height: 1.9;
-            color: #444;
-            margin-bottom: 20px;
-        }
-
-        .vs-content-section ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .vs-content-section ul li {
-            position: relative;
-            padding-left: 28px;
-            font-size: 16px;
-            line-height: 1.8;
-            color: #333;
-            margin-bottom: 12px;
-        }
-
-        .vs-content-section ul li::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 10px;
-            width: 8px;
-            height: 8px;
-            background: var(--color-accent-orange);
-            border-radius: 50%;
-        }
-
-        /* Two Column Layout */
-        .vs-two-col {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 80px;
-            align-items: center;
-        }
-
-        .vs-two-col--reverse {
-            direction: rtl;
-            grid-template-columns: 1fr 1.2fr;
-        }
-
-        .vs-two-col--reverse>* {
-            direction: ltr;
-        }
-
-        .vs-two-col__image {
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-        }
-
-        .vs-two-col__image img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        /* Benefits Grid */
-        .vs-benefits-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 50px;
-            margin-top: 60px;
-        }
-
-        .vs-benefit-card {
-            text-align: center;
-            padding: 50px 40px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .vs-benefit-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 16px 60px rgba(0, 0, 0, 0.12);
-        }
-
-        .vs-benefit-card__icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: white;
-        }
-
-        .vs-benefit-card__icon--blue {
-            background: linear-gradient(135deg, #00AAE4, #0077BE);
-        }
-
-        .vs-benefit-card__icon--orange {
-            background: linear-gradient(135deg, #F5821F, #E55C00);
-        }
-
-        .vs-benefit-card__icon--green {
-            background: linear-gradient(135deg, #00A88E, #008F7A);
-        }
-
-        /* Expertise Section - Image Left, Text Right */
-        .vs-expertise-section .vs-two-col {
-            grid-template-columns: 1fr 1.2fr;
-        }
-
-        /* Benefits Grid Headers */
-        .vs-benefit-card h4 {
-            font-size: 22px;
-            font-weight: 400;
-            /* Lighter weight like Vaisala */
-            color: var(--color-primary);
-            margin-bottom: 20px;
-        }
-
-        .vs-benefit-card p {
-            font-size: 15px;
-            line-height: 1.7;
-            color: #666;
-            margin: 0;
-        }
-
-        /* Section Title Centered */
-        .vs-section-title-centered {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .vs-section-title-centered h2 {
-            font-size: 36px;
-            font-weight: 300;
-            color: var(--color-primary);
-            margin-bottom: 16px;
-        }
-
-        .vs-section-title-centered p {
-            font-size: 17px;
-            color: #666;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-    </style>
 </head>
 
 <body>
@@ -605,8 +201,6 @@
             <div class="vs-container"
                 style="position: relative; z-index: 2; height: 100%; display: flex; align-items: center;">
                 <div class="vs-measurement-hero__content" style="max-width: 800px;">
-                    <p class="vs-measurement-hero__subtitle"
-                        style="font-size: 16px; letter-spacing: 3px; color: #ffa500;">ASSET PROTECTION</p>
                     <h1 class="vs-measurement-hero__title" style="font-size: 64px; margin-bottom: 30px;">油中水含量在线监测</h1>
                     <p class="vs-measurement-hero__desc" style="font-size: 20px; font-weight: 300; opacity: 1;">
                         实时监测绝缘油和润滑油中的水分含量，有效预防设备腐蚀与绝缘失效。元芯传感为您提供从微量水分到饱和状态的全量程监测方案。
@@ -643,7 +237,7 @@
         </div>
 
         <!-- Full Layout: Why Measure (Zig-Zag) -->
-        <section class="vs-app-zigzag" id="technology">
+        <section class="vs-app-zigzag" id="technology" style="max-width: 1400px; margin: 0 auto;">
             <!-- Row 1 -->
             <div class="vs-zigzag-row">
                 <div class="vs-zigzag-img">
@@ -676,33 +270,35 @@
         </section>
 
         <!-- Dynamic Overlay Card Grid for Applications -->
-        <section class="vs-section--full-width" style="padding: 0; background: #fff;">
-            <div class="vs-section-title-centered" style="padding-top: 100px;">
-                <h2>行业应用场景</h2>
-                <p>保护每一个关键的润滑与绝缘节点</p>
-            </div>
-            <div class="vs-overlay-card-grid">
-                <div class="vs-overlay-card-item">
-                    <img src="../../assets/images/LIFT-oil-rig-offshore-closeup-800x450.jpg" class="vs-overlay-card-img"
-                        alt="Offshore">
-                    <div class="vs-overlay-text-box">
-                        <h3>海工与船舶</h3>
-                        <p>在潮湿的海洋环境中，实时监测推进器与液压系统的油液含水率，确保护航安全。</p>
-                    </div>
+        <section class="vs-section" style="padding: 80px 0 40px; background: #fff;">
+            <div class="vs-container" style="max-width: 1400px;">
+                <div style="text-align: center; margin-bottom: 60px;">
+                    <h2 class="vs-title">行业应用场景</h2>
+                    <p class="vs-text" style="margin: 0 auto;">保护每一个关键的润滑与绝缘节点</p>
                 </div>
-                <div class="vs-overlay-card-item">
-                    <img src="../../assets/images/LIFT-pulp-paper-and-wood-800x450px.jpg" class="vs-overlay-card-img"
-                        alt="Paper Mill">
-                    <div class="vs-overlay-text-box">
-                        <h3>造纸与重工业</h3>
-                        <p>大型造纸机和透平机的润滑系统需要全天候的水分监控，以防止昂贵的停机事故。</p>
+                <div class="vs-overlay-card-grid">
+                    <div class="vs-overlay-card-item">
+                        <img src="../../assets/images/LIFT-oil-rig-offshore-closeup-800x450.jpg"
+                            class="vs-overlay-card-img" alt="Offshore">
+                        <div class="vs-overlay-text-box">
+                            <h3>海工与船舶</h3>
+                            <p>在潮湿的海洋环境中，实时监测推进器与液压系统的油液含水率，确保护航安全。</p>
+                        </div>
+                    </div>
+                    <div class="vs-overlay-card-item">
+                        <img src="../../assets/images/LIFT-pulp-paper-and-wood-800x450px.jpg"
+                            class="vs-overlay-card-img" alt="Paper Mill">
+                        <div class="vs-overlay-text-box">
+                            <h3>造纸与重工业</h3>
+                            <p>大型造纸机和透平机的润滑系统需要全天候的水分监控，以防止昂贵的停机事故。</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Product Highlight -->
-        <section class="vs-content-section" id="products">
+        <section class="vs-content-section" id="products" style="padding-top: 40px;">
             <div class="vs-container">
                 <div class="vs-section-title-centered">
                     <h2>推荐监测产品</h2>

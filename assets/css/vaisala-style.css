@@ -1567,3 +1567,318 @@ img {
         /* Logo larger for big screens */
     }
 }
+
+/* ========================================
+   15. Measurement Page Specifics (Unified)
+======================================== */
+/* Breadcrumb */
+.vs-breadcrumb {
+    padding: 12px 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vs-breadcrumb a {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.vs-breadcrumb a:hover {
+    color: #fff;
+}
+
+.vs-breadcrumb span {
+    margin: 0 8px;
+    opacity: 0.5;
+}
+
+.jjfa-breadcrumb {
+    position: absolute;
+    top: 40px;
+    left: 5%;
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 0;
+    z-index: 10;
+    color: white;
+}
+
+.jjfa-breadcrumb a {
+    color: white;
+    opacity: 0.8;
+    text-decoration: none;
+}
+
+.jjfa-breadcrumb a:hover {
+    opacity: 1;
+}
+
+/* Measurement Hero - Video Style */
+.vs-measurement-hero {
+    min-height: 520px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a4a6e 0%, #2c7da0 100%);
+}
+
+.vs-measurement-hero__video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+    z-index: 1;
+}
+
+.vs-measurement-hero__content {
+    max-width: 850px;
+    color: #fff;
+    z-index: 2;
+    position: relative;
+    padding-right: 50px;
+}
+
+.vs-measurement-hero__subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 16px;
+}
+
+.vs-measurement-hero__title {
+    font-size: 52px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    line-height: 1.15;
+}
+
+.vs-measurement-hero__desc {
+    font-size: 18px;
+    line-height: 1.8;
+    opacity: 0.9;
+}
+
+.vs-measurement-hero__cta {
+    margin-top: 32px;
+}
+
+.vs-measurement-hero__cta .vs-btn {
+    background: var(--color-accent-orange);
+    color: white;
+    padding: 14px 32px;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.vs-measurement-hero__cta .vs-btn:hover {
+    background: #e55c00;
+    transform: translateY(-2px);
+}
+
+/* Content Sections */
+.vs-content-section {
+    padding: 80px 0;
+}
+
+.vs-content-section--gray {
+    background: #f7f9fb;
+}
+
+.vs-content-section h2 {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--color-primary);
+    margin-bottom: 24px;
+}
+
+.vs-content-section p {
+    font-size: 17px;
+    line-height: 1.9;
+    color: #444;
+    margin-bottom: 20px;
+}
+
+.vs-content-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.vs-content-section ul li {
+    position: relative;
+    padding-left: 28px;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.vs-content-section ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 8px;
+    height: 8px;
+    background: var(--color-accent-orange);
+    border-radius: 50%;
+}
+
+/* Two Column Layout */
+.vs-two-col {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 80px;
+    align-items: center;
+}
+
+.vs-two-col--reverse {
+    direction: rtl;
+    grid-template-columns: 1fr 1.2fr;
+}
+
+.vs-two-col--reverse>* {
+    direction: ltr;
+}
+
+.vs-two-col__image {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.vs-two-col__image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Benefit Cards (Specific) */
+.vs-benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 50px;
+    margin-top: 60px;
+}
+
+.vs-benefit-card {
+    text-align: center;
+    padding: 50px 40px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.vs-benefit-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.12);
+}
+
+.vs-benefit-card__icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+}
+
+.vs-benefit-card__icon--blue {
+    background: linear-gradient(135deg, #00AAE4, #0077BE);
+}
+
+.vs-benefit-card__icon--orange {
+    background: linear-gradient(135deg, #F5821F, #E55C00);
+}
+
+.vs-benefit-card__icon--green {
+    background: linear-gradient(135deg, #00A88E, #008F7A);
+}
+
+.vs-benefit-card__icon--purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}
+
+.vs-benefit-card h4 {
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--color-primary);
+    margin-bottom: 20px;
+}
+
+.vs-benefit-card p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #666;
+    margin: 0;
+}
+
+/* Expertise Section override */
+.vs-expertise-section .vs-two-col {
+    grid-template-columns: 1fr 1.2fr;
+}
+
+/* Section Title Centered */
+.vs-section-title-centered {
+    text-align: center;
+    margin-bottom: 60px;
+    padding-top: 60px;
+}
+
+.vs-section-title-centered h2 {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--color-primary);
+    margin-bottom: 16px;
+}
+
+.vs-section-title-centered p {
+    font-size: 17px;
+    color: #666;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .vs-two-col {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .vs-two-col--reverse {
+        direction: ltr;
+    }
+
+    .vs-benefits-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .vs-measurement-hero__title {
+        font-size: 42px;
+    }
+}
+
+@media (max-width: 768px) {
+    .vs-measurement-hero__title {
+        font-size: 36px;
+    }
+
+    .vs-benefits-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vs-measurement-hero .vs-container {
+        padding: 0 24px;
+    }
+}
