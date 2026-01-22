@@ -9,534 +9,7 @@
     <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Compact Inficon-style Mega Menu */
-        .vs-header .vs-container,
-        .vs-header__inner,
-        .vs-nav,
-        .vs-nav__list {
-            height: 100%;
-        }
 
-        .vs-nav__item--has-mega {
-            position: relative !important;
-        }
-
-        .vs-mega-menu {
-            position: absolute;
-            top: 100%;
-            left: -30px;
-            width: 1000px;
-            background: var(--color-white);
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.25s ease, visibility 0.25s ease;
-            z-index: 999;
-            display: flex;
-            min-height: 440px;
-            border-radius: 8px;
-            overflow: visible;
-            pointer-events: none;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            margin-top: -2px;
-        }
-
-        .vs-mega-menu::before {
-            content: '';
-            position: absolute;
-            top: -40px;
-            left: -50px;
-            width: 400px;
-            height: 50px;
-            background: transparent;
-            z-index: -1;
-        }
-
-        .vs-nav__item--has-mega:hover .vs-mega-menu {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-        }
-
-        .vs-mega-sidebar {
-            width: 260px;
-            background: #f4f6f8;
-            border-right: 1px solid #eee;
-            padding: 15px 0;
-            border-radius: 8px 0 0 8px;
-        }
-
-        .vs-mega-tab {
-            padding: 14px 30px;
-            font-size: 15px;
-            font-weight: 600;
-            color: #444;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .vs-mega-tab:hover,
-        .vs-mega-tab.active {
-            background: var(--color-primary);
-            color: var(--color-white);
-        }
-
-        .vs-mega-tab i {
-            font-size: 10px;
-            opacity: 0.4;
-        }
-
-        .vs-mega-content {
-            flex: 1;
-            padding: 40px 50px;
-            background: var(--color-white);
-            border-radius: 0 8px 8px 0;
-        }
-
-        .vs-mega-panel {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .vs-mega-panel.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .vs-mega-panel h3 {
-            font-size: 20px;
-            color: var(--color-primary);
-            margin-bottom: 24px;
-            font-weight: 700;
-            border-bottom: 2px solid var(--color-accent-orange);
-            display: inline-block;
-            padding-bottom: 4px;
-        }
-
-        .vs-mega-grid-v2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
-        }
-
-        .vs-mega-list-v2 {
-            list-style: none;
-        }
-
-        .vs-mega-list-v2 li {
-            margin-bottom: 10px;
-        }
-
-        .vs-mega-list-v2 a {
-            font-size: 14px;
-            color: #333;
-            transition: all 0.2s;
-        }
-
-        .vs-mega-list-v2 a:hover {
-            color: var(--color-accent-blue);
-            padding-left: 5px;
-        }
-
-        /* Breadcrumb */
-        .jjfa-breadcrumb {
-            position: absolute;
-            top: 40px;
-            left: 5%;
-            font-size: 13px;
-            opacity: 0.8;
-            margin-top: 0;
-            z-index: 10;
-            color: white;
-        }
-
-        .jjfa-breadcrumb a {
-            color: white;
-            opacity: 0.8;
-            text-decoration: none;
-        }
-
-        .jjfa-breadcrumb a:hover {
-            opacity: 1;
-        }
-
-        /* Measurement Hero - Vaisala Style */
-        .vs-measurement-hero {
-            min-height: 520px;
-            display: flex;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, #003764 0%, #0077BE 100%);
-        }
-
-        .vs-measurement-hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 70%;
-            height: 100%;
-            background: url('../../assets/images/industry_transformer.jpg') center/cover no-repeat;
-            opacity: 0.2;
-            mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 10%, rgba(0, 0, 0, 0) 90%);
-            -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 10%, rgba(0, 0, 0, 0) 90%);
-        }
-
-        .vs-measurement-hero__content {
-            max-width: 850px;
-            color: #fff;
-            z-index: 2;
-            position: relative;
-            padding-right: 50px;
-        }
-
-        .vs-measurement-hero__subtitle {
-            font-size: 14px;
-            font-weight: 500;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            opacity: 0.8;
-            margin-bottom: 16px;
-        }
-
-        .vs-measurement-hero__title {
-            font-size: 52px;
-            font-weight: 700;
-            margin-bottom: 24px;
-            line-height: 1.15;
-        }
-
-        .vs-measurement-hero__desc {
-            font-size: 18px;
-            line-height: 1.8;
-            opacity: 0.9;
-        }
-
-        .vs-measurement-hero__cta {
-            margin-top: 32px;
-        }
-
-        .vs-measurement-hero__cta .vs-btn {
-            background: var(--color-accent-orange);
-            color: white;
-            padding: 14px 32px;
-            font-weight: 600;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-
-        .vs-measurement-hero__cta .vs-btn:hover {
-            background: #e55c00;
-            transform: translateY(-2px);
-        }
-
-        /* Content Sections */
-        .vs-content-section {
-            padding: 80px 0;
-        }
-
-        .vs-content-section--gray {
-            background: #f7f9fb;
-        }
-
-        .vs-content-section h2 {
-            font-size: 36px;
-            font-weight: 300;
-            color: var(--color-primary);
-            margin-bottom: 24px;
-        }
-
-        .vs-content-section p {
-            font-size: 17px;
-            line-height: 1.9;
-            color: #444;
-            margin-bottom: 20px;
-        }
-
-        .vs-content-section ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .vs-content-section ul li {
-            position: relative;
-            padding-left: 28px;
-            font-size: 16px;
-            line-height: 1.8;
-            color: #333;
-            margin-bottom: 12px;
-        }
-
-        .vs-content-section ul li::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 10px;
-            width: 8px;
-            height: 8px;
-            background: var(--color-accent-orange);
-            border-radius: 50%;
-        }
-
-        /* Two Column Layout */
-        .vs-two-col {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 80px;
-            align-items: center;
-        }
-
-        .vs-two-col--reverse {
-            direction: rtl;
-            grid-template-columns: 1fr 1.2fr;
-        }
-
-        .vs-two-col--reverse>* {
-            direction: ltr;
-        }
-
-        .vs-two-col__image {
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-        }
-
-        .vs-two-col__image img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        /* Benefits Grid */
-        .vs-benefits-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 50px;
-            margin-top: 60px;
-        }
-
-        .vs-benefit-card {
-            text-align: center;
-            padding: 50px 40px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .vs-benefit-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 16px 60px rgba(0, 0, 0, 0.12);
-        }
-
-        .vs-benefit-card__icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: white;
-        }
-
-        .vs-benefit-card__icon--blue {
-            background: linear-gradient(135deg, #00AAE4, #0077BE);
-        }
-
-        .vs-benefit-card__icon--orange {
-            background: linear-gradient(135deg, #F5821F, #E55C00);
-        }
-
-        .vs-benefit-card__icon--green {
-            background: linear-gradient(135deg, #00A88E, #008F7A);
-        }
-
-        .vs-benefit-card h4 {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--color-primary);
-            margin-bottom: 16px;
-        }
-
-        .vs-benefit-card p {
-            font-size: 15px;
-            line-height: 1.7;
-            color: #666;
-            margin: 0;
-        }
-
-        /* Section Title Centered */
-        .vs-section-title-centered {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .vs-section-title-centered h2 {
-            font-size: 36px;
-            font-weight: 300;
-            color: var(--color-primary);
-            margin-bottom: 16px;
-        }
-
-        .vs-section-title-centered p {
-            font-size: 17px;
-            color: #666;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        /* Technology Features */
-        .vs-tech-features {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 40px;
-            margin-top: 40px;
-        }
-
-        .vs-tech-feature {
-            display: flex;
-            gap: 20px;
-            padding: 30px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s ease;
-        }
-
-        .vs-tech-feature:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .vs-tech-feature__icon {
-            width: 60px;
-            height: 60px;
-            flex-shrink: 0;
-            background: linear-gradient(135deg, #003764, #0077BE);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-        }
-
-        .vs-tech-feature__content h4 {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--color-primary);
-            margin-bottom: 8px;
-        }
-
-        .vs-tech-feature__content p {
-            font-size: 14px;
-            line-height: 1.7;
-            color: #666;
-            margin: 0;
-        }
-
-        /* Application Scenarios */
-        .vs-app-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            margin-top: 50px;
-        }
-
-        .vs-app-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-        }
-
-        .vs-app-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-        }
-
-        .vs-app-card__img {
-            height: 180px;
-            background: linear-gradient(135deg, #003764 0%, #0077BE 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 48px;
-        }
-
-        .vs-app-card__content {
-            padding: 24px;
-        }
-
-        .vs-app-card__content h4 {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--color-primary);
-            margin-bottom: 12px;
-        }
-
-        .vs-app-card__content p {
-            font-size: 14px;
-            line-height: 1.7;
-            color: #666;
-            margin: 0;
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .vs-two-col {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
-
-            .vs-two-col--reverse {
-                direction: ltr;
-            }
-
-            .vs-benefits-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .vs-tech-features {
-                grid-template-columns: 1fr;
-            }
-
-            .vs-app-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .vs-measurement-hero__title {
-                font-size: 36px;
-            }
-
-            .vs-benefits-grid,
-            .vs-app-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -626,8 +99,8 @@
                                                         (H2)</a></li>
                                                 <li><a href="../../pages/solutions/measurement-humidity.html">湿度
                                                         (RH)</a></li>
-                                                <li><a
-                                                        href="../../pages/solutions/measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                <li><a href="../../pages/solutions/measurement-dissolved-hydrogen.html"
+                                                        style="color: var(--color-accent-orange); font-weight: 600;">溶解氢</a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -719,7 +192,7 @@
                 <source src="../../assets/video/hero-dissolved-hydrogen-1920x525.mp4" type="video/mp4">
             </video>
             <div class="vs-measurement-hero__overlay"
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(8, 22, 36, 0.6) 0%, rgba(0, 55, 100, 0.4) 100%); z-index: 1;">
+                style="background: linear-gradient(135deg, rgba(8, 22, 36, 0.6) 0%, rgba(0, 55, 100, 0.4) 100%);">
             </div>
 
             <p class="jjfa-breadcrumb">
@@ -729,8 +202,6 @@
             <div class="vs-container"
                 style="position: relative; z-index: 2; height: 100%; display: flex; align-items: center;">
                 <div class="vs-measurement-hero__content" style="max-width: 800px;">
-                    <p class="vs-measurement-hero__subtitle"
-                        style="font-size: 16px; letter-spacing: 3px; color: #ffa500;">GRID RELIABILITY</p>
                     <h1 class="vs-measurement-hero__title" style="font-size: 64px; margin-bottom: 30px;">溶解氢 (H₂) 在线监测
                     </h1>
                     <p class="vs-measurement-hero__desc" style="font-size: 20px; font-weight: 300; opacity: 1;">
@@ -768,7 +239,7 @@
         </div>
 
         <!-- Full Layout: Why Measure (Zig-Zag) -->
-        <section class="vs-app-zigzag" id="technology">
+        <section class="vs-app-zigzag" id="technology" style="max-width: 1400px; margin: 0 auto;">
             <!-- Row 1 -->
             <div class="vs-zigzag-row">
                 <div class="vs-zigzag-img">
@@ -802,68 +273,48 @@
         </section>
 
         <!-- Dynamic Overlay Card Grid for Applications -->
-        <section class="vs-section--full-width" style="padding: 0; background: #fff;">
-            <div class="vs-section-title-centered" style="padding-top: 100px;">
-                <h2>关键应用场景</h2>
-                <p>为高价值充油电气设备提供 24/7 全天候监护</p>
-            </div>
-            <div class="vs-overlay-card-grid">
-                <div class="vs-overlay-card-item">
-                    <img src="../../assets/images/industry-banner.png" class="vs-overlay-card-img"
-                        alt="Power Transformer">
-                    <div class="vs-overlay-text-box">
-                        <h3>电力变压器</h3>
-                        <p>实时监测主变压器油中溶解氢含量，及时发现绕组变形、绝缘老化等隐患，预防灾难性故障。</p>
-                    </div>
+        <section class="vs-section" style="padding: 80px 0 40px; background: #fff;">
+            <div class="vs-container" style="max-width: 1400px;">
+                <div style="text-align: center; margin-bottom: 60px;">
+                    <h2 class="vs-title">关键应用场景</h2>
+                    <p class="vs-text" style="margin: 0 auto;">为高价值充油电气设备提供 24/7 全天候监护</p>
                 </div>
-                <div class="vs-overlay-card-item">
-                    <img src="../../assets/images/LIFT-pulp-paper-and-wood-800x450px.jpg" class="vs-overlay-card-img"
-                        alt="Industrial Transformer">
-                    <div class="vs-overlay-text-box">
-                        <h3>工业特种变压器</h3>
-                        <p>针对电弧炉、整流变等高负荷、冲击性负载设备，提供抗干扰能力强的氢气监测方案。</p>
+                <div class="vs-overlay-card-grid">
+                    <div class="vs-overlay-card-item">
+                        <img src="../../assets/images/industry-banner.png" class="vs-overlay-card-img"
+                            alt="Power Transformer">
+                        <div class="vs-overlay-text-box">
+                            <h3>电力变压器</h3>
+                            <p>实时监测主变压器油中溶解氢含量，及时发现绕组变形、绝缘老化等隐患，预防灾难性故障。</p>
+                        </div>
+                    </div>
+                    <div class="vs-overlay-card-item">
+                        <img src="../../assets/images/LIFT-pulp-paper-and-wood-800x450px.jpg"
+                            class="vs-overlay-card-img" alt="Industrial Transformer">
+                        <div class="vs-overlay-text-box">
+                            <h3>工业特种变压器</h3>
+                            <p>针对电弧炉、整流变等高负荷、冲击性负载设备，提供抗干扰能力强的氢气监测方案。</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Product Highlight -->
-        <section class="vs-content-section" id="products">
+        <section class="vs-content-section" id="products" style="padding-top: 40px;">
             <div class="vs-container">
                 <div class="vs-section-title-centered">
                     <h2>推荐监测产品</h2>
                 </div>
 
                 <div class="vs-two-col">
-                    <div class="vs-app-grid">
-                        <div class="vs-app-card">
-                            <div class="vs-app-card__img">
-                                <i class="fas fa-bolt"></i>
-                            </div>
-                            <div class="vs-app-card__content">
-                                <h4>电力变压器</h4>
-                                <p>大型电力变压器的在线健康监测，实时追踪内部状态，预防突发故障导致的电网事故。</p>
-                            </div>
-                        </div>
-                        <div class="vs-app-card">
-                            <div class="vs-app-card__img">
-                                <i class="fas fa-industry"></i>
-                            </div>
-                            <div class="vs-app-card__content">
-                                <h4>工业配电变压器</h4>
-                                <p>工厂、数据中心等关键设施的配电变压器监测，确保生产连续性和供电可靠性。</p>
-                            </div>
-                        </div>
-                        <div class="vs-app-card">
-                            <div class="vs-app-card__img">
-                                <i class="fas fa-solar-panel"></i>
-                            </div>
-                            <div class="vs-app-card__content">
-                                <h4>新能源并网变压器</h4>
-                                <p>风电、光伏电站升压变压器的在线监测，保障新能源发电系统的稳定并网运行。</p>
-                            </div>
+                    <div class="vs-two-col__image" style="box-shadow: none;">
+                        <div
+                            style="background: #f4f6f8; height: 100%; min-height: 400px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                            <i class="fas fa-microchip" style="font-size: 80px; color: #ccc;"></i>
                         </div>
                     </div>
+
                 </div>
         </section>
 
@@ -922,45 +373,63 @@
                 <div style="text-align: center; margin-top: 60px;">
                     <a href="../../pages/products/gas_sensors.html"
                         class="vs-btn vs-btn--primary">查看全部产品</a>
+
                 </div>
             </div>
         </section>
 
-        <!-- CTA Section -->
-        <section
-            style="background: linear-gradient(135deg, #003764 0%, #0077BE 100%); padding: 80px 0; color: white; text-align: center;">
-            <div class="vs-container">
-                <h2 style="font-size: 36px; font-weight: 300; margin-bottom: 20px;">需要溶解氢监测解决方案？</h2>
-                <p
-                    style="font-size: 18px; opacity: 0.9; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto;">
-                    我们的电力系统专家团队将根据您的具体需求，为您量身定制最适合的监测方案
-                </p>
-                <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--primary"
-                    style="background: white; color: var(--color-primary);">联系我们</a>
-            </div>
-        </section>
     </main>
 
     <footer class="vs-footer">
         <div class="vs-container">
             <div class="vs-footer__grid">
-                <div class="vs-footer__col" style="padding-right: 40px;">
-                    <a href="../../index.html" class="vs-logo" style="margin-bottom: 24px;">
-                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                <div class="vs-footer__col">
+                    <a href="../../index.html" class="vs-logo" style="margin-bottom: 20px;">
+                        <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                            style="filter: brightness(0) invert(1);">
                         METACHIP
                     </a>
-                    <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
-                        湖南元芯传感科技有限责任公司<br>
-                        湖南省湘潭市高新区双马街道书院路38号
+                    <p style="opacity: 0.7; line-height: 1.8;">
+                        元芯传感致力于为全球客户提供最精准、可靠的工业测量解决方案。
+                        <br>让测量无处不在，让数据创造价值。
+                    </p>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>解决方案</h4>
+                    <a href="#" class="vs-footer__link">电力行业</a>
+                    <a href="#" class="vs-footer__link">半导体制造</a>
+                    <a href="#" class="vs-footer__link">生命科学</a>
+                    <a href="#" class="vs-footer__link">工业自动化</a>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>快速链接</h4>
+                    <a href="#" class="vs-footer__link">关于我们</a>
+                    <a href="#" class="vs-footer__link">新闻中心</a>
+                    <a href="#" class="vs-footer__link">加入我们</a>
+                    <a href="#" class="vs-footer__link">联系支持</a>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>联系方式</h4>
+                    <p style="opacity: 0.7; margin-bottom: 10px;">
+                        <i class="fas fa-map-marker-alt" style="margin-right: 10px;"></i> 中国 · 北京
+                    </p>
+                    <p style="opacity: 0.7; margin-bottom: 10px;">
+                        <i class="fas fa-phone" style="margin-right: 10px;"></i> 400-888-8888
+                    </p>
+                    <p style="opacity: 0.7;">
+                        <i class="fas fa-envelope" style="margin-right: 10px;"></i> info@metachip.com
                     </p>
                 </div>
             </div>
             <div class="vs-footer__bottom">
-                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+                <p>&copy; 2024 Metachip Sensing Technology. All rights reserved.</p>
+                <div style="display: flex; gap: 20px;">
+                    <a href="#">隐私政策</a>
+                    <a href="#">使用条款</a>
+                </div>
             </div>
         </div>
     </footer>
-
 </body>
 
 </html>
