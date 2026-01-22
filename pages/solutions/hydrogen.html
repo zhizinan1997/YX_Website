@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- AI Chatbot -->
+    <link rel="stylesheet" href="../../assets/css/chatbot.css">
     <style>
         /* Compact Inficon-style Mega Menu */
         .vs-header .vs-container,
@@ -291,15 +293,23 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/solutions/industry-hydrogen.html">氢能源产业链</a></li>
-                                                <li><a href="../../pages/solutions/industry-power-safety.html">智慧电力安全</a></li>
-                                                <li><a href="../../pages/solutions/industry-leak-detection.html">工业检漏监测</a></li>
+                                                <li><a href="../../pages/solutions/industry-hydrogen.html">氢能源产业链</a>
+                                                </li>
+                                                <li><a
+                                                        href="../../pages/solutions/industry-power-safety.html">智慧电力安全</a>
+                                                </li>
+                                                <li><a
+                                                        href="../../pages/solutions/industry-leak-detection.html">工业检漏监测</a>
+                                                </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/solutions/industry-energy-storage.html">绿色能源存储</a></li>
-                                                <li><a href="../../pages/solutions/industry-environment.html">大气环境监测</a></li>
+                                                <li><a
+                                                        href="../../pages/solutions/industry-energy-storage.html">绿色能源存储</a>
+                                                </li>
+                                                <li><a href="../../pages/solutions/industry-environment.html">大气环境监测</a>
+                                                </li>
                                             </ul>
                                         </div>
                                     </div>
@@ -311,15 +321,19 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/solutions/measurement-hydrogen.html">氢气 (H2)</a></li>
-                                                <li><a href="../../pages/solutions/measurement-humidity.html">湿度 (RH)</a></li>
+                                                <li><a href="../../pages/solutions/measurement-hydrogen.html">氢气
+                                                        (H2)</a></li>
+                                                <li><a href="../../pages/solutions/measurement-humidity.html">湿度
+                                                        (RH)</a></li>
                                                 <li><a href="#">溶解氢</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/solutions/measurement-oil-water.html">油中水含量</a></li>
-                                                <li><a href="../../pages/solutions/measurement-dewpoint.html">露点 (Td)</a></li>
+                                                <li><a href="../../pages/solutions/measurement-oil-water.html">油中水含量</a>
+                                                </li>
+                                                <li><a href="../../pages/solutions/measurement-dewpoint.html">露点
+                                                        (Td)</a></li>
                                                 <li><a href="#">压力 (P)</a></li>
                                             </ul>
                                         </div>
@@ -332,14 +346,18 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products_mems.html">MEMS 传感器芯片</a></li>
-                                                <li><a href="../../pages/products/products_modules.html">高集成封装模组</a></li>
+                                                <li><a href="../../pages/products/products_mems.html">MEMS 传感器芯片</a>
+                                                </li>
+                                                <li><a href="../../pages/products/products_modules.html">高集成封装模组</a>
+                                                </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products_handheld.html">智能手持终端设备</a></li>
-                                                <li><a href="../../pages/products/products_systems.html">在线监测分析系统</a></li>
+                                                <li><a href="../../pages/products/products_handheld.html">智能手持终端设备</a>
+                                                </li>
+                                                <li><a href="../../pages/products/products_systems.html">在线监测分析系统</a>
+                                                </li>
                                             </ul>
                                         </div>
                                     </div>
@@ -403,7 +421,7 @@
                                         <ul class="vs-mega-list-v2">
                                             <li><a href="../../pages/contact/contact.html">联系我们</a></li>
                                             <li><a href="../../pages/contact/feedback.html">在线留言</a></li>
-                                            </ul>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -436,12 +454,13 @@
     </script>
 
     <main style="padding-top: 90px;">
-        <!-- Hero for Subpage -->
-        <section class="vs-hero" style="height: 60vh; min-height: 400px;">
-            <div class="vs-hero__video-bg">
-                <img src="../../assets/images/section2_bj.jpg"
-                    style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.5);">
-            </div>
+        <!-- Hero with Particle Animation -->
+        <section class="vs-hero"
+            style="height: 60vh; min-height: 400px; position: relative; background: #000810; overflow: hidden; display: flex; align-items: center;">
+            <canvas id="particleCanvas"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+            <!-- Removed radial-gradient mask for clearer particle visibility -->
+
             <div class="vs-container" style="position: relative; z-index: 10; color: white; text-align: center;">
                 <span
                     style="display: inline-block; padding: 6px 16px; background: var(--color-accent-orange); font-size: 12px; font-weight: 700; border-radius: 20px; margin-bottom: 24px; letter-spacing: 1px;">METACHIP
@@ -451,6 +470,481 @@
                     深耕碳基电子与 MEMS 传感技术，为全球氢能全产业链提供实时、精准、高可靠的安全监测保障。
                 </p>
             </div>
+
+            <script>
+                (async function () {
+                    const canvas = document.getElementById('particleCanvas');
+                    const ctx = canvas.getContext('2d');
+
+                    let width, height;
+
+                    // Two independent systems
+                    const maxParticlesPerSystem = 4000;
+
+                    // Shared resources
+                    const imageSources = [
+                        '../../assets/images/products/1.png',
+                        '../../assets/images/products/2.png',
+                        '../../assets/images/products/3.png',
+                        '../../assets/images/products/4.png',
+                        '../../assets/images/products/5.png',
+                        '../../assets/images/products/6.png',
+                        '../../assets/images/products/7.png',
+                        '../../assets/images/products/8.png'
+                    ];
+
+                    const loadedImages = [];
+                    const loadImage = (src) => new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = "Anonymous";
+                        img.onload = () => resolve(img);
+                        img.onerror = () => resolve(null);
+                        img.src = src;
+                    });
+
+                    // Parse image and return LOCAL coordinates + dimensions
+                    function getImageDataLocal(img) {
+                        const tmpCanvas = document.createElement('canvas');
+                        const tCtx = tmpCanvas.getContext('2d');
+
+                        const maxSize = 450;
+                        let w = img.width;
+                        let h = img.height;
+                        const ratio = Math.min(maxSize / w, maxSize / h);
+                        w = Math.floor(w * ratio);
+                        h = Math.floor(h * ratio);
+
+                        tmpCanvas.width = w;
+                        tmpCanvas.height = h;
+
+                        tCtx.drawImage(img, 0, 0, w, h);
+
+                        const imageData = tCtx.getImageData(0, 0, w, h).data;
+                        const points = [];
+                        const step = 3;
+
+                        for (let y = 0; y < h; y += step) {
+                            for (let x = 0; x < w; x += step) {
+                                const index = (y * w + x) * 4;
+                                const a = imageData[index + 3];
+                                // Threshold mainly to get solid parts
+                                if (a > 80) {
+                                    let r = imageData[index];
+                                    let g = imageData[index + 1];
+                                    let b = imageData[index + 2];
+
+                                    // Boost brightness while preserving color hue
+                                    const maxVal = Math.max(r, g, b, 1);
+                                    const scale = 255 / maxVal; // Normalize to max brightness
+                                    r = Math.min(255, Math.floor(r * scale * 1.2));
+                                    g = Math.min(255, Math.floor(g * scale * 1.2));
+                                    b = Math.min(255, Math.floor(b * scale * 1.2));
+
+                                    points.push({
+                                        x: x,
+                                        y: y,
+                                        color: `rgba(${r}, ${g}, ${b},`
+                                    });
+                                }
+                            }
+                        }
+                        return { points, w, h };
+                    }
+
+                    class Particle {
+                        constructor() {
+                            this.x = Math.random() * width;
+                            this.y = Math.random() * height;
+                            this.tx = this.x;
+                            this.ty = this.y;
+                            this.vx = (Math.random() - 0.5) * 2;
+                            this.vy = (Math.random() - 0.5) * 2;
+                            this.color = 'rgba(0, 255, 255,';
+                            this.alpha = 0;
+                            this.targetAlpha = 0;
+                            this.active = false;
+                            // Physics for smooth motion
+                            this.friction = 0.94;
+                            this.ease = 0.015 + Math.random() * 0.02;
+                        }
+
+                        update(state) {
+                            if (state === 2) { // Flowing
+                                // Organic Flow Noise simulation using trig
+                                const time = Date.now() * 0.0005;
+                                const angle = Math.sin(this.x * 0.002 + time) + Math.cos(this.y * 0.002 + time);
+
+                                this.vx += Math.cos(angle) * 0.05;
+                                this.vy += Math.sin(angle) * 0.05;
+
+                                // Random drift
+                                this.vx += (Math.random() - 0.5) * 0.05;
+                                this.vy += (Math.random() - 0.5) * 0.05;
+
+                                // Speed limit
+                                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                                if (speed > 2) {
+                                    this.vx *= 0.95; this.vy *= 0.95;
+                                }
+
+                                this.x += this.vx;
+                                this.y += this.vy;
+
+                                // Wrap around
+                                if (this.x < 0) this.x = width;
+                                if (this.x > width) this.x = 0;
+                                if (this.y < 0) this.y = height;
+                                if (this.y > height) this.y = 0;
+
+                                this.targetAlpha = 0;
+
+                            } else { // Forming or Holding
+                                if (this.active) {
+                                    const dx = this.tx - this.x;
+                                    const dy = this.ty - this.y;
+
+                                    // Move with easing
+                                    this.x += dx * this.ease;
+                                    this.y += dy * this.ease;
+
+                                    // Tiny jitter for energy
+                                    this.x += (Math.random() - 0.5) * 0.5;
+                                    this.y += (Math.random() - 0.5) * 0.5;
+
+                                    this.targetAlpha = 1;
+                                } else {
+                                    // Ambient particles that aren't part of shape
+                                    this.x += (Math.random() - 0.5);
+                                    this.y += (Math.random() - 0.5);
+                                    this.targetAlpha = 0;
+                                }
+                            }
+
+                            this.alpha += (this.targetAlpha - this.alpha) * 0.12;
+                        }
+
+                        draw() {
+                            if (this.alpha < 0.01) return;
+                            ctx.fillStyle = this.color + Math.min(1, this.alpha * 1.5) + ')';
+                            ctx.fillRect(this.x, this.y, 3, 3);
+                        }
+                    }
+
+                    // Shared Position Manager to prevent overlap
+                    const positionManager = {
+                        activeRegions: [], // Buy {x, y, w, h, id}
+
+                        reserve: function (w, h, id) {
+                            const maxAttempts = 100; // Increased attempts
+                            const padding = 80;
+                            const edgePadding = 40;
+
+                            const maxX = width - w - edgePadding * 2;
+                            const maxY = height - h - edgePadding * 2;
+
+                            // Define Center Exclusion Zone (Text Area)
+                            // Text is roughly centered. Let's estimate it takes up 60% width and middle 40% height
+                            const centerX = width / 2;
+                            const centerY = height / 2;
+                            const excludeWidth = width * 0.5;  // 50% width reserved for text
+                            const excludeHeight = height * 0.4; // 40% height reserved
+                            const excludeRect = {
+                                x: centerX - excludeWidth / 2,
+                                y: centerY - excludeHeight / 2,
+                                w: excludeWidth,
+                                h: excludeHeight
+                            };
+
+                            for (let i = 0; i < maxAttempts; i++) {
+                                // Try random position
+                                const tryX = edgePadding + Math.random() * Math.max(0, maxX);
+                                const tryY = edgePadding + Math.random() * Math.max(0, maxY);
+
+                                // 1. Check Collision with Text (Exclusion Zone)
+                                if (tryX < excludeRect.x + excludeRect.w &&
+                                    tryX + w > excludeRect.x &&
+                                    tryY < excludeRect.y + excludeRect.h &&
+                                    tryY + h > excludeRect.y) {
+                                    continue; // Overlaps text, skip
+                                }
+
+                                // 2. Check Collision with other active regions
+                                let overlap = false;
+                                for (let region of this.activeRegions) {
+                                    if (region.id === id) continue;
+                                    if (tryX < region.x + region.w + padding &&
+                                        tryX + w + padding > region.x &&
+                                        tryY < region.y + region.h + padding &&
+                                        tryY + h + padding > region.y) {
+                                        overlap = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!overlap) {
+                                    this.release(id);
+                                    this.activeRegions.push({ x: tryX, y: tryY, w: w, h: h, id: id });
+                                    return { x: tryX, y: tryY };
+                                }
+                            }
+
+                            // Fallback: If we can't avoid text (screen too small?), try to at least clear others
+                            // Or just return random
+                            return {
+                                x: edgePadding + Math.random() * Math.max(0, maxX),
+                                y: edgePadding + Math.random() * Math.max(0, maxY)
+                            };
+                        },
+
+                        release: function (id) {
+                            this.activeRegions = this.activeRegions.filter(r => r.id !== id);
+                        }
+                    };
+
+                    class ParticleSystem {
+                        constructor(offsetFrames, initialImageIndex, id) {
+                            this.id = id;
+                            this.particles = [];
+                            this.currentImageIndex = initialImageIndex;
+                            // 0: Forming (Arriving), 1: Holding, 2: Traveling (Flying to next)
+                            this.state = 0;
+                            this.stateTimer = -offsetFrames;
+
+                            // Timings
+                            this.formingTime = 120; // Fast assembly after arrival
+                            this.holdTime = 300;    // Show
+                            this.travelTime = 180;  // Flight time
+
+                            // Store center of current/next target for flight
+                            this.targetCenter = { x: width / 2, y: height / 2 };
+
+                            for (let i = 0; i < maxParticlesPerSystem; i++) {
+                                this.particles.push(new Particle());
+                            }
+                        }
+
+                        // Determine where the NEXT image will be and start flying there
+                        prepareNextTarget() {
+                            const nextIndex = (this.currentImageIndex + 1) % loadedImages.length;
+                            const nextImg = loadedImages[nextIndex];
+
+                            const data = getImageDataLocal(nextImg); // Just need sizes
+                            const w = data.w;
+                            const h = data.h;
+
+                            // Reserve spot
+                            const pos = positionManager.reserve(w, h, this.id);
+
+                            // Approximate center for flight attraction
+                            this.targetCenter = {
+                                x: pos.x + w / 2,
+                                y: pos.y + h / 2
+                            };
+
+                            // Logic: We don't set individual particle targets yet.
+                            // We just set the center attraction point.
+                            // The `setTargets` will be called when we switch to State 0 (Forming)
+
+                            // Save this position for the Forming state
+                            this.nextPos = pos;
+                            this.nextData = data;
+                            this.nextIndex = nextIndex;
+                        }
+
+                        // Called when Switching from Travel -> Forming
+                        activateTargets() {
+                            this.currentImageIndex = this.nextIndex;
+                            const points = this.nextData.points;
+                            const startX = this.nextPos.x;
+                            const startY = this.nextPos.y;
+
+                            points.sort(() => Math.random() - 0.5);
+
+                            for (let i = 0; i < maxParticlesPerSystem; i++) {
+                                if (i < points.length) {
+                                    this.particles[i].active = true;
+                                    this.particles[i].tx = startX + points[i].x;
+                                    this.particles[i].ty = startY + points[i].y;
+                                    this.particles[i].color = points[i].color;
+                                } else {
+                                    this.particles[i].active = false;
+                                }
+                            }
+                        }
+
+                        // Initialize first image (no travel)
+                        initFirst() {
+                            if (!loadedImages[this.currentImageIndex]) return;
+                            const data = getImageDataLocal(loadedImages[this.currentImageIndex]);
+                            const w = data.w;
+                            const h = data.h;
+                            const pos = positionManager.reserve(w, h, this.id);
+                            this.nextPos = pos;
+                            this.nextData = data;
+                            this.nextIndex = this.currentImageIndex;
+                            this.activateTargets();
+                        }
+
+                        update() {
+                            this.stateTimer++;
+
+                            if (this.stateTimer < 0) return;
+
+                            if (this.state === 0) { // Forming (Snap into place)
+                                if (this.stateTimer > this.formingTime) {
+                                    this.state = 1;
+                                    this.stateTimer = 0;
+                                }
+                            } else if (this.state === 1) { // Holding
+                                if (this.stateTimer > this.holdTime) {
+                                    // Start Traveling
+                                    this.state = 2;
+                                    this.stateTimer = 0;
+
+                                    // Release current spot (we are leaving)
+                                    // Ideally keep it reserved until we fully leave, but for now release is fine
+                                    positionManager.release(this.id);
+
+                                    // Calculate DESTINATION for flight
+                                    this.prepareNextTarget();
+                                }
+                            } else if (this.state === 2) { // Traveling
+                                if (this.stateTimer > this.travelTime) {
+                                    this.state = 0;
+                                    this.stateTimer = 0;
+                                    // We arrived, lock in targets
+                                    this.activateTargets();
+                                }
+                            }
+
+                            this.particles.forEach(p => p.update(this.state, this.targetCenter));
+                        }
+
+                        draw() {
+                            this.particles.forEach(p => p.draw());
+                        }
+
+                        start() {
+                            this.initFirst();
+                        }
+                    }
+
+                    function resize() {
+                        width = canvas.width = canvas.parentElement.offsetWidth;
+                        height = canvas.height = canvas.parentElement.offsetHeight;
+                        // Reset regions on resize if needed, but simple overlap check is fine
+                    }
+                    window.addEventListener('resize', resize);
+                    resize();
+
+                    for (let src of imageSources) {
+                        const img = await loadImage(src);
+                        if (img) loadedImages.push(img);
+                    }
+
+                    if (loadedImages.length === 0) return;
+
+                    // Background Layer System for "Tech Dust"
+                    class BackgroundParticle {
+                        constructor() {
+                            this.reset();
+                            this.y = Math.random() * height; // Start anywhere
+                        }
+
+                        reset() {
+                            this.x = Math.random() * width;
+                            this.y = height + 10;
+                            this.vy = -(Math.random() * 0.5 + 0.2); // Float up slowly (Gas/Hydrogen theme)
+                            this.vx = (Math.random() - 0.5) * 0.5;
+                            this.size = Math.random() * 4 + 2; // Much bigger (2-6px)
+                            this.type = Math.random() > 0.8 ? 'cross' : (Math.random() > 0.5 ? 'circle' : 'dot');
+                            this.alpha = Math.random() * 0.4 + 0.4; // High visibility (0.4 - 0.8)
+                            this.life = Math.random() * 0.5 + 0.5;
+                            this.decay = Math.random() * 0.002 + 0.001;
+                        }
+
+                        update() {
+                            this.x += this.vx;
+                            this.y += this.vy;
+
+                            // Pulse alpha
+                            this.alpha -= this.decay;
+                            if (this.alpha <= 0 || this.y < -10) {
+                                this.reset();
+                                this.alpha = 0; // Fade in handled by draw or just pop in low
+                                this.alpha = Math.random() * 0.4 + 0.4;
+                            }
+                        }
+
+                        draw(ctx) {
+                            // Brighter color cyan/blue
+                            const a = this.alpha;
+                            ctx.fillStyle = `rgba(0, 200, 255, ${a})`;
+                            ctx.strokeStyle = `rgba(0, 200, 255, ${a})`;
+                            ctx.lineWidth = 1.5;
+
+                            if (this.type === 'cross') {
+                                // Draw +
+                                const s = this.size * 2;
+                                ctx.beginPath();
+                                ctx.moveTo(this.x - s, this.y);
+                                ctx.lineTo(this.x + s, this.y);
+                                ctx.moveTo(this.x, this.y - s);
+                                ctx.lineTo(this.x, this.y + s);
+                                ctx.stroke();
+                            } else if (this.type === 'circle') {
+                                // Draw o
+                                ctx.beginPath();
+                                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                                ctx.stroke();
+                            } else {
+                                // Draw .
+                                ctx.beginPath();
+                                ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        }
+                    }
+
+                    const bgParticles = [];
+                    for (let i = 0; i < 150; i++) { // 150 background elements
+                        bgParticles.push(new BackgroundParticle());
+                    }
+
+                    // Create two systems with phase offset
+                    const system1 = new ParticleSystem(0, 0, 1);
+                    const system2 = new ParticleSystem(360, 4, 2);
+
+                    system1.start();
+                    system2.start();
+
+                    function animate() {
+                        // Trails
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.fillStyle = 'rgba(0, 8, 16, 0.2)';
+                        ctx.fillRect(0, 0, width, height);
+
+                        // Draw Background First (No trails logic needed, or just standard)
+                        // Use lighter to blend nicely with the dark background
+                        ctx.globalCompositeOperation = 'lighter';
+                        ctx.lineWidth = 1;
+
+                        bgParticles.forEach(p => {
+                            p.update();
+                            p.draw(ctx);
+                        });
+
+                        // Draw Main Systems
+                        system1.update();
+                        system1.draw();
+                        system2.update();
+                        system2.draw();
+
+                        requestAnimationFrame(animate);
+                    }
+                    animate();
+                })();
+            </script>
         </section>
 
         <!-- Stats Strip -->
@@ -548,6 +1042,9 @@
             </div>
         </div>
     </footer>
+
+    <!-- AI智能客服 -->
+    <script src="../../assets/js/chatbot.js"></script>
 
 </body>
 

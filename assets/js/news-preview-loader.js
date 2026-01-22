@@ -1,6 +1,6 @@
 /**
  * 新闻预览加载器
- * 自动从新闻列表页面获取各分类的最新新闻，并更新首页巨幕菜单中的预览
+ * 自动从后端 API 获取各分类的最新新闻，并更新首页巨幕菜单中的预览
  */
 
 (function () {
@@ -14,77 +14,37 @@
         enterprise: {
             panelId: 'panel-news-enterprise',
             title: '最新企业新闻',
-            moreLink: 'news.aspx_category_id_0.html#enterprise',
+            moreLink: 'pages/news/news.html#enterprise',
             moreLinkText: '查看更多企业新闻'
         },
         industry: {
             panelId: 'panel-news-industry',
             title: '行业动态前沿',
-            moreLink: 'news.aspx_category_id_0.html#industry',
+            moreLink: 'pages/news/news.html#industry',
             moreLinkText: '查看更多行业动态'
         },
         science: {
             panelId: 'panel-news-science',
             title: '传感器科普知识',
-            moreLink: 'news.aspx_category_id_0.html#science',
+            moreLink: 'pages/news/news.html#science',
             moreLinkText: '查看更多科普知识'
         }
     };
 
     /**
-     * 从新闻列表页面获取新闻数据
+     * 从后端 API 获取新闻数据
      */
     async function fetchNewsData() {
         try {
-            const response = await fetch('news.aspx_category_id_0.html');
+            const response = await fetch(`/api/news?count=${NEWS_COUNT_PER_CATEGORY}`);
             if (!response.ok) {
-                throw new Error('Failed to fetch news page');
+                throw new Error('Failed to fetch news data');
             }
-            const html = await response.text();
-            return parseNewsFromHTML(html);
+            return await response.json();
         } catch (error) {
             console.error('Error fetching news data:', error);
             return null;
         }
-    }
-
-    /**
-     * 解析 HTML 提取新闻数据
-     */
-    function parseNewsFromHTML(html) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        const newsCards = doc.querySelectorAll('.vs-card[data-category]');
-        const newsByCategory = {
-            enterprise: [],
-            industry: [],
-            science: []
-        };
-
-        newsCards.forEach(card => {
-            const category = card.getAttribute('data-category');
-            if (!newsByCategory[category]) return;
-
-            const link = card.getAttribute('href');
-            const img = card.querySelector('.vs-card__img-wrapper img');
-            const dateEl = card.querySelector('.vs-news-meta');
-            const titleEl = card.querySelector('.vs-card__title');
-
-            if (link && img && dateEl && titleEl) {
-                // 提取日期文本（去除图标）
-                const dateText = dateEl.textContent.replace(/[^\d-]/g, '').trim();
-
-                newsByCategory[category].push({
-                    link: link,
-                    image: img.getAttribute('src'),
-                    title: titleEl.textContent.trim(),
-                    date: dateText
-                });
-            }
-        });
-
-        return newsByCategory;
     }
 
     /**
@@ -93,7 +53,7 @@
     function createNewsItemHTML(news) {
         return `
       <a href="${news.link}" style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
-        <img src="${news.image}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news">
+        <img src="${news.image}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news" onerror="this.src='assets/images/logo.png'">
         <div>
           <h4 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
             ${news.title}
@@ -157,7 +117,7 @@
         const newsData = await fetchNewsData();
         if (newsData) {
             updateNewsPanels(newsData);
-            console.log('News preview updated successfully');
+            console.log('News preview updated successfully from API');
         }
     }
 

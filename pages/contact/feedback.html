@@ -311,7 +311,8 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products_mems.html">MEMS 传感器芯片</a></li>
+                                                <li><a href="../../pages/products/products_mems.html">MEMS 传感器芯片</a>
+                                                </li>
                                                 <li><a href="#">高集成封装模组</a></li>
                                             </ul>
                                         </div>
@@ -345,7 +346,8 @@
                             </div>
                         </div>
                     </li>
-                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a>
+                    </li>
                     <li class="vs-nav__item"><a href="#" class="vs-nav__link">服务案例</a></li>
                     <li class="vs-nav__item"><a href="#" class="vs-nav__link">公司简介</a></li>
                     <li class="vs-nav__item"><a href="#" class="vs-nav__link">线上店铺</a></li>
@@ -376,7 +378,7 @@
                                         <ul class="vs-mega-list-v2">
                                             <li><a href="../../pages/contact/contact.html">联系我们</a></li>
                                             <li><a href="../../pages/contact/feedback.html">在线留言</a></li>
-                                            </ul>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -410,11 +412,28 @@
 
     <main style="padding-top: 90px;">
         <section class="vs-hero"
-            style="height: 35vh; min-height: 250px; display: flex; align-items: center; background: #003366;">
-            <div class="vs-container" style="text-align: center; color: white;">
+            style="height: 35vh; min-height: 250px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; background: #001e3e;">
+
+            <video id="heroVideo" muted loop playsinline preload="metadata"
+                style="position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.8s ease;">
+                <source src="https://data.zhizinan.top/renwen.mp4" type="video/mp4" />
+            </video>
+
+            <div class="vs-container" style="text-align: center; color: white; position: relative; z-index: 2;">
                 <h1 style="font-size: 40px; font-weight: 700;">在线留言</h1>
                 <p style="font-size: 18px; margin-top: 10px; opacity: 0.8;">有任何疑问或建议，欢迎给我们留言。</p>
             </div>
+
+            <script>
+                (function () {
+                    const video = document.getElementById('heroVideo');
+                    if (video) {
+                        video.play().then(() => {
+                            video.style.opacity = '1';
+                        }).catch(e => console.log("Video autoplay failed"));
+                    }
+                })();
+            </script>
         </section>
 
         <section class="feedback-container">
