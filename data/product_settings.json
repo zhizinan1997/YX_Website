@@ -1,0 +1,99 @@
+{
+  "h2_sniffer": {
+    "isNew": true,
+    "displayName": "",
+    "sortOrder": 0,
+    "categories": [
+      "module"
+    ]
+  },
+  "hum_sniffer": {
+    "isNew": true,
+    "sortOrder": 1,
+    "categories": [
+      "module"
+    ]
+  },
+  "mcs_iot_platform": {
+    "isNew": true,
+    "sortOrder": 2,
+    "displayName": "物联网平台",
+    "categories": [
+      "iot"
+    ]
+  },
+  "ld_h2_detector": {
+    "isNew": false,
+    "sortOrder": 3
+  },
+  "mc_hfev_module": {
+    "sortOrder": 4
+  },
+  "mc_hla_fixed_alarm": {
+    "sortOrder": 5
+  },
+  "mc_td_leak_detector": {
+    "sortOrder": 6
+  },
+  "mc_wd_wearable_alarm": {
+    "sortOrder": 7
+  },
+  "mcect_electrochemical_h2": {
+    "sortOrder": 8
+  },
+  "mchc_catalytic_h2": {
+    "sortOrder": 9
+  },
+  "mchf_carbon_fet_h2": {
+    "sortOrder": 10
+  },
+  "mchm_h2_sensor": {
+    "sortOrder": 11,
+    "hidden": true
+  },
+  "mchp_vehicle_h2": {
+    "sortOrder": 12,
+    "hidden": true
+  },
+  "mchs_palladium_h2": {
+    "sortOrder": 13,
+    "hidden": true
+  },
+  "mctcx_thermal_h2": {
+    "sortOrder": 14,
+    "hidden": true
+  },
+  "portable_gas_test_module": {
+    "sortOrder": 15,
+    "hidden": true
+  },
+  "h2_detection_probe": {
+    "sortOrder": 16,
+    "hidden": true,
+    "categories": [
+      "sensor"
+    ]
+  },
+  "smart_gas_mixing_system": {
+    "sortOrder": 17,
+    "hidden": true,
+    "categories": [
+      "system"
+    ]
+  },
+  "../customization/custom_instrument_dev": {
+    "categories": [
+      "service"
+    ]
+  },
+  "../customization/custom_gas_sensing_module": {
+    "categories": [
+      "service"
+    ]
+  },
+  "../customization/micronano_fabrication": {
+    "categories": [
+      "service"
+    ]
+  }
+}
