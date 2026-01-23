@@ -408,38 +408,14 @@
                                 <!-- Panel: List -->
                                 <div id="panel-list" class="vs-mega-panel">
                                     <h3>产品列表</h3>
-                                    <div class="vs-mega-grid-v2">
-                                        <div>
-                                            <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/gassensing/ld_h2_detector.html">LD-H2型氢气检测仪</a>
-                                                </li>
-                                                <li><a
-                                                        href="../../pages/gassensing/mchs_palladium_h2.html">MCHS-1.0钯合金薄膜氢气传感器</a>
-                                                </li>
-                                                <li><a
-                                                        href="../../pages/gassensing/mchp_vehicle_h2.html">MCHP-1.0车载氢气传感模块</a>
-                                                </li>
-                                                <li><a
-                                                        href="../../pages/gassensing/mc_hla_fixed_alarm.html">MC-HLA-01固定式氢气报警器</a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <ul class="vs-mega-list-v2">
-                                                <li><a
-                                                        href="../../pages/gassensing/mc_wd_wearable_alarm.html">MC-WD穿戴式氢气报警器</a>
-                                                </li>
-                                                <li><a
-                                                        href="../../pages/gassensing/mc_td_leak_detector.html">MC-TD-01氮氢示踪检漏仪</a>
-                                                </li>
-                                                <li><a
-                                                        href="../../pages/gassensing/mchf_carbon_fet_h2.html">MCHF-1.0碳基场效应型氢传感器</a>
-                                                </li>
-                                                <li><a href="../../pages/gassensing/index.html"
-                                                        class="vs-mega-view-all">查看所有产品 <i class="fas fa-arrow-right"
-                                                            style="margin-left: 6px; font-size: 12px;"></i></a></li>
-                                            </ul>
-                                        </div>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- 产品由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="../gassensing/index.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">查看所有产品 <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
                                     </div>
                                 </div>
                             </div>
@@ -662,6 +638,37 @@
 
     <!-- 全站搜索 -->
     <script src="../../assets/js/search.js"></script>
+
+    <!-- 共享产品数据 -->
+    <script src="../../assets/js/products-data.js"></script>
+    <script>
+        // 动态生成产品菜单（从共享数据读取）
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('dynamic-product-list');
+            if (!container || typeof GAS_SENSING_PRODUCTS === 'undefined') return;
+
+            // 过滤掉定制服务（路径包含 ../）
+            const menuProducts = GAS_SENSING_PRODUCTS.filter(p => !p.id.includes('../'));
+
+            // 分两列显示
+            const half = Math.ceil(menuProducts.length / 2);
+            const leftProducts = menuProducts.slice(0, half);
+            const rightProducts = menuProducts.slice(half);
+
+            const leftHtml = leftProducts.map(p =>
+                `<li><a href="../gassensing/${p.id}.html">${p.shortName || p.name}</a></li>`
+            ).join('');
+
+            const rightHtml = rightProducts.map(p =>
+                `<li><a href="../gassensing/${p.id}.html">${p.shortName || p.name}</a></li>`
+            ).join('');
+
+            container.innerHTML = `
+                <div><ul class="vs-mega-list-v2">${leftHtml}</ul></div>
+                <div><ul class="vs-mega-list-v2">${rightHtml}</ul></div>
+            `;
+        });
+    </script>
 
 </body>
 
