@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理后台 - 元芯传感</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -520,6 +521,9 @@
                 <div class="menu-item active" onclick="switchView('messages')">
                     <i class="fas fa-envelope"></i> 留言管理
                 </div>
+                <div class="menu-item" onclick="switchView('products')">
+                    <i class="fas fa-box"></i> 产品管理
+                </div>
                 <div class="menu-item" onclick="switchView('chatbot')">
                     <i class="fas fa-robot"></i> AI客服设置
                 </div>
@@ -575,6 +579,138 @@
                     </div>
                 </div>
 
+                <!-- Products View -->
+                <div id="view-products" class="view-section">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">产品总数</div>
+                            <div class="stat-value" id="productsCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">传感器</div>
+                            <div class="stat-value" id="sensorsCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">检测模块</div>
+                            <div class="stat-value" id="modulesCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">检测仪/报警器</div>
+                            <div class="stat-value" id="detectorsCount">0</div>
+                        </div>
+                    </div>
+
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="switchProductTab('list', this)">产品列表</button>
+                        <button class="tab-btn" onclick="switchProductTab('categories', this)">分类设置</button>
+                        <button class="tab-btn" onclick="switchProductTab('menu', this)">巨幕菜单预览</button>
+                        <button class="tab-btn" onclick="switchProductTab('recommendations', this)">新品推荐设置</button>
+                    </div>
+
+                    <!-- Product List Tab -->
+                    <div id="product-tab-list" class="tab-content active">
+                        <div class="card">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>图片</th>
+                                            <th>产品名称</th>
+                                            <th>简称</th>
+                                            <th>分类</th>
+                                            <th>文件ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="productsTableBody">
+                                        <!-- Products will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div
+                            style="margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 8px; font-size: 13px; color: #666;">
+                            <i class="fas fa-info-circle" style="color: #007bff;"></i>
+                            <strong>提示：</strong>产品列表从 <code>pages/gassensing/</code> 目录自动扫描。添加新产品只需创建对应的 HTML 文件即可。
+                        </div>
+                    </div>
+
+                    <!-- Category Settings Tab -->
+                    <div id="product-tab-categories" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">产品分类设置</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                为每个产品设置所属分类。一个产品可以同时属于多个分类，在对应分类下筛选时会显示。
+                            </p>
+                            <div id="categorySettingsContainer">
+                                <!-- Category settings will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menu Preview Tab -->
+                    <div id="product-tab-menu" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">巨幕菜单【产品列表】预览</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                以下是在 hydrogen.html 页面巨幕菜单中显示的产品列表。
+                            </p>
+                            <div id="menuPreview" style="display: flex; gap: 40px; flex-wrap: wrap;">
+                                <!-- Menu preview will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recommendations Settings Tab -->
+                    <div id="product-tab-recommendations" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">新品推荐设置</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置巨幕菜单【新品推荐】面板中显示的链接。
+                            </p>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                                <!-- 最新发布 -->
+                                <div>
+                                    <h4 style="margin-bottom: 15px; color: #333;">最新发布</h4>
+                                    <div class="form-group">
+                                        <label>第一个链接</label>
+                                        <input type="text" id="latest1Name" class="form-control" placeholder="名称">
+                                        <input type="text" id="latest1Url" class="form-control" placeholder="链接 URL"
+                                            style="margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第二个链接</label>
+                                        <input type="text" id="latest2Name" class="form-control" placeholder="名称">
+                                        <input type="text" id="latest2Url" class="form-control" placeholder="链接 URL"
+                                            style="margin-top: 5px;">
+                                    </div>
+                                </div>
+
+                                <!-- 应用领域 -->
+                                <div>
+                                    <h4 style="margin-bottom: 15px; color: #333;">应用领域</h4>
+                                    <div class="form-group">
+                                        <label>第一个链接</label>
+                                        <input type="text" id="app1Name" class="form-control" placeholder="名称">
+                                        <input type="text" id="app1Url" class="form-control" placeholder="链接 URL"
+                                            style="margin-top: 5px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第二个链接</label>
+                                        <input type="text" id="app2Name" class="form-control" placeholder="名称">
+                                        <input type="text" id="app2Url" class="form-control" placeholder="链接 URL"
+                                            style="margin-top: 5px;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="saveRecommendations()" class="btn-primary"
+                                style="width: auto; padding: 12px 30px; margin-top: 20px;">保存设置</button>
+                            <div id="recommendationsMsg" style="margin-top: 10px; color: #28a745;"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Chatbot View -->
                 <div id="view-chatbot" class="view-section">
                     <div class="tabs">
@@ -587,7 +723,8 @@
                         <div class="card" style="padding: 30px;">
                             <div
                                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">AI客服配置
+                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">
+                                    AI客服配置
                                 </h3>
                                 <div id="chatbotStatus" class="status-indicator enabled">
                                     <i class="fas fa-circle" style="font-size: 8px;"></i>
@@ -786,6 +923,7 @@
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             const menuTitles = {
                 'messages': '留言',
+                'products': '产品',
                 'chatbot': 'AI客服',
                 'settings': '设置'
             };
@@ -799,6 +937,7 @@
             // Update Title
             const titles = {
                 'messages': '留言管理',
+                'products': '产品管理',
                 'chatbot': 'AI客服设置',
                 'settings': '账号设置'
             };
@@ -806,7 +945,387 @@
 
             // Load data for the view
             if (viewName === 'messages') loadMessages();
+            if (viewName === 'products') loadProducts();
             if (viewName === 'chatbot') loadChatbotConfig();
+        }
+
+
+        // --- Products Logic ---
+        let productsData = [];
+
+        async function loadProducts() {
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+
+            try {
+                // 使用带设置的 API
+                const res = await fetch('/api/products/with-settings');
+                const data = await res.json();
+                productsData = data.products || [];
+
+                // Update stats
+                document.getElementById('productsCount').textContent = productsData.length;
+                document.getElementById('sensorsCount').textContent = productsData.filter(p => p.category === 'sensor').length;
+                document.getElementById('modulesCount').textContent = productsData.filter(p => p.category === 'module').length;
+                document.getElementById('detectorsCount').textContent = productsData.filter(p => ['detector', 'alarm'].includes(p.category)).length;
+
+                if (productsData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="no-data">暂无产品数据</td></tr>';
+                    return;
+                }
+
+                // Category labels
+                const categoryLabels = {
+                    'iot': '物联网',
+                    'sensor': '传感器',
+                    'module': '检测模块',
+                    'detector': '检测仪',
+                    'alarm': '报警器',
+                    'system': '监测系统',
+                    'probe': '探头',
+                    'service': '定制服务'
+                };
+
+                tbody.innerHTML = productsData.map(p => `
+                    <tr>
+                        <td>
+                            <img src="${p.image}" alt="${p.name}" 
+                                style="width: 60px; height: 40px; object-fit: contain; background: #f0f0f0; border-radius: 4px;"
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 40%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/><text x=%2230%22 y=%2225%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%228%22>无图</text></svg>'">
+                        </td>
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.shortName || '-'}</td>
+                        <td><span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 12px;">${categoryLabels[p.category] || p.category}</span></td>
+                        <td><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">${p.id}</code></td>
+                    </tr>
+                `).join('');
+
+                // Update menu preview
+                updateMenuPreview();
+                // Update category settings
+                renderCategorySettings();
+                // Load recommendations
+                loadRecommendations();
+
+            } catch (e) {
+                console.error('Load products error:', e);
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败，请刷新重试</td></tr>';
+            }
+        }
+
+        function updateMenuPreview() {
+            const container = document.getElementById('menuPreview');
+            const menuProducts = productsData.filter(p => !p.id.includes('../'));
+
+            container.innerHTML = `
+                <div style="width: 100%;">
+                    <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 13px; color: #856404;">
+                        <i class="fas fa-arrows-alt"></i> 拖动左侧手柄调整产品顺序，关闭"显示"开关可隐藏该产品
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; width: 50px;">排序</th>
+                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; width: 80px;">显示</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">原始名称</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">菜单显示名称</th>
+                                <th style="padding: 12px; text-align: center; border-bottom: 2px solid #ddd; width: 80px;">新品</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">预览效果</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sortableProductList">
+                            ${menuProducts.map(p => `
+                                <tr data-product-id="${p.id}" style="border-bottom: 1px solid #eee; ${p.hidden ? 'opacity: 0.5;' : ''}">
+                                    <td style="padding: 10px; text-align: center; cursor: grab;" class="drag-handle">
+                                        <i class="fas fa-grip-vertical" style="color: #999; font-size: 16px;"></i>
+                                    </td>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <label class="toggle-switch" style="margin: 0;">
+                                            <input type="checkbox" class="product-visible" data-id="${p.id}" ${!p.hidden ? 'checked' : ''}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </td>
+                                    <td style="padding: 10px;">
+                                        <div style="font-weight: 500; color: #333;">${p.name}</div>
+                                        <div style="font-size: 11px; color: #999;">${p.id}</div>
+                                    </td>
+                                    <td style="padding: 10px;">
+                                        <input type="text" 
+                                            class="form-control product-display-name" 
+                                            data-id="${p.id}"
+                                            placeholder="${p.shortName || p.name}"
+                                            value="${p.displayName || ''}"
+                                            style="width: 100%; padding: 8px; font-size: 13px;">
+                                    </td>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <label class="toggle-switch" style="margin: 0;">
+                                            <input type="checkbox" class="product-is-new" data-id="${p.id}" ${p.isNew ? 'checked' : ''}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </td>
+                                    <td style="padding: 10px;">
+                                        <span class="preview-name" style="color: #003366; font-weight: 500;">
+                                            ${p.displayName || p.shortName || p.name}
+                                        </span>
+                                        ${p.isNew ? '<span style="background: #ff4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">NEW</span>' : ''}
+                                        ${p.hidden ? '<span style="background: #999; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">隐藏</span>' : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border-radius: 6px; font-size: 13px; color: #2e7d32;">
+                        <i class="fas fa-check-circle"></i> 修改后自动保存，刷新 hydrogen.html 页面即可看到效果
+                    </div>
+                </div>
+            `;
+
+            // Initialize SortableJS
+            const sortableList = document.getElementById('sortableProductList');
+            if (sortableList && typeof Sortable !== 'undefined') {
+                new Sortable(sortableList, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    onEnd: function () {
+                        saveSortOrder();
+                    }
+                });
+            }
+
+            // Bind events
+            container.querySelectorAll('.product-display-name').forEach(input => {
+                input.addEventListener('change', (e) => saveProductSetting(e.target.dataset.id, 'displayName', e.target.value));
+                input.addEventListener('input', (e) => updatePreviewName(e.target.dataset.id));
+            });
+
+            container.querySelectorAll('.product-is-new').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    saveProductSetting(e.target.dataset.id, 'isNew', e.target.checked);
+                    updatePreviewBadge(e.target.dataset.id, e.target.checked);
+                });
+            });
+
+            container.querySelectorAll('.product-visible').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const row = e.target.closest('tr');
+                    const hidden = !e.target.checked;
+                    saveProductSetting(e.target.dataset.id, 'hidden', hidden);
+                    row.style.opacity = hidden ? '0.5' : '1';
+                    // Update hidden badge
+                    const previewCell = row.querySelector('td:last-child');
+                    const existingHiddenBadge = previewCell.querySelector('span[style*="background: #999"]');
+                    if (hidden && !existingHiddenBadge) {
+                        previewCell.innerHTML += '<span style="background: #999; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">隐藏</span>';
+                    } else if (!hidden && existingHiddenBadge) {
+                        existingHiddenBadge.remove();
+                    }
+                });
+            });
+        }
+
+        async function saveSortOrder() {
+            const rows = document.querySelectorAll('#sortableProductList tr[data-product-id]');
+            const order = Array.from(rows).map(row => row.dataset.productId);
+
+            try {
+                const res = await fetch('/api/products/settings/sort', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    console.error('Sort save failed:', result.message);
+                }
+            } catch (e) {
+                console.error('Sort save error:', e);
+            }
+        }
+
+        // 分类定义
+        const CATEGORY_OPTIONS = [
+            { key: 'iot', label: '物联网平台' },
+            { key: 'sensor', label: '传感器' },
+            { key: 'module', label: '检测模块' },
+            { key: 'detector', label: '检测仪' },
+            { key: 'alarm', label: '报警器' },
+            { key: 'system', label: '监测系统' },
+            { key: 'service', label: '定制服务' }
+        ];
+
+        function renderCategorySettings() {
+            const container = document.getElementById('categorySettingsContainer');
+            // 显示所有产品（包括定制服务）
+            const menuProducts = productsData;
+
+            container.innerHTML = `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd; width: 200px;">产品名称</th>
+                                ${CATEGORY_OPTIONS.map(c => `
+                                    <th style="padding: 8px 4px; text-align: center; border-bottom: 2px solid #ddd; font-size: 12px;">${c.label}</th>
+                                `).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${menuProducts.map(p => {
+                const categories = p.categories || [p.category];
+                return `
+                                    <tr data-product-id="${p.id}" style="border-bottom: 1px solid #eee;">
+                                        <td style="padding: 10px;">
+                                            <div style="font-weight: 500; color: #333;">${p.name}</div>
+                                            <div style="font-size: 11px; color: #999;">${p.id}</div>
+                                        </td>
+                                        ${CATEGORY_OPTIONS.map(c => `
+                                            <td style="padding: 8px 4px; text-align: center;">
+                                                <input type="checkbox" 
+                                                    class="category-checkbox" 
+                                                    data-id="${p.id}" 
+                                                    data-category="${c.key}"
+                                                    ${categories.includes(c.key) ? 'checked' : ''}
+                                                    style="width: 18px; height: 18px; cursor: pointer;">
+                                            </td>
+                                        `).join('')}
+                                    </tr>
+                                `;
+            }).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border-radius: 6px; font-size: 13px; color: #2e7d32;">
+                        <i class="fas fa-check-circle"></i> 勾选后自动保存，刷新 gassensing/index.html 页面即可看到筛选效果
+                    </div>
+                `;
+
+            // Bind events
+            container.querySelectorAll('.category-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    updateProductCategories(e.target.dataset.id);
+                });
+            });
+        }
+
+        function updateProductCategories(productId) {
+            const checkboxes = document.querySelectorAll(`.category-checkbox[data-id="${productId}"]`);
+            const categories = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    categories.push(cb.dataset.category);
+                }
+            });
+
+            // 允许空分类（用户可以取消所有分类）
+            saveProductSetting(productId, 'categories', categories);
+        }
+
+        // --- Recommendations Functions ---
+        async function loadRecommendations() {
+            try {
+                const res = await fetch('/api/recommendations');
+                const data = await res.json();
+
+                // 填充最新发布
+                if (data.latestReleases && data.latestReleases.length >= 2) {
+                    document.getElementById('latest1Name').value = data.latestReleases[0].name || '';
+                    document.getElementById('latest1Url').value = data.latestReleases[0].url || '';
+                    document.getElementById('latest2Name').value = data.latestReleases[1].name || '';
+                    document.getElementById('latest2Url').value = data.latestReleases[1].url || '';
+                }
+
+                // 填充应用领域
+                if (data.applicationAreas && data.applicationAreas.length >= 2) {
+                    document.getElementById('app1Name').value = data.applicationAreas[0].name || '';
+                    document.getElementById('app1Url').value = data.applicationAreas[0].url || '';
+                    document.getElementById('app2Name').value = data.applicationAreas[1].name || '';
+                    document.getElementById('app2Url').value = data.applicationAreas[1].url || '';
+                }
+            } catch (e) {
+                console.error('Load recommendations error:', e);
+            }
+        }
+
+        async function saveRecommendations() {
+            const data = {
+                latestReleases: [
+                    { name: document.getElementById('latest1Name').value, url: document.getElementById('latest1Url').value },
+                    { name: document.getElementById('latest2Name').value, url: document.getElementById('latest2Url').value }
+                ],
+                applicationAreas: [
+                    { name: document.getElementById('app1Name').value, url: document.getElementById('app1Url').value },
+                    { name: document.getElementById('app2Name').value, url: document.getElementById('app2Url').value }
+                ]
+            };
+
+            try {
+                const res = await fetch('/api/recommendations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    document.getElementById('recommendationsMsg').textContent = '✓ 保存成功！刷新 hydrogen.html 页面即可看到效果';
+                    setTimeout(() => {
+                        document.getElementById('recommendationsMsg').textContent = '';
+                    }, 3000);
+                }
+            } catch (e) {
+                console.error('Save recommendations error:', e);
+                document.getElementById('recommendationsMsg').textContent = '保存失败';
+            }
+        }
+
+        function updatePreviewName(productId) {
+            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            if (!row) return;
+            const input = row.querySelector('.product-display-name');
+            const preview = row.querySelector('.preview-name');
+            const product = productsData.find(p => p.id === productId);
+            if (preview && product) {
+                preview.textContent = input.value || product.shortName || product.name;
+            }
+        }
+
+        function updatePreviewBadge(productId, isNew) {
+            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            if (!row) return;
+            const previewCell = row.querySelector('td:last-child');
+            const existingBadge = previewCell.querySelector('span[style*="background: #ff4444"]');
+            if (isNew && !existingBadge) {
+                previewCell.innerHTML += '<span style="background: #ff4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 6px;">NEW</span>';
+            } else if (!isNew && existingBadge) {
+                existingBadge.remove();
+            }
+        }
+
+        async function saveProductSetting(productId, field, value) {
+            try {
+                const data = { id: productId };
+                data[field] = value;
+
+                const res = await fetch('/api/products/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+                if (!result.success) {
+                    console.error('Save failed:', result.message);
+                }
+            } catch (e) {
+                console.error('Save error:', e);
+            }
+        }
+
+        function switchProductTab(tabName, btn) {
+            // Update tab buttons
+            document.querySelectorAll('#view-products .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('#view-products .tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`product-tab-${tabName}`).classList.add('active');
         }
 
 
