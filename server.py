@@ -263,6 +263,376 @@ def get_product_images():
     return jsonify({'images': images})
 
 
+# ============ Auto Product Scan API ============
+
+# 排除的文件（索引页、分类页等）
+EXCLUDED_PRODUCT_FILES = {
+    'index.html',
+    'gas_sensors.html',
+    'gas_sensors_page_2.html', 
+    'gas_sensors_page_3.html',
+    'products_mems.html',
+    'products_handheld.html',
+    'products_systems.html',
+    'products_modules.html'
+}
+
+# 默认产品分类映射（基于 products-data.js）
+DEFAULT_PRODUCT_CATEGORIES = {
+    'mcs_iot_platform': 'iot',
+    'hum_sniffer': 'module',
+    'h2_sniffer': 'module',
+    'ld_h2_detector': 'detector',
+    'mc_wd_wearable_alarm': 'alarm',
+    'mchp_vehicle_h2': 'module',
+    'mc_hla_fixed_alarm': 'alarm',
+    'mchs_palladium_h2': 'sensor',
+    'mchf_carbon_fet_h2': 'sensor',
+    'mchc_catalytic_h2': 'sensor',
+    'mchm_h2_sensor': 'sensor',
+    'mc_hfev_module': 'module',
+    'h2_detection_probe': 'probe',
+    'mc_td_leak_detector': 'detector',
+    'mcect_electrochemical_h2': 'sensor',
+    'mctcx_thermal_h2': 'sensor',
+    'portable_gas_test_module': 'module',
+    'smart_gas_mixing_system': 'system',
+    # 定制服务产品
+    '../customization/custom_gas_sensing_module': 'service',
+    '../customization/custom_instrument_dev': 'service',
+    '../customization/micronano_fabrication': 'service',
+}
+
+def extract_product_meta_from_html(filepath):
+    """从产品HTML文件中提取meta标签信息"""
+    from html.parser import HTMLParser
+    
+    class ProductMetaParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.meta = {}
+            self.title = ''
+            self.in_title = False
+            self.first_h1 = ''
+            self.in_h1 = False
+            self.first_p = ''
+            self.in_p = False
+            self.found_h1 = False
+            self.found_p = False
+            self.first_img = ''
+            
+        def handle_starttag(self, tag, attrs):
+            attrs_dict = dict(attrs)
+            
+            if tag == 'meta':
+                name = attrs_dict.get('name', '')
+                content = attrs_dict.get('content', '')
+                if name.startswith('product-'):
+                    key = name.replace('product-', '')
+                    self.meta[key] = content
+            elif tag == 'title':
+                self.in_title = True
+            elif tag == 'h1' and not self.found_h1:
+                self.in_h1 = True
+            elif tag == 'p' and self.found_h1 and not self.found_p:
+                self.in_p = True
+            elif tag == 'img' and not self.first_img and 'src' in attrs_dict:
+                src = attrs_dict['src']
+                # 排除通用图标和小图
+                if not any(x in src.lower() for x in ['icon', 'logo', 'arrow', 'btn', 'button']):
+                    self.first_img = src
+                    
+        def handle_data(self, data):
+            data = data.strip()
+            if self.in_title:
+                self.title = data
+            elif self.in_h1:
+                self.first_h1 += data
+            elif self.in_p:
+                self.first_p += data
+                
+        def handle_endtag(self, tag):
+            if tag == 'title':
+                self.in_title = False
+            elif tag == 'h1':
+                self.in_h1 = False
+                self.found_h1 = True
+            elif tag == 'p':
+                self.in_p = False
+                if self.first_p:
+                    self.found_p = True
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        parser = ProductMetaParser()
+        parser.feed(content)
+        
+        # 优先使用 meta 标签，否则从页面内容推断
+        product_id = filepath.stem
+        
+        # 名称：meta > h1 > title
+        name = parser.meta.get('name', '') or parser.first_h1 or parser.title.replace(' - 元芯传感', '').replace(' - 气体传感产品', '').strip()
+        
+        # 如果名称为空，跳过这个文件
+        if not name:
+            return None
+        
+        # 简称：meta > 名称截断
+        short_name = parser.meta.get('short-name', '')
+        if not short_name:
+            # 自动生成简称（截取前20个字符）
+            short_name = name[:20] + ('...' if len(name) > 20 else '')
+        
+        # 图片：meta > 第一张图片
+        image = parser.meta.get('image', '') or parser.first_img
+        
+        # 描述：meta > 第一段
+        description = parser.meta.get('description', '') or parser.first_p[:200] if parser.first_p else ''
+        
+        # 类别：meta > 默认映射 > 'module'
+        category = parser.meta.get('category', '') or DEFAULT_PRODUCT_CATEGORIES.get(product_id, 'module')
+        
+        return {
+            'id': product_id,
+            'name': name,
+            'shortName': short_name,
+            'image': image,
+            'description': description,
+            'category': category
+        }
+        
+    except Exception as e:
+        print(f"Error parsing product file {filepath}: {e}")
+        return None
+
+
+@app.route('/api/products')
+def get_products():
+    """自动扫描产品目录并返回产品列表"""
+    base_dir = Path(__file__).parent / 'pages'
+    gassensing_dir = base_dir / 'gassensing'
+    customization_dir = base_dir / 'customization'
+    products = []
+    
+    # 扫描 gassensing 目录
+    if gassensing_dir.exists():
+        for filepath in sorted(gassensing_dir.glob('*.html')):
+            if filepath.name in EXCLUDED_PRODUCT_FILES:
+                continue
+            product = extract_product_meta_from_html(filepath)
+            if product:
+                products.append(product)
+    
+    # 扫描 customization 目录（定制服务）
+    if customization_dir.exists():
+        for filepath in sorted(customization_dir.glob('*.html')):
+            if filepath.name == 'index.html':
+                continue
+            product = extract_product_meta_from_html(filepath)
+            if product:
+                # 为 customization 产品添加路径前缀
+                product['id'] = '../customization/' + product['id']
+                product['isCustomization'] = True
+                products.append(product)
+    
+    # 按类别排序
+    category_order = {'iot': 0, 'module': 1, 'sensor': 2, 'detector': 3, 'alarm': 4, 'system': 5, 'probe': 6, 'service': 7}
+    products.sort(key=lambda p: (category_order.get(p.get('category', 'module'), 99), p.get('name', '')))
+    
+    return jsonify({'products': products, 'count': len(products)})
+
+
+# ============ Product Menu Settings API ============
+
+PRODUCT_SETTINGS_FILE = DATA_DIR / 'product_settings.json'
+
+def get_product_settings():
+    """Load product settings (custom names, new badges)."""
+    if PRODUCT_SETTINGS_FILE.exists():
+        try:
+            return json.loads(PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
+        except:
+            pass
+    return {}
+
+def save_product_settings(settings):
+    """Save product settings."""
+    PRODUCT_SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+@app.route('/api/products/settings', methods=['GET'])
+def get_product_settings_api():
+    """Get product menu settings."""
+    return jsonify(get_product_settings())
+
+
+@app.route('/api/products/settings', methods=['POST'])
+def update_product_settings_api():
+    """Update product menu settings."""
+    data = request.json or {}
+    
+    settings = get_product_settings()
+    
+    product_id = data.get('id')
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+    
+    if product_id not in settings:
+        settings[product_id] = {}
+    
+    if 'displayName' in data:
+        settings[product_id]['displayName'] = data['displayName']
+    
+    if 'isNew' in data:
+        settings[product_id]['isNew'] = bool(data['isNew'])
+    
+    if 'hidden' in data:
+        settings[product_id]['hidden'] = bool(data['hidden'])
+    
+    if 'sortOrder' in data:
+        settings[product_id]['sortOrder'] = int(data['sortOrder'])
+    
+    if 'categories' in data:
+        # 支持多分类数组
+        settings[product_id]['categories'] = list(data['categories']) if isinstance(data['categories'], list) else [data['categories']]
+    
+    save_product_settings(settings)
+    return jsonify({'success': True, 'settings': settings})
+
+
+@app.route('/api/products/settings/sort', methods=['POST'])
+def update_product_sort_order():
+    """Batch update product sort order."""
+    data = request.json or {}
+    order = data.get('order', [])  # List of product IDs in desired order
+    
+    if not order:
+        return jsonify({'success': False, 'message': '缺少排序数据'}), 400
+    
+    settings = get_product_settings()
+    
+    for idx, product_id in enumerate(order):
+        if product_id not in settings:
+            settings[product_id] = {}
+        settings[product_id]['sortOrder'] = idx
+    
+    save_product_settings(settings)
+    return jsonify({'success': True, 'message': f'已更新 {len(order)} 个产品的排序'})
+
+
+@app.route('/api/products/with-settings')
+def get_products_with_settings():
+    """Get products with merged settings."""
+    # Get base products from both directories
+    base_dir = Path(__file__).parent / 'pages'
+    gassensing_dir = base_dir / 'gassensing'
+    customization_dir = base_dir / 'customization'
+    products = []
+    
+    # Scan gassensing directory
+    if gassensing_dir.exists():
+        for filepath in sorted(gassensing_dir.glob('*.html')):
+            if filepath.name in EXCLUDED_PRODUCT_FILES:
+                continue
+            product = extract_product_meta_from_html(filepath)
+            if product:
+                products.append(product)
+    
+    # Scan customization directory
+    if customization_dir.exists():
+        for filepath in sorted(customization_dir.glob('*.html')):
+            if filepath.name == 'index.html':
+                continue
+            product = extract_product_meta_from_html(filepath)
+            if product:
+                product['id'] = '../customization/' + product['id']
+                product['isCustomization'] = True
+                products.append(product)
+    
+    # Merge with settings
+    settings = get_product_settings()
+    for product in products:
+        pid = product['id']
+        if pid in settings:
+            product['displayName'] = settings[pid].get('displayName', '')
+            product['isNew'] = settings[pid].get('isNew', False)
+            product['hidden'] = settings[pid].get('hidden', False)
+            product['sortOrder'] = settings[pid].get('sortOrder', 999)
+            # 支持多分类：如果设置了 categories 数组则使用，否则使用原始的 category
+            custom_categories = settings[pid].get('categories', [])
+            if custom_categories:
+                product['categories'] = custom_categories
+            else:
+                product['categories'] = [product.get('category', 'module')]
+        else:
+            product['displayName'] = ''
+            product['isNew'] = False
+            product['hidden'] = False
+            product['sortOrder'] = 999
+            product['categories'] = [product.get('category', 'module')]
+    
+    # Sort by custom sortOrder first, then by name
+    products.sort(key=lambda p: (p.get('sortOrder', 999), p.get('name', '')))
+    
+    return jsonify({'products': products, 'count': len(products)})
+
+
+# ============ Mega Menu Recommendations API ============
+
+RECOMMENDATIONS_FILE = DATA_DIR / 'recommendations.json'
+
+def get_default_recommendations():
+    """Default recommendations data."""
+    return {
+        'latestReleases': [
+            {'name': 'LD-H2-Gen5 第五代氢气传感器', 'url': '../gassensing/ld_h2_detector.html'},
+            {'name': '车载高集成氢气安全监测模组', 'url': '../gassensing/mchp_vehicle_h2.html'}
+        ],
+        'applicationAreas': [
+            {'name': '加氢站安全监测', 'url': '../solutions/industry-hydrogen.html'},
+            {'name': '燃料电池车辆', 'url': '../solutions/hydrogen.html'}
+        ]
+    }
+
+def get_recommendations():
+    """Load recommendations settings."""
+    if RECOMMENDATIONS_FILE.exists():
+        try:
+            return json.loads(RECOMMENDATIONS_FILE.read_text(encoding='utf-8'))
+        except:
+            pass
+    return get_default_recommendations()
+
+def save_recommendations(data):
+    """Save recommendations settings."""
+    RECOMMENDATIONS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+@app.route('/api/recommendations', methods=['GET'])
+def get_recommendations_api():
+    """Get mega menu recommendations."""
+    return jsonify(get_recommendations())
+
+
+@app.route('/api/recommendations', methods=['POST'])
+def update_recommendations_api():
+    """Update mega menu recommendations."""
+    data = request.json or {}
+    
+    recommendations = get_recommendations()
+    
+    if 'latestReleases' in data:
+        recommendations['latestReleases'] = data['latestReleases']
+    
+    if 'applicationAreas' in data:
+        recommendations['applicationAreas'] = data['applicationAreas']
+    
+    save_recommendations(recommendations)
+    return jsonify({'success': True, 'recommendations': recommendations})
+
+
 # ============ API Routes ============
 
 
