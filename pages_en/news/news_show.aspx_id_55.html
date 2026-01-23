@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>WRC2025现场直击：机器人不止会跑会跳，更有了“超级嗅觉”！ - 湖南Metachip科技有限责任公司</title>
+    
+    <!-- Vaisala Style V2.0 -->
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .article-hero {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 31, 63, 0.9) 0%, rgba(0, 31, 63, 0.7) 100%), url('../../assets/images/section2_bj.jpg') center/cover;
+            height: 40vh;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white !important;
+            padding: 0 20px;
+        }
+        .article-hero__title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            max-width: 900px;
+            line-height: 1.4;
+        }
+        .article-hero__meta {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        .article-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        @media (min-width: 1920px) {
+            .article-container {
+                max-width: 1600px;
+            }
+            .article-content {
+                font-size: 19px;
+            }
+            .article-hero__title {
+                font-size: 48px;
+            }
+        }
+        .article-content {
+            font-size: 17px;
+            line-height: 1.9;
+            color: #333;
+        }
+        .article-content p {
+            margin-bottom: 20px;
+        }
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 24px auto; display: block;
+        }
+        .article-content strong {
+            color: var(--color-primary);
+        }
+        .article-content ul, .article-content ol {
+            margin: 20px 0;
+            padding-left: 30px;
+        }
+        .article-content li {
+            margin-bottom: 10px;
+        }
+        .article-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 0;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        }
+        .article-nav a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .article-nav a:hover {
+            text-decoration: underline;
+        }
+        .back-btn, a.back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--color-primary);
+            color: white !important;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: var(--color-accent-blue);
+            transform: translateY(-2px);
+        }
+    </style>
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/all-products.html" class="vs-nav__link">Products</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    New Arrivals <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    Industries <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    Parameters <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    Products种类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    Products列表 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>New Arrivals</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Latest Releases</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Applications</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">搜索Products <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>Industries</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../solutions/industry-hydrogen.html">氢能源产业链</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-power-safety.html">智慧电力安全</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-leak-detection.html">工业检漏监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../solutions/industry-energy-storage.html">绿色能源存储</a>
+                                                </li>
+                                                <li><a href="../solutions/industry-environment.html">大气环境监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>Parameters</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../measurement/measurement-hydrogen.html">氢气
+                                                        (H2)</a></li>
+                                                <li><a href="../measurement/measurement-humidity.html">湿度
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../measurement/measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../measurement/measurement-oil-water.html">油中水含量</a>
+                                                </li>
+                                                <li><a href="../measurement/measurement-dewpoint.html">露点
+                                                        (Td)</a></li>
+                                                <li><a href="../measurement/measurement-pressure.html">压力
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>Products种类</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>Products列表</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- Products由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="../gassensing/all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">查看所有Products <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/index.html" class="vs-nav__link">Solutions</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    行业Solutions <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    Research <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>行业Solutions</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../solutions/industry-hydrogen.html">氢能源产业链</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">智慧电力安全</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-leak-detection.html">工业检漏监测</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-energy-storage.html">绿色能源存储</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-environment.html">大气环境监测</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>Research</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../research/index.html"><strong>ResearchHome</strong></a></li>
+                                            <li><a href="../research/micro-nano.html">传感器微纳加工</a></li>
+                                            <li><a href="../research/development.html">传感器开发、测试与应用</a></li>
+                                            <li><a href="../research/cooperation.html">产学研深度合作</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/service-cases.html" class="vs-nav__link">Cases</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    Featured <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    All Cases <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>Featured</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../gassensing/cases/case-1-truck.html">氢能重卡氢气检测</a></li>
+                                            <li><a href="../gassensing/cases/case-6-train.html">氢能源列车检测</a></li>
+                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">输氢管道人员安全</a></li>
+                                            <li><a href="../gassensing/cases/case-12-gas-system.html">科研实验室配气</a></li>
+                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">柴油机真空检漏</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>更多案例</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">浏览我们在各个行业的成功应用案例。</p>
+                                    <a href="../gassensing/service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">View All <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../about/about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">Shop</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../contact/contact.html" class="vs-nav__link">Contact</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    Join Us <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    Contact Info <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>Join Us</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../careers/partners.html">Partners</a></li>
+                                            <li><a href="../careers/growth.html">Growth</a></li>
+                                            <li><a href="../careers/talent.html">Culture</a></li>
+                                            <li><a href="../careers/jobs.html">Careers</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>Contact Info</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../contact/contact.html">Contact</a></li>
+                                            <li><a href="../contact/feedback.html">Feedback</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/news/news_show.aspx_id_55.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <main>
+        <!-- Article Hero -->
+        <section class="article-hero">
+            <h1 class="article-hero__title">WRC2025现场直击：机器人不止会跑会跳，更有了“超级嗅觉”！</h1>
+            <div class="article-hero__meta"><i class="far fa-calendar-alt"></i> 2025-08-19</div>
+        </section>
+
+        <!-- Article Content -->
+        <article class="article-container">
+            <div class="article-content">
+                <p style="text-align: center"><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508190945043254.jpg" title="WRC_01.jpg" alt="WRC_01.jpg"/></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;8<span style="font-family:等线">月</span><span style="font-family:Arial">8</span><span style="font-family:等线">日，备受瞩目的</span><span style="font-family:Arial">**2025</span><span style="font-family:等线">世界机器人大会（</span><span style="font-family:Arial">WRC2025</span><span style="font-family:等线">）在北京盛大启幕！</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">作为全球机器人技术的</span><span style="font-family:Arial">“</span><span style="font-family:等线">风向标</span><span style="font-family:Arial">”</span><span style="font-family:等线">，今年的大会再次汇聚了全球顶尖的智慧与创意，各类突破性Products集中亮相，勾勒出未来智能的蓬勃图景。</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">当人形机器人、机器狗以更矫健的身姿和更强的交互能力惊艳全场时，一个更深层次的变革正在悄然发生。这场革命，不止于让机器</span><span style="font-family:Arial">“</span><span style="font-family:等线">看得懂、听得清</span><span style="font-family:Arial">”</span><span style="font-family:等线">，</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;而是关乎一项被赋予了</span><span style="font-family:Arial">AI</span><span style="font-family:等线">超能力的全新维度</span><span style="font-family:Arial">——</span></span><strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">超级感官</span></span></strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">。</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">今天，就让我们一起探寻</span>WRC2025<span style="font-family:等线">上这股最前沿的浪潮：</span><span style="font-family:Arial">AI</span><span style="font-family:等线">与传感器的融合，如何为机器解锁超越人类的感知力。</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span><br/></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"><br/></span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><span style=";font-family:Arial;line-height:120%;font-size:15px">01 AI<span style="font-family:等线">与传感器的</span><span style="font-family:Arial">“</span><span style="font-family:等线">双向奔赴</span><span style="font-family:Arial">”</span><span style="font-family:等线">，开启智能新纪元</span></span></strong></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">当具身智能的赛道日益拥挤，如何避免</span><span style="font-family:Arial">“</span><span style="font-family:等线">重复造轮子</span><span style="font-family:Arial">”</span><span style="font-family:等线">，加速创新生态的形成？通用性开发平台给出了答案。它们是推动行业标准化的</span><span style="font-family:Arial">“</span><span style="font-family:等线">粘合剂</span><span style="font-family:Arial">”</span><span style="font-family:等线">，也是催生</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;新品类的</span><span style="font-family:Arial">“</span><span style="font-family:等线">加速器</span><span style="font-family:Arial">”</span><span style="font-family:等线">。</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"><br/></span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">京东</span>JoyInside<span style="font-family:等线">附身机器人天团重磅登陆</span><span style="font-family:Arial">WRC</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span></p><p style="text-align: center"><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508190947362960.jpg" title="640.jpg" alt="640.jpg"   /></p><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:Arial">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; “</span><span style="font-family:等线">天工 </span><span style="font-family:Arial">2.0” </span><span style="font-family:等线">人形机器人交互能力惊艳全场</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span></p><p style="text-align: center"><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508191000094505.jpg" title="WRC_05.jpg" alt="WRC_05.jpg"   /></p><p><br/></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 宇树机器人的拳击比赛让人印象深刻。</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p><p style="text-align:center"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"><video class="edui-upload-video  vjs-default-skin                           video-js" controls="" preload="none"   src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508191002412052.mp4" ><source src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508191002412052.mp4" type="video/mp4"/></video></span></span></p><p><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span></p><hr/><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><span style=";font-family:Arial;line-height:120%;font-size:15px">02 “<span style="font-family:等线">超级感官</span><span style="font-family:Arial">”</span><span style="font-family:等线">落地，重塑两大核心场景</span></span></strong></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">这场由</span>AI<span style="font-family:等线">和传感器共同导演的感官革命，并非停留在实验室的构想。在智能家居与工业安全这两大核心领域，它已经开始展现出颠覆性的应用价值，</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;催生出一批</span><span style="font-family:Arial">“</span><span style="font-family:等线">隐形</span><span style="font-family:Arial">”</span><span style="font-family:等线">的超级专家。</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">智能家居与康养陪护领域</span><span style="font-family:Arial">——“</span><span style="font-family:等线">Metachip隐形健康管家</span><span style="font-family:Arial">”</span></span></strong></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">未来的家，不止于智能，更在于温情与守护。当家用陪护机器人搭载了高灵敏度电子鼻和</span>AI<span style="font-family:等线">分析大脑，它便化身为一位</span><span style="font-family:Arial">24</span><span style="font-family:等线">小时在线的</span><span style="font-family:Arial">“</span><span style="font-family:等线">隐形健康管家</span><span style="font-family:Arial">”</span><span style="font-family:等线">。</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"><br/></span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span></p><p style="text-align: center"><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508191011405261.png" title="WRC_03.png" alt="WRC_03.png"   /></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;&nbsp;</span><strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">呼吸成分分析：</span></span></strong><span style=";font-family:Arial;line-height:120%;font-size:15px">&nbsp;<span style="font-family:等线">它可以通过非接触式地分析老人呼吸中的挥发性有机物（</span>VOCs<span style="font-family:等线">），由</span><span style="font-family:Arial">AI</span><span style="font-family:等线">模型长期追踪酮体（糖尿病风险）、氨气（肾功能问题）等</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;生物标志物的变化趋势，实现对慢性病的早期预警和主动管理，防患于未然。</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;&nbsp;</span><strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">环境安全监测：</span></span></strong><span style=";font-family:Arial;line-height:120%;font-size:15px">&nbsp;<span style="font-family:等线">它能</span>24<span style="font-family:等线">小时不间断监测家中空气，无论是燃气泄漏的微弱异味、电路过载产生的焦糊味，还是食物腐败变质的气味，都能在第一时间</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;捕捉，并通过语音向主人报警，同时推送消息通知家人，构筑一道坚实的安全防线。</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;&nbsp;</span><strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">个人卫生辅助：</span></span></strong><span style=";font-family:Arial;line-height:120%;font-size:15px">&nbsp;<span style="font-family:等线">通过精准识别体味变化，</span>AI<span style="font-family:等线">可以辅助判断老人是否需要洗浴或是否存在皮肤感染等潜在问题，从而给予更人性化、更及时的照护</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;提醒，维护老人的生活品质与尊严。</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"><br/></span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">工业与安全巡检领域</span><span style="font-family:Arial">——“</span><span style="font-family:等线">Metachip精准溯源专家</span><span style="font-family:Arial">”</span></span></strong></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">在环境复杂、风险高企的工业场景，安全生产是永恒的生命线。搭载了复合气体传感器阵列和</span>AI<span style="font-family:等线">溯源算法的巡检机器人，正在成为不知疲倦的</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:Arial">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;“</span><span style="font-family:等线">精准溯源专家</span><span style="font-family:Arial">”</span><span style="font-family:等线">。</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"><br/></span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span></p><p style="text-align: center"><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508191019475866.png" title="WRC_02.png" alt="WRC_02.png"/></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;&nbsp;</span><strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">复杂泄漏源定位：</span></span></strong><span style=";font-family:Arial;line-height:120%;font-size:15px">&nbsp;<span style="font-family:等线">在大型化工厂区，当多种气体同时发生泄漏时，机器人不再只是简单报警。它能一边移动，一边采集不同位置的</span><span style="font-family:Arial">“</span><span style="font-family:等线">气味图谱</span><span style="font-family:Arial">”</span><span style="font-family:等线">浓度梯度</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;数据，</span><span style="font-family:Arial">AI</span><span style="font-family:等线">算法随即进行反向建模，精准计算出每一个泄漏点的三维空间坐标和具体泄漏物质，为抢修提供</span><span style="font-family:Arial">“</span><span style="font-family:等线">导航级</span><span style="font-family:Arial">”</span><span style="font-family:等线">指引。</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;&nbsp;</span><strong><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">设备老化预警：</span></span></strong><span style=";font-family:Arial;line-height:120%;font-size:15px">&nbsp;<span style="font-family:等线">许多设备在彻底损坏前，其内部材料会因过热或化学反应释放出特定的微量气体。</span>AI<span style="font-family:等线">可以通过学习这些独特的</span><span style="font-family:Arial">“</span><span style="font-family:等线">故障气味指纹</span><span style="font-family:Arial">”</span><span style="font-family:等线">，让机器人</span></span></p><p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在常规巡检中</span><span style="font-family:Arial">“</span><span style="font-family:等线">闻</span><span style="font-family:Arial">”</span><span style="font-family:等线">出设备即将发生故障的迹象，将传统的事后维修升级为高效的预测性维护，从源头杜绝安全隐患。</span></span></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span><br/></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"><br/></span></span><br/></p><p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span><br/></p><p><span style=";font-family:Arial;line-height:120%;font-size:15px"><span style="font-family:等线"></span></span><br/></p><p><br/></p>
+            </div>
+            
+            <div class="article-nav">
+                <a href="news.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> 返回新闻列表
+                </a>
+            </div>
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index_en.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255, 255, 255, 0.6); line-height: 1.8;">
+                        湖南Metachip科技有限责任公司<br>
+                        专注于先进生物与化学传感技术<br>
+                        致力于成为全球领先的智能传感Solutions提供商
+                    </p>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>公司信息</h4>
+                    <a href="../../pages_en/about/about.html" class="vs-footer__link">关于我们</a>
+                    <a href="news.html" class="vs-footer__link">新闻中心</a>
+                    <a href="../../pages_en/contact/contact.html" class="vs-footer__link">Contact Info</a>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 湖南Metachip科技有限责任公司. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
+
+    <!-- AI智能客服 -->
+    <script src="../../assets/js/chatbot.js"></script>
+    
+</body>
+</html>
