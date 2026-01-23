@@ -12,6 +12,21 @@ const GAS_SENSING_PRODUCTS = [
         description: '专为工业气体监测场景设计的物联网云平台，支持实时数据采集、可视化大屏、智能报警、设备管理和AI分析。一键部署，Docker容器化架构。',
         category: 'iot'
     },
+    // 新品上架
+    {
+        id: 'hum_sniffer',
+        name: 'Hum-sniffer 微水检测模块',
+        image: '../../assets/images/hum_sniffer.png',
+        description: '小巧轻便的微量水分检测模块，低至1ppm检出限，支持UART通信，适用于工业气体及各类油品中的微量水分监测。',
+        category: 'module'
+    },
+    {
+        id: 'h2_sniffer',
+        name: 'H2-sniffer 油中氢检测模块',
+        image: '../../assets/images/h2_sniffer.png',
+        description: '专为油浸设备设计的氢气检测模块，0-100%宽量程，支持RS485/232通信，IP66防护，有效预警变压器早期故障。',
+        category: 'module'
+    },
     {
         id: 'ld_h2_detector',
         name: 'LD-H2型氢气检测仪',
