@@ -247,7 +247,24 @@ def get_news():
     return jsonify(result)
 
 
+# ============ Product Images API ============
+
+@app.route('/api/products/images')
+def get_product_images():
+    """Get list of product images for particle effect."""
+    images_dir = Path(__file__).parent / 'assets' / 'images' / 'products'
+    images = []
+    
+    if images_dir.exists():
+        # Get all png files and sort numerically
+        for img_path in sorted(images_dir.glob('*.png'), key=lambda x: int(x.stem) if x.stem.isdigit() else 999):
+            images.append(f'/assets/images/products/{img_path.name}')
+    
+    return jsonify({'images': images})
+
+
 # ============ API Routes ============
+
 
 @app.route('/api/feedback', methods=['POST'])
 def submit_feedback():
