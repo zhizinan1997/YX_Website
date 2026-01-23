@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC-HLA-01固定式氢气报警器 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Product Detail Page - Premium Styles */
+        .vs-product-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            padding: 120px 0 80px;
+            color: white;
+        }
+
+        .vs-product-hero__inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        /* Image Gallery */
+        .vs-product-gallery {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .vs-gallery-main {
+            width: 100%;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .vs-gallery-main img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .vs-gallery-thumbs {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 8px 0;
+            justify-content: center;
+        }
+
+        .vs-gallery-thumb {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vs-gallery-thumb:hover,
+        .vs-gallery-thumb.active {
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-gallery-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .vs-product-hero__content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .vs-product-hero__desc {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .vs-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .vs-feature-list li {
+            padding: 12px 16px 12px 44px;
+            position: relative;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .vs-feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 16px;
+            color: #4ADE80;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Section Styles */
+        .vs-product-section {
+            padding: 80px 0;
+        }
+
+        .vs-product-section.alt-bg {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .vs-product-section__title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 32px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .vs-product-section__title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
+            border-radius: 2px;
+        }
+
+        .vs-product-section__content {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #4a5568;
+        }
+
+        /* Advantages Grid */
+        .vs-advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .vs-advantage-card {
+            background: white;
+            padding: 32px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 1px solid #f1f5f9;
+        }
+
+        .vs-advantage-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-advantage-card i {
+            font-size: 40px;
+            color: var(--color-accent-orange);
+            margin-bottom: 18px;
+            display: block;
+        }
+
+        .vs-advantage-card h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 10px;
+        }
+
+        .vs-advantage-card p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* Application Grid */
+        .vs-applications-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .vs-application-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-application-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-app-img-wrap {
+            width: 100%;
+            aspect-ratio: 16/10;
+            overflow: hidden;
+        }
+
+        .vs-application-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .vs-application-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .vs-application-label {
+            padding: 24px;
+            background: white;
+            flex-grow: 1;
+        }
+
+        .vs-application-label h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--color-primary);
+            margin-top: 0;
+        }
+
+        .vs-application-label h4 i {
+            color: var(--color-accent-orange);
+            font-size: 18px;
+        }
+
+        .vs-application-label p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            color: #64748b;
+        }
+
+        /* Specs Table */
+        .vs-specs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .vs-specs-table td {
+            padding: 18px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 15px;
+        }
+
+        .vs-specs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vs-specs-table tr td:first-child {
+            background: var(--color-primary);
+            color: white;
+            font-weight: 600;
+            width: 220px;
+        }
+
+        .vs-specs-table tr td:last-child {
+            background: white;
+            color: #334155;
+        }
+
+        .vs-specs-table tr:nth-child(even) td:last-child {
+            background: #f8fafc;
+        }
+
+        /* Related Products */
+        .vs-related-products {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 80px 0;
+        }
+
+        .vs-related-products h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .vs-related-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .vs-related-item {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .vs-related-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-related-item img {
+            width: 100%;
+            height: 160px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 20px;
+        }
+
+        .vs-related-item h4 {
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+        }
+
+        /* Related News */
+        .vs-related-news {
+            padding: 80px 0;
+        }
+
+        .vs-related-news h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .vs-news-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+        }
+
+        .vs-news-item {
+            display: flex;
+            gap: 24px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .vs-news-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-news-item img {
+            width: 200px;
+            height: 160px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .vs-news-item__content {
+            padding: 24px 24px 24px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .vs-news-item__content h4 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .vs-news-item__content p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.7;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* CTA Section */
+        .vs-cta-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #004d8c 100%);
+            padding: 80px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .vs-cta-section h3 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .vs-cta-section p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 36px;
+        }
+
+        /* Breadcrumb */
+        .vs-breadcrumb {
+            padding: 16px 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .vs-breadcrumb a {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+        }
+
+        .vs-breadcrumb a:hover {
+            color: white;
+        }
+
+        .vs-breadcrumb span {
+            margin: 0 12px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .vs-related-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-product-hero__inner {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-product-hero__content h1 {
+                font-size: 32px;
+            }
+
+            .vs-news-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-related-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item"><a href="../../pages/products/index.html"
+                            class="vs-nav__link">产品</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/solutions/hydrogen.html" class="vs-nav__link">解决方案</a>
+                    </li>
+                    <li class="vs-nav__item"><a href="../../pages/news/news.html" class="vs-nav__link">洞察与资讯</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/about/about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="../../pages/contact/contact.html" class="vs-nav__link">联系我们</a>
+                    </li>
+                </ul>
+            </nav>
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
+            </div>
+        </div>
+    </header>
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index.html">首页</a><span>|</span>
+                <a href="../../pages/products/index.html">产品</a><span>|</span>
+                <a href="../../pages/products/gas_sensors.html">气体传感</a><span>|</span>
+                MC-HLA-01固定式氢气报警器
+            </div>
+        </div>
+
+        <!-- Product Hero with Gallery -->
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <!-- Image Gallery -->
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <img id="mainImage"
+                                src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101343348440.png"
+                                alt="MC-HLA-01固定式氢气报警器">
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active"
+                                onclick="changeImage(this, 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101343348440.png')">
+                                <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101343348440.png"
+                                    alt="产品正面图">
+                            </div>
+                            <div class="vs-gallery-thumb"
+                                onclick="changeImage(this, 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101541119586.png')">
+                                <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101541119586.png"
+                                    alt="产品结构图">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="vs-product-hero__content">
+                        <h1>MC-HLA-01固定式氢气报警器</h1>
+                        <p class="vs-product-hero__desc">专为工业现场设计的在线式安全守卫，支持云端物联网监控，实现氢气安全风险的“可见、可控、可预防”</p>
+                        <ul class="vs-feature-list">
+                            <li>依托独家碳基传感芯片，响应极其迅速且具备超强抗干扰能力</li>
+                            <li>支持无线远程自动零点校准，工作现场免开盖，大幅降低运维难度</li>
+                            <li>工业级标准通讯，布线极简，支持快速组网与数字化系统集成</li>
+                            <li>多重立体报警机制，配备高亮数值显示与现场声光预警提示</li>
+                            <li>集成物联网技术，支持手机端与 PC 电脑端跨平台监控和异常报警</li>
+                        </ul>
+                        <div>
+                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary"
+                                style="padding: 14px 32px; font-size: 16px;">
+                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Details -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品详情</h2>
+                <div class="vs-product-section__content">
+                    <p>MC-HLA-01固定式氢气报警器是元芯传感针对工业级氢安全监测需求开发的旗舰级产品。它可以精准捕捉管道内、受限空间或大气环境中的氢气浓度微弱波动，并将数据实时同步至中控室或云端平台。</p>
+                    <p>该设备采用了坚固耐用的防爆外壳，防爆等级达到 Ex Db IIC T6 GB 标准，防护等级高达 IP65。这使其能够轻松胜任冶金、电子工业、航空航天、石油化工、食品加工及电池实验室等所有需要
+                        24 小时在线监测氢气浓度的严苛工业场景及危险场所。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Advantages -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品优势</h2>
+                <div class="vs-advantages-grid">
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-tachometer-fast"></i>
+                        <h4>极速响应与稳定抗扰</h4>
+                        <p>碳基芯片技术确保 5 秒内极速响应，并在复杂化学气氛中保持优异的氢气选择性与抗干扰能力</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-wifi"></i>
+                        <h4>智能免维护设计</h4>
+                        <p>行业领先的免开盖校准方案，支持无线远程零点校准，彻底解决高空或危险区域维护难题</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-microchip"></i>
+                        <h4>全寿命周期自检</h4>
+                        <p>具备传感器故障自动识别与两级浓度预设报警功能，确保持续处于最佳工作状态</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-shield-virus"></i>
+                        <h4>顶尖工业防护标准</h4>
+                        <p>通过国标 Ex 防爆认证与 IP65 防水防尘认证，无惧腐蚀性、潮湿或粉尘工业环境</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Applications -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">主要应用</h2>
+                <div class="vs-applications-grid">
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101450086671.jpg"
+                                alt="制氢站在线监控">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-industry"></i> 制氢站在线监控</h4>
+                            <p>在电解槽或提纯区上方固定安装，全天候监控氢气渗漏风险，确保生产线核心区域绝对安全。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101450394106.jpg"
+                                alt="氢瓶室/储氢间">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-cubes"></i> 氢瓶室/储氢间</h4>
+                            <p>部署于高压瓶组或阀门阵列周边，及时发现密封失效，通过联动风机实现氢气积聚的自动预防。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101451231666.jpg"
+                                alt="加氢站防爆区">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-gas-pump"></i> 加氢站防爆区</h4>
+                            <p>专业适配卸气柱、压缩机机房等核心防爆点位，为加氢站提供符合国标标准的硬软件双重安全屏障。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101451593060.png"
+                                alt="数据中心/电池室">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-server"></i> 数据中心/电池室</h4>
+                            <p>监测铅酸电池或新型储能系统充电过程中产生的氢气，防止局部浓度超标带来的爆炸火灾隐患。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101452412585.jpg"
+                                alt="食品医疗氧气生产">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-pills"></i> 食品医疗行业</h4>
+                            <p>氢化油脂生产、医疗级氢气灌装线及科研实验室的定点安全监测，满足行业严苛卫生与安全性法规。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101453355331.jpg"
+                                alt="重化工业集成">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-vial"></i> 重化工业集成</h4>
+                            <p>支持 4-20mA、RS485 等多种总线与上位机系统或 PLC 快速连接，实现全厂级的数字化安全集成系统。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Specifications -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术指标</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>产品型号</td>
+                        <td>MC-HLA-01</td>
+                    </tr>
+                    <tr>
+                        <td>检测气体</td>
+                        <td>氢气 (H2) - 可按需定制检测对象</td>
+                    </tr>
+                    <tr>
+                        <td>检测范围</td>
+                        <td>0 ~ 100% LEL (爆炸下限)</td>
+                    </tr>
+                    <tr>
+                        <td>响应时间 (T90)</td>
+                        <td>＜ 5 秒 (极速预警)</td>
+                    </tr>
+                    <tr>
+                        <td>最低检测分辨率</td>
+                        <td>0.1% LEL</td>
+                    </tr>
+                    <tr>
+                        <td>供电电源</td>
+                        <td>DC 24V 工业标准供电</td>
+                    </tr>
+                    <tr>
+                        <td>通讯方式</td>
+                        <td>RS485 Modbus / 无线 Lora / NB-IoT (可选)</td>
+                    </tr>
+                    <tr>
+                        <td>通讯频段</td>
+                        <td>2300 ~ 2400 MHz</td>
+                    </tr>
+                    <tr>
+                        <td>防爆等级</td>
+                        <td>Ex Db IIC T6 GB (国家最高等级认证)</td>
+                    </tr>
+                    <tr>
+                        <td>防护等级</td>
+                        <td>IP65 (全面防水防尘)</td>
+                    </tr>
+                    <tr>
+                        <td>产品尺寸</td>
+                        <td>199 × 252 × 91 mm</td>
+                    </tr>
+                    <tr>
+                        <td>工作环境温度</td>
+                        <td>﹣20℃ ~ 55℃</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- Related News -->
+        <section class="vs-related-news">
+            <div class="vs-container">
+                <h2>相关新闻</h2>
+                <div class="vs-news-grid">
+                    <a href="../../pages/news/news_show.aspx_id_35.html" class="vs-news-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202411271124342476.png"
+                            alt="新闻图片">
+                        <div class="vs-news-item__content">
+                            <h4>致力氢能安全，元芯传感固定式检测系列入围国家科技名录</h4>
+                            <p>湖南元芯传感科技有限责任公司的氢气检测系列产品近日成功在多个大型能源项目中落地应用...</p>
+                        </div>
+                    </a>
+                    <a href="../../pages/news/news_show.aspx_id_33.html" class="vs-news-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202407010925018525.jpg"
+                            alt="新闻图片">
+                        <div class="vs-news-item__content">
+                            <h4>创新连接未来：MC-HLA 系列物联网报警器闪耀长沙展会</h4>
+                            <p>备受瞩目的 2024 国际传感器展览会上，元芯传感展示了其基于 NB-IoT 的远程氢安全监控方案。</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Related Products -->
+        <section class="vs-related-products">
+            <div class="vs-container">
+                <h2>相关产品</h2>
+                <div class="vs-related-grid">
+                    <a href="ld_h2_detector.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
+                            alt="LD-H2型氢气检测仪">
+                        <h4>LD-H2型氢气检测仪</h4>
+                    </a>
+                    <a href="mc_wd_wearable_alarm.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png"
+                            alt="穿戴式氢气报警器">
+                        <h4>MC-WD穿戴式氢气报警器</h4>
+                    </a>
+                    <a href="mchp_vehicle_h2.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
+                            alt="车载氢气模块">
+                        <h4>MCHP-1.0型车载氢气模块</h4>
+                    </a>
+                    <a href="h2_detection_probe.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101350333118.png"
+                            alt="氢气检测探头">
+                        <h4>氢气检测探头</h4>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <h3>寻找工业级在线监测方案？</h3>
+                <p>湖南元芯传感为您提供从单表报警到全厂级安全监控系统的全链路定制服务</p>
+                <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--secondary"
+                    style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
+                    <i class="fas fa-phone" style="margin-right: 10px;"></i>联系我们
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
+                        湖南元芯传感科技有限责任公司<br>湖南省湘潭市高新区双马街道书院路38号
+                    </p>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Image Gallery Functionality
+        function changeImage(thumb, src) {
+            // Update main image
+            document.getElementById('mainImage').src = src;
+
+            // Update active thumbnail
+            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        }
+    </script>
+
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
+</body>
+
+</html>

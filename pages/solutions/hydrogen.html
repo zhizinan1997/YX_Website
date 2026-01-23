@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- AI Chatbot -->
     <link rel="stylesheet" href="../../assets/css/chatbot.css">
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
     <style>
         /* Compact Inficon-style Mega Menu */
         .vs-header .vs-container,
@@ -206,6 +208,28 @@
             color: var(--color-white);
         }
 
+        /* View All Products Button Style */
+        .vs-mega-list-v2 a.vs-mega-view-all {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 8px 24px;
+            background-color: var(--color-primary);
+            color: #fff !important;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .vs-mega-list-v2 a.vs-mega-view-all:hover {
+            background-color: #003d73 !important; /* Darker blue */
+            color: #fff !important;
+            padding-left: 24px !important; /* Prevent text shift */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,77,140,0.25);
+        }
+
         /* Specialized Menu for Contact Us */
         .vs-mega-menu--contact {
             width: 480px;
@@ -350,18 +374,20 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products_mems.html">MEMS 传感器芯片</a>
-                                                </li>
-                                                <li><a href="../../pages/products/products_modules.html">高集成封装模组</a>
-                                                </li>
+                                                <li><a href="../../pages/gassensing/index.html?filter=sensor">MEMS 传感器芯片</a></li>
+                                                <li><a href="../../pages/gassensing/index.html?filter=module">高集成封装模组</a></li>
+                                                <li><a href="../../pages/gassensing/index.html?filter=probe">传感探头</a></li>
+                                                <li><a href="../../pages/gassensing/index.html?filter=module">传感模块</a></li>
+                                                <li><a href="../../pages/gassensing/index.html?filter=detector">便携设备</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products_handheld.html">智能手持终端设备</a>
-                                                </li>
-                                                <li><a href="../../pages/products/products_systems.html">在线监测分析系统</a>
-                                                </li>
+                                                <li><a href="../../pages/gassensing/index.html?filter=detector">智能手持终端设备</a></li>
+                                                <li><a href="../../pages/gassensing/index.html?filter=system">在线监测分析系统</a></li>
+                                                <li><a href="../gassensing/mcs_iot_platform.html">物联网</a></li>
+                                                <li><a href="../../pages/customization/index.html">定制化</a></li>
+                                                <li><a href="../../pages/solutions/hydrogen.html">解决方案</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -373,16 +399,18 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">传感探头系列</a></li>
-                                                <li><a href="#">物联网无线终端</a></li>
-                                                <li><a href="#">核心传感模块</a></li>
+                                                <li><a href="../../pages/gassensing/ld_h2_detector.html">LD-H2型氢气检测仪</a></li>
+                                                <li><a href="../../pages/gassensing/mchs_palladium_h2.html">MCHS-1.0钯合金薄膜氢气传感器</a></li>
+                                                <li><a href="../../pages/gassensing/mchp_vehicle_h2.html">MCHP-1.0车载氢气传感模块</a></li>
+                                                <li><a href="../../pages/gassensing/mc_hla_fixed_alarm.html">MC-HLA-01固定式氢气报警器</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">OEM 定制化方案</a></li>
-                                                <li><a href="#">便携式测量仪</a></li>
-                                                <li><a href="#">精密分析仪表</a></li>
+                                                <li><a href="../../pages/gassensing/mc_wd_wearable_alarm.html">MC-WD穿戴式氢气报警器</a></li>
+                                                <li><a href="../../pages/gassensing/mc_td_leak_detector.html">MC-TD-01氮氢示踪检漏仪</a></li>
+                                                <li><a href="../../pages/gassensing/mchf_carbon_fet_h2.html">MCHF-1.0碳基场效应型氢传感器</a></li>
+                                                <li><a href="../../pages/gassensing/index.html" class="vs-mega-view-all">查看所有产品 <i class="fas fa-arrow-right" style="margin-left: 6px; font-size: 12px;"></i></a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -435,7 +463,7 @@
             </nav>
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
-                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
                 <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
             </div>
         </div>
@@ -1049,6 +1077,9 @@
 
     <!-- AI智能客服 -->
     <script src="../../assets/js/chatbot.js"></script>
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
 
 </body>
 

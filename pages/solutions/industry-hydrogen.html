@@ -667,6 +667,8 @@
             color: var(--color-accent-orange);
         }
     </style>
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
 
 <body>
@@ -723,8 +725,8 @@
                                         <div>
                                             <span class="vs-mega-sublist-title">最新发布</span>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products_show.aspx_id_79.html">LD-H2-Gen5 第五代氢气传感器</a></li>
-                                                <li><a href="../../pages/products/products_show.aspx_id_83.html">车载高集成氢气安全监测模组</a></li>
+                                                <li><a href="../../pages/products/ld_h2_detector.html">LD-H2-Gen5 第五代氢气传感器</a></li>
+                                                <li><a href="../../pages/products/mchp_vehicle_h2.html">车载高集成氢气安全监测模组</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -768,14 +770,14 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products.aspx_category_id_37.html">生化传感器</a></li>
-                                                <li><a href="../../pages/products/products.aspx_category_id_38.html">气体传感器</a></li>
+                                                <li><a href="../../pages/products/gas_sensors.html">生化传感器</a></li>
+                                                <li><a href="../../pages/products/index.html">气体传感器</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products.aspx_category_id_36.html">检测仪器</a></li>
-                                                <li><a href="../../pages/products/products.aspx_category_id_0.html">全部产品</a></li>
+                                                <li><a href="../../pages/products/index.html">检测仪器</a></li>
+                                                <li><a href="../../pages/products/index.html">全部产品</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -818,7 +820,7 @@
                 </ul>
             </nav>
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
-                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
                 <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
             </div>
         </div>
@@ -975,7 +977,7 @@
             <div class="vs-container">
                 <h2 class="section-title">核心产品</h2>
                 <div class="products-grid">
-                    <a href="../../pages/products/products_show.aspx_id_79.html" class="product-card">
+                    <a href="../../pages/products/ld_h2_detector.html" class="product-card">
                         <div class="product-card-img">
                             <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
                                 alt="LD-H2型氢气检测仪">
@@ -990,7 +992,7 @@
                             </div>
                         </div>
                     </a>
-                    <a href="../../pages/products/products_show.aspx_id_82.html" class="product-card">
+                    <a href="../../pages/products/mc_wd_wearable_alarm.html" class="product-card">
                         <div class="product-card-img">
                             <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png"
                                 alt="MC-WD穿戴式氢气报警器">
@@ -1005,7 +1007,7 @@
                             </div>
                         </div>
                     </a>
-                    <a href="../../pages/products/products_show.aspx_id_83.html" class="product-card">
+                    <a href="../../pages/products/mchp_vehicle_h2.html" class="product-card">
                         <div class="product-card-img">
                             <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
                                 alt="MCHP-1.0型车载氢气传感模块">
@@ -1020,7 +1022,7 @@
                             </div>
                         </div>
                     </a>
-                    <a href="../../pages/products/products_show.aspx_id_81.html" class="product-card">
+                    <a href="../../pages/products/mc_hla_fixed_alarm.html" class="product-card">
                         <div class="product-card-img">
                             <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101343348440.png"
                                 alt="MC-HLA-01固定式氢气报警器">
@@ -1113,9 +1115,9 @@
                 </div>
                 <div class="vs-footer__col">
                     <h4>产品中心</h4>
-                    <a href="../../pages/products/products.aspx_category_id_37.html" class="vs-footer__link">氢气传感器</a>
-                    <a href="../../pages/products/products.aspx_category_id_37.html" class="vs-footer__link">气体监测模组</a>
-                    <a href="../../pages/products/products.aspx_category_id_36.html" class="vs-footer__link">OEM 定制开发</a>
+                    <a href="../../pages/products/gas_sensors.html" class="vs-footer__link">氢气传感器</a>
+                    <a href="../../pages/products/gas_sensors.html" class="vs-footer__link">气体监测模组</a>
+                    <a href="../../pages/products/index.html" class="vs-footer__link">OEM 定制开发</a>
                 </div>
                 <div class="vs-footer__col">
                     <h4>快速链接</h4>
@@ -1163,6 +1165,9 @@
             document.querySelectorAll('.solution-panel')[index].classList.add('active');
         }
     </script>
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
 </body>
 
 </html>

@@ -225,6 +225,8 @@
             color: #555;
         }
     </style>
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
 
 <body>
@@ -280,8 +282,8 @@
                                         <div>
                                             <span class="vs-mega-sublist-title">最新发布</span>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products_show.aspx_id_79.html">LD-H2-Gen5 第五代氢气传感器</a></li>
-                                                <li><a href="../../pages/products/products_show.aspx_id_83.html">车载高集成氢气安全监测模组</a></li>
+                                                <li><a href="../../pages/products/ld_h2_detector.html">LD-H2-Gen5 第五代氢气传感器</a></li>
+                                                <li><a href="../../pages/products/mchp_vehicle_h2.html">车载高集成氢气安全监测模组</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -325,14 +327,14 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products.aspx_category_id_37.html">生化传感器</a></li>
-                                                <li><a href="../../pages/products/products.aspx_category_id_38.html">气体传感器</a></li>
+                                                <li><a href="../../pages/products/gas_sensors.html">生化传感器</a></li>
+                                                <li><a href="../../pages/products/index.html">气体传感器</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../../pages/products/products.aspx_category_id_36.html">检测仪器</a></li>
-                                                <li><a href="../../pages/products/products.aspx_category_id_0.html">全部产品</a></li>
+                                                <li><a href="../../pages/products/index.html">检测仪器</a></li>
+                                                <li><a href="../../pages/products/index.html">全部产品</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -367,7 +369,7 @@
                 </ul>
             </nav>
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
-                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
                 <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
             </div>
         </div>
@@ -470,6 +472,9 @@
             document.querySelectorAll('.vs-industry-panel')[index].classList.add('active');
         }
     </script>
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
 </body>
 
 </html>

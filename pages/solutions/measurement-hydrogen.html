@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
 
 <body>
@@ -26,7 +28,7 @@
             <nav class="vs-nav">
                 <ul class="vs-nav__list">
                     <li class="vs-nav__item vs-nav__item--has-mega">
-                        <a href="../../pages/products/products.aspx_category_id_0.html" class="vs-nav__link">产品</a>
+                        <a href="../../pages/products/index.html" class="vs-nav__link">产品</a>
                         <div class="vs-mega-menu">
                             <div class="vs-mega-sidebar">
                                 <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
@@ -142,16 +144,16 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">传感探头系列</a></li>
-                                                <li><a href="#">物联网无线终端</a></li>
-                                                <li><a href="#">核心传感模块</a></li>
+                                                <li><a href="../../pages/gassensing/index.html">气体传感产品</a></li>
+                                                <li><a href="../../pages/biosensing/index.html">生物传感产品</a></li>
+                                                <li><a href="../../pages/gassensing/products_mems.html">MEMS传感芯片</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="#">OEM 定制化方案</a></li>
-                                                <li><a href="#">便携式测量仪</a></li>
-                                                <li><a href="#">精密分析仪表</a></li>
+                                                <li><a href="../../pages/customization/index.html">定制服务</a></li>
+                                                <li><a href="../../pages/gassensing/products_handheld.html">便携式检测仪</a></li>
+                                                <li><a href="../../pages/gassensing/products_systems.html">分析系统</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -169,7 +171,7 @@
             </nav>
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
-                <a href="#"><i class="fas fa-search"></i></a>
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
                 <a href="#" style="font-size: 14px; font-weight: 500;">CN / EN</a>
             </div>
         </div>
@@ -305,30 +307,64 @@
                     <h2>推荐监测产品</h2>
                 </div>
 
-                <div class="vs-two-col">
-                    <div class="vs-two-col__image" style="box-shadow: none;">
-                        <div
-                            style="background: #f4f6f8; height: 100%; min-height: 400px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
-                            <i class="fas fa-atom" style="font-size: 80px; color: #ccc;"></i>
+
+                <div class="vs-product-grid">
+                    <!-- Product 1 -->
+                    <a href="mchf_carbon_fet_h2.html" class="vs-card">
+                        <div class="vs-card__img-wrapper">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101351152977.png"
+                                alt="碳基氢气传感芯片">
                         </div>
-                    </div>
-                    <div>
-                        <span
-                            style="color: var(--color-accent-orange); font-weight: 600; text-transform: uppercase;">核心产品</span>
-                        <h3 style="font-size: 32px; margin: 10px 0 20px;">MCH-100 碳基氢气传感芯片</h3>
-                        <p>超低功耗、室温工作，适用于无线传感器节点与穿戴设备的核心敏感元件。</p>
-                        <ul style="margin-bottom: 30px;">
-                            <li><i class="fas fa-check"
-                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 室温工作，微瓦级功耗
-                            </li>
-                            <li><i class="fas fa-check"
-                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 对氢气高选择性，无交叉干扰
-                            </li>
-                            <li><i class="fas fa-check"
-                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 体积小巧，易于集成</li>
-                        </ul>
-                        <a href="#" class="vs-btn">下载产品手册</a>
-                    </div>
+                        <div class="vs-card__content">
+                            <span class="vs-card__tag">MEMS 芯片</span>
+                            <h3 class="vs-card__title">MCH-100 碳基氢气传感芯片</h3>
+                            <p class="vs-card__desc">超低功耗、室温工作，适用于无线传感器节点与穿戴设备</p>
+                            <span class="vs-link-arrow">了解更多</span>
+                        </div>
+                    </a>
+
+                    <!-- Product 2 -->
+                    <a href="ld_h2_detector.html" class="vs-card">
+                        <div class="vs-card__img-wrapper">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240905459196.png"
+                                alt="LD-H2型氢气检测仪">
+                        </div>
+                        <div class="vs-card__content">
+                            <span class="vs-card__tag">手持设备</span>
+                            <h3 class="vs-card__title">LD-H2 便携式氢气检测仪</h3>
+                            <p class="vs-card__desc">快速排查泄漏点，集成温湿度补偿，坚固耐用</p>
+                            <span class="vs-link-arrow">了解更多</span>
+                        </div>
+                    </a>
+
+                    <!-- Product 3 -->
+                    <a href="mchp_vehicle_h2.html" class="vs-card">
+                        <div class="vs-card__img-wrapper">
+                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
+                                alt="MCHP-1.0型车载氢气传感模块">
+                        </div>
+                        <div class="vs-card__content">
+                            <span class="vs-card__tag">车规级</span>
+                            <h3 class="vs-card__title">MCHP-1.0 车载氢气模组</h3>
+                            <p class="vs-card__desc">符合车规级标准的抗振动冲击设计，CAN总线输出</p>
+                            <span class="vs-link-arrow">了解更多</span>
+                        </div>
+                    </a>
+
+                    <!-- Product 4 -->
+                    <a href="mc_wd_wearable_alarm.html" class="vs-card">
+                        <div class="vs-card__img-wrapper">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504240906128294.png"
+                                alt="MC-WD穿戴式氢气报警器">
+                        </div>
+                        <div class="vs-card__content">
+                            <span class="vs-card__tag">个人防护</span>
+                            <h3 class="vs-card__title">MC-WD 穿戴式报警器</h3>
+                            <p class="vs-card__desc">小巧轻便，三重报警提示，保障作业人员生命安全</p>
+                            <span class="vs-link-arrow">了解更多</span>
+                        </div>
+                    </a>
+
                 </div>
             </div>
         </section>
@@ -385,6 +421,9 @@
             </div>
         </div>
     </footer>
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
 </body>
 
 </html>
