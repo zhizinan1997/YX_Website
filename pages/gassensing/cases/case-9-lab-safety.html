@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>氢燃料电池科研实验室人员安全监测 - 应用案例 - 元芯传感</title>
+    <link rel="stylesheet" href="../../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .vs-case-hero {
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), url('https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202506051040294898.png');
+            background-size: cover;
+            background-position: center;
+            padding: 140px 0 80px;
+            color: white;
+            text-align: center;
+        }
+
+        .vs-case-hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .vs-case-detail-section {
+            padding: 80px 0;
+            background: #fff;
+        }
+
+        .vs-case-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 60px;
+        }
+        
+        @media (max-width: 992px) {
+            .vs-case-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .vs-content-block {
+            margin-bottom: 40px;
+        }
+
+        .vs-content-block h2 {
+            font-size: 24px;
+            color: var(--color-primary);
+            border-left: 4px solid var(--color-accent-blue);
+            padding-left: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .vs-content-block p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 15px;
+        }
+
+        .vs-sidebar-box {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #eee;
+        }
+
+        .vs-sidebar-box h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .vs-info-list li {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            font-size: 14px;
+        }
+
+        .vs-info-list i {
+            color: var(--color-primary);
+            margin-right: 10px;
+            margin-top: 4px;
+        }
+        
+        .vs-product-card-mini {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+        }
+        
+        .vs-product-card-mini img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-right: 15px;
+        }
+    </style>
+     <!-- Site Search -->
+    <link rel="stylesheet" href="../../../assets/css/search.css">
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../../index.html" class="vs-logo">
+                    <img src="../../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../all-products.html" class="vs-nav__link">产品</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    新品推荐 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    行业分类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    测量对象 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    产品种类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    产品列表 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>新品推荐</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">最新发布</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">应用领域</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>行业分类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../../solutions/industry-hydrogen.html">氢能源产业链</a>
+                                                </li>
+                                                <li><a
+                                                        href="../../solutions/industry-power-safety.html">智慧电力安全</a>
+                                                </li>
+                                                <li><a
+                                                        href="../../solutions/industry-leak-detection.html">工业检漏监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../../solutions/industry-energy-storage.html">绿色能源存储</a>
+                                                </li>
+                                                <li><a href="../../solutions/industry-environment.html">大气环境监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>测量对象</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../../measurement/measurement-hydrogen.html">氢气
+                                                        (H2)</a></li>
+                                                <li><a href="../../measurement/measurement-humidity.html">湿度
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../../measurement/measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../../measurement/measurement-oil-water.html">油中水含量</a>
+                                                </li>
+                                                <li><a href="../../measurement/measurement-dewpoint.html">露点
+                                                        (Td)</a></li>
+                                                <li><a href="../../measurement/measurement-pressure.html">压力
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>产品种类</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>产品列表</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- 产品由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="../all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">查看所有产品 <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../index.html" class="vs-nav__link">解决方案</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    行业解决方案 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    科研服务 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>行业解决方案</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../../solutions/industry-hydrogen.html">氢能源产业链</a></li>
+                                            <li><a href="../../solutions/industry-power-safety.html">智慧电力安全</a>
+                                            </li>
+                                            <li><a href="../../solutions/industry-leak-detection.html">工业检漏监测</a>
+                                            </li>
+                                            <li><a href="../../solutions/industry-energy-storage.html">绿色能源存储</a>
+                                            </li>
+                                            <li><a href="../../solutions/industry-environment.html">大气环境监测</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>科研服务</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../../research/index.html"><strong>科研服务首页</strong></a></li>
+                                            <li><a href="../../research/micro-nano.html">传感器微纳加工</a></li>
+                                            <li><a href="../../research/development.html">传感器开发、测试与应用</a></li>
+                                            <li><a href="../../research/cooperation.html">产学研深度合作</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../service-cases.html" class="vs-nav__link">服务案例</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    精选案例 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    所有案例 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>精选案例</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="case-1-truck.html">氢能重卡氢气检测</a></li>
+                                            <li><a href="case-6-train.html">氢能源列车检测</a></li>
+                                            <li><a href="case-4-pipeline-safety.html">输氢管道人员安全</a></li>
+                                            <li><a href="case-12-gas-system.html">科研实验室配气</a></li>
+                                            <li><a href="case-13-diesel-engine.html">柴油机真空检漏</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>更多案例</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">浏览我们在各个行业的成功应用案例。</p>
+                                    <a href="../service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">查看全部案例 <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../../about/about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">线上店铺</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../../contact/contact.html" class="vs-nav__link">联系我们</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    加入我们 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    联系方式 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>加入我们</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../../careers/partners.html">合作招募</a></li>
+                                            <li><a href="../../careers/growth.html">成长空间</a></li>
+                                            <li><a href="../../careers/talent.html">人才理念</a></li>
+                                            <li><a href="../../careers/jobs.html">在线招聘</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>联系方式</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../../contact/contact.html">联系我们</a></li>
+                                            <li><a href="../../contact/feedback.html">在线留言</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../javascript:void(0)" id="language-toggle" style="font-size: 14px; font-weight: 500;">CN / EN</a>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <main>
+        <!-- Case Hero -->
+        <section class="vs-case-hero">
+            <div class="vs-container">
+                <div style="margin-bottom: 20px; font-size: 14px; opacity: 0.8;">
+                     <a href="../../../index.html" style="color:white;text-decoration:none;">首页</a> / 
+                     <a href="../../gassensing/index.html" style="color:white;text-decoration:none;">解决方案</a> / 
+                     <a href="../service-cases.html" style="color:white;text-decoration:none;">应用案例</a>
+                </div>
+                <h1>氢燃料电池科研实验室人员安全监测</h1>
+                <p style="font-size: 20px; max-width: 800px; margin: 0 auto;">高校实验室的安全屏障</p>
+            </div>
+        </section>
+
+        <section class="vs-case-detail-section">
+            <div class="vs-container">
+                <div class="vs-case-grid">
+                    <!-- Main Content -->
+                    <div class="vs-case-main">
+                        <div class="vs-content-block">
+                            <h2>案例背景</h2>
+                            <p>高校和研究院所的燃料电池实验室，经常涉及高压氢气和各种催化剂实验，实验条件复杂多变。</p>
+                        </div>
+                        
+                        <div class="vs-content-block">
+                            <h2>核心需求与难点</h2>
+                            <p>不仅要监测环境氢气浓度，还要保障每一位实验人员的个人安全，防止因操作失误导致的局部泄漏伤害。</p>
+                            <p>实验室空间封闭，人员流动性大，这就要求安全监测既要全面覆盖又要重点跟踪。</p>
+                        </div>
+
+                        <div class="vs-content-block">
+                            <h2>元芯解决方案</h2>
+                            <p>采用“固定监测+移动防护”的组合方案。在关键设备旁安装固定式报警器，同时要求实验人员佩戴便携式报警器。两者形成互补，构建了全方位的安全防护网。</p>
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202506051040294898.png" alt="Solution Diagram" style="width: 100%; border-radius: 8px; margin: 20px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                        </div>
+                        
+                        <div class="vs-content-block">
+                            <h2>达成效果</h2>
+                            <p>彻底消除了实验室的安全盲区，让科研人员能够全身心投入创新研究，无后顾之忧。</p>
+                        </div>
+                        
+                        <div class="vs-content-block">
+                            <h2>专家点评</h2>
+                            <div style="background: #f0f7ff; padding: 20px; border-radius: 8px; border-left: 4px solid var(--color-primary);">
+                                <p style="margin:0; font-style: italic;">“安全是科研的前提，多重防护机制值得推广。”</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="vs-case-sidebar">
+                        <div class="vs-sidebar-box">
+                            <h3>项目概况</h3>
+                            <ul class="vs-info-list" style="list-style: none; padding: 0;">
+                                <li><i class="fas fa-map-marker-alt"></i> <strong>地点：</strong> 北京</li>
+                                <li><i class="fas fa-industry"></i> <strong>行业：</strong> 科研教育</li>
+                                <li><i class="fas fa-calendar-alt"></i> <strong>时间：</strong> 2023年</li>
+                            </ul>
+                        </div>
+
+                        <div class="vs-sidebar-box">
+                            <h3>应用产品</h3>
+                            <div class="vs-product-card-mini">
+                                <img src="../../../assets/images/product_placeholder.png" alt="Product" style="background:#eee;">
+                                <div>
+                                    <h4 style="font-size: 14px; margin:0 0 5px 0;">穿戴式氢气报警器</h4>
+                                    <a href="../../gassensing/all-products.html" style="font-size: 12px; color: var(--color-primary);">查看产品详情</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="vs-sidebar-box" style="text-align: center;">
+                            <h3>需要类似方案？</h3>
+                            <p style="font-size: 14px; margin-bottom: 20px;">我们的工程师随时为您提供专业解答。</p>
+                            <a href="../../../pages/contact/contact.html" class="vs-btn vs-btn--primary" style="display: block;">联系我们</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__bottom">
+                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 全站搜索 -->
+    <script src="../../../assets/js/search.js"></script>
+
+    <!-- AI智能客服 -->
+    <script src="../../../assets/js/chatbot.js"></script>
+
+    <!-- I18N Translation -->
+    <script src="../../../assets/js/i18n.js"></script>
+</body>
+</html>
