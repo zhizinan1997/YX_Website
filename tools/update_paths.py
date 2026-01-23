@@ -36,16 +36,18 @@ PAGE_MAPPINGS = {
     'contact.aspx_page_contact.html': 'pages/contact/contact.html',
     'feedbook.aspx.html': 'pages/contact/feedback.html',
     'feedback.aspx_attach_id.html': 'pages/contact/feedback-attach.html',
-    'hydrogen-solutions.html': 'pages/solutions/hydrogen.html',
+    'hydrogen-solutions.html': 'pages/gassensing/index.html',
     'industry-energy-storage.html': 'pages/solutions/industry-energy-storage.html',
     'industry-environment.html': 'pages/solutions/industry-environment.html',
     'industry-hydrogen.html': 'pages/solutions/industry-hydrogen.html',
     'industry-leak-detection.html': 'pages/solutions/industry-leak-detection.html',
     'industry-power-safety.html': 'pages/solutions/industry-power-safety.html',
-    'measurement-dewpoint.html': 'pages/solutions/measurement-dewpoint.html',
-    'measurement-humidity.html': 'pages/solutions/measurement-humidity.html',
-    'measurement-hydrogen.html': 'pages/solutions/measurement-hydrogen.html',
-    'measurement-oil-water.html': 'pages/solutions/measurement-oil-water.html',
+    'measurement-dewpoint.html': 'pages/measurement/measurement-dewpoint.html',
+    'measurement-humidity.html': 'pages/measurement/measurement-humidity.html',
+    'measurement-hydrogen.html': 'pages/measurement/measurement-hydrogen.html',
+    'measurement-oil-water.html': 'pages/measurement/measurement-oil-water.html',
+    'measurement-dissolved-hydrogen.html': 'pages/measurement/measurement-dissolved-hydrogen.html',
+    'measurement-pressure.html': 'pages/measurement/measurement-pressure.html',
     'jobs.aspx_category_id_0.html': 'pages/careers/jobs.html',
     'job.aspx.html': 'pages/careers/job-detail.html',
     'rlzy.aspx_page_hzzm.html': 'pages/careers/partners.html',
@@ -67,7 +69,7 @@ for i in range(6):
     suffix = '' if i == 0 else f'_page_{i}'
     old = f'products.aspx_category_id_0{suffix}.html' if i > 0 else 'products.aspx_category_id_0.html'
     if i == 0:
-        PAGE_MAPPINGS['products.aspx_category_id_0.html'] = 'pages/products/products.aspx_category_id_0.html'
+        PAGE_MAPPINGS['products.aspx_category_id_0.html'] = 'pages/gassensing/all-products.html'
     else:
         PAGE_MAPPINGS[f'products.aspx_category_id_0_page_{i}.html'] = f'pages/products/products.aspx_category_id_0_page_{i}.html'
 
