@@ -14,14 +14,14 @@ MISSING_PANELS = '''                                <div id="panel-target" class
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="{prefix}pages/solutions/measurement-hydrogen.html">氢气检测</a></li>
-                                                <li><a href="{prefix}pages/solutions/measurement-humidity.html">湿度检测</a></li>
+                                                <li><a href="{prefix}pages/measurement/measurement-hydrogen.html">氢气检测</a></li>
+                                                <li><a href="{prefix}pages/measurement/measurement-humidity.html">湿度检测</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="{prefix}pages/solutions/measurement-dewpoint.html">露点检测</a></li>
-                                                <li><a href="{prefix}pages/solutions/measurement-oil-water.html">油中水分检测</a></li>
+                                                <li><a href="{prefix}pages/measurement/measurement-dewpoint.html">露点检测</a></li>
+                                                <li><a href="{prefix}pages/measurement/measurement-oil-water.html">油中水分检测</a></li>
                                             </ul>
                                         </div>
                                     </div>

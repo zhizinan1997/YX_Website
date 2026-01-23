@@ -633,6 +633,22 @@ def update_recommendations_api():
     return jsonify({'success': True, 'recommendations': recommendations})
 
 
+@app.route('/api/categories')
+def get_categories_api():
+    """Get all product categories for mega menu."""
+    # 名称必须与 assets/js/gassensing-products.js 中的 filters 保持一致
+    categories = [
+        {'key': 'sensor', 'name': '传感器', 'url': '../gassensing/index.html?filter=sensor'},
+        {'key': 'module', 'name': '检测模块', 'url': '../gassensing/index.html?filter=module'},
+        {'key': 'detector', 'name': '检测仪', 'url': '../gassensing/index.html?filter=detector'},
+        {'key': 'alarm', 'name': '报警器', 'url': '../gassensing/index.html?filter=alarm'},
+        {'key': 'system', 'name': '监测系统', 'url': '../gassensing/index.html?filter=system'},
+        {'key': 'iot', 'name': '物联网平台', 'url': '../gassensing/mcs_iot_platform.html'},
+        {'key': 'service', 'name': '定制服务', 'url': '../customization/index.html'},
+    ]
+    return jsonify({'categories': categories})
+
+
 # ============ API Routes ============
 
 
