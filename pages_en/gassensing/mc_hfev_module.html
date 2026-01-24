@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MC-HFEV-02多用途氢气检测模块 - Metachip</title>
+    <title>MC-HFEV-02 Multi-purpose Hydrogen Detection Module - Metachip</title>
     <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -433,8 +433,8 @@
             }
         }
     </style>
-  <!-- Site Search -->
-  <link rel="stylesheet" href="../../assets/css/search.css">
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
 
 <body>
@@ -466,7 +466,7 @@
                                     Parameters <i class="fas fa-chevron-right"></i>
                                 </div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
-                                    Products种类 <i class="fas fa-chevron-right"></i>
+                                    Product Categories <i class="fas fa-chevron-right"></i>
                                 </div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
                                     Products列表 <i class="fas fa-chevron-right"></i>
@@ -503,18 +503,15 @@
                                             <ul class="vs-mega-list-v2">
                                                 <li><a href="../solutions/industry-hydrogen.html">氢能源产业链</a>
                                                 </li>
-                                                <li><a
-                                                        href="../solutions/industry-power-safety.html">智慧电力安全</a>
+                                                <li><a href="../solutions/industry-power-safety.html">智慧电力安全</a>
                                                 </li>
-                                                <li><a
-                                                        href="../solutions/industry-leak-detection.html">工业检漏监测</a>
+                                                <li><a href="../solutions/industry-leak-detection.html">工业检漏监测</a>
                                                 </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a
-                                                        href="../solutions/industry-energy-storage.html">绿色能源存储</a>
+                                                <li><a href="../solutions/industry-energy-storage.html">绿色能源存储</a>
                                                 </li>
                                                 <li><a href="../solutions/industry-environment.html">大气环境监测</a>
                                                 </li>
@@ -533,15 +530,13 @@
                                                         (H2)</a></li>
                                                 <li><a href="../measurement/measurement-humidity.html">湿度
                                                         (RH)</a></li>
-                                                <li><a
-                                                        href="../measurement/measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                <li><a href="../measurement/measurement-dissolved-hydrogen.html">溶解氢</a>
                                                 </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a
-                                                        href="../measurement/measurement-oil-water.html">油中水含量</a>
+                                                <li><a href="../measurement/measurement-oil-water.html">油中水含量</a>
                                                 </li>
                                                 <li><a href="../measurement/measurement-dewpoint.html">露点
                                                         (Td)</a></li>
@@ -556,7 +551,7 @@
 
                                 <!-- Panel: Type -->
                                 <div id="panel-type" class="vs-mega-panel">
-                                    <h3>Products种类</h3>
+                                    <h3>Product Categories</h3>
                                     <div class="vs-mega-grid-v2" id="categoriesPanel">
                                         <div>
                                             <ul class="vs-mega-list-v2" id="categoriesLeft">
@@ -711,37 +706,38 @@
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
                 <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
-                <a href="../../pages/gassensing/mc_hfev_module.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+                <a href="../../pages/gassensing/mc_hfev_module.html" style="font-size: 14px; font-weight: 500;">CN</a> /
+                <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
             </div>
         </div>
         <script>
-        function showPanel(panelId, tab) {
-            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + panelId).classList.add('active');
-        }
-        function showPanelContact(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-contact-' + panelId).classList.add('active');
-        }
-        function showPanelSolutions(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-solutions-' + panelId).classList.add('active');
-        }
-        function showPanelCases(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-cases-' + panelId).classList.add('active');
-        }
+            function showPanel(panelId, tab) {
+                document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + panelId).classList.add('active');
+            }
+            function showPanelContact(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-contact-' + panelId).classList.add('active');
+            }
+            function showPanelSolutions(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-solutions-' + panelId).classList.add('active');
+            }
+            function showPanelCases(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-cases-' + panelId).classList.add('active');
+            }
         </script>
     </header>
 
@@ -750,8 +746,8 @@
             <div class="vs-container vs-breadcrumb">
                 <a href="../../index_en.html">Home</a><span>|</span>
                 <a href="../../pages_en/gassensing/all-products.html">Products</a><span>|</span>
-                <a href="../../pages_en/products/gas_sensors.html">气体传感</a><span>|</span>
-                MC-HFEV-02多用途氢气检测模块
+                <a href="../../pages_en/products/gas_sensors.html">Gas Sensing</a><span>|</span>
+                MC-HFEV-02 Multi-purpose H2 Module
             </div>
         </div>
 
@@ -764,37 +760,42 @@
                         <div class="vs-gallery-main">
                             <img id="mainImage"
                                 src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101352116691.png"
-                                alt="MC-HFEV-02多用途氢气检测模块">
+                                alt="MC-HFEV-02 Multi-purpose H2 Detection Module">
                         </div>
                         <div class="vs-gallery-thumbs">
                             <div class="vs-gallery-thumb active"
                                 onclick="changeImage(this, 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101352116691.png')">
                                 <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101352116691.png"
-                                    alt="Products正面">
+                                    alt="Product Front">
                             </div>
                             <div class="vs-gallery-thumb"
                                 onclick="changeImage(this, 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191126585068.png')">
                                 <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191126585068.png"
-                                    alt="Products侧面">
+                                    alt="Product Side">
                             </div>
                         </div>
                     </div>
 
                     <!-- Product Info -->
                     <div class="vs-product-hero__content">
-                        <h1>MC-HFEV-02多用途氢气检测模块</h1>
-                        <p class="vs-product-hero__desc">内置智能微控制器与先进算法的高性能模组，兼具半导体传感器的高灵敏度与数字化的便捷集成特性</p>
+                        <h1>MC-HFEV-02 Multi-purpose H2 Detection Module</h1>
+                        <p class="vs-product-hero__desc">High-performance module with built-in intelligent MCU and
+                            advanced algorithms, combining high sensitivity of semiconductor sensors with digital
+                            integration ease.</p>
                         <ul class="vs-feature-list">
-                            <li>2秒极速响应氢气变化，实时捕捉安全隐患</li>
-                            <li>2 ppm 至 2000 ppm 宽动态量程，覆盖微量泄露监测</li>
-                            <li>内置自动零点校准算法，长期运行免维护</li>
-                            <li>集成 RS485/RS232 数字通讯接口，系统集成零门槛</li>
-                            <li>车规级设计标准，适应振动、宽温等恶劣工况</li>
+                            <li>2-second rapid response to hydrogen changes, capturing safety hazards in real-time.</li>
+                            <li>Wide dynamic range from 2 ppm to 2000 ppm, covering micro-leakage monitoring.</li>
+                            <li>Built-in automatic zero-point calibration algorithm for maintenance-free long-term
+                                operation.</li>
+                            <li>Integrated RS485/RS232 digital communication interfaces, zero threshold for system
+                                integration.</li>
+                            <li>Automotive-grade design standards, adapted to harsh conditions like vibration and wide
+                                temperature ranges.</li>
                         </ul>
                         <div>
                             <a href="../../pages_en/contact/feedback.html" class="vs-btn vs-btn--primary"
                                 style="padding: 14px 32px; font-size: 16px;">
-                                <i class="fas fa-project-diagram" style="margin-right: 10px;"></i>下载通讯协议
+                                <i class="fas fa-project-diagram" style="margin-right: 10px;"></i>Download Protocol
                             </a>
                         </div>
                     </div>
@@ -805,11 +806,17 @@
         <!-- Product Details -->
         <section class="vs-product-section">
             <div class="vs-container">
-                <h2 class="vs-product-section__title">Products详情</h2>
+                <h2 class="vs-product-section__title">Product Details</h2>
                 <div class="vs-product-section__content">
-                    <p>MC-HFEV-02 是一款专为工业及车规应用打造的智能型气体检测模块。它基于高性能碳基半导体传感技术，集成了高精度信号调理电路与智能微处理单元。</p>
-                    <p>该模块不仅解决了传统模拟传感器信号微弱、易受干扰的痛点，还通过内置算法实现了温度补偿与基线自动校准。用户无需进行复杂的二次开发，通过标准的数字接口即可直接获取精确的浓度数据。紧凑的模块化设计使其非常适合集成到电池管理系统
-                        (BMS)、储能消防柜以及各类便携式仪表中。</p>
+                    <p>MC-HFEV-02 is an intelligent gas detection module designed for industrial and automotive
+                        applications. Based on high-performance carbon-based semiconductor sensing technology, it
+                        integrates high-precision signal conditioning circuits and intelligent processing units.</p>
+                    <p>This module solves common issues like weak signals and interference in traditional analog
+                        sensors. Through built-in algorithms, it achieves temperature compensation and automatic
+                        baseline calibration. Users can directly obtain accurate concentration data via standard digital
+                        interfaces without complex secondary development. Its compact modular design makes it ideal for
+                        integrating into Battery Management Systems (BMS), energy storage fire cabinets, and various
+                        portable instruments.</p>
                 </div>
             </div>
         </section>
@@ -817,22 +824,25 @@
         <!-- Product Advantages -->
         <section class="vs-product-section alt-bg">
             <div class="vs-container">
-                <h2 class="vs-product-section__title">Products优势</h2>
+                <h2 class="vs-product-section__title">Product Advantages</h2>
                 <div class="vs-advantages-grid">
                     <div class="vs-advantage-card">
                         <i class="fas fa-robot"></i>
-                        <h4>智能化校准</h4>
-                        <p>内置自适应算法，能够根据环境变化自动修正零点漂移，大大降低了全生命周期内的运维成本。</p>
+                        <h4>Intelligent Calibration</h4>
+                        <p>Built-in adaptive algorithms automatically correct zero drift based on environmental changes,
+                            significantly reducing O&M costs over the product lifecycle.</p>
                     </div>
                     <div class="vs-advantage-card">
                         <i class="fas fa-network-wired"></i>
-                        <h4>即插即用集成</h4>
-                        <p>提供标准的 TTL/RS485 数字输出，支持 Modbus 协议，无缝接入各类 PLC 与单片机控制系统。</p>
+                        <h4>Plug-and-Play</h4>
+                        <p>Standard TTL/RS485 digital output supporting Modbus protocol for seamless connection with
+                            various PLC and MCU control systems.</p>
                     </div>
                     <div class="vs-advantage-card">
                         <i class="fas fa-shield-alt"></i>
-                        <h4>高可靠性设计</h4>
-                        <p>电路经过严格的抗电磁干扰 (EMC) 设计，并在 -40℃~80℃ 宽温范围内保持稳定的测量精度。</p>
+                        <h4>High Reliability</h4>
+                        <p>Strict EMC design for the circuit, maintaining stable measurement accuracy across a wide
+                            temperature range of -40°C to 80°C.</p>
                     </div>
                 </div>
             </div>
@@ -841,36 +851,39 @@
         <!-- Main Applications -->
         <section class="vs-product-section">
             <div class="vs-container">
-                <h2 class="vs-product-section__title">主要应用</h2>
+                <h2 class="vs-product-section__title">Main Applications</h2>
                 <div class="vs-applications-grid">
                     <div class="vs-application-card">
                         <div class="vs-app-img-wrap">
                             <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501061233419618.jpg"
-                                alt="制氢站">
+                                alt="H2 Station">
                         </div>
                         <div class="vs-application-label">
-                            <h4><i class="fas fa-gas-pump"></i> 制氢与加氢站</h4>
-                            <p>作为核心检测单元嵌入现场报警器与管道监测系统中，实时反馈储运环节的安全状态。</p>
+                            <h4><i class="fas fa-gas-pump"></i> H2 Production & Refueling</h4>
+                            <p>Embedded as a core detection unit in field alarms and pipeline monitoring systems to
+                                provide real-time feedback on safety status during storage and transport.</p>
                         </div>
                     </div>
                     <div class="vs-application-card">
                         <div class="vs-app-img-wrap">
                             <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101512205226.jpg"
-                                alt="储能电站">
+                                alt="Energy storage station">
                         </div>
                         <div class="vs-application-label">
-                            <h4><i class="fas fa-warehouse"></i> 电化学储能电站</h4>
-                            <p>集成于储能集装箱的消防探测系统中，与其他传感器联动，形成多维度的电池安全防护网。</p>
+                            <h4><i class="fas fa-warehouse"></i> Energy Storage Plants</h4>
+                            <p>Integrated into fire detection systems of energy storage containers, linking with other
+                                sensors to form a multi-dimensional battery safety protection network.</p>
                         </div>
                     </div>
                     <div class="vs-application-card">
                         <div class="vs-app-img-wrap">
                             <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101512479607.jpg"
-                                alt="新能源汽车">
+                                alt="NEVs">
                         </div>
                         <div class="vs-application-label">
-                            <h4><i class="fas fa-car-crash"></i> 新能源汽车</h4>
-                            <p>安装于燃料电池系统舱及乘客舱内，满足车规级抗振要求，保障氢燃料车辆的行车安全。</p>
+                            <h4><i class="fas fa-car-crash"></i> New Energy Vehicles</h4>
+                            <p>Installed in fuel cell compartments and passenger cabins, meeting automotive-grade
+                                vibration requirements to ensure the safety of hydrogen-fuel vehicles.</p>
                         </div>
                     </div>
                 </div>
@@ -880,51 +893,51 @@
         <!-- Technical Specifications -->
         <section class="vs-product-section alt-bg">
             <div class="vs-container">
-                <h2 class="vs-product-section__title">技术指标</h2>
+                <h2 class="vs-product-section__title">Technical Specifications</h2>
                 <table class="vs-specs-table">
                     <tr>
-                        <td>Products型号</td>
+                        <td>Model</td>
                         <td>MC-HFEV-02</td>
                     </tr>
                     <tr>
-                        <td>核心技术</td>
-                        <td>碳基场效应传感器 (CNT-FET)</td>
+                        <td>Core Tech</td>
+                        <td>Carbon-based FET (CNT-FET)</td>
                     </tr>
                     <tr>
-                        <td>检测对象</td>
-                        <td>氢气 (H2)</td>
+                        <td>Target Gas</td>
+                        <td>Hydrogen (H2)</td>
                     </tr>
                     <tr>
-                        <td>检测量程</td>
+                        <td>Range</td>
                         <td>2 ~ 2000 ppm</td>
                     </tr>
                     <tr>
-                        <td>最低检测限</td>
+                        <td>LOD</td>
                         <td>2 ppm</td>
                     </tr>
                     <tr>
-                        <td>响应时间 (T90)</td>
-                        <td>＜ 3 秒 (快速响应)</td>
+                        <td>Response (T90)</td>
+                        <td>＜ 3 Seconds (Fast Response)</td>
                     </tr>
                     <tr>
-                        <td>模块功耗</td>
-                        <td>＜ 400 mW (含信号处理)</td>
+                        <td>Power</td>
+                        <td>＜ 400 mW (incl. processing)</td>
                     </tr>
                     <tr>
-                        <td>供电电压</td>
+                        <td>Voltage</td>
                         <td>5V ± 0.25V DC</td>
                     </tr>
                     <tr>
-                        <td>通讯接口</td>
+                        <td>Interface</td>
                         <td>RS485 / RS232 (Modbus-RTU)</td>
                     </tr>
                     <tr>
-                        <td>工作环境</td>
-                        <td>﹣40℃ ~ +80℃，≤95% RH</td>
+                        <td>Environment</td>
+                        <td>﹣40℃ ~ +80℃, ≤95% RH</td>
                     </tr>
                     <tr>
-                        <td>设计寿命</td>
-                        <td>5 年</td>
+                        <td>Design Life</td>
+                        <td>5 Years</td>
                     </tr>
                 </table>
             </div>
@@ -933,27 +946,27 @@
         <!-- Related Products -->
         <section class="vs-related-products">
             <div class="vs-container">
-                <h2>相关Products</h2>
+                <h2>Related Products</h2>
                 <div class="vs-related-grid">
                     <a href="mchf_carbon_fet_h2.html" class="vs-related-item">
                         <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101351152977.png"
-                            alt="碳基场效应型传感器">
-                        <h4>碳基场效应型传感器</h4>
+                            alt="CNT-FET Sensor">
+                        <h4>Carbon-FET Sensor</h4>
                     </a>
                     <a href="mchp_vehicle_h2.html" class="vs-related-item">
                         <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
-                            alt="MCHP-1.0型车载传感模块">
-                        <h4>MCHP-1.0型车载传感模块</h4>
+                            alt="MCHP-1.0 Module">
+                        <h4>MCHP-1.0 Automotive Module</h4>
                     </a>
                     <a href="mc_wd_wearable_alarm.html" class="vs-related-item">
                         <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png"
-                            alt="穿戴式氢气报警器">
-                        <h4>MC-WD穿戴式氢气报警器</h4>
+                            alt="Wearable H2 Alarm">
+                        <h4>MC-WD Wearable Alarm</h4>
                     </a>
                     <a href="portable_gas_test_module.html" class="vs-related-item">
                         <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202510200847356528.jpg"
-                            alt="便携式测试模块">
-                        <h4>便携式测试模块</h4>
+                            alt="Portable test module">
+                        <h4>Portable Test Module</h4>
                     </a>
                 </div>
             </div>
@@ -962,11 +975,11 @@
         <!-- CTA Section -->
         <section class="vs-cta-section">
             <div class="vs-container">
-                <h3>寻找易集成的数字化检测方案？</h3>
-                <p>MC-HFEV-02 模块提供全套通讯协议与开发支持，加速您的系统上市时间</p>
+                <h3>Looking for easy-to-integrate digital sensing?</h3>
+                <p>MC-HFEV-02 offers full communication protocols and dev support to speed up your Time-to-Market.</p>
                 <a href="../../pages_en/contact/contact.html" class="vs-btn vs-btn--secondary"
                     style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
-                    <i class="fas fa-code-branch" style="margin-right: 10px;"></i>获取开发资料
+                    <i class="fas fa-code-branch" style="margin-right: 10px;"></i>Get Dev Docs
                 </a>
             </div>
         </section>
@@ -981,12 +994,13 @@
                         METACHIP
                     </a>
                     <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
-                        湖南Metachip科技有限责任公司<br>湖南省湘潭市高新区双马街道书院路38号
+                        Hunan Metachip Technology Co., Ltd.<br>No. 38 Shuyuan Road, Shuangma Street, Gaoxin District,
+                        Xiangtan, Hunan
                     </p>
                 </div>
             </div>
             <div class="vs-footer__bottom">
-                <span>© 2024 湖南Metachip科技有限责任公司. All rights reserved.</span>
+                <span>© 2024 Hunan Metachip Technology Co., Ltd. All rights reserved.</span>
             </div>
         </div>
     </footer>
@@ -1004,12 +1018,12 @@
     </script>
 
 
-  <!-- 全站搜索 -->
-  <script src="../../assets/js/search.js"></script>
+    <!-- Site-wide search -->
+    <script src="../../assets/js/search.js"></script>
 
-    <!-- AI智能客服 -->
+    <!-- AI Customer Service -->
     <script src="../../assets/js/chatbot.js"></script>
-    
+
 </body>
 
 </html>
