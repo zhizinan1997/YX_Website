@@ -2,7 +2,12 @@ import os
 import shutil
 import re
 
-ROOT_DIR = '/Users/zhizinan/Desktop/YX_Website'
+
+# Get the absolute path of the 'tools' directory (where this script resides)
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+# Get the project root directory (one level up from 'tools')
+ROOT_DIR = os.path.dirname(TOOLS_DIR)
+
 PAGES_CN_DIR = os.path.join(ROOT_DIR, 'pages')
 PAGES_EN_DIR = os.path.join(ROOT_DIR, 'pages_en')
 INDEX_CN = os.path.join(ROOT_DIR, 'index.html')

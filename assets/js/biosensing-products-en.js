@@ -1,6 +1,5 @@
 /**
- * Biosensor Product Data (English)
- * All products on one page, paginated via JS
+ * Biosensing Product Data (English)
  */
 
 const BIOSENSING_PRODUCTS = [
@@ -8,75 +7,75 @@ const BIOSENSING_PRODUCTS = [
         id: 'mc_bw_bio_workstation',
         name: 'MC-BW-01 Biosensing Workstation',
         image: 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141610379601.jpg',
-        description: 'The MC-BW-01 Biosensing Workstation features picoampere-level current measurement precision, specifically designed for convenient measurement of weak current signals while supporting multi-channel parallel testing.',
+        description: 'The MC-BW-01 biosensing workstation features pico-ampere level current measurement precision, designed for convenient measurement of weak current signals, supporting multi-channel parallel testing.',
         category: 'instrument'
     },
     {
         id: 'ion_detector',
         name: 'Ion Detector',
         image: 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141553278669.png',
-        description: 'The ion detector is a portable, fast, and precise test device using ion-selective electrode technology, capable of real-time on-site analysis.',
+        description: 'The Ion Detector is a portable, fast, and precise testing device utilizing ion-selective electrode technology for real-time field analysis.',
         category: 'instrument'
     },
     {
         id: 'portable_bio_detector',
         name: 'Portable Handheld Bio-Detector',
         image: 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141535249134.png',
-        description: 'Portable handheld bio-tester with nanoampere-level current measurement precision, designed for convenient measurement of weak current signals in a compact, portable form.',
+        description: 'A portable handheld bio-tester with nano-ampere level current measurement precision, designed for convenient measurement of weak current signals. Compact and easy to carry.',
         category: 'instrument'
     },
     {
         id: 'carbon_bio_package_chip',
-        name: 'Carbon-Based Bio-Package Chip',
+        name: 'Carbon-Based Bio-Packaging Chip',
         image: 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101346080807.png',
-        description: 'MCB-P series carbon-based bio-package chips use carbon chip field-effect transistor sensing principles, featuring high uniformity, miniaturization, high sensitivity, and excellent stability.',
+        description: 'The MCB-P series carbon-based bio-packaging chips use carbon-based FET sensing principles, featuring high uniformity, miniaturization, high sensitivity, and excellent stability.',
         category: 'chip'
     },
     {
         id: 'blood_potassium_chip',
         name: 'Portable Blood Potassium Detection Chip',
         image: 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141545220675.bmp',
-        description: 'Portable blood potassium detection chip using ion-sensitive field-effect transistor detection methodology, a domestic pioneer in the IVD industry.',
+        description: 'Portable blood potassium detection chip utilizing ion-sensitive field-effect transistor detection methodology, a domestic first in the IVD industry.',
         category: 'chip'
     },
     {
         id: 'chlorine_detection_chip',
         name: 'Residual Chlorine Detection Chip',
         image: 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141602163019.png',
-        description: 'Residual chlorine detection chip designed and manufactured using micro-nano fabrication processes combined with electrochemical detection principles for water quality monitoring.',
+        description: 'The residual chlorine detection chip is designed and manufactured using micro-nano fabrication processes combined with electrochemical detection principles for water quality testing.',
         category: 'chip'
     },
     {
         id: 'carbon_bio_platform',
         name: 'Carbon-Based Biosensing Platform',
         image: 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345491479.png',
-        description: 'A universal biosensing platform built using carbon field-effect transistor sensing principles, featuring high uniformity, miniaturization, high sensitivity, and low noise.',
+        description: 'A universal biosensing platform built on carbon-based field-effect transistor principles, featuring high uniformity, miniaturization, high sensitivity, and low noise.',
         category: 'platform'
     },
     {
         id: 'custom_bio_sensor_chip',
-        name: 'Customized Biosensor Chip',
+        name: 'Customized Biosensing Chip',
         image: 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101352242634.png',
-        description: 'Uses carbon field-effect transistor sensing principles, featuring high uniformity, miniaturization, high sensitivity, and stability. Customizable production available.',
+        description: 'Utilizing carbon-based FET sensing principles, featuring high uniformity, miniaturization, and high sensitivity. Available for customized production.',
         category: 'chip'
     },
     {
         id: 'respiratory_virus_chip',
         name: 'Acute Respiratory Virus Detection Chip',
         image: 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202510200917507059.png',
-        description: 'Rapid detection chip for acute respiratory viruses based on carbon field-effect transistor sensing technology, enabling high-sensitivity detection of multiple viruses.',
+        description: 'Rapid detection chip for acute respiratory viruses based on carbon-based FET technology, enabling high-sensitivity detection of various viruses.',
         category: 'chip'
     },
     {
         id: 'igzo_device',
         name: 'IGZO Device',
         image: 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202510200908335899.png',
-        description: 'IGZO (Indium Gallium Zinc Oxide) thin-film transistor device, featuring high mobility, low leakage current, and high transparency.',
+        description: 'IGZO (Indium Gallium Zinc Oxide) thin-film transistor devices, featuring high mobility, low leakage current, and high transparency.',
         category: 'device'
     },
     {
         id: '../customization/micronano_fabrication',
-        name: 'Micro-Nano Fabrication Service',
+        name: 'Micro-nano Fabrication Service',
         image: 'http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101352373523.png',
         description: 'Providing full-chain customized services from design to fabrication to testing, including noble metal deposition, dielectric growth, and complete micro-nano processes.',
         category: 'service'
@@ -88,7 +87,7 @@ const ITEMS_PER_PAGE = 6;
 let currentPage = 1;
 let currentFilter = 'all';
 
-// Initialize
+// Initialization
 document.addEventListener('DOMContentLoaded', function () {
     initProductPagination();
 });
@@ -133,7 +132,7 @@ function renderProducts() {
                     <div class="vs-product-info">
                         <h5>${product.name}</h5>
                         <p>${product.description}</p>
-                        <span class="vs-product-more">View Details</span>
+                        <span class="vs-product-more">Details</span>
                     </div>
                 </a>
             </li>
@@ -195,10 +194,10 @@ function addFilterListeners() {
     const filterHTML = `
         <li><a href="#" data-filter="all" class="active">All Products</a></li>
         <li><a href="#" data-filter="instrument">Instruments</a></li>
-        <li><a href="#" data-filter="chip">Bio-chips</a></li>
-        <li><a href="#" data-filter="platform">Platforms</a></li>
+        <li><a href="#" data-filter="chip">Bio-Chips</a></li>
+        <li><a href="#" data-filter="platform">Sensing Platforms</a></li>
         <li><a href="#" data-filter="device">Devices</a></li>
-        <li><a href="#" data-filter="service">Services</a></li>
+        <li><a href="#" data-filter="service">Custom Services</a></li>
     `;
 
     categoryNav.innerHTML = filterHTML;
