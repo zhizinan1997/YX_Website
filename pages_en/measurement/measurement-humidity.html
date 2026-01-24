@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>湿度 (RH) 测量与监测 - Metachip</title>
+    <title>Humidity (RH) Measurement and Monitoring - Metachip</title>
     <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -68,7 +68,7 @@
                                     Product Categories <i class="fas fa-chevron-right"></i>
                                 </div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
-                                    Products列表 <i class="fas fa-chevron-right"></i>
+                                    Product List <i class="fas fa-chevron-right"></i>
                                 </div>
                             </div>
                             <div class="vs-mega-content">
@@ -79,18 +79,18 @@
                                         <div>
                                             <span class="vs-mega-sublist-title">Latest Releases</span>
                                             <ul class="vs-mega-list-v2" id="latestReleasesList">
-                                                <li><a href="#">加载中...</a></li>
+                                                <li><a href="#">Loading...</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <span class="vs-mega-sublist-title">Applications</span>
                                             <ul class="vs-mega-list-v2" id="applicationAreasList">
-                                                <li><a href="#">加载中...</a></li>
+                                                <li><a href="#">Loading...</a></li>
                                             </ul>
                                         </div>
                                     </div>
                                     <div class="vs-mega-action">
-                                        <a href="#" class="vs-btn-search">搜索Products <i class="fas fa-search"></i></a>
+                                        <a href="#" class="vs-btn-search">Search Products <i class="fas fa-search"></i></a>
                                     </div>
                                 </div>
 
@@ -100,22 +100,22 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="../solutions/industry-hydrogen.html">氢能源产业链</a>
+                                                <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a>
                                                 </li>
                                                 <li><a
-                                                        href="../solutions/industry-power-safety.html">智慧电力安全</a>
+                                                        href="../solutions/industry-power-safety.html">Smart Power Safety</a>
                                                 </li>
                                                 <li><a
-                                                        href="../solutions/industry-leak-detection.html">工业检漏监测</a>
+                                                        href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
                                                 </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
                                                 <li><a
-                                                        href="../solutions/industry-energy-storage.html">绿色能源存储</a>
+                                                        href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
                                                 </li>
-                                                <li><a href="../solutions/industry-environment.html">大气环境监测</a>
+                                                <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -128,23 +128,23 @@
                                     <div class="vs-mega-grid-v2">
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a href="measurement-hydrogen.html">氢气
+                                                <li><a href="measurement-hydrogen.html">Hydrogen
                                                         (H2)</a></li>
-                                                <li><a href="measurement-humidity.html">湿度
+                                                <li><a href="measurement-humidity.html">Humidity
                                                         (RH)</a></li>
                                                 <li><a
-                                                        href="measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                        href="measurement-dissolved-hydrogen.html">Dissolved Hydrogen</a>
                                                 </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
                                                 <li><a
-                                                        href="../../pages_en/measurement/measurement-oil-water.html">油中水含量</a>
+                                                        href="../pages_en/measurement/measurement-oil-water.html">Water in Oil Content</a>
                                                 </li>
-                                                <li><a href="measurement-dewpoint.html">露点
+                                                <li><a href="measurement-dewpoint.html">Dew Point
                                                         (Td)</a></li>
-                                                <li><a href="../../pages_en/measurement/measurement-pressure.html">压力
+                                                <li><a href="../pages_en/measurement/measurement-pressure.html">Pressure
                                                         (P)</a>
                                                 </li>
 
@@ -159,12 +159,12 @@
                                     <div class="vs-mega-grid-v2" id="categoriesPanel">
                                         <div>
                                             <ul class="vs-mega-list-v2" id="categoriesLeft">
-                                                <li><a href="#">加载中...</a></li>
+                                                <li><a href="#">Loading...</a></li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2" id="categoriesRight">
-                                                <li><a href="#">加载中...</a></li>
+                                                <li><a href="#">Loading...</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -172,13 +172,12 @@
 
                                 <!-- Panel: List -->
                                 <div id="panel-list" class="vs-mega-panel">
-                                    <h3>Products列表</h3>
+                                    <h3>Product List</h3>
                                     <div class="vs-mega-grid-v2" id="dynamic-product-list">
-                                        <!-- Products由JS动态生成 -->
+                                        <!-- Products dynamically generated by JS -->
                                     </div>
                                     <div style="margin-top: 20px;">
-                                        <a href="../gassensing/all-products.html" class="vs-mega-view-all"
-                                            style="color: var(--color-primary); font-weight: 600;">查看所有Products <i
+                                            style="color: var(--color-primary); font-weight: 600;">View All Products <i
                                                 class="fas fa-arrow-right"
                                                 style="margin-left: 6px; font-size: 12px;"></i></a>
                                     </div>
@@ -191,25 +190,18 @@
                         <div class="vs-mega-menu vs-mega-menu--contact">
                             <div class="vs-mega-sidebar">
                                 <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
-                                    行业Solutions <i class="fas fa-chevron-right"></i>
-                                </div>
-                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
-                                    Research <i class="fas fa-chevron-right"></i>
-                                </div>
-                            </div>
-                            <div class="vs-mega-content">
                                 <div id="panel-solutions-industry" class="vs-mega-panel active">
-                                    <h3>行业Solutions</h3>
+                                    <h3>Industry Solutions</h3>
                                     <div class="vs-mega-grid-v2">
                                         <ul class="vs-mega-list-v2">
-                                            <li><a href="../solutions/industry-hydrogen.html">氢能源产业链</a></li>
-                                            <li><a href="../solutions/industry-power-safety.html">智慧电力安全</a>
+                                            <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">Smart Power Safety</a>
                                             </li>
-                                            <li><a href="../solutions/industry-leak-detection.html">工业检漏监测</a>
+                                            <li><a href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
                                             </li>
-                                            <li><a href="../solutions/industry-energy-storage.html">绿色能源存储</a>
+                                            <li><a href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
                                             </li>
-                                            <li><a href="../solutions/industry-environment.html">大气环境监测</a>
+                                            <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
                                             </li>
                                         </ul>
                                     </div>
@@ -218,10 +210,10 @@
                                     <h3>Research</h3>
                                     <div class="vs-mega-grid-v2">
                                         <ul class="vs-mega-list-v2">
-                                            <li><a href="../research/index.html"><strong>ResearchHome</strong></a></li>
-                                            <li><a href="../research/micro-nano.html">传感器微纳加工</a></li>
-                                            <li><a href="../research/development.html">传感器开发、测试与应用</a></li>
-                                            <li><a href="../research/cooperation.html">产学研深度合作</a></li>
+                                            <li><a href="../research/index.html"><strong>Research Home</strong></a></li>
+                                            <li><a href="../research/micro-nano.html">Sensor Micro-nano Fabrication</a></li>
+                                            <li><a href="../research/development.html">Sensor Development, Testing and Application</a></li>
+                                            <li><a href="../research/cooperation.html">Deep Industry-University-Research Cooperation</a></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -245,18 +237,18 @@
                                     <h3>Featured</h3>
                                     <div class="vs-mega-grid-v2">
                                         <ul class="vs-mega-list-v2">
-                                            <li><a href="../gassensing/cases/case-1-truck.html">氢能重卡氢气检测</a></li>
-                                            <li><a href="../gassensing/cases/case-6-train.html">氢能源列车检测</a></li>
-                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">输氢管道人员安全</a></li>
-                                            <li><a href="../gassensing/cases/case-12-gas-system.html">科研实验室配气</a></li>
-                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">柴油机真空检漏</a></li>
+                                            <li><a href="../gassensing/cases/case-1-truck.html">Hydrogen Detection for Hydrogen Heavy Trucks</a></li>
+                                            <li><a href="../gassensing/cases/case-6-train.html">Hydrogen Energy Train Detection</a></li>
+                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">Hydrogen Pipeline Personnel Safety</a></li>
+                                            <li><a href="../gassensing/cases/case-12-gas-system.html">Research Lab Gas Mixing</a></li>
+                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">Diesel Engine Vacuum Leak Detection</a></li>
                                         </ul>
                                     </div>
                                 </div>
                                 <!-- Panel: All -->
                                 <div id="panel-cases-all" class="vs-mega-panel">
-                                    <h3>更多案例</h3>
-                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">浏览我们在各个行业的成功应用案例。</p>
+                                    <h3>More Cases</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">Browse our successful application cases in various industries.</p>
                                     <a href="../gassensing/service-cases.html" class="vs-mega-view-all"
                                         style="color: var(--color-primary); font-weight: 600;">View All <i
                                             class="fas fa-arrow-right"
@@ -309,8 +301,8 @@
             </nav>
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
-                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
-                <a href="../../pages/measurement/measurement-humidity.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="../../pages_en/measurement/measurement-humidity.html" style="font-size: 14px; font-weight: 500;">EN</a>
             </div>
         </div>
         <script>
@@ -364,19 +356,19 @@
             </div>
 
             <p class="jjfa-breadcrumb">
-                <a href="../../pages_en/products/index.html">Products</a> - <a href="#">Parameters</a> - <span>湿度 (RH)</span>
+                <a href="../../pages_en/products/index.html">Products</a> - <a href="#">Parameters</a> - <span>Humidity (RH)</span>
             </p>
 
             <div class="vs-container"
                 style="position: relative; z-index: 2; height: 100%; display: flex; align-items: center;">
                 <div class="vs-measurement-hero__content" style="max-width: 800px;">
-                    <h1 class="vs-measurement-hero__title" style="font-size: 64px; margin-bottom: 30px;">湿度 (RH) 测量与监测
+                    <h1 class="vs-measurement-hero__title" style="font-size: 64px; margin-bottom: 30px;">Humidity (RH) Measurement and Monitoring
                     </h1>
                     <p class="vs-measurement-hero__desc" style="font-size: 20px; font-weight: 300; opacity: 1;">
-                        从微观芯片制造到宏观气候监测，湿度控制无处不在。Metachip提供久经考验的湿度测量Solutions，为您在严苛环境中捕捉每一个水分子。
+                        From microscopic chip manufacturing to macroscopic climate monitoring, humidity control is everywhere. Metachip provides time-tested humidity measurement solutions to capture every water molecule for you in harsh environments.
                     </p>
                     <div class="vs-measurement-hero__cta">
-                        <a href="#products" class="vs-btn" style="border-radius: 30px; padding: 16px 40px;">浏览湿度变送器</a>
+                        <a href="#products" class="vs-btn" style="border-radius: 30px; padding: 16px 40px;">Browse humidity transmitters</a>
                     </div>
                 </div>
             </div>
@@ -388,19 +380,19 @@
                 <div class="vs-stats-grid">
                     <div class="vs-stat__item">
                         <div class="vs-stat__number">0-100%</div>
-                        <div class="vs-stat__desc">RH 测量范围</div>
+                        <div class="vs-stat__desc">RH Measuring Range</div>
                     </div>
                     <div class="vs-stat__item">
                         <div class="vs-stat__number">±0.8%</div>
-                        <div class="vs-stat__desc">最高测量准确度</div>
+                        <div class="vs-stat__desc">Highest Measurement Accuracy</div>
                     </div>
                     <div class="vs-stat__item">
                         <div class="vs-stat__number">&lt;15s</div>
-                        <div class="vs-stat__desc">快速响应时间</div>
+                        <div class="vs-stat__desc">Fast Response Time</div>
                     </div>
                     <div class="vs-stat__item">
                         <div class="vs-stat__number">-70°C</div>
-                        <div class="vs-stat__desc">最低工作露点</div>
+                        <div class="vs-stat__desc">Lowest working dew point</div>
                     </div>
                 </div>
             </div>
@@ -414,11 +406,11 @@
                     <img src="../../assets/images/LIFT-Life-Science-800x450.jpg" alt="Life Science">
                 </div>
                 <div class="vs-zigzag-text">
-                    <h3 class="vs-zigzag-title">无形的关键指标</h3>
+                    <h3 class="vs-zigzag-title">Invisible Key Metrics</h3>
                     <p class="vs-zigzag-desc">
-                        湿度不仅影响Products的质量和保质期，还直接关系到生产环境的合规性与安全性。在制药、食品和电子制造领域，精确的湿度控制是防止发霉、静电和化学变性的第一道防线。
+                        Humidity not only affects product quality and shelf life, but is also directly related to the compliance and safety of the production environment. In the pharmaceutical, food, and electronics manufacturing sectors, precise humidity control is the first line of defense against mold, static electricity, and chemical denaturation.
                     </p>
-                    <a href="#" class="vs-zigzag-link">探索生命科学应用</a>
+                    <a href="#" class="vs-zigzag-link">Explore life science applications</a>
                 </div>
             </div>
 
@@ -428,12 +420,11 @@
                     <img src="../../assets/images/LIFT-loggers-in-a-lab-800x450.jpg" alt="Lab Loggers">
                 </div>
                 <div class="vs-zigzag-text" style="background-color: #2c3e50;">
-                    <h3 class="vs-zigzag-title">传感技术的标杆</h3>
+                    <h3 class="vs-zigzag-title">Benchmark for Sensing Technology</h3>
                     <p class="vs-zigzag-desc">
-                        从 1973
-                        年发明全球首款薄膜电容式湿度传感器以来，我们的技术一直以稳定、精准著称。独特的加热探头技术和化学清除功能，使我们的传感器能够在高湿、结露甚至由于化学污染物导致漂移的严苛环境中，依然保持卓越的长期稳定性。
+                        Since inventing the world's first thin-film capacitive humidity sensor in 1973, our technology has been known for stability and precision. Unique heated probe technology and chemical purging allow our sensors to maintain excellent long-term stability even in harsh environments with high humidity, condensation, or drift caused by chemical contaminants.
                     </p>
-                    <a href="#" class="vs-zigzag-link">查看核心技术解析</a>
+                    <a href="#" class="vs-zigzag-link">View core technology analysis</a>
                 </div>
             </div>
         </section>
@@ -442,24 +433,24 @@
         <section class="vs-section" style="padding: 80px 0 40px; background: #fff;">
             <div class="vs-container" style="max-width: 1400px;">
                 <div style="text-align: center; margin-bottom: 60px;">
-                    <h2 class="vs-title">广泛的Applications</h2>
-                    <p class="vs-text" style="margin: 0 auto;">满足不同行业的严苛测量需求</p>
+                    <h2 class="vs-title">Wide Range of Applications</h2>
+                    <p class="vs-text" style="margin: 0 auto;">Meeting the demanding measurement needs of different industries</p>
                 </div>
                 <div class="vs-overlay-card-grid">
                     <div class="vs-overlay-card-item">
                         <img src="../../assets/images/LIFt-Commercial-airliner-airplane-cockpit-800x450.jpg"
                             class="vs-overlay-card-img" alt="Aerospace">
                         <div class="vs-overlay-text-box">
-                            <h3>暖通空调与楼宇自控</h3>
-                            <p>优化室内空气质量 (IAQ) 和能源效率，为绿色建筑提供精准的环境数据支持。</p>
+                            <h3>HVAC and Building Automation</h3>
+                            <p>Optimizing indoor air quality (IAQ) and energy efficiency, providing precise environmental data support for green buildings.</p>
                         </div>
                     </div>
                     <div class="vs-overlay-card-item">
                         <img src="../../assets/images/LIFT-sugar-mill-pan-800x450.jpg" class="vs-overlay-card-img"
                             alt="Industrial Process">
                         <div class="vs-overlay-text-box">
-                            <h3>工业干燥工艺</h3>
-                            <p>在高温干燥机和流化床中实时监控湿度，精确控制终点，降低能耗并提高良品率。</p>
+                            <h3>Industrial Drying Processes</h3>
+                            <p>Monitoring humidity in real-time in high-temperature dryers and fluidized beds, precisely controlling the endpoint, reducing energy consumption, and improving yield.</p>
                         </div>
                     </div>
                 </div>
@@ -470,7 +461,7 @@
         <section class="vs-content-section" id="products" style="padding-top: 40px;">
             <div class="vs-container">
                 <div class="vs-section-title-centered">
-                    <h2>推荐监测Products</h2>
+                    <h2>Recommended Monitoring Products</h2>
                 </div>
 
                 <div class="vs-two-col">
@@ -482,20 +473,19 @@
                     </div>
                     <div>
                         <span
-                            style="color: var(--color-accent-orange); font-weight: 600; text-transform: uppercase;">核心Products</span>
-                        <h3 style="font-size: 32px; margin: 10px 0 20px;">HMT330 系列温湿度变送器</h3>
-                        <p>高精度旗舰款，适用于苛刻工业环境，提供多种参数输出组合。</p>
+                            style="color: var(--color-accent-orange); font-weight: 600; text-transform: uppercase;">Core Products</span>
+                        <h3 style="font-size: 32px; margin: 10px 0 20px;">HMT330 Series Humidity and Temperature Transmitters</h3>
+                        <p>High-precision flagship model, suitable for demanding industrial environments, providing multiple parameter output combinations.</p>
                         <ul style="margin-bottom: 30px;">
                             <li><i class="fas fa-check"
-                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 同时输出相对湿度 (RH) 和温度
-                                (T)</li>
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> Simultaneous output of relative humidity (RH) and temperature (T)</li>
                             <li><i class="fas fa-check"
-                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 化学污染物清除功能，长期稳定
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> Chemical contaminant removal function, long-term stability
                             </li>
                             <li><i class="fas fa-check"
-                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> 支持加热探头，防冷凝结露</li>
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> Supports heated probe, preventing condensation</li>
                         </ul>
-                        <a href="#" class="vs-btn">下载Products手册</a>
+                        <a href="#" class="vs-btn">Download Product Manual</a>
                     </div>
                 </div>
             </div>
@@ -516,51 +506,51 @@
                         METACHIP
                     </a>
                     <p style="opacity: 0.7; line-height: 1.8;">
-                        Metachip致力于为全球客户提供最精准、可靠的工业测量Solutions。
-                        <br>让测量无处不在，让数据创造价值。
+                        Metachip is committed to providing customers worldwide with the most accurate and reliable industrial measurement solutions.
+                        <br>Making measurement ubiquitous, making data create value.
                     </p>
                 </div>
                 <div class="vs-footer__col">
                     <h4>Solutions</h4>
-                    <a href="#" class="vs-footer__link">电力行业</a>
-                    <a href="#" class="vs-footer__link">半导体制造</a>
-                    <a href="#" class="vs-footer__link">生命科学</a>
-                    <a href="#" class="vs-footer__link">工业自动化</a>
+                    <a href="#" class="vs-footer__link">Power Industry</a>
+                    <a href="#" class="vs-footer__link">Semiconductor Manufacturing</a>
+                    <a href="#" class="vs-footer__link">Life Sciences</a>
+                    <a href="#" class="vs-footer__link">Industrial Automation</a>
                 </div>
                 <div class="vs-footer__col">
-                    <h4>快速链接</h4>
-                    <a href="#" class="vs-footer__link">关于我们</a>
-                    <a href="#" class="vs-footer__link">新闻中心</a>
+                    <h4>Quick Links</h4>
+                    <a href="#" class="vs-footer__link">About Us</a>
+                    <a href="#" class="vs-footer__link">News Center</a>
                     <a href="#" class="vs-footer__link">Join Us</a>
-                    <a href="#" class="vs-footer__link">联系支持</a>
+                    <a href="#" class="vs-footer__link">Contact Support</a>
                 </div>
                 <div class="vs-footer__col">
                     <h4>Contact Info</h4>
                     <p style="opacity: 0.7; margin-bottom: 10px;">
-                        <i class="fas fa-map-marker-alt" style="margin-right: 10px;"></i> 中国 · 北京
+                        <i class="fas fa-map-marker-alt" style="margin-right: 10px;"></i> Hunan · Xiangtan
                     </p>
                     <p style="opacity: 0.7; margin-bottom: 10px;">
-                        <i class="fas fa-phone" style="margin-right: 10px;"></i> 400-888-8888
+                        <i class="fas fa-phone" style="margin-right: 10px;"></i> 4001880653
                     </p>
                     <p style="opacity: 0.7;">
-                        <i class="fas fa-envelope" style="margin-right: 10px;"></i> info@metachip.com
+                        <i class="fas fa-envelope" style="margin-right: 10px;"></i> hnyxcgkj@139.com
                     </p>
                 </div>
             </div>
             <div class="vs-footer__bottom">
                 <p>&copy; 2024 Metachip Sensing Technology. All rights reserved.</p>
                 <div style="display: flex; gap: 20px;">
-                    <a href="#">隐私政策</a>
-                    <a href="#">使用条款</a>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Use</a>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- 全站搜索 -->
+    <!-- Site Search -->
     <script src="../../assets/js/search.js"></script>
 
-    <!-- AI智能客服 -->
+    <!-- AI Chatbot -->
     <script src="../../assets/js/chatbot.js"></script>
     
 </body>
