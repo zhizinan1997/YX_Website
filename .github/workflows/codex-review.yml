@@ -1,0 +1,30 @@
+name: Codex Code Review
+
+# 触发条件：任何 PR 事件（创建、更新、重新打开）
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  codex-review:
+    runs-on: ubuntu-latest
+    name: Trigger Codex Review
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 官方 Codex GitHub App 已安装，会自动接收 PR 事件并进行代码审查
+      # 此步骤仅用于确认工作流已触发
+      - name: Notify Codex Review Triggered
+        run: |
+          echo "🤖 Codex Code Review has been triggered for PR #${{ github.event.pull_request.number }}"
+          echo "PR Title: ${{ github.event.pull_request.title }}"
+          echo "PR Author: ${{ github.event.pull_request.user.login }}"
+          echo "Branch: ${{ github.head_ref }} -> ${{ github.base_ref }}"
