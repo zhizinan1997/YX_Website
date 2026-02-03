@@ -227,71 +227,199 @@
        Hero Section (High Impact)
   ======================================== -->
   <section class="vs-hero">
-    <div class="vs-hero__video-bg">
-      <!-- 视频封面图：在视频加载时显示 -->
-      <div class="vs-hero__poster" id="videoPoster" style="
+    <div class="vs-hero__media" id="heroMedia"></div>
+    <style>
+      .vs-hero__media {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: url('assets/images/1zhen.jpg') center center / cover no-repeat;
+        overflow: hidden;
         z-index: 1;
-        transition: opacity 0.8s ease;
-      ">
-      </div>
-      <style>
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
+      }
+
+      .hero-slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 1s ease;
+        background-position: center;
+        background-size: cover;
+      }
+
+      .hero-slide.is-active {
+        opacity: 1;
+      }
+
+      .hero-slide video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .hero-controls {
+        position: absolute;
+        left: 50%;
+        bottom: 22px;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 6;
+      }
+
+      .hero-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .hero-dot.is-active {
+        width: 16px;
+        background: rgba(255, 255, 255, 0.95);
+      }
+    </style>
+    <script>
+      (function () {
+        const container = document.getElementById('heroMedia');
+        if (!container) return;
+        const heroSection = container.closest('.vs-hero');
+
+        const fallbackItems = [
+          { type: 'image', url: 'assets/images/1zhen.jpg', source: 'fallback' }
+        ];
+
+        let items = [];
+        let intervalSeconds = 5;
+        let currentIndex = 0;
+        let timer = null;
+        let dots = [];
+        let controls = null;
+
+        function clearTimer() {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
           }
         }
-      </style>
-      <!-- 优化的视频播放器 -->
-      <video id="heroVideo" muted playsinline preload="auto" poster="assets/images/1zhen.jpg"
-        style="opacity: 0; transition: opacity 0.8s ease;">
-        <source src="https://data.zhizinan.top/video6.mp4" type="video/mp4" />
-      </video>
-      <script>
-        (function () {
-          const video = document.getElementById('heroVideo');
-          const poster = document.getElementById('videoPoster');
 
-          // 当有足够的数据可以开始播放时
-          video.addEventListener('canplay', function () {
-            // 开始播放
-            video.play().then(() => {
-              // 播放成功后，淡入视频，淡出封面
-              video.style.opacity = '1';
-              poster.style.opacity = '0';
-              setTimeout(() => {
-                poster.style.display = 'none';
-              }, 800);
-            }).catch(e => {
-              console.log('Auto-play prevented:', e);
-              // 如果自动播放被阻止，仍然显示视频（静态）
-              video.style.opacity = '1';
-              poster.style.opacity = '0';
-            });
-          });
+        function buildSlides(list) {
+          container.innerHTML = '';
+          list.forEach((item, index) => {
+            const slide = document.createElement('div');
+            slide.className = 'hero-slide' + (index === 0 ? ' is-active' : '');
+            slide.dataset.index = index;
+            slide.dataset.type = item.type;
 
-          // 设置循环播放
-          video.addEventListener('ended', function () {
-            video.currentTime = 0;
-            video.play();
-          });
-
-          // 备用：如果5秒后还没加载好，显示视频区域
-          setTimeout(() => {
-            if (poster.style.opacity !== '0') {
-              video.style.opacity = '1';
-              poster.style.opacity = '0';
-              video.play().catch(() => { });
+            if (item.type === 'video') {
+              const video = document.createElement('video');
+              video.src = item.url;
+              video.muted = true;
+              video.playsInline = true;
+              video.preload = 'metadata';
+              video.loop = true;
+              slide.appendChild(video);
+            } else {
+              slide.style.backgroundImage = `url('${item.url}')`;
             }
-          }, 5000);
-        })();
-      </script>
-    </div>
+
+            container.appendChild(slide);
+          });
+        }
+
+        function activateSlide(index) {
+          const slides = Array.from(container.querySelectorAll('.hero-slide'));
+          if (slides.length === 0) return;
+
+          slides.forEach(slide => slide.classList.remove('is-active'));
+          const active = slides[index];
+          if (!active) return;
+          active.classList.add('is-active');
+
+          const type = active.dataset.type;
+          clearTimer();
+
+          slides.forEach(slide => {
+            const vid = slide.querySelector('video');
+            if (vid) {
+              vid.pause();
+              vid.currentTime = 0;
+            }
+          });
+
+          if (type === 'video') {
+            const vid = active.querySelector('video');
+            if (vid) {
+              vid.play().catch(() => { });
+            }
+          } else {
+            timer = setTimeout(goNext, intervalSeconds * 1000);
+          }
+
+          updateDots();
+        }
+
+        function goNext() {
+          currentIndex = (currentIndex + 1) % items.length;
+          activateSlide(currentIndex);
+        }
+
+        function buildControls() {
+          if (!heroSection) return;
+          if (controls) controls.remove();
+
+          controls = document.createElement('div');
+          controls.className = 'hero-controls';
+          dots = items.map((_, idx) => {
+            const dot = document.createElement('button');
+            dot.className = 'hero-dot' + (idx === 0 ? ' is-active' : '');
+            dot.addEventListener('click', () => {
+              currentIndex = idx;
+              activateSlide(currentIndex);
+            });
+            controls.appendChild(dot);
+            return dot;
+          });
+
+          heroSection.appendChild(controls);
+        }
+
+        function updateDots() {
+          if (!dots || dots.length === 0) return;
+          dots.forEach((dot, idx) => {
+            if (idx === currentIndex) {
+              dot.classList.add('is-active');
+            } else {
+              dot.classList.remove('is-active');
+            }
+          });
+        }
+
+        function startCarousel(config) {
+          items = (config.items || []).filter(i => i && i.url);
+          intervalSeconds = parseInt(config.interval_seconds, 10) || 5;
+          if (items.length === 0) items = fallbackItems;
+
+          buildSlides(items);
+          buildControls();
+          currentIndex = 0;
+          activateSlide(currentIndex);
+        }
+
+        fetch('/api/hero')
+          .then(res => res.json())
+          .then(startCarousel)
+          .catch(() => startCarousel({ items: fallbackItems, interval_seconds: 5 }));
+      })();
+    </script>
     <div class="vs-hero__overlay"></div>
 
     <!-- Top Title (Inside Container to be safe, or outside for full width - keeping inside for now but absolute) -->
@@ -307,38 +435,158 @@
   </section>
 
   <!-- ========================================
-       Key Stats Strip (Overlapping)
+       Partners Section (Marquee)
   ======================================== -->
-  <div class="vs-container">
-    <div class="vs-stats-strip">
-      <div class="vs-stats-grid">
-        <div class="vs-stat__item">
-          <div class="vs-stat__number">2022</div>
-          <div class="vs-stat__desc">成立于长沙</div>
-        </div>
-        <div class="vs-stat__item">
-          <div class="vs-stat__number">
-            100<span style="font-size: 24px">万+</span>
-          </div>
-          <div class="vs-stat__desc">年芯片产能</div>
-        </div>
-        <div class="vs-stat__item">
-          <div class="vs-stat__number">
-            30<span style="font-size: 24px">+</span>
-          </div>
-          <div class="vs-stat__desc">核心发明专利</div>
-        </div>
-        <div class="vs-stat__item">
-          <div class="vs-stat__number">
-            4<span style="font-size: 24px">英寸</span>
-          </div>
-          <div class="vs-stat__desc">晶圆级产线</div>
-        </div>
+  <section class="vs-partners">
+    <div class="vs-partners__row">
+      <div class="vs-partners__header">
+        <h2 class="vs-partners__title">合作伙伴</h2>
+        <p class="vs-partners__subtitle">携手行业领先伙伴，共创传感技术新未来</p>
+      </div>
+      <div class="vs-partners__marquee">
+        <div class="vs-partners__track" id="partnersTrack"></div>
       </div>
     </div>
+  </section>
 
+  <script>
+    (function () {
+      const track = document.getElementById('partnersTrack');
+      if (!track) return;
 
-    <!-- ========================================
+      function buildLogos(items) {
+        track.innerHTML = '';
+        const logos = items.map(item => `
+          <div class="vs-partners__logo">
+            <img src="${item.url}" alt="合作伙伴">
+          </div>
+        `).join('');
+
+        track.innerHTML = logos + logos;
+
+        const base = Math.max(90, items.length * 6);
+        track.style.setProperty('--marquee-duration', `${base}s`);
+      }
+
+      fetch('/api/partners')
+        .then(res => res.json())
+        .then(data => {
+          const items = (data.items || []).filter(i => i && i.url);
+          if (items.length === 0) {
+            track.innerHTML = '<div style="padding: 10px; color:#888; font-size: 13px;">暂无合作伙伴</div>';
+            return;
+          }
+          buildLogos(items);
+        })
+        .catch(() => {
+          track.innerHTML = '<div style="padding: 10px; color:#888; font-size: 13px;">加载失败</div>';
+        });
+    })();
+  </script>
+
+  <!-- ========================================
+       Product Showcase Section
+  ======================================== -->
+    <section class="vs-product-showcase">
+      <div class="vs-container">
+        <div class="vs-product-showcase__header">
+          <div>
+            <h2 class="vs-product-showcase__title">产品展示</h2>
+            <p class="vs-product-showcase__subtitle">精选产品与解决方案。</p>
+          </div>
+          <a href="pages/gassensing/index.html" class="vs-product-showcase__link">
+            查看全部产品 <span>→</span>
+          </a>
+        </div>
+
+        <div class="vs-product-showcase__grid" id="productShowcaseGrid"></div>
+      </div>
+    </section>
+
+    <script>
+      (function () {
+        const grid = document.getElementById('productShowcaseGrid');
+        if (!grid) return;
+
+        function render(items) {
+          if (!items || items.length === 0) {
+            grid.innerHTML = '<div style="color:#888;">暂无产品</div>';
+            return;
+          }
+          grid.innerHTML = items.map(item => `
+            <a href="${item.link}" class="vs-product-showcase__item">
+              <div class="vs-product-showcase__img">
+                <img src="${item.image || ''}" alt="Product">
+              </div>
+              <div class="vs-card-meta">
+                <span class="vs-card-tag">产品</span>
+              </div>
+              <h3 class="vs-product-showcase__item-title">${item.title || ''}</h3>
+              <p class="vs-product-showcase__desc">${item.desc || ''}</p>
+              <div class="vs-card-more">查看详情</div>
+            </a>
+          `).join('');
+        }
+
+        fetch('/api/products/featured')
+          .then(res => res.json())
+          .then(data => render(data.items || []))
+          .catch(() => render([]));
+      })();
+    </script>
+
+  <!-- ========================================
+       Solutions Showcase Section
+  ======================================== -->
+    <section class="vs-product-showcase vs-solutions-showcase">
+      <div class="vs-container">
+        <div class="vs-product-showcase__header">
+          <div>
+            <h2 class="vs-product-showcase__title">元芯专家解决方案</h2>
+            <p class="vs-product-showcase__subtitle">覆盖关键场景的行业解决方案。</p>
+          </div>
+          <a href="pages/solutions/industry-hydrogen.html" class="vs-product-showcase__link">
+            查看全部解决方案 <span>→</span>
+          </a>
+        </div>
+
+        <div class="vs-product-showcase__grid" id="solutionsShowcaseGrid"></div>
+      </div>
+    </section>
+
+    <script>
+      (function () {
+        const grid = document.getElementById('solutionsShowcaseGrid');
+        if (!grid) return;
+
+        function render(items) {
+          if (!items || items.length === 0) {
+            grid.innerHTML = '<div style="color:#888;">暂无解决方案</div>';
+            return;
+          }
+          grid.innerHTML = items.map(item => `
+            <a href="${item.link}" class="vs-product-showcase__item">
+              <div class="vs-product-showcase__img">
+                <img src="${item.image || ''}" alt="Solution">
+              </div>
+              <div class="vs-card-meta">
+                <span class="vs-card-tag">解决方案</span>
+              </div>
+              <h3 class="vs-product-showcase__item-title">${item.title || ''}</h3>
+              <p class="vs-product-showcase__desc">${item.desc || ''}</p>
+              <div class="vs-card-more">查看详情</div>
+            </a>
+          `).join('');
+        }
+
+        fetch('/api/solutions/featured')
+          .then(res => res.json())
+          .then(data => render(data.items || []))
+          .catch(() => render([]));
+      })();
+    </script>
+
+  <!-- ========================================
        Latest News Section
   ======================================== -->
     <section class="vs-latest-news">
@@ -353,147 +601,139 @@
           </a>
         </div>
 
-        <div class="vs-latest-news__grid">
-          <a href="pages/news/news_show.aspx_id_71.html" class="vs-latest-news__item">
-            <div class="vs-latest-news__img">
-              <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202601041422528917.PNG"
-                alt="News">
-            </div>
-            <span class="vs-latest-news__date">2026-01-04</span>
-            <h3 class="vs-latest-news__item-title">元芯传感亮相国际传感器展</h3>
-            <p class="vs-latest-news__desc">展示最新一代车载氢气传感器模组，获得行业高度关注...</p>
-          </a>
-
-          <a href="pages/news/news_show.aspx_id_70.html" class="vs-latest-news__item">
-            <div class="vs-latest-news__img">
-              <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202512121707404122.jpg"
-                alt="News">
-            </div>
-            <span class="vs-latest-news__date">2025-12-12</span>
-            <h3 class="vs-latest-news__item-title">生物传感技术在 POCT 中的应用</h3>
-            <p class="vs-latest-news__desc">深入解析碳基生物传感器如何革新快速检测领域...</p>
-          </a>
-
-          <a href="pages/news/news_show.aspx_id_67.html" class="vs-latest-news__item">
-            <div class="vs-latest-news__img">
-              <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202512020838550262.PNG"
-                alt="News">
-            </div>
-            <span class="vs-latest-news__date">2025-12-02</span>
-            <h3 class="vs-latest-news__item-title">湖南省高新技术企业认定公示</h3>
-            <p class="vs-latest-news__desc">元芯传感凭借核心技术创新能力，成功入选...</p>
-          </a>
-        </div>
+        <div class="vs-latest-news__grid" id="latestNewsGrid"></div>
       </div>
     </section>
 
+    <script>
+      (function () {
+        const grid = document.getElementById('latestNewsGrid');
+        if (!grid) return;
+
+        function render(items) {
+          if (!items || items.length === 0) {
+            grid.innerHTML = '<div style="color:#888;">暂无资讯</div>';
+            return;
+          }
+          grid.innerHTML = items.map(item => `
+            <a href="${item.link}" class="vs-latest-news__item">
+              <div class="vs-latest-news__img">
+                <img src="${item.image || ''}" alt="News">
+              </div>
+              <div class="vs-card-meta">
+                <span class="vs-card-tag">资讯</span>
+                <span class="vs-latest-news__date">${item.date || ''}</span>
+              </div>
+              <h3 class="vs-latest-news__item-title">${item.title || ''}</h3>
+              <p class="vs-latest-news__desc">${item.desc || ''}</p>
+              <div class="vs-card-more">阅读更多</div>
+            </a>
+          `).join('');
+        }
+
+        fetch('/api/news/featured')
+          .then(res => res.json())
+          .then(data => render(data.items || []))
+          .catch(() => render([]));
+      })();
+    </script>
+
 
   </div>
   </div>
   </section>
 
 
-  <!-- ========================================
-       Partners Section (Logo Carousel)
-  ======================================== -->
-  <section class="vs-partners">
-    <div class="vs-container">
-      <div class="vs-partners__header">
-        <h2 class="vs-partners__title">合作伙伴</h2>
-        <p class="vs-partners__subtitle">携手行业领先伙伴，共创传感技术新未来</p>
-      </div>
-    </div>
-    <div class="vs-partners__carousel">
-      <div class="vs-partners__track">
-        <!-- 第一组 logo -->
-        <div class="vs-partners__logo"><img src="assets/images/huoban/1.jpg" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/2.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/3.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/4.jpg" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/5.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/6.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/7.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/8.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/9.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/10.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/11.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/12.png" alt="合作伙伴"></div>
-        <!-- 复制一组用于无缝循环 -->
-        <div class="vs-partners__logo"><img src="assets/images/huoban/1.jpg" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/2.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/3.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/4.jpg" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/5.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/6.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/7.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/8.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/9.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/10.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/11.png" alt="合作伙伴"></div>
-        <div class="vs-partners__logo"><img src="assets/images/huoban/12.png" alt="合作伙伴"></div>
-      </div>
-    </div>
-  </section>
-
+  
   <style>
-    /* Partners Section Styles */
+    /* Partners Marquee */
     .vs-partners {
-      padding: 80px 0;
-      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      --partners-height: clamp(150px, 18vh, 220px);
+      padding: 18px 0 28px;
+      background: #ffffff;
       overflow: hidden;
+      height: var(--partners-height);
+    }
+
+    .vs-partners__row {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      width: 100%;
+      padding: 0 24px;
+      height: 100%;
     }
 
     .vs-partners__header {
-      text-align: center;
-      margin-bottom: 50px;
+      flex: 0 0 auto;
+      min-width: 240px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
     }
 
     .vs-partners__title {
-      font-size: 36px;
+      font-size: 20px;
       font-weight: 700;
       color: var(--color-primary);
-      margin-bottom: 12px;
+      margin-bottom: 0;
+      letter-spacing: 0.5px;
     }
 
     .vs-partners__subtitle {
-      font-size: 16px;
+      font-size: 12px;
       color: #666;
-      max-width: 500px;
-      margin: 0 auto;
+      max-width: 260px;
     }
 
-    .vs-partners__carousel {
-      width: 100%;
-      overflow: hidden;
+    .vs-partners__title::after {
+      content: '';
+      display: block;
+      width: 42px;
+      height: 3px;
+      margin-top: 6px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #0b4a7a 0%, #2a7bbf 100%);
+      opacity: 0.9;
+    }
+
+    .vs-partners__marquee {
+      flex: 1;
       position: relative;
+      overflow: hidden;
+      padding: 10px 0;
+      background: #ffffff;
     }
 
-    .vs-partners__carousel::before,
-    .vs-partners__carousel::after {
+    .vs-partners__marquee::before,
+    .vs-partners__marquee::after {
       content: '';
       position: absolute;
       top: 0;
-      width: 150px;
+      width: 120px;
       height: 100%;
       z-index: 2;
       pointer-events: none;
     }
 
-    .vs-partners__carousel::before {
+    .vs-partners__marquee::before {
       left: 0;
-      background: linear-gradient(to right, #f8fafc 0%, transparent 100%);
+      background: linear-gradient(90deg, #ffffff 0%, transparent 100%);
     }
 
-    .vs-partners__carousel::after {
+    .vs-partners__marquee::after {
       right: 0;
-      background: linear-gradient(to left, #ffffff 0%, transparent 100%);
+      background: linear-gradient(-90deg, #f7f9fc 0%, transparent 100%);
     }
 
     .vs-partners__track {
       display: flex;
-      gap: 60px;
-      animation: scrollLeft 40s linear infinite;
+      align-items: center;
+      gap: 40px;
       width: max-content;
+      animation: partnersMarquee var(--marquee-duration, 90s) linear infinite;
     }
 
     .vs-partners__track:hover {
@@ -502,67 +742,53 @@
 
     .vs-partners__logo {
       flex-shrink: 0;
-      width: 280px;
-      height: 120px;
+      width: 220px;
+      height: 80px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: white;
-      border-radius: 12px;
-      padding: 25px 30px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      transition: all 0.3s ease;
-    }
-
-    .vs-partners__logo:hover {
-      transform: scale(1.08);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+      border: none;
+      box-shadow: none;
     }
 
     .vs-partners__logo img {
       max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      filter: grayscale(30%);
-      opacity: 0.85;
+      max-height: 60px;
+      opacity: 1;
       transition: all 0.3s ease;
     }
 
     .vs-partners__logo:hover img {
-      filter: grayscale(0%);
       opacity: 1;
     }
 
-    @keyframes scrollLeft {
-      0% {
-        transform: translateX(0);
-      }
-
-      100% {
-        transform: translateX(-50%);
-      }
+    @keyframes partnersMarquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
-      .vs-partners {
-        padding: 50px 0;
-      }
-
-      .vs-partners__title {
-        font-size: 28px;
+      .vs-partners__row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 0 16px;
       }
 
       .vs-partners__logo {
-        width: 120px;
-        height: 60px;
+        width: 170px;
+        height: 64px;
       }
 
       .vs-partners__track {
-        gap: 30px;
+        gap: 24px;
       }
     }
   </style>
+
 
   <!-- Sections removed -->
 
@@ -574,7 +800,7 @@
   <section class="vs-careers">
     <div class="vs-careers__content">
       <h2 class="vs-careers__title">加入元芯，与我们一起为世界创新</h2>
-      <a href="about.aspx_page_rczp.html" class="vs-btn">查看职位</a>
+      <a href="pages/careers/jobs.html" class="vs-btn">查看职位</a>
     </div>
   </section>
 
