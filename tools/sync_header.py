@@ -2,7 +2,7 @@ import os
 import re
 
 # Base paths
-ROOT_DIR = '/Users/zhizinan/Desktop/YX_Website'
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 SOURCE_FILE = 'pages/gassensing/index.html'
 
 # Content from <header>...</header> in pages/gassensing/index.html
@@ -174,7 +174,7 @@ RAW_HEADER = r'''<header class="vs-header">
                         </div>
                     </li>
                     <li class="vs-nav__item vs-nav__item--has-mega">
-                        <a href="index.html" class="vs-nav__link">解决方案</a>
+                        <a href="../solutions/solutions-index.html" class="vs-nav__link">解决方案</a>
                         <div class="vs-mega-menu vs-mega-menu--contact">
                             <div class="vs-mega-sidebar">
                                 <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
@@ -205,7 +205,6 @@ RAW_HEADER = r'''<header class="vs-header">
                                     <h3>科研服务</h3>
                                     <div class="vs-mega-grid-v2">
                                         <ul class="vs-mega-list-v2">
-                                            <li><a href="../research/index.html"><strong>科研服务首页</strong></a></li>
                                             <li><a href="../research/micro-nano.html">传感器微纳加工</a></li>
                                             <li><a href="../research/development.html">传感器开发、测试与应用</a></li>
                                             <li><a href="../research/cooperation.html">产学研深度合作</a></li>
@@ -297,7 +296,7 @@ RAW_HEADER = r'''<header class="vs-header">
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
                 <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
-                <a href="javascript:void(0)" id="language-toggle" style="font-size: 14px; font-weight: 500;">CN / EN</a>
+                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="../../pages_en/gassensing/index.html" style="font-size: 14px; font-weight: 500;">EN</a>
             </div>
         </div>
         <script>
@@ -441,7 +440,8 @@ def main():
                 
                 new_header = generate_header_for_file(file_path, link_map)
                 
-                new_content = header_regex.sub(new_header, content)
+                # Use lambda to avoid backslash interpretation in replacement string
+                new_content = header_regex.sub(lambda m: new_header, content)
                 
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)
