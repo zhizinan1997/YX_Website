@@ -1,8 +1,65 @@
 {
   "items": [
     {
-      "id": "34f4f9a4-bc29-4f31-980c-057da093a58b",
-      "url": "https://data.zhizinan.top/video.mp4"
+      "id": "af698865-60b4-452d-a091-f714c5d6c9dc",
+      "url": "https://data.zhizinan.top/video7.mp4"
+    }
+  ],
+  "products": [
+    "mc_wd_wearable_alarm",
+    "hum_sniffer",
+    "mcs_iot_platform"
+  ],
+  "cases": [
+    {
+      "id": "case-1-truck.html",
+      "customSubtitle": "测试副标题",
+      "customTitle": "测试主标题"
+    },
+    {
+      "id": "case-10-liquid-h2.html",
+      "customSubtitle": "",
+      "customTitle": ""
+    },
+    {
+      "id": "case-11-mining-truck.html",
+      "customSubtitle": "",
+      "customTitle": ""
+    },
+    {
+      "id": "case-12-gas-system.html",
+      "customSubtitle": "",
+      "customTitle": ""
+    },
+    {
+      "id": "case-13-diesel-engine.html",
+      "customSubtitle": "",
+      "customTitle": ""
+    },
+    {
+      "id": "case-2-car-leak.html",
+      "customSubtitle": "",
+      "customTitle": ""
+    }
+  ],
+  "news": [
+    {
+      "link": "/pages/news/news_show.aspx_id_55.html",
+      "customTag": "",
+      "customTitle": "",
+      "customDesc": ""
+    },
+    {
+      "link": "/pages/news/news_show.aspx_id_68.html",
+      "customTag": "",
+      "customTitle": "",
+      "customDesc": ""
+    },
+    {
+      "link": "/pages/news/news_show.aspx_id_59.html",
+      "customTag": "",
+      "customTitle": "",
+      "customDesc": ""
     }
   ]
 }
