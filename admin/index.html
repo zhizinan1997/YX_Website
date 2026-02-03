@@ -1006,36 +1006,334 @@
 
                 <!-- H2 Home View -->
                 <div id="view-h2-home" class="view-section">
-                    <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">氢气首页视频</h3>
-                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                            设置氢气首页首屏背景视频（CDN 链接），支持多个视频依次播放并循环。
-                        </p>
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="switchH2HomeTab('video', this)">视频设置</button>
+                        <button class="tab-btn" onclick="switchH2HomeTab('products', this)">默认产品</button>
+                        <button class="tab-btn" onclick="switchH2HomeTab('cases', this)">应用案例</button>
+                        <button class="tab-btn" onclick="switchH2HomeTab('news', this)">最近动态</button>
                     </div>
 
-                    <div class="card" style="padding: 30px; margin-top: 20px;">
-                        <h3 class="section-header">添加 CDN 视频链接</h3>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <input type="text" id="h2HomeUrlInput" class="form-control" placeholder="https://...mp4"
-                                style="flex: 1; min-width: 280px;">
-                            <button class="btn-primary" style="width: auto; padding: 10px 20px;"
-                                onclick="addH2HomeUrlItem()">添加</button>
+                    <div id="h2-home-tab-video" class="tab-content active">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">氢气首页视频</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置氢气首页首屏背景视频（CDN 链接），支持多个视频依次播放并循环。
+                            </p>
                         </div>
-                        <div style="margin-top: 12px;">
-                            <textarea id="h2HomeUrlBatch" class="form-control" rows="4"
-                                placeholder="一行一个链接，可批量添加（支持 MP4/WEBM/OGG）"></textarea>
-                            <button class="btn-primary" style="width: auto; padding: 10px 20px; margin-top: 8px;"
-                                onclick="addH2HomeUrlBatch()">批量添加</button>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">添加 CDN 视频链接</h3>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="text" id="h2HomeUrlInput" class="form-control" placeholder="https://...mp4"
+                                    style="flex: 1; min-width: 280px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px;"
+                                    onclick="addH2HomeUrlItem()">添加</button>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <textarea id="h2HomeUrlBatch" class="form-control" rows="4"
+                                    placeholder="一行一个链接，可批量添加（支持 MP4/WEBM/OGG）"></textarea>
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px; margin-top: 8px;"
+                                    onclick="addH2HomeUrlBatch()">批量添加</button>
+                            </div>
+                            <div class="form-hint">建议使用可直接访问的视频链接（MP4/WEBM/OGG）。</div>
                         </div>
-                        <div class="form-hint">建议使用可直接访问的视频链接（MP4/WEBM/OGG）。</div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">播放顺序</h3>
+                            <div id="h2HomeList" class="hero-list"></div>
+                            <button class="btn-primary" style="width: auto; padding: 10px 24px; margin-top: 12px;"
+                                onclick="saveH2HomeConfig()">保存设置</button>
+                            <div id="h2HomeSaveMsg" style="margin-top: 10px; color: #28a745;"></div>
+                        </div>
                     </div>
 
-                    <div class="card" style="padding: 30px; margin-top: 20px;">
-                        <h3 class="section-header">播放顺序</h3>
-                        <div id="h2HomeList" class="hero-list"></div>
-                        <button class="btn-primary" style="width: auto; padding: 10px 24px; margin-top: 12px;"
-                            onclick="saveH2HomeConfig()">保存设置</button>
-                        <div id="h2HomeSaveMsg" style="margin-top: 10px; color: #28a745;"></div>
+                    <div id="h2-home-tab-products" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">默认产品展示</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置“未选择分类”时显示的 3 个气体传感器产品。
+                            </p>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                                <div>
+                                    <div class="form-group">
+                                        <label>产品 1</label>
+                                        <select id="h2HomeProduct1" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品 2</label>
+                                        <select id="h2HomeProduct2" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品 3</label>
+                                        <select id="h2HomeProduct3" class="form-control"></select>
+                                    </div>
+                                    <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                        onclick="saveH2HomeProducts()">保存设置</button>
+                                    <div id="h2HomeProductsMsg" style="margin-top: 10px; color: #28a745;"></div>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                    <div id="h2HomeProductsPreview" class="file-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="h2-home-tab-cases" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">应用案例</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                选择首页展示的 6 个应用案例，并为每个案例设置自定义的【主标题】和【副标题】。
+                            </p>
+
+                            <div id="h2HomeCasesEditor" style="display: flex; flex-direction: column; gap: 20px;">
+                                <!-- Case 1 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 1</label>
+                                            <select id="h2HomeCase1" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题 <span style="color:#999;font-size:12px;">(如: Case
+                                                    Study)</span></label>
+                                            <input type="text" id="h2HomeCaseSubtitle1" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题 <span style="color:#999;font-size:12px;">(如:
+                                                    氢能重卡检测)</span></label>
+                                            <input type="text" id="h2HomeCaseTitle1" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 2 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 2</label>
+                                            <select id="h2HomeCase2" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle2" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle2" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 3 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 3</label>
+                                            <select id="h2HomeCase3" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle3" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle3" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 4 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 4</label>
+                                            <select id="h2HomeCase4" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle4" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle4" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 5 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 5</label>
+                                            <select id="h2HomeCase5" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle5" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle5" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 6 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 6</label>
+                                            <select id="h2HomeCase6" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle6" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle6" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                    onclick="saveH2HomeCases()">保存设置</button>
+                                <div id="h2HomeCasesMsg" style="color: #28a745;"></div>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                <div id="h2HomeCasesPreview" class="file-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="h2-home-tab-news" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">最近动态</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                选择首页展示的 3 条新闻动态，并为每条设置自定义的【标签】、【标题】和【摘要】。
+                            </p>
+
+                            <div id="h2HomeNewsEditor" style="display: flex; flex-direction: column; gap: 20px;">
+                                <!-- News 1 -->
+                                <div class="news-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div style="margin-bottom: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>新闻 1</label>
+                                            <select id="h2HomeNews1" class="form-control"></select>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>标签 <span style="color:#999;font-size:12px;">(如: 新闻资讯)</span></label>
+                                            <input type="text" id="h2HomeNewsTag1" class="form-control"
+                                                placeholder="新闻资讯">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>自定义标题 <span
+                                                    style="color:#999;font-size:12px;">(留空则使用原标题)</span></label>
+                                            <input type="text" id="h2HomeNewsTitle1" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                                        <label>自定义摘要 <span style="color:#999;font-size:12px;">(留空则使用原摘要)</span></label>
+                                        <input type="text" id="h2HomeNewsDesc1" class="form-control"
+                                            placeholder="留空则使用原摘要">
+                                    </div>
+                                </div>
+                                <!-- News 2 -->
+                                <div class="news-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div style="margin-bottom: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>新闻 2</label>
+                                            <select id="h2HomeNews2" class="form-control"></select>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>标签</label>
+                                            <input type="text" id="h2HomeNewsTag2" class="form-control"
+                                                placeholder="新闻资讯">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>自定义标题</label>
+                                            <input type="text" id="h2HomeNewsTitle2" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                                        <label>自定义摘要</label>
+                                        <input type="text" id="h2HomeNewsDesc2" class="form-control"
+                                            placeholder="留空则使用原摘要">
+                                    </div>
+                                </div>
+                                <!-- News 3 -->
+                                <div class="news-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div style="margin-bottom: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>新闻 3</label>
+                                            <select id="h2HomeNews3" class="form-control"></select>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>标签</label>
+                                            <input type="text" id="h2HomeNewsTag3" class="form-control"
+                                                placeholder="新闻资讯">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>自定义标题</label>
+                                            <input type="text" id="h2HomeNewsTitle3" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                                        <label>自定义摘要</label>
+                                        <input type="text" id="h2HomeNewsDesc3" class="form-control"
+                                            placeholder="留空则使用原摘要">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                    onclick="saveH2HomeNews()">保存设置</button>
+                                <div id="h2HomeNewsMsg" style="color: #28a745;"></div>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                <div id="h2HomeNewsPreview" class="file-list"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1438,7 +1736,7 @@
             if (viewName === 'home') {
                 switchHomeTab('hero');
             }
-            if (viewName === 'h2-home') loadH2HomeConfig();
+            if (viewName === 'h2-home') switchH2HomeTab('video');
             if (viewName === 'news-create') loadNewsList();
             if (viewName === 'news-create') updateNewsPreview();
             if (viewName === 'jobs') loadJobsAdmin();
@@ -2731,6 +3029,413 @@
                     }
                     h2HomeConfig = data.config || h2HomeConfig;
                     renderH2HomeList();
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        function switchH2HomeTab(tabName, btn) {
+            const view = document.getElementById('view-h2-home');
+            if (!view) return;
+            view.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            view.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const tab = document.getElementById(`h2-home-tab-${tabName}`);
+            if (tab) tab.classList.add('active');
+            if (tabName === 'video') loadH2HomeConfig();
+            if (tabName === 'products') loadH2HomeProducts();
+            if (tabName === 'cases') loadH2HomeCases();
+            if (tabName === 'news') loadH2HomeNews();
+        }
+
+        let h2HomeProductsAll = [];
+
+        async function loadH2HomeProducts() {
+            const selects = [
+                document.getElementById('h2HomeProduct1'),
+                document.getElementById('h2HomeProduct2'),
+                document.getElementById('h2HomeProduct3')
+            ];
+            selects.forEach(sel => { if (sel) sel.innerHTML = '<option value="">加载中...</option>'; });
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/products/gassensing'),
+                    fetch('/api/h2-home/products')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                h2HomeProductsAll = (allData.products || []).filter(p => !p.hidden);
+                const featuredIds = (featuredData.items || []).map(item => item.id);
+
+                const options = ['<option value="">请选择产品</option>']
+                    .concat(h2HomeProductsAll.map(item => {
+                        const label = item.displayName || item.shortName || item.name || item.id;
+                        return `<option value="${item.id}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    sel.value = featuredIds[idx] || '';
+                    sel.addEventListener('change', updateH2HomeProductsPreview);
+                });
+                updateH2HomeProductsPreview();
+            } catch (e) {
+                console.error('Load h2 products error:', e);
+            }
+        }
+
+        function updateH2HomeProductsPreview() {
+            const preview = document.getElementById('h2HomeProductsPreview');
+            if (!preview) return;
+            const selectedIds = [
+                document.getElementById('h2HomeProduct1')?.value,
+                document.getElementById('h2HomeProduct2')?.value,
+                document.getElementById('h2HomeProduct3')?.value
+            ].filter(Boolean);
+            if (!selectedIds.length) {
+                preview.innerHTML = '<div style="color:#888;">未选择产品</div>';
+                return;
+            }
+            const items = selectedIds.map(id => h2HomeProductsAll.find(p => p.id === id)).filter(Boolean);
+            preview.innerHTML = items.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="product" style="width: 64px; height: 40px; object-fit: contain; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-weight: 500;">${escapeHtml(item.displayName || item.shortName || item.name || '')}</div>
+                            <div class="file-meta">${escapeHtml(item.category || '')}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveH2HomeProducts() {
+            const msg = document.getElementById('h2HomeProductsMsg');
+            if (msg) msg.textContent = '';
+            const ids = [
+                document.getElementById('h2HomeProduct1')?.value,
+                document.getElementById('h2HomeProduct2')?.value,
+                document.getElementById('h2HomeProduct3')?.value
+            ].filter(Boolean);
+            try {
+                const res = await fetch('/api/h2-home/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        let h2HomeCasesAll = [];
+
+        async function loadH2HomeCases() {
+            const selects = [
+                document.getElementById('h2HomeCase1'),
+                document.getElementById('h2HomeCase2'),
+                document.getElementById('h2HomeCase3'),
+                document.getElementById('h2HomeCase4'),
+                document.getElementById('h2HomeCase5'),
+                document.getElementById('h2HomeCase6')
+            ];
+            const subtitleInputs = [
+                document.getElementById('h2HomeCaseSubtitle1'),
+                document.getElementById('h2HomeCaseSubtitle2'),
+                document.getElementById('h2HomeCaseSubtitle3'),
+                document.getElementById('h2HomeCaseSubtitle4'),
+                document.getElementById('h2HomeCaseSubtitle5'),
+                document.getElementById('h2HomeCaseSubtitle6')
+            ];
+            const titleInputs = [
+                document.getElementById('h2HomeCaseTitle1'),
+                document.getElementById('h2HomeCaseTitle2'),
+                document.getElementById('h2HomeCaseTitle3'),
+                document.getElementById('h2HomeCaseTitle4'),
+                document.getElementById('h2HomeCaseTitle5'),
+                document.getElementById('h2HomeCaseTitle6')
+            ];
+            selects.forEach(sel => { if (sel) sel.innerHTML = '<option value="">加载中...</option>'; });
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/cases/gassensing'),
+                    fetch('/api/h2-home/cases')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                h2HomeCasesAll = allData.items || [];
+                const featuredItems = featuredData.items || [];
+
+                const options = ['<option value="">请选择案例</option>']
+                    .concat(h2HomeCasesAll.map(item => {
+                        const label = item.title || item.id;
+                        return `<option value="${item.id}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    const featured = featuredItems[idx];
+                    if (featured) {
+                        sel.value = featured.id || '';
+                        if (subtitleInputs[idx]) subtitleInputs[idx].value = featured.customSubtitle || '';
+                        if (titleInputs[idx]) titleInputs[idx].value = featured.customTitle || '';
+                    }
+                    sel.addEventListener('change', updateH2HomeCasesPreview);
+                });
+
+                // Add event listeners for title inputs to update preview
+                subtitleInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeCasesPreview); });
+                titleInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeCasesPreview); });
+
+                updateH2HomeCasesPreview();
+            } catch (e) {
+                console.error('Load h2 cases error:', e);
+            }
+        }
+
+        function updateH2HomeCasesPreview() {
+            const preview = document.getElementById('h2HomeCasesPreview');
+            if (!preview) return;
+
+            const previewItems = [];
+            for (let i = 1; i <= 6; i++) {
+                const caseId = document.getElementById(`h2HomeCase${i}`)?.value;
+                if (!caseId) continue;
+                const caseItem = h2HomeCasesAll.find(p => p.id === caseId);
+                if (!caseItem) continue;
+
+                const customSubtitle = document.getElementById(`h2HomeCaseSubtitle${i}`)?.value || 'Case Study';
+                const customTitle = document.getElementById(`h2HomeCaseTitle${i}`)?.value || caseItem.title || '';
+
+                previewItems.push({
+                    ...caseItem,
+                    displaySubtitle: customSubtitle,
+                    displayTitle: customTitle
+                });
+            }
+
+            if (!previewItems.length) {
+                preview.innerHTML = '<div style="color:#888;">未选择案例</div>';
+                return;
+            }
+
+            preview.innerHTML = previewItems.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="case" style="width: 64px; height: 40px; object-fit: cover; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-size: 11px; color: #0066cc; font-weight: 600;">${escapeHtml(item.displaySubtitle)}</div>
+                            <div style="font-weight: 500;">${escapeHtml(item.displayTitle)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveH2HomeCases() {
+            const msg = document.getElementById('h2HomeCasesMsg');
+            if (msg) msg.textContent = '';
+
+            const items = [];
+            for (let i = 1; i <= 6; i++) {
+                const caseId = document.getElementById(`h2HomeCase${i}`)?.value;
+                if (!caseId) continue;
+                items.push({
+                    id: caseId,
+                    customSubtitle: document.getElementById(`h2HomeCaseSubtitle${i}`)?.value || '',
+                    customTitle: document.getElementById(`h2HomeCaseTitle${i}`)?.value || ''
+                });
+            }
+
+            try {
+                const res = await fetch('/api/h2-home/cases', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        // --- H2 Home News ---
+        let h2HomeNewsAll = [];
+
+        async function loadH2HomeNews() {
+            const selects = [
+                document.getElementById('h2HomeNews1'),
+                document.getElementById('h2HomeNews2'),
+                document.getElementById('h2HomeNews3')
+            ];
+            const tagInputs = [
+                document.getElementById('h2HomeNewsTag1'),
+                document.getElementById('h2HomeNewsTag2'),
+                document.getElementById('h2HomeNewsTag3')
+            ];
+            const titleInputs = [
+                document.getElementById('h2HomeNewsTitle1'),
+                document.getElementById('h2HomeNewsTitle2'),
+                document.getElementById('h2HomeNewsTitle3')
+            ];
+            const descInputs = [
+                document.getElementById('h2HomeNewsDesc1'),
+                document.getElementById('h2HomeNewsDesc2'),
+                document.getElementById('h2HomeNewsDesc3')
+            ];
+            selects.forEach(sel => { if (sel) sel.innerHTML = '<option value="">加载中...</option>'; });
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/news/list'),
+                    fetch('/api/h2-home/news')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                h2HomeNewsAll = allData.items || [];
+                const featuredItems = featuredData.items || [];
+
+                const options = ['<option value="">请选择新闻</option>']
+                    .concat(h2HomeNewsAll.map(item => {
+                        const label = item.title || item.link;
+                        return `<option value="${item.link}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    const featured = featuredItems[idx];
+                    if (featured) {
+                        sel.value = featured.link || '';
+                        if (tagInputs[idx]) tagInputs[idx].value = featured.customTag || '';
+                        if (titleInputs[idx]) titleInputs[idx].value = featured.customTitle || '';
+                        if (descInputs[idx]) descInputs[idx].value = featured.customDesc || '';
+                    }
+                    sel.addEventListener('change', updateH2HomeNewsPreview);
+                });
+
+                tagInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeNewsPreview); });
+                titleInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeNewsPreview); });
+                descInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeNewsPreview); });
+
+                updateH2HomeNewsPreview();
+            } catch (e) {
+                console.error('Load h2 news error:', e);
+            }
+        }
+
+        function updateH2HomeNewsPreview() {
+            const preview = document.getElementById('h2HomeNewsPreview');
+            if (!preview) return;
+
+            const previewItems = [];
+            for (let i = 1; i <= 3; i++) {
+                const newsLink = document.getElementById(`h2HomeNews${i}`)?.value;
+                if (!newsLink) continue;
+                const newsItem = h2HomeNewsAll.find(p => p.link === newsLink);
+                if (!newsItem) continue;
+
+                const customTag = document.getElementById(`h2HomeNewsTag${i}`)?.value || '新闻资讯';
+                const customTitle = document.getElementById(`h2HomeNewsTitle${i}`)?.value || newsItem.title || '';
+                const customDesc = document.getElementById(`h2HomeNewsDesc${i}`)?.value || newsItem.summary || '';
+
+                previewItems.push({
+                    ...newsItem,
+                    displayTag: customTag,
+                    displayTitle: customTitle,
+                    displayDesc: customDesc
+                });
+            }
+
+            if (!previewItems.length) {
+                preview.innerHTML = '<div style="color:#888;">未选择新闻</div>';
+                return;
+            }
+
+            preview.innerHTML = previewItems.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="news" style="width: 64px; height: 40px; object-fit: cover; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-size: 11px; color: #0066cc; font-weight: 600;">${escapeHtml(item.displayTag)}</div>
+                            <div style="font-weight: 500;">${escapeHtml(item.displayTitle)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveH2HomeNews() {
+            const msg = document.getElementById('h2HomeNewsMsg');
+            if (msg) msg.textContent = '';
+
+            const items = [];
+            for (let i = 1; i <= 3; i++) {
+                const newsLink = document.getElementById(`h2HomeNews${i}`)?.value;
+                if (!newsLink) continue;
+                items.push({
+                    link: newsLink,
+                    customTag: document.getElementById(`h2HomeNewsTag${i}`)?.value || '',
+                    customTitle: document.getElementById(`h2HomeNewsTitle${i}`)?.value || '',
+                    customDesc: document.getElementById(`h2HomeNewsDesc${i}`)?.value || ''
+                });
+            }
+
+            try {
+                const res = await fetch('/api/h2-home/news', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
                 } else if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = data.message || '保存失败';

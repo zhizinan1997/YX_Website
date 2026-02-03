@@ -986,8 +986,8 @@ def save_jobs_data(data):
 
 
 def get_h2_home_config():
-    """Load hydrogen homepage video list."""
-    default_config = {'items': []}
+    """Load hydrogen homepage config."""
+    default_config = {'items': [], 'products': [], 'cases': []}
     if H2_HOME_FILE.exists():
         try:
             config = json.loads(H2_HOME_FILE.read_text(encoding='utf-8'))
@@ -1014,7 +1014,69 @@ def save_h2_home_config(config):
             'id': item.get('id') or str(uuid.uuid4()),
             'url': url
         })
-    saved = {'items': cleaned}
+    existing = get_h2_home_config()
+    saved = {
+        'items': cleaned,
+        'products': existing.get('products', []),
+        'cases': existing.get('cases', [])
+    }
+    H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+def save_h2_home_products(product_ids):
+    if not isinstance(product_ids, list):
+        product_ids = []
+    cleaned = []
+    seen = set()
+    for pid in product_ids:
+        if not pid or not isinstance(pid, str):
+            continue
+        if pid in seen:
+            continue
+        seen.add(pid)
+        cleaned.append(pid)
+    existing = get_h2_home_config()
+    saved = {
+        'items': existing.get('items', []),
+        'products': cleaned[:3],
+        'cases': existing.get('cases', [])
+    }
+    H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+def save_h2_home_cases(items):
+    """Save h2 home cases with optional custom titles."""
+    if not isinstance(items, list):
+        items = []
+    cleaned = []
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            # Legacy: if it's a string, treat as id
+            if isinstance(item, str) and item:
+                if item not in seen:
+                    seen.add(item)
+                    cleaned.append({'id': item, 'customSubtitle': '', 'customTitle': ''})
+            continue
+        cid = item.get('id')
+        if not cid or not isinstance(cid, str):
+            continue
+        if cid in seen:
+            continue
+        seen.add(cid)
+        cleaned.append({
+            'id': cid,
+            'customSubtitle': item.get('customSubtitle', ''),
+            'customTitle': item.get('customTitle', '')
+        })
+    existing = get_h2_home_config()
+    saved = {
+        'items': existing.get('items', []),
+        'products': existing.get('products', []),
+        'cases': cleaned[:6]
+    }
     H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
     return saved
 
@@ -1059,6 +1121,21 @@ def update_featured_products():
     data = request.json or {}
     config = save_featured_products_config(data)
     return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/products/gassensing')
+@login_required
+def get_gassensing_products():
+    """Get gassensing products only for admin selection."""
+    products = get_gassensing_products_with_settings()
+    return jsonify({'products': products, 'count': len(products)})
+
+
+@app.route('/api/cases/gassensing')
+@login_required
+def get_gassensing_cases():
+    items = get_all_case_items()
+    return jsonify({'items': items, 'count': len(items)})
 
 
 @app.route('/api/solutions/all')
@@ -1216,6 +1293,250 @@ def get_h2_home():
 def update_h2_home():
     data = request.json or {}
     config = save_h2_home_config(data)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/h2-home/products', methods=['GET'])
+def get_h2_home_products():
+    config = get_h2_home_config()
+    ids = config.get('products', [])
+    products = [p for p in get_gassensing_products_with_settings() if not p.get('hidden')]
+    product_map = {p.get('id'): p for p in products if p.get('id')}
+    featured = [product_map.get(pid) for pid in ids if product_map.get(pid)]
+    if len(featured) < 3:
+        for item in products:
+            if item in featured:
+                continue
+            featured.append(item)
+            if len(featured) >= 3:
+                break
+    items = []
+    for item in featured[:3]:
+        if not item:
+            continue
+        title = item.get('displayName') or item.get('shortName') or item.get('name') or item.get('id', '')
+        items.append({
+            'id': item.get('id'),
+            'title': title,
+            'image': item.get('image', ''),
+            'desc': item.get('description', ''),
+            'link': build_product_link(item)
+        })
+    return jsonify({'items': items})
+
+
+@app.route('/api/h2-home/products', methods=['POST'])
+@login_required
+def update_h2_home_products():
+    data = request.json or {}
+    ids = data.get('ids', [])
+    config = save_h2_home_products(ids)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/h2-home/cases', methods=['GET'])
+def get_h2_home_cases():
+    config = get_h2_home_config()
+    case_configs = config.get('cases', [])
+    items = get_all_case_items()
+    item_map = {item.get('id'): item for item in items if item.get('id')}
+    
+    # Build output from configured cases
+    output = []
+    used_ids = set()
+    
+    for case_cfg in case_configs:
+        # Support both new format (dict) and legacy format (string)
+        if isinstance(case_cfg, dict):
+            cid = case_cfg.get('id')
+            custom_subtitle = case_cfg.get('customSubtitle', '')
+            custom_title = case_cfg.get('customTitle', '')
+        elif isinstance(case_cfg, str):
+            cid = case_cfg
+            custom_subtitle = ''
+            custom_title = ''
+        else:
+            continue
+            
+        item = item_map.get(cid)
+        if not item:
+            continue
+        used_ids.add(cid)
+        output.append({
+            'id': item.get('id'),
+            'title': item.get('title', ''),
+            'image': item.get('image', ''),
+            'desc': item.get('desc', ''),
+            'link': item.get('link', ''),
+            'customSubtitle': custom_subtitle,
+            'customTitle': custom_title
+        })
+    
+    # Fill up to 6 with non-configured items
+    if len(output) < 6:
+        for item in items:
+            if item.get('id') in used_ids:
+                continue
+            output.append({
+                'id': item.get('id'),
+                'title': item.get('title', ''),
+                'image': item.get('image', ''),
+                'desc': item.get('desc', ''),
+                'link': item.get('link', ''),
+                'customSubtitle': '',
+                'customTitle': ''
+            })
+            if len(output) >= 6:
+                break
+    
+    return jsonify({'items': output[:6]})
+
+
+@app.route('/api/h2-home/cases', methods=['POST'])
+@login_required
+def update_h2_home_cases():
+    data = request.json or {}
+    items = data.get('items', [])
+    # Legacy support: if 'ids' is provided instead of 'items'
+    if not items and data.get('ids'):
+        items = [{'id': cid} for cid in data.get('ids', [])]
+    config = save_h2_home_cases(items)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/news/list')
+@login_required
+def get_news_list():
+    """Get all news for admin selection."""
+    items = get_all_news_items()
+    return jsonify({'items': items, 'count': len(items)})
+
+
+def get_all_news_items():
+    """Scan news.html for all news items."""
+    news_index = Path(__file__).parent / 'pages' / 'news' / 'news.html'
+    items = []
+    if not news_index.exists():
+        return items
+    content = news_index.read_text(encoding='utf-8')
+    # Parse news cards - updated pattern to match actual HTML structure
+    import re
+    pattern = re.compile(
+        r'<a\s+href="([^"]*)"[^>]*class="vs-card"[^>]*>.*?'
+        r'<img\s+src="([^"]*)"[^>]*>.*?'
+        r'<div class="vs-news-meta">[^<]*<i[^>]*></i>\s*([^<]*)</div>.*?'
+        r'<h3 class="vs-card__title">([^<]*)</h3>.*?'
+        r'<p class="vs-card__desc">([^<]*)</p>',
+        re.DOTALL | re.IGNORECASE
+    )
+    for match in pattern.finditer(content):
+        link, image, date, title, summary = match.groups()
+        # Normalize link
+        if link.startswith('../../pages/news/'):
+            link = '/pages/news/' + link.replace('../../pages/news/', '')
+        items.append({
+            'link': link.strip(),
+            'image': image.strip(),
+            'date': date.strip(),
+            'title': title.strip(),
+            'summary': summary.strip()
+        })
+    return items
+
+
+def save_h2_home_news(items):
+    """Save h2 home news with optional custom fields."""
+    if not isinstance(items, list):
+        items = []
+    cleaned = []
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        link = item.get('link')
+        if not link or not isinstance(link, str):
+            continue
+        if link in seen:
+            continue
+        seen.add(link)
+        cleaned.append({
+            'link': link,
+            'customTag': item.get('customTag', ''),
+            'customTitle': item.get('customTitle', ''),
+            'customDesc': item.get('customDesc', '')
+        })
+    existing = get_h2_home_config()
+    saved = {
+        'items': existing.get('items', []),
+        'products': existing.get('products', []),
+        'cases': existing.get('cases', []),
+        'news': cleaned[:3]
+    }
+    H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+@app.route('/api/h2-home/news', methods=['GET'])
+def get_h2_home_news():
+    config = get_h2_home_config()
+    news_configs = config.get('news', [])
+    items = get_all_news_items()
+    item_map = {item.get('link'): item for item in items if item.get('link')}
+    
+    output = []
+    used_links = set()
+    
+    for news_cfg in news_configs:
+        if isinstance(news_cfg, dict):
+            link = news_cfg.get('link')
+            custom_tag = news_cfg.get('customTag', '')
+            custom_title = news_cfg.get('customTitle', '')
+            custom_desc = news_cfg.get('customDesc', '')
+        else:
+            continue
+            
+        item = item_map.get(link)
+        if not item:
+            continue
+        used_links.add(link)
+        output.append({
+            'link': item.get('link'),
+            'title': item.get('title', ''),
+            'image': item.get('image', ''),
+            'date': item.get('date', ''),
+            'summary': item.get('summary', ''),
+            'customTag': custom_tag,
+            'customTitle': custom_title,
+            'customDesc': custom_desc
+        })
+    
+    # Fill up to 3 with non-configured items
+    if len(output) < 3:
+        for item in items:
+            if item.get('link') in used_links:
+                continue
+            output.append({
+                'link': item.get('link'),
+                'title': item.get('title', ''),
+                'image': item.get('image', ''),
+                'date': item.get('date', ''),
+                'summary': item.get('summary', ''),
+                'customTag': '',
+                'customTitle': '',
+                'customDesc': ''
+            })
+            if len(output) >= 3:
+                break
+    
+    return jsonify({'items': output[:3]})
+
+
+@app.route('/api/h2-home/news', methods=['POST'])
+@login_required
+def update_h2_home_news():
+    data = request.json or {}
+    items = data.get('items', [])
+    config = save_h2_home_news(items)
     return jsonify({'success': True, 'config': config})
 
 
@@ -1906,6 +2227,84 @@ def get_products_with_settings_data():
     # Sort by custom sortOrder first, then by name
     products.sort(key=lambda p: (p.get('sortOrder', 999), p.get('name', '')))
     return products
+
+
+def get_gassensing_products_with_settings():
+    """Only products from gassensing directory."""
+    products = [p for p in get_products_with_settings_data() if not str(p.get('id', '')).startswith('../')]
+    return products
+
+
+def extract_case_meta_from_html(filepath):
+    """Extract case meta: title, image, summary."""
+    from html.parser import HTMLParser
+    content = filepath.read_text(encoding='utf-8', errors='ignore')
+
+    # Try to extract hero background image
+    image = ''
+    match = re.search(r'vs-case-hero[^{]*\{[^}]*url\([\"\\\']?([^)\\"\\\']+)[\"\\\']?\)', content, re.S)
+    if match:
+        image = match.group(1)
+
+    class CaseParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.title = ''
+            self.in_h1 = False
+            self.first_p = ''
+            self.in_p = False
+            self.found_h1 = False
+            self.found_p = False
+        def handle_starttag(self, tag, attrs):
+            if tag == 'h1' and not self.found_h1:
+                self.in_h1 = True
+            elif tag == 'p' and not self.found_p:
+                self.in_p = True
+        def handle_data(self, data):
+            data = data.strip()
+            if self.in_h1:
+                self.title += data
+            elif self.in_p:
+                self.first_p += data
+        def handle_endtag(self, tag):
+            if tag == 'h1':
+                self.in_h1 = False
+                self.found_h1 = True
+            elif tag == 'p':
+                self.in_p = False
+                if self.first_p:
+                    self.found_p = True
+
+    parser = CaseParser()
+    parser.feed(content)
+    title = parser.title.strip()
+    desc = parser.first_p.strip() if parser.first_p else ''
+    if '浏览我们在各个行业' in desc:
+        desc = ''
+
+    if not image:
+        img_match = re.search(r'<img\\s+[^>]*src=\"([^\"]+)\"', content)
+        if img_match:
+            image = img_match.group(1)
+
+    return {
+        'id': filepath.name,
+        'title': title or filepath.stem,
+        'image': image,
+        'desc': desc
+    }
+
+
+def get_all_case_items():
+    cases_dir = Path(__file__).parent / 'pages' / 'gassensing' / 'cases'
+    items = []
+    if cases_dir.exists():
+        for filepath in sorted(cases_dir.glob('case-*.html')):
+            item = extract_case_meta_from_html(filepath)
+            if item:
+                item['link'] = f"pages/gassensing/cases/{filepath.name}"
+                items.append(item)
+    return items
 
 
 # ============ Mega Menu Recommendations API ============
