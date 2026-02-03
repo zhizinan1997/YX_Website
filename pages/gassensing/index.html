@@ -566,13 +566,10 @@
     <main style="padding-top: 90px;">
         <!-- Hero with Particle Animation -->
         <section class="vs-hero"
-            style="height: 100vh; min-height: 600px; position: relative; background: #000; overflow: hidden; display: flex; align-items: center; color: #fff; font-family: 'Inter', sans-serif;">
+            style="height: 50vh; min-height: 420px; position: relative; background: #000; overflow: hidden; display: flex; align-items: center; color: #fff; font-family: 'Inter', sans-serif;">
 
-            <!-- Particle Effect Iframe -->
-            <iframe id="hero-particle-frame" src=""
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 0; pointer-events: none;">
-            </iframe>
-
+            <video id="h2HeroVideo" muted playsinline preload="metadata"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; opacity: 0; transition: opacity 0.8s ease;"></video>
             <div class="vs-container"
                 style="position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center;">
 
@@ -612,26 +609,50 @@
 
             <script>
                 (function () {
-                    const frame = document.getElementById('hero-particle-frame');
-                    // 可用的粒子效果文件列表 - 添加或删除文件时只需修改此数组
-                    const particleFiles = [
-                        'particle-default-effect.html',
-                        'particle-default-effect_2.html',
-                        'particle-default-effect_3.html',
-                        'particle-default-effect_4.html',
-                        'particle-default-effect_6.html',
-                        'particle-default-effect_7.html',
-                        'particle-default-effect_10.html',
-                        'particle-default-effect_13.html',
-                        'particle-default-effect_15.html',
-                        'particle-default-effect_16.html'
-                    ];
+                    const video = document.getElementById('h2HeroVideo');
+                    if (!video) return;
+                    let playlist = [];
+                    let current = 0;
+                    let started = false;
 
-                    // 随机选择一个文件
-                    const randomIndex = Math.floor(Math.random() * particleFiles.length);
-                    frame.src = `../../ionrendering/${particleFiles[randomIndex]}`;
+                    function setSource(idx) {
+                        const item = playlist[idx];
+                        if (!item || !item.url) return;
+                        video.src = item.url;
+                        video.load();
+                        playVideo();
+                    }
+
+                    function playVideo() {
+                        if (started) return;
+                        started = true;
+                        video.play().then(() => {
+                            video.style.opacity = '0.6';
+                        }).catch(() => {
+                            video.style.opacity = '0.6';
+                        }).finally(() => {
+                            started = false;
+                        });
+                    }
+
+                    video.addEventListener('ended', () => {
+                        if (!playlist.length) return;
+                        current = (current + 1) % playlist.length;
+                        setSource(current);
+                    });
+
+                    fetch('/api/h2-home')
+                        .then(res => res.json())
+                        .then(data => {
+                            playlist = (data.items || []).filter(i => i && i.url);
+                            if (!playlist.length) return;
+                            current = 0;
+                            setSource(current);
+                        })
+                        .catch(() => { });
                 })();
             </script>
+
         </section>
 
 

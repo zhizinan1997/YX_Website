@@ -1,7 +1,8 @@
-﻿$(function () {
-    
-    $('.jobs_list li').click(function () {
+﻿function bindJobsList() {
+    const items = $('.jobs_list li');
+    if (!items.length) return;
 
+    items.off('click').on('click', function () {
         if ($(this).hasClass("active")) {
             $(this).removeClass('active');
             $(this).find('.jobs_hide').slideUp();
@@ -13,6 +14,10 @@
         }
     });
 
-    $('.jobs_list li')[0].click();
+    items.first().click();
+}
 
-})
+$(function () {
+    bindJobsList();
+    window.initJobsList = bindJobsList;
+});

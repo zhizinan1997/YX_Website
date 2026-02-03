@@ -230,8 +230,8 @@ img {
    5. Hero Section (Left Aligned)
 ======================================== */
 .vs-hero {
-    height: 90vh;
-    min-height: 700px;
+    height: calc(100vh - var(--partners-height, 180px));
+    min-height: 600px;
     background-color: var(--color-primary);
     /* background-image removed for video */
     position: relative;
@@ -1378,30 +1378,182 @@ img {
    Latest News Section (Clean Style)
 ======================================== */
 /* ========================================
+   Product Showcase Section
+======================================== */
+.vs-product-showcase {
+    padding: 90px 0 110px;
+    background: #ffffff;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.vs-product-showcase .vs-container {
+    max-width: min(1900px, 98vw);
+    padding: 0 6px;
+}
+
+.vs-product-showcase__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    margin-bottom: 56px;
+}
+
+.vs-product-showcase__title {
+    font-size: 32px;
+    font-weight: 600;
+    color: #0f2f5f;
+    margin: 0;
+    letter-spacing: -0.2px;
+}
+
+.vs-product-showcase__subtitle {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+}
+
+.vs-product-showcase__link {
+    color: #0f2f5f;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    padding: 9px 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 47, 95, 0.35);
+    background: #ffffff;
+}
+
+.vs-product-showcase__link:hover {
+    gap: 12px;
+    background: #0f2f5f;
+    color: #fff;
+    text-decoration: none;
+    border-color: #0f2f5f;
+}
+
+.vs-product-showcase__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+}
+
+.vs-product-showcase__item {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    transition: all 0.35s ease;
+    border: 1px solid #e6e6e6;
+}
+
+.vs-product-showcase__item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.vs-product-showcase__img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #f2f4f7;
+    overflow: hidden;
+    position: relative;
+    border-bottom: 1px solid #e6e6e6;
+}
+
+.vs-product-showcase__img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.6s cubic-bezier(0.2, 1, 0.2, 1);
+}
+
+.vs-product-showcase__item:hover .vs-product-showcase__img img {
+    transform: scale(1.05);
+}
+
+.vs-product-showcase__item-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f2f5f;
+    line-height: 1.5;
+    margin: 16px 18px 8px 18px;
+}
+
+.vs-product-showcase__desc {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0 18px 18px 18px;
+}
+
+.vs-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px 4px 18px;
+}
+
+.vs-card-tag {
+    font-size: 11px;
+    color: #0f2f5f;
+    border: 1px solid rgba(15, 47, 95, 0.25);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.vs-card-more {
+    font-size: 12px;
+    color: #0f2f5f;
+    font-weight: 600;
+    padding: 0 18px 18px 18px;
+}
+
+/* ========================================
    Latest News Section (Enhanced Card Style)
 ======================================== */
 .vs-latest-news {
-    padding: 100px 0;
-    background: #f8f9fa;
-    /* Slightly gray background to pop the cards */
+    padding: 90px 0 110px;
+    background: #ffffff;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.vs-latest-news .vs-container {
+    max-width: min(1900px, 98vw);
+    padding: 0 6px;
 }
 
 .vs-latest-news__header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 60px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    margin-bottom: 56px;
     border-bottom: 0;
 }
 
 .vs-latest-news__title {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 600;
-    /* Bolder title for better hierarchy */
-    color: #111;
-    margin-bottom: 12px;
-    letter-spacing: -0.5px;
+    color: #0f2f5f;
+    margin: 0;
+    letter-spacing: -0.2px;
 }
 
 .vs-latest-news__subtitle {
@@ -1411,31 +1563,32 @@ img {
 }
 
 .vs-latest-news__link {
-    color: var(--color-primary);
+    color: #0f2f5f;
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
     text-decoration: none;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
-    padding: 8px 16px;
-    border-radius: 20px;
-    background: rgba(var(--color-primary-rgb), 0.05);
-    /* Subtle background */
+    padding: 9px 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 47, 95, 0.35);
+    background: #ffffff;
 }
 
 .vs-latest-news__link:hover {
     gap: 12px;
-    background: var(--color-primary);
+    background: #0f2f5f;
     color: #fff;
     text-decoration: none;
+    border-color: #0f2f5f;
 }
 
 .vs-latest-news__grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
+    gap: 22px;
 }
 
 .vs-latest-news__item {
@@ -1443,32 +1596,26 @@ img {
     flex-direction: column;
     text-decoration: none;
     background: #fff;
-    /* White Card Background */
-    border-radius: 12px;
-    /* Smooth corners */
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-    /* Subtle shadow */
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    border: 1px solid rgba(0, 0, 0, 0.02);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    transition: all 0.35s ease;
+    border: 1px solid #e6e6e6;
 }
 
 .vs-latest-news__item:hover {
-    transform: translateY(-8px);
-    /* Lift effect */
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    /* Deeper shadow on hover */
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 
 .vs-latest-news__img {
     width: 100%;
     aspect-ratio: 16/9;
-    background: #f5f5f5;
+    background: #f2f4f7;
     margin-bottom: 0;
-    /* Remove margin as we use padding for text now */
     overflow: hidden;
     position: relative;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid #e6e6e6;
 }
 
 .vs-latest-news__img img {
@@ -1484,24 +1631,21 @@ img {
 }
 
 .vs-latest-news__date {
-    font-size: 13px;
-    color: var(--color-primary);
-    /* Brand color for date */
-    margin: 24px 24px 12px 24px;
-    /* Internal padding */
+    font-size: 12px;
+    color: #0f2f5f;
+    margin: 0;
     display: inline-block;
     text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
 }
 
 .vs-latest-news__item-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f2f5f;
     line-height: 1.5;
-    margin: 0 24px 12px 24px;
-    /* Internal padding */
+    margin: 0 18px 8px 18px;
     transition: color 0.3s ease;
 }
 
@@ -1510,30 +1654,46 @@ img {
 }
 
 .vs-latest-news__desc {
-    font-size: 15px;
-    color: #666;
+    font-size: 13px;
+    color: #6b7280;
     line-height: 1.7;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin: 0 24px 32px 24px;
-    /* Internal padding + bottom space */
+    margin: 0 18px 18px 18px;
 }
 
 /* Responsive */
 @media (max-width: 900px) {
+    .vs-product-showcase__grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .vs-latest-news__grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (max-width: 600px) {
+    .vs-product-showcase__header {
+        align-items: center;
+        gap: 16px;
+    }
+
+    .vs-product-showcase__grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .vs-product-showcase__title {
+        font-size: 28px;
+    }
+
     .vs-latest-news__header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
+        align-items: center;
+        gap: 16px;
     }
 
     .vs-latest-news__grid {
@@ -1562,9 +1722,17 @@ img {
         /* Even wider gap for ultra-wide feel */
     }
 
+    .vs-product-showcase__grid {
+        gap: 60px;
+    }
+
     .vs-latest-news__title {
         font-size: 42px;
         /* Logo larger for big screens */
+    }
+
+    .vs-product-showcase__title {
+        font-size: 42px;
     }
 }
 
