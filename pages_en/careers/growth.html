@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Growth - Metachip</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Compact Inficon-style Mega Menu - Identical to main page */
+        .vs-header .vs-container,
+        .vs-header__inner,
+        .vs-nav,
+        .vs-nav__list {
+            height: 100%;
+        }
+
+        .vs-nav__item--has-mega {
+            position: relative !important;
+        }
+
+        .vs-mega-menu {
+            position: absolute;
+            top: 100%;
+            left: -30px;
+            width: 1000px;
+            background: var(--color-white);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            z-index: 999;
+            display: flex;
+            min-height: 440px;
+            border-radius: 8px;
+            overflow: visible;
+            pointer-events: none;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: -2px;
+        }
+
+        .vs-mega-menu::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: -50px;
+            width: 400px;
+            height: 50px;
+            background: transparent;
+            z-index: -1;
+        }
+
+        .vs-nav__item--has-mega:hover .vs-mega-menu {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .vs-mega-sidebar {
+            width: 260px;
+            background: #f4f6f8;
+            border-right: 1px solid #eee;
+            padding: 15px 0;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .vs-mega-tab {
+            padding: 14px 30px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vs-mega-tab:first-child {
+            border-top-left-radius: 8px;
+        }
+
+        .vs-mega-tab:hover,
+        .vs-mega-tab.active {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .vs-mega-tab i {
+            font-size: 10px;
+            opacity: 0.4;
+        }
+
+        .vs-mega-content {
+            flex: 1;
+            padding: 40px 50px;
+            background: var(--color-white);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .vs-mega-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .vs-mega-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .vs-mega-panel h3 {
+            font-size: 20px;
+            color: var(--color-primary);
+            margin-bottom: 24px;
+            font-weight: 700;
+            border-bottom: 2px solid var(--color-accent-orange);
+            display: inline-block;
+            padding-bottom: 4px;
+        }
+
+        .vs-mega-grid-v2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .vs-mega-sublist-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .vs-mega-list-v2 {
+            list-style: none;
+        }
+
+        .vs-mega-list-v2 li {
+            margin-bottom: 10px;
+        }
+
+        .vs-mega-list-v2 a {
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .vs-mega-list-v2 a:hover {
+            color: var(--color-accent-blue);
+            padding-left: 5px;
+        }
+
+        .vs-mega-action {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #eee;
+        }
+
+        .vs-btn-search {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 24px;
+            border: 1px solid var(--color-primary);
+            color: var(--color-primary);
+            font-weight: 600;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .vs-btn-search:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .vs-mega-menu--contact {
+            width: 480px;
+            left: -30px;
+            min-height: 280px;
+        }
+
+        .vs-mega-menu--contact .vs-mega-sidebar {
+            width: 180px;
+        }
+
+        .vs-mega-menu--contact .vs-mega-grid-v2 {
+            grid-template-columns: 1fr;
+        }
+
+        /* Page Specific */
+        .growth-section {
+            padding: 80px 0;
+            background: #fdfdfd;
+        }
+
+        .content-box {
+            max-width: 1000px;
+            margin: 0 auto;
+            line-height: 1.9;
+            color: #444;
+        }
+
+        .section-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.04);
+            margin-bottom: 30px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .section-card h3 {
+            font-size: 22px;
+            color: var(--color-primary);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .section-card p {
+            margin-bottom: 12px;
+        }
+
+        .hero-img {
+            max-width: 100%;
+            margin: 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            height: 280px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .contact-box {
+            background: linear-gradient(135deg, #003366 0%, #005599 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .contact-box p {
+            margin: 10px 0;
+            opacity: 0.9;
+        }
+
+        .contact-box a {
+            color: #ffc107;
+            font-weight: 600;
+        }
+    </style>
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+
+<body>
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/all-products.html" class="vs-nav__link">Products</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    New Arrivals <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    Industries <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    Parameters <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    Product Categories <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    Product List <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>New Arrivals</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Latest Releases</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Applications</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">Search Products <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>Industries</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                                </li>
+                                                <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>Parameters</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../measurement/measurement-hydrogen.html">Hydrogen
+                                                        (H2)</a></li>
+                                                <li><a href="../measurement/measurement-humidity.html">Humidity
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../measurement/measurement-dissolved-hydrogen.html">Dissolved Hydrogen</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../measurement/measurement-oil-water.html">Water in Oil Content</a>
+                                                </li>
+                                                <li><a href="../measurement/measurement-dewpoint.html">Dew Point
+                                                        (Td)</a></li>
+                                                <li><a href="../measurement/measurement-pressure.html">Pressure
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>Product Categories</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>Product List</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- Products由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="../gassensing/all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">View All Products <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/index.html" class="vs-nav__link">Solutions</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    Industry Solutions <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    Research <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>Industry Solutions</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>Research</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../research/index.html"><strong>Research Home</strong></a></li>
+                                            <li><a href="../research/micro-nano.html">Sensor Micro-nano Fabrication</a></li>
+                                            <li><a href="../research/development.html">Sensor Development, Testing and Application</a></li>
+                                            <li><a href="../research/cooperation.html">Deep Industry-University-Research Cooperation</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/service-cases.html" class="vs-nav__link">Cases</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    Featured <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    All Cases <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>Featured</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../gassensing/cases/case-1-truck.html">Hydrogen Detection for Heavy Hydrogen Trucks</a></li>
+                                            <li><a href="../gassensing/cases/case-6-train.html">Hydrogen Rail Detection</a></li>
+                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">Hydrogen Pipeline Safety</a></li>
+                                            <li><a href="../gassensing/cases/case-12-gas-system.html">Research Lab Gas Mixing</a></li>
+                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">Diesel Engine Vacuum Leak Detection</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>More Cases</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">Browse our successful application cases in various industries.</p>
+                                    <a href="../gassensing/service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">View All <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../about/about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">Shop</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../contact/contact.html" class="vs-nav__link">Contact</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    Join Us <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    Contact Info <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>Join Us</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="partners.html">Partners</a></li>
+                                            <li><a href="growth.html">Growth</a></li>
+                                            <li><a href="talent.html">Culture</a></li>
+                                            <li><a href="jobs.html">Careers</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>Contact Info</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../contact/contact.html">Contact</a></li>
+                                            <li><a href="../contact/feedback.html">Feedback</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/careers/growth.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+    </script>
+
+    <main style="padding-top: 90px;">
+        <section class="vs-hero"
+            style="height: 35vh; min-height: 300px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; background: #001e3e;">
+
+            <video id="heroVideo" muted loop playsinline preload="metadata"
+                style="position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.8s ease;">
+                <source src="https://data.zhizinan.top/renwen.mp4" type="video/mp4" />
+            </video>
+
+            <div class="vs-container" style="text-align: center; color: white; position: relative; z-index: 2;">
+                <h1 style="font-size: 48px; font-weight: 700; margin-bottom: 20px;">Growth & Development</h1>
+                <p style="font-size: 18px; margin-top: 10px; opacity: 0.8;">Here, every dream is respected, and every
+                    progress is clearly visible.</p>
+            </div>
+
+            <script>
+                (function () {
+                    const video = document.getElementById('heroVideo');
+                    if (video) {
+                        video.play().then(() => {
+                            video.style.opacity = '1';
+                        }).catch(e => console.log("Video autoplay failed"));
+                    }
+                })();
+            </script>
+        </section>
+
+        <section class="growth-section">
+            <div class="vs-container">
+                <div class="content-box">
+                    <div
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; max-width: 900px; margin-left: auto; margin-right: auto;">
+                        <img src="../../assets/images/chengzhang1.png"
+                            alt="Company Honor Wall - Qualifications and Honors" class="hero-img">
+                        <img src="../../assets/images/chengzhang2.png" alt="Modern Office Environment - Meeting Room"
+                            class="hero-img">
+                    </div>
+
+                    <div class="section-card">
+                        <h3><i class="fas fa-gift" style="margin-right: 12px; color: var(--color-accent-orange);"></i>1.
+                            Benefits & Compensation</h3>
+                        <p><strong>Working Hours:</strong> 5 days a week, 8 hours per day, weekends off</p>
+                        <p><strong>Basic Benefits:</strong> Social insurance and housing fund, perfect attendance bonus,
+                            13th month salary, paid annual leave, annual health check, comfortable office environment,
+                            pleasant working atmosphere, supportive team members.</p>
+                        <p><strong>Advanced Benefits:</strong> Paid training, one-on-one mentoring, annual travel,
+                            year-end bonus, annual salary adjustment.</p>
+                        <p><strong>Premium Benefits:</strong> Position promotion, professional title evaluation, project
+                            bonuses, year-end rewards, equity incentives, special contribution awards, Xiangtan talent
+                            subsidies.</p>
+                    </div>
+
+                    <div class="section-card">
+                        <h3><i class="fas fa-briefcase"
+                                style="margin-right: 12px; color: var(--color-accent-orange);"></i>2. Working Conditions
+                        </h3>
+                        <p><strong>High Energy:</strong> Majority of employees are post-90s generation, young and
+                            energetic with passionate work attitude.</p>
+                        <p><strong>High Growth:</strong> Company promotes mutual progress, encourages learning and
+                            growth, provides excellent learning environment and resources, comprehensive training system
+                            (onboarding training/internal and external professional training/management courses/school
+                            lectures, etc.), and all-round knowledge and skills training.
+                        </p>
+                        <p><strong>High Opportunity:</strong> Provides an "accelerated" platform for personal value
+                            realization, offers dual career paths in technical and management tracks, encourages
+                            merit-based advancement, employees can choose based on personal development plans, with
+                            significant career development space, encouraging self-value realization and achieving a
+                            better life.
+                        </p>
+                    </div>
+
+                    <div class="section-card">
+                        <h3><i class="fas fa-graduation-cap"
+                                style="margin-right: 12px; color: var(--color-accent-orange);"></i>3. Talent Development
+                        </h3>
+                        <p>Talent is the company's most valuable resource. We provide internal and external professional
+                            training, one-on-one mentoring, progressive professional group training courses, and
+                            professional title evaluation.</p>
+                    </div>
+
+                    <div class="section-card">
+                        <h3><i class="fas fa-route"
+                                style="margin-right: 12px; color: var(--color-accent-orange);"></i>4. Customized Career
+                            Development Path</h3>
+                        <p><strong>Technical Path:</strong> Assistant Engineer → Junior Engineer → Intermediate Engineer
+                            → Senior Engineer → Junior Technical Expert → Intermediate Technical Expert → Senior
+                            Technical Expert → Chief Technical Expert</p>
+                        <p><strong>Management Path:</strong> Engineer → Team Leader → Department Supervisor → Deputy
+                            Department Manager/Manager → Director</p>
+                    </div>
+
+                    <div class="contact-box">
+                        <h3 style="font-size: 24px; margin-bottom: 20px;"><i class="fas fa-paper-plane"
+                                style="margin-right: 10px;"></i>5. Contact Information & Process</h3>
+                        <p><strong>Company Locations:</strong> Beijing / Xiangtan</p>
+                        <p><strong>Company Contact:</strong> 18707495171 (Ms. Huang)</p>
+                        <p><strong>Resume Submission Email:</strong><a
+                                href="mailto:hm18707495171@139.com">hm18707495171@139.com</a></p>
+                        <p><strong>Interview Process:</strong> Submit Resume → HR Interview Invitation → Interview →
+                            Offer → Onboarding</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer" style="background: #001e3e; color: white; padding: 60px 0 30px; text-align: center;">
+        <p style="opacity: 0.5; font-size: 13px;">Copyright © 2023 Hunan Metachip Technology Co., Ltd.. 湘ICP备2023004701号-1</p>
+    </footer>
+
+    
+    <!-- Site Search -->
+  <script src="../../assets/js/search.js"></script>
+
+    <!-- AI Chatbot -->
+    <script src="../../assets/js/chatbot.js"></script>
+</body>
+
+</html>

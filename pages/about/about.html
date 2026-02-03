@@ -1,3 +1,639 @@
 <!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于我们 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Specific Styles for About Page */
+        .vs-about-hero {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../../assets/images/about_ban.jpg');
+            background-size: cover;
+            background-position: center;
+            height: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            margin-bottom: 0;
+            position: relative;
+        }
+
+        .vs-about-hero h1 {
+            font-size: 64px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .vs-about-hero p {
+            font-size: 24px;
+            font-weight: 300;
+            opacity: 0.95;
+            max-width: 800px;
+        }
+
+        .vs-sticky-nav {
+            background: white;
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 90px;
+            z-index: 900;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .vs-sticky-nav ul {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .vs-sticky-nav li {
+            margin: 0;
+        }
+
+        .vs-sticky-nav a {
+            display: block;
+            padding: 24px 50px;
+            color: var(--color-text-body);
+            font-weight: 600;
+            font-size: 16px;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .vs-sticky-nav a:hover,
+        .vs-sticky-nav a.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-accent-blue);
+            background: rgba(0, 55, 100, 0.03);
+        }
+
+        .vs-about-section {
+            padding: 120px 0;
+            scroll-margin-top: 155px;
+        }
+
+        .vs-about-section:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        /* Profile Layout */
+        .vs-profile-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .vs-profile-text {
+            font-size: 17px;
+            line-height: 1.8;
+            color: #444;
+        }
+
+        .vs-profile-text p {
+            margin-bottom: 24px;
+        }
+
+        .vs-profile-img-box {
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-profile-img-box::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            width: 100%;
+            height: 100%;
+            border: 4px solid var(--color-accent-blue);
+            z-index: -1;
+            border-radius: 8px;
+        }
+
+        .vs-profile-img-box img {
+            border-radius: 4px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Culture Grid */
+        .vs-culture-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 60px;
+        }
+
+        .vs-culture-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+
+        .vs-culture-card {
+            background: white;
+            padding: 50px 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+
+        .vs-culture-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--color-accent-blue);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+            transform-origin: left;
+        }
+
+        .vs-culture-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-culture-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .vs-culture-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 161, 223, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            font-size: 32px;
+            color: var(--color-accent-blue);
+            transition: all 0.4s ease;
+        }
+
+        .vs-culture-card:hover .vs-culture-icon {
+            background: var(--color-accent-blue);
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        /* Timeline */
+        .vs-timeline-box {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            margin-top: 50px;
+            display: inline-block;
+        }
+
+        .vs-timeline-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        /* Core Tech Box */
+        .vs-core-tech {
+            margin-top: 80px;
+            background: linear-gradient(135deg, #003764 0%, #001f3f 100%);
+            color: white;
+            padding: 80px 60px;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vs-core-tech::after {
+            content: '';
+            position: absolute;
+            right: -50px;
+            top: -50px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 50%;
+        }
+
+        .vs-core-tech h3 {
+            color: white;
+            font-size: 32px;
+            margin-bottom: 24px;
+        }
+
+        .vs-core-tech p {
+            font-size: 18px;
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+    <div class="vs-container vs-header__inner">
+      <div style="display: flex; align-items: center">
+        <a href="../../index.html" class="vs-logo">
+          <img src="../../assets/images/logo.png" alt="Metachip Logo" style="filter: brightness(0) invert(1)" />
+          METACHIP
+        </a>
+      </div>
+
+      <nav class="vs-nav" style="margin-left: auto; margin-right: 40px;">
+        <ul class="vs-nav__list">
+
+          <li class="vs-nav__item">
+            <a href="../biosensing/index.html?filter=sensor" class="vs-nav__link">生化传感事业部</a>
+          </li>
+          <li class="vs-nav__item">
+            <a href="../gassensing/index.html" class="vs-nav__link">先进氢气传感解决方案</a>
+          </li>
+          <li class="vs-nav__item vs-nav__item--has-mega">
+            <a href="../news/news.html" class="vs-nav__link">洞察与资讯</a>
+            <div class="vs-mega-menu vs-mega-menu--news">
+              <div class="vs-mega-sidebar">
+                <a href="../news/news.html#enterprise" class="vs-mega-tab active"
+                  onmouseover="showPanelNews('enterprise', this)"
+                  style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                  企业新闻 <i class="fas fa-chevron-right"></i>
+                </a>
+                <a href="../news/news.html#industry" class="vs-mega-tab"
+                  onmouseover="showPanelNews('industry', this)"
+                  style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                  行业动态 <i class="fas fa-chevron-right"></i>
+                </a>
+                <a href="../news/news.html#science" class="vs-mega-tab" onmouseover="showPanelNews('science', this)"
+                  style="text-decoration: none; display: flex; justify-content: space-between; align-items: center;">
+                  科普知识 <i class="fas fa-chevron-right"></i>
+                </a>
+              </div>
+
+              <div class="vs-mega-content">
+                <!-- Enterprise News Panel -->
+                <div id="panel-news-enterprise" class="vs-mega-panel active">
+                  <h3 style="margin-bottom: 20px; font-size: 18px; color: #333;">最新企业新闻</h3>
+                  <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <a href="../news/news_show.aspx_id_71.html"
+                      style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+                      <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202601041422528917.PNG"
+                        style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news">
+                      <div>
+                        <h4
+                          style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
+                          元芯传感荣获2025感知领航大赛三等奖</h4>
+                        <span style="font-size: 12px; color: #888;">2026-01-04</span>
+                      </div>
+                    </a>
+                    <a href="../news/news_show.aspx_id_70.html"
+                      style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+                      <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202512121707404122.jpg"
+                        style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news">
+                      <div>
+                        <h4
+                          style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
+                          强强联手：元芯传感战略入股武汉纳为科技</h4>
+                        <span style="font-size: 12px; color: #888;">2025-12-12</span>
+                      </div>
+                    </a>
+                  </div>
+                  <div style="margin-top: 20px; text-align: right;">
+                    <a href="../news/news.html"
+                      style="color: var(--color-primary); font-size: 14px; font-weight: 500;">查看更多企业新闻 &rarr;</a>
+                  </div>
+                </div>
+
+                <!-- Industry Trends Panel -->
+                <div id="panel-news-industry" class="vs-mega-panel">
+                  <h3 style="margin-bottom: 20px; font-size: 18px; color: #333;">行业动态前沿</h3>
+                  <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <a href="../news/news_show.aspx_id_55.html"
+                      style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+                      <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508190849572631.jpg"
+                        style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news">
+                      <div>
+                        <h4
+                          style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
+                          WRC2025现场直击：机器人不止会跑会跳，更有了"超级嗅觉"</h4>
+                        <span style="font-size: 12px; color: #888;">2025-08-19</span>
+                      </div>
+                    </a>
+                    <a href="../news/news_show.aspx_id_48.html"
+                      style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+                      <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202505060855459927.PNG"
+                        style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news">
+                      <div>
+                        <h4
+                          style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
+                          元芯传感氢安全产品亮相上海车展</h4>
+                        <span style="font-size: 12px; color: #888;">2025-05-06</span>
+                      </div>
+                    </a>
+                  </div>
+                  <div style="margin-top: 20px; text-align: right;">
+                    <a href="../news/news.html#industry"
+                      style="color: var(--color-primary); font-size: 14px; font-weight: 500;">查看更多行业动态 &rarr;</a>
+                  </div>
+                </div>
+
+                <!-- Science Knowledge Panel -->
+                <div id="panel-news-science" class="vs-mega-panel">
+                  <h3 style="margin-bottom: 20px; font-size: 18px; color: #333;">传感器科普知识</h3>
+                  <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <a href="../news/news_show.aspx_id_68.html"
+                      style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+                      <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202512111353321724.png"
+                        style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news">
+                      <div>
+                        <h4
+                          style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
+                          【"氢"出于蓝】第五期：半导体"结"效应</h4>
+                        <span style="font-size: 12px; color: #888;">2025-12-11</span>
+                      </div>
+                    </a>
+                    <a href="../news/news_show.aspx_id_66.html"
+                      style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+                      <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202511271712551586.png"
+                        style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news">
+                      <div>
+                        <h4
+                          style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
+                          【"氢"出于蓝】第四期：半导体原理</h4>
+                        <span style="font-size: 12px; color: #888;">2025-11-27</span>
+                      </div>
+                    </a>
+                  </div>
+                  <div style="margin-top: 20px; text-align: right;">
+                    <a href="../news/news.html#science"
+                      style="color: var(--color-primary); font-size: 14px; font-weight: 500;">查看更多科普知识 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="vs-nav__item vs-nav__item--has-mega">
+            <a href="../contact/contact.html" class="vs-nav__link">联系我们</a>
+            <div class="vs-mega-menu vs-mega-menu--contact">
+              <div class="vs-mega-sidebar">
+                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                  加入我们 <i class="fas fa-chevron-right"></i>
+                </div>
+                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                  联系方式 <i class="fas fa-chevron-right"></i>
+                </div>
+              </div>
+              <div class="vs-mega-content">
+                <!-- Panel: Join -->
+                <div id="panel-contact-join" class="vs-mega-panel active">
+                  <h3>加入我们</h3>
+                  <div class="vs-mega-grid-v2">
+                    <ul class="vs-mega-list-v2">
+                      <li><a href="../careers/partners.html">合作招募</a></li>
+                      <li><a href="../careers/growth.html">成长空间</a></li>
+                      <li><a href="../careers/talent.html">人才理念</a></li>
+                      <li><a href="../careers/jobs.html">在线招聘</a></li>
+                    </ul>
+                  </div>
+                </div>
+                <!-- Panel: Contact -->
+                <div id="panel-contact-contact" class="vs-mega-panel">
+                  <h3>联系方式</h3>
+                  <div class="vs-mega-grid-v2">
+                    <ul class="vs-mega-list-v2">
+                      <li><a href="../contact/contact.html">联系我们</a></li>
+                      <li><a href="../contact/feedback.html">在线留言</a></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </nav>
+
+      <div style="display: flex; gap: 24px; color: white; align-items: center">
+        <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
+        <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="../../index_en.html" style="font-size: 14px; font-weight: 500;">EN</a>
+      </div>
+    </div>
+  </header>
+
+    <main style="padding-top: 90px;">
+
+        <!-- Hero -->
+        <section class="vs-about-hero">
+            <div class="vs-container">
+                <h1>关于我们</h1>
+                <p>知微见著 · 智感世界</p>
+            </div>
+        </section>
+
+        <!-- Sticky Sub-Nav -->
+        <nav class="vs-sticky-nav">
+            <ul>
+                <li><a href="#profile" class="active">公司简介</a></li>
+                <li><a href="#history">发展历程</a></li>
+                <li><a href="#culture">企业文化</a></li>
+            </ul>
+        </nav>
+
+        <!-- Section 1: Company Profile -->
+        <section id="profile" class="vs-about-section">
+            <div class="vs-container">
+                <div class="vs-profile-layout">
+                    <div>
+                        <span
+                            style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Company
+                            Profile</span>
+                        <h2 class="vs-title" style="margin-top: 10px;">元芯传感 Metachip</h2>
+                        <div class="vs-profile-text">
+                            <p>
+                                <strong>湖南元芯传感科技有限责任公司（Metachip）</strong>立足北京大学科研团队20余年科研成果，专注于先进传感技术产品的研发与制造。我们致力于开发面向下一代高性能集成式传感芯片的碳基FET新型传感技术。
+                            </p>
+                            <p>
+                                传感是信息技术与真实世界的接口。先进传感技术产品是"中国制造2025"的核心内容，关乎国计民生。元芯传感愿与所有志同道合者共同开拓传感技术的无限可能。
+                            </p>
+                            <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--primary">联系我们</a>
+                        </div>
+                    </div>
+                    <div class="vs-profile-img-box">
+                        <!-- Trying a valid local image related to company/lab -->
+                        <img src="../../assets/images/js_ys.jpg" alt="元芯传感实验室" class="vs-img-responsive">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: History -->
+        <section id="history" class="vs-about-section">
+            <div class="vs-container">
+                <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+                    <span
+                        style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Milestones</span>
+                    <h2 class="vs-title">发展历程</h2>
+                    <p class="vs-text" style="margin: 0 auto;">每一步前行，都是对技术的执着追求与突破。</p>
+                </div>
+
+                <div style="text-align: center;">
+                    <div class="vs-timeline-box">
+                        <!-- Verified local timeline image -->
+                        <img src="../../assets/images/chengzhang1.png" alt="发展历程时间轴">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Culture -->
+        <section id="culture" class="vs-about-section">
+            <div class="vs-container">
+                <div class="vs-culture-header">
+                    <span
+                        style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Our
+                        Culture</span>
+                    <h2 class="vs-title">企业文化</h2>
+                    <p class="vs-text" style="margin: 0 auto;">我们共同的价值观与愿景，指引着未来的方向。</p>
+                </div>
+
+                <div class="vs-culture-grid">
+                    <div class="vs-culture-card">
+                        <div class="vs-culture-icon"><i class="fas fa-bullseye"></i></div>
+                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">使命</h3>
+                        <p style="color: #666; font-size: 16px;">专注先进传感技术<br>用发明造福人类</p>
+                    </div>
+
+                    <div class="vs-culture-card">
+                        <div class="vs-culture-icon"><i class="fas fa-eye"></i></div>
+                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">愿景</h3>
+                        <p style="color: #666; font-size: 16px;">知微见著<br>智感世界</p>
+                    </div>
+
+                    <div class="vs-culture-card">
+                        <div class="vs-culture-icon"><i class="fas fa-users"></i></div>
+                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">价值观</h3>
+                        <p style="color: #666; font-size: 16px;">员工第一、成就客户<br>合作共赢</p>
+                    </div>
+                </div>
+
+                <!-- Core Tech Feature -->
+                <div class="vs-core-tech">
+                    <div style="max-width: 900px; margin: 0 auto; text-align: center;">
+                        <h3><i class="fas fa-microchip" style="margin-right: 15px;"></i>核心科技</h3>
+                        <p>
+                            我们的核心材料——<strong>碳纳米管</strong>，被国际半导体路线图委员会(ITRS)认定为延续摩尔定律的最有潜力的候选沟道材料。具有天然超薄尺寸和超高迁移率的独特优势。以碳纳米管晶体管为核心的传感器具备灵活的功能化修饰方式，卓越的灵敏度和优异的集成化检测能力，能够对痕量目标进行精准检测。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="background: #1a1a1a; color: #999; padding: 60px 0; border-top: 1px solid #333;">
+        <div class="vs-container" style="text-align: center;">
+            <img src="../../assets/images/logo.png" alt="Logo"
+                style="height: 40px; filter: brightness(0) invert(1); opacity: 0.5; margin: 0 auto 30px;">
+            <p>&copy; 2026 湖南元芯传感科技有限责任公司 版权所有</p>
+        </div>
+    </footer>
+
+    <script>
+        // Sticky Nav Active State on Scroll - Enhanced
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.vs-sticky-nav a');
+        const navBar = document.querySelector('.vs-sticky-nav');
+        const headerH = 90;
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+
+            // Add shadow to nav on scroll
+            if (window.scrollY > 400) {
+                navBar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)";
+            } else {
+                navBar.style.boxShadow = "none";
+            }
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                // Offset for fixed header + nav
+                if (pageYOffset >= (sectionTop - 250)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Smooth scroll with offset
+        document.querySelectorAll('.vs-sticky-nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                const offsetPosition = targetSection.offsetTop - 150; // Adjust for header + nav height
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: "smooth"
+                });
+            });
+        });
+    </script>
+
+    <script>
+    function showPanel(panelId, tab) {
+      document.querySelectorAll(".vs-mega-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      document.querySelectorAll(".vs-mega-panel").forEach((p) => p.classList.remove("active"));
+      const panel = document.getElementById("panel-" + panelId);
+      if (panel) panel.classList.add("active");
+    }
+    function showPanelContact(panelId, tab) {
+      const menu = tab.closest(".vs-mega-menu");
+      menu.querySelectorAll(".vs-mega-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      menu.querySelectorAll(".vs-mega-panel").forEach((p) => p.classList.remove("active"));
+      const panel = document.getElementById("panel-contact-" + panelId);
+      if (panel) panel.classList.add("active");
+    }
+
+    function showPanelNews(panelId, tab) {
+      const menu = tab.closest(".vs-mega-menu");
+      menu.querySelectorAll(".vs-mega-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      menu.querySelectorAll(".vs-mega-panel").forEach((p) => p.classList.remove("active"));
+      const panel = document.getElementById("panel-news-" + panelId);
+      if (panel) panel.classList.add("active");
+    }
+  </script>
+
+
+    <!-- AI智能客服 -->
+    <script src="../../assets/js/chatbot.js"></script>
+    
+</body>
 
 </html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pressure (P) Measurement - Industrial Pressure Sensing and Monitoring Solutions - Metachip</title>
+    <meta name="description" content="Metachip provides high-precision pressure measurement solutions covering industrial process control, gas pipeline monitoring, hydraulic systems, and other application scenarios to ensure production safety and efficiency.">
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
+
+    <style>
+        /* Breadcrumb Styles */
+        .jjfa-breadcrumb {
+            position: absolute;
+            top: 120px;
+            left: 5%;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 0;
+            z-index: 10;
+            color: white;
+        }
+
+        .jjfa-breadcrumb a {
+            color: white;
+            opacity: 0.8;
+        }
+
+        .jjfa-breadcrumb a:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/all-products.html" class="vs-nav__link">Products</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    New Arrivals <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    Industries <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    Parameters <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    Product Categories <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    Product List <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>New Arrivals</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Latest Releases</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Applications</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">Search Products <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>Industries</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                                </li>
+                                                <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>Parameters</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="measurement-hydrogen.html">Hydrogen
+                                                        (H2)</a></li>
+                                                <li><a href="measurement-humidity.html">Humidity
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="measurement-dissolved-hydrogen.html">Dissolved Hydrogen</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../pages_en/measurement/measurement-oil-water.html">Water in Oil Content</a>
+                                                </li>
+                                                <li><a href="measurement-dewpoint.html">Dew Point
+                                                        (Td)</a></li>
+                                                <li><a href="measurement-pressure.html">Pressure
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>Product Categories</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>Product List</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- Products dynamically generated by JS -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                            style="color: var(--color-primary); font-weight: 600;">View All Products <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/index.html" class="vs-nav__link">Solutions</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>Industry Solutions</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/service-cases.html" class="vs-nav__link">Cases</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    Featured <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    All Cases <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>Featured</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../gassensing/cases/case-1-truck.html">Hydrogen Detection for Hydrogen Heavy Trucks</a></li>
+                                            <li><a href="../gassensing/cases/case-6-train.html">Hydrogen Energy Train Detection</a></li>
+                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">Hydrogen Pipeline Personnel Safety</a></li>
+                                            <li><a href="../gassensing/cases/case-12-gas-system.html">Research Lab Gas Mixing</a></li>
+                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">Diesel Engine Vacuum Leak Detection</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>More Cases</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">Browse our successful application cases in various industries.</p>
+                                    <a href="../gassensing/service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">View All <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../about/about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">Shop</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../contact/contact.html" class="vs-nav__link">Contact</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    Join Us <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    Contact Info <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>Join Us</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../careers/partners.html">Partners</a></li>
+                                            <li><a href="../careers/growth.html">Growth</a></li>
+                                            <li><a href="../careers/talent.html">Culture</a></li>
+                                            <li><a href="../careers/jobs.html">Careers</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>Contact Info</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../contact/contact.html">Contact</a></li>
+                                            <li><a href="../contact/feedback.html">Feedback</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/measurement/measurement-pressure.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+    </script>
+
+    <main style="padding-top: 0;">
+        <!-- Modern Full-Width Hero -->
+        <section class="vs-measurement-hero" style="height: 100vh;">
+            <video class="vs-measurement-hero__video" autoplay muted loop playsinline>
+                <source src="../../assets/video/hero-pressure-page-1920x525_1.mp4" type="video/mp4">
+            </video>
+            <div class="vs-measurement-hero__overlay"
+                style="background: linear-gradient(135deg, rgba(0, 30, 60, 0.6) 0%, rgba(0, 50, 90, 0.4) 100%);">
+            </div>
+
+            <p class="jjfa-breadcrumb">
+                <a href="../../pages_en/products/index.html">Products</a> - <a href="#">Parameters</a> - <span>Pressure (P)</span>
+            </p>
+
+            <div class="vs-container"
+                style="position: relative; z-index: 2; height: 100%; display: flex; align-items: center;">
+                <div class="vs-measurement-hero__content" style="max-width: 800px;">
+                    <h1 class="vs-measurement-hero__title" style="font-size: 64px; margin-bottom: 30px;">Industrial Pressure (P) Measurement and Control
+                    </h1>
+                    <p class="vs-measurement-hero__desc" style="font-size: 20px; font-weight: 300; opacity: 1;">
+                        In the most demanding industrial environments, Metachip provides high-precision pressure monitoring solutions with millisecond response. Ensuring process safety and optimizing energy efficiency.
+                    </p>
+                    <div class="vs-measurement-hero__cta">
+                        <a href="#products" class="vs-btn" style="border-radius: 30px; padding: 16px 40px;">Explore our products</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Strip -->
+        <div class="vs-stats-strip">
+            <div class="vs-container">
+                <div class="vs-stats-grid">
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">0.1%</div>
+                        <div class="vs-stat__desc">High-precision Measurement</div>
+                    </div>
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">10<span>ms</span></div>
+                        <div class="vs-stat__desc">Ultra-fast Response Speed</div>
+                    </div>
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">IP68</div>
+                        <div class="vs-stat__desc">Industrial Protection Class</div>
+                    </div>
+                    <div class="vs-stat__item">
+                        <div class="vs-stat__number">24/7</div>
+                        <div class="vs-stat__desc">24/7 Monitoring</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Layout: Why Measure (Zig-Zag) -->
+        <section class="vs-app-zigzag" id="applications" style="max-width: 1400px; margin: 0 auto;">
+            <!-- Row 1 -->
+            <div class="vs-zigzag-row">
+                <div class="vs-zigzag-img">
+                    <img src="../../assets/images/LIFT-pipes-industrial-plant-800x450.jpg" alt="Industrial Pipes">
+                </div>
+                <div class="vs-zigzag-text">
+                    <h3 class="vs-zigzag-title">Why is High-Precision Pressure Control Crucial?</h3>
+                    <p class="vs-zigzag-desc">
+                        Pressure fluctuations not only affect process stability, but are also potential causes of safety accidents. Precise pressure control can prevent pipe bursts, optimize fluid transport efficiency, and trigger safety interlocks at critical moments, protecting assets and personnel safety.
+                    </p>
+                    <a href="#" class="vs-zigzag-link">Understand Industry Standards</a>
+                </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="vs-zigzag-row">
+                <div class="vs-zigzag-img">
+                    <img src="../../assets/images/LIFT-oil-and-gas-800x450px.jpg" alt="Technology">
+                </div>
+                <div class="vs-zigzag-text" style="background-color: #0d3c55;">
+                    <h3 class="vs-zigzag-title">BAROCAP® Silicon Capacitive Sensing Technology</h3>
+                    <p class="vs-zigzag-desc">
+                        Metachip's core MEMS sensor technology, featuring a unique single-crystal silicon microstructure. It possesses excellent overpressure resistance and extremely low temperature drift, maintaining long-term measurement stability even in frequent pressure cycles.
+                    </p>
+                    <a href="#" class="vs-zigzag-link">View Technical White Paper</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Overlay Card Grid for Applications -->
+        <section class="vs-section" style="padding: 80px 0 40px; background: #fff;">
+            <div class="vs-container" style="max-width: 1400px;">
+                <div style="text-align: center; margin-bottom: 60px;">
+                    <h2 class="vs-title">Applications</h2>
+                    <p class="vs-text" style="margin: 0 auto;">Full coverage from tiny differential pressure to high-pressure hydraulic systems</p>
+                </div>
+                <div class="vs-overlay-card-grid">
+                    <div class="vs-overlay-card-item">
+                        <img src="../../assets/images/LIFT-oil-rig-offshore-closeup-800x450.jpg"
+                            class="vs-overlay-card-img" alt="Oil & Gas">
+                        <div class="vs-overlay-text-box">
+                            <h3>Oil & Gas</h3>
+                            <p>Monitoring wellhead pressure, oil pipelines, and separator pressure to ensure safe and efficient extraction and transport processes.</p>
+                        </div>
+                    </div>
+                    <div class="vs-overlay-card-item">
+                        <img src="../../assets/images/LIFT-pulp-paper-and-wood-800x450px.jpg"
+                            class="vs-overlay-card-img" alt="Industrial Manufacturing">
+                        <div class="vs-overlay-text-box">
+                            <h3>Industrial Manufacturing Processes</h3>
+                            <p>Whether in paper, chemical, or pharmaceutical sectors, precision pressure transmitters are the "nerve endings" of automated control systems.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Highlight -->
+        <section class="vs-content-section" id="products" style="padding-top: 40px;">
+            <div class="vs-container">
+                <div class="vs-section-title-centered">
+                    <h2>Recommended Monitoring Products</h2>
+                </div>
+
+                <div class="vs-two-col">
+                    <div class="vs-two-col__image" style="box-shadow: none;">
+                        <div
+                            style="background: #f4f6f8; height: 100%; min-height: 400px; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                            <i class="fas fa-tachometer-alt" style="font-size: 80px; color: #ccc;"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span
+                            style="color: var(--color-accent-orange); font-weight: 600; text-transform: uppercase;">Core Products</span>
+                        <h3 style="font-size: 32px; margin: 10px 0 20px;">PT-3000 Smart Pressure Transmitter</h3>
+                        <p>Designed specifically for demanding industrial applications. All-stainless steel housing, anti-corrosion, with built-in smart diagnostic functions.</p>
+                        <ul style="margin-bottom: 30px;">
+                            <li><i class="fas fa-check"
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> Measuring range covering -1 to 1000 bar
+                            </li>
+                            <li><i class="fas fa-check"
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> Output signal 4...20 mA, HART, Modbus</li>
+                            <li><i class="fas fa-check"
+                                    style="color: var(--color-accent-blue); margin-right: 10px;"></i> Intrinsically safe certification Ex ia IIC T4</li>
+                        </ul>
+                        <a href="#" class="vs-btn">Download Product Manual</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col">
+                    <a href="../../index_en.html" class="vs-logo" style="margin-bottom: 20px;">
+                        <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                            style="filter: brightness(0) invert(1);">
+                        METACHIP
+                    </a>
+                    <p style="opacity: 0.7; line-height: 1.8;">
+                        Metachip is committed to providing customers worldwide with the most accurate and reliable industrial measurement solutions.
+                        <br>Making measurement ubiquitous, making data create value.
+                    </p>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>Solutions</h4>
+                    <a href="#" class="vs-footer__link">Power Industry</a>
+                    <a href="#" class="vs-footer__link">Semiconductor Manufacturing</a>
+                    <a href="#" class="vs-footer__link">Life Sciences</a>
+                    <a href="#" class="vs-footer__link">Industrial Automation</a>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>Quick Links</h4>
+                    <a href="#" class="vs-footer__link">About Us</a>
+                    <a href="#" class="vs-footer__link">News Center</a>
+                    <a href="#" class="vs-footer__link">Join Us</a>
+                    <a href="#" class="vs-footer__link">Contact Support</a>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>Contact Info</h4>
+                    <p style="opacity: 0.7; margin-bottom: 10px;">
+                        <i class="fas fa-map-marker-alt" style="margin-right: 10px;"></i> Hunan · Xiangtan
+                    </p>
+                    <p style="opacity: 0.7; margin-bottom: 10px;">
+                        <i class="fas fa-phone" style="margin-right: 10px;"></i> 4001880653
+                    </p>
+                    <p style="opacity: 0.7;">
+                        <i class="fas fa-envelope" style="margin-right: 10px;"></i> hnyxcgkj@139.com
+                    </p>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <p>&copy; 2024 Metachip Sensing Technology. All rights reserved.</p>
+                <div style="display: flex; gap: 20px;">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Use</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Site Search -->
+    <script src="../../assets/js/search.js"></script>
+</body>
+
+</html>

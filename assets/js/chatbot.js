@@ -23,9 +23,51 @@
     }
 
     function initChatbot() {
-        createChatbotUI();
-        bindEvents();
+        // Prevent running in iframes (e.g. particle effects)
+        if (window.self !== window.top) return;
+
+        loadStyles().then(() => {
+            createChatbotUI();
+            bindEvents();
+        });
         // 不再加载历史记录
+    }
+
+    function loadStyles() {
+        return new Promise((resolve) => {
+            if (document.querySelector('link[href*="chatbot.css"]')) {
+                resolve();
+                return;
+            }
+
+            // Attempt to find the script tag to resolve path
+            const scripts = document.getElementsByTagName('script');
+            let scriptPath = '';
+            for (let i = 0; i < scripts.length; i++) {
+                if (scripts[i].src && scripts[i].src.includes('chatbot.js')) {
+                    scriptPath = scripts[i].src;
+                    break;
+                }
+            }
+
+            let cssPath;
+            if (scriptPath) {
+                // resolve ../css/chatbot.css relative to js/chatbot.js
+                // scriptPath is like .../assets/js/chatbot.js
+                // we want .../assets/css/chatbot.css
+                cssPath = scriptPath.replace('/js/', '/css/').replace('.js', '.css');
+            } else {
+                // Fallback for default structure
+                cssPath = '/assets/css/chatbot.css';
+            }
+
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = cssPath;
+            link.onload = resolve;
+            link.onerror = resolve; // Continue even if error
+            document.head.appendChild(link);
+        });
     }
 
     function generateSessionId() {
@@ -43,7 +85,7 @@
 
         // Create chat window
         const windowHTML = `
-            <div class="chatbot-window" id="chatbotWindow">
+            <div class="chatbot-window" id="chatbotWindow" style="display: none;">
                 <div class="chatbot-header">
                     <div class="chatbot-avatar">
                         <i class="fas fa-robot"></i>
@@ -136,6 +178,9 @@
     }
 
     function openChatWindow() {
+        chatbotWindow.style.display = 'flex';
+        // Force reflow
+        chatbotWindow.offsetHeight;
         chatbotWindow.classList.add('open');
         chatbotTrigger.classList.add('active');
         inputField.focus();
@@ -144,8 +189,13 @@
     function closeChatWindow() {
         chatbotWindow.classList.remove('open');
         chatbotTrigger.classList.remove('active');
-        // 关闭时清除对话记录
-        clearChatHistory();
+
+        // Wait for transition (300ms) then hide
+        setTimeout(() => {
+            chatbotWindow.style.display = 'none';
+            // 关闭时清除对话记录
+            clearChatHistory();
+        }, 300);
     }
 
     function clearChatHistory() {

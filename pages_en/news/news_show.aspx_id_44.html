@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Metachip Awarded "National High-tech Enterprise" Certification! Leading with Carbon-based Sensing Technology,
+        Safeguarding Health and Energy Safety - Metachip</title>
+
+    <!-- Vaisala Style V2.0 -->
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .article-hero {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 31, 63, 0.9) 0%, rgba(0, 31, 63, 0.7) 100%), url('../../assets/images/section2_bj.jpg') center/cover;
+            height: 40vh;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white !important;
+            padding: 0 20px;
+        }
+
+        .article-hero__title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            max-width: 900px;
+            line-height: 1.4;
+        }
+
+        .article-hero__meta {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .article-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        @media (min-width: 1920px) {
+            .article-container {
+                max-width: 1600px;
+            }
+
+            .article-content {
+                font-size: 19px;
+            }
+
+            .article-hero__title {
+                font-size: 48px;
+            }
+        }
+
+        .article-content {
+            font-size: 17px;
+            line-height: 1.9;
+            color: #333;
+        }
+
+        .article-content p {
+            margin-bottom: 20px;
+        }
+
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 24px auto;
+            display: block;
+        }
+
+        .article-content strong {
+            color: var(--color-primary);
+        }
+
+        .article-content ul,
+        .article-content ol {
+            margin: 20px 0;
+            padding-left: 30px;
+        }
+
+        .article-content li {
+            margin-bottom: 10px;
+        }
+
+        .article-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 0;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        }
+
+        .article-nav a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .article-nav a:hover {
+            text-decoration: underline;
+        }
+
+        .back-btn,
+        a.back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--color-primary);
+            color: white !important;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: var(--color-accent-blue);
+            transform: translateY(-2px);
+        }
+    </style>
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/all-products.html" class="vs-nav__link">Products</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    New Arrivals <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    Industries <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    Parameters <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    Product Categories <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    Product List <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>New Arrivals</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Latest Releases</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Applications</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">Search Products <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>Industries</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                                </li>
+                                                <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>Parameters</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../measurement/measurement-hydrogen.html">Hydrogen
+                                                        (H2)</a></li>
+                                                <li><a href="../measurement/measurement-humidity.html">Humidity
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../measurement/measurement-dissolved-hydrogen.html">Dissolved Hydrogen</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../measurement/measurement-oil-water.html">Water in Oil Content</a>
+                                                </li>
+                                                <li><a href="../measurement/measurement-dewpoint.html">Dew Point
+                                                        (Td)</a></li>
+                                                <li><a href="../measurement/measurement-pressure.html">Pressure
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>Product Categories</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>Product List</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- Products由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="../gassensing/all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">View All Products <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/index.html" class="vs-nav__link">Solutions</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    Industry Solutions <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    Research <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>Industry Solutions</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>Research</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../research/index.html"><strong>Research Home</strong></a></li>
+                                            <li><a href="../research/micro-nano.html">Sensor Micro-nano Fabrication</a></li>
+                                            <li><a href="../research/development.html">Sensor Development, Testing and Application</a></li>
+                                            <li><a href="../research/cooperation.html">Deep Industry-University-Research Cooperation</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/service-cases.html" class="vs-nav__link">Cases</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    Featured <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    All Cases <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>Featured</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../gassensing/cases/case-1-truck.html">Hydrogen Detection for Heavy Hydrogen Trucks</a></li>
+                                            <li><a href="../gassensing/cases/case-6-train.html">Hydrogen Rail Detection</a></li>
+                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">Hydrogen Pipeline Safety</a></li>
+                                            <li><a href="../gassensing/cases/case-12-gas-system.html">Research Lab Gas Mixing</a></li>
+                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">Diesel Engine Vacuum Leak Detection</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>More Cases</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">Browse our successful application cases in various industries.</p>
+                                    <a href="../gassensing/service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">View All <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../about/about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">Shop</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../contact/contact.html" class="vs-nav__link">Contact</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    Join Us <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    Contact Info <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>Join Us</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../careers/partners.html">Partners</a></li>
+                                            <li><a href="../careers/growth.html">Growth</a></li>
+                                            <li><a href="../careers/talent.html">Culture</a></li>
+                                            <li><a href="../careers/jobs.html">Careers</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>Contact Info</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../contact/contact.html">Contact</a></li>
+                                            <li><a href="../contact/feedback.html">Feedback</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/news/news_show.aspx_id_44.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <main>
+        <!-- Article Hero -->
+        <section class="article-hero">
+            <h1 class="article-hero__title">Metachip Awarded "National High-tech Enterprise" Certification! <br>Leading
+                with Carbon-based Sensing Technology, Safeguarding Health and Energy Safety</h1>
+            <div class="article-hero__meta"><i class="far fa-calendar-alt"></i> 2025-04-03</div>
+        </section>
+
+        <!-- Article Content -->
+        <article class="article-container">
+            <div class="article-content">
+                <p style="line-height: 1.5em;">Dear Customers and Partners:&nbsp;&nbsp;</p>
+                <p style="line-height: 1.75em;">Recently, Hunan Metachip Technology Co., Ltd. has successfully passed
+                    the National High-tech Enterprise Certification, relying on its core independent intellectual
+                    property rights, ability to transform scientific and technological achievements, and leading R&D
+                    organization and management level! This honor is not only an authoritative recognition of Metachip's
+                    technical strength, but also marks that our innovation achievements in the field of carbon-based
+                    materials and sensing technology have entered a new stage of industrialization.&nbsp;&nbsp;</p>
+                <p style="line-height: 1.5em;"><br /></p>
+                <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<img
+                        src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031645308638.PNG"
+                        title="01.PNG" />&nbsp;&nbsp;&nbsp;&nbsp;<img
+                        src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031646103777.PNG"
+                        title="02.PNG" alt="02.PNG" /></p>
+                <p><br /></p>
+                <div>
+                    <p style="line-height: 1.5em;"><strong>1. Innovation-driven, Leading the Industrialization of
+                            Carbon-based Sensing Technology</strong></p>
+                    <p style="line-height: 1.75em;">As a pioneer in the field of carbon-based sensing technology in
+                        China, Metachip has always taken "benefiting mankind with invention" as its mission. Relying on
+                        the scientific research accumulation of the Peking University research team and the company's
+                        unique carbon nanotube sensing platform, we provide brand-new solutions for ultra-high
+                        sensitivity biological and chemical detection scenarios. We have developed and produced a series
+                        of products such as biosensing chips, gas sensing chips, sensing application systems and
+                        instruments, and built a full-chain technology platform covering biomedicine, hydrogen energy
+                        safety, environmental monitoring and other fields.</p>
+                </div>
+                <p></p>
+                <p><br /></p>
+                <div>
+                    <p style="line-height: 1.5em;"><strong>Core Achievement 1: Biosensing Chips, the "Sharp Eyes" of
+                            Precision Medicine</strong></p>
+                    <ul start="1" class="list-bullet1 list-paddingleft-2">
+                        <li>
+                            <p style="line-height: 1.5em;"><strong>Disease Screening</strong>: The self-developed
+                                carbon-based biosensing chip, with atomic-level sensitivity and rapid response
+                                capabilities, has been applied to early screening of liver cancer and Alzheimer's
+                                disease, providing precise data support for clinical diagnosis.</p>
+                        </li>
+                        <li>
+                            <p style="line-height: 1.5em;"><strong>Virus Detection</strong>: During the COVID-19
+                                pandemic, chip technology achieved ultra-fast detection of viral nucleic acids,
+                                assisting public health prevention and control.</p>
+                        </li>
+                        <li>
+                            <p style="line-height: 1.5em;"><strong>Food Safety</strong>: The biosensing workstation can
+                                efficiently detect pathogenic microorganisms and toxins in food, providing reliable
+                                guarantees for rapid food safety testing.&nbsp;&nbsp;</p>
+                        </li>
+                    </ul>
+                    <p><br /></p>
+                    <p><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031647271583.PNG"
+                            title="03.PNG" alt="03.PNG" /><img
+                            src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031647548763.PNG"
+                            title="40.PNG" alt="40.PNG" /><img
+                            src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031648531180.PNG"
+                            title="05.PNG" alt="05.PNG" /></p>
+                    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Metachip
+                        Carbon-based Bio-Platform&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp;Metachip Carbon-based Bio-Package Chip&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp; &nbsp; Metachip Biosensing Workstation<br /></p>
+                    <p><br /></p>
+                    <div>
+                        <p style="line-height: 1.5em;"><strong>Core Achievement 2: Hydrogen Sensors, Escorting the Safe
+                                Development of the Hydrogen Energy Industry</strong></p>
+                        <ul start="1" class="list-bullet1 list-paddingleft-2">
+                            <li>
+                                <p style="line-height: 1.75em;"><strong>Hydrogen Detection</strong>: The world's first
+                                    carbon-based hydrogen detector (LD-H2) has passed national explosion-proof and
+                                    metrological certification, capable of detecting 1ppm hydrogen within 1 second, with
+                                    internationally leading performance.</p>
+                            </li>
+                            <li>
+                                <p style="line-height: 1.75em;"><strong>Tracer Leak Detection:</strong> Successfully
+                                    developed a nitrogen-hydrogen tracer leak detector based on carbon-based sensing
+                                    chips, with a leak detection rate as low as 5*10-7mbar · l/s, comparable to helium
+                                    detection performance, providing new solutions for the industrial leak detection
+                                    field.</p>
+                            </li>
+                            <li>
+                                <p style="line-height: 1.75em;"><strong>Scenario Implementation</strong>: Products have
+                                    been widely used in hydrogen energy vehicles, hydrogen refueling stations,
+                                    electrochemical energy storage systems, industrial tracer leak detection and other
+                                    fields, building a full life cycle safety monitoring system.&nbsp;</p>
+                                <p><br /></p>
+                            </li>
+                        </ul>
+                    </div>
+                    <p></p>
+                    <p><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031649439806.PNG"
+                            title="06.PNG" alt="06.PNG" /><img
+                            src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031650075730.PNG"
+                            title="07.PNG" alt="07.PNG" /><img
+                            src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031650426927.PNG"
+                            title="08.PNG" alt="08.PNG" /></p>
+                    <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Metachip Handheld
+                        Hydrogen Detector&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp;Metachip Vehicle-mounted Hydrogen Sensing Module&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        &nbsp; &nbsp; &nbsp;Metachip Nitrogen-Hydrogen Tracer Detector<br /></p>
+                    <p><br /></p>
+                </div>
+                <p></p>
+                <div>
+                    <p style="line-height: 2em;"><strong>2. Deep Integration of Industry, Academia and Research,
+                            Accelerating Technology Transformation</strong></p>
+                    <p style="line-height: 2em;">Metachip adheres to "technology as the foundation, application as the
+                        core", and deeply cooperates with <strong>Peking University Carbon-based Electronics Research
+                            Center, Hunan Advanced Sensing and Information Technology Research Institute</strong> and
+                        other institutions to form a "R&D-Transformation-Application" closed loop:</p>
+                    <ul start="1" class="list-bullet1 list-paddingleft-2">
+                        <li>
+                            <p style="line-height: 2em;"><strong>Industrialization Benchmark</strong>: Jointly conquered
+                                the batch preparation process of carbon-based sensors, completed the leap from
+                                laboratory prototypes to engineering products, and the carbon-based hydrogen detector
+                                (LD-H2) passed national explosion-proof and metrological certification, entering the
+                                stage of large-scale application.</p>
+                        </li>
+                        <li>
+                            <p style="line-height: 2em;"><strong>Authoritative Recognition</strong>: Technical
+                                achievements have appeared many times at top academic conferences and industry
+                                exhibitions, and cooperation with leading hydrogen fuel cell engine companies to carry
+                                out field tests, optimizing the stability and reliability of products in complex
+                                environments, laying the foundation for industrialization.</p>
+                            <p><br /></p>
+                        </li>
+                    </ul>
+                </div>
+                <p></p>
+                <p><img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202504031654380460.PNG"
+                        title="09.PNG" alt="09.PNG" /></p>
+                <p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                    &nbsp;Metachip cooperates with customers to carry out Tianshan hydrogen fuel cell engine
+                    verification experiments</p>
+                <p><br /></p>
+                <div>
+                    <p style="line-height: 1.5em;"><strong>3. Future Outlook: Empowering Industries with
+                            Technology</strong></p>
+                    <p style="line-height: 1.75em;">Winning the National High-tech Enterprise certification marks a new
+                        starting point for Metachip's high-quality development.</p>
+                    <p style="line-height: 1.75em;">Facing the future, we will keep up with the wave of scientific and
+                        technological innovation, continue to deepen R&D investment, and drive productivity innovation
+                        with core technology breakthroughs. By continuously strengthening the original advantages of
+                        carbon-based sensing technology, deploying in medical health monitoring, biological molecule
+                        detection, hydrogen energy safety monitoring, industrial intelligent early warning and other
+                        fields, we are committed to providing more valuable sensing solutions for national strategic
+                        emerging industries.</p>
+                </div>
+                <p></p>
+                <p><br /></p>
+            </div>
+
+            <div class="article-nav">
+                <a href="news.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to News List
+                </a>
+            </div>
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index_en.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255, 255, 255, 0.6); line-height: 1.8;">
+                        Hunan Metachip Technology Co., Ltd.<br>
+                        Focusing on advanced biosensing and chemical sensing technology<br>
+                        Committed to becoming a leading global provider of smart sensing solutions
+                    </p>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>Company Info</h4>
+                    <a href="../pages_en/about/about.html" class="vs-footer__link">About Us</a>
+                    <a href="news.html" class="vs-footer__link">News Center</a>
+                    <a href="../pages_en/contact/contact.html" class="vs-footer__link">Contact Info</a>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 Hunan Metachip Technology Co., Ltd.. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    
+    <!-- Site Search -->
+  <script src="../../assets/js/search.js"></script>
+
+    <!-- AI Chatbot -->
+    <script src="../../assets/js/chatbot.js"></script>
+</body>
+
+</html>

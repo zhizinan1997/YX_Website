@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>国赛决赛，我们来了！Metachip以硬核科技闪耀“创客中国”舞台 - Hunan Metachip Technology Co., Ltd.</title>
+
+    <!-- Vaisala Style V2.0 -->
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .article-hero {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 31, 63, 0.9) 0%, rgba(0, 31, 63, 0.7) 100%), url('../../assets/images/section2_bj.jpg') center/cover;
+            height: 40vh;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white !important;
+            padding: 0 20px;
+        }
+
+        .article-hero__title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            max-width: 900px;
+            line-height: 1.4;
+        }
+
+        .article-hero__meta {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .article-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        @media (min-width: 1920px) {
+            .article-container {
+                max-width: 1600px;
+            }
+
+            .article-content {
+                font-size: 19px;
+            }
+
+            .article-hero__title {
+                font-size: 48px;
+            }
+        }
+
+        .article-content {
+            font-size: 17px;
+            line-height: 1.9;
+            color: #333;
+        }
+
+        .article-content p {
+            margin-bottom: 20px;
+        }
+
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 24px auto;
+            display: block;
+        }
+
+        .article-content strong {
+            color: var(--color-primary);
+        }
+
+        .article-content ul,
+        .article-content ol {
+            margin: 20px 0;
+            padding-left: 30px;
+        }
+
+        .article-content li {
+            margin-bottom: 10px;
+        }
+
+        .article-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 0;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        }
+
+        .article-nav a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .article-nav a:hover {
+            text-decoration: underline;
+        }
+
+        .back-btn,
+        a.back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--color-primary);
+            color: white !important;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: var(--color-accent-blue);
+            transform: translateY(-2px);
+        }
+    </style>
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/all-products.html" class="vs-nav__link">Products</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    New Arrivals <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    Industries <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    Parameters <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    Product Categories <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    Product List <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>New Arrivals</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Latest Releases</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Applications</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">Search Products <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>Industries</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                                </li>
+                                                <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>Parameters</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../measurement/measurement-hydrogen.html">Hydrogen
+                                                        (H2)</a></li>
+                                                <li><a href="../measurement/measurement-humidity.html">Humidity
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../measurement/measurement-dissolved-hydrogen.html">Dissolved Hydrogen</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../measurement/measurement-oil-water.html">Water in Oil Content</a>
+                                                </li>
+                                                <li><a href="../measurement/measurement-dewpoint.html">Dew Point
+                                                        (Td)</a></li>
+                                                <li><a href="../measurement/measurement-pressure.html">Pressure
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>Product Categories</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>Product List</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- Products由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="../gassensing/all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">View All Products <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/index.html" class="vs-nav__link">Solutions</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    Industry Solutions <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    Research <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>Industry Solutions</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>Research</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../research/index.html"><strong>Research Home</strong></a></li>
+                                            <li><a href="../research/micro-nano.html">Sensor Micro-nano Fabrication</a></li>
+                                            <li><a href="../research/development.html">Sensor Development, Testing and Application</a></li>
+                                            <li><a href="../research/cooperation.html">Deep Industry-University-Research Cooperation</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/service-cases.html" class="vs-nav__link">Cases</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    Featured <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    All Cases <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>Featured</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../gassensing/cases/case-1-truck.html">Hydrogen Detection for Heavy Hydrogen Trucks</a></li>
+                                            <li><a href="../gassensing/cases/case-6-train.html">Hydrogen Rail Detection</a></li>
+                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">Hydrogen Pipeline Safety</a></li>
+                                            <li><a href="../gassensing/cases/case-12-gas-system.html">Research Lab Gas Mixing</a></li>
+                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">Diesel Engine Vacuum Leak Detection</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>More Cases</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">Browse our successful application cases in various industries.</p>
+                                    <a href="../gassensing/service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">View All <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../about/about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">Shop</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../contact/contact.html" class="vs-nav__link">Contact</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    Join Us <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    Contact Info <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>Join Us</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../careers/partners.html">Partners</a></li>
+                                            <li><a href="../careers/growth.html">Growth</a></li>
+                                            <li><a href="../careers/talent.html">Culture</a></li>
+                                            <li><a href="../careers/jobs.html">Careers</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>Contact Info</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../contact/contact.html">Contact</a></li>
+                                            <li><a href="../contact/feedback.html">Feedback</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/news/news_show.aspx_id_56.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <main>
+        <!-- Article Hero -->
+        <section class="article-hero">
+            <h1 class="article-hero__title">Finals, Here We Come! Metachip Shines on "Maker China" Stage with Hardcore
+                Technology</h1>
+            <div class="article-hero__meta"><i class="far fa-calendar-alt"></i> 2025-08-20</div>
+        </section>
+
+        <!-- Article Content -->
+        <article class="article-container">
+            <div class="article-content">
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">Recently, the semi-final results of
+                        the 10th "Maker China" High-end Scientific Instrument Equipment and Sensor SME Innovation and
+                        Entrepreneurship Competition were officially announced. After layers of selection and fierce
+                        competition, Metachip stood out from 182 outstanding participating projects nationwide with its
+                        self-developed "Carbon-based Nitrogen-Hydrogen Tracer Leak Detection Technology" project,
+                    </span><strong><span style="font-family:Arial;line-height:120%;font-size:15px">successfully
+                            advancing to the enterprise group finals!</span></strong></p>
+                <p style="text-align: center"><img
+                        src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508201027019385.png"
+                        title="battle_02.png" alt="battle_02.png" /></p>
+                <p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">This is not only a high recognition of
+                        our technological innovation strength, but also an affirmation and encouragement of our
+                        commitment to solving industry pain points and empowering Made in China!</span></p>
+                <hr />
+                <p style="margin-top: 17px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:19px">"Maker China": A National-level
+                            Top Stage for Innovation and Entrepreneurship</span></strong></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">"Maker China" SME Innovation and
+                        Entrepreneurship Competition is a </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">national-level authoritative
+                            competition</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">
+                        guided by the </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Ministry of Industry and
+                            Information Technology</span></strong><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">, focusing on industrial frontiers and
+                        empowering SME development. Since its inception, the competition has become a cradle for
+                        discovering and cultivating "Specialized, Refined, Differential, and Innovation" enterprises,
+                        and is an important yardstick for measuring the innovation capability and development potential
+                        of SMEs.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">The "High-end Scientific Instrument
+                        Equipment and Sensor Special Competition" we participated in is the top priority of the "Maker
+                        China" competition. Jointly hosted by the Cyber Security Industry Development Center of the
+                        MIIT, Beijing Municipal Bureau of Economy and Information Technology, and other units, this
+                        special competition focuses on "bottleneck" key technology areas, aiming to excavate and
+                        cultivate a batch of hardcore technology projects capable of breaking technological barriers and
+                        leading industrial upgrades.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">This special competition attracted
+                    </span><strong><span style="font-family:Arial;line-height:120%;font-size:15px">182
+                            projects</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">
+                        nationwide. After strict screening in the preliminary round, only 54 enterprise group projects
+                        entered the semi-finals. The semi-final roadshow gathered top technical and investment experts,
+                        and finally only </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">18 enterprise group
+                            projects</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">
+                        could stand on the final stage. </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Overcoming all obstacles, the
+                            honor is hard-earned!</span></strong></p>
+                <p><br /></p>
+                <p style="margin-top: 17px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:19px">Glory Moment: Official
+                            Certification, Strength Shortlisted</span></strong></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">Recently, the competition organizing
+                        committee officially released the public notice of the list of finalists, and Metachip is among
+                        them!</span></p>
+                <p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px"><br /></span></p>
+                <p style="text-align: center"><img
+                        src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508201027373043.png"
+                        title="battle_xlsx.png" alt="battle_xlsx.png" /></p>
+                <p style="margin-top: 17px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><a
+                        name="heading_2"></a><strong><span style="font-family:Arial;line-height:120%;font-size:19px">Our
+                            Project: </span></strong><a href="../gas_sensors.html"><strong><span
+                                style="font-family:Arial;line-height:120%;color:rgb(51,112,255);font-size:19px">Carbon-based
+                                Nitrogen-Hydrogen Tracer Leak Detection Technology</span></strong></a></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">Gaining recognition from a
+                        national-level platform stems from our dedication to technology and deep insight into the
+                        market. Our participating project — </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">"Carbon-based Nitrogen-Hydrogen
+                            Tracer Leak Detection Technology"</span></strong><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">, aims to solve a pain point that has
+                        long plagued China's manufacturing industry.</span></p>
+                <p style="margin-top: 8px;margin-bottom: 8px;margin-left: 0;line-height: 120%"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px"><br /></span></p>
+                <p style="text-align: center"><img
+                        src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508201028130993.jpg"
+                        title="battle_03.jpg" alt="battle_03.jpg" /></p>
+                <p style="margin-top:8px;margin-bottom:8px;margin-left:0;text-align:center;line-height:120%"><span
+                        style="font-family:Arial;line-height:120%;color:rgb(143,149,158);font-size:15px">(Project
+                        Roadshow Site of General Manager Dr. Hua Zhongqiu)</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 120%;"><span
+                        style=";font-family:Arial;line-height:120%;color:rgb(143,149,158);font-size:15px"><span
+                            style="font-family:等线"><br /></span></span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 120%;"><span
+                        style=";font-family:Arial;line-height:120%;color:rgb(143,149,158);font-size:15px"><span
+                            style="font-family:等线"><br /></span></span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;</span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Market Pain Point:
+                        </span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">&nbsp;In
+                        industrial production, product leak detection is crucial. However, the traditional
+                        high-precision </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">helium mass spectrometry leak
+                            detection</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">
+                        has high equipment and gas costs, making it "unaffordable" for the vast number of SMEs; while
+                        traditional </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">bubble leak
+                            detection</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">
+                        has low accuracy and poor efficiency, unable to meet increasingly high quality requirements,
+                        resulting in an awkward situation of "poor detection".</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;</span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Our Solution:
+                        </span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">&nbsp;We
+                        innovatively proposed a new choice that is </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">precise, efficient, and
+                            economical</span></strong><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">.</span></p>
+                <p style="text-align: center"><img
+                        src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202508201028494477.png"
+                        title="battle_01.png" alt="battle_01.png" /></p>
+                <p style="margin-top:8px;margin-bottom:8px;margin-left:30px;text-align:center;line-height:120%"><span
+                        style="font-family:Arial;line-height:120%;color:rgb(143,149,158);font-size:15px">(Product Image
+                        of Carbon-based Nitrogen-Hydrogen Tracer Leak Detector)</span></p>
+                <p><br /></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; line-height: 1.75em;"><span
+                        style="font-family:Arial;color:rgb(51,112,255);font-size:15px">￮&nbsp;</span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Core Technology:
+                        </span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">&nbsp;The
+                        "heart" of the project is our self-developed </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Carbon Nanotube Transistor Sensing
+                            Technology</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">.
+                        This carbon-based sensor has unparalleled sensitivity and nanosecond-level response speed to
+                        hydrogen molecules, just like a super-sensitive "electronic nose".</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; line-height: 1.75em;"><span
+                        style="font-family:Arial;color:rgb(51,112,255);font-size:15px">￮&nbsp;</span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Working Principle:
+                        </span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">&nbsp;We use
+                        cheap, safe, and environmentally friendly nitrogen-hydrogen mixed gas as tracer gas. When trace
+                        hydrogen overflows from the leak point, our carbon sensor can capture it instantly, achieving
+                        ultra-high precision leak detection as low as </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">5*10⁻⁷
+                            mbar·l/s</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">,
+                        with performance comparable to expensive helium detection.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;color:rgb(51,112,255);font-size:15px">•&nbsp;</span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Market Verification:
+                        </span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">&nbsp;Our
+                        technology is not a castle in the air.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; line-height: 1.75em;"><span
+                        style="font-family:Arial;color:rgb(51,112,255);font-size:15px">￮&nbsp;</span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Leak Detector Project:
+                        </span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">&nbsp;The
+                    </span><strong><span style="font-family:Arial;line-height:120%;font-size:15px">Nitrogen-Hydrogen
+                            Tracer Leak Detector</span></strong><span
+                        style="font-family:Arial;line-height:120%;font-size:15px"> participating in this competition has
+                        entered the customer trial stage in South China, with positive initial feedback.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; line-height: 1.75em;"><span
+                        style="font-family:Arial;color:rgb(51,112,255);font-size:15px">￮&nbsp;</span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Technology Endorsement:
+                        </span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">&nbsp;To verify
+                        the core technology, another </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">Carbon-based Hydrogen
+                            Detector</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">
+                        developed by us, with its excellent performance of detecting one part per million of hydrogen
+                        within 1 second, </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">has been purchased and used by
+                            many leading domestic hydrogen energy enterprises and widely praised</span></strong><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">. This provides the strongest proof of
+                        the maturity and reliability of our technology.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">Our vision is to use advanced sensing
+                        technology originating from China to provide thousands of SMEs with a high-quality leak
+                        detection tool that is </span><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:15px">affordable and
+                            trustworthy</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px">,
+                        contributing to the quality upgrade of "Made in China".</span></p>
+                <p><br /></p>
+                <p style="margin-top: 17px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><strong><span
+                            style="font-family:Arial;line-height:120%;font-size:19px">Advancing to the Finals is a
+                            Milestone and a New Starting Point</span></strong></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">Successfully entering the "Maker
+                        China" national finals is the best reward for our past efforts and injects strong momentum into
+                        our future journey.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">Here, we sincerely thank the
+                        competition organizers for providing a valuable platform, thank the judges and experts for their
+                        professional guidance, and thank all partners and customers for their support along the
+                        way!</span>
+                </p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">Next, we will go all out to prepare
+                        for the finals, striving to fully display the technical charm and market value of the project on
+                        the national stage.</span></p>
+                <p style="margin-top: 8px; margin-bottom: 8px; margin-left: 0px; line-height: 1.75em;"><span
+                        style="font-family:Arial;line-height:120%;font-size:15px">If you also want to personally feel
+                        this peak showdown in the field of scientific instruments, you can follow the
+                    </span><strong><span style="font-family:Arial;line-height:120%;font-size:15px">[Maker China] Live
+                            Stream</span></strong><span style="font-family:Arial;line-height:120%;font-size:15px"> to
+                        watch the exciting grand occasion.</span></p>
+                <p><br /></p>
+            </div>
+
+            <div class="article-nav">
+                <a href="news.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to News List
+                </a>
+            </div>
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index_en.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255, 255, 255, 0.6); line-height: 1.8;">
+                        Hunan Metachip Technology Co., Ltd.<br>
+                        Focusing on advanced biosensing and chemical sensing technology<br>
+                        Committed to becoming a leading global provider of smart sensing solutions
+                    </p>
+                </div>
+                <div class="vs-footer__col">
+                    <h4>Company Info</h4>
+                    <a href="../pages_en/about/about.html" class="vs-footer__link">About Us</a>
+                    <a href="news.html" class="vs-footer__link">News Center</a>
+                    <a href="../pages_en/contact/contact.html" class="vs-footer__link">Contact Info</a>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 Hunan Metachip Technology Co., Ltd.. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    
+    <!-- Site Search -->
+  <script src="../../assets/js/search.js"></script>
+
+    <!-- AI Chatbot -->
+    <script src="../../assets/js/chatbot.js"></script>
+</body>
+
+</html>

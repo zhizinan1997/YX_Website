@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ion Detector - Metachip</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Product Detail Page - Premium Styles */
+        .vs-product-hero {
+            background: linear-gradient(135deg, #004d8c 0%, var(--color-primary-dark) 100%);
+            padding: 120px 0 80px;
+            color: white;
+        }
+
+        .vs-product-hero__inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        /* Image Gallery */
+        .vs-product-gallery {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .vs-gallery-main {
+            width: 100%;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .vs-gallery-main img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .vs-gallery-thumbs {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 8px 0;
+            justify-content: center;
+        }
+
+        .vs-gallery-thumb {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vs-gallery-thumb:hover,
+        .vs-gallery-thumb.active {
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-gallery-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .vs-product-hero__content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .vs-product-hero__desc {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .vs-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .vs-feature-list li {
+            padding: 12px 16px 12px 44px;
+            position: relative;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .vs-feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 16px;
+            color: #4ADE80;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Section Styles */
+        .vs-product-section {
+            padding: 80px 0;
+        }
+
+        .vs-product-section.alt-bg {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .vs-product-section__title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 32px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .vs-product-section__title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
+            border-radius: 2px;
+        }
+
+        .vs-product-section__content {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #4a5568;
+        }
+
+        /* Advantages Grid */
+        .vs-advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .vs-advantage-card {
+            background: white;
+            padding: 30px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-align: center;
+            border: 1px solid #f1f5f9;
+        }
+
+        .vs-advantage-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-advantage-card i {
+            font-size: 40px;
+            color: var(--color-accent-orange);
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .vs-advantage-card h4 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 10px;
+        }
+
+        .vs-advantage-card p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* Application Grid */
+        .vs-applications-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 24px;
+        }
+
+        .vs-application-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-application-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-app-img-wrap {
+            width: 100%;
+            aspect-ratio: 16/10;
+            overflow: hidden;
+        }
+
+        .vs-application-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .vs-application-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .vs-application-label {
+            padding: 24px;
+            background: white;
+            flex-grow: 1;
+        }
+
+        .vs-application-label h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--color-primary);
+            margin-top: 0;
+        }
+
+        .vs-application-label h4 i {
+            color: var(--color-accent-orange);
+            font-size: 18px;
+        }
+
+        .vs-application-label p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            color: #64748b;
+        }
+
+        /* Specs Table */
+        .vs-specs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .vs-specs-table td {
+            padding: 18px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 15px;
+        }
+
+        .vs-specs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vs-specs-table tr td:first-child {
+            background: var(--color-primary);
+            color: white;
+            font-weight: 600;
+            width: 240px;
+        }
+
+        .vs-specs-table tr td:last-child {
+            background: white;
+            color: #334155;
+        }
+
+        .vs-specs-table tr:nth-child(even) td:last-child {
+            background: #f8fafc;
+        }
+
+        /* Related Products */
+        .vs-related-products {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 80px 0;
+        }
+
+        .vs-related-products h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .vs-related-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .vs-related-item {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .vs-related-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-related-item img {
+            width: 100%;
+            height: 160px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 20px;
+        }
+
+        .vs-related-item h4 {
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+        }
+
+        .vs-breadcrumb {
+            padding: 16px 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .vs-breadcrumb a {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+        }
+
+        .vs-breadcrumb a:hover {
+            color: white;
+        }
+
+        .vs-breadcrumb span {
+            margin: 0 12px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .vs-related-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-advantages-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-product-hero__inner {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-product-hero__content h1 {
+                font-size: 32px;
+            }
+
+            .vs-related-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-advantages-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item"><a href="../pages_en/products/index.html"
+                            class="vs-nav__link">Products</a></li>
+                    <li class="vs-nav__item"><a href="../pages_en/gassensing/index.html" class="vs-nav__link">Solutions</a>
+                    </li>
+                    <li class="vs-nav__item"><a href="../pages_en/news/news.html" class="vs-nav__link">Insights & News</a></li>
+                    <li class="vs-nav__item"><a href="../pages_en/about/about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="../pages_en/contact/contact.html" class="vs-nav__link">Contact</a>
+                    </li>
+                </ul>
+            </nav>
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/biosensing/ion_detector.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+    </header>
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index_en.html">Home</a><span>|</span>
+                <a href="../../pages_en/products/index.html">Products</a><span>|</span>
+                <a href="../../pages_en/products/index.html">Biosensing</a><span>|</span>
+                Ion Detector
+            </div>
+        </div>
+
+        <!-- Product Hero with Gallery -->
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <!-- Image Gallery -->
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <img id="mainImage"
+                                src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141553278669.png"
+                                alt="Ion Detector">
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active"
+                                onclick="changeImage(this, 'https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141553278669.png')">
+                                <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141553278669.png"
+                                    alt="Product Overview">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="vs-product-hero__content">
+                        <h1>Ion Detector</h1>
+                        <p class="vs-product-hero__desc">Metachip's ion detector enables real-time on-site analysis for
+                            rapid detection of ions such as sodium, potassium, lead, and hydrogen.</p>
+                        <ul class="vs-feature-list">
+                            <li>High current detection precision (1nA) for capturing weak signals</li>
+                            <li>Wide range: 1nA-30μA, adaptable to various concentrations</li>
+                            <li>Bluetooth communication for easy mobile device connection</li>
+                            <li>Independent calibration for 8 channels, supporting simultaneous testing of 4 analytes
+                            </li>
+                            <li>Waterproof design, submersible in solutions</li>
+                            <li>Quick plug-and-play linkage</li>
+                        </ul>
+                        <div>
+                            <a href="../../pages_en/contact/feedback.html" class="vs-btn vs-btn--primary"
+                                style="padding: 14px 32px; font-size: 16px;">
+                                <i class="fas fa-microscope" style="margin-right: 10px;"></i>Schedule a Demo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Details -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">Product Details</h2>
+                <div class="vs-product-section__content">
+                    <p>The ion detector is a portable, fast, and precise test device using ion-selective electrode
+                        technology. It enables real-time on-site analysis for rapid detection of various ions (sodium,
+                        potassium, lead, hydrogen ions, etc.).</p>
+                    <p>This equipment is widely applicable in environmental monitoring, food safety, water testing,
+                        agriculture, and healthcare, helping users quickly assess ion concentrations in the environment
+                        to provide data support for decision-making.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Advantages -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">Product Advantages</h2>
+                <div class="vs-advantages-grid">
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-stopwatch"></i>
+                        <h4>Fast Detection</h4>
+                        <p>Real-time on-site analysis, rapid feedback of results</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-bullseye"></i>
+                        <h4>Sensitive Response</h4>
+                        <p>High-sensitivity electrodes, precise and reliable measurement</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-tablet-alt"></i>
+                        <h4>Simple Operation</h4>
+                        <p>User-friendly interface, intuitive readings, easy to master</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-feather-alt"></i>
+                        <h4>Compact & Portable</h4>
+                        <p>Small size, elegant design, suitable for handheld use</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Applications -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">Main Applications</h2>
+                <div class="vs-applications-grid">
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141557126751.jpeg"
+                                alt="Environmental Monitoring">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-seedling"></i> Environmental Monitoring</h4>
+                            <p>Used to monitor ion concentrations in soil, water, and other environmental samples to
+                                assess pollution status.</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141557510960.png"
+                                alt="Food Safety">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-utensils"></i> Food Safety</h4>
+                            <p>Quickly detect ion content in food and beverages to ensure safety and quality.</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-img-wrap">
+                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141558417938.png"
+                                alt="Water Quality Testing">
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-water"></i> Water Testing</h4>
+                            <p>Suitable for real-time ion monitoring of tap water, drinking water, and industrial
+                                wastewater.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Specifications -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">Technical Specifications</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>Display Type</td>
+                        <td>Color Touchscreen</td>
+                    </tr>
+                    <tr>
+                        <td>Channel Count</td>
+                        <td>8-channel simultaneous detection</td>
+                    </tr>
+                    <tr>
+                        <td>Detection Analytes</td>
+                        <td>Na⁺, K⁺, Pb²⁺, H⁺ and other ions</td>
+                    </tr>
+                    <tr>
+                        <td>Data Interface</td>
+                        <td>Type-C</td>
+                    </tr>
+                    <tr>
+                        <td>Communication</td>
+                        <td>Bluetooth</td>
+                    </tr>
+                    <tr>
+                        <td>Power Supply</td>
+                        <td>5000mAh Lithium Battery</td>
+                    </tr>
+                    <tr>
+                        <td>Language</td>
+                        <td>English / Chinese</td>
+                    </tr>
+                    <tr>
+                        <td>Supported Devices</td>
+                        <td>Field-Effect Transistor (FET)</td>
+                    </tr>
+                    <tr>
+                        <td>Sampling Current</td>
+                        <td>1nA - 30μA</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- Related Products -->
+        <section class="vs-related-products">
+            <div class="vs-container">
+                <h2>Related Products</h2>
+                <div class="vs-related-grid">
+                    <a href="mc_bw_bio_workstation.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141610379601.jpg"
+                            alt="Biosensing Workstation">
+                        <h4>Biosensing Workstation</h4>
+                    </a>
+                    <a href="portable_bio_detector.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501141535249134.png"
+                            alt="Portable Handheld Bio-Detector">
+                        <h4>Portable Handheld Bio-Detector</h4>
+                    </a>
+                    <a href="carbon_bio_package_chip.html" class="vs-related-item">
+                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101346080807.png"
+                            alt="Carbon-Based Bio-Package Chip">
+                        <h4>Carbon-Based Bio-Package Chip</h4>
+                    </a>
+                    <a href="respiratory_virus_chip.html" class="vs-related-item">
+                        <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202510200917507059.png"
+                            alt="Acute Respiratory Virus Detection Chip">
+                        <h4>Acute Respiratory Virus Chip</h4>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <h3>Experience Smart Sensing</h3>
+                <p>Hunan Metachip is committed to providing portable, precise, and smart ion detection solutions.</p>
+                <a href="../../pages_en/contact/contact.html" class="vs-btn vs-btn--secondary"
+                    style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
+                    <i class="fas fa-paper-plane" style="margin-right: 10px;"></i>Request Product Brochure
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index_en.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
+                        Hunan Metachip Technology Co., Ltd.<br>No. 38 Shuyuan Road, Shuangma Street, High-tech Zone, Xiangtan City, Hunan Province
+                    </p>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 Hunan Metachip Technology Co., Ltd.. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    
+    <script>
+        // Image Gallery Functionality
+        function changeImage(thumb, src) {
+            // Update main image
+            document.getElementById('mainImage').src = src;
+
+            // Update active thumbnail
+            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        }
+    </script>
+    <!-- Site Search -->
+    <script src="../../assets/js/search.js"></script>
+
+    <!-- AI Chatbot -->
+    <script src="../../assets/js/chatbot.js"></script>
+</body>
+
+</html>

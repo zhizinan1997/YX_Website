@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Metachip</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Specific Styles for About Page */
+        .vs-about-hero {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../../assets/images/about_ban.jpg');
+            background-size: cover;
+            background-position: center;
+            height: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            margin-bottom: 0;
+            position: relative;
+        }
+
+        .vs-about-hero h1 {
+            font-size: 64px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .vs-about-hero p {
+            font-size: 24px;
+            font-weight: 300;
+            opacity: 0.95;
+            max-width: 800px;
+        }
+
+        .vs-sticky-nav {
+            background: white;
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 90px;
+            z-index: 900;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .vs-sticky-nav ul {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .vs-sticky-nav li {
+            margin: 0;
+        }
+
+        .vs-sticky-nav a {
+            display: block;
+            padding: 24px 50px;
+            color: var(--color-text-body);
+            font-weight: 600;
+            font-size: 16px;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .vs-sticky-nav a:hover,
+        .vs-sticky-nav a.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-accent-blue);
+            background: rgba(0, 55, 100, 0.03);
+        }
+
+        .vs-about-section {
+            padding: 120px 0;
+            scroll-margin-top: 155px;
+        }
+
+        .vs-about-section:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        /* Profile Layout */
+        .vs-profile-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .vs-profile-text {
+            font-size: 17px;
+            line-height: 1.8;
+            color: #444;
+        }
+
+        .vs-profile-text p {
+            margin-bottom: 24px;
+        }
+
+        .vs-profile-img-box {
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-profile-img-box::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            width: 100%;
+            height: 100%;
+            border: 4px solid var(--color-accent-blue);
+            z-index: -1;
+            border-radius: 8px;
+        }
+
+        .vs-profile-img-box img {
+            border-radius: 4px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Culture Grid */
+        .vs-culture-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 60px;
+        }
+
+        .vs-culture-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+
+        .vs-culture-card {
+            background: white;
+            padding: 50px 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+
+        .vs-culture-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--color-accent-blue);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+            transform-origin: left;
+        }
+
+        .vs-culture-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-culture-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .vs-culture-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 161, 223, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            font-size: 32px;
+            color: var(--color-accent-blue);
+            transition: all 0.4s ease;
+        }
+
+        .vs-culture-card:hover .vs-culture-icon {
+            background: var(--color-accent-blue);
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        /* Timeline */
+        .vs-timeline-box {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            margin-top: 50px;
+            display: inline-block;
+        }
+
+        .vs-timeline-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        /* Core Tech Box */
+        .vs-core-tech {
+            margin-top: 80px;
+            background: linear-gradient(135deg, #003764 0%, #001f3f 100%);
+            color: white;
+            padding: 80px 60px;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vs-core-tech::after {
+            content: '';
+            position: absolute;
+            right: -50px;
+            top: -50px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 50%;
+        }
+
+        .vs-core-tech h3 {
+            color: white;
+            font-size: 32px;
+            margin-bottom: 24px;
+        }
+
+        .vs-core-tech p {
+            font-size: 18px;
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/all-products.html" class="vs-nav__link">Products</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    New Arrivals <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    Industries <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    Parameters <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    Product Categories <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    Product List <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>New Arrivals</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Latest Releases</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Applications</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">Search Products <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>Industries</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                                </li>
+                                                <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>Parameters</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../measurement/measurement-hydrogen.html">Hydrogen
+                                                        (H2)</a></li>
+                                                <li><a href="../measurement/measurement-humidity.html">Humidity
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../measurement/measurement-dissolved-hydrogen.html">Dissolved Hydrogen</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../measurement/measurement-oil-water.html">Water in Oil Content</a>
+                                                </li>
+                                                <li><a href="../measurement/measurement-dewpoint.html">Dew Point
+                                                        (Td)</a></li>
+                                                <li><a href="../measurement/measurement-pressure.html">Pressure
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>Product Categories</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>Product List</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- Products由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="../gassensing/all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">View All Products <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/index.html" class="vs-nav__link">Solutions</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    Industry Solutions <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    Research <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>Industry Solutions</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>Research</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../research/index.html"><strong>Research Home</strong></a></li>
+                                            <li><a href="../research/micro-nano.html">Sensor Micro-nano Fabrication</a></li>
+                                            <li><a href="../research/development.html">Sensor Development, Testing and Application</a></li>
+                                            <li><a href="../research/cooperation.html">Deep Industry-University-Research Cooperation</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../gassensing/service-cases.html" class="vs-nav__link">Cases</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    Featured <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    All Cases <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>Featured</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../gassensing/cases/case-1-truck.html">Hydrogen Detection for Heavy Hydrogen Trucks</a></li>
+                                            <li><a href="../gassensing/cases/case-6-train.html">Hydrogen Rail Detection</a></li>
+                                            <li><a href="../gassensing/cases/case-4-pipeline-safety.html">Hydrogen Pipeline Safety</a></li>
+                                            <li><a href="../gassensing/cases/case-12-gas-system.html">Research Lab Gas Mixing</a></li>
+                                            <li><a href="../gassensing/cases/case-13-diesel-engine.html">Diesel Engine Vacuum Leak Detection</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>More Cases</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">Browse our successful application cases in various industries.</p>
+                                    <a href="../gassensing/service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">View All <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">Shop</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../contact/contact.html" class="vs-nav__link">Contact</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    Join Us <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    Contact Info <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>Join Us</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../careers/partners.html">Partners</a></li>
+                                            <li><a href="../careers/growth.html">Growth</a></li>
+                                            <li><a href="../careers/talent.html">Culture</a></li>
+                                            <li><a href="../careers/jobs.html">Careers</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>Contact Info</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../contact/contact.html">Contact</a></li>
+                                            <li><a href="../contact/feedback.html">Feedback</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/about/about.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <main style="padding-top: 90px;">
+
+        <!-- Hero -->
+        <section class="vs-about-hero">
+            <div class="vs-container">
+                <h1>About Us</h1>
+                <p>Small is the new big · Smart Sensing the World</p>
+            </div>
+        </section>
+
+        <!-- Sticky Sub-Nav -->
+        <nav class="vs-sticky-nav">
+            <ul>
+                <li><a href="#profile" class="active">Profile</a></li>
+                <li><a href="#history">History</a></li>
+                <li><a href="#culture">Culture</a></li>
+            </ul>
+        </nav>
+
+        <!-- Section 1: Company Profile -->
+        <section id="profile" class="vs-about-section">
+            <div class="vs-container">
+                <div class="vs-profile-layout">
+                    <div>
+                        <span
+                            style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Company
+                            Profile</span>
+                        <h2 class="vs-title" style="margin-top: 10px;">Metachip Technology</h2>
+                        <div class="vs-profile-text">
+                            <p>
+                                <strong>Hunan Metachip Technology Co., Ltd. (Metachip)</strong> originates from over 20
+                                years of research by a top-tier team from Peking University, specializing in the R&D and
+                                manufacturing of advanced sensing products. We are dedicated to developing novel
+                                carbon-based FET sensing technologies for next-generation, high-performance integrated
+                                sensing chips.
+                            </p>
+                            <p>
+                                Sensing serves as the vital interface between information technology and the physical
+                                world. Our advanced products are essential components of modern industrial evolution,
+                                impacting various sectors of global technology. Metachip strives to explore the
+                                limitless possibilities of sensing alongside our partners.
+                            </p>
+                            <a href="../../pages_en/contact/contact.html" class="vs-btn vs-btn--primary">Contact</a>
+                        </div>
+                    </div>
+                    <div class="vs-profile-img-box">
+                        <!-- Trying a valid local image related to company/lab -->
+                        <img src="../../assets/images/js_ys.jpg" alt="Metachip Laboratory" class="vs-img-responsive">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: History -->
+        <section id="history" class="vs-about-section">
+            <div class="vs-container">
+                <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+                    <span
+                        style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Milestones</span>
+                    <h2 class="vs-title">Development History</h2>
+                    <p class="vs-text" style="margin: 0 auto;">Every step forward is a persistent pursuit and
+                        breakthrough in technology.</p>
+                </div>
+
+                <div style="text-align: center;">
+                    <div class="vs-timeline-box">
+                        <!-- Verified local timeline image -->
+                        <img src="../../assets/images/chengzhang1.png" alt="Development History Timeline">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Culture -->
+        <section id="culture" class="vs-about-section">
+            <div class="vs-container">
+                <div class="vs-culture-header">
+                    <span
+                        style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Our
+                        Culture</span>
+                    <h2 class="vs-title">Corporate Culture</h2>
+                    <p class="vs-text" style="margin: 0 auto;">Our shared values and vision guide our future direction.
+                    </p>
+                </div>
+
+                <div class="vs-culture-grid">
+                    <div class="vs-culture-card">
+                        <div class="vs-culture-icon"><i class="fas fa-bullseye"></i></div>
+                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">Mission</h3>
+                        <p style="color: #666; font-size: 16px;">Focus on advanced sensing technologies,<br>Benefit
+                            humanity with innovation.</p>
+                    </div>
+
+                    <div class="vs-culture-card">
+                        <div class="vs-culture-icon"><i class="fas fa-eye"></i></div>
+                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">Vision</h3>
+                        <p style="color: #666; font-size: 16px;">Small is the new big,<br>Smartly sensing the world.</p>
+                    </div>
+
+                    <div class="vs-culture-card">
+                        <div class="vs-culture-icon"><i class="fas fa-users"></i></div>
+                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">Values</h3>
+                        <p style="color: #666; font-size: 16px;">Employees first, customer success,<br>Win-win
+                            cooperation.</p>
+                    </div>
+                </div>
+
+                <!-- Core Tech Feature -->
+                <div class="vs-core-tech">
+                    <div style="max-width: 900px; margin: 0 auto; text-align: center;">
+                        <h3><i class="fas fa-microchip" style="margin-right: 15px;"></i>Core Technology</h3>
+                        <p>
+                            Our core material—<strong>Carbon Nanotubes (CNTs)</strong>—is recognized by the ITRS as the
+                            most promising candidate for extending Moore's Law. With ultra-thin dimensions and high
+                            mobility, CNT-based sensors offer superior sensitivity and integration, enabling precise
+                            detection for various trace targets.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="background: #1a1a1a; color: #999; padding: 60px 0; border-top: 1px solid #333;">
+        <div class="vs-container" style="text-align: center;">
+            <img src="../../assets/images/logo.png" alt="Logo"
+                style="height: 40px; filter: brightness(0) invert(1); opacity: 0.5; margin: 0 auto 30px;">
+            <p>&copy; 2026 Hunan Metachip Technology Co., Ltd. All Rights Reserved</p>
+        </div>
+    </footer>
+
+    
+    <script>
+        // Sticky Nav Active State on Scroll - Enhanced
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.vs-sticky-nav a');
+        const navBar = document.querySelector('.vs-sticky-nav');
+        const headerH = 90;
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+
+            // Add shadow to nav on scroll
+            if (window.scrollY > 400) {
+                navBar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)";
+            } else {
+                navBar.style.boxShadow = "none";
+            }
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                // Offset for fixed header + nav
+                if (pageYOffset >= (sectionTop - 250)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Smooth scroll with offset
+        document.querySelectorAll('.vs-sticky-nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                const offsetPosition = targetSection.offsetTop - 150; // Adjust for header + nav height
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: "smooth"
+                });
+            });
+        });
+    </script>
+
+    <!-- AI Chatbot -->
+    <script src="../../assets/js/chatbot.js"></script>
+</body>
+
+</html>

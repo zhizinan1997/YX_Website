@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCS-IoT工业级气体监测物联网平台 - Metachip</title>
+    <meta name="description" content="专为工业气体监测场景设计的物联网云平台，支持实时数据采集、可视化大屏、智能报警、设备管理和AI分析">
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Product Detail Page - Premium Styles (Consistent with MC-HLA-01) */
+        .vs-product-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            padding: 120px 0 80px;
+            color: white;
+        }
+
+        .vs-product-hero__inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        /* Image Gallery */
+        .vs-product-gallery {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .vs-gallery-main {
+            width: 100%;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .vs-gallery-main img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .vs-gallery-thumbs {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 8px 0;
+            justify-content: center;
+        }
+
+        .vs-gallery-thumb {
+            width: 100px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vs-gallery-thumb:hover,
+        .vs-gallery-thumb.active {
+            border-color: var(--color-accent-orange);
+            background: rgba(var(--color-accent-orange-rgb), 0.1);
+        }
+
+        .vs-gallery-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .vs-product-hero__content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .vs-product-hero__desc {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .vs-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .vs-feature-list li {
+            padding: 12px 16px 12px 44px;
+            position: relative;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .vs-feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 16px;
+            color: #4ADE80;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Tech Badges (Adapted for Light Theme) */
+        .vs-tech-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .vs-tech-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 13px;
+            color: white;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Section Styles */
+        .vs-product-section {
+            padding: 80px 0;
+        }
+
+        .vs-product-section.alt-bg {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .vs-product-section__title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 32px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .vs-product-section__title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
+            border-radius: 2px;
+        }
+
+        .vs-product-section__content {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #4a5568;
+        }
+
+        /* Architecture Diagram (Styled Code Block) */
+        .vs-architecture {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 32px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow-x: auto;
+            white-space: pre;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Features Grid (Consistent with Advantages Grid) */
+        .vs-features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .vs-feature-card {
+            background: white;
+            padding: 32px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 1px solid #f1f5f9;
+        }
+
+        .vs-feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-feature-card i {
+            font-size: 40px;
+            color: var(--color-accent-orange);
+            margin-bottom: 18px;
+            display: block;
+        }
+
+        .vs-feature-card h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 10px;
+        }
+
+        .vs-feature-card p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Tech Stack Table (Styled like Specs) */
+        .vs-tech-stack {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .vs-tech-category {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+        }
+
+        .vs-tech-category h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+        }
+
+        .vs-tech-category h4 i {
+            color: var(--color-accent-orange);
+        }
+
+        .vs-tech-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .vs-tech-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #f8fafc;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .vs-tech-list li:last-child {
+            border-bottom: none;
+        }
+
+        .vs-tech-list .tech-name {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .vs-tech-list .tech-desc {
+            color: #94a3b8;
+        }
+
+        /* Applications Grid (Consistent with MC-HLA-01) */
+        .vs-applications-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .vs-application-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-application-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-app-icon-wrap {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        /* Pattern overlay for icon wrap */
+        .vs-app-icon-wrap::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 10px 10px;
+            opacity: 0.5;
+        }
+
+        .vs-app-icon-wrap i {
+            font-size: 48px;
+            color: var(--color-primary);
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-application-label {
+            padding: 24px;
+            background: white;
+            flex-grow: 1;
+        }
+
+        .vs-application-label h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--color-primary);
+            margin-top: 0;
+        }
+
+        .vs-application-label h4 i {
+            color: var(--color-accent-orange);
+            font-size: 18px;
+        }
+
+        .vs-application-label p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            color: #64748b;
+        }
+
+        /* Specs Table (Consistent) */
+        .vs-specs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .vs-specs-table td {
+            padding: 18px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 15px;
+        }
+
+        .vs-specs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vs-specs-table tr td:first-child {
+            background: var(--color-primary);
+            color: white;
+            font-weight: 600;
+            width: 220px;
+        }
+
+        .vs-specs-table tr td:last-child {
+            background: white;
+            color: #334155;
+        }
+
+        .vs-specs-table tr:nth-child(even) td:last-child {
+            background: #f8fafc;
+        }
+
+        /* CTA Section */
+        .vs-cta-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #004d8c 100%);
+            padding: 80px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .vs-cta-section h3 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .vs-cta-section p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 36px;
+        }
+
+        /* Demo Button */
+        .vs-demo-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            background: white;
+            color: var(--color-primary);
+            border-radius: 8px; /* Standard button radius */
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .vs-demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            background: #f8fafc;
+        }
+        
+        /* Breadcrumb */
+        .vs-breadcrumb {
+            padding: 16px 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .vs-breadcrumb a {
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+        }
+
+        .vs-breadcrumb a:hover {
+            color: white;
+        }
+
+        .vs-breadcrumb span {
+            margin: 0 12px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .vs-tech-stack {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-product-hero__inner {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-product-hero__content h1 {
+                font-size: 32px;
+            }
+
+            .vs-applications-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .vs-tech-stack {
+                 grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+
+<body>
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="../../index_en.html" class="vs-logo">
+                    <img src="../../assets/images/logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="all-products.html" class="vs-nav__link">Products</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    New Arrivals <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    Industries <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    Parameters <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    Product Categories <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    Product List <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>New Arrivals</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Latest Releases</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">Applications</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search">Search Products <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>Industries</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                                </li>
+                                                <li><a
+                                                        href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                                </li>
+                                                <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>Parameters</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="../measurement/measurement-hydrogen.html">Hydrogen
+                                                        (H2)</a></li>
+                                                <li><a href="../measurement/measurement-humidity.html">Humidity
+                                                        (RH)</a></li>
+                                                <li><a
+                                                        href="../measurement/measurement-dissolved-hydrogen.html">Dissolved Hydrogen</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a
+                                                        href="../measurement/measurement-oil-water.html">Water in Oil Content</a>
+                                                </li>
+                                                <li><a href="../measurement/measurement-dewpoint.html">Dew Point
+                                                        (Td)</a></li>
+                                                <li><a href="../measurement/measurement-pressure.html">Pressure
+                                                        (P)</a>
+                                                </li>
+
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>Product Categories</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">Loading...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>Product List</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- Products由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">View All Products <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="index_en.html" class="vs-nav__link">Solutions</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    Industry Solutions <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    Research <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>Industry Solutions</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../solutions/industry-hydrogen.html">Hydrogen Energy Chain</a></li>
+                                            <li><a href="../solutions/industry-power-safety.html">Smart Power Safety</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-leak-detection.html">Industrial Leak Detection</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-energy-storage.html">Green Energy Storage</a>
+                                            </li>
+                                            <li><a href="../solutions/industry-environment.html">Atmospheric Environmental Monitoring</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>Research</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../research/index.html"><strong>Research Home</strong></a></li>
+                                            <li><a href="../research/micro-nano.html">Sensor Micro-nano Fabrication</a></li>
+                                            <li><a href="../research/development.html">Sensor Development, Testing and Application</a></li>
+                                            <li><a href="../research/cooperation.html">Deep Industry-University-Research Cooperation</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="service-cases.html" class="vs-nav__link">Cases</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    Featured <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    All Cases <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>Featured</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="cases/case-1-truck.html">Hydrogen Detection for Heavy Hydrogen Trucks</a></li>
+                                            <li><a href="cases/case-6-train.html">Hydrogen Rail Detection</a></li>
+                                            <li><a href="cases/case-4-pipeline-safety.html">Hydrogen Pipeline Safety</a></li>
+                                            <li><a href="cases/case-12-gas-system.html">Research Lab Gas Mixing</a></li>
+                                            <li><a href="cases/case-13-diesel-engine.html">Diesel Engine Vacuum Leak Detection</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>More Cases</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">Browse our successful application cases in various industries.</p>
+                                    <a href="service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">View All <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="../about/about.html" class="vs-nav__link">About</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">Shop</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="../contact/contact.html" class="vs-nav__link">Contact</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    Join Us <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    Contact Info <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>Join Us</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../careers/partners.html">Partners</a></li>
+                                            <li><a href="../careers/growth.html">Growth</a></li>
+                                            <li><a href="../careers/talent.html">Culture</a></li>
+                                            <li><a href="../careers/jobs.html">Careers</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>Contact Info</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="../contact/contact.html">Contact</a></li>
+                                            <li><a href="../contact/feedback.html">Feedback</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="Search (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <a href="../../pages/gassensing/mcs_iot_platform.html" style="font-size: 14px; font-weight: 500;">CN</a> / <span style="font-size: 14px; font-weight: 700; color:white;">EN</span>
+            </div>
+        </div>
+        <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+        </script>
+    </header>
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index_en.html">Home</a><span>|</span>
+                <a href="../../pages_en/gassensing/all-products.html">Products</a><span>|</span>
+                <a href="index_en.html">Gas Sensing</a><span>|</span>
+                MCS-IoT工业级气体监测物联网平台
+            </div>
+        </div>
+
+        <!-- Product Hero with Gallery -->
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <!-- Image Gallery -->
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <img id="mainImage" src="../../assets/images/iot2.png"
+                                alt="MCS-IoT工业级气体监测物联网平台">
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active"
+                                onclick="changeImage(this, '../../assets/images/iot2.png')">
+                                <img src="../../assets/images/iot2.png" alt="可视化大屏">
+                            </div>
+                            <div class="vs-gallery-thumb"
+                                onclick="changeImage(this, '../../assets/images/iot1.png')">
+                                <img src="../../assets/images/iot1.png" alt="管理后台">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="vs-product-hero__content">
+                        <h1>MCS-IoT 气体监测云平台</h1>
+                        <p class="vs-product-hero__desc">专为工业气体监测场景设计的物联网云平台，支持实时数据采集、可视化大屏、智能报警、设备管理和 AI 分析。</p>
+
+                        <!-- Tech Badges -->
+                        <div class="vs-tech-badges">
+                            <span class="vs-tech-badge"><i class="fab fa-vuejs"></i> Vue 3.5</span>
+                            <span class="vs-tech-badge"><i class="fas fa-bolt"></i> FastAPI</span>
+                            <span class="vs-tech-badge"><i class="fas fa-database"></i> TimescaleDB</span>
+                            <span class="vs-tech-badge"><i class="fab fa-docker"></i> Docker</span>
+                            <span class="vs-tech-badge"><i class="fas fa-shield-alt"></i> MQTT TLS</span>
+                        </div>
+
+                        <ul class="vs-feature-list">
+                            <li>实时数据采集与可视化大屏展示，全方位掌控现场状态</li>
+                            <li>多级智能报警机制，支持邮件、短信、钉钉/企微多渠道通知</li>
+                            <li>传感器自动校准算法，精准数据无需人工干预</li>
+                            <li>支持 4G/5G/NB-IoT/WiFi 多种网络接入方式</li>
+                            <li>一键部署，Docker 容器化架构简化运维</li>
+                        </ul>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <a href="../../pages_en/contact/feedback.html" class="vs-btn vs-btn--secondary"
+                                style="padding: 14px 32px; font-size: 16px; background: white; color: var(--color-primary); border: none;">
+                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价
+                            </a>
+                            <a href="https://iot.zhizinan.top" target="_blank" class="vs-demo-btn"
+                               style="background: transparent; border: 1px solid white; color: white;">
+                                <i class="fas fa-external-link-alt"></i> 查看演示Demo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Details -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">平台概述</h2>
+                <div class="vs-product-section__content">
+                    <p>MCS-IoT 是Metachip自主研发的工业级气体监测物联网平台，专为需要大规模部署Gas Sensing器的工业场景设计。平台采用现代化的微服务架构，支持从单个传感器到数千台设备的弹性扩展。</p>
+                    <p>系统基于 TimescaleDB 时序数据库构建，能够高效存储和查询海量时序数据，配合智能压缩算法大幅降低存储成本。前端采用 Vue3 + Element Plus 打造流畅的用户体验，支持可视化大屏展示、实时数据监控和历史趋势分析。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Features -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">核心功能</h2>
+                <div class="vs-features-grid">
+                    <div class="vs-feature-card">
+                        <i class="fas fa-chart-line"></i>
+                        <h4>实时数据监控</h4>
+                        <p>WebSocket 实时推送，毫秒级数据更新。支持多种图表类型，包括曲线图、仪表盘、热力图等，直观展示气体浓度变化趋势。</p>
+                    </div>
+                    <div class="vs-feature-card">
+                        <i class="fas fa-tv"></i>
+                        <h4>可视化大屏</h4>
+                        <p>精心设计的数据可视化大屏，支持 3D 建筑模型展示、设备分布地图、实时报警弹窗，适合部署在监控中心或生产车间。</p>
+                    </div>
+                    <div class="vs-feature-card">
+                        <i class="fas fa-bell"></i>
+                        <h4>智能报警系统</h4>
+                        <p>支持高限/低限/离线/低电量等多种报警类型。可配置报警时间窗口、通知渠道（邮件、短信、钉钉、企业微信）和升级策略。</p>
+                    </div>
+                    <div class="vs-feature-card">
+                        <i class="fas fa-cogs"></i>
+                        <h4>设备远程管理</h4>
+                        <p>远程配置采样间隔、校准参数、报警阈值。支持 OTA 固件升级和远程重启，无需现场操作即可完成设备维护。</p>
+                    </div>
+                    <div class="vs-feature-card">
+                        <i class="fas fa-brain"></i>
+                        <h4>AI 智能分析</h4>
+                        <p>集成 AI 大模型分析历史数据，自动发现异常模式、预测设备故障、生成巡检报告，让数据产生真正的价值。</p>
+                    </div>
+                    <div class="vs-feature-card">
+                        <i class="fas fa-cloud-download-alt"></i>
+                        <h4>数据归档与导出</h4>
+                        <p>支持自动归档历史数据到云存储（Cloudflare R2），降低存储成本。支持 CSV/Excel 格式的数据导出，方便后续分析。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Architecture -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">系统架构</h2>
+                <div class="vs-product-section__content">
+                    <p>平台采用前后端分离的微服务架构，各组件通过 Docker 容器化部署，支持一键安装和平滑升级。</p>
+                </div>
+                <!-- Architecture Diagram styling kept clean/code-like but inside standard container -->
+                <div class="vs-architecture">┌─────────────────────────────────────────────────────────────────────┐
+│                          用户访问层                                  │
+│   浏览器 (管理后台/大屏)    │    IoT 设备 (MQTT 上报)               │
+└───────────────┬─────────────┴──────────────────┬────────────────────┘
+                │                                │
+                ▼                                ▼
+┌───────────────────────────────┐    ┌───────────────────────────────┐
+│       Nginx (反向代理)        │    │      Mosquitto MQTT Broker    │
+│   SSL 证书终止 + 负载均衡     │    │   端口: 1883 (TCP) / 8883 (TLS)│
+└───────────────┬───────────────┘    └───────────────┬───────────────┘
+                │                                    │
+                ▼                                    ▼
+┌───────────────────────────────┐    ┌───────────────────────────────┐
+│        Frontend (Vue3)        │    │         Worker (Python)       │
+│    端口: 3000 → Nginx:80      │    │   MQTT 订阅 → 数据处理 → 存储  │
+└───────────────┬───────────────┘    └───────────────┬───────────────┘
+                │ API 请求                           │ 数据写入
+                ▼                                    ▼
+┌───────────────────────────────┐    ┌───────────────────────────────┐
+│       Backend (FastAPI)       │    │      TimescaleDB (PG15)       │
+│   端口: 8000 (RESTful API)    │◄───│   时序数据库 (自动压缩)        │
+└───────────────┬───────────────┘    └───────────────────────────────┘
+                │                                    ▲
+                ▼                                    │
+┌───────────────────────────────┐                    │
+│         Redis (缓存)          │────────────────────┘
+│   实时状态 / 会话 / 设备缓存   │
+└───────────────────────────────┘</div>
+            </div>
+        </section>
+        
+        <!-- Tech Stack -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术栈</h2>
+                <div class="vs-tech-stack">
+                    <div class="vs-tech-category">
+                        <h4><i class="fas fa-server"></i> 后端技术</h4>
+                        <ul class="vs-tech-list">
+                            <li><span class="tech-name">FastAPI</span><span class="tech-desc">高性能 Web 框架</span></li>
+                            <li><span class="tech-name">asyncpg</span><span class="tech-desc">异步 PostgreSQL</span></li>
+                            <li><span class="tech-name">paho-mqtt</span><span class="tech-desc">MQTT 客户端</span></li>
+                            <li><span class="tech-name">python-jose</span><span class="tech-desc">JWT 认证</span></li>
+                            <li><span class="tech-name">boto3</span><span class="tech-desc">S3/R2 对象存储</span></li>
+                        </ul>
+                    </div>
+                    <div class="vs-tech-category">
+                        <h4><i class="fab fa-vuejs"></i> 前端技术</h4>
+                        <ul class="vs-tech-list">
+                            <li><span class="tech-name">Vue 3.5+</span><span class="tech-desc">前端框架</span></li>
+                            <li><span class="tech-name">Vite 7.2+</span><span class="tech-desc">构建工具</span></li>
+                            <li><span class="tech-name">Element Plus</span><span class="tech-desc">UI 组件库</span></li>
+                            <li><span class="tech-name">ECharts 6.0+</span><span class="tech-desc">数据可视化</span></li>
+                            <li><span class="tech-name">Pinia 3.0+</span><span class="tech-desc">状态管理</span></li>
+                        </ul>
+                    </div>
+                    <div class="vs-tech-category">
+                        <h4><i class="fas fa-database"></i> 基础设施</h4>
+                        <ul class="vs-tech-list">
+                            <li><span class="tech-name">TimescaleDB</span><span class="tech-desc">时序数据库</span></li>
+                            <li><span class="tech-name">Redis</span><span class="tech-desc">缓存服务</span></li>
+                            <li><span class="tech-name">Mosquitto</span><span class="tech-desc">MQTT Broker</span></li>
+                            <li><span class="tech-name">Docker</span><span class="tech-desc">容器运行时</span></li>
+                            <li><span class="tech-name">Nginx</span><span class="tech-desc">反向代理</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Application Scenarios -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">应用场景</h2>
+                <div class="vs-applications-grid">
+                    <div class="vs-application-card">
+                        <div class="vs-app-icon-wrap">
+                            <i class="fas fa-industry"></i>
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-check-circle"></i> 工业厂房监测</h4>
+                            <p>化工、冶金、半导体等工业厂房的气体安全监测，支持多点位分布式部署和集中式管理。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-icon-wrap">
+                            <i class="fas fa-gas-pump"></i>
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-check-circle"></i> 加氢站安全</h4>
+                            <p>氢气加注站、储氢设施的 24 小时在线监控，满足国家氢能安全法规要求。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-icon-wrap">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-check-circle"></i> 智慧楼宇</h4>
+                            <p>写字楼、购物中心、地下车库等场所的空气质量监测，保障人员健康安全。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-icon-wrap">
+                            <i class="fas fa-vials"></i>
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-check-circle"></i> 实验室监控</h4>
+                            <p>高校、科研院所实验室的有毒有害气体监测，保护科研人员安全。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-icon-wrap">
+                            <i class="fas fa-warehouse"></i>
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-check-circle"></i> 仓储物流</h4>
+                            <p>危化品仓库、冷链物流的环境监测，确保存储条件符合规范要求。</p>
+                        </div>
+                    </div>
+                    <div class="vs-application-card">
+                        <div class="vs-app-icon-wrap">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="vs-application-label">
+                            <h4><i class="fas fa-check-circle"></i> 数据中心</h4>
+                            <p>UPS 电池室氢气监测、机房环境监控，预防火灾和设备损坏风险。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Specifications -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">部署规格</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>支持设备数量</td>
+                        <td>单节点支持 1000+ 台传感器同时在线</td>
+                    </tr>
+                    <tr>
+                        <td>数据存储</td>
+                        <td>TimescaleDB 时序数据库，自动按天分区，1 天后自动压缩</td>
+                    </tr>
+                    <tr>
+                        <td>通信协议</td>
+                        <td>MQTT 3.1.1 / 5.0，支持 TLS 1.3 加密传输</td>
+                    </tr>
+                    <tr>
+                        <td>支持网络</td>
+                        <td>4G / 5G / NB-IoT / WiFi / 有线以太网</td>
+                    </tr>
+                    <tr>
+                        <td>服务器需求</td>
+                        <td>最低 2核 4GB 内存，推荐 4核 8GB 以上</td>
+                    </tr>
+                    <tr>
+                        <td>操作系统</td>
+                        <td>Ubuntu 20.04+ / CentOS 7+ / Debian 10+</td>
+                    </tr>
+                    <tr>
+                        <td>部署方式</td>
+                        <td>Docker Compose 一键部署，支持 Kubernetes 集群</td>
+                    </tr>
+                    <tr>
+                        <td>浏览器支持</td>
+                        <td>Chrome 80+ / Firefox 75+ / Edge 80+ / Safari 13+</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <h3>开启您的工业物联网之旅</h3>
+                <p>从传感器芯片到云端平台，Metachip为您提供气体监测的完整Solutions</p>
+                <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <a href="../../pages_en/contact/contact.html" class="vs-btn vs-btn--secondary"
+                        style="background: white; color: var(--color-primary); padding: 16px 40px; font-size: 16px;">
+                        <i class="fas fa-phone" style="margin-right: 10px;"></i>Contact
+                    </a>
+                    <a href="https://iot.zhizinan.top" target="_blank" class="vs-demo-btn" 
+                       style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                        <i class="fas fa-external-link-alt"></i> 体验在线演示
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vs-footer">
+        <div class="vs-container">
+            <div class="vs-footer__grid">
+                <div class="vs-footer__col" style="padding-right: 40px;">
+                    <a href="../../index_en.html" class="vs-logo" style="margin-bottom: 24px;">
+                        <img src="../../assets/images/logo.png" style="filter: brightness(0) invert(1);" alt="Logo">
+                        METACHIP
+                    </a>
+                    <p style="color: rgba(255,255,255,0.6); line-height: 1.8;">
+                        Hunan Metachip Technology Co., Ltd.<br>No. 38 Shuyuan Road, Shuangma Street, High-tech Zone, Xiangtan City, Hunan Province
+                    </p>
+                </div>
+            </div>
+            <div class="vs-footer__bottom">
+                <span>© 2024 Hunan Metachip Technology Co., Ltd.. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Image Gallery Functionality
+        function changeImage(thumb, src) {
+            // Update main image
+            document.getElementById('mainImage').src = src;
+
+            // Update active thumbnail
+            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        }
+    </script>
+
+    <!-- Site Search -->
+    <script src="../../assets/js/search.js"></script>
+
+    <!-- AI Chatbot -->
+    <script src="../../assets/js/chatbot.js"></script>
+    
+</body>
+
+</html>
