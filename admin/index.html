@@ -360,6 +360,58 @@
             gap: 10px;
         }
 
+        /* Hero Carousel */
+        .hero-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .hero-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .hero-preview {
+            width: 120px;
+            height: 70px;
+            background: #eee;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .hero-preview img,
+        .hero-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .hero-url {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+            margin-top: 4px;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #999;
+            font-size: 16px;
+            padding: 6px;
+        }
+
         .file-item .file-info i {
             color: #c0392b;
             font-size: 24px;
@@ -522,7 +574,19 @@
                     <i class="fas fa-envelope"></i> 留言管理
                 </div>
                 <div class="menu-item" onclick="switchView('products')">
-                    <i class="fas fa-box"></i> 产品管理
+                    <i class="fas fa-box"></i> 菜单显示
+                </div>
+                <div class="menu-item" onclick="switchView('home')">
+                    <i class="fas fa-home"></i> 首页设置
+                </div>
+                <div class="menu-item" onclick="switchView('h2-home')">
+                    <i class="fas fa-bolt"></i> 氢气首页
+                </div>
+                <div class="menu-item" onclick="switchView('news-create')">
+                    <i class="fas fa-pen-nib"></i> 添加资讯 beta
+                </div>
+                <div class="menu-item" onclick="switchView('jobs')">
+                    <i class="fas fa-briefcase"></i> 招聘信息
                 </div>
                 <div class="menu-item" onclick="switchView('chatbot')">
                     <i class="fas fa-robot"></i> AI客服设置
@@ -708,6 +772,721 @@
                                 style="width: auto; padding: 12px 30px; margin-top: 20px;">保存设置</button>
                             <div id="recommendationsMsg" style="margin-top: 10px; color: #28a745;"></div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Home Settings View -->
+                <div id="view-home" class="view-section">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-home-tab="hero"
+                            onclick="switchHomeTab('hero', this)">首页轮播</button>
+                        <button class="tab-btn" data-home-tab="partners"
+                            onclick="switchHomeTab('partners', this)">合作伙伴</button>
+                        <button class="tab-btn" data-home-tab="news" onclick="switchHomeTab('news', this)">资讯设置</button>
+                        <button class="tab-btn" data-home-tab="products"
+                            onclick="switchHomeTab('products', this)">产品展示</button>
+                        <button class="tab-btn" data-home-tab="solutions"
+                            onclick="switchHomeTab('solutions', this)">元芯专家解决方案</button>
+                    </div>
+
+                    <div id="home-tab-hero" class="tab-content active">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">首页轮播设置</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                                <div>
+                                    <div class="form-group">
+                                        <label>图片轮播间隔 (秒)</label>
+                                        <input type="number" id="heroInterval" class="form-control" min="1" max="60"
+                                            value="5">
+                                        <div class="form-hint">仅对图片生效，视频会播放到结束后切换。</div>
+                                    </div>
+                                    <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                        onclick="saveHeroConfig()">保存设置</button>
+                                    <div id="heroSaveMsg" style="margin-top: 10px; color: #28a745;"></div>
+                                </div>
+                                <div style="font-size: 13px; color: #666; line-height: 1.6;">
+                                    支持上传或使用 CDN 链接（PNG/JPG/JPEG/MP4）。<br>
+                                    支持拖拽排序调整轮播顺序。
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">上传媒体</h3>
+                            <div class="file-upload-zone" id="heroUploadZone">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放 PNG/JPG/MP4 文件到此处
+                                </div>
+                                <div style="font-size: 13px; color: #888;">或点击选择文件</div>
+                                <input type="file" id="heroFileInput" accept=".png,.jpg,.jpeg,.mp4"
+                                    style="display: none;">
+                            </div>
+                            <div id="heroUploadProgress" style="display: none; margin-top: 15px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>正在上传...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">添加 CDN 链接</h3>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <select id="heroUrlType" class="form-control" style="max-width: 160px;">
+                                    <option value="image">图片</option>
+                                    <option value="video">视频</option>
+                                </select>
+                                <input type="text" id="heroUrlInput" class="form-control" placeholder="https://..."
+                                    style="flex: 1; min-width: 280px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px;"
+                                    onclick="addHeroUrlItem()">添加</button>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <textarea id="heroUrlBatch" class="form-control" rows="4"
+                                    placeholder="一行一个链接，可批量添加（支持 PNG/JPG/JPEG/MP4）"></textarea>
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px; margin-top: 8px;"
+                                    onclick="addHeroUrlBatch()">批量添加</button>
+                            </div>
+                            <div class="form-hint">建议使用可直接访问的资源链接（支持 PNG/JPG/JPEG/MP4）。</div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">轮播顺序</h3>
+                            <div id="heroList" class="hero-list"></div>
+                        </div>
+                    </div>
+
+                    <div id="home-tab-partners" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">合作伙伴 Logo</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                支持上传图片或使用 CDN 链接，拖拽调整顺序。
+                            </p>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">上传 Logo</h3>
+                            <div class="file-upload-zone" id="partnersUploadZone">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放 PNG/JPG/SVG/WEBP
+                                    到此处</div>
+                                <div style="font-size: 13px; color: #888;">或点击选择文件</div>
+                                <input type="file" id="partnersFileInput" accept=".png,.jpg,.jpeg,.svg,.webp"
+                                    style="display: none;">
+                            </div>
+                            <div id="partnersUploadProgress" style="display: none; margin-top: 15px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>正在上传...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">添加 CDN 链接</h3>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="text" id="partnersUrlInput" class="form-control" placeholder="https://..."
+                                    style="flex: 1; min-width: 280px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px;"
+                                    onclick="addPartnerUrlItem()">添加</button>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <textarea id="partnersUrlBatch" class="form-control" rows="4"
+                                    placeholder="一行一个链接，可批量添加（支持 PNG/JPG/SVG/WEBP）"></textarea>
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px; margin-top: 8px;"
+                                    onclick="addPartnerUrlBatch()">批量添加</button>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">Logo 顺序</h3>
+                            <div id="partnersList" class="hero-list"></div>
+                        </div>
+                    </div>
+
+                    <div id="home-tab-news" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">首页最新资讯</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                从 <code>pages/news/</code> 中选择要显示在首页的 3 条资讯。
+                            </p>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                                <div>
+                                    <div class="form-group">
+                                        <label>资讯 1</label>
+                                        <select id="featuredNews1" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>资讯 2</label>
+                                        <select id="featuredNews2" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>资讯 3</label>
+                                        <select id="featuredNews3" class="form-control"></select>
+                                    </div>
+                                    <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                        onclick="saveFeaturedNews()">保存设置</button>
+                                    <div id="featuredNewsMsg" style="margin-top: 10px; color: #28a745;"></div>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                    <div id="featuredNewsPreview" class="file-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="home-tab-products" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">首页产品展示</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                从产品库中选择要显示在首页的 3 个产品。
+                            </p>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                                <div>
+                                    <div class="form-group">
+                                        <label>产品 1</label>
+                                        <select id="featuredProduct1" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品 2</label>
+                                        <select id="featuredProduct2" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品 3</label>
+                                        <select id="featuredProduct3" class="form-control"></select>
+                                    </div>
+                                    <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                        onclick="saveFeaturedProducts()">保存设置</button>
+                                    <div id="featuredProductsMsg" style="margin-top: 10px; color: #28a745;"></div>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                    <div id="featuredProductsPreview" class="file-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="home-tab-solutions" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">元芯专家解决方案</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                从 <code>pages/solutions/</code> 中选择要显示在首页的 3 条解决方案。
+                            </p>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                                <div>
+                                    <div class="form-group">
+                                        <label>方案 1</label>
+                                        <select id="featuredSolution1" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>方案 2</label>
+                                        <select id="featuredSolution2" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>方案 3</label>
+                                        <select id="featuredSolution3" class="form-control"></select>
+                                    </div>
+                                    <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                        onclick="saveFeaturedSolutions()">保存设置</button>
+                                    <div id="featuredSolutionsMsg" style="margin-top: 10px; color: #28a745;"></div>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                    <div id="featuredSolutionsPreview" class="file-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- H2 Home View -->
+                <div id="view-h2-home" class="view-section">
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="switchH2HomeTab('video', this)">视频设置</button>
+                        <button class="tab-btn" onclick="switchH2HomeTab('products', this)">默认产品</button>
+                        <button class="tab-btn" onclick="switchH2HomeTab('cases', this)">应用案例</button>
+                        <button class="tab-btn" onclick="switchH2HomeTab('news', this)">最近动态</button>
+                    </div>
+
+                    <div id="h2-home-tab-video" class="tab-content active">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">氢气首页视频</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置氢气首页首屏背景视频（CDN 链接），支持多个视频依次播放并循环。
+                            </p>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">添加 CDN 视频链接</h3>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="text" id="h2HomeUrlInput" class="form-control" placeholder="https://...mp4"
+                                    style="flex: 1; min-width: 280px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px;"
+                                    onclick="addH2HomeUrlItem()">添加</button>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <textarea id="h2HomeUrlBatch" class="form-control" rows="4"
+                                    placeholder="一行一个链接，可批量添加（支持 MP4/WEBM/OGG）"></textarea>
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px; margin-top: 8px;"
+                                    onclick="addH2HomeUrlBatch()">批量添加</button>
+                            </div>
+                            <div class="form-hint">建议使用可直接访问的视频链接（MP4/WEBM/OGG）。</div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">播放顺序</h3>
+                            <div id="h2HomeList" class="hero-list"></div>
+                            <button class="btn-primary" style="width: auto; padding: 10px 24px; margin-top: 12px;"
+                                onclick="saveH2HomeConfig()">保存设置</button>
+                            <div id="h2HomeSaveMsg" style="margin-top: 10px; color: #28a745;"></div>
+                        </div>
+                    </div>
+
+                    <div id="h2-home-tab-products" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">默认产品展示</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置“未选择分类”时显示的 3 个气体传感器产品。
+                            </p>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                                <div>
+                                    <div class="form-group">
+                                        <label>产品 1</label>
+                                        <select id="h2HomeProduct1" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品 2</label>
+                                        <select id="h2HomeProduct2" class="form-control"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品 3</label>
+                                        <select id="h2HomeProduct3" class="form-control"></select>
+                                    </div>
+                                    <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                        onclick="saveH2HomeProducts()">保存设置</button>
+                                    <div id="h2HomeProductsMsg" style="margin-top: 10px; color: #28a745;"></div>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                    <div id="h2HomeProductsPreview" class="file-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="h2-home-tab-cases" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">应用案例</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                选择首页展示的 6 个应用案例，并为每个案例设置自定义的【主标题】和【副标题】。
+                            </p>
+
+                            <div id="h2HomeCasesEditor" style="display: flex; flex-direction: column; gap: 20px;">
+                                <!-- Case 1 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 1</label>
+                                            <select id="h2HomeCase1" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题 <span style="color:#999;font-size:12px;">(如: Case
+                                                    Study)</span></label>
+                                            <input type="text" id="h2HomeCaseSubtitle1" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题 <span style="color:#999;font-size:12px;">(如:
+                                                    氢能重卡检测)</span></label>
+                                            <input type="text" id="h2HomeCaseTitle1" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 2 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 2</label>
+                                            <select id="h2HomeCase2" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle2" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle2" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 3 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 3</label>
+                                            <select id="h2HomeCase3" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle3" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle3" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 4 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 4</label>
+                                            <select id="h2HomeCase4" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle4" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle4" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 5 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 5</label>
+                                            <select id="h2HomeCase5" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle5" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle5" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Case 6 -->
+                                <div class="case-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: end;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>案例 6</label>
+                                            <select id="h2HomeCase6" class="form-control"></select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>副标题</label>
+                                            <input type="text" id="h2HomeCaseSubtitle6" class="form-control"
+                                                placeholder="Case Study">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>主标题</label>
+                                            <input type="text" id="h2HomeCaseTitle6" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                    onclick="saveH2HomeCases()">保存设置</button>
+                                <div id="h2HomeCasesMsg" style="color: #28a745;"></div>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                <div id="h2HomeCasesPreview" class="file-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="h2-home-tab-news" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">最近动态</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                选择首页展示的 3 条新闻动态，并为每条设置自定义的【标签】、【标题】和【摘要】。
+                            </p>
+
+                            <div id="h2HomeNewsEditor" style="display: flex; flex-direction: column; gap: 20px;">
+                                <!-- News 1 -->
+                                <div class="news-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div style="margin-bottom: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>新闻 1</label>
+                                            <select id="h2HomeNews1" class="form-control"></select>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>标签 <span style="color:#999;font-size:12px;">(如: 新闻资讯)</span></label>
+                                            <input type="text" id="h2HomeNewsTag1" class="form-control"
+                                                placeholder="新闻资讯">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>自定义标题 <span
+                                                    style="color:#999;font-size:12px;">(留空则使用原标题)</span></label>
+                                            <input type="text" id="h2HomeNewsTitle1" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                                        <label>自定义摘要 <span style="color:#999;font-size:12px;">(留空则使用原摘要)</span></label>
+                                        <input type="text" id="h2HomeNewsDesc1" class="form-control"
+                                            placeholder="留空则使用原摘要">
+                                    </div>
+                                </div>
+                                <!-- News 2 -->
+                                <div class="news-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div style="margin-bottom: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>新闻 2</label>
+                                            <select id="h2HomeNews2" class="form-control"></select>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>标签</label>
+                                            <input type="text" id="h2HomeNewsTag2" class="form-control"
+                                                placeholder="新闻资讯">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>自定义标题</label>
+                                            <input type="text" id="h2HomeNewsTitle2" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                                        <label>自定义摘要</label>
+                                        <input type="text" id="h2HomeNewsDesc2" class="form-control"
+                                            placeholder="留空则使用原摘要">
+                                    </div>
+                                </div>
+                                <!-- News 3 -->
+                                <div class="news-edit-row"
+                                    style="background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb;">
+                                    <div style="margin-bottom: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>新闻 3</label>
+                                            <select id="h2HomeNews3" class="form-control"></select>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>标签</label>
+                                            <input type="text" id="h2HomeNewsTag3" class="form-control"
+                                                placeholder="新闻资讯">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label>自定义标题</label>
+                                            <input type="text" id="h2HomeNewsTitle3" class="form-control"
+                                                placeholder="留空则使用原标题">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                                        <label>自定义摘要</label>
+                                        <input type="text" id="h2HomeNewsDesc3" class="form-control"
+                                            placeholder="留空则使用原摘要">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 24px;"
+                                    onclick="saveH2HomeNews()">保存设置</button>
+                                <div id="h2HomeNewsMsg" style="color: #28a745;"></div>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
+                                <div id="h2HomeNewsPreview" class="file-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- News Create View -->
+                <div id="view-news-create" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <h3 class="section-header">添加资讯</h3>
+                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                            填写后将自动生成统一风格的资讯页面，并写入 <code>pages/news/</code>。
+                        </p>
+
+                        <form id="newsCreateForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                            <div>
+                                <div class="form-group">
+                                    <label>标题</label>
+                                    <input type="text" id="newsTitle" class="form-control" placeholder="请输入资讯标题"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label>日期</label>
+                                    <input type="date" id="newsDate" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>分类</label>
+                                    <select id="newsCategory" class="form-control">
+                                        <option value="enterprise">企业新闻</option>
+                                        <option value="industry">行业动态</option>
+                                        <option value="science">科普知识</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>封面图片链接</label>
+                                    <input type="text" id="newsImage" class="form-control" placeholder="https://..."
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label>摘要（首页卡片展示）</label>
+                                    <textarea id="newsSummary" class="form-control" rows="3" required></textarea>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="form-group">
+                                    <label>正文内容</label>
+                                    <textarea id="newsContent" class="form-control" rows="14"
+                                        placeholder="一段一行；如需HTML可勾选下方开关" required></textarea>
+                                </div>
+                                <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
+                                    <button type="button" class="btn-sm" onclick="aiPolishNews()">AI 排版</button>
+                                    <span style="font-size: 12px; color:#666;">将根据已配置的 AI 客服进行润色排版（Markdown）</span>
+                                </div>
+                                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                                    <label class="toggle-switch" style="margin:0;">
+                                        <input type="checkbox" id="newsContentIsHtml">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <span style="font-size: 13px; color:#666;">内容为 HTML（不自动包裹段落）</span>
+                                </div>
+                                <div style="display:flex; gap:12px; align-items:center;">
+                                    <button type="submit" id="newsSubmitBtn" class="btn-primary"
+                                        style="width: auto; padding: 10px 24px;">生成资讯</button>
+                                    <button type="button" id="newsCancelEdit" class="btn-sm btn-danger"
+                                        style="display:none;" onclick="cancelNewsEdit()">取消编辑</button>
+                                </div>
+                                <div id="newsCreateMsg" style="margin-top: 10px; color: #28a745;"></div>
+                                <div id="newsCreateLink" style="margin-top: 6px; font-size: 13px;"></div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card"
+                        style="padding: 30px; margin-top: 20px; border: 2px solid #0f2f5f; box-shadow: 0 10px 28px rgba(15,47,95,0.12);">
+                        <h3 class="section-header" style="display:flex; align-items:center; gap:10px;">
+                            <span
+                                style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#0f2f5f; color:#fff; font-size:12px;">预</span>
+                            页面实时预览
+                        </h3>
+                        <div id="newsPreview"
+                            style="border: 1px solid #e1e6ef; border-radius: 10px; padding: 24px; background: #fbfcff;">
+                            <div style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color:#0f2f5f;"
+                                id="newsPreviewTitle">
+                                标题预览</div>
+                            <div style="color:#607087; font-size: 13px; margin-bottom: 16px;" id="newsPreviewDate">日期
+                            </div>
+                            <div id="newsPreviewImageWrap" style="margin-bottom: 16px;"></div>
+                            <div id="newsPreviewContent" style="line-height: 1.9; color:#2b2f36;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 30px; margin-top: 20px;">
+                        <h3 class="section-header">资讯列表</h3>
+                        <div id="newsList" class="file-list"></div>
+                    </div>
+                </div>
+
+                <!-- Jobs View -->
+                <div id="view-jobs" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <h3 class="section-header">招聘信息</h3>
+                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                            管理在线招聘列表，支持新增、编辑、删除和隐藏/显示。
+                        </p>
+
+                        <form id="jobForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                            <div>
+                                <div class="form-group">
+                                    <label>职位名称</label>
+                                    <input type="text" id="jobTitle" class="form-control" placeholder="例如：高级硬件开发工程师"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label>招聘部门</label>
+                                    <input type="text" id="jobDepartment" class="form-control" placeholder="例如：技术部"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label>工作地点</label>
+                                    <input type="text" id="jobLocation" class="form-control" placeholder="例如：北京/湘潭"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label>发布日期</label>
+                                    <input type="date" id="jobDate" class="form-control" required>
+                                </div>
+                                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                                    <label class="toggle-switch" style="margin:0;">
+                                        <input type="checkbox" id="jobVisible" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <span style="font-size: 13px; color:#666;">显示此职位</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="form-group">
+                                    <label>岗位详情（支持 HTML）</label>
+                                    <textarea id="jobContent" class="form-control" rows="12"
+                                        placeholder="可直接粘贴岗位职责/任职资格的 HTML"></textarea>
+                                </div>
+                                <div style="display:flex; gap:12px; align-items:center;">
+                                    <button type="submit" class="btn-primary"
+                                        style="width: auto; padding: 10px 24px;">保存职位</button>
+                                    <button type="button" id="jobCancelEdit" class="btn-sm btn-danger"
+                                        style="display:none;" onclick="cancelJobEdit()">取消编辑</button>
+                                </div>
+                                <div id="jobMsg" style="margin-top: 10px; color: #28a745;"></div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card" style="padding: 30px; margin-top: 20px;">
+                        <h3 class="section-header">职位列表</h3>
+                        <div id="jobsListAdmin" class="file-list"></div>
                     </div>
                 </div>
 
@@ -923,7 +1702,11 @@
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             const menuTitles = {
                 'messages': '留言',
-                'products': '产品',
+                'products': '菜单显示',
+                'home': '首页设置',
+                'h2-home': '氢气首页',
+                'news-create': '添加资讯 beta',
+                'jobs': '招聘信息',
                 'chatbot': 'AI客服',
                 'settings': '设置'
             };
@@ -937,7 +1720,11 @@
             // Update Title
             const titles = {
                 'messages': '留言管理',
-                'products': '产品管理',
+                'products': '菜单显示',
+                'home': '首页设置',
+                'h2-home': '氢气首页设置',
+                'news-create': '添加资讯 beta',
+                'jobs': '招聘信息',
                 'chatbot': 'AI客服设置',
                 'settings': '账号设置'
             };
@@ -946,6 +1733,13 @@
             // Load data for the view
             if (viewName === 'messages') loadMessages();
             if (viewName === 'products') loadProducts();
+            if (viewName === 'home') {
+                switchHomeTab('hero');
+            }
+            if (viewName === 'h2-home') switchH2HomeTab('video');
+            if (viewName === 'news-create') loadNewsList();
+            if (viewName === 'news-create') updateNewsPreview();
+            if (viewName === 'jobs') loadJobsAdmin();
             if (viewName === 'chatbot') loadChatbotConfig();
         }
 
@@ -1328,7 +2122,1722 @@
             document.getElementById(`product-tab-${tabName}`).classList.add('active');
         }
 
+        function switchHomeTab(tabName, btn) {
+            const homeView = document.getElementById('view-home');
+            if (!homeView) return;
 
+            const targetBtn = btn || homeView.querySelector(`[data-home-tab="${tabName}"]`);
+            homeView.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (targetBtn) targetBtn.classList.add('active');
+
+            homeView.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const tab = document.getElementById(`home-tab-${tabName}`);
+            if (tab) tab.classList.add('active');
+
+            if (tabName === 'hero') loadHeroConfig();
+            if (tabName === 'partners') loadPartnersConfig();
+            if (tabName === 'news') loadFeaturedNews();
+            if (tabName === 'products') loadFeaturedProducts();
+            if (tabName === 'solutions') loadFeaturedSolutions();
+        }
+
+
+        // --- Hero Carousel Logic ---
+        let heroConfig = { interval_seconds: 5, items: [] };
+
+        async function loadHeroConfig() {
+            const listEl = document.getElementById('heroList');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
+
+            try {
+                const res = await fetch('/api/hero');
+                const data = await res.json();
+                heroConfig = data || { interval_seconds: 5, items: [] };
+                document.getElementById('heroInterval').value = heroConfig.interval_seconds || 5;
+                renderHeroList();
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
+            }
+        }
+
+        function renderHeroList() {
+            const listEl = document.getElementById('heroList');
+            if (!listEl) return;
+            const items = heroConfig.items || [];
+
+            if (items.length === 0) {
+                listEl.innerHTML = '<div class="no-data">暂无轮播项</div>';
+                return;
+            }
+
+            listEl.innerHTML = items.map(item => `
+                <div class="hero-item" data-id="${item.id}">
+                    <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
+                    <div class="hero-preview">
+                        ${item.type === 'video'
+                    ? `<video src="${item.url}" muted playsinline></video>`
+                    : `<img src="${item.url}" alt="hero">`}
+                    </div>
+                    <div class="hero-meta">
+                        <div style="font-weight: 600; color: #333;">
+                            ${item.type === 'video' ? '视频' : '图片'} · ${item.source === 'upload' ? '本地上传' : 'CDN链接'}
+                        </div>
+                        <div class="hero-url">${escapeHtml(item.url)}</div>
+                    </div>
+                    <button class="btn-sm btn-danger" onclick="deleteHeroItem('${item.id}')">
+                        <i class="fas fa-trash"></i> 删除
+                    </button>
+                </div>
+            `).join('');
+
+            if (typeof Sortable !== 'undefined') {
+                new Sortable(listEl, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    onEnd: function () {
+                        syncHeroOrder();
+                        saveHeroConfig(true);
+                    }
+                });
+            }
+        }
+
+        function syncHeroOrder() {
+            const listEl = document.getElementById('heroList');
+            if (!listEl) return;
+            const ids = Array.from(listEl.querySelectorAll('.hero-item')).map(el => el.dataset.id);
+            heroConfig.items = ids.map(id => heroConfig.items.find(item => item.id === id)).filter(Boolean);
+        }
+
+        async function saveHeroConfig(silent = false) {
+            const msg = document.getElementById('heroSaveMsg');
+            if (msg) msg.textContent = '';
+
+            syncHeroOrder();
+            const interval = parseInt(document.getElementById('heroInterval').value, 10);
+            heroConfig.interval_seconds = isNaN(interval) ? 5 : interval;
+
+            try {
+                const res = await fetch('/api/hero', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(heroConfig)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    heroConfig = data.config || heroConfig;
+                    if (!silent && msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                    renderHeroList();
+                } else if (!silent && msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (!silent && msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        function addHeroUrlItem() {
+            const urlInput = document.getElementById('heroUrlInput');
+            const typeInput = document.getElementById('heroUrlType');
+            const url = (urlInput.value || '').trim();
+            const type = (typeInput.value || 'image').toLowerCase();
+            if (!url) {
+                alert('请输入链接');
+                return;
+            }
+
+            heroConfig.items = heroConfig.items || [];
+            heroConfig.items.push(makeHeroUrlItem(url, type));
+
+            urlInput.value = '';
+            saveHeroConfig();
+        }
+
+        function addHeroUrlBatch() {
+            const batchInput = document.getElementById('heroUrlBatch');
+            const typeInput = document.getElementById('heroUrlType');
+            const type = (typeInput.value || 'image').toLowerCase();
+            const raw = (batchInput.value || '').trim();
+            if (!raw) {
+                alert('请输入链接');
+                return;
+            }
+
+            const urls = raw.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+            if (urls.length === 0) {
+                alert('请输入有效链接');
+                return;
+            }
+
+            heroConfig.items = heroConfig.items || [];
+            urls.forEach(url => {
+                heroConfig.items.push(makeHeroUrlItem(url, type));
+            });
+
+            batchInput.value = '';
+            saveHeroConfig();
+        }
+
+        function makeHeroUrlItem(url, type) {
+            return {
+                id: `url_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                type,
+                url,
+                source: 'url'
+            };
+        }
+
+        async function deleteHeroItem(id) {
+            if (!confirm('确定删除该轮播项吗？此操作无法撤销。')) return;
+            try {
+                const res = await fetch(`/api/hero/items/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadHeroConfig();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        // Hero file upload handling
+        const heroUploadZone = document.getElementById('heroUploadZone');
+        const heroFileInput = document.getElementById('heroFileInput');
+
+        if (heroUploadZone && heroFileInput) {
+            heroUploadZone.addEventListener('click', () => heroFileInput.click());
+
+            heroUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                heroUploadZone.classList.add('dragover');
+            });
+
+            heroUploadZone.addEventListener('dragleave', () => {
+                heroUploadZone.classList.remove('dragover');
+            });
+
+            heroUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                heroUploadZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) uploadHeroFile(files[0]);
+            });
+
+            heroFileInput.addEventListener('change', () => {
+                if (heroFileInput.files.length > 0) {
+                    uploadHeroFile(heroFileInput.files[0]);
+                }
+            });
+        }
+
+        async function uploadHeroFile(file) {
+            const name = (file.name || '').toLowerCase();
+            const type = (file.type || '').toLowerCase();
+            const nameOk = (/\.(png|jpg|jpeg|mp4)$/i).test(name);
+            const typeOk = (type === 'image/png' || type === 'image/jpeg' || type === 'video/mp4');
+            if (!nameOk && !typeOk) {
+                alert('只支持 PNG/JPG/JPEG/MP4 文件');
+                return;
+            }
+
+            const progress = document.getElementById('heroUploadProgress');
+            if (progress) progress.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const res = await fetch('/api/hero/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadHeroConfig();
+                } else {
+                    alert(data.message || '上传失败');
+                }
+            } catch (e) {
+                alert('上传失败: 网络错误');
+            } finally {
+                if (progress) progress.style.display = 'none';
+                if (heroFileInput) heroFileInput.value = '';
+            }
+        }
+
+
+        // --- Partners Logic ---
+        let partnersConfig = { items: [] };
+
+        async function loadPartnersConfig() {
+            const listEl = document.getElementById('partnersList');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
+
+            try {
+                const res = await fetch('/api/partners');
+                const data = await res.json();
+                partnersConfig = data || { items: [] };
+                renderPartnersList();
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
+            }
+        }
+
+        function renderPartnersList() {
+            const listEl = document.getElementById('partnersList');
+            if (!listEl) return;
+            const items = partnersConfig.items || [];
+
+            if (items.length === 0) {
+                listEl.innerHTML = '<div class="no-data">暂无 Logo</div>';
+                return;
+            }
+
+            listEl.innerHTML = items.map(item => `
+                <div class="hero-item" data-id="${item.id}">
+                    <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
+                    <div class="hero-preview">
+                        <img src="${item.url}" alt="logo">
+                    </div>
+                    <div class="hero-meta">
+                        <div style="font-weight: 600; color: #333;">${item.source === 'upload' ? '本地上传' : 'CDN链接'}</div>
+                        <div class="hero-url">${escapeHtml(item.url)}</div>
+                    </div>
+                    <button class="btn-sm btn-danger" onclick="deletePartnerItem('${item.id}')">
+                        <i class="fas fa-trash"></i> 删除
+                    </button>
+                </div>
+            `).join('');
+
+            if (typeof Sortable !== 'undefined') {
+                new Sortable(listEl, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    onEnd: function () {
+                        syncPartnersOrder();
+                        savePartnersConfig(true);
+                    }
+                });
+            }
+        }
+
+        function syncPartnersOrder() {
+            const listEl = document.getElementById('partnersList');
+            if (!listEl) return;
+            const ids = Array.from(listEl.querySelectorAll('.hero-item')).map(el => el.dataset.id);
+            partnersConfig.items = ids.map(id => partnersConfig.items.find(item => item.id === id)).filter(Boolean);
+        }
+
+        async function savePartnersConfig(silent = false) {
+            syncPartnersOrder();
+            try {
+                const res = await fetch('/api/partners', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(partnersConfig)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    partnersConfig = data.config || partnersConfig;
+                    if (!silent) {
+                        alert('保存成功');
+                    }
+                    renderPartnersList();
+                } else if (!silent) {
+                    alert(data.message || '保存失败');
+                }
+            } catch (e) {
+                if (!silent) alert('网络错误');
+            }
+        }
+
+        function addPartnerUrlItem() {
+            const urlInput = document.getElementById('partnersUrlInput');
+            const url = (urlInput.value || '').trim();
+            if (!url) {
+                alert('请输入链接');
+                return;
+            }
+            partnersConfig.items = partnersConfig.items || [];
+            partnersConfig.items.push({
+                id: `url_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                url,
+                source: 'url'
+            });
+            urlInput.value = '';
+            savePartnersConfig(true);
+            renderPartnersList();
+        }
+
+        function addPartnerUrlBatch() {
+            const batchInput = document.getElementById('partnersUrlBatch');
+            const raw = (batchInput.value || '').trim();
+            if (!raw) {
+                alert('请输入链接');
+                return;
+            }
+            const urls = raw.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+            if (urls.length === 0) {
+                alert('请输入有效链接');
+                return;
+            }
+            partnersConfig.items = partnersConfig.items || [];
+            urls.forEach(url => {
+                partnersConfig.items.push({
+                    id: `url_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                    url,
+                    source: 'url'
+                });
+            });
+            batchInput.value = '';
+            savePartnersConfig(true);
+            renderPartnersList();
+        }
+
+        async function deletePartnerItem(id) {
+            if (!confirm('确定删除该 Logo 吗？此操作无法撤销。')) return;
+            try {
+                const res = await fetch(`/api/partners/items/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadPartnersConfig();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        const partnersUploadZone = document.getElementById('partnersUploadZone');
+        const partnersFileInput = document.getElementById('partnersFileInput');
+
+        if (partnersUploadZone && partnersFileInput) {
+            partnersUploadZone.addEventListener('click', () => partnersFileInput.click());
+
+            partnersUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                partnersUploadZone.classList.add('dragover');
+            });
+
+            partnersUploadZone.addEventListener('dragleave', () => {
+                partnersUploadZone.classList.remove('dragover');
+            });
+
+            partnersUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                partnersUploadZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) uploadPartnerFile(files[0]);
+            });
+
+            partnersFileInput.addEventListener('change', () => {
+                if (partnersFileInput.files.length > 0) {
+                    uploadPartnerFile(partnersFileInput.files[0]);
+                }
+            });
+        }
+
+        async function uploadPartnerFile(file) {
+            const name = (file.name || '').toLowerCase();
+            const type = (file.type || '').toLowerCase();
+            const nameOk = (/\.(png|jpg|jpeg|svg|webp)$/i).test(name);
+            const typeOk = (type === 'image/png' || type === 'image/jpeg' || type === 'image/svg+xml' || type === 'image/webp');
+            if (!nameOk && !typeOk) {
+                alert('只支持 PNG/JPG/JPEG/SVG/WEBP 文件');
+                return;
+            }
+
+            const progress = document.getElementById('partnersUploadProgress');
+            if (progress) progress.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch('/api/partners/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadPartnersConfig();
+                } else {
+                    alert(data.message || '上传失败');
+                }
+            } catch (e) {
+                alert('上传失败: 网络错误');
+            } finally {
+                if (progress) progress.style.display = 'none';
+                if (partnersFileInput) partnersFileInput.value = '';
+            }
+        }
+
+
+        // --- Featured News Logic ---
+        let allNewsItems = [];
+
+        async function loadFeaturedNews() {
+            const selects = [
+                document.getElementById('featuredNews1'),
+                document.getElementById('featuredNews2'),
+                document.getElementById('featuredNews3')
+            ];
+
+            selects.forEach(sel => {
+                if (sel) sel.innerHTML = '<option value="">加载中...</option>';
+            });
+
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/news/all'),
+                    fetch('/api/news/featured')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                allNewsItems = allData.items || [];
+                const featuredItems = featuredData.items || [];
+                const featuredLinks = featuredItems.map(item => item.link);
+
+                const options = ['<option value="">请选择资讯</option>']
+                    .concat(allNewsItems.map(item => {
+                        const label = `${item.date || ''} ${item.title || ''}`.trim();
+                        return `<option value="${item.link}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    sel.value = featuredLinks[idx] || '';
+                    sel.addEventListener('change', updateFeaturedNewsPreview);
+                });
+
+                updateFeaturedNewsPreview();
+            } catch (e) {
+                console.error('Load featured news error:', e);
+            }
+        }
+
+        function updateFeaturedNewsPreview() {
+            const preview = document.getElementById('featuredNewsPreview');
+            if (!preview) return;
+
+            const selectedLinks = [
+                document.getElementById('featuredNews1')?.value,
+                document.getElementById('featuredNews2')?.value,
+                document.getElementById('featuredNews3')?.value
+            ].filter(Boolean);
+
+            if (selectedLinks.length === 0) {
+                preview.innerHTML = '<div style="color:#888;">未选择资讯</div>';
+                return;
+            }
+
+            const items = selectedLinks.map(link => allNewsItems.find(n => n.link === link)).filter(Boolean);
+            preview.innerHTML = items.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="news" style="width: 64px; height: 40px; object-fit: cover; border-radius: 6px;">
+                        <div>
+                            <div style="font-weight: 500;">${escapeHtml(item.title || '')}</div>
+                            <div class="file-meta">${item.date || ''}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveFeaturedNews() {
+            const msg = document.getElementById('featuredNewsMsg');
+            if (msg) msg.textContent = '';
+
+            const links = [
+                document.getElementById('featuredNews1')?.value,
+                document.getElementById('featuredNews2')?.value,
+                document.getElementById('featuredNews3')?.value
+            ].filter(Boolean);
+
+            try {
+                const res = await fetch('/api/news/featured', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ links })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        // --- Featured Products Logic ---
+        let allProductItems = [];
+
+        async function loadFeaturedProducts() {
+            const selects = [
+                document.getElementById('featuredProduct1'),
+                document.getElementById('featuredProduct2'),
+                document.getElementById('featuredProduct3')
+            ];
+
+            selects.forEach(sel => {
+                if (sel) sel.innerHTML = '<option value="">加载中...</option>';
+            });
+
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/products/with-settings'),
+                    fetch('/api/products/featured')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                allProductItems = (allData.products || []).filter(p => !p.hidden);
+                const featuredItems = featuredData.items || [];
+                const featuredIds = featuredItems.map(item => item.id);
+
+                const options = ['<option value="">请选择产品</option>']
+                    .concat(allProductItems.map(item => {
+                        const displayName = item.displayName || item.shortName || item.name || item.id;
+                        const label = `${displayName}`.trim();
+                        return `<option value="${item.id}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    sel.value = featuredIds[idx] || '';
+                    sel.addEventListener('change', updateFeaturedProductsPreview);
+                });
+
+                updateFeaturedProductsPreview();
+            } catch (e) {
+                console.error('Load featured products error:', e);
+            }
+        }
+
+        function updateFeaturedProductsPreview() {
+            const preview = document.getElementById('featuredProductsPreview');
+            if (!preview) return;
+
+            const selectedIds = [
+                document.getElementById('featuredProduct1')?.value,
+                document.getElementById('featuredProduct2')?.value,
+                document.getElementById('featuredProduct3')?.value
+            ].filter(Boolean);
+
+            if (selectedIds.length === 0) {
+                preview.innerHTML = '<div style="color:#888;">未选择产品</div>';
+                return;
+            }
+
+            const items = selectedIds.map(id => allProductItems.find(p => p.id === id)).filter(Boolean);
+            preview.innerHTML = items.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="product" style="width: 64px; height: 40px; object-fit: contain; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-weight: 500;">${escapeHtml(item.displayName || item.shortName || item.name || '')}</div>
+                            <div class="file-meta">${escapeHtml(item.category || '')}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveFeaturedProducts() {
+            const msg = document.getElementById('featuredProductsMsg');
+            if (msg) msg.textContent = '';
+
+            const ids = [
+                document.getElementById('featuredProduct1')?.value,
+                document.getElementById('featuredProduct2')?.value,
+                document.getElementById('featuredProduct3')?.value
+            ].filter(Boolean);
+
+            try {
+                const res = await fetch('/api/products/featured', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        // --- Featured Solutions Logic ---
+        let allSolutionItems = [];
+
+        async function loadFeaturedSolutions() {
+            const selects = [
+                document.getElementById('featuredSolution1'),
+                document.getElementById('featuredSolution2'),
+                document.getElementById('featuredSolution3')
+            ];
+
+            selects.forEach(sel => {
+                if (sel) sel.innerHTML = '<option value="">加载中...</option>';
+            });
+
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/solutions/all'),
+                    fetch('/api/solutions/featured')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                allSolutionItems = allData.items || [];
+                const featuredItems = featuredData.items || [];
+                const featuredIds = featuredItems.map(item => item.id);
+
+                const options = ['<option value="">请选择方案</option>']
+                    .concat(allSolutionItems.map(item => {
+                        const label = `${item.title || item.id || ''}`.trim();
+                        return `<option value="${item.id}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    sel.value = featuredIds[idx] || '';
+                    sel.addEventListener('change', updateFeaturedSolutionsPreview);
+                });
+
+                updateFeaturedSolutionsPreview();
+            } catch (e) {
+                console.error('Load featured solutions error:', e);
+            }
+        }
+
+        function updateFeaturedSolutionsPreview() {
+            const preview = document.getElementById('featuredSolutionsPreview');
+            if (!preview) return;
+
+            const selectedIds = [
+                document.getElementById('featuredSolution1')?.value,
+                document.getElementById('featuredSolution2')?.value,
+                document.getElementById('featuredSolution3')?.value
+            ].filter(Boolean);
+
+            if (selectedIds.length === 0) {
+                preview.innerHTML = '<div style="color:#888;">未选择方案</div>';
+                return;
+            }
+
+            const items = selectedIds.map(id => allSolutionItems.find(s => s.id === id)).filter(Boolean);
+            preview.innerHTML = items.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="solution" style="width: 64px; height: 40px; object-fit: cover; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-weight: 500;">${escapeHtml(item.title || '')}</div>
+                            <div class="file-meta">${escapeHtml(item.id || '')}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveFeaturedSolutions() {
+            const msg = document.getElementById('featuredSolutionsMsg');
+            if (msg) msg.textContent = '';
+
+            const ids = [
+                document.getElementById('featuredSolution1')?.value,
+                document.getElementById('featuredSolution2')?.value,
+                document.getElementById('featuredSolution3')?.value
+            ].filter(Boolean);
+
+            try {
+                const res = await fetch('/api/solutions/featured', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        // --- H2 Home Video Logic ---
+        let h2HomeConfig = { items: [] };
+
+        async function loadH2HomeConfig() {
+            const listEl = document.getElementById('h2HomeList');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
+            try {
+                const res = await fetch('/api/h2-home');
+                const data = await res.json();
+                h2HomeConfig = data || { items: [] };
+                renderH2HomeList();
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
+            }
+        }
+
+        function renderH2HomeList() {
+            const listEl = document.getElementById('h2HomeList');
+            if (!listEl) return;
+            const items = h2HomeConfig.items || [];
+
+            if (items.length === 0) {
+                listEl.innerHTML = '<div class="no-data">暂无视频</div>';
+                return;
+            }
+
+            listEl.innerHTML = items.map(item => `
+                <div class="hero-item" data-id="${item.id}">
+                    <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
+                    <div class="hero-preview">
+                        <video src="${item.url}" muted playsinline></video>
+                    </div>
+                    <div class="hero-meta">
+                        <div style="font-weight: 600; color: #333;">视频 · CDN链接</div>
+                        <div class="hero-url">${escapeHtml(item.url)}</div>
+                    </div>
+                    <button class="btn-sm btn-danger" onclick="deleteH2HomeItem('${item.id}')">
+                        <i class="fas fa-trash"></i> 删除
+                    </button>
+                </div>
+            `).join('');
+
+            if (typeof Sortable !== 'undefined') {
+                new Sortable(listEl, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    onEnd: function () {
+                        syncH2HomeOrder();
+                    }
+                });
+            }
+        }
+
+        function syncH2HomeOrder() {
+            const listEl = document.getElementById('h2HomeList');
+            if (!listEl) return;
+            const ids = Array.from(listEl.querySelectorAll('.hero-item')).map(el => el.dataset.id);
+            h2HomeConfig.items = ids.map(id => h2HomeConfig.items.find(item => item.id === id)).filter(Boolean);
+        }
+
+        function generateClientId() {
+            if (window.crypto && window.crypto.randomUUID) {
+                return window.crypto.randomUUID();
+            }
+            return `id_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+        }
+
+        function addH2HomeUrlItem() {
+            const input = document.getElementById('h2HomeUrlInput');
+            const url = input?.value.trim();
+            if (!url) return;
+            h2HomeConfig.items = h2HomeConfig.items || [];
+            h2HomeConfig.items.push({ id: generateClientId(), url });
+            if (input) input.value = '';
+            renderH2HomeList();
+        }
+
+        function addH2HomeUrlBatch() {
+            const textarea = document.getElementById('h2HomeUrlBatch');
+            const value = textarea?.value.trim();
+            if (!value) return;
+            const urls = value.split('\n').map(v => v.trim()).filter(Boolean);
+            h2HomeConfig.items = h2HomeConfig.items || [];
+            urls.forEach(url => {
+                h2HomeConfig.items.push({ id: generateClientId(), url });
+            });
+            if (textarea) textarea.value = '';
+            renderH2HomeList();
+        }
+
+        function deleteH2HomeItem(id) {
+            h2HomeConfig.items = (h2HomeConfig.items || []).filter(item => item.id !== id);
+            renderH2HomeList();
+        }
+
+        async function saveH2HomeConfig() {
+            const msg = document.getElementById('h2HomeSaveMsg');
+            if (msg) msg.textContent = '';
+            syncH2HomeOrder();
+            try {
+                const res = await fetch('/api/h2-home', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(h2HomeConfig)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                    h2HomeConfig = data.config || h2HomeConfig;
+                    renderH2HomeList();
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        function switchH2HomeTab(tabName, btn) {
+            const view = document.getElementById('view-h2-home');
+            if (!view) return;
+            view.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            view.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const tab = document.getElementById(`h2-home-tab-${tabName}`);
+            if (tab) tab.classList.add('active');
+            if (tabName === 'video') loadH2HomeConfig();
+            if (tabName === 'products') loadH2HomeProducts();
+            if (tabName === 'cases') loadH2HomeCases();
+            if (tabName === 'news') loadH2HomeNews();
+        }
+
+        let h2HomeProductsAll = [];
+
+        async function loadH2HomeProducts() {
+            const selects = [
+                document.getElementById('h2HomeProduct1'),
+                document.getElementById('h2HomeProduct2'),
+                document.getElementById('h2HomeProduct3')
+            ];
+            selects.forEach(sel => { if (sel) sel.innerHTML = '<option value="">加载中...</option>'; });
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/products/gassensing'),
+                    fetch('/api/h2-home/products')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                h2HomeProductsAll = (allData.products || []).filter(p => !p.hidden);
+                const featuredIds = (featuredData.items || []).map(item => item.id);
+
+                const options = ['<option value="">请选择产品</option>']
+                    .concat(h2HomeProductsAll.map(item => {
+                        const label = item.displayName || item.shortName || item.name || item.id;
+                        return `<option value="${item.id}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    sel.value = featuredIds[idx] || '';
+                    sel.addEventListener('change', updateH2HomeProductsPreview);
+                });
+                updateH2HomeProductsPreview();
+            } catch (e) {
+                console.error('Load h2 products error:', e);
+            }
+        }
+
+        function updateH2HomeProductsPreview() {
+            const preview = document.getElementById('h2HomeProductsPreview');
+            if (!preview) return;
+            const selectedIds = [
+                document.getElementById('h2HomeProduct1')?.value,
+                document.getElementById('h2HomeProduct2')?.value,
+                document.getElementById('h2HomeProduct3')?.value
+            ].filter(Boolean);
+            if (!selectedIds.length) {
+                preview.innerHTML = '<div style="color:#888;">未选择产品</div>';
+                return;
+            }
+            const items = selectedIds.map(id => h2HomeProductsAll.find(p => p.id === id)).filter(Boolean);
+            preview.innerHTML = items.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="product" style="width: 64px; height: 40px; object-fit: contain; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-weight: 500;">${escapeHtml(item.displayName || item.shortName || item.name || '')}</div>
+                            <div class="file-meta">${escapeHtml(item.category || '')}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveH2HomeProducts() {
+            const msg = document.getElementById('h2HomeProductsMsg');
+            if (msg) msg.textContent = '';
+            const ids = [
+                document.getElementById('h2HomeProduct1')?.value,
+                document.getElementById('h2HomeProduct2')?.value,
+                document.getElementById('h2HomeProduct3')?.value
+            ].filter(Boolean);
+            try {
+                const res = await fetch('/api/h2-home/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        let h2HomeCasesAll = [];
+
+        async function loadH2HomeCases() {
+            const selects = [
+                document.getElementById('h2HomeCase1'),
+                document.getElementById('h2HomeCase2'),
+                document.getElementById('h2HomeCase3'),
+                document.getElementById('h2HomeCase4'),
+                document.getElementById('h2HomeCase5'),
+                document.getElementById('h2HomeCase6')
+            ];
+            const subtitleInputs = [
+                document.getElementById('h2HomeCaseSubtitle1'),
+                document.getElementById('h2HomeCaseSubtitle2'),
+                document.getElementById('h2HomeCaseSubtitle3'),
+                document.getElementById('h2HomeCaseSubtitle4'),
+                document.getElementById('h2HomeCaseSubtitle5'),
+                document.getElementById('h2HomeCaseSubtitle6')
+            ];
+            const titleInputs = [
+                document.getElementById('h2HomeCaseTitle1'),
+                document.getElementById('h2HomeCaseTitle2'),
+                document.getElementById('h2HomeCaseTitle3'),
+                document.getElementById('h2HomeCaseTitle4'),
+                document.getElementById('h2HomeCaseTitle5'),
+                document.getElementById('h2HomeCaseTitle6')
+            ];
+            selects.forEach(sel => { if (sel) sel.innerHTML = '<option value="">加载中...</option>'; });
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/cases/gassensing'),
+                    fetch('/api/h2-home/cases')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                h2HomeCasesAll = allData.items || [];
+                const featuredItems = featuredData.items || [];
+
+                const options = ['<option value="">请选择案例</option>']
+                    .concat(h2HomeCasesAll.map(item => {
+                        const label = item.title || item.id;
+                        return `<option value="${item.id}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    const featured = featuredItems[idx];
+                    if (featured) {
+                        sel.value = featured.id || '';
+                        if (subtitleInputs[idx]) subtitleInputs[idx].value = featured.customSubtitle || '';
+                        if (titleInputs[idx]) titleInputs[idx].value = featured.customTitle || '';
+                    }
+                    sel.addEventListener('change', updateH2HomeCasesPreview);
+                });
+
+                // Add event listeners for title inputs to update preview
+                subtitleInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeCasesPreview); });
+                titleInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeCasesPreview); });
+
+                updateH2HomeCasesPreview();
+            } catch (e) {
+                console.error('Load h2 cases error:', e);
+            }
+        }
+
+        function updateH2HomeCasesPreview() {
+            const preview = document.getElementById('h2HomeCasesPreview');
+            if (!preview) return;
+
+            const previewItems = [];
+            for (let i = 1; i <= 6; i++) {
+                const caseId = document.getElementById(`h2HomeCase${i}`)?.value;
+                if (!caseId) continue;
+                const caseItem = h2HomeCasesAll.find(p => p.id === caseId);
+                if (!caseItem) continue;
+
+                const customSubtitle = document.getElementById(`h2HomeCaseSubtitle${i}`)?.value || 'Case Study';
+                const customTitle = document.getElementById(`h2HomeCaseTitle${i}`)?.value || caseItem.title || '';
+
+                previewItems.push({
+                    ...caseItem,
+                    displaySubtitle: customSubtitle,
+                    displayTitle: customTitle
+                });
+            }
+
+            if (!previewItems.length) {
+                preview.innerHTML = '<div style="color:#888;">未选择案例</div>';
+                return;
+            }
+
+            preview.innerHTML = previewItems.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="case" style="width: 64px; height: 40px; object-fit: cover; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-size: 11px; color: #0066cc; font-weight: 600;">${escapeHtml(item.displaySubtitle)}</div>
+                            <div style="font-weight: 500;">${escapeHtml(item.displayTitle)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveH2HomeCases() {
+            const msg = document.getElementById('h2HomeCasesMsg');
+            if (msg) msg.textContent = '';
+
+            const items = [];
+            for (let i = 1; i <= 6; i++) {
+                const caseId = document.getElementById(`h2HomeCase${i}`)?.value;
+                if (!caseId) continue;
+                items.push({
+                    id: caseId,
+                    customSubtitle: document.getElementById(`h2HomeCaseSubtitle${i}`)?.value || '',
+                    customTitle: document.getElementById(`h2HomeCaseTitle${i}`)?.value || ''
+                });
+            }
+
+            try {
+                const res = await fetch('/api/h2-home/cases', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        // --- H2 Home News ---
+        let h2HomeNewsAll = [];
+
+        async function loadH2HomeNews() {
+            const selects = [
+                document.getElementById('h2HomeNews1'),
+                document.getElementById('h2HomeNews2'),
+                document.getElementById('h2HomeNews3')
+            ];
+            const tagInputs = [
+                document.getElementById('h2HomeNewsTag1'),
+                document.getElementById('h2HomeNewsTag2'),
+                document.getElementById('h2HomeNewsTag3')
+            ];
+            const titleInputs = [
+                document.getElementById('h2HomeNewsTitle1'),
+                document.getElementById('h2HomeNewsTitle2'),
+                document.getElementById('h2HomeNewsTitle3')
+            ];
+            const descInputs = [
+                document.getElementById('h2HomeNewsDesc1'),
+                document.getElementById('h2HomeNewsDesc2'),
+                document.getElementById('h2HomeNewsDesc3')
+            ];
+            selects.forEach(sel => { if (sel) sel.innerHTML = '<option value="">加载中...</option>'; });
+            try {
+                const [allRes, featuredRes] = await Promise.all([
+                    fetch('/api/news/list'),
+                    fetch('/api/h2-home/news')
+                ]);
+                const allData = await allRes.json();
+                const featuredData = await featuredRes.json();
+
+                h2HomeNewsAll = allData.items || [];
+                const featuredItems = featuredData.items || [];
+
+                const options = ['<option value="">请选择新闻</option>']
+                    .concat(h2HomeNewsAll.map(item => {
+                        const label = item.title || item.link;
+                        return `<option value="${item.link}">${escapeHtml(label)}</option>`;
+                    }))
+                    .join('');
+
+                selects.forEach((sel, idx) => {
+                    if (!sel) return;
+                    sel.innerHTML = options;
+                    const featured = featuredItems[idx];
+                    if (featured) {
+                        sel.value = featured.link || '';
+                        if (tagInputs[idx]) tagInputs[idx].value = featured.customTag || '';
+                        if (titleInputs[idx]) titleInputs[idx].value = featured.customTitle || '';
+                        if (descInputs[idx]) descInputs[idx].value = featured.customDesc || '';
+                    }
+                    sel.addEventListener('change', updateH2HomeNewsPreview);
+                });
+
+                tagInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeNewsPreview); });
+                titleInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeNewsPreview); });
+                descInputs.forEach(input => { if (input) input.addEventListener('input', updateH2HomeNewsPreview); });
+
+                updateH2HomeNewsPreview();
+            } catch (e) {
+                console.error('Load h2 news error:', e);
+            }
+        }
+
+        function updateH2HomeNewsPreview() {
+            const preview = document.getElementById('h2HomeNewsPreview');
+            if (!preview) return;
+
+            const previewItems = [];
+            for (let i = 1; i <= 3; i++) {
+                const newsLink = document.getElementById(`h2HomeNews${i}`)?.value;
+                if (!newsLink) continue;
+                const newsItem = h2HomeNewsAll.find(p => p.link === newsLink);
+                if (!newsItem) continue;
+
+                const customTag = document.getElementById(`h2HomeNewsTag${i}`)?.value || '新闻资讯';
+                const customTitle = document.getElementById(`h2HomeNewsTitle${i}`)?.value || newsItem.title || '';
+                const customDesc = document.getElementById(`h2HomeNewsDesc${i}`)?.value || newsItem.summary || '';
+
+                previewItems.push({
+                    ...newsItem,
+                    displayTag: customTag,
+                    displayTitle: customTitle,
+                    displayDesc: customDesc
+                });
+            }
+
+            if (!previewItems.length) {
+                preview.innerHTML = '<div style="color:#888;">未选择新闻</div>';
+                return;
+            }
+
+            preview.innerHTML = previewItems.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.image || ''}" alt="news" style="width: 64px; height: 40px; object-fit: cover; border-radius: 6px; background: #f7f8fa;">
+                        <div>
+                            <div style="font-size: 11px; color: #0066cc; font-weight: 600;">${escapeHtml(item.displayTag)}</div>
+                            <div style="font-weight: 500;">${escapeHtml(item.displayTitle)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveH2HomeNews() {
+            const msg = document.getElementById('h2HomeNewsMsg');
+            if (msg) msg.textContent = '';
+
+            const items = [];
+            for (let i = 1; i <= 3; i++) {
+                const newsLink = document.getElementById(`h2HomeNews${i}`)?.value;
+                if (!newsLink) continue;
+                items.push({
+                    link: newsLink,
+                    customTag: document.getElementById(`h2HomeNewsTag${i}`)?.value || '',
+                    customTitle: document.getElementById(`h2HomeNewsTitle${i}`)?.value || '',
+                    customDesc: document.getElementById(`h2HomeNewsDesc${i}`)?.value || ''
+                });
+            }
+
+            try {
+                const res = await fetch('/api/h2-home/news', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        // --- News Create ---
+        let editingNewsLink = '';
+        const newsCreateForm = document.getElementById('newsCreateForm');
+        if (newsCreateForm) {
+            newsCreateForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const msg = document.getElementById('newsCreateMsg');
+                const linkEl = document.getElementById('newsCreateLink');
+                if (msg) msg.textContent = '';
+                if (linkEl) linkEl.textContent = '';
+
+                const payload = {
+                    title: document.getElementById('newsTitle').value.trim(),
+                    date: document.getElementById('newsDate').value,
+                    category: document.getElementById('newsCategory').value,
+                    image_url: document.getElementById('newsImage').value.trim(),
+                    summary: document.getElementById('newsSummary').value.trim(),
+                    content: document.getElementById('newsContent').value.trim(),
+                    content_is_html: document.getElementById('newsContentIsHtml').checked
+                };
+
+                try {
+                    const endpoint = editingNewsLink ? '/api/news/update' : '/api/news/create';
+                    if (editingNewsLink) payload.link = editingNewsLink;
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        if (msg) {
+                            msg.style.color = '#28a745';
+                            msg.textContent = editingNewsLink ? '✓ 修改成功' : '✓ 生成成功';
+                        }
+                        if (linkEl && data.link) {
+                            linkEl.innerHTML = `新页面：<a href="${data.link}" target="_blank">${data.link}</a>`;
+                        }
+                        newsCreateForm.reset();
+                        cancelNewsEdit();
+                        loadFeaturedNews();
+                        loadNewsList();
+                    } else {
+                        if (msg) {
+                            msg.style.color = '#dc3545';
+                            msg.textContent = data.message || '生成失败';
+                        }
+                    }
+                } catch (e) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '网络错误';
+                    }
+                }
+            });
+        }
+
+        async function loadNewsList() {
+            const listEl = document.getElementById('newsList');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#888;">加载中...</div>';
+            try {
+                const res = await fetch('/api/news/all');
+                const data = await res.json();
+                const items = data.items || [];
+                if (items.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#888;">暂无资讯</div>';
+                    return;
+                }
+                listEl.innerHTML = items.map(item => `
+                    <div class="file-item" style="align-items: flex-start;">
+                        <div class="file-info">
+                            <img src="${item.image || ''}" alt="news" style="width: 72px; height: 46px; object-fit: cover; border-radius: 6px;">
+                            <div>
+                                <div style="font-weight: 600;">${escapeHtml(item.title || '')}</div>
+                                <div class="file-meta">${item.date || ''} · ${item.category || ''}</div>
+                                <div class="file-meta">${escapeHtml(item.link || '')}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button class="btn-sm" onclick="editNewsItem('${item.link}')">编辑</button>
+                            <button class="btn-sm btn-danger" onclick="deleteNewsItem('${item.link}')">删除</button>
+                            <button class="btn-sm" onclick="toggleNewsVisibility('${item.link}', ${item.hidden ? 'false' : 'true'})">
+                                ${item.hidden ? '显示' : '隐藏'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#dc3545;">加载失败</div>';
+            }
+        }
+
+        async function editNewsItem(link) {
+            if (!link) return;
+            try {
+                const resAll = await fetch('/api/news/all');
+                const dataAll = await resAll.json();
+                const item = (dataAll.items || []).find(n => n.link === link);
+                if (!item) return;
+                const resDetail = await fetch(`/api/news/detail?link=${encodeURIComponent(link)}`);
+                const dataDetail = await resDetail.json();
+                const detail = dataDetail.detail || {};
+                editingNewsLink = link;
+                document.getElementById('newsTitle').value = item.title || '';
+                document.getElementById('newsDate').value = item.date || '';
+                document.getElementById('newsCategory').value = item.category || 'enterprise';
+                document.getElementById('newsImage').value = detail.image_url || item.image || '';
+                document.getElementById('newsSummary').value = item.desc || '';
+                document.getElementById('newsContent').value = detail.content_html || '';
+                document.getElementById('newsContentIsHtml').checked = true;
+                document.getElementById('newsSubmitBtn').textContent = '保存修改';
+                document.getElementById('newsCancelEdit').style.display = 'inline-flex';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                updateNewsPreview();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function cancelNewsEdit() {
+            editingNewsLink = '';
+            const btn = document.getElementById('newsSubmitBtn');
+            const cancelBtn = document.getElementById('newsCancelEdit');
+            if (btn) btn.textContent = '生成资讯';
+            if (cancelBtn) cancelBtn.style.display = 'none';
+        }
+
+        async function deleteNewsItem(link) {
+            if (!confirm('确定删除该资讯吗？此操作无法撤销。')) return;
+            try {
+                const res = await fetch('/api/news/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadNewsList();
+                    loadFeaturedNews();
+                } else {
+                    alert(data.message || '删除失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        async function toggleNewsVisibility(link, hidden) {
+            try {
+                const res = await fetch('/api/news/visibility', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link, hidden })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadNewsList();
+                    loadFeaturedNews();
+                } else {
+                    alert(data.message || '更新失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        let previewTimer = null;
+        function schedulePreview() {
+            if (previewTimer) clearTimeout(previewTimer);
+            previewTimer = setTimeout(updateNewsPreview, 200);
+        }
+
+        async function updateNewsPreview() {
+            const title = document.getElementById('newsTitle')?.value.trim() || '标题预览';
+            const date = document.getElementById('newsDate')?.value || '日期';
+            const image = document.getElementById('newsImage')?.value.trim();
+            const content = document.getElementById('newsContent')?.value.trim();
+            const isHtml = document.getElementById('newsContentIsHtml')?.checked;
+
+            const titleEl = document.getElementById('newsPreviewTitle');
+            const dateEl = document.getElementById('newsPreviewDate');
+            const imageWrap = document.getElementById('newsPreviewImageWrap');
+            const contentEl = document.getElementById('newsPreviewContent');
+            if (titleEl) titleEl.textContent = title || '标题预览';
+            if (dateEl) dateEl.textContent = date || '日期';
+            if (imageWrap) {
+                imageWrap.innerHTML = image ? `<img src="${image}" style="width:100%; max-height: 240px; object-fit: cover; border-radius: 8px;">` : '';
+            }
+            if (!contentEl) return;
+
+            try {
+                const res = await fetch('/api/news/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, content_is_html: isHtml })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    contentEl.innerHTML = data.html || '';
+                }
+            } catch (e) {
+                contentEl.innerHTML = '';
+            }
+        }
+
+        function bindNewsPreviewEvents() {
+            ['newsTitle', 'newsDate', 'newsImage', 'newsContent', 'newsContentIsHtml'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', schedulePreview);
+                el.addEventListener('change', schedulePreview);
+            });
+        }
+
+        async function aiPolishNews() {
+            const contentEl = document.getElementById('newsContent');
+            const msg = document.getElementById('newsCreateMsg');
+            if (!contentEl) return;
+            const content = contentEl.value.trim();
+            if (!content) {
+                alert('请输入正文内容');
+                return;
+            }
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = 'AI 排版中...';
+            }
+            try {
+                const res = await fetch('/api/news/ai-polish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: document.getElementById('newsTitle')?.value.trim(),
+                        summary: document.getElementById('newsSummary')?.value.trim(),
+                        content
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    contentEl.value = data.content || '';
+                    document.getElementById('newsContentIsHtml').checked = false;
+                    updateNewsPreview();
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ AI 排版完成';
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || 'AI 排版失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = 'AI 排版失败';
+                }
+            }
+        }
+
+        // --- Jobs Admin ---
+        let editingJobId = '';
+        let jobsCache = [];
+        const jobForm = document.getElementById('jobForm');
+        if (jobForm) {
+            jobForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const msg = document.getElementById('jobMsg');
+                if (msg) msg.textContent = '';
+
+                const payload = {
+                    id: editingJobId,
+                    title: document.getElementById('jobTitle')?.value.trim(),
+                    department: document.getElementById('jobDepartment')?.value.trim(),
+                    location: document.getElementById('jobLocation')?.value.trim(),
+                    date: document.getElementById('jobDate')?.value,
+                    content_html: document.getElementById('jobContent')?.value.trim(),
+                    visible: document.getElementById('jobVisible')?.checked
+                };
+
+                try {
+                    const res = await fetch('/api/jobs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        if (msg) {
+                            msg.style.color = '#28a745';
+                            msg.textContent = '✓ 保存成功';
+                        }
+                        cancelJobEdit();
+                        jobForm.reset();
+                        loadJobsAdmin();
+                    } else if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = data.message || '保存失败';
+                    }
+                } catch (e) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '网络错误';
+                    }
+                }
+            });
+        }
+
+        async function loadJobsAdmin() {
+            const listEl = document.getElementById('jobsListAdmin');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#888;">加载中...</div>';
+            try {
+                const res = await fetch('/api/jobs');
+                const data = await res.json();
+                jobsCache = data.items || [];
+                if (jobsCache.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#888;">暂无招聘信息</div>';
+                    return;
+                }
+                listEl.innerHTML = jobsCache.map(item => `
+                    <div class="file-item" style="align-items: flex-start;">
+                        <div class="file-info">
+                            <div>
+                                <div style="font-weight: 600;">${escapeHtml(item.title || '')}</div>
+                                <div class="file-meta">${escapeHtml(item.department || '')} · ${escapeHtml(item.location || '')} · ${item.date || ''}</div>
+                                <div class="file-meta">ID: ${escapeHtml(item.id || '')}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button class="btn-sm" onclick="editJobItem('${item.id}')">编辑</button>
+                            <button class="btn-sm" onclick="toggleJobItem('${item.id}')">${item.visible ? '隐藏' : '显示'}</button>
+                            <button class="btn-sm btn-danger" onclick="deleteJobItem('${item.id}')">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#dc3545;">加载失败</div>';
+            }
+        }
+
+        function editJobItem(jobId) {
+            const item = jobsCache.find(j => j.id === jobId);
+            if (!item) return;
+            editingJobId = jobId;
+            document.getElementById('jobTitle').value = item.title || '';
+            document.getElementById('jobDepartment').value = item.department || '';
+            document.getElementById('jobLocation').value = item.location || '';
+            document.getElementById('jobDate').value = item.date || '';
+            document.getElementById('jobContent').value = item.content_html || '';
+            document.getElementById('jobVisible').checked = !!item.visible;
+            document.getElementById('jobCancelEdit').style.display = 'inline-flex';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelJobEdit() {
+            editingJobId = '';
+            const cancelBtn = document.getElementById('jobCancelEdit');
+            if (cancelBtn) cancelBtn.style.display = 'none';
+        }
+
+        async function deleteJobItem(jobId) {
+            if (!confirm('确定删除该职位吗？此操作无法撤销。')) return;
+            try {
+                const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    loadJobsAdmin();
+                } else {
+                    alert(data.message || '删除失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        async function toggleJobItem(jobId) {
+            try {
+                const res = await fetch(`/api/jobs/${jobId}/toggle`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    loadJobsAdmin();
+                } else {
+                    alert(data.message || '更新失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        bindNewsPreviewEvents();
         // --- Messages Logic ---
         async function loadMessages() {
             const tbody = document.getElementById('messagesTableBody');

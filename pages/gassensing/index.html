@@ -173,7 +173,7 @@
         }
 
         .vs-mega-list-v2 a {
-            font-size: 14px;
+            font-size: 15px;
             color: #333;
             transition: all 0.2s;
         }
@@ -250,6 +250,705 @@
             grid-template-columns: 1fr;
             /* Single column layout for links */
         }
+
+        /* H2 Applications (Hero Module) - Redesign */
+        .h2-apps {
+            background: #ffffff;
+            padding: 80px 0;
+        }
+
+        .h2-apps .vs-container {
+            padding-left: 0px;
+            padding-right: 0px;
+        }
+
+        .h2-apps__wrap {
+            display: flex;
+            gap: 60px;
+            align-items: flex-start;
+        }
+
+        .h2-apps__side {
+            width: 280px;
+            flex-shrink: 0;
+            padding-top: 20px;
+        }
+
+        .h2-apps__heading {
+            font-size: 28px;
+            color: #003366;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .h2-apps__subheading {
+            font-size: 16px;
+            color: #003366;
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .h2-apps__cta {
+            display: flex;
+            border-radius: 30px;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 51, 102, 0.2);
+            transition: transform 0.2s ease;
+        }
+
+        .h2-apps__cta:hover {
+            transform: translateY(-2px);
+        }
+
+        .h2-apps__cta-text {
+            background: #002a5c;
+            color: white;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .h2-apps__cta-icon {
+            background: #4caf50;
+            color: white;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .h2-apps__list {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        .h2-product {
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .h2-product__img {
+            width: 100%;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .h2-product__img img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .h2-product:hover .h2-product__img img {
+            transform: scale(1.05);
+        }
+
+        .h2-product__title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0066cc;
+            margin-bottom: 12px;
+        }
+
+        .h2-product__desc {
+            font-size: 14.5px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            flex: 1;
+        }
+
+        .h2-product__link {
+            font-size: 14px;
+            color: #0066cc;
+            font-weight: 700;
+            margin-top: auto;
+        }
+
+        @media (max-width: 1024px) {
+            .h2-apps__wrap {
+                flex-direction: column;
+                gap: 40px;
+            }
+
+            .h2-apps__side {
+                width: 100%;
+            }
+
+            .h2-apps__list {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .h2-apps__list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Category Dropdown Menu - Premium Style */
+        .h2-apps__dropdown-wrapper {
+            position: relative;
+            z-index: 20;
+        }
+
+        .h2-apps__dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 0;
+            width: 100%;
+            min-width: 260px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.12), 0 4px 12px -4px rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px) scale(0.98);
+            transform-origin: top center;
+            transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+            overflow: hidden;
+        }
+
+        .h2-apps__dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        .h2-apps__dropdown-list {
+            list-style: none;
+            margin: 0;
+            padding: 8px;
+            max-height: 360px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db transparent;
+        }
+
+        .h2-apps__dropdown-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .h2-apps__dropdown-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .h2-apps__dropdown-list::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 4px;
+        }
+
+        .h2-apps__dropdown-list li {
+            padding: 0;
+            margin-bottom: 2px;
+        }
+
+        .h2-apps__dropdown-list li a {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4b5563;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .h2-apps__dropdown-list li a:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        .h2-apps__dropdown-list li a.active {
+            background: #002a5c;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 42, 92, 0.2);
+        }
+
+        .h2-apps__dropdown-list li a.active::after {
+            content: "✓";
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .h2-apps__cta.open .h2-apps__cta-icon i {
+            transform: rotate(180deg);
+        }
+
+        .h2-apps__cta-icon i {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .h2-hero-stack {
+            min-height: calc(100vh - 90px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .h2-hero-stack .vs-hero {
+            flex: 1 1 auto;
+            min-height: 360px;
+            height: auto;
+        }
+
+        .h2-hero-stack .h2-apps {
+            flex: 0 0 clamp(220px, 28vh, 320px);
+            padding: 16px 0 24px;
+        }
+
+        @media (min-width: 1920px) {
+            .h2-hero-stack .vs-hero {
+                min-height: 420px;
+            }
+
+            .h2-hero-stack .h2-apps {
+                flex-basis: clamp(260px, 26vh, 360px);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .h2-hero-stack {
+                min-height: calc(100vh - 80px);
+            }
+
+            .h2-hero-stack .h2-apps {
+                flex: 0 0 auto;
+                padding: 18px 0 28px;
+            }
+        }
+
+
+        /* H2 Hero Stack Overrides (Full First Screen) */
+        .h2-hero-stack {
+            height: calc(100vh - 90px);
+            min-height: 700px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .h2-hero-stack .vs-hero {
+            flex: 1 1 auto;
+            min-height: 400px;
+        }
+
+        .h2-hero-stack .h2-apps {
+            flex: 0 0 auto;
+            padding: 24px 0 32px;
+            display: flex;
+            align-items: center;
+        }
+
+        .h2-hero-stack .h2-apps__wrap {
+            gap: 40px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .h2-hero-stack .h2-apps__side {
+            padding-top: 0;
+        }
+
+        .h2-hero-stack .h2-apps__heading {
+            font-size: 26px;
+            margin-bottom: 12px;
+        }
+
+        .h2-hero-stack .h2-apps__subheading {
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        .h2-hero-stack .h2-apps__list {
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        .h2-hero-stack .h2-product__img {
+            height: 170px;
+        }
+
+        .h2-hero-stack .h2-product__title {
+            font-size: 16px;
+        }
+
+        .h2-hero-stack .h2-product {
+            padding: 6px 4px;
+        }
+
+        .h2-hero-stack .h2-apps__list {
+            align-items: stretch;
+        }
+
+        .h2-hero-stack .h2-product__desc {
+            margin-bottom: 8px;
+        }
+
+        .h2-hero-stack .h2-product__desc {
+            font-size: 14px;
+            -webkit-line-clamp: 3;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .h2-hero-stack .vs-hero h1 {
+            font-size: clamp(40px, 6vw, 84px) !important;
+            letter-spacing: 2px !important;
+        }
+
+        .h2-hero-stack .vs-hero p {
+            font-size: clamp(14px, 1.6vw, 20px) !important;
+        }
+
+        @media (min-width: 1920px) {
+            .h2-hero-stack {
+                min-height: 720px;
+            }
+
+            .h2-hero-stack .h2-apps {
+                flex-basis: 38%;
+            }
+
+            .h2-hero-stack .h2-product__img {
+                height: 140px;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .h2-hero-stack {
+                height: auto;
+                min-height: 0;
+            }
+
+            .h2-hero-stack .h2-apps {
+                flex: 0 0 auto;
+                padding: 18px 0 28px;
+            }
+
+            .h2-hero-stack .h2-apps__wrap {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* H2 Cases Section */
+        .h2-cases {
+            padding: 60px 0 80px;
+            background: #ffffff;
+        }
+
+        .h2-cases .vs-container {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .h2-cases__header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .h2-cases__title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f2f5f;
+        }
+
+        .h2-cases__subtitle {
+            font-size: 15px;
+            color: #6b7b8f;
+            margin-top: 8px;
+            font-weight: 400;
+        }
+
+        .h2-cases__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+        }
+
+        .h2-case-card {
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .h2-case-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+            border-color: rgba(0, 0, 0, 0.03);
+        }
+
+        .h2-case-card__img {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background: #f4f6fb;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .h2-case-card__img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .h2-case-card:hover .h2-case-card__img img {
+            transform: scale(1.08);
+        }
+
+        .h2-case-card__body {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .h2-case-card__tag {
+            font-size: 12px;
+            color: #0066cc;
+            /* Brand Blue */
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .h2-case-card__tag::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background: #0066cc;
+            border-radius: 50%;
+        }
+
+        .h2-case-card__title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #002a5c;
+            /* Darker Brand Color */
+            line-height: 1.5;
+            margin-bottom: 20px;
+            flex: 1;
+            transition: color 0.2s ease;
+        }
+
+        .h2-case-card:hover .h2-case-card__title {
+            color: #0066cc;
+        }
+
+        .h2-case-card__link {
+            display: inline-flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #444;
+            margin-top: auto;
+            transition: color 0.2s ease;
+        }
+
+        .h2-case-card__link .icon-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background-color: #f0f7ff;
+            border-radius: 50%;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+            color: #0066cc;
+        }
+
+        .h2-case-card__link .icon-circle i {
+            font-size: 12px;
+        }
+
+        .h2-case-card:hover .h2-case-card__link {
+            color: #0066cc;
+        }
+
+        .h2-case-card:hover .h2-case-card__link .icon-circle {
+            background-color: #0066cc;
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        @media (max-width: 1100px) {
+            .h2-cases__grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .h2-cases__grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* H2 News Section */
+        .h2-news {
+            padding: 60px 0 80px;
+            background: #f8f9fb;
+        }
+
+        .h2-news .vs-container {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .h2-news__header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .h2-news__title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f2f5f;
+        }
+
+        .h2-news__subtitle {
+            font-size: 15px;
+            color: #6b7b8f;
+            margin-top: 8px;
+            font-weight: 400;
+        }
+
+        .h2-news__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+        }
+
+        .h2-news-card {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .h2-news-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.12);
+        }
+
+        .h2-news-card__img {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background: #e9ecf1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .h2-news-card__img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .h2-news-card:hover .h2-news-card__img img {
+            transform: scale(1.05);
+        }
+
+        .h2-news-card__tag {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 60, 90, 0.85);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 4px;
+        }
+
+        .h2-news-card__body {
+            padding: 20px 20px 24px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .h2-news-card__date {
+            font-size: 13px;
+            color: #6b7b8f;
+            margin-bottom: 10px;
+        }
+
+        .h2-news-card__title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #0f2f5f;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            transition: color 0.2s ease;
+        }
+
+        .h2-news-card:hover .h2-news-card__title {
+            color: #0066cc;
+        }
+
+        .h2-news-card__desc {
+            font-size: 14px;
+            color: #5f6b80;
+            line-height: 1.7;
+            flex: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        @media (max-width: 1100px) {
+            .h2-news__grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .h2-news__grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -319,18 +1018,15 @@
                                             <ul class="vs-mega-list-v2">
                                                 <li><a href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
                                                 </li>
-                                                <li><a
-                                                        href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                                <li><a href="..\solutions\industry-power-safety.html">智慧电力安全</a>
                                                 </li>
-                                                <li><a
-                                                        href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                                <li><a href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
                                                 </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a
-                                                        href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                                <li><a href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
                                                 </li>
                                                 <li><a href="..\solutions\industry-environment.html">大气环境监测</a>
                                                 </li>
@@ -349,15 +1045,13 @@
                                                         (H2)</a></li>
                                                 <li><a href="..\measurement\measurement-humidity.html">湿度
                                                         (RH)</a></li>
-                                                <li><a
-                                                        href="..\measurement\measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                <li><a href="..\measurement\measurement-dissolved-hydrogen.html">溶解氢</a>
                                                 </li>
                                             </ul>
                                         </div>
                                         <div>
                                             <ul class="vs-mega-list-v2">
-                                                <li><a
-                                                        href="..\measurement\measurement-oil-water.html">油中水含量</a>
+                                                <li><a href="..\measurement\measurement-oil-water.html">油中水含量</a>
                                                 </li>
                                                 <li><a href="..\measurement\measurement-dewpoint.html">露点
                                                         (Td)</a></li>
@@ -526,37 +1220,34 @@
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
                 <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
-                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
+                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a
+                    href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
             </div>
         </div>
         <script>
-        function showPanel(panelId, tab) {
-            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + panelId).classList.add('active');
-        }
-        function showPanelContact(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-contact-' + panelId).classList.add('active');
-        }
-        function showPanelSolutions(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-solutions-' + panelId).classList.add('active');
-        }
-        function showPanelCases(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-cases-' + panelId).classList.add('active');
-        }
+            function showPanel(panelId, tab) {
+                do SelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active')                           tab.classList.add('active');
+                            .querySelectorAll('.vs-mega-panel').forEach                sList.remove('active'));
+                document.getElementById('panel-' + panelI.add('active');
+            } function showPanelContact(panelId, tab) {
+                const menu = tab.closest(nu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.cl            re            tive'));
+                tab.classList.add('                              menu.querySelectorAll('.vs - me                orEach(p => p.classList.remove('active'));
+                document.getElementById                act - ' + panelId).classList.ad                
+            }
+            function showPanelSolutions(panelId, tab) {
+                u = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-me            .f             => t.classList.remove('active'));
+                     ab.classList.add('active');
+                electorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                ent.getElementById('panel-sol                anelId).classList.add('active');
+            }
+            function showPanelCases(p                 {
+                const menu = tab.closest('.vs-mega-menu');
+                qutora            orEach(t => t.classList.remove('act                            tab.classList.add('active');
+                menu.querySelectorAll('.vs-me                orEach(p => p.classList.remov                ;
+                document.getElementById('panel-cases-' + panelId).classList.add('active');
+            }
         </script>
     </header>
 
@@ -583,135 +1274,238 @@
         }
         function showPanelCases(panelId, tab) {
             const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-cases-' + panelId).classList.add('active');
+            menu.querySelectorAll('.vs-mega-tab').fort        ));
+                       active');
+            menu.querySelectorAll('.vs-mega-             p.classList.remove(                document.getEle            s-' + panelId).cl            );
         }
     </script>
 
     <main style="padding-top: 90px;">
-        <!-- Hero with Particle Animation -->
-        <section class="vs-hero"
-            style="height: 100vh; min-height: 600px; position: relative; background: #000; overflow: hidden; display: flex; align-items: center; color: #fff; font-family: 'Inter', sans-serif;">
+        <div class="h2-hero-stack">
+            <!-- Hero with Particle Animation -->
+            <section class="vs-hero"
+                style="position: relative; background: #000; overflow: hidden; display: flex; align-items: center; color: #fff; font-family: 'Inter', sans-serif;">
 
-            <!-- Particle Effect Iframe -->
-            <iframe id="hero-particle-frame" src=""
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 0; pointer-events: none;">
-            </iframe>
+                <video id="h2HeroVideo" muted playsinline preload="metadata"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; opacity: 0; transition: opacity 0.8s ease;"></video>
+                <div class="vs-container"
+                    style="position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center;">
 
-            <div class="vs-container"
-                style="position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="flex: 1; display: flex; align-items: center;">
+                        <div
+                            style="width: 100%; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; align-items: flex-end;">
+                            <!-- Left Content -->
+                            <div style="text-align: left;">
+                                <h1
+                                    style="font-size: 96px; line-height: 1.3; font-weight: 700; margin-bottom: 0; letter-spacing: 4px; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.9), 0 4px 60px rgba(0,0,0,0.8), 0 0 80px rgba(0,0,0,0.6);">
+                                    精准感知<br>
+                                    <span
+                                        style="color: rgba(255,255,255,0.6); text-shadow: 0 0 10px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.9);">安全守护</span><br>
+                                    氢能未来
+                                </h1>
+                            </div>
 
-                <div style="flex: 1; display: flex; align-items: center;">
-                    <div
-                        style="width: 100%; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; align-items: flex-end;">
-                        <!-- Left Content -->
-                        <div style="text-align: left;">
-                            <h1
-                                style="font-size: 96px; line-height: 1.3; font-weight: 700; margin-bottom: 0; letter-spacing: 4px; color: #fff; text-shadow: 0 0 10px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.9), 0 4px 60px rgba(0,0,0,0.8), 0 0 80px rgba(0,0,0,0.6);">
-                                精准感知<br>
-                                <span
-                                    style="color: rgba(255,255,255,0.6); text-shadow: 0 0 10px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.9);">安全守护</span><br>
-                                氢能未来
-                            </h1>
+                            <!-- Right/Bottom Content -->
+                            <div
+                                style="text-align: right; padding-bottom: 10px; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; height: 100%;">
+                                <p
+                                    style="font-size: 20px; color: transparent; background: linear-gradient(135deg, #fff 0%, #a8e6ff 50%, #7dd3fc 100%); -webkit-background-clip: text; background-clip: text; margin-bottom: 35px; text-align: right; max-width: 360px; line-height: 2.0; text-shadow: none; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9)) drop-shadow(0 0 16px rgba(0,0,0,0.8)); font-weight: 500; letter-spacing: 1px;">
+                                    元芯传感，专注氢气传感技术<br>为氢能产业提供安全保障
+                                </p>
+                                <a href="../../pages/contact/contact.html"
+                                    style="display: inline-flex; align-items: center; justify-content: center; background: #fff; color: #000; padding: 12px 30px; border-radius: 100px; font-size: 14px; font-weight: 600; text-decoration: none; transition: transform 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.4);"
+                                    onmouseover="this.style.transform='scale(1.05)'"
+                                    onmouseout="this.style.transform='scale(1)'">
+                                    了解更多
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <script>
+                    (function () {
+                        const video = document.getElementById('h2HeroVideo');
+                        if (!video) return;
+                        let playlist = [];
+                        let current = 0;
+                        let started = false;
+
+                        function setSource(idx) {
+                            const item = playlist[idx];
+                            if (!item || !item.url) return;
+                            video.src = item.url;
+                            video.load();
+                            playVideo();
+                        }
+
+                        function playVideo() {
+                            if (started) return;
+                            started = true;
+                            video.play().then(() => {
+                                video.style.opacity = '0.6';
+                            }).catch(() => {
+                                video.style.opacity = '0.6';
+                            }).finally(() => {
+                                started = false;
+                            });
+                        }
+
+                        video.addEventListener('ended', () => {
+                            if (!playlist.length) return;
+                            current = (current + 1) % playlist.length;
+                            setSource(current);
+                        });
+
+                        fetch('/api/h2-home')
+                            .then(res => res.json())
+                            .then(data => {
+                                playlist = (data.items || []).filter(i => i && i.url);
+                                if (!playlist.length) return;
+                                current = 0;
+                                setSource(current);
+                            })
+                            .catch(() => { });
+                    })();
+                </script>
+
+            </section>
+
+
+
+
+            <section class="h2-apps">
+                <div class="vs-container">
+                    <div class="h2-apps__wrap">
+                        <!-- Left Side -->
+                        <div class="h2-apps__side">
+                            <h2 class="h2-apps__heading">检测需求</h2>
+                            <p class="h2-apps__subheading">您在哪里需要<br>元芯传感？</p>
+                            <div class="h2-apps__dropdown-wrapper">
+                                <div class="h2-apps__cta" id="h2AppsCta">
+                                    <span class="h2-apps__cta-text" id="h2AppsCtaText">选择分类</span>
+                                    <span class="h2-apps__cta-icon"><i class="fas fa-chevron-down"></i></span>
+                                </div>
+                                <div class="h2-apps__dropdown" id="h2AppsDropdown">
+                                    <ul class="h2-apps__dropdown-list" id="h2AppsDropdownList">
+                                        <li><a href="#" data-filter="all" class="active">全部产品</a></li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Right/Bottom Content -->
-                        <div
-                            style="text-align: right; padding-bottom: 10px; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; height: 100%;">
-                            <p
-                                style="font-size: 20px; color: transparent; background: linear-gradient(135deg, #fff 0%, #a8e6ff 50%, #7dd3fc 100%); -webkit-background-clip: text; background-clip: text; margin-bottom: 35px; text-align: right; max-width: 360px; line-height: 2.0; text-shadow: none; filter: drop-shadow(0 0 8px rgba(0,0,0,0.9)) drop-shadow(0 0 16px rgba(0,0,0,0.8)); font-weight: 500; letter-spacing: 1px;">
-                                元芯传感，专注氢气传感技术<br>为氢能产业提供安全保障
-                            </p>
-                            <a href="../../pages/contact/contact.html"
-                                style="display: inline-flex; align-items: center; justify-content: center; background: #fff; color: #000; padding: 12px 30px; border-radius: 100px; font-size: 14px; font-weight: 600; text-decoration: none; transition: transform 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.4);"
-                                onmouseover="this.style.transform='scale(1.05)'"
-                                onmouseout="this.style.transform='scale(1)'">
-                                了解更多
-                            </a>
+                        <!-- Right Side Product Grid -->
+                        <div class="h2-apps__list" id="h2AppsProductList">
+                            <!-- Products will be dynamically loaded -->
                         </div>
                     </div>
                 </div>
+            </section>
+        </div><!-- end h2-hero-stack -->
 
-
-            </div>
-
-            <script>
-                (function () {
-                    const frame = document.getElementById('hero-particle-frame');
-                    // 可用的粒子效果文件列表 - 添加或删除文件时只需修改此数组
-                    const particleFiles = [
-                        'particle-default-effect.html',
-                        'particle-default-effect_2.html',
-                        'particle-default-effect_3.html',
-                        'particle-default-effect_4.html',
-                        'particle-default-effect_6.html',
-                        'particle-default-effect_7.html',
-                        'particle-default-effect_10.html',
-                        'particle-default-effect_13.html',
-                        'particle-default-effect_15.html',
-                        'particle-default-effect_16.html'
-                    ];
-
-                    // 随机选择一个文件
-                    const randomIndex = Math.floor(Math.random() * particleFiles.length);
-                    frame.src = `../../ionrendering/${particleFiles[randomIndex]}`;
-                })();
-            </script>
-        </section>
-
-
-
-        <section class="vs-section">
+        <section class="h2-cases">
             <div class="vs-container">
-                <div style="text-align: center; margin-bottom: 80px;">
-                    <h2 class="vs-title">全产业链覆盖</h2>
-                    <p class="vs-text" style="margin: 0 auto;">
-                        元芯传感针对制氢、储运、加注及终端应用等不同环节的需求，提供定制化的传感技术支持。
-                    </p>
+                <div class="h2-cases__header">
+                    <div>
+                        <div class="h2-cases__title">应用案例</div>
+                        <div class="h2-cases__subtitle">探索元芯传感在各行业的成功应用，见证氢气检测技术的无限可能</div>
+                    </div>
                 </div>
-
-                <div class="vs-product-grid">
-                    <a href="mcs_iot_platform.html" class="vs-card" style="text-decoration: none; color: inherit;">
-                        <div class="vs-card__img-wrapper">
-                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png"
-                                alt="H2 Sensor">
-                        </div>
-                        <div class="vs-card__content">
-                            <span class="vs-card__tag">制氢环节</span>
-                            <h3 class="vs-card__title">高纯氢在线分析仪</h3>
-                            <p class="vs-card__desc">实时监测氢气纯度及微量杂质，确保制氢工艺稳定。支持多组分并行分析。</p>
-                            <span class="vs-link-arrow">了解详情</span>
-                        </div>
-                    </a>
-                    <a href="mc_hla_fixed_alarm.html" class="vs-card" style="text-decoration: none; color: inherit;">
-                        <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
-                                alt="H2 Sensor">
-                        </div>
-                        <div class="vs-card__content">
-                            <span class="vs-card__tag">储运加注</span>
-                            <h3 class="vs-card__title">防爆型氢气检测器</h3>
-                            <p class="vs-card__desc">专为加氢站、储氢罐区设计的工业级防爆设备，支持 4-20mA/RS485 输出。</p>
-                            <span class="vs-link-arrow">了解详情</span>
-                        </div>
-                    </a>
-                    <a href="mchp_vehicle_h2.html" class="vs-card" style="text-decoration: none; color: inherit;">
-                        <div class="vs-card__img-wrapper">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
-                                alt="H2 Sensor">
-                        </div>
-                        <div class="vs-card__content">
-                            <span class="vs-card__tag">终端应用</span>
-                            <h3 class="vs-card__title">车载氢泄漏模组</h3>
-                            <p class="vs-card__desc">符合车规级标准，快速响应燃料电池系统内的氢气泄漏，保障行车安全。</p>
-                            <span class="vs-link-arrow">了解详情</span>
-                        </div>
-                    </a>
-                </div>
+                <div class="h2-cases__grid" id="h2CasesGrid"></div>
             </div>
         </section>
+
+
+        <script>
+            (function () {
+                const grid = document.getElementById('h2CasesGrid');
+                if (!grid) return;
+
+                function render(items) {
+                    if (!items || items.length === 0) {
+                        grid.innerHTML = '<div style="color:#888;">暂无案例</div>';
+                        return;
+                    }
+                    grid.innerHTML = items.map(item => {
+                        // Use custom titles if provided, otherwise fallback to defaults
+                        const subtitle = item.customSubtitle || 'Case Study';
+                        const mainTitle = item.customTitle || item.title || '';
+                        return `
+                        <a href="/${item.link}" class="h2-case-card">
+                            <div class="h2-case-card__img">
+                                <img src="${item.image || ''}" alt="case">
+                            </div>
+                            <div class="h2-case-card__body">
+                                <div class="h2-case-card__tag">${subtitle}</div>
+                                <div class="h2-case-card__title">${mainTitle}</div>
+                                <div class="h2-case-card__link">
+                                    Read More 
+                                    <span class="icon-circle"><i class="fas fa-chevron-right"></i></span>
+                                </div>
+                            </div>
+                        </a>`;
+                    }).join('');
+                }
+
+                fetch('/api/h2-home/cases')
+                    .then(res => res.json())
+                    .then(data => render(data.items || []))
+                    .catch(() => render([]));
+            })();
+        </script>
+
+        <!-- Recent News Section -->
+        <section class="h2-news">
+            <div class="vs-container">
+                <div class="h2-news__header">
+                    <div>
+                        <div class="h2-news__title">最近动态</div>
+                        <div class="h2-news__subtitle">了解元芯传感的最新资讯与行业洞察</div>
+                    </div>
+                </div>
+                <div class="h2-news__grid" id="h2NewsGrid"></div>
+            </div>
+        </section>
+
+        <script>
+            (function () {
+                const grid = document.getElementById('h2NewsGrid');
+                if (!grid) return;
+
+                function render(items) {
+                    if (!items || items.length === 0) {
+                        grid.innerHTML = '<div style="color:#888;">暂无动态</div>';
+                        return;
+                    }
+                    grid.innerHTML = items.map(item => {
+                        const tag = item.customTag || '新闻资讯';
+                        const title = item.customTitle || item.title || '';
+                        const desc = item.customDesc || item.summary || item.desc || '';
+                        return `
+                        <a href="${item.link}" class="h2-news-card">
+                            <div class="h2-news-card__img">
+                                <img src="${item.image || ''}" alt="news">
+                                <span class="h2-news-card__tag">${tag}</span>
+                            </div>
+                            <div class="h2-news-card__body">
+                                <div class="h2-news-card__date">${item.date || ''}</div>
+                                <div class="h2-news-card__title">${title}</div>
+                                <div class="h2-news-card__desc">${desc}</div>
+                            </div>
+                        </a>`;
+                    }).join('');
+                }
+
+                fetch('/api/h2-home/news')
+                    .then(res => res.json())
+                    .then(data => render(data.items || []))
+                    .catch(() => render([]));
+            })();
+        </script>
+
+
     </main>
 
     <footer class="vs-footer">
@@ -777,8 +1571,8 @@
                 const rightHtml = rightProducts.map(createProductLink).join('');
 
                 container.innerHTML = `
-                    <div><ul class="vs-mega-list-v2">${leftHtml}</ul></div>
-                    <div><ul class="vs-mega-list-v2">${rightHtml}</ul></div>
+                    <div><ul class="vs-mega-list-v2">${leftHtml}</ul></
+        <div><ul class="vs-mega-list-v2">${rightHtml}</ul></div>
                 `;
             } catch (error) {
                 console.error('Failed to load products:', error);
@@ -847,6 +1641,162 @@
                 console.error('Failed to load categories:', e);
             }
         });
+    </script>
+
+    <!-- 产品分类下拉菜单交互 -->
+    <script>
+        (function () {
+            let allProducts = [];
+            let currentCategory = 'all';
+            let defaultProducts = [];
+
+            const categoryLabels = {
+                'all': '全部产品',
+                'iot': '物联网平台',
+                'sensor': '传感器',
+                'module': '检测模块',
+                'detector': '检测仪',
+                'alarm': '报警器',
+                'system': '监测系统',
+                'service': '定制服务'
+            };
+
+            const cta = document.getElementById('h2AppsCta');
+            const dropdown = document.getElementById('h2AppsDropdown');
+            const dropdownList = document.getElementById('h2AppsDropdownList');
+            const ctaText = document.getElementById('h2AppsCtaText');
+            const productList = document.getElementById('h2AppsProductList');
+
+            if (!cta || !dropdown || !dropdownList || !productList) return;
+
+            // Toggle dropdown
+            cta.addEventListener('click', function (e) {
+                e.stopPropagation();
+                cta.classList.toggle('open');
+                dropdown.classList.toggle('active');
+            });
+
+            // Close on click outside
+            document.addEventListener('click', function () {
+                cta.classList.remove('open');
+                dropdown.classList.remove('active');
+            });
+
+            dropdown.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+
+            // Load products and categories
+            async function init() {
+                try {
+                    const [resAll, resDefault] = await Promise.all([
+                        fetch('/api/products/with-settings'),
+                        fetch('/api/h2-home/products')
+                    ]);
+                    const data = await resAll.json();
+                    const defaultData = await resDefault.json();
+                    allProducts = (data.products || []).filter(p => !p.id.includes('../') && !p.hidden);
+                    defaultProducts = (defaultData.items || []);
+
+                    // Collect categories that actually have products
+                    const availableCategories = new Set();
+                    allProducts.forEach(p => {
+                        const cats = p.categories || [p.category];
+                        cats.forEach(c => availableCategories.add(c));
+                    });
+
+                    // Build dropdown menu - only show categories with products
+                    const menuItems = [{ key: 'all', label: '全部产品' }];
+                    Object.keys(categoryLabels).forEach(key => {
+                        if (key !== 'all' && availableCategories.has(key)) {
+                            menuItems.push({ key, label: categoryLabels[key] });
+                        }
+                    });
+                    // Add any categories from products that are not in our predefined labels
+                    availableCategories.forEach(cat => {
+                        if (!categoryLabels[cat]) {
+                            menuItems.push({ key: cat, label: cat });
+                        }
+                    });
+
+                    dropdownList.innerHTML = menuItems.map(item =>
+                        `<li><a href="javascript:void(0)" data-filter="${item.key}" class="${item.key === 'all' ? 'active' : ''}">${item.label}</a></li>`
+                    ).join('');
+
+                    // Add click handlers
+                    dropdownList.querySelectorAll('a[data-filter]').forEach(link => {
+                        link.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            dropdownList.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+                            this.classList.add('active');
+
+                            currentCategory = this.dataset.filter;
+                            ctaText.textContent = categoryLabels[currentCategory] || '选择应用场景';
+
+                            renderProducts();
+
+                            // Close dropdown
+                            cta.classList.remove('open');
+                            dropdown.classList.remove('active');
+                        });
+                    });
+
+                    // Initial render
+                    renderProducts();
+                } catch (err) {
+                    console.error('Failed to load products for dropdown:', err);
+                }
+            }
+
+            function getFilteredProducts() {
+                if (currentCategory === 'all') {
+                    return defaultProducts.length ? defaultProducts : allProducts;
+                }
+                return allProducts.filter(p => {
+                    const categories = p.categories || [p.category];
+                    return categories.includes(currentCategory);
+                });
+            }
+
+            function renderProducts() {
+                const filtered = getFilteredProducts();
+                const top3 = filtered.slice(0, 3);
+
+                if (top3.length === 0) {
+                    productList.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">
+                            该分类暂无产品
+                        </div>
+                    `;
+                    return;
+                }
+
+                productList.innerHTML = top3.map(p => {
+                    let link = p.link || `${p.id}.html`;
+                    if (link.startsWith('pages/gassensing/')) {
+                        link = link.replace('pages/gassensing/', '');
+                    }
+                    if (link.startsWith('/pages/gassensing/')) {
+                        link = link.replace('/pages/gassensing/', '');
+                    }
+                    const title = p.shortName || p.name || p.title || '';
+                    const desc = p.description || p.desc || '';
+                    const image = p.image || '';
+                    return `
+                    <a href="${link}" class="h2-product">
+                        <div class="h2-product__img">
+                            <img src="${image}" alt="${title}">
+                        </div>
+                        <div class="h2-product__title">${title}</div>
+                        <div class="h2-product__desc">${desc}</div>
+                        <span class="h2-product__link">查看产品</span>
+                    </a>
+                `;
+                }).join('');
+            }
+
+            init();
+        })();
     </script>
 
 </body>

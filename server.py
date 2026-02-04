@@ -9,11 +9,13 @@ import time
 import hashlib
 import threading
 import re
+import uuid
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
 
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string, Response, stream_with_context
+from werkzeug.utils import secure_filename
 
 # Optional imports for PDF parsing and OpenAI
 try:
@@ -36,6 +38,12 @@ try:
 except ImportError:
     REQUESTS_SUPPORT = False
 
+try:
+    import markdown as md
+    MARKDOWN_SUPPORT = True
+except ImportError:
+    MARKDOWN_SUPPORT = False
+
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = os.environ.get('SECRET_KEY', 'metachip-secret-key-2024')
 
@@ -45,15 +53,164 @@ MESSAGES_DIR = DATA_DIR / 'messages'
 KNOWLEDGE_DIR = DATA_DIR / 'knowledge'
 RATE_LIMIT_FILE = DATA_DIR / 'rate_limits.json'
 CONFIG_FILE = DATA_DIR / 'config.json'
+HERO_DIR = DATA_DIR / 'hero'
+HERO_UPLOADS_DIR = HERO_DIR / 'uploads'
+HERO_CONFIG_FILE = HERO_DIR / 'hero.json'
+PARTNERS_DIR = DATA_DIR / 'partners'
+PARTNERS_UPLOADS_DIR = PARTNERS_DIR / 'uploads'
+PARTNERS_CONFIG_FILE = PARTNERS_DIR / 'partners.json'
+NEWS_FEATURED_FILE = DATA_DIR / 'news_featured.json'
+NEWS_VISIBILITY_FILE = DATA_DIR / 'news_visibility.json'
+PRODUCT_FEATURED_FILE = DATA_DIR / 'product_featured.json'
+SOLUTIONS_FEATURED_FILE = DATA_DIR / 'solutions_featured.json'
+JOBS_FILE = DATA_DIR / 'jobs.json'
+H2_HOME_FILE = DATA_DIR / 'h2_home.json'
 
 # Ensure directories exist
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
+HERO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 RATE_LIMIT_MAX = 5  # Max submissions per IP per hour
 RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
 
 # Ensure directories exist
 MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_HERO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.mp4'}
+ALLOWED_HERO_MIME_TYPES = {'image/png', 'image/jpeg', 'video/mp4'}
+ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.svg', '.webp'}
+ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'}
+
+def infer_extension_from_mime(mime: str) -> str:
+    if mime == 'image/png':
+        return '.png'
+    if mime == 'image/jpeg':
+        return '.jpg'
+    if mime == 'video/mp4':
+        return '.mp4'
+    return ''
+
+def infer_partner_extension_from_mime(mime: str) -> str:
+    if mime == 'image/png':
+        return '.png'
+    if mime == 'image/jpeg':
+        return '.jpg'
+    if mime == 'image/svg+xml':
+        return '.svg'
+    if mime == 'image/webp':
+        return '.webp'
+    return ''
+
+def get_hero_config():
+    """Load hero carousel config from file or defaults."""
+    default_config = {
+        'interval_seconds': 5,
+        'items': []
+    }
+
+    if HERO_CONFIG_FILE.exists():
+        try:
+            config = json.loads(HERO_CONFIG_FILE.read_text(encoding='utf-8'))
+            merged = {**default_config, **config}
+            items = merged.get('items', [])
+            if not isinstance(items, list):
+                items = []
+            merged['items'] = [item for item in items if isinstance(item, dict)]
+            return merged
+        except Exception:
+            pass
+
+    HERO_CONFIG_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    return default_config
+
+def save_hero_config(new_config):
+    """Validate and save hero carousel config."""
+    config = get_hero_config()
+    interval_seconds = new_config.get('interval_seconds', config.get('interval_seconds', 5))
+    try:
+        interval_seconds = int(interval_seconds)
+    except Exception:
+        interval_seconds = 5
+    if interval_seconds < 1:
+        interval_seconds = 1
+    if interval_seconds > 60:
+        interval_seconds = 60
+
+    items = new_config.get('items', config.get('items', []))
+    normalized_items = []
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get('id') or uuid.uuid4().hex)
+            item_type = (item.get('type') or 'image').lower()
+            if item_type not in {'image', 'video'}:
+                continue
+            url = (item.get('url') or '').strip()
+            if not url:
+                continue
+            source = (item.get('source') or 'url').lower()
+            normalized_items.append({
+                'id': item_id,
+                'type': item_type,
+                'url': url,
+                'source': source
+            })
+
+    saved = {
+        'interval_seconds': interval_seconds,
+        'items': normalized_items
+    }
+    HERO_CONFIG_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    return saved
+
+def get_partners_config():
+    """Load partners config from file or defaults."""
+    default_config = {
+        'items': []
+    }
+
+    if PARTNERS_CONFIG_FILE.exists():
+        try:
+            config = json.loads(PARTNERS_CONFIG_FILE.read_text(encoding='utf-8'))
+            merged = {**default_config, **config}
+            items = merged.get('items', [])
+            if not isinstance(items, list):
+                items = []
+            merged['items'] = [item for item in items if isinstance(item, dict)]
+            return merged
+        except Exception:
+            pass
+
+    PARTNERS_CONFIG_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    return default_config
+
+def save_partners_config(new_config):
+    """Validate and save partners config."""
+    config = get_partners_config()
+    items = new_config.get('items', config.get('items', []))
+    normalized_items = []
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get('id') or uuid.uuid4().hex)
+            url = (item.get('url') or '').strip()
+            if not url:
+                continue
+            source = (item.get('source') or 'url').lower()
+            normalized_items.append({
+                'id': item_id,
+                'url': url,
+                'source': source
+            })
+
+    saved = {
+        'items': normalized_items
+    }
+    PARTNERS_CONFIG_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    return saved
 
 def get_config():
     """Load config from file or defaults."""
@@ -229,6 +386,448 @@ def parse_news_from_html():
         print(f"Error parsing news: {e}")
         return {'enterprise': [], 'industry': [], 'science': []}
 
+def get_next_news_id():
+    """Get next numeric ID for news_show file."""
+    news_dir = Path(__file__).parent / 'pages' / 'news'
+    max_id = 0
+    if news_dir.exists():
+        for file in news_dir.glob('news_show.aspx_id_*.html'):
+            match = re.search(r'news_show\\.aspx_id_(\\d+)\\.html', file.name)
+            if match:
+                try:
+                    max_id = max(max_id, int(match.group(1)))
+                except ValueError:
+                    pass
+    return max_id + 1
+
+def build_news_article_html(title, date, image_url, content_html):
+    """Render a news article HTML with consistent style."""
+    safe_title = title.replace('"', '&quot;')
+    hero_title = safe_title
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{hero_title} - 湖南元芯传感科技有限责任公司</title>
+    
+    <!-- Vaisala Style V2.0 -->
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .article-hero {{
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 31, 63, 0.9) 0%, rgba(0, 31, 63, 0.7) 100%), url('../../assets/images/section2_bj.jpg') center/cover;
+            height: 40vh;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white !important;
+            padding: 0 20px;
+        }}
+        .article-hero__title {{
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            max-width: 900px;
+            line-height: 1.4;
+        }}
+        .article-hero__meta {{
+            font-size: 16px;
+            opacity: 0.8;
+        }}
+        .article-container {{
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }}
+        @media (min-width: 1920px) {{
+            .article-container {{
+                max-width: 1600px;
+            }}
+            .article-content {{
+                font-size: 19px;
+            }}
+            .article-hero__title {{
+                font-size: 48px;
+            }}
+        }}
+        .article-content {{
+            font-size: 17px;
+            line-height: 1.9;
+            color: #333;
+        }}
+        .article-content p {{
+            margin-bottom: 20px;
+        }}
+        .article-content img {{
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 24px auto; display: block;
+        }}
+        .article-content strong {{
+            color: var(--color-primary);
+        }}
+        .article-content ul, .article-content ol {{
+            margin: 20px 0;
+            padding-left: 30px;
+        }}
+        .article-content li {{
+            margin-bottom: 10px;
+        }}
+        .article-nav {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 0;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        }}
+        .article-nav a {{
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }}
+        .article-nav a:hover {{
+            text-decoration: underline;
+        }}
+        .back-btn, a.back-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--color-primary);
+            color: white !important;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }}
+        .back-btn:hover {{
+            background: var(--color-accent-blue);
+            transform: translateY(-2px);
+        }}
+    </style>
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="vs-header">
+    <div class="vs-container vs-header__inner">
+      <div style="display: flex; align-items: center">
+        <a href="../../index.html" class="vs-logo">
+          <img src="../../assets/images/logo.png" alt="Metachip Logo" style="filter: brightness(0) invert(1)" />
+          METACHIP
+        </a>
+      </div>
+
+      <nav class="vs-nav" style="margin-left: auto; margin-right: 40px;">
+        <ul class="vs-nav__list">
+
+          <li class="vs-nav__item">
+            <a href="../biosensing/index.html?filter=sensor" class="vs-nav__link">生化传感事业部</a>
+          </li>
+          <li class="vs-nav__item">
+            <a href="../gassensing/index.html" class="vs-nav__link">先进氢气传感解决方案</a>
+          </li>
+          <li class="vs-nav__item vs-nav__item--has-mega">
+            <a href="../news/news.html" class="vs-nav__link">洞察与资讯</a>
+          </li>
+          <li class="vs-nav__item">
+            <a href="../contact/contact.html" class="vs-nav__link">联系我们</a>
+          </li>
+        </ul>
+      </nav>
+
+      <div style="display: flex; gap: 24px; color: white; align-items: center">
+        <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
+        <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="../../index_en.html" style="font-size: 14px; font-weight: 500;">EN</a>
+      </div>
+    </div>
+  </header>
+
+    <section class="article-hero">
+        <h1 class="article-hero__title">{hero_title}</h1>
+        <div class="article-hero__meta">{date}</div>
+    </section>
+
+    <div class="article-container">
+        <div class="article-content">
+            <img src="{image_url}" alt="News">
+            {content_html}
+        </div>
+
+        <div style="margin-top: 40px;">
+            <a href="../news/news.html" class="back-btn"><i class="fas fa-arrow-left"></i> 返回资讯列表</a>
+        </div>
+    </div>
+
+    <script src="../../assets/js/search.js"></script>
+</body>
+</html>"""
+
+def render_markdown(content: str) -> str:
+    """Render markdown to HTML."""
+    if MARKDOWN_SUPPORT:
+        return md.markdown(content, extensions=['extra', 'tables', 'sane_lists'])
+    # Fallback: minimal markdown rendering
+    lines = content.split('\n')
+    html_lines = []
+    in_ul = False
+    in_ol = False
+
+    def close_lists():
+        nonlocal in_ul, in_ol
+        if in_ul:
+            html_lines.append('</ul>')
+            in_ul = False
+        if in_ol:
+            html_lines.append('</ol>')
+            in_ol = False
+
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            close_lists()
+            continue
+
+        # Headings
+        if line.startswith('### '):
+            close_lists()
+            html_lines.append(f'<h3>{line[4:]}</h3>')
+            continue
+        if line.startswith('## '):
+            close_lists()
+            html_lines.append(f'<h2>{line[3:]}</h2>')
+            continue
+        if line.startswith('# '):
+            close_lists()
+            html_lines.append(f'<h1>{line[2:]}</h1>')
+            continue
+
+        # Unordered list
+        if line.startswith('- ') or line.startswith('* '):
+            if in_ol:
+                html_lines.append('</ol>')
+                in_ol = False
+            if not in_ul:
+                html_lines.append('<ul>')
+                in_ul = True
+            html_lines.append(f'<li>{line[2:]}</li>')
+            continue
+
+        # Ordered list
+        if re.match(r'^\\d+\\.\\s+', line):
+            if in_ul:
+                html_lines.append('</ul>')
+                in_ul = False
+            if not in_ol:
+                html_lines.append('<ol>')
+                in_ol = True
+            item = re.sub(r'^\\d+\\.\\s+', '', line)
+            html_lines.append(f'<li>{item}</li>')
+            continue
+
+        close_lists()
+
+        # Inline formatting
+        line = re.sub(r'\\*\\*(.+?)\\*\\*', r'<strong>\\1</strong>', line)
+        line = re.sub(r'\\*(.+?)\\*', r'<em>\\1</em>', line)
+        line = re.sub(r'!\\[(.*?)\\]\\((.*?)\\)', r'<img src="\\2" alt="\\1">', line)
+        line = re.sub(r'\\[(.*?)\\]\\((.*?)\\)', r'<a href="\\2">\\1</a>', line)
+
+        html_lines.append(f'<p>{line}</p>')
+
+    close_lists()
+    return '\n'.join(html_lines)
+
+def parse_news_article_html(filepath: Path):
+    """Parse a news article HTML to extract fields."""
+    if not filepath.exists():
+        return None
+    content = filepath.read_text(encoding='utf-8')
+    title_match = re.search(r'<h1 class="article-hero__title">(.*?)</h1>', content, re.S)
+    date_match = re.search(r'<div class="article-hero__meta">(.*?)</div>', content, re.S)
+    body_match = re.search(r'<div class="article-content">(.*?)</div>', content, re.S)
+    title = title_match.group(1).strip() if title_match else ''
+    date = date_match.group(1).strip() if date_match else ''
+    body_html = body_match.group(1).strip() if body_match else ''
+    image_match = re.search(r'<img\\s+[^>]*src=\"([^\"]+)\"', body_html)
+    image_url = image_match.group(1) if image_match else ''
+    if image_url:
+        body_html = re.sub(r'<img\\s+[^>]*>\\s*', '', body_html, count=1)
+    return {
+        'title': title,
+        'date': date,
+        'image_url': image_url,
+        'content_html': body_html
+    }
+
+def insert_news_card(news_html_path: Path, card_html: str) -> bool:
+    """Insert a news card into news.html after the Page 1 marker."""
+    if not news_html_path.exists():
+        return False
+    content = news_html_path.read_text(encoding='utf-8')
+    marker = "<!-- Page 1 Items -->"
+    idx = content.find(marker)
+    if idx != -1:
+        insert_pos = idx + len(marker)
+        content = content[:insert_pos] + "\n" + card_html + content[insert_pos:]
+        news_html_path.write_text(content, encoding='utf-8')
+        return True
+    # Fallback: insert before closing grid
+    fallback = "</div>\n            </div>\n        </section>"
+    idx = content.find(fallback)
+    if idx != -1:
+        content = content[:idx] + card_html + "\n" + content[idx:]
+        news_html_path.write_text(content, encoding='utf-8')
+        return True
+    return False
+def get_all_news_items():
+    """Flatten all news items into a list preserving category order."""
+    news_data = parse_news_from_html()
+    hidden_links = get_hidden_news_links()
+    ordered = []
+    for cat in ['enterprise', 'industry', 'science']:
+        for item in news_data.get(cat, []):
+            link = item.get('link')
+            ordered.append({**item, 'category': cat, 'hidden': link in hidden_links})
+    return ordered
+
+def get_hidden_news_links():
+    """Load hidden news links."""
+    default_config = {'hidden_links': []}
+    if NEWS_VISIBILITY_FILE.exists():
+        try:
+            config = json.loads(NEWS_VISIBILITY_FILE.read_text(encoding='utf-8'))
+            links = config.get('hidden_links', [])
+            if isinstance(links, list):
+                return set([l for l in links if isinstance(l, str)])
+        except Exception:
+            pass
+    NEWS_VISIBILITY_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    return set()
+
+def save_hidden_news_links(links):
+    """Save hidden news links."""
+    cleaned = []
+    for link in links:
+        if link and isinstance(link, str):
+            cleaned.append(link)
+    data = {'hidden_links': cleaned}
+    NEWS_VISIBILITY_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding='utf-8')
+    return set(cleaned)
+
+def get_featured_news_config():
+    """Load featured news config (list of links)."""
+    default_config = {'links': []}
+    if NEWS_FEATURED_FILE.exists():
+        try:
+            config = json.loads(NEWS_FEATURED_FILE.read_text(encoding='utf-8'))
+            if isinstance(config, dict) and isinstance(config.get('links', []), list):
+                return config
+        except Exception:
+            pass
+    NEWS_FEATURED_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    return default_config
+
+def save_featured_news_config(new_config):
+    """Save featured news config."""
+    links = new_config.get('links', [])
+    if not isinstance(links, list):
+        links = []
+    # Keep unique, preserve order
+    seen = set()
+    normalized = []
+    for link in links:
+        if not link or not isinstance(link, str):
+            continue
+        if link in seen:
+            continue
+        seen.add(link)
+        normalized.append(link)
+    saved = {'links': normalized[:3]}
+    NEWS_FEATURED_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    return saved
+
+
+def get_featured_products_config():
+    """Load featured products config (list of ids)."""
+    default_config = {'ids': []}
+    if PRODUCT_FEATURED_FILE.exists():
+        try:
+            config = json.loads(PRODUCT_FEATURED_FILE.read_text(encoding='utf-8'))
+            if isinstance(config, dict) and isinstance(config.get('ids', []), list):
+                return config
+        except Exception:
+            pass
+    PRODUCT_FEATURED_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    return default_config
+
+
+def save_featured_products_config(new_config):
+    """Save featured products config."""
+    ids = new_config.get('ids', [])
+    if not isinstance(ids, list):
+        ids = []
+    seen = set()
+    normalized = []
+    for pid in ids:
+        if not pid or not isinstance(pid, str):
+            continue
+        if pid in seen:
+            continue
+        seen.add(pid)
+        normalized.append(pid)
+    saved = {'ids': normalized[:3]}
+    PRODUCT_FEATURED_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    return saved
+
+
+def get_featured_solutions_config():
+    """Load featured solutions config (list of ids)."""
+    default_config = {'ids': []}
+    if SOLUTIONS_FEATURED_FILE.exists():
+        try:
+            config = json.loads(SOLUTIONS_FEATURED_FILE.read_text(encoding='utf-8'))
+            if isinstance(config, dict) and isinstance(config.get('ids', []), list):
+                return config
+        except Exception:
+            pass
+    SOLUTIONS_FEATURED_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    return default_config
+
+
+def save_featured_solutions_config(new_config):
+    """Save featured solutions config."""
+    ids = new_config.get('ids', [])
+    if not isinstance(ids, list):
+        ids = []
+    seen = set()
+    normalized = []
+    for sid in ids:
+        if not sid or not isinstance(sid, str):
+            continue
+        if sid in seen:
+            continue
+        seen.add(sid)
+        normalized.append(sid)
+    saved = {'ids': normalized[:3]}
+    SOLUTIONS_FEATURED_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    return saved
+
 
 @app.route('/api/news')
 def get_news():
@@ -245,6 +844,951 @@ def get_news():
         result[cat] = items[:count]
     
     return jsonify(result)
+
+
+@app.route('/api/news/all')
+@login_required
+def get_all_news():
+    """Get all news items for admin selection."""
+    return jsonify({'items': get_all_news_items()})
+
+
+@app.route('/api/news/featured')
+def get_featured_news():
+    """Get featured news items for homepage."""
+    config = get_featured_news_config()
+    links = config.get('links', [])
+    items = get_all_news_items()
+    hidden_links = get_hidden_news_links()
+    item_map = {item.get('link'): item for item in items if item.get('link') and item.get('link') not in hidden_links}
+    featured = [item_map.get(link) for link in links if item_map.get(link)]
+
+    if len(featured) < 3:
+        # Fill with latest items in order
+        for item in items:
+            if item.get('link') in hidden_links:
+                continue
+            if item in featured:
+                continue
+            featured.append(item)
+            if len(featured) >= 3:
+                break
+
+    return jsonify({'items': featured[:3]})
+
+
+@app.route('/api/news/featured', methods=['POST'])
+@login_required
+def update_featured_news():
+    """Update featured news selection."""
+    data = request.json or {}
+    config = save_featured_news_config(data)
+    return jsonify({'success': True, 'config': config})
+
+
+def build_product_link(product):
+    """Build product link path from product id."""
+    pid = product.get('id', '')
+    if pid.startswith('../customization/'):
+        slug = pid.replace('../customization/', '').strip('/')
+        return f"pages/customization/{slug}.html"
+    if pid.startswith('../biosensing/'):
+        slug = pid.replace('../biosensing/', '').strip('/')
+        return f"pages/biosensing/{slug}.html"
+    return f"pages/gassensing/{pid}.html"
+
+
+def build_solution_link(solution):
+    sid = solution.get('id', '')
+    return f"pages/solutions/{sid}.html"
+
+
+def get_all_solution_items():
+    """Get all solutions items from pages/solutions."""
+    solutions_dir = Path(__file__).parent / 'pages' / 'solutions'
+    items = []
+    if solutions_dir.exists():
+        for filepath in sorted(solutions_dir.glob('*.html')):
+            if filepath.name == 'index.html':
+                continue
+            item = extract_solution_meta_from_html(filepath)
+            if item:
+                item['link'] = build_solution_link(item)
+                items.append(item)
+    return items
+
+
+def parse_jobs_from_html(html_text):
+    """Parse jobs list from legacy job.aspx.html."""
+    try:
+        import re
+        match = re.search(r'<ul class="jobs_list">(.*?)</ul>', html_text, re.S)
+        if not match:
+            return []
+        block = match.group(1)
+        items = re.findall(r'<li>(.*?)</li>', block, re.S)
+
+        def clean(text):
+            text = re.sub(r'<[^>]+>', '', text)
+            text = text.replace('&nbsp;', ' ').replace('\xa0', ' ')
+            return ' '.join(text.split()).strip()
+
+        def after(label, text):
+            if label in text:
+                text = text.split(label, 1)[1]
+            return text.replace(':', '').replace('：', '').strip()
+
+        jobs = []
+        for idx, li in enumerate(items, 1):
+            show = re.search(r'<div class="jobs_show">(.*?)</div>', li, re.S)
+            spans = re.findall(r'<span[^>]*>(.*?)</span>', show.group(1) if show else '', re.S)
+            spans = [clean(s) for s in spans]
+            title = after('职位名称', spans[0]) if len(spans) > 0 else ''
+            department = after('招聘部门', spans[1]) if len(spans) > 1 else ''
+            location = after('工作地点', spans[2]) if len(spans) > 2 else ''
+            date = after('发布日期', spans[3]) if len(spans) > 3 else ''
+            desc_match = re.search(r'<dl class="gwzz">(.*?)</dl>', li, re.S)
+            content_html = desc_match.group(1).strip() if desc_match else ''
+            jobs.append({
+                'id': f'job_{idx}',
+                'title': title,
+                'department': department,
+                'location': location,
+                'date': date,
+                'content_html': content_html,
+                'visible': True
+            })
+        return jobs
+    except Exception:
+        return []
+
+
+def load_jobs_data():
+    if JOBS_FILE.exists():
+        try:
+            data = json.loads(JOBS_FILE.read_text(encoding='utf-8'))
+            if isinstance(data, dict) and isinstance(data.get('jobs', []), list):
+                return data
+        except Exception:
+            pass
+
+    legacy_path = Path(__file__).parent / 'pages' / 'careers' / 'job.aspx.html'
+    jobs = []
+    if legacy_path.exists():
+        jobs = parse_jobs_from_html(legacy_path.read_text(encoding='utf-8', errors='ignore'))
+    data = {'jobs': jobs}
+    JOBS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    return data
+
+
+def save_jobs_data(data):
+    JOBS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def get_h2_home_config():
+    """Load hydrogen homepage config."""
+    default_config = {'items': [], 'products': [], 'cases': []}
+    if H2_HOME_FILE.exists():
+        try:
+            config = json.loads(H2_HOME_FILE.read_text(encoding='utf-8'))
+            if isinstance(config, dict) and isinstance(config.get('items', []), list):
+                return config
+        except Exception:
+            pass
+    H2_HOME_FILE.write_text(json.dumps(default_config, ensure_ascii=False, indent=2), encoding='utf-8')
+    return default_config
+
+
+def save_h2_home_config(config):
+    items = config.get('items', [])
+    if not isinstance(items, list):
+        items = []
+    cleaned = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        url = (item.get('url') or '').strip()
+        if not url:
+            continue
+        cleaned.append({
+            'id': item.get('id') or str(uuid.uuid4()),
+            'url': url
+        })
+    existing = get_h2_home_config()
+    saved = {
+        'items': cleaned,
+        'products': existing.get('products', []),
+        'cases': existing.get('cases', [])
+    }
+    H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+def save_h2_home_products(product_ids):
+    if not isinstance(product_ids, list):
+        product_ids = []
+    cleaned = []
+    seen = set()
+    for pid in product_ids:
+        if not pid or not isinstance(pid, str):
+            continue
+        if pid in seen:
+            continue
+        seen.add(pid)
+        cleaned.append(pid)
+    existing = get_h2_home_config()
+    saved = {
+        'items': existing.get('items', []),
+        'products': cleaned[:3],
+        'cases': existing.get('cases', [])
+    }
+    H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+def save_h2_home_cases(items):
+    """Save h2 home cases with optional custom titles."""
+    if not isinstance(items, list):
+        items = []
+    cleaned = []
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            # Legacy: if it's a string, treat as id
+            if isinstance(item, str) and item:
+                if item not in seen:
+                    seen.add(item)
+                    cleaned.append({'id': item, 'customSubtitle': '', 'customTitle': ''})
+            continue
+        cid = item.get('id')
+        if not cid or not isinstance(cid, str):
+            continue
+        if cid in seen:
+            continue
+        seen.add(cid)
+        cleaned.append({
+            'id': cid,
+            'customSubtitle': item.get('customSubtitle', ''),
+            'customTitle': item.get('customTitle', '')
+        })
+    existing = get_h2_home_config()
+    saved = {
+        'items': existing.get('items', []),
+        'products': existing.get('products', []),
+        'cases': cleaned[:6]
+    }
+    H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+@app.route('/api/products/featured')
+def get_featured_products():
+    """Get featured products for homepage."""
+    config = get_featured_products_config()
+    ids = config.get('ids', [])
+    products = [p for p in get_products_with_settings_data() if not p.get('hidden')]
+    product_map = {p.get('id'): p for p in products if p.get('id')}
+    featured = [product_map.get(pid) for pid in ids if product_map.get(pid)]
+
+    if len(featured) < 3:
+        for item in products:
+            if item in featured:
+                continue
+            featured.append(item)
+            if len(featured) >= 3:
+                break
+
+    items = []
+    for item in featured[:3]:
+        if not item:
+            continue
+        title = item.get('displayName') or item.get('shortName') or item.get('name') or item.get('id', '')
+        items.append({
+            'id': item.get('id'),
+            'title': title,
+            'image': item.get('image', ''),
+            'desc': item.get('description', ''),
+            'link': build_product_link(item)
+        })
+
+    return jsonify({'items': items})
+
+
+@app.route('/api/products/featured', methods=['POST'])
+@login_required
+def update_featured_products():
+    """Update featured products selection."""
+    data = request.json or {}
+    config = save_featured_products_config(data)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/products/gassensing')
+@login_required
+def get_gassensing_products():
+    """Get gassensing products only for admin selection."""
+    products = get_gassensing_products_with_settings()
+    return jsonify({'products': products, 'count': len(products)})
+
+
+@app.route('/api/cases/gassensing')
+@login_required
+def get_gassensing_cases():
+    items = get_all_case_items()
+    return jsonify({'items': items, 'count': len(items)})
+
+
+@app.route('/api/solutions/all')
+@login_required
+def get_all_solutions():
+    """Get all solutions for admin selection."""
+    return jsonify({'items': get_all_solution_items()})
+
+
+@app.route('/api/solutions/featured')
+def get_featured_solutions():
+    """Get featured solutions for homepage."""
+    config = get_featured_solutions_config()
+    ids = config.get('ids', [])
+    items = get_all_solution_items()
+    item_map = {item.get('id'): item for item in items if item.get('id')}
+    featured = [item_map.get(sid) for sid in ids if item_map.get(sid)]
+
+    if len(featured) < 3:
+        for item in items:
+            if item in featured:
+                continue
+            featured.append(item)
+            if len(featured) >= 3:
+                break
+
+    output = []
+    for item in featured[:3]:
+        if not item:
+            continue
+        output.append({
+            'id': item.get('id'),
+            'title': item.get('title', ''),
+            'image': item.get('image', ''),
+            'desc': item.get('desc', ''),
+            'link': item.get('link', build_solution_link(item))
+        })
+
+    return jsonify({'items': output})
+
+
+@app.route('/api/solutions/featured', methods=['POST'])
+@login_required
+def update_featured_solutions():
+    """Update featured solutions selection."""
+    data = request.json or {}
+    config = save_featured_solutions_config(data)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/jobs')
+@login_required
+def get_jobs_admin():
+    """Get all jobs for admin."""
+    data = load_jobs_data()
+    return jsonify({'items': data.get('jobs', [])})
+
+
+@app.route('/api/jobs', methods=['POST'])
+@login_required
+def save_job_admin():
+    """Create or update a job."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    department = (data.get('department') or '').strip()
+    location = (data.get('location') or '').strip()
+    date = (data.get('date') or '').strip()
+    content_html = (data.get('content_html') or '').strip()
+    visible = bool(data.get('visible', True))
+    job_id = (data.get('id') or '').strip()
+
+    if not title or not department or not location or not date:
+        return jsonify({'success': False, 'message': '请填写完整的职位信息'}), 400
+
+    jobs_data = load_jobs_data()
+    jobs = jobs_data.get('jobs', [])
+
+    if job_id:
+        updated = False
+        for job in jobs:
+            if job.get('id') == job_id:
+                job.update({
+                    'title': title,
+                    'department': department,
+                    'location': location,
+                    'date': date,
+                    'content_html': content_html,
+                    'visible': visible
+                })
+                updated = True
+                break
+        if not updated:
+            jobs.append({
+                'id': job_id,
+                'title': title,
+                'department': department,
+                'location': location,
+                'date': date,
+                'content_html': content_html,
+                'visible': visible
+            })
+    else:
+        new_id = f"job_{int(time.time()*1000)}"
+        jobs.append({
+            'id': new_id,
+            'title': title,
+            'department': department,
+            'location': location,
+            'date': date,
+            'content_html': content_html,
+            'visible': visible
+        })
+
+    jobs_data['jobs'] = jobs
+    save_jobs_data(jobs_data)
+    return jsonify({'success': True, 'items': jobs})
+
+
+@app.route('/api/jobs/<job_id>', methods=['DELETE'])
+@login_required
+def delete_job_admin(job_id):
+    jobs_data = load_jobs_data()
+    jobs = [j for j in jobs_data.get('jobs', []) if j.get('id') != job_id]
+    jobs_data['jobs'] = jobs
+    save_jobs_data(jobs_data)
+    return jsonify({'success': True})
+
+
+@app.route('/api/jobs/<job_id>/toggle', methods=['POST'])
+@login_required
+def toggle_job_admin(job_id):
+    jobs_data = load_jobs_data()
+    for job in jobs_data.get('jobs', []):
+        if job.get('id') == job_id:
+            job['visible'] = not bool(job.get('visible', True))
+            save_jobs_data(jobs_data)
+            return jsonify({'success': True, 'visible': job['visible']})
+    return jsonify({'success': False, 'message': '未找到职位'}), 404
+
+
+@app.route('/api/jobs/public')
+def get_jobs_public():
+    data = load_jobs_data()
+    items = [j for j in data.get('jobs', []) if j.get('visible', True)]
+    return jsonify({'items': items})
+
+
+@app.route('/api/h2-home', methods=['GET'])
+def get_h2_home():
+    return jsonify(get_h2_home_config())
+
+
+@app.route('/api/h2-home', methods=['POST'])
+@login_required
+def update_h2_home():
+    data = request.json or {}
+    config = save_h2_home_config(data)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/h2-home/products', methods=['GET'])
+def get_h2_home_products():
+    config = get_h2_home_config()
+    ids = config.get('products', [])
+    products = [p for p in get_gassensing_products_with_settings() if not p.get('hidden')]
+    product_map = {p.get('id'): p for p in products if p.get('id')}
+    featured = [product_map.get(pid) for pid in ids if product_map.get(pid)]
+    if len(featured) < 3:
+        for item in products:
+            if item in featured:
+                continue
+            featured.append(item)
+            if len(featured) >= 3:
+                break
+    items = []
+    for item in featured[:3]:
+        if not item:
+            continue
+        title = item.get('displayName') or item.get('shortName') or item.get('name') or item.get('id', '')
+        items.append({
+            'id': item.get('id'),
+            'title': title,
+            'image': item.get('image', ''),
+            'desc': item.get('description', ''),
+            'link': build_product_link(item)
+        })
+    return jsonify({'items': items})
+
+
+@app.route('/api/h2-home/products', methods=['POST'])
+@login_required
+def update_h2_home_products():
+    data = request.json or {}
+    ids = data.get('ids', [])
+    config = save_h2_home_products(ids)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/h2-home/cases', methods=['GET'])
+def get_h2_home_cases():
+    config = get_h2_home_config()
+    case_configs = config.get('cases', [])
+    items = get_all_case_items()
+    item_map = {item.get('id'): item for item in items if item.get('id')}
+    
+    # Build output from configured cases
+    output = []
+    used_ids = set()
+    
+    for case_cfg in case_configs:
+        # Support both new format (dict) and legacy format (string)
+        if isinstance(case_cfg, dict):
+            cid = case_cfg.get('id')
+            custom_subtitle = case_cfg.get('customSubtitle', '')
+            custom_title = case_cfg.get('customTitle', '')
+        elif isinstance(case_cfg, str):
+            cid = case_cfg
+            custom_subtitle = ''
+            custom_title = ''
+        else:
+            continue
+            
+        item = item_map.get(cid)
+        if not item:
+            continue
+        used_ids.add(cid)
+        output.append({
+            'id': item.get('id'),
+            'title': item.get('title', ''),
+            'image': item.get('image', ''),
+            'desc': item.get('desc', ''),
+            'link': item.get('link', ''),
+            'customSubtitle': custom_subtitle,
+            'customTitle': custom_title
+        })
+    
+    # Fill up to 6 with non-configured items
+    if len(output) < 6:
+        for item in items:
+            if item.get('id') in used_ids:
+                continue
+            output.append({
+                'id': item.get('id'),
+                'title': item.get('title', ''),
+                'image': item.get('image', ''),
+                'desc': item.get('desc', ''),
+                'link': item.get('link', ''),
+                'customSubtitle': '',
+                'customTitle': ''
+            })
+            if len(output) >= 6:
+                break
+    
+    return jsonify({'items': output[:6]})
+
+
+@app.route('/api/h2-home/cases', methods=['POST'])
+@login_required
+def update_h2_home_cases():
+    data = request.json or {}
+    items = data.get('items', [])
+    # Legacy support: if 'ids' is provided instead of 'items'
+    if not items and data.get('ids'):
+        items = [{'id': cid} for cid in data.get('ids', [])]
+    config = save_h2_home_cases(items)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/news/list')
+@login_required
+def get_news_list():
+    """Get all news for admin selection."""
+    items = get_all_news_items()
+    return jsonify({'items': items, 'count': len(items)})
+
+
+def get_all_news_items():
+    """Scan news.html for all news items."""
+    news_index = Path(__file__).parent / 'pages' / 'news' / 'news.html'
+    items = []
+    if not news_index.exists():
+        return items
+    content = news_index.read_text(encoding='utf-8')
+    # Parse news cards - updated pattern to match actual HTML structure
+    import re
+    pattern = re.compile(
+        r'<a\s+href="([^"]*)"[^>]*class="vs-card"[^>]*>.*?'
+        r'<img\s+src="([^"]*)"[^>]*>.*?'
+        r'<div class="vs-news-meta">[^<]*<i[^>]*></i>\s*([^<]*)</div>.*?'
+        r'<h3 class="vs-card__title">([^<]*)</h3>.*?'
+        r'<p class="vs-card__desc">([^<]*)</p>',
+        re.DOTALL | re.IGNORECASE
+    )
+    for match in pattern.finditer(content):
+        link, image, date, title, summary = match.groups()
+        # Normalize link
+        if link.startswith('../../pages/news/'):
+            link = '/pages/news/' + link.replace('../../pages/news/', '')
+        items.append({
+            'link': link.strip(),
+            'image': image.strip(),
+            'date': date.strip(),
+            'title': title.strip(),
+            'summary': summary.strip()
+        })
+    return items
+
+
+def save_h2_home_news(items):
+    """Save h2 home news with optional custom fields."""
+    if not isinstance(items, list):
+        items = []
+    cleaned = []
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        link = item.get('link')
+        if not link or not isinstance(link, str):
+            continue
+        if link in seen:
+            continue
+        seen.add(link)
+        cleaned.append({
+            'link': link,
+            'customTag': item.get('customTag', ''),
+            'customTitle': item.get('customTitle', ''),
+            'customDesc': item.get('customDesc', '')
+        })
+    existing = get_h2_home_config()
+    saved = {
+        'items': existing.get('items', []),
+        'products': existing.get('products', []),
+        'cases': existing.get('cases', []),
+        'news': cleaned[:3]
+    }
+    H2_HOME_FILE.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+@app.route('/api/h2-home/news', methods=['GET'])
+def get_h2_home_news():
+    config = get_h2_home_config()
+    news_configs = config.get('news', [])
+    items = get_all_news_items()
+    item_map = {item.get('link'): item for item in items if item.get('link')}
+    
+    output = []
+    used_links = set()
+    
+    for news_cfg in news_configs:
+        if isinstance(news_cfg, dict):
+            link = news_cfg.get('link')
+            custom_tag = news_cfg.get('customTag', '')
+            custom_title = news_cfg.get('customTitle', '')
+            custom_desc = news_cfg.get('customDesc', '')
+        else:
+            continue
+            
+        item = item_map.get(link)
+        if not item:
+            continue
+        used_links.add(link)
+        output.append({
+            'link': item.get('link'),
+            'title': item.get('title', ''),
+            'image': item.get('image', ''),
+            'date': item.get('date', ''),
+            'summary': item.get('summary', ''),
+            'customTag': custom_tag,
+            'customTitle': custom_title,
+            'customDesc': custom_desc
+        })
+    
+    # Fill up to 3 with non-configured items
+    if len(output) < 3:
+        for item in items:
+            if item.get('link') in used_links:
+                continue
+            output.append({
+                'link': item.get('link'),
+                'title': item.get('title', ''),
+                'image': item.get('image', ''),
+                'date': item.get('date', ''),
+                'summary': item.get('summary', ''),
+                'customTag': '',
+                'customTitle': '',
+                'customDesc': ''
+            })
+            if len(output) >= 3:
+                break
+    
+    return jsonify({'items': output[:3]})
+
+
+@app.route('/api/h2-home/news', methods=['POST'])
+@login_required
+def update_h2_home_news():
+    data = request.json or {}
+    items = data.get('items', [])
+    config = save_h2_home_news(items)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/news/create', methods=['POST'])
+@login_required
+def create_news():
+    """Create a news article and add to news list."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    date = (data.get('date') or '').strip()
+    category = (data.get('category') or '').strip()
+    image_url = (data.get('image_url') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    content = (data.get('content') or '').strip()
+    content_is_html = bool(data.get('content_is_html', False))
+
+    if not title or not date or not category or not image_url or not summary or not content:
+        return jsonify({'success': False, 'message': '请填写完整信息'}), 400
+
+    if category not in {'enterprise', 'industry', 'science'}:
+        return jsonify({'success': False, 'message': '请选择正确的资讯分类'}), 400
+
+    # Build content HTML (Markdown supported)
+    if content_is_html:
+        content_html = content
+    else:
+        content_html = render_markdown(content)
+
+    # Create news file
+    news_dir = Path(__file__).parent / 'pages' / 'news'
+    news_dir.mkdir(parents=True, exist_ok=True)
+    news_id = get_next_news_id()
+    filename = f'news_show.aspx_id_{news_id}.html'
+    filepath = news_dir / filename
+    html = build_news_article_html(title, date, image_url, content_html)
+    filepath.write_text(html, encoding='utf-8')
+
+    # Insert card into news list
+    card_html = f"""
+                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-hidden="false">
+                        <div class="vs-card__img-wrapper">
+                            <img src="{image_url}" alt="News Image">
+                        </div>
+                        <div class="vs-card__content">
+                            <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> {date}</div>
+                            <h3 class="vs-card__title">{title}</h3>
+                            <p class="vs-card__desc">{summary}</p>
+                            <span class="vs-link-arrow">查看详情</span>
+                        </div>
+                    </a>
+"""
+    news_index = news_dir / 'news.html'
+    inserted = insert_news_card(news_index, card_html)
+    if not inserted:
+        return jsonify({'success': False, 'message': '已创建资讯，但未能更新 news.html'}), 500
+
+    return jsonify({'success': True, 'filename': filename, 'link': f'/pages/news/{filename}'})
+
+
+@app.route('/api/news/visibility', methods=['POST'])
+@login_required
+def update_news_visibility():
+    """Hide/show a news item."""
+    data = request.json or {}
+    link = (data.get('link') or '').strip()
+    hidden = bool(data.get('hidden'))
+    if not link:
+        return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+
+    hidden_links = get_hidden_news_links()
+    if hidden:
+        hidden_links.add(link)
+    else:
+        hidden_links.discard(link)
+    save_hidden_news_links(hidden_links)
+
+    # Update news.html card attribute
+    news_index = Path(__file__).parent / 'pages' / 'news' / 'news.html'
+    if news_index.exists():
+        content = news_index.read_text(encoding='utf-8')
+        pattern = re.compile(rf'(<a\\s+[^>]*href=\"\\.{2}/\\.{2}/pages/news/{re.escape(Path(link).name)}\"[^>]*)(>)', re.IGNORECASE)
+        def repl(match):
+            tag_start = match.group(1)
+            if 'data-hidden' in tag_start:
+                tag_start = re.sub(r'data-hidden=\"(true|false)\"', f'data-hidden=\"{str(hidden).lower()}\"', tag_start)
+            else:
+                tag_start += f' data-hidden=\"{str(hidden).lower()}\"'
+            return tag_start + match.group(2)
+        content = pattern.sub(repl, content, count=1)
+        news_index.write_text(content, encoding='utf-8')
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/news/delete', methods=['POST'])
+@login_required
+def delete_news():
+    """Delete a news article and remove from news list."""
+    data = request.json or {}
+    link = (data.get('link') or '').strip()
+    if not link:
+        return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+
+    filename = Path(link).name
+    news_dir = Path(__file__).parent / 'pages' / 'news'
+    filepath = news_dir / filename
+    if filepath.exists():
+        try:
+            filepath.unlink()
+        except Exception:
+            pass
+
+    # Remove card from news.html
+    news_index = news_dir / 'news.html'
+    if news_index.exists():
+        content = news_index.read_text(encoding='utf-8')
+        pattern = re.compile(rf'<a\\s+[^>]*href=\"\\.{2}/\\.{2}/pages/news/{re.escape(filename)}\"[^>]*>.*?</a>', re.DOTALL | re.IGNORECASE)
+        content, _ = pattern.subn('', content, count=1)
+        news_index.write_text(content, encoding='utf-8')
+
+    hidden_links = get_hidden_news_links()
+    if link in hidden_links:
+        hidden_links.discard(link)
+        save_hidden_news_links(hidden_links)
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/news/update', methods=['POST'])
+@login_required
+def update_news():
+    """Update an existing news article and card."""
+    data = request.json or {}
+    link = (data.get('link') or '').strip()
+    title = (data.get('title') or '').strip()
+    date = (data.get('date') or '').strip()
+    category = (data.get('category') or '').strip()
+    image_url = (data.get('image_url') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    content = (data.get('content') or '').strip()
+    content_is_html = bool(data.get('content_is_html', False))
+
+    if not link:
+        return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+    if not title or not date or not category or not image_url or not summary or not content:
+        return jsonify({'success': False, 'message': '请填写完整信息'}), 400
+    if category not in {'enterprise', 'industry', 'science'}:
+        return jsonify({'success': False, 'message': '请选择正确的资讯分类'}), 400
+
+    if content_is_html:
+        content_html = content
+    else:
+        content_html = render_markdown(content)
+
+    filename = Path(link).name
+    news_dir = Path(__file__).parent / 'pages' / 'news'
+    filepath = news_dir / filename
+    if not filepath.exists():
+        return jsonify({'success': False, 'message': '资讯文件不存在'}), 404
+
+    html = build_news_article_html(title, date, image_url, content_html)
+    filepath.write_text(html, encoding='utf-8')
+
+    # Update card in news.html
+    news_index = news_dir / 'news.html'
+    if news_index.exists():
+        content_text = news_index.read_text(encoding='utf-8')
+        card_html = f"""
+                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-hidden="false">
+                        <div class="vs-card__img-wrapper">
+                            <img src="{image_url}" alt="News Image">
+                        </div>
+                        <div class="vs-card__content">
+                            <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> {date}</div>
+                            <h3 class="vs-card__title">{title}</h3>
+                            <p class="vs-card__desc">{summary}</p>
+                            <span class="vs-link-arrow">查看详情</span>
+                        </div>
+                    </a>
+"""
+        pattern = re.compile(rf'<a\\s+[^>]*href=\"\\.{2}/\\.{2}/pages/news/{re.escape(filename)}\"[^>]*>.*?</a>', re.DOTALL | re.IGNORECASE)
+        content_text, count = pattern.subn(card_html, content_text, count=1)
+        if count:
+            news_index.write_text(content_text, encoding='utf-8')
+        else:
+            insert_news_card(news_index, card_html)
+
+    return jsonify({'success': True, 'link': link})
+
+
+@app.route('/api/news/detail')
+@login_required
+def get_news_detail():
+    """Get a single news article details."""
+    link = request.args.get('link', '').strip()
+    if not link:
+        return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+    filename = Path(link).name
+    news_dir = Path(__file__).parent / 'pages' / 'news'
+    filepath = news_dir / filename
+    detail = parse_news_article_html(filepath)
+    if not detail:
+        return jsonify({'success': False, 'message': '资讯不存在'}), 404
+    return jsonify({'success': True, 'detail': detail})
+
+
+@app.route('/api/news/preview', methods=['POST'])
+@login_required
+def preview_news_content():
+    """Render preview HTML for news content."""
+    data = request.json or {}
+    content = (data.get('content') or '').strip()
+    is_html = bool(data.get('content_is_html', False))
+    if is_html:
+        html = content
+    else:
+        html = render_markdown(content)
+    return jsonify({'success': True, 'html': html})
+
+
+@app.route('/api/news/ai-polish', methods=['POST'])
+@login_required
+def ai_polish_news():
+    """Use AI to polish news content to Markdown."""
+    config = get_chatbot_config()
+    if not config.get('enabled', True):
+        return jsonify({'success': False, 'message': 'AI客服暂时不可用'}), 503
+    if not config.get('api_key'):
+        return jsonify({'success': False, 'message': 'AI客服未配置'}), 400
+
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    content = (data.get('content') or '').strip()
+    if not content:
+        return jsonify({'success': False, 'message': '请输入正文内容'}), 400
+
+    system_prompt = (
+        "你是一名企业资讯编辑，请根据给定内容进行润色排版。"
+        "输出为 Markdown，保持事实不变，不新增虚构信息。"
+        "结构清晰，适当使用小标题、列表与重点强调。"
+    )
+    user_prompt = f"标题：{title}\n摘要：{summary}\n正文：\n{content}\n\n请输出润色后的 Markdown 正文。"
+    messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_prompt}
+    ]
+
+    response, error = call_openai_api(messages, stream=False)
+    if error:
+        return jsonify({'success': False, 'message': error}), 500
+    return jsonify({'success': True, 'content': response})
 
 
 # ============ Product Images API ============
@@ -408,12 +1952,90 @@ def extract_product_meta_from_html(filepath):
         return None
 
 
+def extract_solution_meta_from_html(filepath):
+    """从解决方案HTML文件中提取基础信息"""
+    from html.parser import HTMLParser
+
+    class SolutionMetaParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.title = ''
+            self.in_title = False
+            self.first_h1 = ''
+            self.in_h1 = False
+            self.first_p = ''
+            self.in_p = False
+            self.found_h1 = False
+            self.found_p = False
+            self.first_img = ''
+
+        def handle_starttag(self, tag, attrs):
+            attrs_dict = dict(attrs)
+            if tag == 'title':
+                self.in_title = True
+            elif tag == 'h1' and not self.found_h1:
+                self.in_h1 = True
+            elif tag == 'p' and self.found_h1 and not self.found_p:
+                self.in_p = True
+            elif tag == 'img' and not self.first_img and 'src' in attrs_dict:
+                src = attrs_dict['src']
+                if not any(x in src.lower() for x in ['icon', 'logo', 'arrow', 'btn', 'button']):
+                    self.first_img = src
+
+        def handle_data(self, data):
+            data = data.strip()
+            if self.in_title:
+                self.title = data
+            elif self.in_h1:
+                self.first_h1 += data
+            elif self.in_p:
+                self.first_p += data
+
+        def handle_endtag(self, tag):
+            if tag == 'title':
+                self.in_title = False
+            elif tag == 'h1':
+                self.in_h1 = False
+                self.found_h1 = True
+            elif tag == 'p':
+                self.in_p = False
+                if self.first_p:
+                    self.found_p = True
+
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        parser = SolutionMetaParser()
+        parser.feed(content)
+
+        item_id = filepath.stem
+        title = parser.first_h1 or parser.title.replace(' - 元芯传感', '').strip()
+        if not title:
+            return None
+
+        desc = parser.first_p[:200] if parser.first_p else ''
+        image = parser.first_img
+
+        return {
+            'id': item_id,
+            'title': title,
+            'image': image,
+            'desc': desc
+        }
+
+    except Exception as e:
+        print(f"Error parsing solution file {filepath}: {e}")
+        return None
+
+
 @app.route('/api/products')
 def get_products():
     """自动扫描产品目录并返回产品列表"""
     base_dir = Path(__file__).parent / 'pages'
     gassensing_dir = base_dir / 'gassensing'
     customization_dir = base_dir / 'customization'
+    biosensing_dir = base_dir / 'biosensing'
     products = []
     
     # 扫描 gassensing 目录
@@ -435,6 +2057,17 @@ def get_products():
                 # 为 customization 产品添加路径前缀
                 product['id'] = '../customization/' + product['id']
                 product['isCustomization'] = True
+                products.append(product)
+
+    # 扫描 biosensing 目录
+    if biosensing_dir.exists():
+        for filepath in sorted(biosensing_dir.glob('*.html')):
+            if filepath.name == 'index.html':
+                continue
+            product = extract_product_meta_from_html(filepath)
+            if product:
+                product['id'] = '../biosensing/' + product['id']
+                product['isBiosensing'] = True
                 products.append(product)
     
     # 按类别排序
@@ -525,12 +2158,19 @@ def update_product_sort_order():
 @app.route('/api/products/with-settings')
 def get_products_with_settings():
     """Get products with merged settings."""
+    products = get_products_with_settings_data()
+    return jsonify({'products': products, 'count': len(products)})
+
+
+def get_products_with_settings_data():
+    """Collect products with merged settings."""
     # Get base products from both directories
     base_dir = Path(__file__).parent / 'pages'
     gassensing_dir = base_dir / 'gassensing'
     customization_dir = base_dir / 'customization'
+    biosensing_dir = base_dir / 'biosensing'
     products = []
-    
+
     # Scan gassensing directory
     if gassensing_dir.exists():
         for filepath in sorted(gassensing_dir.glob('*.html')):
@@ -539,7 +2179,7 @@ def get_products_with_settings():
             product = extract_product_meta_from_html(filepath)
             if product:
                 products.append(product)
-    
+
     # Scan customization directory
     if customization_dir.exists():
         for filepath in sorted(customization_dir.glob('*.html')):
@@ -550,7 +2190,18 @@ def get_products_with_settings():
                 product['id'] = '../customization/' + product['id']
                 product['isCustomization'] = True
                 products.append(product)
-    
+
+    # Scan biosensing directory
+    if biosensing_dir.exists():
+        for filepath in sorted(biosensing_dir.glob('*.html')):
+            if filepath.name == 'index.html':
+                continue
+            product = extract_product_meta_from_html(filepath)
+            if product:
+                product['id'] = '../biosensing/' + product['id']
+                product['isBiosensing'] = True
+                products.append(product)
+
     # Merge with settings
     settings = get_product_settings()
     for product in products:
@@ -572,11 +2223,88 @@ def get_products_with_settings():
             product['hidden'] = False
             product['sortOrder'] = 999
             product['categories'] = [product.get('category', 'module')]
-    
+
     # Sort by custom sortOrder first, then by name
     products.sort(key=lambda p: (p.get('sortOrder', 999), p.get('name', '')))
-    
-    return jsonify({'products': products, 'count': len(products)})
+    return products
+
+
+def get_gassensing_products_with_settings():
+    """Only products from gassensing directory."""
+    products = [p for p in get_products_with_settings_data() if not str(p.get('id', '')).startswith('../')]
+    return products
+
+
+def extract_case_meta_from_html(filepath):
+    """Extract case meta: title, image, summary."""
+    from html.parser import HTMLParser
+    content = filepath.read_text(encoding='utf-8', errors='ignore')
+
+    # Try to extract hero background image
+    image = ''
+    match = re.search(r'vs-case-hero[^{]*\{[^}]*url\([\"\\\']?([^)\\"\\\']+)[\"\\\']?\)', content, re.S)
+    if match:
+        image = match.group(1)
+
+    class CaseParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.title = ''
+            self.in_h1 = False
+            self.first_p = ''
+            self.in_p = False
+            self.found_h1 = False
+            self.found_p = False
+        def handle_starttag(self, tag, attrs):
+            if tag == 'h1' and not self.found_h1:
+                self.in_h1 = True
+            elif tag == 'p' and not self.found_p:
+                self.in_p = True
+        def handle_data(self, data):
+            data = data.strip()
+            if self.in_h1:
+                self.title += data
+            elif self.in_p:
+                self.first_p += data
+        def handle_endtag(self, tag):
+            if tag == 'h1':
+                self.in_h1 = False
+                self.found_h1 = True
+            elif tag == 'p':
+                self.in_p = False
+                if self.first_p:
+                    self.found_p = True
+
+    parser = CaseParser()
+    parser.feed(content)
+    title = parser.title.strip()
+    desc = parser.first_p.strip() if parser.first_p else ''
+    if '浏览我们在各个行业' in desc:
+        desc = ''
+
+    if not image:
+        img_match = re.search(r'<img\\s+[^>]*src=\"([^\"]+)\"', content)
+        if img_match:
+            image = img_match.group(1)
+
+    return {
+        'id': filepath.name,
+        'title': title or filepath.stem,
+        'image': image,
+        'desc': desc
+    }
+
+
+def get_all_case_items():
+    cases_dir = Path(__file__).parent / 'pages' / 'gassensing' / 'cases'
+    items = []
+    if cases_dir.exists():
+        for filepath in sorted(cases_dir.glob('case-*.html')):
+            item = extract_case_meta_from_html(filepath)
+            if item:
+                item['link'] = f"pages/gassensing/cases/{filepath.name}"
+                items.append(item)
+    return items
 
 
 # ============ Mega Menu Recommendations API ============
@@ -631,6 +2359,214 @@ def update_recommendations_api():
     
     save_recommendations(recommendations)
     return jsonify({'success': True, 'recommendations': recommendations})
+
+
+# ============ Hero Carousel API ============
+
+@app.route('/api/hero', methods=['GET'])
+def get_hero():
+    """Get hero carousel configuration."""
+    return jsonify(get_hero_config())
+
+
+@app.route('/api/hero', methods=['POST'])
+@login_required
+def update_hero():
+    """Update hero carousel configuration."""
+    data = request.json or {}
+    config = save_hero_config(data)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/hero/upload', methods=['POST'])
+@login_required
+def upload_hero_media():
+    """Upload hero carousel media (image/video)."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+    file = request.files['file']
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+    original_name = file.filename
+    filename = secure_filename(original_name)
+    ext = Path(filename).suffix.lower()
+    mime = (file.mimetype or '').lower()
+
+    if ext not in ALLOWED_HERO_EXTENSIONS:
+        inferred_ext = infer_extension_from_mime(mime)
+        if inferred_ext:
+            ext = inferred_ext
+        else:
+            return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/MP4 文件'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = HERO_UPLOADS_DIR / saved_name
+    file.save(str(save_path))
+
+    item_type = 'video' if ext == '.mp4' else 'image'
+    item = {
+        'id': uuid.uuid4().hex,
+        'type': item_type,
+        'url': f"/media/hero/{saved_name}",
+        'source': 'upload'
+    }
+
+    config = get_hero_config()
+    items = config.get('items', [])
+    if not isinstance(items, list):
+        items = []
+    items.append(item)
+    config['items'] = items
+    save_hero_config(config)
+
+    return jsonify({'success': True, 'item': item})
+
+
+@app.route('/api/hero/items/<item_id>', methods=['DELETE'])
+@login_required
+def delete_hero_item(item_id):
+    """Delete hero carousel item and uploaded file if applicable."""
+    config = get_hero_config()
+    items = config.get('items', [])
+    if not isinstance(items, list):
+        items = []
+
+    remaining = []
+    deleted_item = None
+    for item in items:
+        if isinstance(item, dict) and item.get('id') == item_id:
+            deleted_item = item
+        else:
+            remaining.append(item)
+
+    if not deleted_item:
+        return jsonify({'success': False, 'message': '未找到项目'}), 404
+
+    if deleted_item.get('source') == 'upload':
+        url = deleted_item.get('url', '')
+        if url.startswith('/media/hero/'):
+            filename = url.replace('/media/hero/', '')
+            file_path = HERO_UPLOADS_DIR / filename
+            if file_path.exists():
+                try:
+                    file_path.unlink()
+                except Exception:
+                    pass
+
+    config['items'] = remaining
+    save_hero_config(config)
+    return jsonify({'success': True})
+
+
+@app.route('/media/hero/<path:filename>')
+def serve_hero_media(filename):
+    """Serve uploaded hero media files."""
+    return send_from_directory(HERO_UPLOADS_DIR, filename)
+
+
+# ============ Partners API ============
+
+@app.route('/api/partners', methods=['GET'])
+def get_partners():
+    """Get partners configuration."""
+    return jsonify(get_partners_config())
+
+
+@app.route('/api/partners', methods=['POST'])
+@login_required
+def update_partners():
+    """Update partners configuration."""
+    data = request.json or {}
+    config = save_partners_config(data)
+    return jsonify({'success': True, 'config': config})
+
+
+@app.route('/api/partners/upload', methods=['POST'])
+@login_required
+def upload_partner_logo():
+    """Upload partner logo image."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+    file = request.files['file']
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+    original_name = file.filename
+    filename = secure_filename(original_name)
+    ext = Path(filename).suffix.lower()
+    mime = (file.mimetype or '').lower()
+
+    if ext not in ALLOWED_PARTNER_EXTENSIONS:
+        inferred_ext = infer_partner_extension_from_mime(mime)
+        if inferred_ext:
+            ext = inferred_ext
+        else:
+            return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/SVG/WEBP 文件'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = PARTNERS_UPLOADS_DIR / saved_name
+    file.save(str(save_path))
+
+    item = {
+        'id': uuid.uuid4().hex,
+        'url': f"/media/partners/{saved_name}",
+        'source': 'upload'
+    }
+
+    config = get_partners_config()
+    items = config.get('items', [])
+    if not isinstance(items, list):
+        items = []
+    items.append(item)
+    config['items'] = items
+    save_partners_config(config)
+
+    return jsonify({'success': True, 'item': item})
+
+
+@app.route('/api/partners/items/<item_id>', methods=['DELETE'])
+@login_required
+def delete_partner_item(item_id):
+    """Delete partner logo item and uploaded file if applicable."""
+    config = get_partners_config()
+    items = config.get('items', [])
+    if not isinstance(items, list):
+        items = []
+
+    remaining = []
+    deleted_item = None
+    for item in items:
+        if isinstance(item, dict) and item.get('id') == item_id:
+            deleted_item = item
+        else:
+            remaining.append(item)
+
+    if not deleted_item:
+        return jsonify({'success': False, 'message': '未找到项目'}), 404
+
+    if deleted_item.get('source') == 'upload':
+        url = deleted_item.get('url', '')
+        if url.startswith('/media/partners/'):
+            filename = url.replace('/media/partners/', '')
+            file_path = PARTNERS_UPLOADS_DIR / filename
+            if file_path.exists():
+                try:
+                    file_path.unlink()
+                except Exception:
+                    pass
+
+    config['items'] = remaining
+    save_partners_config(config)
+    return jsonify({'success': True})
+
+
+@app.route('/media/partners/<path:filename>')
+def serve_partners_media(filename):
+    """Serve uploaded partner logo files."""
+    return send_from_directory(PARTNERS_UPLOADS_DIR, filename)
 
 
 @app.route('/api/categories')
@@ -804,54 +2740,113 @@ def load_knowledge_base():
 
 def call_openai_api(messages, stream=False):
     """Call OpenAI-compatible API."""
+    if stream:
+        return call_openai_api_stream(messages)
+    return call_openai_api_sync(messages)
+
+
+def call_openai_api_sync(messages):
+    """Call OpenAI-compatible API (non-stream)."""
     config = get_chatbot_config()
-    
+
     if not config['api_key']:
         return None, "AI客服未配置，请联系管理员"
-    
+
     api_url = config['api_base'].rstrip('/') + '/chat/completions'
-    
+
     headers = {
         'Authorization': f"Bearer {config['api_key']}",
         'Content-Type': 'application/json'
     }
-    
+
     payload = {
         'model': config['model'],
         'messages': messages,
         'max_tokens': config['max_tokens'],
         'temperature': config['temperature'],
-        'stream': stream
+        'stream': False
     }
-    
+
     try:
-        if HTTPX_SUPPORT and stream:
-            # Use httpx for streaming
-            with httpx.Client(timeout=60.0) as client:
-                with client.stream('POST', api_url, json=payload, headers=headers) as response:
-                    if response.status_code != 200:
-                        return None, f"API错误: {response.status_code}"
-                    
-                    for line in response.iter_lines():
-                        if line.startswith('data: '):
-                            data = line[6:]
-                            if data == '[DONE]':
-                                break
-                            try:
-                                chunk = json.loads(data)
-                                if 'choices' in chunk and chunk['choices']:
-                                    delta = chunk['choices'][0].get('delta', {})
-                                    content = delta.get('content', '')
-                                    if content:
-                                        yield content
-                            except json.JSONDecodeError:
-                                continue
-        elif REQUESTS_SUPPORT:
-            if stream:
+        if REQUESTS_SUPPORT:
+            response = requests.post(api_url, json=payload, headers=headers, timeout=60)
+            if response.status_code != 200:
+                return None, f"API错误: {response.status_code}"
+
+            result = response.json()
+            if 'choices' in result and result['choices']:
+                return result['choices'][0]['message']['content'], None
+            return None, "API返回格式错误"
+        elif HTTPX_SUPPORT:
+            response = httpx.post(api_url, json=payload, headers=headers, timeout=60.0)
+            if response.status_code != 200:
+                return None, f"API错误: {response.status_code}"
+            result = response.json()
+            if 'choices' in result and result['choices']:
+                return result['choices'][0]['message']['content'], None
+            return None, "API返回格式错误"
+        else:
+            return None, "缺少HTTP客户端库(requests或httpx)"
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return None, f"API调用失败: {str(e)}"
+
+
+def call_openai_api_stream(messages):
+    """Call OpenAI-compatible API (stream)."""
+    config = get_chatbot_config()
+
+    if not config['api_key']:
+        return None, "AI客服未配置，请联系管理员"
+
+    api_url = config['api_base'].rstrip('/') + '/chat/completions'
+
+    headers = {
+        'Authorization': f"Bearer {config['api_key']}",
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        'model': config['model'],
+        'messages': messages,
+        'max_tokens': config['max_tokens'],
+        'temperature': config['temperature'],
+        'stream': True
+    }
+
+    if HTTPX_SUPPORT:
+        def gen_httpx():
+            try:
+                with httpx.Client(timeout=60.0) as client:
+                    with client.stream('POST', api_url, json=payload, headers=headers) as response:
+                        if response.status_code != 200:
+                            yield None, f"API错误: {response.status_code}"
+                            return
+                        for line in response.iter_lines():
+                            if line.startswith('data: '):
+                                data = line[6:]
+                                if data == '[DONE]':
+                                    break
+                                try:
+                                    chunk = json.loads(data)
+                                    if 'choices' in chunk and chunk['choices']:
+                                        delta = chunk['choices'][0].get('delta', {})
+                                        content = delta.get('content', '')
+                                        if content:
+                                            yield content, None
+                                except json.JSONDecodeError:
+                                    continue
+            except Exception as e:
+                yield None, f"API调用失败: {str(e)}"
+        return gen_httpx()
+
+    if REQUESTS_SUPPORT:
+        def gen_requests():
+            try:
                 response = requests.post(api_url, json=payload, headers=headers, stream=True, timeout=60)
                 if response.status_code != 200:
-                    return None, f"API错误: {response.status_code}"
-                
+                    yield None, f"API错误: {response.status_code}"
+                    return
                 for line in response.iter_lines():
                     if line:
                         line = line.decode('utf-8')
@@ -865,24 +2860,14 @@ def call_openai_api(messages, stream=False):
                                     delta = chunk['choices'][0].get('delta', {})
                                     content = delta.get('content', '')
                                     if content:
-                                        yield content
+                                        yield content, None
                             except json.JSONDecodeError:
                                 continue
-            else:
-                response = requests.post(api_url, json=payload, headers=headers, timeout=60)
-                if response.status_code != 200:
-                    return None, f"API错误: {response.status_code}"
-                
-                result = response.json()
-                if 'choices' in result and result['choices']:
-                    return result['choices'][0]['message']['content'], None
-                return None, "API返回格式错误"
-        else:
-            return None, "缺少HTTP客户端库(requests或httpx)"
-            
-    except Exception as e:
-        print(f"OpenAI API error: {e}")
-        return None, f"API调用失败: {str(e)}"
+            except Exception as e:
+                yield None, f"API调用失败: {str(e)}"
+        return gen_requests()
+
+    return None, "缺少HTTP客户端库(requests或httpx)"
 
 
 @app.route('/api/chatbot/chat', methods=['POST'])
@@ -936,7 +2921,15 @@ def chatbot_chat():
     if use_stream:
         def generate():
             try:
-                for chunk in call_openai_api(messages, stream=True):
+                stream = call_openai_api(messages, stream=True)
+                if isinstance(stream, tuple):
+                    _, error = stream
+                    yield f"data: {json.dumps({'error': error or 'API调用失败'})}\n\n"
+                    return
+                for chunk, err in stream:
+                    if err:
+                        yield f"data: {json.dumps({'error': err})}\n\n"
+                        return
                     yield f"data: {json.dumps({'content': chunk})}\n\n"
                 yield "data: [DONE]\n\n"
             except Exception as e:
