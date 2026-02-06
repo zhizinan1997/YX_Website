@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- TODO: 修改页面标题 -->
+    <title>产品名称 - 元芯传感</title>
+
+    <!--
+      TODO: 修改下列 product-* 元数据（后台自动扫描用）
+      - product-name: 产品全称
+      - product-short-name: 产品简称
+      - product-image: 产品主图
+      - product-description: 产品摘要
+      - product-category: 基础分类（sensor/module/detector/alarm/system/iot/service）
+    -->
+    <meta name="product-name" content="产品名称" />
+    <meta name="product-short-name" content="产品简称" />
+    <meta name="product-image" content="../../assets/images/products/example-product.png" />
+    <meta name="product-description" content="这里填写产品摘要，用于产品列表卡片默认简介。" />
+    <meta name="product-category" content="sensor" />
+
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+
+<body>
+    <main style="padding-top: 90px;">
+        <section class="vs-page-hero">
+            <div class="vs-container">
+                <div class="vs-breadcrumb">
+                    <a href="../../index.html">首页</a>
+                    <span>|</span>
+                    <a href="all-products.html">气体传感产品</a>
+                    <span>|</span>
+                    产品详情
+                </div>
+                <!-- TODO: 修改产品标题 -->
+                <h1>产品名称</h1>
+                <!-- TODO: 修改一句话描述 -->
+                <p>一句话产品价值描述</p>
+            </div>
+        </section>
+
+        <section class="vs-products-section">
+            <div class="vs-container">
+                <div class="card" style="padding: 30px; border-radius: 12px; background: #fff;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                        <div>
+                            <!-- TODO: 修改产品图片 -->
+                            <img src="../../assets/images/products/example-product.png" alt="产品名称"
+                                style="width: 100%; max-width: 560px; object-fit: contain; border-radius: 10px; background: #f7f8fa;" />
+                        </div>
+                        <div>
+                            <!-- TODO: 修改产品名称 -->
+                            <h2 style="margin-bottom: 12px;">产品名称</h2>
+                            <!-- TODO: 修改产品摘要（会作为详情页文案，也建议与 meta 描述一致） -->
+                            <p style="color: #555; line-height: 1.8;">
+                                这里填写产品摘要，说明该产品解决什么问题、用于哪些场景、核心优势是什么。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 30px; margin-top: 20px; border-radius: 12px; background: #fff;">
+                    <h3 class="section-header">核心特点</h3>
+                    <!-- TODO: 修改核心特点 -->
+                    <ul style="line-height: 1.9; color: #444;">
+                        <li>特点 1</li>
+                        <li>特点 2</li>
+                        <li>特点 3</li>
+                    </ul>
+                </div>
+
+                <div class="card" style="padding: 30px; margin-top: 20px; border-radius: 12px; background: #fff;">
+                    <h3 class="section-header">技术参数（示例）</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tbody>
+                            <!-- TODO: 替换参数项 -->
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; width: 220px; color: #666;">检测范围</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">0-1000 ppm</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #666;">响应时间</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">&lt; 3s</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #666;">工作温度</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">-40°C ~ 85°C</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

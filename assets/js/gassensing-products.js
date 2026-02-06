@@ -9,6 +9,7 @@
 
 // 产品数据（从API加载）
 let GAS_SENSING_PRODUCTS = [];
+let INDUSTRY_FILTERS = [{ key: 'all', label: '全部产品' }];
 
 // 分页配置
 const ITEMS_PER_PAGE = 6;
@@ -19,6 +20,7 @@ let currentFilter = 'all';
 document.addEventListener('DOMContentLoaded', async function () {
     // 从API加载产品数据
     await loadProductsFromAPI();
+    await loadIndustryFiltersFromAPI();
 
     // 读取 URL 参数
     const urlParams = new URLSearchParams(window.location.search);
@@ -50,6 +52,23 @@ async function loadProductsFromAPI() {
     }
 }
 
+async function loadIndustryFiltersFromAPI() {
+    try {
+        const response = await fetch('/api/products/industry-filters');
+        const data = await response.json();
+        const categories = Array.isArray(data.categories) ? data.categories : [];
+
+        INDUSTRY_FILTERS = [{ key: 'all', label: '全部产品' }];
+        categories.forEach(item => {
+            if (!item || !item.key || !item.name) return;
+            INDUSTRY_FILTERS.push({ key: item.key, label: item.name });
+        });
+    } catch (error) {
+        console.error('Failed to load industry filters:', error);
+        INDUSTRY_FILTERS = [{ key: 'all', label: '全部产品' }];
+    }
+}
+
 function initProductPagination() {
     if (GAS_SENSING_PRODUCTS.length === 0) {
         const container = document.querySelector('.vs-products-list');
@@ -59,18 +78,24 @@ function initProductPagination() {
         return;
     }
 
+    // 若 URL 参数里的分类不存在，回退为“全部产品”
+    const filterKeys = new Set(INDUSTRY_FILTERS.map(f => f.key));
+    if (!filterKeys.has(currentFilter)) {
+        currentFilter = 'all';
+    }
+
+    renderFilterNav();
     renderProducts();
     renderPagination();
-    addFilterListeners();
 }
 
 function getFilteredProducts() {
     if (currentFilter === 'all') {
         return GAS_SENSING_PRODUCTS;
     }
-    // 支持多分类：检查 categories 数组是否包含当前筛选项
+    // 按“领域分类”筛选
     return GAS_SENSING_PRODUCTS.filter(p => {
-        const categories = p.categories || [p.category];
+        const categories = p.industryCategories || [];
         return categories.includes(currentFilter);
     });
 }
@@ -99,11 +124,11 @@ function renderProducts() {
             <li>
                 <a href="${product.id}.html">
                     <div class="vs-product-img">
-                        <img src="${product.image}" alt="${product.name}">
+                        <img src="${product.cardImage || product.image}" alt="${product.cardTitle || product.name}">
                     </div>
                     <div class="vs-product-info">
-                        <h5>${product.name}</h5>
-                        <p>${product.description}</p>
+                        <h5>${product.cardTitle || product.name}</h5>
+                        <p>${product.cardSummary || product.description || ''}</p>
                         <span class="vs-product-more">查看详情</span>
                     </div>
                 </a>
@@ -164,25 +189,13 @@ function renderPagination() {
     });
 }
 
-function addFilterListeners() {
+function renderFilterNav() {
     // 为分类导航添加筛选功能（可选扩展）
     const categoryNav = document.querySelector('.vs-category-nav ul');
     if (!categoryNav) return;
 
-    // 筛选按钮配置
-    const filters = [
-        { key: 'all', label: '全部产品' },
-        { key: 'iot', label: '物联网平台' },
-        { key: 'sensor', label: '传感器' },
-        { key: 'module', label: '检测模块' },
-        { key: 'detector', label: '检测仪' },
-        { key: 'alarm', label: '报警器' },
-        { key: 'system', label: '监测系统' },
-        { key: 'service', label: '定制服务' }
-    ];
-
     // 生成筛选按钮HTML，根据currentFilter设置active
-    const filterHTML = filters.map(f =>
+    const filterHTML = INDUSTRY_FILTERS.map(f =>
         `<li><a href="#" data-filter="${f.key}" class="${currentFilter === f.key ? 'active' : ''}">${f.label}</a></li>`
     ).join('');
 
