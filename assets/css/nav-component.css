@@ -19,8 +19,8 @@
   box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(6px);
-  transition: opacity 0.14s ease-out, transform 0.14s ease-out, visibility 0s linear 0.14s;
+  transform: translateY(2px);
+  transition: opacity 0.09s linear, transform 0.09s linear, visibility 0s linear 0.09s;
   z-index: 999;
   display: flex;
   min-height: 440px;
@@ -35,16 +35,17 @@
 .vs-mega-menu::before {
   content: '';
   position: absolute;
-  top: -40px;
-  left: -50px;
-  width: 400px;
-  height: 50px;
+  top: -18px;
+  left: 0;
+  width: 100%;
+  height: 20px;
   background: transparent;
-  z-index: -1;
+  z-index: 2;
 }
 
 .vs-nav__item--has-mega:hover .vs-mega-menu,
-.vs-nav__item--has-mega:focus-within .vs-mega-menu {
+.vs-nav__item--has-mega:focus-within .vs-mega-menu,
+.vs-nav__item--has-mega.is-mega-open .vs-mega-menu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);

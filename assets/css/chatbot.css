@@ -30,6 +30,7 @@
     /* Dock effect - half hidden by default */
     transform: translateX(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Subtle pulse indicator */
@@ -106,7 +107,8 @@
 /* When chat is open, clean look */
 .chatbot-trigger.active {
     transform: translateX(0);
-    background: #5a6570;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .chatbot-trigger.active::before,
@@ -136,6 +138,13 @@
 
 .chatbot-trigger i.fa-times {
     display: none;
+}
+
+.chatbot-trigger:focus,
+.chatbot-trigger:focus-visible,
+.chatbot-trigger:focus-within {
+    outline: none;
+    box-shadow: 0 5px 25px rgba(0, 55, 100, 0.45);
 }
 
 /* Notification Badge */
