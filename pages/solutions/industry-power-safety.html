@@ -152,77 +152,249 @@
             padding-left: 5px;
         }
 
-        /* Vaisala-style Interactive Layout (Matching Hydrogen page) */
-        .vs-industry-tabs-section {
+        /* Solution Tabs Section */
+        .solution-tabs-section {
             background: #f8f9fa;
             padding: 80px 0;
         }
 
-        .vs-industry-container {
+        .solution-tabs-container {
             display: flex;
-            background: var(--color-white);
+            background: white;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
-            min-height: 600px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
         }
 
-        .vs-industry-sidebar {
-            width: 320px;
+        .solution-tabs-nav {
             background: var(--color-primary);
-            color: var(--color-white);
+            min-width: 280px;
         }
 
-        .vs-industry-tab {
+        .solution-tab-btn {
+            display: block;
+            width: 100%;
             padding: 24px 30px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
             font-size: 16px;
-            opacity: 0.7;
+            font-weight: 500;
+            border: none;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
         }
 
-        .vs-industry-tab:hover,
-        .vs-industry-tab.active {
-            opacity: 1;
-            background: rgba(255, 255, 255, 0.05);
+        .solution-tab-btn:hover,
+        .solution-tab-btn.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
             border-left: 4px solid var(--color-accent-orange);
         }
 
-        .vs-industry-content {
+        .solution-tabs-content {
             flex: 1;
-            padding: 60px;
-            position: relative;
+            padding: 50px;
         }
 
-        .vs-industry-panel {
+        .solution-panel {
             display: none;
-            animation: fadeIn 0.4s ease forwards;
+            animation: fadeIn 0.4s ease;
         }
 
-        .vs-industry-panel.active {
+        .solution-panel.active {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .solution-panel-img {
+            width: 100%;
+            max-width: 900px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .solution-panel-img img {
+            width: 100%;
+            height: auto;
             display: block;
         }
 
-        .vs-industry-panel h2 {
-            font-size: 32px;
+        .solution-panel-text {
+            max-width: 800px;
+        }
+
+        .solution-panel-text h3 {
+            font-size: 28px;
             color: var(--color-primary);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            font-weight: 600;
         }
 
-        .vs-industry-panel img {
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .vs-industry-panel p {
-            font-size: 18px;
+        .solution-panel-text p {
+            font-size: 16px;
             line-height: 1.8;
             color: #555;
+        }
+
+        /* Multi-image Solution Panel Layout */
+        .solution-panel-gallery {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .solution-gallery-main {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .solution-gallery-main img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+
+        .solution-gallery-main:hover img {
+            transform: scale(1.02);
+        }
+
+        .solution-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .solution-gallery-item {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: relative;
+            aspect-ratio: 4/3;
+        }
+
+        .solution-gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+
+        .solution-gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .solution-gallery-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 55, 100, 0.3) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .solution-gallery-item:hover::after {
+            opacity: 1;
+        }
+
+        .solution-panel-features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .solution-feature-tag {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #003764 100%);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0, 55, 100, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .solution-feature-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 55, 100, 0.3);
+        }
+
+        /* Hero Banner V2 */
+        .vs-hero-v2 {
+            position: relative;
+            height: 60vh;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            overflow: hidden;
+        }
+
+        .vs-hero-v2__bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .vs-hero-v2__bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.6);
+        }
+
+        .vs-hero-v2__content {
+            z-index: 1;
+            max-width: 800px;
+            padding: 0 20px;
+        }
+
+        .vs-hero-v2__title {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .vs-hero-v2__subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .vs-hero-v2__breadcrumbs {
+            position: absolute;
+            top: 40px;
+            left: 5%;
+            font-size: 13px;
+            z-index: 10;
+        }
+
+        .vs-hero-v2__breadcrumbs a {
+            color: white;
+            opacity: 0.8;
+            text-decoration: none;
+        }
+
+        .vs-hero-v2__breadcrumbs span {
+            opacity: 0.8;
         }
     </style>
     <!-- Site Search -->
@@ -474,37 +646,38 @@
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
                 <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
-                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
+                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a
+                    href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
             </div>
         </div>
         <script>
-        function showPanel(panelId, tab) {
-            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + panelId).classList.add('active');
-        }
-        function showPanelContact(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-contact-' + panelId).classList.add('active');
-        }
-        function showPanelSolutions(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-solutions-' + panelId).classList.add('active');
-        }
-        function showPanelCases(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-cases-' + panelId).classList.add('active');
-        }
+            function showPanel(panelId, tab) {
+                document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + panelId).classList.add('active');
+            }
+            function showPanelContact(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-contact-' + panelId).classList.add('active');
+            }
+            function showPanelSolutions(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-solutions-' + panelId).classList.add('active');
+            }
+            function showPanelCases(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-cases-' + panelId).classList.add('active');
+            }
         </script>
     </header>
 
@@ -553,98 +726,139 @@
             </div>
         </section>
 
-        <section class="vs-industry-tabs-section">
+        <section class="solution-tabs-section">
             <div class="vs-container">
-                <div class="vs-industry-container">
-
-                    <div class="vs-industry-content">
-                        <div class="vs-industry-panel active" style="display: block; margin-bottom: 80px;">
-                            <h2>变压器及油中气体在线监测</h2>
-                            <img src="../../assets/images/fadian.png" alt="Transformer Monitor">
-                            <div class="vs-industry-details" style="margin-top: 40px;">
-                                <style>
-                                    .feature-grid {
-                                        display: grid;
-                                        grid-template-columns: repeat(2, 1fr);
-                                        gap: 20px;
-                                    }
-
-                                    .feature-card {
-                                        background: #f8f9fa;
-                                        border: 1px solid #eee;
-                                        border-radius: 8px;
-                                        padding: 24px;
-                                        transition: transform 0.2s, box-shadow 0.2s;
-                                    }
-
-                                    .feature-card:hover {
-                                        transform: translateY(-2px);
-                                        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-                                        border-color: var(--color-accent-blue);
-                                    }
-
-                                    .feature-card h4 {
-                                        color: var(--color-primary);
-                                        font-size: 18px;
-                                        margin-bottom: 12px;
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 10px;
-                                    }
-
-                                    .feature-card h4 i {
-                                        color: var(--color-accent-orange);
-                                    }
-
-                                    .feature-card p {
-                                        font-size: 14px;
-                                        color: #666;
-                                        line-height: 1.6;
-                                        margin: 0;
-                                    }
-                                </style>
-                                <div class="feature-grid">
-                                    <div class="feature-card">
-                                        <h4><i class="fas fa-bolt"></i> 行业痛点</h4>
-                                        <p>大型油浸式变压器在长期高压、高热环境下，绝缘材料老化是不可逆的风险。传统巡检难以发现内部潜伏性故障，一旦失效将引发电网重大事故。</p>
+                <div class="solution-tabs-container">
+                    <div class="solution-tabs-nav">
+                        <button class="solution-tab-btn active"
+                            onclick="switchSolutionTab(0, this)">氢冷发电机氢气纯度分析与泄漏监测解决方案</button>
+                        <button class="solution-tab-btn" onclick="switchSolutionTab(1, this)">发电机组定冷水氢检测解决方案</button>
+                        <button class="solution-tab-btn" onclick="switchSolutionTab(2, this)">核电站水中溶解氢监测解决方案</button>
+                        <button class="solution-tab-btn" onclick="switchSolutionTab(3, this)">变压器油中氢浓度检测解决方案</button>
+                    </div>
+                    <div class="solution-tabs-content">
+                        <!-- Panel 1: 氢冷发电机 -->
+                        <div class="solution-panel active">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/power-h2-gen-main.png"
+                                        alt="氢冷发电机氢气纯度在线分析系统">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-h2-gen-sub1.jpg"
+                                            alt="大型氢冷发电机组运行现场">
                                     </div>
-                                    <div class="feature-card">
-                                        <h4><i class="fas fa-flask"></i> 气生机理</h4>
-                                        <p>当绝缘油或绝缘纸在内部发生微放电或过热时，其碳氢分子链会断裂重组，<strong>氢气 (H2)</strong>
-                                            是最早产生且最敏感的特征气体，被称为故障“晴雨表”。</p>
-                                    </div>
-                                    <div class="feature-card">
-                                        <h4><i class="fas fa-chart-line"></i> 在线智测</h4>
-                                        <p>超越传统人工取样的滞后性，实现 <strong>7*24h
-                                                全天候监测</strong>。通过氢气浓度趋势分析，系统能在故障演变为灾难前数周发出预警，变“被动抢修”为“主动运维”。</p>
-                                    </div>
-                                    <div class="feature-card">
-                                        <h4><i class="fas fa-microchip"></i> 核心科技</h4>
-                                        <p>搭载自主研发的<strong>碳基 MEMS
-                                                芯片</strong>，利用电子能带效应检测氢分子。具备<strong>免维护、长寿命、抗干扰</strong>三大优势，是变压器全生命周期管理的理想之选。
-                                        </p>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-h2-gen-sub2.jpg" alt="氢气监测终端设备">
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="vs-industry-panel active" style="display: block; margin-bottom: 80px;">
-                            <h2>GIS 组合电器及 SF6 气体监控</h2>
-                            <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200"
-                                alt="GIS Equipment">
-                            <p>
-                                针对 GIS（气体绝缘开关设备），我们提供高精度的 SF6 泄漏报警及压力监测方案。我们的系统不仅能实时检测极低浓度的 SF6
-                                泄漏，确保环境安全，还能通过数字化接口与变电站综合自动化系统无缝对接，实现设备运行状态的全天候掌控。
-                            </p>
-                        </div>
-                        <div class="vs-industry-panel active" style="display: block;">
-                            <h2>高压电缆及开关柜智能测温</h2>
-                            <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200"
-                                alt="Cable Monitoring">
-                            <p>
-                                电缆接头和开关柜触头是电力系统的易发热点。元芯开发的无线、无源测温系统，彻底解决了高电压环境下的绝缘和取电难题。系统实时监测触点温度，通过智能算法识别异常发热趋势，在造成停电事故前触发预警。
-                            </p>
+                            <div class="solution-panel-text">
+                                <h3>氢冷发电机氢气纯度分析与泄漏监测解决方案</h3>
+                                <p>针对大型氢冷发电机组，元芯传感提供全套氢气纯度在线分析与泄漏预警监测系统。通过高灵敏度碳基传感器，实时监测发电机内部氢气纯度、湿度及外壳密封性，有效保障发电机运行效率，防止因氢气纯度下降或泄漏引发的安全事故。
+                                </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">纯度实时分析</span>
+                                    <span class="solution-feature-tag">湿度精确监测</span>
+                                    <span class="solution-feature-tag">漏氢轨迹追踪</span>
+                                    <span class="solution-feature-tag">防爆安全认证</span>
+                                </div>
+                            </div>
                         </div>
 
+                        <!-- Panel 2: 定冷水氢检测 -->
+                        <div class="solution-panel">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/power-cooling-water-main.jpg"
+                                        alt="发电机组定冷水溶解氢在线监测系统">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-cooling-water-sub1.jpg"
+                                            alt="定冷水回路监测现场">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-cooling-water-sub2.jpg"
+                                            alt="溶解氢传感器安装细节">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="solution-panel-text">
+                                <h3>发电机组定冷水氢检测解决方案</h3>
+                                <p>发电机定子冷却水中的氢气含量是判断空心导管是否泄漏的关键指标。该方案采用专用溶解氢探测技术，实现定冷水回路中氢气含量的连续监测，能够微秒级响应微弱泄漏信号，为发电机的预防性维护提供科学依据。
+                                </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">超灵敏溶解氢探测</span>
+                                    <span class="solution-feature-tag">在线连续监测</span>
+                                    <span class="solution-feature-tag">微量泄漏识别</span>
+                                    <span class="solution-feature-tag">数据趋势预警</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel 3: 核电水中溶解氢 -->
+                        <div class="solution-panel">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/power-nuclear-h2-main.jpg"
+                                        alt="核电站溶解氢在线监测系统">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-nuclear-h2-sub1.jpg"
+                                            alt="核电一回路水质监测">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-nuclear-h2-sub2.jpg"
+                                            alt="抗辐射传感器监测终端">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="solution-panel-text">
+                                <h3>核电站水中溶解氢监测解决方案</h3>
+                                <p>核电站一回路或冷却水系统中的溶解氢浓度直接影响材料的腐蚀速率。元芯提供的抗辐射、耐高温溶解氢监测系统，能够确保在严苛核电工况下长期稳定运行，助力核电机组的本质安全与延寿运行。
+                                </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">核级抗辐射设计</span>
+                                    <span class="solution-feature-tag">耐高温高压</span>
+                                    <span class="solution-feature-tag">腐蚀环境守护</span>
+                                    <span class="solution-feature-tag">高精度化学监测</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel 4: 变压器油中氢 -->
+                        <div class="solution-panel">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/power-transformer-h2-main.jpg"
+                                        alt="变压器油中溶解氢在线工作状态">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-transformer-h2-sub1.jpg"
+                                            alt="大型变压器运行监测现场">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/power-transformer-h2-sub2.jpg"
+                                            alt="变压器在线监测终端">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="solution-panel-text">
+                                <h3>变压器油中氢浓度检测解决方案</h3>
+                                <p>基于电力变压器内部潜伏性故障预测需求，该方案通过监测油中溶解氢气浓度的变化趋势，实现变压器运行状态的预研预判。元芯碳基MEMS芯片凭借极佳的零点稳定性和抗交叉气体干扰能力，为变压器提供了“智慧诊疗”式的安全保障。
+                                </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">油色谱技术补充</span>
+                                    <span class="solution-feature-tag">故障早期识别</span>
+                                    <span class="solution-feature-tag">免维护长寿命</span>
+                                    <span class="solution-feature-tag">智能诊断算法</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -675,11 +889,12 @@
             const panel = document.getElementById('panel-contact-' + panelId);
             if (panel) panel.classList.add('active');
         }
-        function switchIndustryTab(index, tab) {
-            document.querySelectorAll('.vs-industry-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.vs-industry-panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.vs-industry-panel')[index].classList.add('active');
+        function switchSolutionTab(index, btn) {
+            const container = btn.closest('.solution-tabs-container');
+            container.querySelectorAll('.solution-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            container.querySelectorAll('.solution-panel').forEach(p => p.classList.remove('active'));
+            container.querySelectorAll('.solution-panel')[index].classList.add('active');
         }
     </script>
 
@@ -794,55 +1009,55 @@
         });
     </script>
 
-<!-- FOOTER_START -->
-  <footer class="vs-footer-new">
-    <div class="vs-container">
-      <div class="vs-footer-new__main">
-        <div class="vs-footer-new__brand">
-          <a href="index.html" class="logo-link">
-            <img src="assets/images/logo.png" alt="Metachip Logo" />
-            METACHIP
-          </a>
-          <div class="tagline">湖南元芯传感科技有限责任公司</div>
-          <div class="address">
-            <div class="address-item">公司总部</div>
-            <div class="address-item">湖南省湘潭市高新区</div>
-            <div class="address-item">双马街道书院路 38 号</div>
-          </div>
-        </div>
+    <!-- FOOTER_START -->
+    <footer class="vs-footer-new">
+        <div class="vs-container">
+            <div class="vs-footer-new__main">
+                <div class="vs-footer-new__brand">
+                    <a href="index.html" class="logo-link">
+                        <img src="assets/images/logo.png" alt="Metachip Logo" />
+                        METACHIP
+                    </a>
+                    <div class="tagline">湖南元芯传感科技有限责任公司</div>
+                    <div class="address">
+                        <div class="address-item">公司总部</div>
+                        <div class="address-item">湖南省湘潭市高新区</div>
+                        <div class="address-item">双马街道书院路 38 号</div>
+                    </div>
+                </div>
 
-        <div class="vs-footer-new__certs">
-          <div class="vs-footer-new__cert vs-footer-new__cert--diamond">
-            <span>FM<br>APPROVED</span>
-          </div>
-          <div class="vs-footer-new__cert vs-footer-new__cert--circle">
-            GLOBAL<br>INTERTEK
-          </div>
-        </div>
+                <div class="vs-footer-new__certs">
+                    <div class="vs-footer-new__cert vs-footer-new__cert--diamond">
+                        <span>FM<br>APPROVED</span>
+                    </div>
+                    <div class="vs-footer-new__cert vs-footer-new__cert--circle">
+                        GLOBAL<br>INTERTEK
+                    </div>
+                </div>
 
-        <div class="vs-footer-new__right">
-          <div class="vs-footer-new__social">
-            <a href="#" title="X"><i class="fa-brands fa-x-twitter"></i></a>
-            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-            <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-            <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
-            <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
-          </div>
-          <div class="vs-footer-new__links">
-            <a href="pages/about/policy.html">隐私政策</a>
-            <a href="#">条款与条件</a>
-          </div>
-          <div class="vs-footer-new__copyright">© 2026 湖南元芯传感科技有限责任公司，保留所有权利。</div>
-        </div>
-      </div>
+                <div class="vs-footer-new__right">
+                    <div class="vs-footer-new__social">
+                        <a href="#" title="X"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+                        <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                    <div class="vs-footer-new__links">
+                        <a href="pages/about/policy.html">隐私政策</a>
+                        <a href="#">条款与条件</a>
+                    </div>
+                    <div class="vs-footer-new__copyright">© 2026 湖南元芯传感科技有限责任公司，保留所有权利。</div>
+                </div>
+            </div>
 
-      <!-- Disclaimer -->
-      <div class="vs-footer-new__disclaimer">
-        METACHIP 是湖南元芯传感科技有限责任公司的注册商标。规格如有变更，恕不另行通知。
-      </div>
-    </div>
-  </footer>
-  <!-- FOOTER_END -->
+            <!-- Disclaimer -->
+            <div class="vs-footer-new__disclaimer">
+                METACHIP 是湖南元芯传感科技有限责任公司的注册商标。规格如有变更，恕不另行通知。
+            </div>
+        </div>
+    </footer>
+    <!-- FOOTER_END -->
 
 </body>
 

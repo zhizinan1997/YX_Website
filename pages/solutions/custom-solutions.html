@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工业检漏监测解决方案 - 元芯传感</title>
+    <title>绿色能源存储解决方案 - 元芯传感</title>
     <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -211,20 +211,6 @@
             text-align: center;
         }
 
-        .solution-panel-img {
-            width: 100%;
-            max-width: 900px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .solution-panel-img img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
         .solution-panel-text {
             max-width: 800px;
         }
@@ -294,19 +280,6 @@
             transform: scale(1.05);
         }
 
-        .solution-gallery-item::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0, 55, 100, 0.3) 0%, transparent 50%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .solution-gallery-item:hover::after {
-            opacity: 1;
-        }
-
         .solution-panel-features {
             display: flex;
             flex-wrap: wrap;
@@ -335,7 +308,7 @@
         .vs-hero-v2 {
             position: relative;
             height: 60vh;
-            min-height: 450px;
+            min-height: 500px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -368,13 +341,13 @@
         }
 
         .vs-hero-v2__title {
-            font-size: 48px;
+            font-size: 56px;
             font-weight: 700;
             margin-bottom: 20px;
         }
 
         .vs-hero-v2__subtitle {
-            font-size: 20px;
+            font-size: 22px;
             opacity: 0.9;
             line-height: 1.6;
         }
@@ -393,8 +366,308 @@
             text-decoration: none;
         }
 
-        .vs-hero-v2__breadcrumbs span {
-            opacity: 0.8;
+        /* Application Scenarios Grid */
+        .scenarios-section {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 50px;
+        }
+
+        .scenario-card {
+            position: relative;
+            height: 280px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .scenario-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .scenario-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .scenario-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 30px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            color: white;
+        }
+
+        .scenario-overlay h4 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Technology Advantages */
+        .tech-section {
+            background: #f8f9fa;
+            padding: 100px 0;
+            color: var(--color-primary);
+            text-align: center;
+        }
+
+        .tech-section h2 {
+            font-size: 32px;
+            margin-bottom: 50px;
+            font-weight: 600;
+        }
+
+        .tech-image {
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .tech-image img {
+            width: 100%;
+            border-radius: 12px;
+        }
+
+        .tech-features {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .tech-feature {
+            font-size: 16px;
+            font-weight: 600;
+            padding: 14px 34px;
+            background: white;
+            color: var(--color-primary);
+            border-radius: 40px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+
+        .tech-feature:hover {
+            transform: translateY(-3px);
+            border-color: var(--color-accent-orange);
+            color: var(--color-accent-orange);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Core Products */
+        .products-section {
+            padding: 80px 0;
+            background: #f8f9fa;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .product-card-img {
+            height: 200px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .product-card-img img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .product-card-body {
+            padding: 24px;
+        }
+
+        .product-card-body h4 {
+            font-size: 16px;
+            color: var(--color-primary);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .product-features {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        /* Platform Section */
+        .platform-section {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .platform-container {
+            display: flex;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .platform-img {
+            flex: 0 0 50%;
+        }
+
+        .platform-img img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .platform-text h2 {
+            font-size: 32px;
+            color: var(--color-primary);
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .platform-text p {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #555;
+        }
+
+        /* Value Section */
+        .value-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .value-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .value-card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .value-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .value-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--color-accent-orange);
+            margin-bottom: 16px;
+        }
+
+        .value-card h4 {
+            font-size: 20px;
+            color: var(--color-primary);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .value-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+        }
+
+        .value-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .value-card p {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.7;
+        }
+
+        /* Contact Form */
+        .contact-section {
+            padding: 80px 0;
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .contact-section h2 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 50px;
+            font-weight: 600;
+        }
+
+        .contact-form {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-row input {
+            flex: 1;
+            padding: 16px 20px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 15px;
+        }
+
+        .form-submit {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .form-submit button {
+            padding: 16px 40px;
+            background: var(--color-accent-orange);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
         }
     </style>
     <!-- Site Search -->
@@ -433,7 +706,7 @@
                                     产品种类 <i class="fas fa-chevron-right"></i>
                                 </div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
-                                    全部产品 <i class="fas fa-chevron-right"></i>
+                                    产品列表 <i class="fas fa-chevron-right"></i>
                                 </div>
                             </div>
                             <div class="vs-mega-content">
@@ -455,7 +728,7 @@
                                         </div>
                                     </div>
                                     <div class="vs-mega-action">
-                                        <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i class="fas fa-search"></i></a>
+                                        <a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a>
                                     </div>
                                 </div>
 
@@ -489,13 +762,25 @@
                                     <h3>测量对象</h3>
                                     <div class="vs-mega-grid-v2">
                                         <div>
-                                            <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
-                                                <li><a href="#">加载中...</a></li>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="..\measurement\measurement-hydrogen.html">氢气
+                                                        (H2)</a></li>
+                                                <li><a href="..\measurement\measurement-humidity.html">湿度
+                                                        (RH)</a></li>
+                                                <li><a href="..\measurement\measurement-dissolved-hydrogen.html">溶解氢</a>
+                                                </li>
                                             </ul>
                                         </div>
                                         <div>
-                                            <ul class="vs-mega-list-v2" id="measurementTargetsRight">
-                                                <li><a href="#">加载中...</a></li>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="..\measurement\measurement-oil-water.html">油中水含量</a>
+                                                </li>
+                                                <li><a href="..\measurement\measurement-dewpoint.html">露点
+                                                        (Td)</a></li>
+                                                <li><a href="..\measurement\measurement-pressure.html">压力
+                                                        (P)</a>
+                                                </li>
+
                                             </ul>
                                         </div>
                                     </div>
@@ -520,7 +805,7 @@
 
                                 <!-- Panel: List -->
                                 <div id="panel-list" class="vs-mega-panel">
-                                    <h3>全部产品</h3>
+                                    <h3>产品列表</h3>
                                     <div class="vs-mega-grid-v2" id="dynamic-product-list">
                                         <!-- 产品由JS动态生成 -->
                                     </div>
@@ -536,31 +821,42 @@
                     </li>
                     <li class="vs-nav__item vs-nav__item--has-mega">
                         <a href="..\solutions\solutions-index.html" class="vs-nav__link">解决方案</a>
-                        <div class="vs-mega-menu vs-mega-menu--links">
+                        <div class="vs-mega-menu vs-mega-menu--contact">
                             <div class="vs-mega-sidebar">
-                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
-                                    href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
-                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                    href="..\solutions\industry-power-safety.html">智慧电力安全</a>
-                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                    href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
-                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                    href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
-                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                    href="..\solutions\industry-environment.html">大气环境监测</a>
+                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
+                                    行业解决方案 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
+                                    科研服务 <i class="fas fa-chevron-right"></i>
+                                </div>
                             </div>
-                        </div>
-                    </li>
-                    <li class="vs-nav__item vs-nav__item--has-mega">
-                        <a href="..\research\index.html" class="vs-nav__link">科研服务</a>
-                        <div class="vs-mega-menu vs-mega-menu--links">
-                            <div class="vs-mega-sidebar">
-                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
-                                    href="..\research\micro-nano.html">传感器微纳加工</a>
-                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                    href="..\research\development.html">传感器开发、测试与应用</a>
-                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                    href="..\research\cooperation.html">产学研深度合作</a>
+                            <div class="vs-mega-content">
+                                <div id="panel-solutions-industry" class="vs-mega-panel active">
+                                    <h3>行业解决方案</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="..\solutions\industry-hydrogen.html">氢能源产业链</a></li>
+                                            <li><a href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                            </li>
+                                            <li><a href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                            </li>
+                                            <li><a href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                            </li>
+                                            <li><a href="..\solutions\industry-environment.html">大气环境监测</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="panel-solutions-research" class="vs-mega-panel">
+                                    <h3>科研服务</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="..\research\micro-nano.html">传感器微纳加工</a></li>
+                                            <li><a href="..\research\development.html">传感器开发、测试与应用</a></li>
+                                            <li><a href="..\research\cooperation.html">产学研深度合作</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </li>
@@ -714,15 +1010,14 @@
     <main style="padding-top: 90px;">
         <section class="vs-hero-v2">
             <div class="vs-hero-v2__bg">
-                <img src="https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1920"
-                    alt="Leak Detection">
+                <img src="../../assets/images/solutions/custom-hero.jpg" alt="Custom Solutions">
             </div>
             <div class="vs-hero-v2__breadcrumbs">
-                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>工业检漏监测</span>
+                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>定制化解决方案</span>
             </div>
             <div class="vs-hero-v2__content">
-                <h1 class="vs-hero-v2__title">工业检漏监测</h1>
-                <p class="vs-hero-v2__subtitle">高性能示踪气体检漏方案，为动力电池、真空工艺提供微米级密封验证。</p>
+                <h1 class="vs-hero-v2__title">定制化解决方案</h1>
+                <p class="vs-hero-v2__subtitle">依托核心传感技术，为全球合作伙伴提供深度定制的芯片级与系统级监测方案。</p>
             </div>
         </section>
 
@@ -731,70 +1026,175 @@
                 <div class="solution-tabs-container">
                     <div class="solution-tabs-nav">
                         <button class="solution-tab-btn active"
-                            onclick="switchSolutionTab(0, this)">管道容器通用检漏解决方案</button>
-                        <button class="solution-tab-btn" onclick="switchSolutionTab(1, this)">冷媒行业检漏解决方案</button>
+                            onclick="switchSolutionTab(0, this)">储能锂电池热失控监测解决方案</button>
                     </div>
                     <div class="solution-tabs-content">
-                        <!-- Panel 1: 管道容器通用检漏 -->
+                        <!-- Panel 1: 储能锂电池热失控 -->
                         <div class="solution-panel active">
                             <div class="solution-panel-gallery">
                                 <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/leak-general-main.png" alt="工业管道与容器高精度检漏系统">
+                                    <img src="../../assets/images/solutions/custom-battery-main.png" alt="储能电站本质安全监测系统">
                                 </div>
                                 <div class="solution-gallery-grid">
                                     <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-general-sub1.jpg" alt="大型工业储罐检漏现场">
+                                        <img src="../../assets/images/solutions/custom-battery-sub1.jpg"
+                                            alt="电芯级热失控预警模块">
                                     </div>
                                     <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-general-sub2.jpg"
-                                            alt="便携式高灵敏度检测终端">
+                                        <img src="../../assets/images/solutions/custom-battery-sub2.jpg"
+                                            alt="储能舱环境监测终端">
                                     </div>
                                 </div>
                             </div>
                             <div class="solution-panel-text">
-                                <h3>管道容器通用检漏解决方案</h3>
-                                <p>针对各类工业管道、储罐及密封容器，元芯传感提供基于示踪气体的高精度检漏方案。利用高灵敏度碳基传感器技术，系统能精准捕捉微米级的泄漏点，并实现泄漏速率的量化分析，为电力、石油、化工等行业的设备完整性提供可靠验证。
+                                <h3>储能锂电池热失控监测解决方案</h3>
+                                <p>针对大规模储能系统（BESS）的本质安全难题，元芯传感通过高度定制化的 MEMS
+                                    复合气体传感技术，实现对电芯热失控初期析出气体（CO、H2、VOCs）的极早期捕捉。系统可嵌入电池箱内部，在火灾发生前的关键窗口期发出预警并联动消防系统，从根本上解决储能电站的安全隐患。
                                 </p>
                                 <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">微秒级感应响应</span>
-                                    <span class="solution-feature-tag">示踪气体高选择性</span>
-                                    <span class="solution-feature-tag">泄漏速率量化</span>
-                                    <span class="solution-feature-tag">便携集成式设计</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Panel 2: 冷媒行业检漏 -->
-                        <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/leak-refrigerant-main.jpg"
-                                        alt="制冷设备冷媒检漏在线系统">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-refrigerant-sub1.jpg"
-                                            alt="空调生产线冷媒检测现场">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-refrigerant-sub2.jpg"
-                                            alt="MEMS冷媒传感器细节展示">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>冷媒行业检漏解决方案</h3>
-                                <p>在空调、冰箱等制冷设备的生产与维保中，冷媒泄漏不仅影响性能，更涉及环保与能效。该方案专为R32、R410A等新型环保冷媒设计，通过自主研发的MEMS芯片，在复杂工业背景下实现极低浓度的冷媒监测，助力制冷行业实现绿色、高效生产。
-                                </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">多冷媒型号适配</span>
-                                    <span class="solution-feature-tag">抗背景气体干扰</span>
-                                    <span class="solution-feature-tag">全自动在线检漏</span>
-                                    <span class="solution-feature-tag">本质安全耐用</span>
+                                    <span class="solution-feature-tag">电芯级极早探测</span>
+                                    <span class="solution-feature-tag">多参数复合感知</span>
+                                    <span class="solution-feature-tag">毫秒级响应联动</span>
+                                    <span class="solution-feature-tag">抗中毒长寿命芯片</span>
+                                    <span class="solution-feature-tag">深度模组化定制</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Application Scenarios -->
+        <section class="scenarios-section">
+            <div class="vs-container">
+                <h2 class="section-title">典型应用场景</h2>
+                <div class="scenarios-grid">
+                    <div class="scenario-card">
+                        <img src="../../assets/images/solutions/custom-battery-scenario1.jpg" alt="全方位储能站安全监测">
+                        <div class="scenario-overlay">
+                            <h4>全方位储能站安全监测</h4>
+                        </div>
+                    </div>
+                    <div class="scenario-card">
+                        <img src="../../assets/images/solutions/custom-battery-scenario2.png" alt="工商业储能柜实时预警">
+                        <div class="scenario-overlay">
+                            <h4>工商业储能柜实时预警</h4>
+                        </div>
+                    </div>
+                    <div class="scenario-card">
+                        <img src="../../assets/images/solutions/custom-battery-main.png" alt="户用/集装箱储能系统">
+                        <div class="scenario-overlay">
+                            <h4>户用/集装箱储能系统</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Products -->
+        <section class="products-section">
+            <div class="vs-container">
+                <h2 class="section-title">推荐监测产品</h2>
+                <div class="products-grid">
+                    <a href="../gassensing/mchp_battery_safety.html" class="product-card">
+                        <div class="product-card-img">
+                            <img src="../../assets/images/solutions/custom-battery-sub1.jpg" alt="MC-H2-Pro">
+                        </div>
+                        <div class="product-card-body">
+                            <h4>MC-H2-Pro 复合气体探测器</h4>
+                            <div class="product-features">
+                                <p>• 监测 H2 / CO / VOCs / TH</p>
+                                <p>• 毫秒级极速响应</p>
+                                <p>• 紧凑型 OEM 模组设计</p>
+                            </div>
+                        </div>
+                    </a>
+                    <!-- Add more product cards as placeholder for consistent layout -->
+                    <div class="product-card">
+                        <div class="product-card-img">
+                            <img src="../../assets/images/solutions/custom-battery-sub2.jpg" alt="MC-THS">
+                        </div>
+                        <div class="product-card-body">
+                            <h4>MC-THS 智能温湿度终端</h4>
+                            <div class="product-features">
+                                <p>• 高精度环境温湿度感知</p>
+                                <p>• 支持 RS485 / CAN 通信</p>
+                                <p>• 工业级抗干扰设计</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Platform Section -->
+        <section class="platform-section">
+            <div class="vs-container">
+                <div class="platform-container">
+                    <div class="platform-img">
+                        <img src="https://images.unsplash.com/photo-1551288049-bbdaef866675?auto=format&fit=crop&w=1200"
+                            alt="安全监测云平台">
+                    </div>
+                    <div class="platform-text">
+                        <h2>智慧安全监测云平台</h2>
+                        <p>元芯传感不仅提供硬件，更通过数字化平台为储能站提供全生命周期的资产保护。平台支持实时趋势分析、多级预警管理、设备健康评估以及远程配置升级，助力运维团队实现从“被动响应”到“主动预防”的转变。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Value Section -->
+        <section class="value-section">
+            <div class="vs-container">
+                <h2 class="section-title">定制化开发流程</h2>
+                <div class="value-grid">
+                    <div class="value-card">
+                        <div class="value-number">01</div>
+                        <h4>需求定义</h4>
+                        <div class="value-icon"><img src="../../assets/images/jj_i4.png" alt="Icon"></div>
+                        <p>深入调研应用场景，明确检测组分、量程、精度及通信协议等核心参数。</p>
+                    </div>
+                    <div class="value-card">
+                        <div class="value-number">02</div>
+                        <h4>方案设计</h4>
+                        <div class="value-icon"><img src="../../assets/images/jj_i5.png" alt="Icon"></div>
+                        <p>基于 MEMS 芯片库进行快速选型与电路仿真，提供定制化结构模型设计。</p>
+                    </div>
+                    <div class="value-card">
+                        <div class="value-number">03</div>
+                        <h4>验证与交付</h4>
+                        <div class="value-icon"><img src="../../assets/images/jj_i6.png" alt="Icon"></div>
+                        <p>通过严格的工业级可靠性测试，实现从小批量试制到大规模量产的平稳过渡。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Form -->
+        <section class="contact-section">
+            <div class="vs-container">
+                <h2>启动您的定制化方案</h2>
+                <div class="contact-form">
+                    <form>
+                        <div class="form-row">
+                            <input type="text" placeholder="您的姓名">
+                            <input type="text" placeholder="公司名称">
+                        </div>
+                        <div class="form-row">
+                            <input type="email" placeholder="联系邮箱">
+                            <input type="tel" placeholder="联系电话">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <textarea placeholder="请简述您的监测需求..."
+                                style="width: 100%; height: 120px; padding: 16px 20px; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); font-size: 15px;"></textarea>
+                        </div>
+                        <div class="form-submit">
+                            <button type="submit">获取专业咨询</button>
+                            <span style="font-size: 14px; opacity: 0.7;">我们的技术专家将在24小时内与您联系。</span>
+                        </div>
+                    </form>
                 </div>
             </div>
         </section>
