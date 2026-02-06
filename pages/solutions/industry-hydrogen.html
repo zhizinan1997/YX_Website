@@ -444,58 +444,127 @@
             font-weight: 600;
         }
 
-        /* Technology Advantages - Improved Light Theme */
+        /* Technology Advantages - Redesigned */
         .tech-section {
             background: #f8f9fa;
             padding: 100px 0;
-            color: var(--color-primary);
             text-align: center;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: hidden;
         }
 
-        .tech-section h2 {
-            font-size: 32px;
-            margin-bottom: 50px;
-            font-weight: 600;
+        .tech-header h2 {
+            font-size: 36px;
             color: var(--color-primary);
+            font-weight: 700;
+            margin-bottom: 60px;
+            line-height: 1.2;
         }
 
-        .tech-image {
-            max-width: 1200px;
-            margin: 0 auto 50px;
-            filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.08));
-        }
-
-        .tech-image img {
-            width: 100%;
-            border-radius: 12px;
-        }
-
-        .tech-features {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 40px;
-            flex-wrap: wrap;
-        }
-
-        .tech-feature {
-            font-size: 16px;
-            font-weight: 600;
-            padding: 14px 34px;
+        .tech-diagram-container {
+            max-width: 1000px;
+            margin: 0 auto 70px;
             background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 55, 100, 0.08);
+            position: relative;
+        }
+
+        .tech-diagram-container::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 20px;
+            background: rgba(0, 55, 100, 0.03);
+            border-radius: 20px 20px 0 0;
+            z-index: -1;
+        }
+
+        .tech-diagram-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            display: block;
+        }
+
+        .tech-features-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .tf-card {
+            background: white;
+            padding: 30px 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tf-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 55, 100, 0.1);
+        }
+
+        .tf-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--color-accent-orange);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tf-card:hover::after {
+            transform: scaleX(1);
+        }
+
+        .tf-icon {
+            font-size: 32px;
             color: var(--color-primary);
-            border-radius: 40px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            margin-bottom: 20px;
+            height: 64px;
+            width: 64px;
+            line-height: 64px;
+            border-radius: 50%;
+            background: rgba(0, 55, 100, 0.05);
+            margin: 0 auto 20px;
             transition: all 0.3s ease;
         }
 
-        .tech-feature:hover {
-            transform: translateY(-3px);
-            border-color: var(--color-accent-orange);
-            color: var(--color-accent-orange);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        .tf-card:hover .tf-icon {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .tf-card h4 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .tf-card p {
+            font-size: 14px;
+            color: #777;
+            margin: 0;
+        }
+
+        @media (max-width: 992px) {
+            .tech-features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         /* Core Products */
@@ -755,6 +824,136 @@
         .form-submit a {
             color: var(--color-accent-orange);
         }
+
+        /* New Sub-solution Grid Layout */
+        .solution-sub-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+            text-align: left;
+        }
+
+        .solution-sub-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .solution-sub-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 55, 100, 0.12);
+            border-color: rgba(0, 55, 100, 0.1);
+        }
+
+        .sub-card-img {
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sub-card-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .solution-sub-card:hover .sub-card-img img {
+            transform: scale(1.08);
+        }
+
+        .sub-card-content {
+            padding: 28px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sub-card-content h4 {
+            color: var(--color-primary);
+            font-size: 19px;
+            margin-bottom: 16px;
+            font-weight: 700;
+            line-height: 1.4;
+            border-bottom: 2px solid var(--color-accent-orange);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        .sub-card-content p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 0;
+            text-align: justify;
+        }
+
+        /* Design Advantages Section */
+        .design-advantages-section {
+            background-color: var(--color-primary-dark, #002848);
+            color: white;
+            padding: 100px 0;
+            text-align: left;
+        }
+
+        .design-advantages-section h2 {
+            font-size: 32px;
+            margin-bottom: 80px;
+            font-weight: 500;
+            color: white;
+            opacity: 1;
+        }
+
+        .advantages-new-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 50px;
+        }
+
+        .advantage-new-item {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .advantage-new-item h4 {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .advantage-new-item p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+        }
+
+        @media (max-width: 1200px) {
+            .advantages-new-grid {
+                gap: 30px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .advantages-new-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .advantages-new-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
     <!-- Site Search -->
     <link rel="stylesheet" href="../../assets/css/search.css">
@@ -815,7 +1014,8 @@
                                         </div>
                                     </div>
                                     <div class="vs-mega-action">
-                                        <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i class="fas fa-search"></i></a>
+                                        <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i
+                                                class="fas fa-search"></i></a>
                                     </div>
                                 </div>
 
@@ -1098,153 +1298,274 @@
                     <div class="solution-tabs-content">
                         <!-- Panel 1: 电解水制氢 -->
                         <div class="solution-panel active">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/electrolysis-h2-workers.jpg"
-                                        alt="电解水制氢设备安装与调试现场">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/electrolysis-h2-tank.jpg"
-                                            alt="氧气氢气分离储罐">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/electrolysis-h2-equipment.png"
-                                            alt="大型电解槽设备">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>电解水制氢过程在线分析与泄漏监测解决方案</h3>
-                                <p>基于元芯传感领先全球的碳基芯片自主可控技术，为电解水制氢工艺全流程提供在线氢气浓度分析与泄漏监测服务。方案覆盖碱性电解槽、PEM电解槽、固体氧化物电解槽等多种制氢设备，实现制氢效率实时监测、氢气纯度在线分析、设备密封性检测及厂区泄漏预警，为绿氢生产提供智能化安全保障。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    电解水制氢过程在线分析与泄漏监测解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    随着氢能产业的迅猛发展，电解水制氢作为一种高效的清洁制氢方式，正日益受到关注。然而，确保制氢过程中每一方氢气的品质与安全，是保障下游燃料电池性能、预防安全事故的关键。元芯传感专注于先进传感技术，为电解水制氢提供一体化的在线分析与泄漏监测解决方案。我们的方案涵盖了在线品质分析、确保产出氢气达到燃料电池级纯度；工艺安全监测，从源头预防爆炸风险；以及环境泄漏监测，构筑全域安全防线，为氢能产业的健康发展保驾护航。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">碱性电解槽监测</span>
-                                    <span class="solution-feature-tag">PEM电解槽监测</span>
-                                    <span class="solution-feature-tag">氢气纯度分析</span>
-                                    <span class="solution-feature-tag">设备密封检测</span>
-                                    <span class="solution-feature-tag">厂区泄漏预警</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1: Online Quality Analysis -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/electrolysis-h2-equipment.png"
+                                            alt="在线品质分析设备">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>在线品质分析 · 捍卫燃料电池级纯度</h4>
+                                        <p>
+                                            燃料电池对氢气纯度有着极其严苛的要求，任何微量杂质都可能导致电池性能下降甚至永久性损坏。元芯传感的在线品质分析系统，能够实时、高精度地监测电解水制氢过程中氢气的纯度及关键杂质含量。通过对氧气、水蒸气、一氧化碳等杂质的持续监控，确保产出氢气符合燃料电池级标准，有效提升燃料电池的使用寿命与效率，为您的产品赢的市场信赖。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 2: Process Safety -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/electrolysis-h2-tank.jpg" alt="工艺安全监测">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>工艺安全监测 · 从源头预防爆炸风险</h4>
+                                        <p>
+                                            电解水制氢过程中涉及易燃易爆氢气，工艺安全至关重要。元芯传感的工艺安全监测解决方案，通过在关键生产节点部署高灵敏度的氢气传感器，对制氢设备、管道内部及密闭空间的氢气浓度进行不间断监测。一旦氢气浓度异常升高，系统将立即发出预警，并可联动安全系统进行紧急处理，从而在源头上有效预防因氢气泄漏引发的燃爆事故，保障人员与设备安全。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 3: Environmental Safety -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/electrolysis-h2-workers.jpg"
+                                            alt="环境泄漏监测">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>环境泄漏监测 · 构筑全域安全防线</h4>
+                                        <p>
+                                            除了工艺内部监测，电解水制氢厂区及周边环境的氢气泄漏监测同样不可或缺。元芯传感的环境泄漏监测方案，利用分布式传感器网络，对制氢厂房、储氢区、压缩站等区域进行全覆盖的氢气泄漏检测。即使是微量泄漏，也能被迅速捕捉并精确定位，最大程度降低泄漏扩散风险。这不仅有效提升厂区整体安全水平，也展现了企业对环境保护和社会责任的承诺，为周边社区构筑一道坚实的安全防线。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <!-- Panel 2: 加氢站与燃料电池车 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/hydrogen-station-overview.webp"
-                                        alt="中国石化氢能加氢站">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/hydrogen-vehicle-detection.jpg"
-                                            alt="氢燃料卡车储氢系统检测">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/hydrogen-truck-fleet.png"
-                                            alt="氢燃料电池重卡车队">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>加氢站与燃料电池车氢监测协同安全解决方案</h3>
-                                <p>针对加氢站与氢燃料电池车辆的协同安全需求，元芯传感提供站-车一体化氢安全监测方案。方案涵盖加氢机、储氢罐区、加氢枪头、车载储氢系统及燃料电池堆等关键节点，实现加氢过程实时监控、车辆氢泄漏预警、站内安全联锁控制，构建从加注到行驶的全链条氢安全防护体系。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    加氢站与燃料电池车氢监测协同安全解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    随着氢燃料电池汽车的普及，加氢站作为氢能基础设施的核心，以及燃料电池车作为移动终端，其运行安全备受关注。元芯传感深刻理解"站-车"一体化防护的重要性，致力于提供先进的氢监测协同安全解决方案，旨在守护氢能安全运行，构筑从加注到行驶的全方位安全屏障。我们的方案涵盖加氢站固定设施的堡垒级纵深防御，燃料电池车移动终端的贴身式随行守护，以及针对关键节点的高精度巡检排查，共同保障氢能源网络的安全脉搏，推动氢交通的健康发展。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">加氢站安全监测</span>
-                                    <span class="solution-feature-tag">车载储氢检测</span>
-                                    <span class="solution-feature-tag">燃料电池堆监控</span>
-                                    <span class="solution-feature-tag">站-车协同联锁</span>
-                                    <span class="solution-feature-tag">加氢过程实时监控</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1: Fixed Facilities -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/hydrogen-station-overview.webp"
+                                            alt="加氢站固定设施">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>固定设施 · 堡垒级纵深防御</h4>
+                                        <p>
+                                            加氢站是氢气储存、压缩、加注的关键场所，其固定设施的氢气泄漏监测是安全运营的基石。元芯传感的解决方案，在加氢站的压缩机房、储氢区、加注岛等高风险区域部署多点位、多层级的氢气传感器。这些传感器能够实时、高灵敏度地监测环境中的氢气浓度，形成密集的堡垒级纵深防御网络。一旦检测到氢气异常，系统将立即发出声光报警，并可联动切断阀门、启动排风系统等应急措施，最大程度降低泄漏风险，保障加氢站的安全稳定运行。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 2: Mobile Terminals -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/hydrogen-truck-fleet.png"
+                                            alt="燃料电池车移动终端">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>移动终端 · 贴身式随行守护</h4>
+                                        <p>
+                                            燃料电池车作为氢能的移动应用终端，其车载氢系统安全同样不容忽视。元芯传感为燃料电池车提供贴身式随行守护的氢气监测方案。通过在燃料电池堆栈、储氢罐附近、高压管路接头等关键部位集成高可靠、小型化的车载氢气传感器，实时监控车内氢气浓度。该系统可与车辆控制系统集成，当检测到潜在泄漏时，及时向驾驶员发出警示，并可触发燃料电池系统停机等安全保护机制，确保车辆在行驶过程中的绝对安全，为用户提供安心无忧的驾驶体验。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 3: Key Points Inspection -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/hydrogen-vehicle-detection.jpg"
+                                            alt="关键节点高精度巡检">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>关键节点 · 高精度巡检排查</h4>
+                                        <p>
+                                            除了在线监测，定期的高精度巡检排查是加氢站和燃料电池车维护保养中不可或缺的一环。元芯传感提供便携式高精度氢气检测仪，便于工作人员对加氢站的阀门、管路接口、排气口，以及燃料电池车的储氢瓶阀门、压力调节器等关键节点进行细致的、点对点的泄漏检测。通过这种主动式巡检，可以发现并处理潜在的微量泄漏，防患于未然，进一步提升氢能源设施与车辆的整体安全水平，确保整个氢能生态系统安全脉搏的稳定跳动。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <!-- Panel 3: 涉氢实验室 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/hydrogen-lab-monitoring-main.png"
-                                        alt="涉氢实验室多维度立体监测系统全景">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub1.jpg"
-                                            alt="分布式传感探测终端">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub2.jpg"
-                                            alt="系统运行监测界面">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>涉氢实验室多维度气体泄漏立体监测系统</h3>
-                                <p>针对科研院所、高校涉氢实验室及氢能测试中心的特殊安全需求，元芯传感推出多维度立体监测系统。系统采用分布式传感器网络，覆盖实验台面、通风橱、气瓶间、管道接口等多层级空间，实现氢气浓度三维分布可视化、泄漏点精准定位、智能通风联动控制，为涉氢科研工作提供本质安全保障。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    涉氢实验室多维度气体泄漏立体监测系统</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    涉氢实验室是氢能技术研发与创新的前沿阵地，然而，氢气的易燃易爆特性也对实验室安全提出了极高要求。元芯传感深知守护能源科研生命线的重要性，特推出"涉氢实验室多维度气体泄漏立体监测系统"，旨在为科研人员构筑零容忍的本质安全实验环境。该系统通过点-线-面的立体监测网络实现无死角覆盖，提供全流程追溯能力使管理有据可依，并具备智能联动实现秒级应急自处置，为实验室安全提供全方位的智能保障。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">分布式监测网络</span>
-                                    <span class="solution-feature-tag">三维浓度可视化</span>
-                                    <span class="solution-feature-tag">智能通风联动</span>
-                                    <span class="solution-feature-tag">毫秒级探测响应</span>
-                                    <span class="solution-feature-tag">本质安全保障</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1: Full Coverage -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-main.png"
+                                            alt="立体监测无死角">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>点-线-面 · 立体监测无死角</h4>
+                                        <p>
+                                            传统的单一监测点往往存在盲区，而涉氢实验室的复杂环境需要更全面的防护。元芯传感的立体监测系统通过精密部署，实现了点-线-面的无死角覆盖。在点上，关键设备（如储氢罐、反应釜、气瓶柜）附近部署高精度氢气传感器；在线上，沿氢气输送管线、通风管道设置连续监测带；在面上，对实验室整体空间环境进行网格化监测。这种多维度布局确保任何潜在的氢气泄漏都能被及时捕捉并精准定位，将风险降至最低。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 2: Traceability -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub1.jpg"
+                                            alt="全流程追溯">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>全流程追溯 · 管理有据可依</h4>
+                                        <p>
+                                            实验室安全管理不仅要实时监测，更要具备数据追溯与分析能力。元芯传感的系统集成了先进的数据管理平台，能实时记录并存储所有监测数据，形成完整的安全日志。这使得管理者可以随时进行全流程追溯，了解历史氢气浓度变化、报警事件发生时间及处理情况。这些详实的数据不仅为安全事故的分析提供了有据可依的证据，也为实验室安全管理制度的优化、风险评估模型的建立提供了宝贵支持，实现预防与管理并重。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 3: Smart Linkage -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub2.jpg"
+                                            alt="智能联动秒级处置">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>智能联动 · 秒级应急自处置</h4>
+                                        <p>
+                                            面对氢气泄漏，时间就是生命。元芯传感的系统具备强大的智能联动功能，可实现秒级应急自处置。当系统检测到氢气浓度达到预警阈值时，不仅会立即发出声光报警，还能自动联动实验室的通风系统进行强制排风、切断氢气供应阀门、开启紧急喷淋，并向指定人员发送报警信息。这种快速、自动化的响应机制，最大程度地减少了人工干预时间，有效遏制了风险升级，为科研人员争取宝贵的逃生和处理时间，确保实验室人员与财产安全。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <!-- Panel 4: 城市能源输氢管网与用氢家庭 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/city-hydrogen-main.png" alt="城市能源输氢管网监控中心">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/city-hydrogen-sub1.jpg"
-                                            alt="输氢管道压力与泄漏监测">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/city-hydrogen-sub2.png"
-                                            alt="家庭用氢终端安全守护">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>城市能源输氢管网与用氢家庭安全解决方案</h3>
-                                <p>随着"氢进万家"示范工程的推进，元芯传感为城市氢能输配系统提供全链条安全监测方案。方案覆盖长输氢气管道、城市中压管网、小区调压站、入户支管及终端用氢设备，利用高灵敏度碳基传感技术实现管网微量泄漏精准识别与实时定位，为家庭用氢终端提供毫秒级探测响应，守护千家万户的用能安全。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    城市能源输氢管网与用氢家庭安全解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    氢能作为未来城市能源的重要组成部分，其在城市管网中的输送和家庭终端的使用，对安全与效率提出了新的挑战。元芯传感致力于为城市能源动脉注入智慧"氢"视力，推出"城市能源输氢管网与用氢家庭安全解决方案"，旨在守护城市能源未来。该方案通过精准计量确保稳定输配，以本质安全理念实现全程守护，并依托智慧物联技术实现预测性维护，为城市氢能基础设施和居民用氢安全构筑全方位、智能化的安全保障体系。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">长输管道监测</span>
-                                    <span class="solution-feature-tag">微量泄漏定位</span>
-                                    <span class="solution-feature-tag">调压站安全管控</span>
-                                    <span class="solution-feature-tag">家端毫秒级响应</span>
-                                    <span class="solution-feature-tag">全链条数字化</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1: Metering & Transport -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/city-hydrogen-main.png" alt="精准计量稳定输配">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>精准计量 · 稳定输配</h4>
+                                        <p>
+                                            城市能源管网的稳定运行离不开精确的计量与控制。元芯传感的解决方案融入高精度氢气流量与压力传感器，能够对城市输氢管网中的氢气流量、压力进行实时、准确的监测和计量。这些数据不仅是稳定输配的关键依据，有助于管网调度中心实时掌握氢气供应情况，优化资源分配，避免供应中断或压力波动；更是确保氢能交易公平、公正的基础。通过精准计量，元芯传感助力城市构建高效、可靠的氢能输配体系，为城市能源的动脉注入智慧。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 2: Intrinsic Safety -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/city-hydrogen-sub1.jpg" alt="本质安全全程守护">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>本质安全 · 全程守护</h4>
+                                        <p>
+                                            从城市氢能输送管线的埋设，到居民用氢终端的每一处接口，本质安全是不可妥协的底线。元芯传感的解决方案，将高可靠的氢气泄漏检测技术融入整个氢能链条。在城市输氢管网沿线、调压站、入户分支点以及居民用氢器具（如氢能热水器、燃气灶具等）附近，部署高灵敏度、长寿命的氢气传感器。这些传感器能够实现24/7不间断监测，一旦检测到微量氢气泄漏，即刻发出预警，并可联动切断阀门、启动通风等应急措施，实现从源头到末端的全程守护，最大程度地消除安全隐患。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 3: Smart IoT -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/city-hydrogen-sub2.png" alt="智慧物联预测性维护">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>智慧物联 · 预测性维护</h4>
+                                        <p>
+                                            传统的人工巡检和被动式维护方式已无法满足现代城市能源管网的复杂需求。元芯传感的解决方案依托先进的智慧物联平台，将所有监测数据实时上传云端，通过大数据分析和人工智能算法，对管网及终端设备的安全状态进行智能评估。平台不仅能远程可视化监控，还能识别潜在的故障模式，预测设备老化趋势、评估泄漏风险等级。这种预测性维护模式，变被动维修为主动预防，大幅降低运营成本，提升管网的运行韧性，确保城市氢能基础设施持续级、高效、安全地服务于民。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <!-- Panel 5: 微量氢气泄漏检测 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/trace-h2-main.png" alt="微量氢气分析与精密检测">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/trace-h2-sub1.jpg" alt="半导体工业精密监测">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/trace-h2-sub2.webp"
-                                            alt="油中溶解气体分析 (DGA)">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>微量氢气泄漏检测解决方案</h3>
-                                <p>针对半导体工业、电力变压器油中溶解气体分析（DGA）、精密制造及科研实验等对氢气监测灵敏度有极致要求的领域，元芯传感推出微量级氢气泄漏探测方案。依托自研碳基传感芯片，方案可实现最低1ppm级别的超低浓度捕捉，具有极佳的零点稳定性和抗交叉气体干扰能力，其高精度实时反馈为精密设备与大型电力资产的本质安全提供坚实的底层数据支撑。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    微量氢气泄漏检测解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    在高速发展的氢能产业中，无论是氢气制备、储存、运输还是使用环节，微小的氢气泄漏都可能对设备性能、经济效益和长远安全构成潜在威胁。元芯传感致力于让PPM级微漏无所遁形，深知每一次精准的发现，都是对事故的有效避免。我们推出"微量氢气泄漏检测解决方案"，正面向氢能源行业，专注于检测极低浓度的氢气泄漏。该方案凭借外科手术级的精准定位、秒级响应的极速寻源，以及支持预防性巡检的主动防御机制，帮助客户在风险萌芽阶段即发现并解决问题，从而实现防微杜渐，构筑更本质、更持久的安全防线。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">1ppm极低检测限</span>
-                                    <span class="solution-feature-tag">零点长期稳定性</span>
-                                    <span class="solution-feature-tag">抗复杂气体干扰</span>
-                                    <span class="solution-feature-tag">半导体级精度</span>
-                                    <span class="solution-feature-tag">电力资产保护</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1: Precision Localization -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/trace-h2-main.png" alt="外科手术级精准定位">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>外科手术级 · 精准定位</h4>
+                                        <p>
+                                            在氢能源设施中，微量泄漏点往往隐蔽且难以察觉。元芯传感的解决方案采用最先进的碳纳米管传感技术，具备外科手术级的精准定位能力，能够识别并量化低至PPM级的氢气浓度。无论是高压储氢罐的焊缝、燃料电池堆的微小缝隙，还是输送管路的螺纹连接处，我们的高灵敏度检测设备都能在复杂背景气体中精准捕捉氢气信号，并帮助操作人员快速锁定泄漏的具体位置。这种极致的精准度，确保了维修工作的针对性和高效性，最大程度地避免了盲目排查，从根本上提升了氢能源系统的安全性。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 2: Rapid Tracing -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/trace-h2-sub1.jpg" alt="秒级响应极速寻源">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>秒级响应 · 极速寻源</h4>
+                                        <p>
+                                            微量泄漏虽然短期内不构成直接爆炸风险，但长期累积或在特定条件下也可能引发严重后果。元芯传感的微量氢气泄漏检测方案具备秒级响应的极高灵敏度，能够在氢气以PPM级浓度逸出时即刻做出反应。系统能够迅速捕捉到环境中氢气浓度的微小变化，并启动极速寻源模式，引导操作人员快速接近并确定泄漏源头。这种快速发现和定位的能力，使得维护人员可以在泄漏初期就介入处理，有效避免了泄漏量的持续累积，从而在早期阶段即消除潜在风险，实现对氢能源设施的有效"止血"。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Item 3: Proactive Defense -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/trace-h2-sub2.webp" alt="预防性巡检主动防御">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>预防性巡检 · 主动防御</h4>
+                                        <p>
+                                            在氢能源行业，安全管理的最高境界是主动防御，将风险消灭在萌芽状态。元芯传感的微量氢气泄漏检测解决方案，是实施预防性巡检的理想工具。我们的便携式PPM级氢气检测设备，可被整合到日常安全巡检流程中，对加氢站、制氢厂、储氢设施、燃料电池应用终端等关键设备的接头、阀门、法兰、焊缝等易泄漏点进行常态化、精细化排查。通过持续的微量泄漏监测与预警，我们能够及时发现并修复潜在的隐患，实现主动安全管理。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1253,37 +1574,26 @@
             </div>
         </section>
 
-        <!-- Application Scenarios -->
-        <section class="scenarios-section">
+        <!-- Design Advantages Section -->
+        <section class="design-advantages-section">
             <div class="vs-container">
-                <h2 class="section-title">应用场景</h2>
-                <div class="scenarios-grid">
-                    <div class="scenario-card">
-                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501031358356196.jpg"
-                            alt="制氢加氢一体站">
-                        <div class="scenario-overlay">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501031358409417.png"
-                                alt="icon">
-                            <h4>制氢加氢⼀体站氢安全防护</h4>
-                        </div>
+                <h2 id="adv-title">解决方案设计优势</h2>
+                <div class="advantages-new-grid" id="adv-grid">
+                    <div class="advantage-new-item">
+                        <h4>零死角覆盖</h4>
+                        <p>点线面结合，消除传统监测盲区，全面提升制、储、运、加、用各环节的安全防护等级。</p>
                     </div>
-                    <div class="scenario-card">
-                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501031359065469.jpg"
-                            alt="大型制氢工厂">
-                        <div class="scenario-overlay">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501031359108616.png"
-                                alt="icon">
-                            <h4>⼤型制氢⼯⼚氢安全管理</h4>
-                        </div>
+                    <div class="advantage-new-item">
+                        <h4>高效风险管理</h4>
+                        <p>实时数据采集与全流程数字化追溯，支持科学预警决策，大幅提升企业安全管理效能。</p>
                     </div>
-                    <div class="scenario-card">
-                        <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501031359316478.jpg"
-                            alt="可再生能源制氢">
-                        <div class="scenario-overlay">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501031359361227.png"
-                                alt="icon">
-                            <h4>可再⽣能源制氢系统安全防护</h4>
-                        </div>
+                    <div class="advantage-new-item">
+                        <h4>极速应急响应</h4>
+                        <p>通过智能传感物联，实现系统自动切断、联动排风等秒级风险处置，规避重大事故风险。</p>
+                    </div>
+                    <div class="advantage-new-item">
+                        <h4>本质安全提升</h4>
+                        <p>从硬件源头到应用末端，构建主动预防、智慧感知、本质安全的氢能全生命周期防护体系。</p>
                     </div>
                 </div>
             </div>
@@ -1292,26 +1602,58 @@
         <!-- Technology Advantages -->
         <section class="tech-section">
             <div class="vs-container">
-                <h2>基于碳基传感技术优势，全面智能化，打造智慧安全守护方案</h2>
-                <div class="tech-image">
-                    <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501041356470874.jpg"
-                        alt="碳基传感技术">
+                <div class="tech-header">
+                    <h2>基于碳基传感技术优势，全面智能化<span
+                            style="display:block; margin-top:10px; font-weight:300; opacity:0.8; font-size:24px;">打造智慧安全守护方案</span>
+                    </h2>
                 </div>
-                <div class="tech-features">
-                    <div class="tech-feature">安全保障</div>
-                    <div class="tech-feature">快速响应</div>
-                    <div class="tech-feature">远程监控</div>
-                    <div class="tech-feature">智慧高效</div>
+
+                <div class="tech-diagram-container">
+                    <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501041356470874.jpg"
+                        alt="碳基传感技术优势拓扑图">
+                </div>
+
+                <div class="tech-features-grid">
+                    <div class="tf-card">
+                        <div class="tf-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h4>安全保障</h4>
+                        <p>本质安全防爆设计</p>
+                    </div>
+                    <div class="tf-card">
+                        <div class="tf-icon"><i class="fas fa-bolt"></i></div>
+                        <h4>快速响应</h4>
+                        <p>秒级预警联动</p>
+                    </div>
+                    <div class="tf-card">
+                        <div class="tf-icon"><i class="fas fa-globe"></i></div>
+                        <h4>远程监控</h4>
+                        <p>多终端实时互联</p>
+                    </div>
+                    <div class="tf-card">
+                        <div class="tf-icon"><i class="fas fa-brain"></i></div>
+                        <h4>智慧高效</h4>
+                        <p>大数据智能分析</p>
+                    </div>
                 </div>
             </div>
         </section>
 
 
-        <!-- Industry Overview Image -->
-        <section class="industry-image-section" style="padding: 60px 0; background: white;">
-            <div class="vs-container" style="text-align: center;">
-                <img src="../../assets/images/industry_h2.png" alt="氢能源行业概览"
-                    style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+
+
+        <!-- Platform Section -->
+        <section class="platform-section">
+            <div class="vs-container">
+                <div class="platform-container">
+                    <div class="platform-img">
+                        <img src="../../assets/images/iot.jpg" alt="元芯氢能安全管理平台">
+                    </div>
+                    <div class="platform-text">
+                        <h2>元芯氢能安全管理平台</h2>
+                        <p>基于传感器物网联与数字云技术，元芯传感氢安全解决方案可以实现氢气泄漏状态的实时监控，及时向客户推送预警信息，同时通过海量监测数据的智能挖掘分析，构建预警体系和综合预警模型。平台可以实现对氢气制储运加用多场景的安全远程诊断、信息互馈及判识，有效指导现场风险控制。
+                        </p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1384,57 +1726,7 @@
             </div>
         </section>
 
-        <!-- Platform Section -->
-        <section class="platform-section">
-            <div class="vs-container">
-                <div class="platform-container">
-                    <div class="platform-img">
-                        <img src="../../assets/images/iot.jpg" alt="元芯氢能安全管理平台">
-                    </div>
-                    <div class="platform-text">
-                        <h2>元芯氢能安全管理平台</h2>
-                        <p>基于传感器物网联与数字云技术，元芯传感氢安全解决方案可以实现氢气泄漏状态的实时监控，及时向客户推送预警信息，同时通过海量监测数据的智能挖掘分析，构建预警体系和综合预警模型。平台可以实现对氢气制储运加用多场景的安全远程诊断、信息互馈及判识，有效指导现场风险控制。
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Value & Advantages -->
-        <section class="value-section">
-            <div class="vs-container">
-                <h2 class="section-title">价值&优势</h2>
-                <div class="value-grid">
-                    <div class="value-card">
-                        <div class="value-number">01</div>
-                        <h4>全链路数字化集中监控</h4>
-                        <div class="value-icon">
-                            <img src="../../assets/images/jj_i4.png" alt="集中监管">
-                        </div>
-                        <p>整合制氢、储运、加注全产业链传感器数据，建立统一的氢安全资产画像。通过可视化大屏实现物理空间与数字空间的同步映射，确保每一处风险点位皆在掌控之中，实现从“被动响应”向“预警驱动”的跨越。
-                        </p>
-                    </div>
-                    <div class="value-card">
-                        <div class="value-number">02</div>
-                        <h4>多维立体化应急联动</h4>
-                        <div class="value-icon">
-                            <img src="../../assets/images/jj_i5.png" alt="多级联动">
-                        </div>
-                        <p>打破传感器、云平台与现场作业人员的通信壁垒。一旦触发预警阈值，系统即刻开启秒级响应机制：自动切断气源、启动强制排风、并在毫秒级推送预警至移动端，构建“人-机-物”环环相扣的安全闭环防护网。
-                        </p>
-                    </div>
-                    <div class="value-card">
-                        <div class="value-number">03</div>
-                        <h4>高兼容性与柔性扩展</h4>
-                        <div class="value-icon">
-                            <img src="../../assets/images/jj_i6.png" alt="易于扩展">
-                        </div>
-                        <p>采用先进的架构与标准化接口设计，支持NB-IoT、4G、LoRa等多种通信方式无缝接入。系统具备极强的水平扩展能力，可支持数万个点位并发接入，并可无缝集成至企业现有的ERP、EHS或MES系统。
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
 
 
     </main>
@@ -1501,11 +1793,74 @@
             if (panel) panel.classList.add('active');
         }
 
+        const advData = [
+            { // 0: Default
+                title: "解决方案设计优势",
+                items: [
+                    { t: "零死角覆盖", d: "点线面结合，消除传统监测盲区，全面提升制、储、运、加、用各环节的安全防护等级。" },
+                    { t: "高效风险管理", d: "实时数据采集与全流程数字化追溯，支持科学预警决策，大幅提升企业安全管理效能。" },
+                    { t: "极速应急响应", d: "通过智能传感物联，实现系统自动切断、联动排风等秒级风险处置，规避重大事故风险。" },
+                    { t: "本质安全提升", d: "从硬件源头到应用末端，构建主动预防、智慧感知、本质安全的氢能全生命周期防护体系。" }
+                ]
+            },
+            { // 1: Hydrogen Station
+                title: "解决方案设计优势",
+                items: [
+                    { t: "“站-车”协同联动", d: "实现加氢站与车载系统的氢安全一体化管理" },
+                    { t: "多层级防护体系", d: "固定设施与移动终端共同构建全方位安全屏障" },
+                    { t: "实时预警与应急", d: "快速响应氢气异常，有效预防和控制风险" },
+                    { t: "提升运营信心", d: "为加氢站运营商和燃料电池车用户提供高水平安全保障" }
+                ]
+            },
+            { // 2: Lab
+                title: "解决方案设计优势",
+                items: [
+                    { t: "零死角覆盖", d: "点线面结合，消除传统监测盲区，全面提升安全等级" },
+                    { t: "高效风险管理", d: "实时数据与全流程追溯，支持科学决策与管理优化" },
+                    { t: "极速应急响应", d: "智能联动系统，实现自动化、秒级风险处置" },
+                    { t: "本质安全提升", d: "从源头到末端，构建主动预防的本质安全实验环境" }
+                ]
+            },
+            { // 3: City Pipeline
+                title: "解决方案设计优势",
+                items: [
+                    { t: "城市级覆盖", d: "实现从输氢管网到家庭用氢的全链条安全监测与管理" },
+                    { t: "数据驱动决策", d: "精准计量与智慧物联提供可靠数据，优化运营与调度" },
+                    { t: "主动安全防护", d: "实时预警与智能联动，将潜在风险扼杀在萌芽状态" },
+                    { t: "降低运营成本", d: "预测性维护减少非计划停机，提升管网运营效率" }
+                ]
+            },
+            { // 4: Trace Detection
+                title: "解决方案设计优势",
+                items: [
+                    { t: "PPM级超高灵敏度", d: "能够发现极其微小的氢气泄漏，实现防微杜渐" },
+                    { t: "精准定位", d: "外科手术级寻源能力，快速锁定泄漏点，提高维护效率" },
+                    { t: "快速响应", d: "秒级监测，第一时间发现泄漏，防止风险扩大" },
+                    { t: "主动安全", d: "支持预防性巡检，将潜在威胁消灭在早期阶段" }
+                ]
+            }
+        ];
+
         function switchSolutionTab(index, btn) {
             document.querySelectorAll('.solution-tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             document.querySelectorAll('.solution-panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.solution-panel')[index].classList.add('active');
+
+            // Update Advantages Section
+            const data = advData[index] || advData[0];
+            const titleEl = document.getElementById('adv-title');
+            if (titleEl) titleEl.textContent = data.title;
+
+            const gridEl = document.getElementById('adv-grid');
+            if (gridEl) {
+                gridEl.innerHTML = data.items.map(item => `
+                    <div class="advantage-new-item">
+                        <h4>${item.t}</h4>
+                        <p>${item.d}</p>
+                    </div>
+                `).join('');
+            }
         }
     </script>
 
