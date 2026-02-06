@@ -3,6 +3,7 @@
 
     var ROOT_ID = 'mc-nav-root';
     var PROFILE_ATTR = 'data-nav-profile';
+    var NAV_CSS_ID = 'mc-nav-component-css';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -34,6 +35,15 @@
             }
             return res.text();
         });
+    }
+
+    function ensureNavStylesheet() {
+        if (document.getElementById(NAV_CSS_ID)) return;
+        var link = document.createElement('link');
+        link.id = NAV_CSS_ID;
+        link.rel = 'stylesheet';
+        link.href = '/assets/css/nav-component.css';
+        document.head.appendChild(link);
     }
 
     function injectPartial(root, profile) {
@@ -252,6 +262,7 @@
         var root = getRoot();
         if (!root) return;
         var profile = getProfile(root);
+        ensureNavStylesheet();
         ensureNoScriptFallback(root, profile);
 
         injectPartial(root, profile)
