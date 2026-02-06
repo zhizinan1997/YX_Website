@@ -301,6 +301,95 @@
             color: #555;
         }
 
+        /* Multi-image Solution Panel Layout */
+        .solution-panel-gallery {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .solution-gallery-main {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .solution-gallery-main img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+
+        .solution-gallery-main:hover img {
+            transform: scale(1.02);
+        }
+
+        .solution-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .solution-gallery-item {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: relative;
+            aspect-ratio: 4/3;
+        }
+
+        .solution-gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+
+        .solution-gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .solution-gallery-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 55, 100, 0.3) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .solution-gallery-item:hover::after {
+            opacity: 1;
+        }
+
+        .solution-panel-features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .solution-feature-tag {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #003764 100%);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0, 55, 100, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .solution-feature-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 55, 100, 0.3);
+        }
+
         /* Application Scenarios Grid */
         .scenarios-section {
             padding: 80px 0;
@@ -917,37 +1006,38 @@
 
             <div style="display: flex; gap: 24px; color: white; align-items: center;">
                 <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
-                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
+                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a
+                    href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
             </div>
         </div>
         <script>
-        function showPanel(panelId, tab) {
-            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + panelId).classList.add('active');
-        }
-        function showPanelContact(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-contact-' + panelId).classList.add('active');
-        }
-        function showPanelSolutions(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-solutions-' + panelId).classList.add('active');
-        }
-        function showPanelCases(panelId, tab) {
-            const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-cases-' + panelId).classList.add('active');
-        }
+            function showPanel(panelId, tab) {
+                document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + panelId).classList.add('active');
+            }
+            function showPanelContact(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-contact-' + panelId).classList.add('active');
+            }
+            function showPanelSolutions(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-solutions-' + panelId).classList.add('active');
+            }
+            function showPanelCases(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-cases-' + panelId).classList.add('active');
+            }
         </script>
     </header>
 
@@ -996,68 +1086,166 @@
                 <div class="solution-tabs-container">
                     <div class="solution-tabs-nav">
                         <button class="solution-tab-btn active"
-                            onclick="switchSolutionTab(0, this)">元芯传感制氢站安全解决方案</button>
-                        <button class="solution-tab-btn" onclick="switchSolutionTab(1, this)">元芯传感加氢站安全解决方案</button>
-                        <button class="solution-tab-btn" onclick="switchSolutionTab(2, this)">元芯传感氢燃料汽车解决方案</button>
-                        <button class="solution-tab-btn" onclick="switchSolutionTab(3, this)">输氢管网与家庭用氢</button>
-                        <button class="solution-tab-btn" onclick="switchSolutionTab(4, this)">微量氢气检测</button>
+                            onclick="switchSolutionTab(0, this)">电解水制氢过程在线分析与泄漏监测解决方案</button>
+                        <button class="solution-tab-btn"
+                            onclick="switchSolutionTab(1, this)">加氢站与燃料电池车氢监测协同安全解决方案</button>
+                        <button class="solution-tab-btn"
+                            onclick="switchSolutionTab(2, this)">涉氢实验室多维度气体泄漏立体监测系统</button>
+                        <button class="solution-tab-btn"
+                            onclick="switchSolutionTab(3, this)">城市能源输氢管网与用氢家庭安全解决方案</button>
+                        <button class="solution-tab-btn" onclick="switchSolutionTab(4, this)">微量氢气泄漏检测解决方案</button>
                     </div>
                     <div class="solution-tabs-content">
-                        <!-- Panel 1: 制氢站 -->
+                        <!-- Panel 1: 电解水制氢 -->
                         <div class="solution-panel active">
-                            <div class="solution-panel-img">
-                                <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501040909076939.jpg"
-                                    alt="制氢站安全解决方案">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/electrolysis-h2-workers.jpg"
+                                        alt="电解水制氢设备安装与调试现场">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/electrolysis-h2-tank.jpg"
+                                            alt="氧气氢气分离储罐">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/electrolysis-h2-equipment.png"
+                                            alt="大型电解槽设备">
+                                    </div>
+                                </div>
                             </div>
                             <div class="solution-panel-text">
-                                <h3>元芯传感制氢站安全解决方案</h3>
-                                <p>基于元芯传感领先全球的碳基芯片自主可控技术，为客户提供电解水制氢、天然气制/掺氢、氨裂解制氢、甲醇重整制氢、输氢管道、撬装站、涉氢实验室等制氢场景下的氢气浓度检测、系统定制开发、技术支持与服务。
+                                <h3>电解水制氢过程在线分析与泄漏监测解决方案</h3>
+                                <p>基于元芯传感领先全球的碳基芯片自主可控技术，为电解水制氢工艺全流程提供在线氢气浓度分析与泄漏监测服务。方案覆盖碱性电解槽、PEM电解槽、固体氧化物电解槽等多种制氢设备，实现制氢效率实时监测、氢气纯度在线分析、设备密封性检测及厂区泄漏预警，为绿氢生产提供智能化安全保障。
                                 </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">碱性电解槽监测</span>
+                                    <span class="solution-feature-tag">PEM电解槽监测</span>
+                                    <span class="solution-feature-tag">氢气纯度分析</span>
+                                    <span class="solution-feature-tag">设备密封检测</span>
+                                    <span class="solution-feature-tag">厂区泄漏预警</span>
+                                </div>
                             </div>
                         </div>
-                        <!-- Panel 2: 加氢站 -->
+                        <!-- Panel 2: 加氢站与燃料电池车 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-img">
-                                <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501040914496601.jpg"
-                                    alt="加氢站安全解决方案">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/hydrogen-station-overview.webp"
+                                        alt="中国石化氢能加氢站">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/hydrogen-vehicle-detection.jpg"
+                                            alt="氢燃料卡车储氢系统检测">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/hydrogen-truck-fleet.png"
+                                            alt="氢燃料电池重卡车队">
+                                    </div>
+                                </div>
                             </div>
                             <div class="solution-panel-text">
-                                <h3>元芯传感加氢站安全解决方案</h3>
-                                <p>基于元芯传感领先全球的碳基芯片⾃主可控技术，为客户提供加氢站、卸气柱、氢燃料电池汽车及系统测试台架、热电联供、氢气气瓶间等场景下的氢气浓度检测、系统定制开发、技术支持与服务。
+                                <h3>加氢站与燃料电池车氢监测协同安全解决方案</h3>
+                                <p>针对加氢站与氢燃料电池车辆的协同安全需求，元芯传感提供站-车一体化氢安全监测方案。方案涵盖加氢机、储氢罐区、加氢枪头、车载储氢系统及燃料电池堆等关键节点，实现加氢过程实时监控、车辆氢泄漏预警、站内安全联锁控制，构建从加注到行驶的全链条氢安全防护体系。
                                 </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">加氢站安全监测</span>
+                                    <span class="solution-feature-tag">车载储氢检测</span>
+                                    <span class="solution-feature-tag">燃料电池堆监控</span>
+                                    <span class="solution-feature-tag">站-车协同联锁</span>
+                                    <span class="solution-feature-tag">加氢过程实时监控</span>
+                                </div>
                             </div>
                         </div>
-                        <!-- Panel 3: 氢燃料汽车 -->
+                        <!-- Panel 3: 涉氢实验室 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-img">
-                                <img src="../../assets/images/h2car.png" alt="氢燃料汽车解决方案">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/hydrogen-lab-monitoring-main.png"
+                                        alt="涉氢实验室多维度立体监测系统全景">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub1.jpg"
+                                            alt="分布式传感探测终端">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub2.jpg"
+                                            alt="系统运行监测界面">
+                                    </div>
+                                </div>
                             </div>
                             <div class="solution-panel-text">
-                                <h3>元芯传感氢燃料汽车解决方案</h3>
-                                <p>基于元芯传感领先全球的碳基芯片自主可控技术，为氢燃料电池商用车、乘用车提供车规级氢气传感器及安全监测模组。系统可实时监测燃料电池系统及储氢系统的氢气泄漏，并 with
-                                    与整车控制器（VCU）进行高速数据通信，实现从毫秒级响应到多级安全预警，确保氢能车辆在各种严苛工况下的本质安全。</p>
+                                <h3>涉氢实验室多维度气体泄漏立体监测系统</h3>
+                                <p>针对科研院所、高校涉氢实验室及氢能测试中心的特殊安全需求，元芯传感推出多维度立体监测系统。系统采用分布式传感器网络，覆盖实验台面、通风橱、气瓶间、管道接口等多层级空间，实现氢气浓度三维分布可视化、泄漏点精准定位、智能通风联动控制，为涉氢科研工作提供本质安全保障。
+                                </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">分布式监测网络</span>
+                                    <span class="solution-feature-tag">三维浓度可视化</span>
+                                    <span class="solution-feature-tag">智能通风联动</span>
+                                    <span class="solution-feature-tag">毫秒级探测响应</span>
+                                    <span class="solution-feature-tag">本质安全保障</span>
+                                </div>
                             </div>
                         </div>
-                        <!-- Panel 4: 输氢管网与家庭用氢 -->
+                        <!-- Panel 4: 城市能源输氢管网与用氢家庭 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-img">
-                                <img src="../../assets/images/pipe.png" alt="输氢管网与家庭用氢">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/city-hydrogen-main.png" alt="城市能源输氢管网监控中心">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/city-hydrogen-sub1.jpg"
+                                            alt="输氢管道压力与泄漏监测">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/city-hydrogen-sub2.png"
+                                            alt="家庭用氢终端安全守护">
+                                    </div>
+                                </div>
                             </div>
                             <div class="solution-panel-text">
-                                <h3>元芯传感输氢管网与家庭用氢安全解决方案</h3>
-                                <p>随着“氢进万家”示范工程的推进，针对长输氢气管道、城镇燃气掺氢管网及终端家庭用氢环境，元芯传感提供全生命周期的氢安全监测方案。系统利用高灵敏度碳基传感技术，可精准识别管网微量泄漏并实时定位，在家庭用氢终端提供毫秒级的自研探测反馈，彻底解决氢能进入民用领域后的“最后一百米”安全痛点，守护千家万户的用能安全。
+                                <h3>城市能源输氢管网与用氢家庭安全解决方案</h3>
+                                <p>随着"氢进万家"示范工程的推进，元芯传感为城市氢能输配系统提供全链条安全监测方案。方案覆盖长输氢气管道、城市中压管网、小区调压站、入户支管及终端用氢设备，利用高灵敏度碳基传感技术实现管网微量泄漏精准识别与实时定位，为家庭用氢终端提供毫秒级探测响应，守护千家万户的用能安全。
                                 </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">长输管道监测</span>
+                                    <span class="solution-feature-tag">微量泄漏定位</span>
+                                    <span class="solution-feature-tag">调压站安全管控</span>
+                                    <span class="solution-feature-tag">家端毫秒级响应</span>
+                                    <span class="solution-feature-tag">全链条数字化</span>
+                                </div>
                             </div>
                         </div>
-                        <!-- Panel 5: 微量氢气检测 -->
+                        <!-- Panel 5: 微量氢气泄漏检测 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-img">
-                                <img src="../../assets/images/weiliang.png" alt="微量氢气检测">
+                            <div class="solution-panel-gallery">
+                                <div class="solution-gallery-main">
+                                    <img src="../../assets/images/solutions/trace-h2-main.png" alt="微量氢气分析与精密检测">
+                                </div>
+                                <div class="solution-gallery-grid">
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/trace-h2-sub1.jpg" alt="半导体工业精密监测">
+                                    </div>
+                                    <div class="solution-gallery-item">
+                                        <img src="../../assets/images/solutions/trace-h2-sub2.webp"
+                                            alt="油中溶解气体分析 (DGA)">
+                                    </div>
+                                </div>
                             </div>
                             <div class="solution-panel-text">
-                                <h3>元芯传感微量氢气检测解决方案</h3>
-                                <p>针对半导体工业、电力变压器油中溶解气体分析（DGA）以及精密实验室科研等对氢气监测灵敏度有极致要求的领域，元芯传感推出了微量级氢气探测方案。依托自研碳基传感芯片，该方案可实现最低1ppm级别的极低浓度捕捉，具有极佳的零点稳定性和抗交叉气体干扰能力。其高精度的实时反馈，为精密制造与大型电力资产的本质安全提供了坚实的底层数据支撑。
+                                <h3>微量氢气泄漏检测解决方案</h3>
+                                <p>针对半导体工业、电力变压器油中溶解气体分析（DGA）、精密制造及科研实验等对氢气监测灵敏度有极致要求的领域，元芯传感推出微量级氢气泄漏探测方案。依托自研碳基传感芯片，方案可实现最低1ppm级别的超低浓度捕捉，具有极佳的零点稳定性和抗交叉气体干扰能力，其高精度实时反馈为精密设备与大型电力资产的本质安全提供坚实的底层数据支撑。
                                 </p>
+                                <div class="solution-panel-features">
+                                    <span class="solution-feature-tag">1ppm极低检测限</span>
+                                    <span class="solution-feature-tag">零点长期稳定性</span>
+                                    <span class="solution-feature-tag">抗复杂气体干扰</span>
+                                    <span class="solution-feature-tag">半导体级精度</span>
+                                    <span class="solution-feature-tag">电力资产保护</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1432,55 +1620,55 @@
         });
     </script>
 
-<!-- FOOTER_START -->
-  <footer class="vs-footer-new">
-    <div class="vs-container">
-      <div class="vs-footer-new__main">
-        <div class="vs-footer-new__brand">
-          <a href="index.html" class="logo-link">
-            <img src="assets/images/logo.png" alt="Metachip Logo" />
-            METACHIP
-          </a>
-          <div class="tagline">湖南元芯传感科技有限责任公司</div>
-          <div class="address">
-            <div class="address-item">公司总部</div>
-            <div class="address-item">湖南省湘潭市高新区</div>
-            <div class="address-item">双马街道书院路 38 号</div>
-          </div>
-        </div>
+    <!-- FOOTER_START -->
+    <footer class="vs-footer-new">
+        <div class="vs-container">
+            <div class="vs-footer-new__main">
+                <div class="vs-footer-new__brand">
+                    <a href="index.html" class="logo-link">
+                        <img src="assets/images/logo.png" alt="Metachip Logo" />
+                        METACHIP
+                    </a>
+                    <div class="tagline">湖南元芯传感科技有限责任公司</div>
+                    <div class="address">
+                        <div class="address-item">公司总部</div>
+                        <div class="address-item">湖南省湘潭市高新区</div>
+                        <div class="address-item">双马街道书院路 38 号</div>
+                    </div>
+                </div>
 
-        <div class="vs-footer-new__certs">
-          <div class="vs-footer-new__cert vs-footer-new__cert--diamond">
-            <span>FM<br>APPROVED</span>
-          </div>
-          <div class="vs-footer-new__cert vs-footer-new__cert--circle">
-            GLOBAL<br>INTERTEK
-          </div>
-        </div>
+                <div class="vs-footer-new__certs">
+                    <div class="vs-footer-new__cert vs-footer-new__cert--diamond">
+                        <span>FM<br>APPROVED</span>
+                    </div>
+                    <div class="vs-footer-new__cert vs-footer-new__cert--circle">
+                        GLOBAL<br>INTERTEK
+                    </div>
+                </div>
 
-        <div class="vs-footer-new__right">
-          <div class="vs-footer-new__social">
-            <a href="#" title="X"><i class="fa-brands fa-x-twitter"></i></a>
-            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-            <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-            <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
-            <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
-          </div>
-          <div class="vs-footer-new__links">
-            <a href="pages/about/policy.html">隐私政策</a>
-            <a href="#">条款与条件</a>
-          </div>
-          <div class="vs-footer-new__copyright">© 2026 湖南元芯传感科技有限责任公司，保留所有权利。</div>
-        </div>
-      </div>
+                <div class="vs-footer-new__right">
+                    <div class="vs-footer-new__social">
+                        <a href="#" title="X"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+                        <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                    <div class="vs-footer-new__links">
+                        <a href="pages/about/policy.html">隐私政策</a>
+                        <a href="#">条款与条件</a>
+                    </div>
+                    <div class="vs-footer-new__copyright">© 2026 湖南元芯传感科技有限责任公司，保留所有权利。</div>
+                </div>
+            </div>
 
-      <!-- Disclaimer -->
-      <div class="vs-footer-new__disclaimer">
-        METACHIP 是湖南元芯传感科技有限责任公司的注册商标。规格如有变更，恕不另行通知。
-      </div>
-    </div>
-  </footer>
-  <!-- FOOTER_END -->
+            <!-- Disclaimer -->
+            <div class="vs-footer-new__disclaimer">
+                METACHIP 是湖南元芯传感科技有限责任公司的注册商标。规格如有变更，恕不另行通知。
+            </div>
+        </div>
+    </footer>
+    <!-- FOOTER_END -->
 
 </body>
 
