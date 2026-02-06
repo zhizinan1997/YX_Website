@@ -185,18 +185,6 @@
             /* Grand height */
         }
 
-        /* Subtle background radial gradient to break flatness */
-        .solutions-hero::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -20%;
-            width: 80%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 60%);
-            pointer-events: none;
-            z-index: 1;
-        }
 
         .solutions-hero__inner {
             display: flex;
@@ -205,8 +193,8 @@
             /* Align text to left naturally */
             width: 100%;
             height: 100%;
-            padding: 0 8%;
-            /* Elegant high-end horizontal padding */
+            padding: 0 4%;
+            /* Moved text closer to left edge */
             max-width: 1800px;
             /* Wide constraint for 4k screens */
             margin: 0 auto;
@@ -223,6 +211,8 @@
             animation: fadeUp 1s ease-out forwards;
             opacity: 0;
             transform: translateY(20px);
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            /* Strong shadow for readability against clear image */
         }
 
         .solutions-hero__wrapper {
@@ -266,32 +256,22 @@
             font-weight: 300;
         }
 
-        /* The Visual Area - Gradient Blended */
+        /* The Visual Area - Full Background */
         .solutions-hero__visual {
             position: absolute;
             top: 0;
-            right: 0;
-            bottom: 0;
-            width: 65%;
-            /* Cover right side */
-            z-index: 2;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
         }
 
         .solutions-hero__visual-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* 
-               The Magic: Mask Image
-               Creates a smooth gradient from transparent (left) to opaque (right).
-               This blends the image seamlessly into the navy background.
-               No hard lines. Pure elegance.
-            */
-            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40%);
-            mask-image: linear-gradient(to right, transparent 0%, black 40%);
-            clip-path: none;
-            /* Remove old clip path */
         }
+
 
         @keyframes fadeUp {
             to {
@@ -489,23 +469,31 @@
 <body>
 
     <div id="mc-nav-root" data-nav-profile="gas"></div>
-<noscript><div class="mc-nav-noscript">
-  <a href="/index.html">首页</a> |
-  <a href="/pages/gassensing/all-products.html">产品</a> |
-  <a href="/pages/solutions/solutions-index.html">解决方案</a> |
-  <a href="/pages/research/index.html">科研服务</a> |
-  <a href="/pages/gassensing/service-cases.html">服务案例</a> |
-  <a href="/pages/about/about.html">公司简介</a> |
-  <a href="/pages/contact/contact.html">联系我们</a>
-</div>
-</noscript>
-<script src="/assets/js/nav-loader.js"></script>
+    <noscript>
+        <div class="mc-nav-noscript">
+            <a href="/index.html">首页</a> |
+            <a href="/pages/gassensing/all-products.html">产品</a> |
+            <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+            <a href="/pages/research/index.html">科研服务</a> |
+            <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+            <a href="/pages/about/about.html">公司简介</a> |
+            <a href="/pages/contact/contact.html">联系我们</a>
+        </div>
+    </noscript>
+    <script src="/assets/js/nav-loader.js"></script>
 
-    
+
 
     <main style="padding-top: 90px;">
         <!-- Hero Section -->
         <section class="solutions-hero">
+            <!-- Background Visual with Overlay -->
+            <div class="solutions-hero__visual">
+                <div class="solutions-hero__visual-img">
+                    <img src="../../assets/images/solutions/solutions-hero-bg-yx.jpg" alt="解决方案概览">
+                </div>
+            </div>
+
             <div class="solutions-hero__inner">
                 <div class="solutions-hero__text">
                     <div class="solutions-hero__wrapper">
@@ -515,12 +503,6 @@
                         <p class="solutions-hero__desc">
                             在元芯，我们设计并交付多种创新的气体监测解决方案，覆盖多个行业。我们帮助数百个组织保持空气质量合规，并通过可靠的实时数据实现项目成功。
                         </p>
-                    </div>
-                </div>
-                <div class="solutions-hero__visual">
-                    <div class="solutions-hero__visual-img">
-                        <img src="../../assets/images/industry-banner.png" alt="解决方案概览"
-                            style="width:100%; height:100%; object-fit:cover;">
                     </div>
                 </div>
             </div>
@@ -603,8 +585,7 @@
                     <!-- 6. Custom Solutions -->
                     <a href="custom-solutions.html" class="solution-card">
                         <div class="solution-card__img">
-                            <img src="https://images.unsplash.com/photo-1581093458791-9f302241d7f1?auto=format&fit=crop&w=800"
-                                alt="定制化解决方案">
+                            <img src="../../assets/images/solutions/custom-solutions-expert.jpg" alt="定制化解决方案">
                         </div>
                         <h3 class="solution-card__title">定制化解决方案</h3>
                         <p class="solution-card__desc">针对特殊应用场景，我们的专家团队为您提供量身定制的气体监测与分析服务。</p>
@@ -632,7 +613,7 @@
         </section>
     </main>
 
-<!-- 全站搜索 -->
+    <!-- 全站搜索 -->
     <script src="../../assets/js/search.js"></script>
 
     <!-- 动态产品菜单（从API自动加载，支持自定义名称和新品标记） -->
@@ -744,18 +725,18 @@
     </script>
 
     <!-- FOOTER_START -->
-  <div id="mc-footer-root"></div>
-  <noscript>
-    <footer class="vs-footer-new">
-      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
-        <a href="/index.html">首页</a> |
-        <a href="/pages/about/policy.html">隐私政策</a> |
-        <a href="/pages/about/terms.html">条款与条件</a>
-      </div>
-    </footer>
-  </noscript>
-  <script src="/assets/js/footer-loader.js"></script>
-  <!-- FOOTER_END -->
+    <div id="mc-footer-root"></div>
+    <noscript>
+        <footer class="vs-footer-new">
+            <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+                <a href="/index.html">首页</a> |
+                <a href="/pages/about/policy.html">隐私政策</a> |
+                <a href="/pages/about/terms.html">条款与条件</a>
+            </div>
+        </footer>
+    </noscript>
+    <script src="/assets/js/footer-loader.js"></script>
+    <!-- FOOTER_END -->
 </body>
 
 </html>
