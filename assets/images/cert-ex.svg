@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Explosion Protection Ex">
+  <rect width="120" height="120" fill="none"/>
+  <polygon points="60,10 103,35 103,85 60,110 17,85 17,35" fill="none" stroke="#ffffff" stroke-width="5"/>
+  <text x="60" y="68" text-anchor="middle" fill="#ffffff" font-size="36" font-weight="700" font-family="Arial, sans-serif">Ex</text>
+</svg>
