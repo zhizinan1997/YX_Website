@@ -523,7 +523,7 @@
                                     产品种类 <i class="fas fa-chevron-right"></i>
                                 </div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
-                                    产品列表 <i class="fas fa-chevron-right"></i>
+                                    全部产品 <i class="fas fa-chevron-right"></i>
                                 </div>
                             </div>
                             <div class="vs-mega-content">
@@ -545,7 +545,7 @@
                                         </div>
                                     </div>
                                     <div class="vs-mega-action">
-                                        <a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a>
+                                        <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i class="fas fa-search"></i></a>
                                     </div>
                                 </div>
 
@@ -579,25 +579,13 @@
                                     <h3>测量对象</h3>
                                     <div class="vs-mega-grid-v2">
                                         <div>
-                                            <ul class="vs-mega-list-v2">
-                                                <li><a href="..\measurement\measurement-hydrogen.html">氢气
-                                                        (H2)</a></li>
-                                                <li><a href="..\measurement\measurement-humidity.html">湿度
-                                                        (RH)</a></li>
-                                                <li><a href="..\measurement\measurement-dissolved-hydrogen.html">溶解氢</a>
-                                                </li>
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
+                                                <li><a href="#">加载中...</a></li>
                                             </ul>
                                         </div>
                                         <div>
-                                            <ul class="vs-mega-list-v2">
-                                                <li><a href="..\measurement\measurement-oil-water.html">油中水含量</a>
-                                                </li>
-                                                <li><a href="..\measurement\measurement-dewpoint.html">露点
-                                                        (Td)</a></li>
-                                                <li><a href="..\measurement\measurement-pressure.html">压力
-                                                        (P)</a>
-                                                </li>
-
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsRight">
+                                                <li><a href="#">加载中...</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -622,7 +610,7 @@
 
                                 <!-- Panel: List -->
                                 <div id="panel-list" class="vs-mega-panel">
-                                    <h3>产品列表</h3>
+                                    <h3>全部产品</h3>
                                     <div class="vs-mega-grid-v2" id="dynamic-product-list">
                                         <!-- 产品由JS动态生成 -->
                                     </div>
@@ -638,42 +626,31 @@
                     </li>
                     <li class="vs-nav__item vs-nav__item--has-mega">
                         <a href="..\solutions\solutions-index.html" class="vs-nav__link">解决方案</a>
-                        <div class="vs-mega-menu vs-mega-menu--contact">
+                        <div class="vs-mega-menu vs-mega-menu--links">
                             <div class="vs-mega-sidebar">
-                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
-                                    行业解决方案 <i class="fas fa-chevron-right"></i>
-                                </div>
-                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
-                                    科研服务 <i class="fas fa-chevron-right"></i>
-                                </div>
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-environment.html">大气环境监测</a>
                             </div>
-                            <div class="vs-mega-content">
-                                <div id="panel-solutions-industry" class="vs-mega-panel active">
-                                    <h3>行业解决方案</h3>
-                                    <div class="vs-mega-grid-v2">
-                                        <ul class="vs-mega-list-v2">
-                                            <li><a href="..\solutions\industry-hydrogen.html">氢能源产业链</a></li>
-                                            <li><a href="..\solutions\industry-power-safety.html">智慧电力安全</a>
-                                            </li>
-                                            <li><a href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
-                                            </li>
-                                            <li><a href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
-                                            </li>
-                                            <li><a href="..\solutions\industry-environment.html">大气环境监测</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div id="panel-solutions-research" class="vs-mega-panel">
-                                    <h3>科研服务</h3>
-                                    <div class="vs-mega-grid-v2">
-                                        <ul class="vs-mega-list-v2">
-                                            <li><a href="..\research\micro-nano.html">传感器微纳加工</a></li>
-                                            <li><a href="..\research\development.html">传感器开发、测试与应用</a></li>
-                                            <li><a href="..\research\cooperation.html">产学研深度合作</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\research\index.html" class="vs-nav__link">科研服务</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar">
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\research\micro-nano.html">传感器微纳加工</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\development.html">传感器开发、测试与应用</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\cooperation.html">产学研深度合作</a>
                             </div>
                         </div>
                     </li>

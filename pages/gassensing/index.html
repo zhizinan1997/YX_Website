@@ -37,7 +37,8 @@
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.25s ease, visibility 0.25s ease;
+            transform: translateY(6px);
+            transition: opacity 0.14s ease-out, transform 0.14s ease-out, visibility 0s linear 0.14s;
             z-index: 999;
             display: flex;
             min-height: 440px;
@@ -48,6 +49,7 @@
             border: 1px solid rgba(0, 0, 0, 0.05);
             margin-top: -2px;
             /* Slight overlap for connectivity */
+            will-change: opacity, transform;
         }
 
         /* Bridge relative to the Nav Item */
@@ -63,9 +65,12 @@
             z-index: -1;
         }
 
-        .vs-nav__item--has-mega:hover .vs-mega-menu {
+        .vs-nav__item--has-mega:hover .vs-mega-menu,
+        .vs-nav__item--has-mega:focus-within .vs-mega-menu {
             opacity: 1;
             visibility: visible;
+            transform: translateY(0);
+            transition-delay: 0s, 0s, 0s;
             pointer-events: auto;
         }
 
@@ -119,7 +124,7 @@
 
         .vs-mega-panel {
             display: none;
-            animation: fadeIn 0.3s ease;
+            animation: fadeIn 0.14s ease-out;
         }
 
         .vs-mega-panel.active {
@@ -249,6 +254,26 @@
         .vs-mega-menu--contact .vs-mega-grid-v2 {
             grid-template-columns: 1fr;
             /* Single column layout for links */
+        }
+
+        /* Link-only mega menu: keep the same sidebar style as other mega menus */
+        .vs-mega-menu--links {
+            width: max-content;
+            min-width: 220px;
+            min-height: auto;
+            display: block;
+        }
+
+        .vs-mega-menu--links .vs-mega-sidebar {
+            width: max-content;
+            min-width: 220px;
+            border-right: none;
+            border-radius: 8px;
+        }
+
+        .vs-mega-tab-link {
+            text-decoration: none;
+            color: #444;
         }
 
         /* H2 Applications (Hero Module) - Redesign */
@@ -984,7 +1009,7 @@
                                     产品种类 <i class="fas fa-chevron-right"></i>
                                 </div>
                                 <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
-                                    产品列表 <i class="fas fa-chevron-right"></i>
+                                    全部产品 <i class="fas fa-chevron-right"></i>
                                 </div>
                             </div>
                             <div class="vs-mega-content">
@@ -1006,7 +1031,7 @@
                                         </div>
                                     </div>
                                     <div class="vs-mega-action">
-                                        <a href="#" class="vs-btn-search">搜索产品 <i class="fas fa-search"></i></a>
+                                        <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i class="fas fa-search"></i></a>
                                     </div>
                                 </div>
 
@@ -1040,25 +1065,13 @@
                                     <h3>测量对象</h3>
                                     <div class="vs-mega-grid-v2">
                                         <div>
-                                            <ul class="vs-mega-list-v2">
-                                                <li><a href="..\measurement\measurement-hydrogen.html">氢气
-                                                        (H2)</a></li>
-                                                <li><a href="..\measurement\measurement-humidity.html">湿度
-                                                        (RH)</a></li>
-                                                <li><a href="..\measurement\measurement-dissolved-hydrogen.html">溶解氢</a>
-                                                </li>
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
+                                                <li><a href="#">加载中...</a></li>
                                             </ul>
                                         </div>
                                         <div>
-                                            <ul class="vs-mega-list-v2">
-                                                <li><a href="..\measurement\measurement-oil-water.html">油中水含量</a>
-                                                </li>
-                                                <li><a href="..\measurement\measurement-dewpoint.html">露点
-                                                        (Td)</a></li>
-                                                <li><a href="..\measurement\measurement-pressure.html">压力
-                                                        (P)</a>
-                                                </li>
-
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsRight">
+                                                <li><a href="#">加载中...</a></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -1083,7 +1096,7 @@
 
                                 <!-- Panel: List -->
                                 <div id="panel-list" class="vs-mega-panel">
-                                    <h3>产品列表</h3>
+                                    <h3>全部产品</h3>
                                     <div class="vs-mega-grid-v2" id="dynamic-product-list">
                                         <!-- 产品由JS动态生成 -->
                                     </div>
@@ -1099,42 +1112,31 @@
                     </li>
                     <li class="vs-nav__item vs-nav__item--has-mega">
                         <a href="..\solutions\solutions-index.html" class="vs-nav__link">解决方案</a>
-                        <div class="vs-mega-menu vs-mega-menu--contact">
+                        <div class="vs-mega-menu vs-mega-menu--links">
                             <div class="vs-mega-sidebar">
-                                <div class="vs-mega-tab active" onmouseover="showPanelSolutions('industry', this)">
-                                    行业解决方案 <i class="fas fa-chevron-right"></i>
-                                </div>
-                                <div class="vs-mega-tab" onmouseover="showPanelSolutions('research', this)">
-                                    科研服务 <i class="fas fa-chevron-right"></i>
-                                </div>
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-environment.html">大气环境监测</a>
                             </div>
-                            <div class="vs-mega-content">
-                                <div id="panel-solutions-industry" class="vs-mega-panel active">
-                                    <h3>行业解决方案</h3>
-                                    <div class="vs-mega-grid-v2">
-                                        <ul class="vs-mega-list-v2">
-                                            <li><a href="..\solutions\industry-hydrogen.html">氢能源产业链</a></li>
-                                            <li><a href="..\solutions\industry-power-safety.html">智慧电力安全</a>
-                                            </li>
-                                            <li><a href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
-                                            </li>
-                                            <li><a href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
-                                            </li>
-                                            <li><a href="..\solutions\industry-environment.html">大气环境监测</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div id="panel-solutions-research" class="vs-mega-panel">
-                                    <h3>科研服务</h3>
-                                    <div class="vs-mega-grid-v2">
-                                        <ul class="vs-mega-list-v2">
-                                            <li><a href="..\research\micro-nano.html">传感器微纳加工</a></li>
-                                            <li><a href="..\research\development.html">传感器开发、测试与应用</a></li>
-                                            <li><a href="..\research\cooperation.html">产学研深度合作</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\research\index.html" class="vs-nav__link">科研服务</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar">
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\research\micro-nano.html">传感器微纳加工</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\development.html">传感器开发、测试与应用</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\cooperation.html">产学研深度合作</a>
                             </div>
                         </div>
                     </li>
@@ -1224,59 +1226,46 @@
                     href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
             </div>
         </div>
-        <script>
-            function showPanel(panelId, tab) {
-                do SelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active')                           tab.classList.add('active');
-                            .querySelectorAll('.vs-mega-panel').forEach                sList.remove('active'));
-                document.getElementById('panel-' + panelI.add('active');
-            } function showPanelContact(panelId, tab) {
-                const menu = tab.closest(nu');
-                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.cl            re            tive'));
-                tab.classList.add('                              menu.querySelectorAll('.vs - me                orEach(p => p.classList.remove('active'));
-                document.getElementById                act - ' + panelId).classList.ad                
-            }
-            function showPanelSolutions(panelId, tab) {
-                u = tab.closest('.vs-mega-menu');
-                menu.querySelectorAll('.vs-me            .f             => t.classList.remove('active'));
-                     ab.classList.add('active');
-                electorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-                ent.getElementById('panel-sol                anelId).classList.add('active');
-            }
-            function showPanelCases(p                 {
-                const menu = tab.closest('.vs-mega-menu');
-                qutora            orEach(t => t.classList.remove('act                            tab.classList.add('active');
-                menu.querySelectorAll('.vs-me                orEach(p => p.classList.remov                ;
-                document.getElementById('panel-cases-' + panelId).classList.add('active');
-            }
-        </script>
     </header>
 
     <script>
         function showPanel(panelId, tab) {
-            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + panelId).classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            const panel = document.getElementById('panel-' + panelId);
+            if (panel) panel.classList.add('active');
         }
         function showPanelContact(panelId, tab) {
             const menu = tab.closest('.vs-mega-menu');
             menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-contact-' + panelId).classList.add('active');
+            const panel = document.getElementById('panel-contact-' + panelId);
+            if (panel) panel.classList.add('active');
         }
         function showPanelSolutions(panelId, tab) {
             const menu = tab.closest('.vs-mega-menu');
             menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+            const panel = document.getElementById('panel-solutions-' + panelId);
+            if (panel) panel.classList.add('active');
         }
         function showPanelCases(panelId, tab) {
             const menu = tab.closest('.vs-mega-menu');
-            menu.querySelectorAll('.vs-mega-tab').fort        ));
-                       active');
-            menu.querySelectorAll('.vs-mega-             p.classList.remove(                document.getEle            s-' + panelId).cl            );
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            const panel = document.getElementById('panel-cases-' + panelId);
+            if (panel) panel.classList.add('active');
+        }
+        function activateLinkTab(tab) {
+            const sidebar = tab.closest('.vs-mega-sidebar');
+            if (!sidebar) return;
+            sidebar.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
         }
     </script>
 
@@ -1587,21 +1576,24 @@
             try {
                 const res = await fetch('/api/recommendations');
                 const data = await res.json();
+                const buildRecommendationLink = (item) => {
+                    const url = (item && item.url) ? String(item.url) : '#';
+                    const name = (item && item.name) ? String(item.name) : '未命名链接';
+                    const external = /^https?:\/\//i.test(url);
+                    const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                    return `<li><a href="${url}"${target}>${name}</a></li>`;
+                };
 
                 // 填充最新发布
                 const latestList = document.getElementById('latestReleasesList');
                 if (latestList && data.latestReleases) {
-                    latestList.innerHTML = data.latestReleases.map(item =>
-                        `<li><a href="${item.url}">${item.name}</a></li>`
-                    ).join('');
+                    latestList.innerHTML = data.latestReleases.map(buildRecommendationLink).join('');
                 }
 
                 // 填充应用领域
                 const appList = document.getElementById('applicationAreasList');
                 if (appList && data.applicationAreas) {
-                    appList.innerHTML = data.applicationAreas.map(item =>
-                        `<li><a href="${item.url}">${item.name}</a></li>`
-                    ).join('');
+                    appList.innerHTML = data.applicationAreas.map(buildRecommendationLink).join('');
                 }
             } catch (e) {
                 console.error('Failed to load recommendations:', e);
@@ -1613,32 +1605,73 @@
     <script>
         document.addEventListener('DOMContentLoaded', async function () {
             try {
-                const res = await fetch('/api/categories');
+                const res = await fetch('/api/products/industry-filters');
                 const data = await res.json();
+                const categories = Array.isArray(data.categories) ? data.categories : [];
 
-                if (data.categories && data.categories.length > 0) {
-                    // 分两列显示
-                    const half = Math.ceil(data.categories.length / 2);
-                    const leftCategories = data.categories.slice(0, half);
-                    const rightCategories = data.categories.slice(half);
+                if (categories.length > 0) {
+                    // 分两列显示（来源：admin -> 氢气产品 -> 领域分类）
+                    const half = Math.ceil(categories.length / 2);
+                    const leftCategories = categories.slice(0, half);
+                    const rightCategories = categories.slice(half);
 
                     const leftList = document.getElementById('categoriesLeft');
                     const rightList = document.getElementById('categoriesRight');
 
                     if (leftList) {
                         leftList.innerHTML = leftCategories.map(cat =>
-                            `<li><a href="${cat.url}">${cat.name}</a></li>`
+                            `<li><a href="all-products.html?filter=${encodeURIComponent(cat.key)}">${cat.name}</a></li>`
                         ).join('');
                     }
 
                     if (rightList) {
                         rightList.innerHTML = rightCategories.map(cat =>
-                            `<li><a href="${cat.url}">${cat.name}</a></li>`
+                            `<li><a href="all-products.html?filter=${encodeURIComponent(cat.key)}">${cat.name}</a></li>`
                         ).join('');
                     }
+                } else {
+                    const leftList = document.getElementById('categoriesLeft');
+                    const rightList = document.getElementById('categoriesRight');
+                    if (leftList) leftList.innerHTML = '<li><a href="all-products.html">全部产品</a></li>';
+                    if (rightList) rightList.innerHTML = '';
                 }
             } catch (e) {
                 console.error('Failed to load categories:', e);
+            }
+        });
+    </script>
+
+    <!-- 动态加载测量对象 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                const res = await fetch('/api/measurement-targets');
+                const data = await res.json();
+                const items = Array.isArray(data.items) ? data.items : [];
+
+                const buildLink = (item) => {
+                    const url = (item && item.url) ? String(item.url) : '#';
+                    const name = (item && item.name) ? String(item.name) : '未命名';
+                    const external = /^https?:\/\//i.test(url);
+                    const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                    return `<li><a href="${url}"${target}>${name}</a></li>`;
+                };
+
+                const half = Math.ceil(items.length / 2);
+                const leftItems = items.slice(0, half);
+                const rightItems = items.slice(half);
+
+                const leftList = document.getElementById('measurementTargetsLeft');
+                const rightList = document.getElementById('measurementTargetsRight');
+
+                if (leftList) {
+                    leftList.innerHTML = leftItems.length ? leftItems.map(buildLink).join('') : '<li><a href="#">暂无数据</a></li>';
+                }
+                if (rightList) {
+                    rightList.innerHTML = rightItems.length ? rightItems.map(buildLink).join('') : '<li><a href="#">暂无数据</a></li>';
+                }
+            } catch (e) {
+                console.error('Failed to load measurement targets:', e);
             }
         });
     </script>

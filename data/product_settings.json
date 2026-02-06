@@ -5,13 +5,21 @@
     "sortOrder": 0,
     "categories": [
       "module"
-    ]
+    ],
+    "industryCategories": [
+      "hydrogen"
+    ],
+    "cardTitle": "油中氢【测试】",
+    "cardSummary": "这是摘要内容【测试】"
   },
   "hum_sniffer": {
     "isNew": true,
     "sortOrder": 1,
     "categories": [
       "module"
+    ],
+    "industryCategories": [
+      "hydrogen"
     ]
   },
   "mcs_iot_platform": {
