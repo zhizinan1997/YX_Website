@@ -331,9 +331,11 @@
             box-shadow: 0 6px 20px rgba(0, 55, 100, 0.3);
         }
 
-        /* Hero Banner V2 */
-        .vs-hero-v2 {
+        /* Hero Banner */
+        .jjfa-hero {
             position: relative;
+            background: linear-gradient(135deg, rgba(0, 55, 100, 0) 0%, rgba(0, 30, 60, 0.4) 100%),
+                url('https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1920') center/cover;
             height: 60vh;
             min-height: 450px;
             display: flex;
@@ -342,59 +344,172 @@
             align-items: center;
             text-align: center;
             color: white;
-            overflow: hidden;
-        }
-
-        .vs-hero-v2__bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-
-        .vs-hero-v2__bg img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: brightness(0.6);
-        }
-
-        .vs-hero-v2__content {
-            z-index: 1;
-            max-width: 800px;
             padding: 0 20px;
         }
 
-        .vs-hero-v2__title {
+        .jjfa-hero h1 {
             font-size: 48px;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
+            line-height: 1.3;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
-        .vs-hero-v2__subtitle {
-            font-size: 20px;
-            opacity: 0.9;
-            line-height: 1.6;
+        .jjfa-hero h1 span {
+            display: block;
+            font-size: 32px;
+            font-weight: 400;
+            opacity: 0.95;
+            margin-top: 10px;
         }
 
-        .vs-hero-v2__breadcrumbs {
+        .jjfa-breadcrumb {
             position: absolute;
             top: 40px;
             left: 5%;
             font-size: 13px;
+            opacity: 0.8;
+            margin-top: 0;
             z-index: 10;
         }
 
-        .vs-hero-v2__breadcrumbs a {
+        .jjfa-breadcrumb a {
             color: white;
             opacity: 0.8;
             text-decoration: none;
         }
 
-        .vs-hero-v2__breadcrumbs span {
-            opacity: 0.8;
+        .jjfa-breadcrumb a:hover {
+            opacity: 1;
+        }
+
+        /* New Sub-solution Grid Layout */
+        .solution-sub-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+            text-align: left;
+        }
+
+        .solution-sub-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .solution-sub-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 55, 100, 0.12);
+            border-color: rgba(0, 55, 100, 0.1);
+        }
+
+        .sub-card-img {
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sub-card-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .solution-sub-card:hover .sub-card-img img {
+            transform: scale(1.08);
+        }
+
+        .sub-card-content {
+            padding: 28px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sub-card-content h4 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .sub-card-content p {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+            line-height: 1.7;
+            flex: 1;
+        }
+
+        /* Design Advantages Section - Industry Power Safety Style */
+        .design-advantages-section {
+            background-color: var(--color-primary-dark, #002848);
+            color: white;
+            padding: 100px 0;
+            text-align: left;
+        }
+
+        .design-advantages-section h2 {
+            font-size: 32px;
+            margin-bottom: 80px;
+            font-weight: 500;
+            color: white;
+            opacity: 1;
+        }
+
+        .advantages-new-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 50px;
+        }
+
+        .advantage-new-item {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .advantage-new-item h4 {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        .advantage-new-item p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+            margin: 0;
+        }
+
+        @media (max-width: 1200px) {
+            .advantages-new-grid {
+                gap: 30px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .advantages-new-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .advantages-new-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
     <!-- Site Search -->
@@ -419,86 +534,385 @@
 
     
 
-    <main style="padding-top: 90px;">
-        <section class="vs-hero-v2">
-            <div class="vs-hero-v2__bg">
-                <img src="https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1920"
-                    alt="Leak Detection">
-            </div>
-            <div class="vs-hero-v2__breadcrumbs">
-                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>工业检漏监测</span>
-            </div>
-            <div class="vs-hero-v2__content">
-                <h1 class="vs-hero-v2__title">工业检漏监测</h1>
-                <p class="vs-hero-v2__subtitle">高性能示踪气体检漏方案，为动力电池、真空工艺提供微米级密封验证。</p>
-            </div>
-        </section>
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;"><a href="..\..\index.html" class="vs-logo"><img
+                        src="..\..\assets\images\logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">METACHIP </a></div>
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega"><a href="all-products.html"
+                            class="vs-nav__link">产品</a>
+                        < !-- Compact Inficon Style Mega Menu -->
+                            <div class="vs-mega-menu">
+                                <div class="vs-mega-sidebar">
+                                    <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">新品推荐 <i
+                                            class="fas fa-chevron-right"></i></div>
+                                    <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">行业分类 <i
+                                            class="fas fa-chevron-right"></i></div>
+                                    <div class="vs-mega-tab" onmouseover="showPanel('target', this)">测量对象 <i
+                                            class="fas fa-chevron-right"></i></div>
+                                    <div class="vs-mega-tab" onmouseover="showPanel('type', this)">产品种类 <i
+                                            class="fas fa-chevron-right"></i></div>
+                                    <div class="vs-mega-tab" onmouseover="showPanel('list', this)">全部产品 <i
+                                            class="fas fa-chevron-right"></i></div>
+                                </div>
+                                <div class="vs-mega-content">
+                                    < !-- Panel: New -->
+                                        <div id="panel-new" class="vs-mega-panel active">
+                                            <h3>新品推荐</h3>
+                                            <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                                <div><span class="vs-mega-sublist-title">最新发布</span>
+                                                    <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                        <li><a href="#">加载中...</a></li>
+                                                    </ul>
+                                                </div>
+                                                <div><span class="vs-mega-sublist-title">应用领域</span>
+                                                    <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                        <li><a href="#">加载中...</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            <div class="vs-mega-action"><a href="#"
+                                                    class="vs-btn-search vs-search-trigger">搜索产品 <i
+                                                        class="fas fa-search"></i></a></div>
+                                        </div>
+                                        < !-- Panel: Industry -->
+                                            <div id="panel-industry" class="vs-mega-panel">
+                                                <h3>行业分类</h3>
+                                                <div class="vs-mega-grid-v2">
+                                                    <div>
+                                                        <ul class="vs-mega-list-v2">
+                                                            <li><a href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
+                                                            </li>
+                                                            <li><a
+                                                                    href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                                            </li>
+                                                            <li><a
+                                                                    href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <ul class="vs-mega-list-v2">
+                                                            <li><a
+                                                                    href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                                            </li>
+                                                            <li><a
+                                                                    href="..\solutions\industry-environment.html">大气环境监测</a>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            < !-- Panel: Target -->
+                                                <div id="panel-target" class="vs-mega-panel">
+                                                    <h3>测量对象</h3>
+                                                    <div class="vs-mega-grid-v2">
+                                                        <div>
+                                                            <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
+                                                                <li><a href="#">加载中...</a></li>
+                                                            </ul>
+                                                        </div>
+                                                        <div>
+                                                            <ul class="vs-mega-list-v2" id="measurementTargetsRight">
+                                                                <li><a href="#">加载中...</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                < !-- Panel: Type -->
+                                                    <div id="panel-type" class="vs-mega-panel">
+                                                        <h3>产品种类</h3>
+                                                        <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                                            <div>
+                                                                <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                                    <li><a href="#">加载中...</a></li>
+                                                                </ul>
+                                                            </div>
+                                                            <div>
+                                                                <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                                    <li><a href="#">加载中...</a></li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    < !-- Panel: List -->
+                                                        <div id="panel-list" class="vs-mega-panel">
+                                                            <h3>全部产品</h3>
+                                                            <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                                                < !-- 产品由JS动态生成 -->
+                                                            </div>
+                                                            <div style="margin-top: 20px;"><a href="all-products.html"
+                                                                    class="vs-mega-view-all"
+                                                                    style="color: var(--color-primary); font-weight: 600;">查看所有产品
+                                                                    <i class="fas fa-arrow-right"
+                                                                        style="margin-left: 6px; font-size: 12px;"></i></a>
+                                                            </div>
+                                                        </div>
+                                </div>
+                            </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega"><a href="..\solutions\solutions-index.html"
+                            class="vs-nav__link">解决方案</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar"><a class="vs-mega-tab vs-mega-tab-link active"
+                                    onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-hydrogen.html">氢能源产业链</a><a
+                                    class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-power-safety.html">智慧电力安全</a><a
+                                    class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-leak-detection.html">工业检漏监测</a><a
+                                    class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-energy-storage.html">绿色能源存储</a><a
+                                    class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-environment.html">大气环境监测</a></div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega"><a href="..\research\index.html"
+                            class="vs-nav__link">科研服务</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar"><a class="vs-mega-tab vs-mega-tab-link active"
+                                    onmouseover="activateLinkTab(this)" href="..\research\micro-nano.html">传感器微纳加工</a><a
+                                    class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\development.html">传感器开发、测试与应用</a><a
+                                    class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\cooperation.html">产学研深度合作</a></div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega"><a href="service-cases.html"
+                            class="vs-nav__link">服务案例</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">精选案例 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">所有案例 <i
+                                        class="fas fa-chevron-right"></i></div>
+                            </div>
+                            <div class="vs-mega-content">
+                                < !-- Panel: Featured -->
+                                    <div id="panel-cases-featured" class="vs-mega-panel active">
+                                        <h3>精选案例</h3>
+                                        <div class="vs-mega-grid-v2">
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="cases\case-1-truck.html">氢能重卡氢气检测</a></li>
+                                                <li><a href="cases\case-6-train.html">氢能源列车检测</a></li>
+                                                <li><a href="cases\case-4-pipeline-safety.html">输氢管道人员安全</a></li>
+                                                <li><a href="cases\case-12-gas-system.html">科研实验室配气</a></li>
+                                                <li><a href="cases\case-13-diesel-engine.html">柴油机真空检漏</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    < !-- Panel: All -->
+                                        <div id="panel-cases-all" class="vs-mega-panel">
+                                            <h3>更多案例</h3>
+                                            <p style="margin-bottom:20px; color:#666; font-size:14px;">浏览我们在各个行业的成功应用案例。
+                                            </p><a href="service-cases.html" class="vs-mega-view-all"
+                                                style="color: var(--color-primary); font-weight: 600;">查看全部案例 <i
+                                                    class="fas fa-arrow-right"
+                                                    style="margin-left: 6px; font-size: 12px;"></i></a>
+                                        </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="..\about\about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">线上店铺</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega"><a href="..\contact\contact.html"
+                            class="vs-nav__link">联系我们</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">加入我们 <i
+                                        class="fas fa-chevron-right"></i></div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">联系方式 <i
+                                        class="fas fa-chevron-right"></i></div>
+                            </div>
+                            <div class="vs-mega-content">
+                                < !-- Panel: Join -->
+                                    <div id="panel-contact-join" class="vs-mega-panel active">
+                                        <h3>加入我们</h3>
+                                        <div class="vs-mega-grid-v2">
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="..\careers\partners.html">合作招募</a></li>
+                                                <li><a href="..\careers\growth.html">成长空间</a></li>
+                                                <li><a href="..\careers\talent.html">人才理念</a></li>
+                                                <li><a href="..\careers\jobs.html">在线招聘</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    < !-- Panel: Contact -->
+                                        <div id="panel-contact-contact" class="vs-mega-panel">
+                                            <h3>联系方式</h3>
+                                            <div class="vs-mega-grid-v2">
+                                                <ul class="vs-mega-list-v2">
+                                                    <li><a href="..\contact\contact.html">联系我们</a></li>
+                                                    <li><a href="..\contact\feedback.html">在线留言</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+            <div style="display: flex; gap: 24px; color: white; align-items: center;"><a href="#"
+                    class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a><span
+                    style="font-size: 14px; font-weight: 700; color:white;">CN</span>/ <a
+                    href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a></div>
+        </div>
+        <script>function showPanel(panelId, tab) {
+                document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + panelId).classList.add('active');
+            }
 
+            function showPanelContact(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-contact-' + panelId).classList.add('active');
+            }
+
+            function showPanelSolutions(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-solutions-' + panelId).classList.add('active');
+            }
+
+            function showPanelCases(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-cases-' + panelId).classList.add('active');
+            }
+
+        </script>
+    </header>
+    <main style="padding-top: 90px;">
+        <section class="jjfa-hero">
+            <h1>工业检漏监测<span>微米级密封验证，保障设备完整性</span></h1>
+            <p class="jjfa-breadcrumb"><a href="../../index.html">首页</a>- <a href="solutions-index.html">行业解决方案</a>-
+                <span>工业检漏监测</span>
+            </p>
+        </section>
         <section class="solution-tabs-section">
             <div class="vs-container">
                 <div class="solution-tabs-container">
-                    <div class="solution-tabs-nav">
-                        <button class="solution-tab-btn active"
-                            onclick="switchSolutionTab(0, this)">管道容器通用检漏解决方案</button>
-                        <button class="solution-tab-btn" onclick="switchSolutionTab(1, this)">冷媒行业检漏解决方案</button>
-                    </div>
+                    <div class="solution-tabs-nav"><button class="solution-tab-btn active"
+                            onclick="switchSolutionTab(0, this)">管道容器通用检漏解决方案</button><button class="solution-tab-btn"
+                            onclick="switchSolutionTab(1, this)">冷媒行业检漏解决方案</button></div>
                     <div class="solution-tabs-content">
                         <!-- Panel 1: 管道容器通用检漏 -->
                         <div class="solution-panel active">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/leak-general-main.png" alt="工业管道与容器高精度检漏系统">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-general-sub1.jpg" alt="大型工业储罐检漏现场">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-general-sub2.jpg"
-                                            alt="便携式高灵敏度检测终端">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>管道容器通用检漏解决方案</h3>
-                                <p>针对各类工业管道、储罐及密封容器，元芯传感提供基于示踪气体的高精度检漏方案。利用高灵敏度碳基传感器技术，系统能精准捕捉微米级的泄漏点，并实现泄漏速率的量化分析，为电力、石油、化工等行业的设备完整性提供可靠验证。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    管道容器通用检漏解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    在工业生产的各个环节，从汽车制造到制冷系统，从航空航天到日常消费品，管道和容器的密封性是产品质量、安全生产和环境合规的关键。传统的检漏方法往往面临两难选择：气泡检测虽然成本低廉，但精度和效率低下；而氦质谱检测虽精度极高，但设备昂贵、运营成本高，令许多企业望而却步。元芯传感深耕先进传感技术，针对这一行业痛点，创新推出“管道容器通用检漏解决方案”。我们巧妙利用氢气分子量小、活跃度高的特性，结合高灵敏、高精度的氢传感技术，以安全、绿色、经济的氢氮混合气（95%氮气与5%氢气）作为示踪剂，实现对各类管道容器的精准、高效检漏，彻底解决工业检漏领域精度与成本之间的矛盾，大幅提升企业的检测水平。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">微秒级感应响应</span>
-                                    <span class="solution-feature-tag">示踪气体高选择性</span>
-                                    <span class="solution-feature-tag">泄漏速率量化</span>
-                                    <span class="solution-feature-tag">便携集成式设计</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/leak-general-main.png"
+                                            alt="氢氮示踪·精准高效突破瓶颈">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>氢氮示踪·精准高效突破瓶颈</h4>
+                                        <p>
+                                            方案的核心在于创新性地将廉价且安全的氮氢混合气（95%氮气与5%氢气）作为理想的示踪气体。由于氢气分子量极小且活性高，当注入待测件内部（如发动机整机、空调压缩机、制冷系统等）后，即使存在微小的漏孔，氢分子也会迅速从漏孔逸出。元芯传感研发的高灵敏度氢气探枪，能够对这些逸出的氢气分子进行嗅探式检测，以外科手术般的精度迅速锁定漏孔的具体位置。这种检测方式，完全克服了气泡检测“模糊、慢、不准确”的弊端，同时避免了氦检“昂贵、稀有气体成本高”的问题，为工业检漏提供了一种既精准又高效的突破性解决方案。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 2 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/leak-general-sub1.jpg"
+                                            alt="安全经济·工业通用标准新选择">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>安全经济·工业通用标准新选择</h4>
+                                        <p>
+                                            成本与安全性始终是工业生产中不可忽视的因素。本方案采用的95%氮气与5%氢气的混合气，在工业上被广泛称为吹扫气体或保护气体，是一种常见的工业标准准气体，其供应充足且价格远低于氦气。更重要的是，这种混合气是安全、绿色、不燃的（氢气浓度远低于爆炸下限），对操作人员和环境均无危害。相较于传统气泡检测可能需要浸水或使用易挥发液体，以及氦检的高昂气体成本和设备投资，元芯传感的氢氮示踪检漏方案为企业提供了一个经济实惠且本质安全的全新选择。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 3 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/leak-general-sub2.jpg"
+                                            alt="广泛适用·赋能多行业高标准应用">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>广泛适用·赋能多行业高标准应用</h4>
+                                        <p>
+                                            无论是汽车行业的发动机整机、变速箱、油箱，家电和暖通行业的空调压缩机、冰箱制冷系统、热水器，还是电力、化工、航空航天等领域的各类管道、阀门、容器、密封件，本方案都能提供高精度、高效率的检漏服务。其无损、干式的检测特性，使其能够适用于各种材质和结构的待测件，避免了传统湿法检漏可能带来的污染或腐蚀蚀问题。通过解决精度与成本的矛盾，元芯传感助力各行各业提升产品质量控制水平。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
                         <!-- Panel 2: 冷媒行业检漏 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/leak-refrigerant-main.jpg"
-                                        alt="制冷设备冷媒检漏在线系统">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-refrigerant-sub1.jpg"
-                                            alt="空调生产线冷媒检测现场">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/leak-refrigerant-sub2.jpg"
-                                            alt="MEMS冷媒传感器细节展示">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>冷媒行业检漏解决方案</h3>
-                                <p>在空调、冰箱等制冷设备的生产与维保中，冷媒泄漏不仅影响性能，更涉及环保与能效。该方案专为R32、R410A等新型环保冷媒设计，通过自主研发的MEMS芯片，在复杂工业背景下实现极低浓度的冷媒监测，助力制冷行业实现绿色、高效生产。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    冷媒行业检漏解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    制冷剂作为现代社会不可或缺的工业“血液”，广泛应用于空调、冰箱、冷库、汽车空调及新能源热泵等领域。随着环保法规的日益严格和技术创新，新型制冷剂如R290、R1234yf、CO2以及传统的氨等正逐渐普及，但它们各自独特的理化性质也对检测技术提出了前所未有的挑战。庞大的存量市场和新增市场的爆发式增长，共同催生了对高效、精准、安全的冷媒检漏解决方案的迫切需求。元芯传感深耕先进传感技术，针对新型制冷剂的特殊需求，提供定制化的冷媒行业检漏解决方案。我们致力于在极低浓度下快速准确报警，确保设备防爆安全，同时兼顾高压工况可靠性和剧毒气体高灵敏响应，为冷媒行业的安全运行、环保合规及高效维护构筑全面防线。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">多冷媒型号适配</span>
-                                    <span class="solution-feature-tag">抗背景气体干扰</span>
-                                    <span class="solution-feature-tag">全自动在线检漏</span>
-                                    <span class="solution-feature-tag">本质安全耐用</span>
+                            </div>
+                            <div class="solution-sub-grid">
+                                <!-- Item 1 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/leak-refrigerant-main.jpg"
+                                            alt="应对可燃制冷剂挑战 · 极低浓度防爆预警">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>应对可燃制冷剂挑战 · 极低浓度防爆预警</h4>
+                                        <p>
+                                            以R290（丙烷）、R1234yf等为代表的新型可燃制冷剂，虽然具有优异的环保性能（低GWP），但其易燃性使泄漏风险不容忽视。在这些制冷剂的应用场景中，一旦泄漏浓度达到爆炸下限的极小比例，就可能引发火灾或爆炸。元芯传感的解决方案针对此类可燃制冷剂，提供具备防爆功能的极高灵敏度检测设备，能够在极低浓度下（远低于爆炸下限）就能快速、准确报警。通过在生产线、存储区、设备运行现场部署专用传感器，我们能实时监测可燃制冷剂的微量泄漏，保障人员和财产安全。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 2 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/leak-refrigerant-sub1.jpg"
+                                            alt="突破高压与剧毒制冷剂瓶颈 · 稳定可靠高灵敏响应">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>突破高压与剧毒制冷剂瓶颈 · 稳定可靠高灵敏响应</h4>
+                                        <p>
+                                            对于高压制冷剂如CO2 (R744)
+                                            系统，其工作压力远超传统制冷剂，即使是微小泄漏也可能迅速扩大，对设备结构完整性构成严重威胁。元芯传感的方案具备在高压工况下保持可靠性的检测能力，能够精准识别CO2系统中的细微泄漏，防止其演变为大规模故障。对于剧毒制冷剂如氨
+                                            (R717)，其泄漏对人员生命安全构成直接威胁，因此要求检漏设备具备极高的灵敏度和快速响应能力。我们的专业解决方案能够对氨气进行ppb级别的超高灵敏检测，确保在对人员产生危害之前就能迅速发出警报，并可联动紧急排风、隔离等措施。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 3 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/leak-refrigerant-sub2.jpg"
+                                            alt="满足庞大市场需求 · 定制化全生命周期服务">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>满足庞大市场需求 · 定制化全生命周期服务</h4>
+                                        <p>
+                                            元芯传感的解决方案围绕冷媒产品的全生命周期提供定制化服务。我们提供多样化的检漏工具和系统，包括生产线上的快速高精度检测、现场维护的便携式检漏仪、固定式区域泄漏监测系统等，并能根据不同制冷剂类型、应用场景和法规要求，提供个性化的传感器选型、报警阈值设置和系统集成方案。元芯传感以专业、灵活的解决方案，助力冷媒行业客户在提升安全环保水平的同时，实现运营效率的优化和市场竞争力的提升。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -506,12 +920,28 @@
                 </div>
             </div>
         </section>
-    </main>
-
-    <footer class="vs-footer">
-        <div class="vs-container">
-            <div class="vs-footer__bottom">
-                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+        <!-- Design Advantages Section -->
+        <section class="design-advantages-section">
+            <div class="vs-container">
+                <h2 id="adv-title">通用检漏解决方案优势</h2>
+                <div class="advantages-new-grid" id="adv-grid">
+                    <div class="advantage-new-item">
+                        <h4>微秒级响应</h4>
+                        <p>高灵敏度传感器实现微秒级响应，快速锁定泄漏点。</p>
+                    </div>
+                    <div class="advantage-new-item">
+                        <h4>高选择性</h4>
+                        <p>有效屏蔽背景气体干扰，仅对示踪气体产生响应。</p>
+                    </div>
+                    <div class="advantage-new-item">
+                        <h4>量化分析</h4>
+                        <p>精准计算泄漏速率，提供符合标准的数据报告。</p>
+                    </div>
+                    <div class="advantage-new-item">
+                        <h4>便携易用</h4>
+                        <p>集成化设计，轻便耐用，适应各种现场工况。</p>
+                    </div>
+                </div>
             </div>
         </div>
     </footer>
@@ -537,97 +967,10 @@
                     container.innerHTML = '<p style="color:#666;">暂无产品</p>';
                     return;
                 }
+        </section>
+    </main>
 
-                // 过滤掉定制服务和隐藏的产品
-                const menuProducts = data.products.filter(p => !p.id.includes('../') && !p.hidden);
 
-                // 生成产品链接（使用自定义名称，显示新品标记）
-                const createProductLink = (p) => {
-                    const displayName = p.displayName || p.shortName || p.name;
-                    const newBadge = p.isNew ? '<span style="background:#ff4444;color:white;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle;">NEW</span>' : '';
-                    return `<li><a href="../gassensing/${p.id}.html">${displayName}${newBadge}</a></li>`;
-                };
-
-                // 分两列显示
-                const half = Math.ceil(menuProducts.length / 2);
-                const leftProducts = menuProducts.slice(0, half);
-                const rightProducts = menuProducts.slice(half);
-
-                const leftHtml = leftProducts.map(createProductLink).join('');
-                const rightHtml = rightProducts.map(createProductLink).join('');
-
-                container.innerHTML = `
-                    <div><ul class="vs-mega-list-v2">${leftHtml}</ul></div>
-                    <div><ul class="vs-mega-list-v2">${rightHtml}</ul></div>
-                `;
-            } catch (error) {
-                console.error('Failed to load products:', error);
-                container.innerHTML = '<p style="color:#666;">加载产品列表失败</p>';
-            }
-        });
-    </script>
-
-    <!-- 动态加载新品推荐 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', async function () {
-            try {
-                const res = await fetch('/api/recommendations');
-                const data = await res.json();
-
-                // 填充最新发布
-                const latestList = document.getElementById('latestReleasesList');
-                if (latestList && data.latestReleases) {
-                    latestList.innerHTML = data.latestReleases.map(item =>
-                        `<li><a href="${item.url}">${item.name}</a></li>`
-                    ).join('');
-                }
-
-                // 填充应用领域
-                const appList = document.getElementById('applicationAreasList');
-                if (appList && data.applicationAreas) {
-                    appList.innerHTML = data.applicationAreas.map(item =>
-                        `<li><a href="${item.url}">${item.name}</a></li>`
-                    ).join('');
-                }
-            } catch (e) {
-                console.error('Failed to load recommendations:', e);
-            }
-        });
-    </script>
-
-    <!-- 动态加载产品种类 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', async function () {
-            try {
-                const res = await fetch('/api/categories');
-                const data = await res.json();
-
-                if (data.categories && data.categories.length > 0) {
-                    // 分两列显示
-                    const half = Math.ceil(data.categories.length / 2);
-                    const leftCategories = data.categories.slice(0, half);
-                    const rightCategories = data.categories.slice(half);
-
-                    const leftList = document.getElementById('categoriesLeft');
-                    const rightList = document.getElementById('categoriesRight');
-
-                    if (leftList) {
-                        leftList.innerHTML = leftCategories.map(cat =>
-                            `<li><a href="${cat.url}">${cat.name}</a></li>`
-                        ).join('');
-                    }
-
-                    if (rightList) {
-                        rightList.innerHTML = rightCategories.map(cat =>
-                            `<li><a href="${cat.url}">${cat.name}</a></li>`
-                        ).join('');
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load categories:', e);
-            }
-        });
-    </script>
 
     <!-- FOOTER_START -->
   <footer class="vs-footer-new">
@@ -678,6 +1021,228 @@
     </div>
   </footer>
   <!-- FOOTER_END -->
+    <footer class="vs-footer-new">
+        <div class="vs-container">
+            <div class="vs-footer-new__main">
+                <div class="vs-footer-new__brand"><a href="../../index.html" class="logo-link"><img
+                            src="../../assets/images/logo.png" alt="Metachip Logo" />METACHIP </a>
+                    <div class="tagline">湖南元芯传感科技有限责任公司</div>
+                    <div class="address">
+                        <div class="address-item">公司总部</div>
+                        <div class="address-item">湖南省湘潭市高新区</div>
+                        <div class="address-item">双马街道书院路 38 号</div>
+                    </div>
+                </div>
+                <div class="vs-footer-new__certs">
+                    <div class="vs-footer-new__cert vs-footer-new__cert--diamond"><span>FM<br>APPROVED</span></div>
+                    <div class="vs-footer-new__cert vs-footer-new__cert--circle">GLOBAL<br>INTERTEK </div>
+                </div>
+                <div class="vs-footer-new__right">
+                    <div class="vs-footer-new__social"><a href="#" title="X"><i
+                                class="fa-brands fa-x-twitter"></i></a><a href="#" title="LinkedIn"><i
+                                class="fab fa-linkedin-in"></i></a><a href="#" title="Facebook"><i
+                                class="fab fa-facebook-f"></i></a><a href="#" title="YouTube"><i
+                                class="fab fa-youtube"></i></a><a href="#" title="Instagram"></i></a></div>
+                    <div class="vs-footer-new__links"><a href="../about/policy.html">隐私政策</a><a href="#">条款与条件</a></div>
+                    <div class="vs-footer-new__copyright">© 2026 湖南元芯传感科技有限责任公司，保留所有权利。</div>
+                </div>
+            </div>
+            < !-- Disclaimer -->
+                <div class="vs-footer-new__disclaimer">METACHIP 是湖南元芯传感科技有限责任公司的注册商标。规格如有变更，恕不另行通知。 </div>
+        </div>
+    </footer>
+    < !-- FOOTER_END -->
+        <script>const advData = [{
+
+                // 0: General Leak
+                title: "通用检漏解决方案优势",
+                items: [{
+                    t: "微秒级响应", d: "高灵敏度传感器实现微秒级响应，快速锁定泄漏点。"
+                }
+
+                    ,
+                {
+                    t: "高选择性", d: "有效屏蔽背景气体干扰，仅对示踪气体产生响应。"
+                }
+
+                    ,
+                {
+                    t: "量化分析", d: "精准计算泄漏速率，提供符合标准的数据报告。"
+                }
+
+                    ,
+                {
+                    t: "便携易用", d: "集成化设计，轻便耐用，适应各种现场工况。"
+                }
+
+                ]
+            }
+
+                ,
+            {
+                // 1: Refrigerant
+                title: "冷媒行业检漏解决方案优势",
+                items: [
+                    { t: "全面覆盖", d: "针对各类新型制冷剂特性（可燃、高压、剧毒）提供定制化方案" },
+                    { t: "极致灵敏", d: "极低浓度下快速准确报警，尤其对可燃、有毒制冷剂提供高级防护" },
+                    { t: "防爆安全", d: "检测设备符合防爆要求，提升可燃制冷剂应用环境的安全性" },
+                    { t: "高效合规", d: "助力企业满足环保法规，提升生产和维护效率" }
+                ]
+            }
+
+            ];
+
+            function showPanel(panelId, tab) {
+                document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                const panel = document.getElementById('panel-' + panelId);
+                if (panel) panel.classList.add('active');
+            }
+
+            function showPanelContact(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                const panel = document.getElementById('panel-contact-' + panelId);
+                if (panel) panel.classList.add('active');
+            }
+
+            function switchSolutionTab(index, btn) {
+                const container = btn.closest('.solution-tabs-container');
+                container.querySelectorAll('.solution-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                container.querySelectorAll('.solution-panel').forEach(p => p.classList.remove('active'));
+                container.querySelectorAll('.solution-panel')[index].classList.add('active');
+
+                // Update Advantages Section
+                const data = advData[index] || advData[0];
+                const titleEl = document.getElementById('adv-title');
+                if (titleEl) titleEl.textContent = data.title;
+
+                const gridEl = document.getElementById('adv-grid');
+
+                if (gridEl) {
+                    gridEl.innerHTML = data.items.map(item => `
+                        <div class="advantage-new-item">
+                            <h4>${item.t}</h4>
+                            <p>${item.d}</p>
+                        </div>
+                    `).join('');
+                }
+            }
+
+        </script>
+        < !-- 全站搜索 -->
+            <script src="../../assets/js/search.js"></script>
+            < !-- 动态产品菜单（从API自动加载，支持自定义名称和新品标记） -->
+                <script> // 从 API 自动获取产品列表并生成菜单
+
+                    document.addEventListener('DOMContentLoaded', async function () {
+                        const container = document.getElementById('dynamic-product-list');
+                        if (!container) return;
+
+                        try {
+                            // 使用带设置的 API 获取自定义名称和新品标记
+                            const response = await fetch('/api/products/with-settings');
+                            const data = await response.json();
+
+                            if (!data.products || data.products.length === 0) {
+                                container.innerHTML = '<p style="color:#666;">暂无产品</p>';
+                                return;
+                            }
+
+                            // 过滤掉定制服务和隐藏的产品
+                            const menuProducts = data.products.filter(p => !p.id.includes('../') && !p.hidden);
+
+                            // 生成产品链接（使用自定义名称，显示新品标记）
+                            const createProductLink = (p) => {
+                                const displayName = p.displayName || p.shortName || p.name;
+                                const newBadge = p.isNew ? '<span style="background:#ff4444;color:white;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle;">NEW</span>' : '';
+                                return `<li><a href="../gassensing/${p.id}.html">${displayName}${newBadge}</a></li>`;
+                            };
+
+                            ;
+
+                            // 分两列显示
+                            const half = Math.ceil(menuProducts.length / 2);
+                            const leftProducts = menuProducts.slice(0, half);
+                            const rightProducts = menuProducts.slice(half);
+
+                            const leftHtml = leftProducts.map(createProductLink).join('');
+                            const rightHtml = rightProducts.map(createProductLink).join('');
+
+                            container.innerHTML = `
+                                <div><ul class="vs-mega-list-v2">${leftHtml}</ul></div>
+                                <div><ul class="vs-mega-list-v2">${rightHtml}</ul></div>
+                            `;
+                        }
+
+                        catch (error) {
+                            console.error('Failed to load products:', error);
+                            container.innerHTML = '<p style="color:#666;">加载产品列表失败</p>';
+                        }
+                    });
+
+                </script>
+                <!-- 动态加载新品推荐 -->
+                <script>document.addEventListener('DOMContentLoaded', async function () {
+                        try {
+                            const res = await fetch('/api/recommendations');
+                            const data = await res.json();
+
+                            // 填充最新发布
+                            const latestList = document.getElementById('latestReleasesList');
+
+                            if (latestList && data.latestReleases) {
+                                latestList.innerHTML = data.latestReleases.map(item => `<li><a href="${item.url}">${item.name}</a></li>`).join('');
+                            }
+
+                            // 填充应用领域
+                            const appList = document.getElementById('applicationAreasList');
+
+                            if (appList && data.applicationAreas) {
+                                appList.innerHTML = data.applicationAreas.map(item => `<li><a href="${item.url}">${item.name}</a></li>`).join('');
+                            }
+                        }
+
+                        catch (e) {
+                            console.error('Failed to load recommendations:', e);
+                        }
+                    });
+
+                </script>
+                <!-- 动态加载产品种类 -->
+                <script>document.addEventListener('DOMContentLoaded', async function () {
+                        try {
+                            const res = await fetch('/api/categories');
+                            const data = await res.json();
+
+                            if (data.categories && data.categories.length > 0) {
+                                // 分两列显示
+                                const half = Math.ceil(data.categories.length / 2);
+                                const leftCategories = data.categories.slice(0, half);
+                                const rightCategories = data.categories.slice(half);
+
+                                const leftList = document.getElementById('categoriesLeft');
+                                const rightList = document.getElementById('categoriesRight');
+
+                                if (leftList) {
+                                    leftList.innerHTML = leftCategories.map(cat => `<li><a href="${cat.url}">${cat.name}</a></li>`).join('');
+                                }
+
+                                if (rightList) {
+                                    rightList.innerHTML = rightCategories.map(cat => `<li><a href="${cat.url}">${cat.name}</a></li>`).join('');
+                                }
+                            }
+                        }
+
+                        catch (e) {
+                            console.error('Failed to load categories:', e);
+                        }
+                    });
+                </script>
 </body>
 
 </html>

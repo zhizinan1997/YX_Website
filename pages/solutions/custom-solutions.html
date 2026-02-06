@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>绿色能源存储解决方案 - 元芯传感</title>
+    <title>储能锂电池热失控监测解决方案 - 元芯传感</title>
     <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Standardized Header Styles from Mother Page */
+        /* Standardized Header Styles */
         .vs-header .vs-container,
         .vs-header__inner,
         .vs-nav,
@@ -152,31 +152,94 @@
             padding-left: 5px;
         }
 
-        /* Solution Tabs Section */
+        /* Standardized Styles from Industry Power Safety */
+        :root {
+            --color-primary: #003764;
+            --color-primary-dark: #002848;
+            --color-accent-orange: #f26522;
+            --color-accent-blue: #0072bc;
+            --color-white: #ffffff;
+            --color-text: #333333;
+            --color-bg: #f4f7f9;
+        }
+
+        .jjfa-hero {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 55, 100, 0.4) 0%, rgba(0, 30, 60, 0.7) 100%),
+                url('../../assets/images/solutions/custom-hero.jpg') center/cover;
+            height: 60vh;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 0 20px;
+        }
+
+        .jjfa-hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            line-height: 1.3;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .jjfa-hero h1 span {
+            display: block;
+            font-size: 32px;
+            font-weight: 400;
+            opacity: 0.95;
+            margin-top: 10px;
+        }
+
+        .jjfa-breadcrumb {
+            position: absolute;
+            top: 40px;
+            left: 5%;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 0;
+            z-index: 10;
+        }
+
+        .jjfa-breadcrumb a {
+            color: white;
+            opacity: 0.8;
+            text-decoration: none;
+        }
+
+        .jjfa-breadcrumb a:hover {
+            opacity: 1;
+        }
+
         .solution-tabs-section {
-            background: #f8f9fa;
-            padding: 80px 0;
+            background: #ffffff;
+            padding: 100px 0;
         }
 
         .solution-tabs-container {
             display: flex;
-            background: white;
+            background: #fff;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 20px 60px rgba(0, 55, 100, 0.08);
+            min-height: 600px;
         }
 
         .solution-tabs-nav {
             background: var(--color-primary);
-            min-width: 280px;
+            min-width: 320px;
+            padding: 20px 0;
         }
 
         .solution-tab-btn {
             display: block;
             width: 100%;
-            padding: 24px 30px;
+            padding: 24px 35px;
             color: rgba(255, 255, 255, 0.7);
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 500;
             border: none;
             background: transparent;
@@ -184,490 +247,152 @@
             cursor: pointer;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s;
+            line-height: 1.4;
         }
 
         .solution-tab-btn:hover,
         .solution-tab-btn.active {
             color: white;
             background: rgba(255, 255, 255, 0.1);
-            border-left: 4px solid var(--color-accent-orange);
+            padding-left: 45px;
+        }
+
+        .solution-tab-btn.active {
+            border-left: 5px solid var(--color-accent-orange);
         }
 
         .solution-tabs-content {
             flex: 1;
-            padding: 50px;
+            padding: 60px;
+            background: #fff;
         }
 
         .solution-panel {
             display: none;
-            animation: fadeIn 0.4s ease;
+            animation: slideUp 0.5s ease;
         }
 
         .solution-panel.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Detailed Row Style (New) */
+        .solution-detail-row {
             display: flex;
-            flex-direction: column;
-            gap: 30px;
             align-items: center;
-            text-align: center;
-        }
-
-        .solution-panel-text {
-            max-width: 800px;
-        }
-
-        .solution-panel-text h3 {
-            font-size: 28px;
-            color: var(--color-primary);
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .solution-panel-text p {
-            font-size: 16px;
-            line-height: 1.8;
-            color: #555;
-        }
-
-        /* Multi-image Solution Panel Layout */
-        .solution-panel-gallery {
-            width: 100%;
-            max-width: 1000px;
-        }
-
-        .solution-gallery-main {
-            width: 100%;
-            border-radius: 12px;
+            gap: 60px;
+            margin-bottom: 80px;
+            background: #f8f9fa;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
         }
 
-        .solution-gallery-main img {
-            width: 100%;
+        .solution-detail-row.reverse {
+            flex-direction: row-reverse;
+        }
+
+        .detail-row-img {
+            flex: 1;
             height: 400px;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.5s ease;
         }
 
-        .solution-gallery-main:hover img {
-            transform: scale(1.02);
-        }
-
-        .solution-gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .solution-gallery-item {
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            position: relative;
-            aspect-ratio: 4/3;
-        }
-
-        .solution-gallery-item img {
+        .detail-row-img img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
-            transition: transform 0.4s ease;
         }
 
-        .solution-gallery-item:hover img {
-            transform: scale(1.05);
+        .detail-row-content {
+            flex: 1.2;
+            padding: 40px 60px;
         }
 
-        .solution-panel-features {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 25px;
-        }
-
-        .solution-feature-tag {
-            background: linear-gradient(135deg, var(--color-primary) 0%, #003764 100%);
-            color: white;
-            padding: 10px 24px;
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0, 55, 100, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .solution-feature-tag:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 55, 100, 0.3);
-        }
-
-        /* Hero Banner V2 */
-        .vs-hero-v2 {
-            position: relative;
-            height: 60vh;
-            min-height: 500px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            color: white;
-            overflow: hidden;
-        }
-
-        .vs-hero-v2__bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-
-        .vs-hero-v2__bg img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: brightness(0.6);
-        }
-
-        .vs-hero-v2__content {
-            z-index: 1;
-            max-width: 800px;
-            padding: 0 20px;
-        }
-
-        .vs-hero-v2__title {
-            font-size: 56px;
+        .detail-row-content h4 {
+            font-size: 26px;
+            color: var(--color-primary);
+            margin-bottom: 24px;
             font-weight: 700;
-            margin-bottom: 20px;
-        }
-
-        .vs-hero-v2__subtitle {
-            font-size: 22px;
-            opacity: 0.9;
-            line-height: 1.6;
-        }
-
-        .vs-hero-v2__breadcrumbs {
-            position: absolute;
-            top: 40px;
-            left: 5%;
-            font-size: 13px;
-            z-index: 10;
-        }
-
-        .vs-hero-v2__breadcrumbs a {
-            color: white;
-            opacity: 0.8;
-            text-decoration: none;
-        }
-
-        /* Application Scenarios Grid */
-        .scenarios-section {
-            padding: 80px 0;
-            background: white;
-        }
-
-        .scenarios-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-top: 50px;
-        }
-
-        .scenario-card {
             position: relative;
-            height: 280px;
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
+            padding-bottom: 12px;
         }
 
-        .scenario-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-
-        .scenario-card:hover img {
-            transform: scale(1.1);
-        }
-
-        .scenario-overlay {
+        .detail-row-content h4::after {
+            content: '';
             position: absolute;
             bottom: 0;
             left: 0;
-            right: 0;
-            padding: 30px;
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            width: 50px;
+            height: 3px;
+            background: var(--color-accent-orange);
+        }
+
+        .detail-row-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #555;
+            text-align: justify;
+        }
+
+        .solution-panel-text h3 {
+            font-size: 32px;
+            color: var(--color-primary);
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        /* Design Advantages Section (Standardized Dark Theme) */
+        .design-advantages-section {
+            background-color: var(--color-primary-dark, #002848);
+            color: white;
+            padding: 100px 0;
+            text-align: left;
+        }
+
+        .design-advantages-section h2 {
+            font-size: 32px;
+            margin-bottom: 80px;
+            font-weight: 500;
             color: white;
         }
 
-        .scenario-overlay h4 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        /* Technology Advantages */
-        .tech-section {
-            background: #f8f9fa;
-            padding: 100px 0;
-            color: var(--color-primary);
-            text-align: center;
-        }
-
-        .tech-section h2 {
-            font-size: 32px;
-            margin-bottom: 50px;
-            font-weight: 600;
-        }
-
-        .tech-image {
-            max-width: 1200px;
-            margin: 0 auto 50px;
-        }
-
-        .tech-image img {
-            width: 100%;
-            border-radius: 12px;
-        }
-
-        .tech-features {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 40px;
-            flex-wrap: wrap;
-        }
-
-        .tech-feature {
-            font-size: 16px;
-            font-weight: 600;
-            padding: 14px 34px;
-            background: white;
-            color: var(--color-primary);
-            border-radius: 40px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-            transition: all 0.3s ease;
-        }
-
-        .tech-feature:hover {
-            transform: translateY(-3px);
-            border-color: var(--color-accent-orange);
-            color: var(--color-accent-orange);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-        }
-
-        /* Core Products */
-        .products-section {
-            padding: 80px 0;
-            background: #f8f9fa;
-        }
-
-        .products-grid {
+        .advantages-new-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
+            gap: 50px;
         }
 
-        .product-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s ease;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-        }
-
-        .product-card-img {
-            height: 200px;
-            background: #f5f5f5;
+        .advantage-new-item {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .product-card-img img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .product-card-body {
-            padding: 24px;
-        }
-
-        .product-card-body h4 {
-            font-size: 16px;
-            color: var(--color-primary);
-            margin-bottom: 16px;
+        .advantage-new-item h4 {
+            font-size: 24px;
             font-weight: 600;
+            color: white;
+            letter-spacing: 0.5px;
+            margin: 0;
         }
 
-        .product-features {
-            font-size: 13px;
-            color: #666;
+        .advantage-new-item p {
+            font-size: 16px;
             line-height: 1.8;
-        }
-
-        /* Platform Section */
-        .platform-section {
-            padding: 80px 0;
-            background: white;
-        }
-
-        .platform-container {
-            display: flex;
-            gap: 60px;
-            align-items: center;
-        }
-
-        .platform-img {
-            flex: 0 0 50%;
-        }
-
-        .platform-img img {
-            width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        }
-
-        .platform-text h2 {
-            font-size: 32px;
-            color: var(--color-primary);
-            margin-bottom: 24px;
-            font-weight: 600;
-        }
-
-        .platform-text p {
-            font-size: 16px;
-            line-height: 1.9;
-            color: #555;
-        }
-
-        /* Value Section */
-        .value-section {
-            padding: 80px 0;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-
-        .value-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            margin-top: 50px;
-        }
-
-        .value-card {
-            background: white;
-            border-radius: 12px;
-            padding: 40px 30px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s ease;
-        }
-
-        .value-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .value-number {
-            font-size: 48px;
-            font-weight: 700;
-            color: var(--color-accent-orange);
-            margin-bottom: 16px;
-        }
-
-        .value-card h4 {
-            font-size: 20px;
-            color: var(--color-primary);
-            margin-bottom: 16px;
-            font-weight: 600;
-        }
-
-        .value-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 20px;
-        }
-
-        .value-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .value-card p {
-            font-size: 15px;
-            color: #666;
-            line-height: 1.7;
-        }
-
-        /* Contact Form */
-        .contact-section {
-            padding: 80px 0;
-            background: var(--color-primary);
-            color: white;
-        }
-
-        .contact-section h2 {
-            text-align: center;
-            font-size: 32px;
-            margin-bottom: 50px;
-            font-weight: 600;
-        }
-
-        .contact-form {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-row input {
-            flex: 1;
-            padding: 16px 20px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 15px;
-        }
-
-        .form-submit {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .form-submit button {
-            padding: 16px 40px;
-            background: var(--color-accent-orange);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+            margin: 0;
         }
     </style>
     <!-- Site Search -->
@@ -693,17 +418,11 @@
     
 
     <main style="padding-top: 90px;">
-        <section class="vs-hero-v2">
-            <div class="vs-hero-v2__bg">
-                <img src="../../assets/images/solutions/custom-hero.jpg" alt="Custom Solutions">
-            </div>
-            <div class="vs-hero-v2__breadcrumbs">
-                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>定制化解决方案</span>
-            </div>
-            <div class="vs-hero-v2__content">
-                <h1 class="vs-hero-v2__title">定制化解决方案</h1>
-                <p class="vs-hero-v2__subtitle">依托核心传感技术，为全球合作伙伴提供深度定制的芯片级与系统级监测方案。</p>
-            </div>
+        <section class="jjfa-hero">
+            <h1>储能锂电池热失控监测解决方案<span>提供全局化本质安全监测</span></h1>
+            <p class="jjfa-breadcrumb">
+                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>储能锂电池热失控监测</span>
+            </p>
         </section>
 
         <section class="solution-tabs-section">
@@ -716,32 +435,53 @@
                     <div class="solution-tabs-content">
                         <!-- Panel 1: 储能锂电池热失控 -->
                         <div class="solution-panel active">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/custom-battery-main.png" alt="储能电站本质安全监测系统">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/custom-battery-sub1.jpg"
-                                            alt="电芯级热失控预警模块">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/custom-battery-sub2.jpg"
-                                            alt="储能舱环境监测终端">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>储能锂电池热失控监测解决方案</h3>
-                                <p>针对大规模储能系统（BESS）的本质安全难题，元芯传感通过高度定制化的 MEMS
-                                    复合气体传感技术，实现对电芯热失控初期析出气体（CO、H2、VOCs）的极早期捕捉。系统可嵌入电池箱内部，在火灾发生前的关键窗口期发出预警并联动消防系统，从根本上解决储能电站的安全隐患。
+                            <div
+                                style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%; margin-bottom: 60px;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    储能锂电池热失控监测解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    随着全球能源转型的加速，锂离子电池储能系统（BESS）在电网侧、发电侧、用户侧等领域大规模应用。然而，锂电池存在热失控的固有风险，一旦发生，可能导致火灾、爆炸，造成严重的人员伤亡和财产损失。热失控是一个连锁反应过程，其早期阶段会释放出多种特征气体，其中氢气（H2）是最早产生且最敏感的气体之一。国家对储能安全的重视日益提升，2025年中国储能行业标准已明确要求通过检测氢气等特征气体，来及时采取热失控阻隔措施。元芯传感凭借领先的氢气探测技术，推出“储能锂电池热失控监测解决方案”。该方案通过超早期氢气监测、精准预警与联动及智慧平台管理，为储能系统提供高效、可靠的热失控预警，助力及时阻隔，减少损失。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">电芯级极早探测</span>
-                                    <span class="solution-feature-tag">多参数复合感知</span>
-                                    <span class="solution-feature-tag">毫秒级响应联动</span>
-                                    <span class="solution-feature-tag">抗中毒长寿命芯片</span>
-                                    <span class="solution-feature-tag">深度模组化定制</span>
+                            </div>
+
+                            <!-- Section 1 -->
+                            <div class="solution-detail-row">
+                                <div class="detail-row-img">
+                                    <img src="../../assets/images/solutions/custom-battery-main.png" alt="超早期氢气监测">
+                                </div>
+                                <div class="detail-row-content">
+                                    <h4>超早期氢气监测 · 预判热失控隐患</h4>
+                                    <p>
+                                        锂电池在进入热失控初期，由于内部电解液分解，会产生微量的氢气、一氧化碳等气体。在这些气体中，氢气往往是最早出现且浓度变化最明显的指示气体。元芯传感的解决方案采用高灵敏度、快速响应的氢气传感器，专门针对储能电池舱（Pack/Module）内部的微环境进行监测，能够实时捕捉到电池热失控萌芽阶段释放出的极微量氢气，远在电池温度大幅升高、烟雾弥漫或其他可见异常发生之前。这种超早期氢气监测能力，使得储能系统能够在热失控的初期阶段就发出预警信号，为运维人员争取宝贵的响应时间，有效识别和预测潜在的热失控隐患，将其扼杀在“萌芽状态”。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Section 2 -->
+                            <div class="solution-detail-row reverse">
+                                <div class="detail-row-img">
+                                    <img src="../../assets/images/solutions/custom-battery-sub1.jpg" alt="精准预警与联动">
+                                </div>
+                                <div class="detail-row-content">
+                                    <h4>精准预警与联动 · 及时阻隔减少损失</h4>
+                                    <p>
+                                        储能系统对热失控的响应速度直接决定了能否有效控制风险。元芯传感的方案提供多级精准预警机制，并具备强大的智能联动功能。当监测到氢气浓度达到预设的报警阈值时，系统会立即触发声光报警，并通过储能BMS/EMS系统向控制中心发送报警信息。同时，它可无缝联动灭火系统（如气溶胶、IG541等）、通风系统、切断电池模块或电池簇的供电等应急措施，实现毫秒级或秒级响应。这种快速、自动化的响应机制，能够及时阻隔热失控的蔓延，将事故限制在最小范围，从而最大程度地减少损失。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Section 3 -->
+                            <div class="solution-detail-row">
+                                <div class="detail-row-img">
+                                    <img src="../../assets/images/solutions/custom-battery-sub2.jpg" alt="智慧平台管理">
+                                </div>
+                                <div class="detail-row-content">
+                                    <h4>智慧平台管理 · 实现高效风险管控</h4>
+                                    <p>
+                                        元芯传感的解决方案可与储能电站的能量管理系统（EMS）、电池管理系统（BMS）以及消防系统进行深度融合，构建统一的智慧平台管理。平台能够实时显示所有电池舱的氢气浓度数据、报警状态、设备运行状态，并通过大数据分析和人工智能算法，对热失控风险进行智能评估和预测。运维人员可通过平台远程监控、接收报警，并进行历史数据追溯和故障诊断分析。
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -750,108 +490,28 @@
             </div>
         </section>
 
-        <!-- Application Scenarios -->
-        <section class="scenarios-section">
-            <div class="vs-container">
-                <h2 class="section-title">典型应用场景</h2>
-                <div class="scenarios-grid">
-                    <div class="scenario-card">
-                        <img src="../../assets/images/solutions/custom-battery-scenario1.jpg" alt="全方位储能站安全监测">
-                        <div class="scenario-overlay">
-                            <h4>全方位储能站安全监测</h4>
-                        </div>
-                    </div>
-                    <div class="scenario-card">
-                        <img src="../../assets/images/solutions/custom-battery-scenario2.png" alt="工商业储能柜实时预警">
-                        <div class="scenario-overlay">
-                            <h4>工商业储能柜实时预警</h4>
-                        </div>
-                    </div>
-                    <div class="scenario-card">
-                        <img src="../../assets/images/solutions/custom-battery-main.png" alt="户用/集装箱储能系统">
-                        <div class="scenario-overlay">
-                            <h4>户用/集装箱储能系统</h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Core Products -->
-        <section class="products-section">
-            <div class="vs-container">
-                <h2 class="section-title">推荐监测产品</h2>
-                <div class="products-grid">
-                    <a href="../gassensing/mchp_battery_safety.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="../../assets/images/solutions/custom-battery-sub1.jpg" alt="MC-H2-Pro">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-H2-Pro 复合气体探测器</h4>
-                            <div class="product-features">
-                                <p>• 监测 H2 / CO / VOCs / TH</p>
-                                <p>• 毫秒级极速响应</p>
-                                <p>• 紧凑型 OEM 模组设计</p>
-                            </div>
-                        </div>
-                    </a>
-                    <!-- Add more product cards as placeholder for consistent layout -->
-                    <div class="product-card">
-                        <div class="product-card-img">
-                            <img src="../../assets/images/solutions/custom-battery-sub2.jpg" alt="MC-THS">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-THS 智能温湿度终端</h4>
-                            <div class="product-features">
-                                <p>• 高精度环境温湿度感知</p>
-                                <p>• 支持 RS485 / CAN 通信</p>
-                                <p>• 工业级抗干扰设计</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Platform Section -->
-        <section class="platform-section">
+        <!-- Design Advantages Section -->
+        <section class="design-advantages-section">
             <div class="vs-container">
-                <div class="platform-container">
-                    <div class="platform-img">
-                        <img src="https://images.unsplash.com/photo-1551288049-bbdaef866675?auto=format&fit=crop&w=1200"
-                            alt="安全监测云平台">
+                <h2>方案优势</h2>
+                <div class="advantages-new-grid">
+                    <div class="advantage-new-item">
+                        <h4>超早期预警</h4>
+                        <p>监测热失控早期释放的氢气，抢占宝贵应急时间</p>
                     </div>
-                    <div class="platform-text">
-                        <h2>智慧安全监测云平台</h2>
-                        <p>元芯传感不仅提供硬件，更通过数字化平台为储能站提供全生命周期的资产保护。平台支持实时趋势分析、多级预警管理、设备健康评估以及远程配置升级，助力运维团队实现从“被动响应”到“主动预防”的转变。
-                        </p>
+                    <div class="advantage-new-item">
+                        <h4>智能联动</h4>
+                        <p>自动触发灭火、断电等措施，快速阻隔热失控蔓延</p>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Value Section -->
-        <section class="value-section">
-            <div class="vs-container">
-                <h2 class="section-title">定制化开发流程</h2>
-                <div class="value-grid">
-                    <div class="value-card">
-                        <div class="value-number">01</div>
-                        <h4>需求定义</h4>
-                        <div class="value-icon"><img src="../../assets/images/jj_i4.png" alt="Icon"></div>
-                        <p>深入调研应用场景，明确检测组分、量程、精度及通信协议等核心参数。</p>
+                    <div class="advantage-new-item">
+                        <h4>高效管理</h4>
+                        <p>智慧平台实现远程监控、风险评估与预测性维护</p>
                     </div>
-                    <div class="value-card">
-                        <div class="value-number">02</div>
-                        <h4>方案设计</h4>
-                        <div class="value-icon"><img src="../../assets/images/jj_i5.png" alt="Icon"></div>
-                        <p>基于 MEMS 芯片库进行快速选型与电路仿真，提供定制化结构模型设计。</p>
-                    </div>
-                    <div class="value-card">
-                        <div class="value-number">03</div>
-                        <h4>验证与交付</h4>
-                        <div class="value-icon"><img src="../../assets/images/jj_i6.png" alt="Icon"></div>
-                        <p>通过严格的工业级可靠性测试，实现从小批量试制到大规模量产的平稳过渡。</p>
+                    <div class="advantage-new-item">
+                        <h4>安全可靠</h4>
+                        <p>从根本上提升储能系统内安全性，保障人员与财产安全</p>
                     </div>
                 </div>
             </div>
@@ -885,13 +545,6 @@
         </section>
     </main>
 
-    <footer class="vs-footer">
-        <div class="vs-container">
-            <div class="vs-footer__bottom">
-                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
-            </div>
-        </div>
-    </footer>
 
     
 

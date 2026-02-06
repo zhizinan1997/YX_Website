@@ -331,9 +331,11 @@
             box-shadow: 0 6px 20px rgba(0, 55, 100, 0.3);
         }
 
-        /* Hero Banner V2 */
-        .vs-hero-v2 {
+        /* Hero Banner */
+        .jjfa-hero {
             position: relative;
+            background: linear-gradient(135deg, rgba(0, 55, 100, 0) 0%, rgba(0, 30, 60, 0.4) 100%),
+                url('https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1920') center/cover;
             height: 60vh;
             min-height: 450px;
             display: flex;
@@ -342,64 +344,178 @@
             align-items: center;
             text-align: center;
             color: white;
-            overflow: hidden;
-        }
-
-        .vs-hero-v2__bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-
-        .vs-hero-v2__bg img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: brightness(0.6);
-        }
-
-        .vs-hero-v2__content {
-            z-index: 1;
-            max-width: 800px;
             padding: 0 20px;
         }
 
-        .vs-hero-v2__title {
+        .jjfa-hero h1 {
             font-size: 48px;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
+            line-height: 1.3;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
-        .vs-hero-v2__subtitle {
-            font-size: 20px;
-            opacity: 0.9;
-            line-height: 1.6;
+        .jjfa-hero h1 span {
+            display: block;
+            font-size: 32px;
+            font-weight: 400;
+            opacity: 0.95;
+            margin-top: 10px;
         }
 
-        .vs-hero-v2__breadcrumbs {
+        .jjfa-breadcrumb {
             position: absolute;
             top: 40px;
             left: 5%;
             font-size: 13px;
+            opacity: 0.8;
+            margin-top: 0;
             z-index: 10;
         }
 
-        .vs-hero-v2__breadcrumbs a {
+        .jjfa-breadcrumb a {
             color: white;
             opacity: 0.8;
             text-decoration: none;
         }
 
-        .vs-hero-v2__breadcrumbs span {
-            opacity: 0.8;
+        .jjfa-breadcrumb a:hover {
+            opacity: 1;
         }
     </style>
     <!-- Site Search -->
     <link rel="stylesheet" href="../../assets/css/search.css">
-</head>
+    <style>
+        /* New Sub-solution Grid Layout */
+        .solution-sub-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+            text-align: left;
+        }
+
+        .solution-sub-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .solution-sub-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 55, 100, 0.12);
+            border-color: rgba(0, 55, 100, 0.1);
+        }
+
+        .sub-card-img {
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sub-card-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .solution-sub-card:hover .sub-card-img img {
+            transform: scale(1.08);
+        }
+
+        .sub-card-content {
+            padding: 28px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sub-card-content h4 {
+            color: var(--color-primary);
+            font-size: 19px;
+            margin-bottom: 16px;
+            font-weight: 700;
+            line-height: 1.4;
+            border-bottom: 2px solid var(--color-accent-orange);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        .sub-card-content p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 0;
+            text-align: justify;
+        }
+
+        /* Design Advantages Section */
+        .design-advantages-section {
+            background-color: var(--color-primary-dark, #002848);
+            color: white;
+            padding: 100px 0;
+            text-align: left;
+        }
+
+        .design-advantages-section h2 {
+            font-size: 32px;
+            margin-bottom: 80px;
+            font-weight: 500;
+            color: white;
+            opacity: 1;
+        }
+
+        .advantages-new-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 50px;
+        }
+
+        .advantage-new-item {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .advantage-new-item h4 {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .advantage-new-item p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+        }
+
+        @media (max-width: 1200px) {
+            .advantages-new-grid {
+                gap: 30px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .advantages-new-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .advantages-new-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 
 <body>
 
@@ -418,20 +534,321 @@
 
 
     
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="..\..\index.html" class="vs-logo">
+                    <img src="..\..\assets\images\logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="all-products.html" class="vs-nav__link">产品</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    新品推荐 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    行业分类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    测量对象 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    产品种类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    全部产品 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>新品推荐</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">最新发布</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">应用领域</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i
+                                                class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>行业分类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
+                                                </li>
+                                                <li><a href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                                </li>
+                                                <li><a href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                                </li>
+                                                <li><a href="..\solutions\industry-environment.html">大气环境监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>测量对象</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsRight">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>产品种类</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>全部产品</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- 产品由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">查看所有产品 <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\solutions\solutions-index.html" class="vs-nav__link">解决方案</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar">
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-environment.html">大气环境监测</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\research\index.html" class="vs-nav__link">科研服务</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar">
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\research\micro-nano.html">传感器微纳加工</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\development.html">传感器开发、测试与应用</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\cooperation.html">产学研深度合作</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="service-cases.html" class="vs-nav__link">服务案例</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    精选案例 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    所有案例 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>精选案例</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="cases\case-1-truck.html">氢能重卡氢气检测</a></li>
+                                            <li><a href="cases\case-6-train.html">氢能源列车检测</a></li>
+                                            <li><a href="cases\case-4-pipeline-safety.html">输氢管道人员安全</a></li>
+                                            <li><a href="cases\case-12-gas-system.html">科研实验室配气</a></li>
+                                            <li><a href="cases\case-13-diesel-engine.html">柴油机真空检漏</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>更多案例</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">浏览我们在各个行业的成功应用案例。</p>
+                                    <a href="service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">查看全部案例 <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="..\about\about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">线上店铺</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\contact\contact.html" class="vs-nav__link">联系我们</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    加入我们 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    联系方式 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>加入我们</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="..\careers\partners.html">合作招募</a></li>
+                                            <li><a href="..\careers\growth.html">成长空间</a></li>
+                                            <li><a href="..\careers\talent.html">人才理念</a></li>
+                                            <li><a href="..\careers\jobs.html">在线招聘</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>联系方式</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="..\contact\contact.html">联系我们</a></li>
+                                            <li><a href="..\contact\feedback.html">在线留言</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a
+                    href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
+            </div>
+        </div>
+        <script>
+            function showPanel(panelId, tab) {
+                document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + panelId).classList.add('active');
+            }
+            function showPanelContact(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-contact-' + panelId).classList.add('active');
+            }
+            function showPanelSolutions(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-solutions-' + panelId).classList.add('active');
+            }
+            function showPanelCases(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-cases-' + panelId).classList.add('active');
+            }
+        </script>
+    </header>
+
+    <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+        function showPanelContact(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-contact-' + panelId).classList.add('active');
+        }
+        function showPanelSolutions(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-solutions-' + panelId).classList.add('active');
+        }
+        function showPanelCases(panelId, tab) {
+            const menu = tab.closest('.vs-mega-menu');
+            menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-cases-' + panelId).classList.add('active');
+        }
+    </script>
 
     <main style="padding-top: 90px;">
-        <section class="vs-hero-v2">
-            <div class="vs-hero-v2__bg">
-                <img src="https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1920"
-                    alt="Power Safety">
-            </div>
-            <div class="vs-hero-v2__breadcrumbs">
+        <section class="jjfa-hero">
+            <h1>智慧电力安全<span>守护新型电力系统运行</span></h1>
+            <p class="jjfa-breadcrumb">
                 <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>智慧电力安全</span>
-            </div>
-            <div class="vs-hero-v2__content">
-                <h1 class="vs-hero-v2__title">智慧电力安全</h1>
-                <p class="vs-hero-v2__subtitle">针对变压器、GIS及开关柜的实时在线监测，守护新型电力系统运行。</p>
-            </div>
+            </p>
         </section>
 
         <section class="solution-tabs-section">
@@ -447,123 +864,214 @@
                     <div class="solution-tabs-content">
                         <!-- Panel 1: 氢冷发电机 -->
                         <div class="solution-panel active">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/power-h2-gen-main.png"
-                                        alt="氢冷发电机氢气纯度在线分析系统">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-h2-gen-sub1.jpg"
-                                            alt="大型氢冷发电机组运行现场">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-h2-gen-sub2.jpg" alt="氢气监测终端设备">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>氢冷发电机氢气纯度分析与泄漏监测解决方案</h3>
-                                <p>针对大型氢冷发电机组，元芯传感提供全套氢气纯度在线分析与泄漏预警监测系统。通过高灵敏度碳基传感器，实时监测发电机内部氢气纯度、湿度及外壳密封性，有效保障发电机运行效率，防止因氢气纯度下降或泄漏引发的安全事故。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    氢冷发电机氢气纯度分析与泄漏监测解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    在现代电力工业中，氢冷发电机因其高效、散热性能优异而广泛应用于大型火电、核电及水电站。然而，氢气作为冷却介质，其纯度直接影响发电机的运行效率和安全性，而氢气泄漏更是可能引发严重事故。元芯传感深耕先进传感技术，为智慧电力行业量身打造“氢冷发电机氢气纯度分析与泄漏监测解决方案”，该方案通过在线纯度分析确保最佳冷却性能，实施全域泄漏监测构筑多重安全防线，并支持智慧运维实现预测性管理，全面保障氢冷发电机的安全、高效、稳定运行，助力电力系统安全屏障的稳定跳动。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">纯度实时分析</span>
-                                    <span class="solution-feature-tag">湿度精确监测</span>
-                                    <span class="solution-feature-tag">漏氢轨迹追踪</span>
-                                    <span class="solution-feature-tag">防爆安全认证</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-h2-gen-main.png" alt="在线纯度分析">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>在线纯度分析 · 确保最佳冷却性能</h4>
+                                        <p>
+                                            氢气纯度是氢冷发电机高效运行的生命线。氢气纯度不足或混入杂质（如空气、水汽），会显著降低其导热性能，导致发电机绕组温度升高、影响运行效率，甚至引发设备损坏。元芯传感的在线纯度分析解决方案，采用高精度传感器实时监测氢冷发电机内部氢气的纯度。该系统能够精准分析氢气中微量的空气、水蒸气等杂质含量，确保氢气纯度始终维持在最佳运行范围。通过精准的纯度监控，不仅能优化发电效率，延长设备寿命，还能有效避免因氢气纯度问题导致的停机损失，为电厂带来显著的经济效益。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 2 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-h2-gen-sub1.jpg" alt="全域泄漏监测">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>全域泄漏监测 · 构筑多重安全防线</h4>
+                                        <p>
+                                            氢冷发电机内部压力高，氢气泄漏风险不容忽视。一旦泄漏，氢气与空气混合形成爆炸性混合物，后果不堪设想。元芯传感的全域泄漏监测解决方案，针对氢冷发电机的核心区域和辅助系统，构筑了立体化的多重安全防线。我们在发电机本体的轴封、法兰接口、氢气冷却器、储氢罐及相关管道等关键部位，部署高灵敏度的氢气传感器。这些传感器形成一个严密的监测网络，能够实时捕捉任何微量的氢气泄漏。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 3 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-h2-gen-sub2.jpg" alt="智慧运维">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>智慧运维 · 预测性管理</h4>
+                                        <p>
+                                            现代电力系统对设备的可靠性与运维效率提出了更高要求。元芯传感的解决方案融入了先进的智慧运维理念，通过将氢气纯度、泄漏监测数据与电厂DCS/SCADA系统无缝集成，实现数据可视化和远程集中管理。平台能够实时分析运行数据，建立设备健康档案，并通过大数据分析和算法模型，对潜在的纯度异常或泄漏趋势进行预测性维护预警。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Panel 2: 定冷水氢检测 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/power-cooling-water-main.jpg"
-                                        alt="发电机组定冷水溶解氢在线监测系统">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-cooling-water-sub1.jpg"
-                                            alt="定冷水回路监测现场">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-cooling-water-sub2.jpg"
-                                            alt="溶解氢传感器安装细节">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>发电机组定冷水氢检测解决方案</h3>
-                                <p>发电机定子冷却水中的氢气含量是判断空心导管是否泄漏的关键指标。该方案采用专用溶解氢探测技术，实现定冷水回路中氢气含量的连续监测，能够微秒级响应微弱泄漏信号，为发电机的预防性维护提供科学依据。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    发电机组定冷水氢检测解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    在大型氢冷发电机组中，定子绕组的有效冷却至关重要。为确保冷却效果，定子绕组内部通常采用去离子水进行冷却（即定冷水系统），而发电机内部空间则充满氢气作为主要冷却介质。氢气通过定子线棒绝缘层与冷却水进行热交换。一旦定子线棒绝缘破损，氢气便可能溶解或渗透进入定冷水中，导致定冷水中的溶解氢浓度发生变化。元芯传感的“发电机组定冷水氢检测解决方案”，正是基于这一原理，通过精准监测定冷水进出口溶解氢浓度的变化，实时评估发电机内部氢气泄漏风险。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">超灵敏溶解氢探测</span>
-                                    <span class="solution-feature-tag">在线连续监测</span>
-                                    <span class="solution-feature-tag">微量泄漏识别</span>
-                                    <span class="solution-feature-tag">数据趋势预警</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-cooling-water-main.jpg"
+                                            alt="精准溶解氢检测">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>精准溶解氢检测 · 早期预警氢气泄漏</h4>
+                                        <p>
+                                            传统泄漏检测方法往往滞后或需要停机检查，而定冷水氢检测提供了更早期的预警能力。元芯传感的解决方案采用高灵敏度、高选择性的溶解氢传感器，分别部署在发电机组定冷水系统的入口和出口管路上。这些传感器能够实时、精准地测量定冷水中溶解氢的浓度。当发电机内部定子线棒绝缘出现微小破损时，氢气会溶解进入定冷水，导致出口溶解氢浓度相较于入口出现显著升高。通过监测这种微小的浓度差，我们的系统能够以非侵入式的方式，在氢气泄漏初期即发出预警，比传统方法更早发现隐患，为电厂运维争取宝贵的响应时间，有效避免由小故障演变为大事故。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 2 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-cooling-water-sub1.jpg"
+                                            alt="单位时间泄漏量计算">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>单位时间泄漏量计算 · 遵循行业规范</h4>
+                                        <p>
+                                            元芯传感的解决方案不仅能实时测量进出口溶解氢浓度，更可结合定冷水流量等参数，根据电力行业相关规定和标准，精确计算出单位时间内的氢气泄漏量。这种精准的泄漏量评估能力，为电厂运行人员提供了量化的风险指标。基于泄漏量的等级，运维人员可以制定科学合理的应对策略，判断是否需要立即停机检修、调整运行策略，或者安排计划性检修，从而优化维护资源配置，确保发电机组的安全经济运行，完全符合行业安全管理规范。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 3 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-cooling-water-sub2.jpg"
+                                            alt="智慧趋势分析">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>智慧趋势分析 · 实现预测性维护</h4>
+                                        <p>
+                                            为了进一步提升发电机组的运行可靠性，元芯传感的定冷水氢检测方案集成了智慧化趋势分析功能。系统实时采集的进出口溶解氢浓度数据和计算出的泄漏量，将被上传至中央监测平台。通过大数据分析和智能算法，平台能够绘制溶解氢浓度的变化趋势图，并分析泄漏量的发展速率。这种智慧化趋势分析能力，有助于运维人员深入了解发电机内部绝缘状况的长期变化，预测潜在的故障点和发展方向。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Panel 3: 核电水中溶解氢 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/power-nuclear-h2-main.jpg"
-                                        alt="核电站溶解氢在线监测系统">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-nuclear-h2-sub1.jpg"
-                                            alt="核电一回路水质监测">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-nuclear-h2-sub2.jpg"
-                                            alt="抗辐射传感器监测终端">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>核电站水中溶解氢监测解决方案</h3>
-                                <p>核电站一回路或冷却水系统中的溶解氢浓度直接影响材料的腐蚀速率。元芯提供的抗辐射、耐高温溶解氢监测系统，能够确保在严苛核电工况下长期稳定运行，助力核电机组的本质安全与延寿运行。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    核电站水中溶解氢监测解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    在核电站复杂且严苛的运行环境中，确保一回路及二回路水化学参数的精确控制是保障反应堆安全、防止设备腐蚀、延长运行寿命的关键。核辐射会导致冷却水分解，将改变水体的pH值，显著增加对锅炉、蒸汽发生器、管道及燃料包壳的腐蚀风险，尤其是应力腐蚀开裂。为了有效抑制这种氧化性腐蚀，通常在冷却水中注入微量的氢气作为还原剂，以平衡辐射分解产物。因此，精确监测水中溶解氢浓度成为核电站运行维护中的一个重点关键指标。元芯传感的“核电站水中溶解氢监测解决方案”，正是为满足这一高标准需求而设计。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">核级抗辐射设计</span>
-                                    <span class="solution-feature-tag">耐高温高压</span>
-                                    <span class="solution-feature-tag">腐蚀环境守护</span>
-                                    <span class="solution-feature-tag">高精度化学监测</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-nuclear-h2-main.jpg" alt="实时精准监测">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>实时精准监测 · 维护水化学平衡</h4>
+                                        <p>
+                                            核电站冷却水系统是一个封闭且高度受控的环境。水中溶解氢的浓度需要被精确维持在一个狭窄的优化区间内。元芯传感的解决方案采用针对核电环境优化的高精度、高稳定性的水中溶解氢传感器，部署在核电站一回路或二回路的关键监测点。这些传感器能够实时、精准地测量水中的溶解氢浓度。精确的数据反馈能使核电站运行人员及时调整注氢量，确保水中氢氧根离子浓度处于理想平衡状态，从而有效抑制由辐射分解产生的氧化性物质对管道和设备的侵蚀。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 2 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-nuclear-h2-sub1.jpg" alt="有效抑制腐蚀">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>有效抑制腐蚀 · 保障关键设备安全</h4>
+                                        <p>
+                                            核电站的锅炉、蒸汽发生器、燃料包壳和管道等核心部件长期处于高温、高压、高辐射的极端工况下，极易受到腐蚀的威胁，尤其是应力腐蚀开裂。水化学中溶解氢的不足，会导致水中氧化性增强，加速材料的腐蚀进程。元芯传感的水中溶解氢监测系统，通过对氢浓度变化的持续跟踪与精确控制，能够确保冷却水环境始终保持在还原态，有效抑制氧化性物质（如O2、H2O2等）对金属材料的侵蚀。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 3 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-nuclear-h2-sub2.jpg" alt="智慧预警管理">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>智慧预警管理 · 助力安全高效运维</h4>
+                                        <p>
+                                            核电站的运维管理需要高度集成和智能化。元芯传感的解决方案不仅提供精准的现场数据，更可与核电站的DCS/SIS系统无缝集成，构建智慧预警管理平台。平台能够实时显示溶解氢浓度趋势图，并结合其他水化学参数（如电导率、pH值、溶解氧等）进行综合分析。当溶解氢浓度超出设定安全范围时，系统将立即发出多级声光报警，并通过远程通知及时告知运维人员。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Panel 4: 变压器油中氢 -->
                         <div class="solution-panel">
-                            <div class="solution-panel-gallery">
-                                <div class="solution-gallery-main">
-                                    <img src="../../assets/images/solutions/power-transformer-h2-main.jpg"
-                                        alt="变压器油中溶解氢在线工作状态">
-                                </div>
-                                <div class="solution-gallery-grid">
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-transformer-h2-sub1.jpg"
-                                            alt="大型变压器运行监测现场">
-                                    </div>
-                                    <div class="solution-gallery-item">
-                                        <img src="../../assets/images/solutions/power-transformer-h2-sub2.jpg"
-                                            alt="变压器在线监测终端">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="solution-panel-text">
-                                <h3>变压器油中氢浓度检测解决方案</h3>
-                                <p>基于电力变压器内部潜伏性故障预测需求，该方案通过监测油中溶解氢气浓度的变化趋势，实现变压器运行状态的预研预判。元芯碳基MEMS芯片凭借极佳的零点稳定性和抗交叉气体干扰能力，为变压器提供了“智慧诊疗”式的安全保障。
+                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
+                                <h3
+                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
+                                    变压器油中氢浓度检测解决方案</h3>
+                                <p
+                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
+                                    在电力传输与分配网络中，油浸式变压器作为关键设备，其安全运行对电网至关重要。变压器内部绝缘油的状况直接反映了设备的健康水平。当变压器发生局部过热、局部放电（PD）或电弧放电等内部故障时，绝缘油及固体绝缘材料会因热应力或电应力分解，产生氢气、乙炔、二氧化碳等故障特征气体。其中，氢气（H2）作为最早产生且含量最敏感的故障特征气体之一，其在油中溶解浓度的变化是判断变压器是否存在潜伏性故障的一个极好的早期预警信号。元芯传感的“变压器油中氢浓度检测解决方案”，正是基于这一原理，提供高灵敏度在线监测、精准故障预警及智慧运维支撑，助力电力客户实现变压器运维的更精准运维和电网的稳定可靠运行。
                                 </p>
-                                <div class="solution-panel-features">
-                                    <span class="solution-feature-tag">油色谱技术补充</span>
-                                    <span class="solution-feature-tag">故障早期识别</span>
-                                    <span class="solution-feature-tag">免维护长寿命</span>
-                                    <span class="solution-feature-tag">智能诊断算法</span>
+                            </div>
+
+                            <div class="solution-sub-grid">
+                                <!-- Item 1 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-transformer-h2-main.jpg"
+                                            alt="高灵敏度在线监测">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>高灵敏度在线监测 · 捕捉早期故障信号</h4>
+                                        <p>
+                                            变压器内部潜在故障往往从微小的能量异常开始，早期产生的氢气浓度虽然不高，但却是最灵敏的预警信号。元芯传感的解决方案采用针对变压器油环境优化的高灵敏度氢气传感器，能够实现对绝缘油中溶解氢浓度的实时、连续、高精度在线监测。我们的传感器能够捕捉到ppm甚至ppb级别的氢气浓度变化，远在其他故障特征气体大量生成之前。通过持续监测油中溶解氢的基线水平及其上升趋势，系统能够第一时间发现变压器内部的异常发热或局部放电等潜伏性故障。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 2 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-transformer-h2-sub1.jpg"
+                                            alt="精准故障预警">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>精准故障预警 · 助力智慧决策</h4>
+                                        <p>
+                                            元芯传感的解决方案不仅提供精准的氢浓度数据，更集成了智能分析模块，能够结合历史数据、运行工况以及电力行业推荐的DGA诊断标准，对变压器故障类型和严重程度进行初步判断。当油中溶解氢浓度或其变化速率超过预设阈值时，系统将立即触发多级精准故障预警，并给出相应的建议。这使得运维人员能够迅速掌握变压器故障的性质和发展趋势，从而进行更精准的决策。
+                                        </p>
+                                    </div>
+                                </div>
+                                <!-- Item 3 -->
+                                <div class="solution-sub-card">
+                                    <div class="sub-card-img">
+                                        <img src="../../assets/images/solutions/power-transformer-h2-sub2.jpg"
+                                            alt="智慧运维支撑">
+                                    </div>
+                                    <div class="sub-card-content">
+                                        <h4>智慧运维支撑 · 实现预测性管理</h4>
+                                        <p>
+                                            现代电网的运维管理正向数字化、智能化转型。元芯传感的变压器油中氢浓度检测解决方案，可无缝集成到电网的资产管理系统或能量管理系统（EMS）中，为实现智慧运维提供坚实支撑。系统将监测数据上传至云平台，通过大数据分析、AI算法和机器学习，对大量变压器的运行数据进行深度挖掘。平台能够建立变压器健康档案，评估故障风险等级，预测设备劣化趋势，并结合电网运行负荷预测，提供最优的预测性维护建议。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -573,15 +1081,96 @@
         </section>
     </main>
 
-    <footer class="vs-footer">
+    <!-- Design Advantages Section -->
+    <section class="design-advantages-section">
         <div class="vs-container">
-            <div class="vs-footer__bottom">
-                <span>© 2024 湖南元芯传感科技有限责任公司. All rights reserved.</span>
+            <h2 id="adv-title">解决方案设计优势</h2>
+            <div class="advantages-new-grid" id="adv-grid">
+                <!-- Initial content for Hydrogen Generator -->
+                <div class="advantage-new-item">
+                    <h4>提升发电机效率</h4>
+                    <p>实时氢气纯度监控，确保最佳冷却性能，降低能耗</p>
+                </div>
+                <div class="advantage-new-item">
+                    <h4>极致安全保障</h4>
+                    <p>全域泄漏监测，多重防线，有效预防爆炸风险</p>
+                </div>
+                <div class="advantage-new-item">
+                    <h4>降低运维成本</h4>
+                    <p>预测性维护减少故障率与停机时间，优化人力资源</p>
+                </div>
+                <div class="advantage-new-item">
+                    <h4>数据驱动决策</h4>
+                    <p>智慧平台提供实时数据分析，辅助电厂高效管理</p>
+                </div>
             </div>
         </div>
-    </footer>
+    </section>
 
     
+    <script>
+        const advData = [
+            { // 0: Hydrogen Generator
+                title: "解决方案设计优势",
+                items: [
+                    { t: "提升发电机效率", d: "实时氢气纯度监控，确保最佳冷却性能，降低能耗" },
+                    { t: "极致安全保障", d: "全域泄漏监测，多重防线，有效预防爆炸风险" },
+                    { t: "降低运维成本", d: "预测性维护减少故障率与停机时间，优化人力资源" },
+                    { t: "数据驱动决策", d: "智慧平台提供实时数据分析，辅助电厂高效管理" }
+                ]
+            },
+            { // 1: Stator Cooling Water
+                title: "解决方案设计优势",
+                items: [
+                    { t: "早期预警", d: "非侵入式检测定冷水溶解氢，实现氢气泄漏的早期发现" },
+                    { t: "精准量化", d: "精确计算单位时间泄漏量，提供量化风险指标" },
+                    { t: "预测性维护", d: "智慧趋势分析，预测故障发生，支持主动检修" },
+                    { t: "高效安全", d: "提升发电机组运行安全性与可靠性，延长设备使用寿命" }
+                ]
+            },
+            { // 2: Nuclear Power
+                title: "解决方案设计优势",
+                items: [
+                    { t: "实时精准", d: "高精度传感器实时监测水中溶解氢，确保数据可靠性" },
+                    { t: "腐蚀防护", d: "有效平衡水辐射分解产物，抑制腐蚀，延长设备寿命" },
+                    { t: "安全保障", d: "及时发现水化学异常，预警潜在风险，保障运行安全" },
+                    { t: "智慧运维", d: "数据集成与智能分析，支持科学决策，提升管理效率" }
+                ]
+            },
+            { // 3: Transformer Oil
+                title: "解决方案设计优势",
+                items: [
+                    { t: "早期预警", d: "实时在线监测油中溶解氢，捕捉变压器早期故障信号" },
+                    { t: "精准诊断", d: "结合氢气数据智能分析，辅助判断故障类型与严重程度" },
+                    { t: "优化运维", d: "从被动抢修转变为预测性维护，提高设备可靠性与利用率" },
+                    { t: "降低成本", d: "减少非计划停机，降低故障处理费用，延长变压器寿命" }
+                ]
+            }
+        ];
+
+        function switchSolutionTab(index, btn) {
+            const container = btn.closest('.solution-tabs-container');
+            container.querySelectorAll('.solution-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            container.querySelectorAll('.solution-panel').forEach(p => p.classList.remove('active'));
+            container.querySelectorAll('.solution-panel')[index].classList.add('active');
+
+            // Update Advantages Section
+            const data = advData[index] || advData[0];
+            const titleEl = document.getElementById('adv-title');
+            if (titleEl) titleEl.textContent = data.title;
+
+            const gridEl = document.getElementById('adv-grid');
+            if (gridEl) {
+                gridEl.innerHTML = data.items.map(item => `
+                    <div class="advantage-new-item">
+                        <h4>${item.t}</h4>
+                        <p>${item.d}</p>
+                    </div>
+                `).join('');
+            }
+        }
+    </script>
 
     <!-- 全站搜索 -->
     <script src="../../assets/js/search.js"></script>
@@ -710,6 +1299,46 @@
             <div class="address-item">双马街道书院路 38 号</div>
           </div>
         </div>
+    <footer class="vs-footer-new">
+        <div class="vs-container">
+            <div class="vs-footer-new__main">
+                <div class="vs-footer-new__brand">
+                    <a href="../../index.html" class="logo-link">
+                        <img src="../../assets/images/logo.png" alt="Metachip Logo" />
+                        METACHIP
+                    </a>
+                    <div class="tagline">湖南元芯传感科技有限责任公司</div>
+                    <div class="address">
+                        <div class="address-item">公司总部</div>
+                        <div class="address-item">湖南省湘潭市高新区</div>
+                        <div class="address-item">双马街道书院路 38 号</div>
+                    </div>
+                </div>
+
+                <div class="vs-footer-new__certs">
+                    <div class="vs-footer-new__cert vs-footer-new__cert--diamond">
+                        <span>FM<br>APPROVED</span>
+                    </div>
+                    <div class="vs-footer-new__cert vs-footer-new__cert--circle">
+                        GLOBAL<br>INTERTEK
+                    </div>
+                </div>
+
+                <div class="vs-footer-new__right">
+                    <div class="vs-footer-new__social">
+                        <a href="#" title="X"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+                        <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                    <div class="vs-footer-new__links">
+                        <a href="../about/policy.html">隐私政策</a>
+                        <a href="#">条款与条件</a>
+                    </div>
+                    <div class="vs-footer-new__copyright">© 2026 湖南元芯传感科技有限责任公司，保留所有权利。</div>
+                </div>
+            </div>
 
         <div class="vs-footer-new__certs">
           <div class="vs-footer-new__cert vs-footer-new__cert--diamond">
