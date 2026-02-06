@@ -69,6 +69,122 @@ EXCLUDE_FILES = {
     str(ROOT_DIR / 'pages' / 'biosensing' / 'index.html'),
 }
 
+NAV_DYNAMIC_SCRIPT_MARK_START = '<!-- NAV_DYNAMIC_DATA_START -->'
+NAV_DYNAMIC_SCRIPT_MARK_END = '<!-- NAV_DYNAMIC_DATA_END -->'
+
+GAS_NAV_DYNAMIC_SCRIPT = f"""{NAV_DYNAMIC_SCRIPT_MARK_START}
+<script>
+document.addEventListener('DOMContentLoaded', async function () {{
+    // 动态加载全部产品（导航栏“全部产品”面板）
+    try {{
+        const container = document.getElementById('dynamic-product-list');
+        if (container) {{
+            const response = await fetch('/api/products/with-settings');
+            const data = await response.json();
+            const products = (data.products || []).filter(p => !p.hidden);
+            if (!products.length) {{
+                container.innerHTML = '<p style="color:#666;">暂无产品</p>';
+            }} else {{
+                const renderLink = (p) => {{
+                    const displayName = p.displayName || p.shortName || p.name || '';
+                    const newBadge = p.isNew ? '<span style="background:#ff4444;color:white;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle;">NEW</span>' : '';
+                    let href = p.id || '';
+                    if (href.startsWith('../customization/')) {{
+                        href = '/pages/customization/' + href.replace('../customization/', '') + '.html';
+                    }} else if (href.startsWith('../biosensing/')) {{
+                        href = '/pages/biosensing/' + href.replace('../biosensing/', '') + '.html';
+                    }} else if (href.startsWith('/')) {{
+                        // keep as absolute path
+                    }} else if (href.endsWith('.html')) {{
+                        href = '/pages/gassensing/' + href;
+                    }} else {{
+                        href = '/pages/gassensing/' + href + '.html';
+                    }}
+                    return `<li><a href="${{href}}">${{displayName}}${{newBadge}}</a></li>`;
+                }};
+                const half = Math.ceil(products.length / 2);
+                const leftHtml = products.slice(0, half).map(renderLink).join('');
+                const rightHtml = products.slice(half).map(renderLink).join('');
+                container.innerHTML = `<div><ul class="vs-mega-list-v2">${{leftHtml}}</ul></div><div><ul class="vs-mega-list-v2">${{rightHtml}}</ul></div>`;
+            }}
+        }}
+    }} catch (e) {{
+        console.error('Failed to load nav products:', e);
+    }}
+
+    // 动态加载新品推荐
+    try {{
+        const latestList = document.getElementById('latestReleasesList');
+        const appList = document.getElementById('applicationAreasList');
+        if (latestList || appList) {{
+            const res = await fetch('/api/recommendations');
+            const data = await res.json();
+            const buildLink = (item) => {{
+                const url = (item && item.url) ? String(item.url) : '#';
+                const name = (item && item.name) ? String(item.name) : '未命名链接';
+                const external = /^https?:\\/\\//i.test(url);
+                const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                return `<li><a href="${{url}}"${{target}}>${{name}}</a></li>`;
+            }};
+            if (latestList && Array.isArray(data.latestReleases)) {{
+                latestList.innerHTML = data.latestReleases.map(buildLink).join('');
+            }}
+            if (appList && Array.isArray(data.applicationAreas)) {{
+                appList.innerHTML = data.applicationAreas.map(buildLink).join('');
+            }}
+        }}
+    }} catch (e) {{
+        console.error('Failed to load nav recommendations:', e);
+    }}
+
+    // 动态加载产品种类（来源：admin -> 领域分类）
+    try {{
+        const leftList = document.getElementById('categoriesLeft');
+        const rightList = document.getElementById('categoriesRight');
+        if (leftList || rightList) {{
+            const res = await fetch('/api/products/industry-filters');
+            const data = await res.json();
+            const categories = Array.isArray(data.categories) ? data.categories : [];
+            const half = Math.ceil(categories.length / 2);
+            const left = categories.slice(0, half);
+            const right = categories.slice(half);
+            const renderItem = (cat) => `<li><a href="/pages/gassensing/all-products.html?filter=${{encodeURIComponent(cat.key)}}">${{cat.name}}</a></li>`;
+            if (leftList) leftList.innerHTML = left.length ? left.map(renderItem).join('') : '<li><a href="/pages/gassensing/all-products.html">全部产品</a></li>';
+            if (rightList) rightList.innerHTML = right.length ? right.map(renderItem).join('') : '';
+        }}
+    }} catch (e) {{
+        console.error('Failed to load nav categories:', e);
+    }}
+
+    // 动态加载测量对象
+    try {{
+        const leftList = document.getElementById('measurementTargetsLeft');
+        const rightList = document.getElementById('measurementTargetsRight');
+        if (leftList || rightList) {{
+            const res = await fetch('/api/measurement-targets');
+            const data = await res.json();
+            const items = Array.isArray(data.items) ? data.items : [];
+            const half = Math.ceil(items.length / 2);
+            const left = items.slice(0, half);
+            const right = items.slice(half);
+            const renderItem = (item) => {{
+                const url = (item && item.url) ? String(item.url) : '#';
+                const name = (item && item.name) ? String(item.name) : '未命名';
+                const external = /^https?:\\/\\//i.test(url);
+                const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                return `<li><a href="${{url}}"${{target}}>${{name}}</a></li>`;
+            }};
+            if (leftList) leftList.innerHTML = left.length ? left.map(renderItem).join('') : '<li><a href="#">暂无数据</a></li>';
+            if (rightList) rightList.innerHTML = right.length ? right.map(renderItem).join('') : '<li><a href="#">暂无数据</a></li>';
+        }}
+    }} catch (e) {{
+        console.error('Failed to load nav measurement targets:', e);
+    }}
+}});
+</script>
+{NAV_DYNAMIC_SCRIPT_MARK_END}
+"""
+
 
 # ============================================================================
 # 导航栏提取和替换
@@ -217,6 +333,7 @@ def replace_nav_in_file(
     target_path: Path,
     new_nav_html: str,
     new_scripts: str,
+    nav_key: str,
     dry_run: bool = False
 ) -> bool:
     """
@@ -245,6 +362,9 @@ def replace_nav_in_file(
     
     # 构建新内容
     new_content = content[:start_pos] + new_nav_html + content[end_pos:]
+
+    if nav_key == 'gas':
+        new_content = ensure_gas_nav_dynamic_script(new_content)
     
     if dry_run:
         print(f"  [DRY-RUN] 将替换导航栏 ({end_pos - start_pos} -> {len(new_nav_html)} 字符)")
@@ -258,6 +378,21 @@ def replace_nav_in_file(
     except Exception as e:
         print(f"  [ERROR] 无法写入文件: {e}")
         return False
+
+
+def ensure_gas_nav_dynamic_script(content: str) -> str:
+    """Ensure gas-nav dependent dynamic data script exists and is up-to-date."""
+    if NAV_DYNAMIC_SCRIPT_MARK_START in content and NAV_DYNAMIC_SCRIPT_MARK_END in content:
+        start = content.find(NAV_DYNAMIC_SCRIPT_MARK_START)
+        end = content.find(NAV_DYNAMIC_SCRIPT_MARK_END)
+        if start != -1 and end != -1 and end > start:
+            end += len(NAV_DYNAMIC_SCRIPT_MARK_END)
+            return content[:start] + GAS_NAV_DYNAMIC_SCRIPT + content[end:]
+
+    body_end = content.rfind('</body>')
+    if body_end == -1:
+        return content + '\n' + GAS_NAV_DYNAMIC_SCRIPT + '\n'
+    return content[:body_end] + '\n' + GAS_NAV_DYNAMIC_SCRIPT + '\n' + content[body_end:]
 
 
 # ============================================================================
@@ -343,6 +478,7 @@ def sync_navigation(dry_run: bool = False) -> Tuple[int, int, int]:
                     target_path,
                     adjusted_nav,
                     source_scripts,
+                    nav_key,
                     dry_run=dry_run
                 )
                 
