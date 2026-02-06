@@ -99,6 +99,26 @@ def migrate_file(profile: str, path: Path) -> bool:
             text2 = text2[:second] + text2[second + len(SCRIPT_TAG):]
             second = text2.find(SCRIPT_TAG, first + len(SCRIPT_TAG))
 
+    # Remove any leftover legacy headers that may remain after historical sync artifacts.
+    # Keep only the component mount block + noscript + loader.
+    text2 = re.sub(r'\s*<header class="vs-header">.*?</header>\s*', '\n', text2, flags=re.S)
+
+    # Deduplicate mount blocks if historical edits introduced duplicates.
+    mount_block_pattern = re.compile(
+        r'<div id="mc-nav-root" data-nav-profile="[a-z]+"></div>\s*<noscript>.*?</noscript>\s*<script src="/assets/js/nav-loader.js"></script>',
+        re.S
+    )
+    blocks = list(mount_block_pattern.finditer(text2))
+    if len(blocks) > 1:
+        keep = blocks[0]
+        cleaned = text2[:keep.end()]
+        cursor = keep.end()
+        for b in blocks[1:]:
+            cleaned += text2[cursor:b.start()]
+            cursor = b.end()
+        cleaned += text2[cursor:]
+        text2 = cleaned
+
     if text2 != original:
         path.write_text(text2, encoding='utf-8')
         return True

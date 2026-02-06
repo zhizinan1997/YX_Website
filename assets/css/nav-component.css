@@ -1,0 +1,231 @@
+/* Shared navigation component styles */
+.vs-header .vs-container,
+.vs-header__inner,
+.vs-nav,
+.vs-nav__list {
+  height: 100%;
+}
+
+.vs-nav__item--has-mega {
+  position: relative !important;
+}
+
+.vs-mega-menu {
+  position: absolute;
+  top: 100%;
+  left: -30px;
+  width: 1000px;
+  background: var(--color-white);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity 0.14s ease-out, transform 0.14s ease-out, visibility 0s linear 0.14s;
+  z-index: 999;
+  display: flex;
+  min-height: 440px;
+  border-radius: 8px;
+  overflow: visible;
+  pointer-events: none;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-top: -2px;
+  will-change: opacity, transform;
+}
+
+.vs-mega-menu::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: -50px;
+  width: 400px;
+  height: 50px;
+  background: transparent;
+  z-index: -1;
+}
+
+.vs-nav__item--has-mega:hover .vs-mega-menu,
+.vs-nav__item--has-mega:focus-within .vs-mega-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s, 0s, 0s;
+  pointer-events: auto;
+}
+
+.vs-mega-sidebar {
+  width: 260px;
+  background: #f4f6f8;
+  border-right: 1px solid #eee;
+  padding: 15px 0;
+  border-radius: 8px 0 0 8px;
+}
+
+.vs-mega-tab {
+  padding: 14px 30px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vs-mega-tab:first-child {
+  border-top-left-radius: 8px;
+}
+
+.vs-mega-tab:hover,
+.vs-mega-tab.active {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.vs-mega-tab i {
+  font-size: 10px;
+  opacity: 0.4;
+}
+
+.vs-mega-content {
+  flex: 1;
+  padding: 40px 50px;
+  background: var(--color-white);
+  border-radius: 0 8px 8px 0;
+}
+
+.vs-mega-panel {
+  display: none;
+  animation: mcNavFadeIn 0.14s ease-out;
+}
+
+.vs-mega-panel.active {
+  display: block;
+}
+
+@keyframes mcNavFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vs-mega-panel h3 {
+  font-size: 20px;
+  color: var(--color-primary);
+  margin-bottom: 24px;
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-accent-orange);
+  display: inline-block;
+  padding-bottom: 4px;
+}
+
+.vs-mega-grid-v2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+}
+
+.vs-mega-sublist-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.vs-mega-list-v2 {
+  list-style: none;
+}
+
+.vs-mega-list-v2 li {
+  margin-bottom: 10px;
+}
+
+.vs-mega-list-v2 a {
+  font-size: 15px;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.vs-mega-list-v2 a:hover {
+  color: var(--color-accent-blue);
+  padding-left: 5px;
+}
+
+.vs-mega-action {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid #eee;
+}
+
+.vs-btn-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.vs-btn-search:hover {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.vs-mega-menu--contact {
+  width: 480px;
+  left: -30px;
+  min-height: 280px;
+}
+
+.vs-mega-menu--contact .vs-mega-sidebar {
+  width: 180px;
+}
+
+.vs-mega-menu--contact .vs-mega-grid-v2 {
+  grid-template-columns: 1fr;
+}
+
+/* Crucial rule for Solution/Research link-only menus */
+.vs-mega-menu--links {
+  width: max-content;
+  min-width: 220px;
+  min-height: auto;
+  display: block;
+}
+
+.vs-mega-menu--links .vs-mega-sidebar {
+  width: max-content;
+  min-width: 220px;
+  border-right: none;
+  border-radius: 8px;
+}
+
+.vs-mega-tab-link {
+  text-decoration: none;
+  color: #444;
+}
+
+.mc-nav-noscript {
+  padding: 10px 16px;
+  background: #f4f6f8;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.mc-nav-noscript a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
