@@ -20,6 +20,12 @@
             text-align: center;
         }
 
+        .vs-page-hero .vs-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .vs-page-hero h1 {
             font-size: 48px;
             font-weight: 700;
@@ -32,7 +38,12 @@
         }
 
         .vs-breadcrumb {
-            padding: 15px 0;
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0;
+            margin: 10px 0 26px;
             font-size: 14px;
             color: rgba(255, 255, 255, 0.8);
             text-align: left;
@@ -40,7 +51,9 @@
 
         .vs-breadcrumb a {
             color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
+            text-decoration: none !important;
+            border-bottom: none !important;
+            display: inline-block;
         }
 
         .vs-breadcrumb a:hover {
@@ -48,7 +61,7 @@
         }
 
         .vs-breadcrumb span {
-            margin: 0 10px;
+            margin: 0;
             opacity: 0.6;
         }
 

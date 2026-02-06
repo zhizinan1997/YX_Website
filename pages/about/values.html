@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业文化与价值观 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/search.css">
+
+    <style>
+        :root {
+            /* Premium Light Theme (Synced with About page) */
+            --mc-bg-main: #ffffff;
+            --mc-bg-alt: #f8fafc;
+            --mc-primary: #0056b3;
+            --mc-secondary: #00a8e8;
+            --mc-accent: #0f172a;
+
+            --mc-text-head: #0f172a;
+            --mc-text-body: #334155;
+            --mc-text-light: #64748b;
+
+            --mc-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+            --mc-shadow-hover: 0 20px 40px -5px rgba(0, 0, 0, 0.1);
+
+            --font-main: 'Manrope', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            color: var(--mc-text-body);
+            background: var(--mc-bg-main);
+            margin: 0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        p {
+            margin: 0;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: .3s;
+        }
+
+        /* --- Animations --- */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .delay-100 {
+            animation-delay: 0.1s;
+        }
+
+        .delay-200 {
+            animation-delay: 0.2s;
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            position: relative;
+            height: 60vh;
+            min-height: 480px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: #fff;
+            text-align: center;
+        }
+
+        .hero__bg {
+            position: absolute;
+            inset: 0;
+            /* Use the team hands image for Values page */
+            background: url('/assets/images/about/values/values-team-hands.jpg') center/cover no-repeat;
+            filter: brightness(0.9);
+            transform: scale(1.05);
+        }
+
+        .hero__overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(0, 86, 179, 0.7) 100%);
+            mix-blend-mode: multiply;
+        }
+
+        .hero__content {
+            position: relative;
+            z-index: 10;
+            padding: 0 24px;
+            max-width: 800px;
+        }
+
+        .hero__title {
+            font-size: clamp(40px, 5vw, 64px);
+            font-weight: 800;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+
+        .hero__subtitle {
+            font-size: clamp(18px, 2vw, 24px);
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        /* --- Intro Statement --- */
+        .intro {
+            padding: 100px 0;
+            background: #fff;
+        }
+
+        .container {
+            width: min(1200px, 92vw);
+            margin: 0 auto;
+        }
+
+        .intro-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .intro-text {
+            font-size: 20px;
+            line-height: 1.8;
+            font-weight: 500;
+            color: var(--mc-text-head);
+        }
+
+        .intro-image {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transform: rotate(2deg);
+            transition: .4s;
+        }
+
+        .intro-image:hover {
+            transform: rotate(0) scale(1.02);
+        }
+
+        .intro-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .intro-highlight {
+            color: var(--mc-primary);
+            font-weight: 700;
+        }
+
+        @media (max-width: 1024px) {
+            .values-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .intro-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .intro-text {
+                font-size: 18px;
+                text-align: left;
+            }
+
+            .intro-image {
+                transform: rotate(0);
+                margin-top: 30px;
+            }
+        }
+
+        /* --- Values Grid --- */
+        .values-section {
+            padding: 100px 0;
+            background: var(--mc-bg-alt);
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+
+        .value-card {
+            background: #fff;
+            padding: 48px 32px;
+            border-radius: 20px;
+            text-align: center;
+            transition: .4s;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            box-shadow: var(--mc-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .value-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--mc-shadow-hover);
+            border-color: rgba(0, 86, 179, 0.2);
+        }
+
+        .value-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, var(--mc-primary), var(--mc-secondary));
+            opacity: 0;
+            transition: .4s;
+        }
+
+        .value-card:hover::before {
+            opacity: 1;
+        }
+
+        .v-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 32px;
+            background: #eff6ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: var(--mc-primary);
+            transition: .4s;
+        }
+
+        .value-card:hover .v-icon {
+            background: var(--mc-primary);
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        .v-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: var(--mc-text-head);
+        }
+
+        .v-desc {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--mc-text-light);
+        }
+
+        /* --- Quote Banner --- */
+        .quote-banner {
+            padding: 120px 0;
+            background: var(--mc-accent);
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quote-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 168, 232, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .quote-text {
+            font-size: clamp(32px, 4vw, 42px);
+            font-weight: 800;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .quote-sub {
+            font-size: 18px;
+            opacity: 0.7;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 1024px) {
+            .values-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <div id="mc-nav-root" data-nav-profile="home"></div>
+    <script src="/assets/js/nav-loader.js"></script>
+
+    <main>
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero__bg"></div>
+            <div class="hero__overlay"></div>
+            <div class="hero__content reveal">
+                <h1 class="hero__title">文化与价值观</h1>
+                <p class="hero__subtitle">用科技感知世界，用创新定义未来</p>
+            </div>
+        </section>
+
+        <!-- Intro -->
+        <section class="intro">
+            <div class="container reveal delay-100">
+                <div class="intro-grid">
+                    <div class="intro-content">
+                        <p class="intro-text">
+                            传感技术作为连接数字世界与物理现实的关键接口，是中国制造迈向高端的核心基石。
+                            <br><br>
+                            元芯传感正是在这样的时代背景下应运而生。我们专注于<span class="intro-highlight">先进传感技术产品</span>的研发与制造，
+                            矢志于提供高端生物与化学传感器解决方案。我们坚信，通过不懈探索与合作共进，
+                            传感技术将开拓无限可能，为人类社会带来更美好的未来。
+                        </p>
+                    </div>
+                    <div class="intro-image">
+                        <img src="/assets/images/about/values/values-culture-feature.jpg" alt="元芯文化">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Values Cards -->
+        <section class="values-section">
+            <div class="container">
+                <div class="values-grid">
+                    <!-- Mission -->
+                    <div class="value-card reveal">
+                        <div class="v-icon"><i class="fas fa-rocket"></i></div>
+                        <h3 class="v-title">使命</h3>
+                        <p class="v-desc">专注先进传感技术<br>用发明造福人类</p>
+                    </div>
+
+                    <!-- Vision -->
+                    <div class="value-card reveal delay-100">
+                        <div class="v-icon"><i class="fas fa-eye"></i></div>
+                        <h3 class="v-title">愿景</h3>
+                        <p class="v-desc">知微见著<br>智感世界</p>
+                    </div>
+
+                    <!-- Core Values -->
+                    <div class="value-card reveal delay-200">
+                        <div class="v-icon"><i class="fas fa-handshake"></i></div>
+                        <h3 class="v-title">价值观</h3>
+                        <p class="v-desc">客户至上<br>共创价值<br>伙伴共赢</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quote Banner -->
+        <section class="quote-banner reveal">
+            <div class="quote-bg"></div>
+            <div class="container">
+                <div class="quote-text">“ 每一次精准的感知，都是承诺。”</div>
+                <div class="quote-sub">METACHIP SENSING</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <div id="mc-footer-root"></div>
+    <script src="/assets/js/footer-loader.js"></script>
+    <script src="../../assets/js/chatbot.js"></script>
+    <script src="../../assets/js/search.js"></script>
+</body>
+
+</html>

@@ -1,6 +1,7 @@
 (function () {
   var ROOT_ID = 'mc-footer-root';
   var CSS_ID = 'mc-footer-component-css';
+  var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
 
   function ensureStylesheet() {
     if (document.getElementById(CSS_ID)) return;
@@ -9,6 +10,18 @@
     link.rel = 'stylesheet';
     link.href = '/assets/css/footer-component.css';
     document.head.appendChild(link);
+  }
+
+  function ensureChatbotScript() {
+    var exists = Array.prototype.some.call(document.getElementsByTagName('script'), function (s) {
+      var src = s.getAttribute('src') || '';
+      return src.indexOf('chatbot.js') !== -1;
+    });
+    if (exists) return;
+    var script = document.createElement('script');
+    script.src = CHATBOT_SCRIPT_SRC;
+    script.defer = true;
+    document.body.appendChild(script);
   }
 
   function bindFooterInteractions(root) {
@@ -30,6 +43,8 @@
   }
 
   function boot() {
+    ensureChatbotScript();
+
     var root = document.getElementById(ROOT_ID);
     if (!root) return;
 

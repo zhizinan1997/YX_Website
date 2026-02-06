@@ -4,6 +4,7 @@
     var ROOT_ID = 'mc-nav-root';
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
+    var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -44,6 +45,18 @@
         link.rel = 'stylesheet';
         link.href = '/assets/css/nav-component.css';
         document.head.appendChild(link);
+    }
+
+    function ensureChatbotScript() {
+        var exists = Array.prototype.some.call(document.getElementsByTagName('script'), function (s) {
+            var src = s.getAttribute('src') || '';
+            return src.indexOf('chatbot.js') !== -1;
+        });
+        if (exists) return;
+        var script = document.createElement('script');
+        script.src = CHATBOT_SCRIPT_SRC;
+        script.defer = true;
+        document.body.appendChild(script);
     }
 
     function injectPartial(root, profile) {
@@ -118,6 +131,41 @@
                 mobileToggle.classList.toggle('is-open');
             });
         }
+
+        // Smooth mega-menu switching on fast pointer movement.
+        (function bindMegaHoverBuffer() {
+            var items = root.querySelectorAll('.vs-nav__item--has-mega');
+            if (!items.length) return;
+            var closeTimer = null;
+            var closeDelay = 90;
+
+            function closeAll() {
+                items.forEach(function (it) { it.classList.remove('is-mega-open'); });
+            }
+
+            items.forEach(function (item) {
+                item.addEventListener('mouseenter', function () {
+                    if (closeTimer) {
+                        clearTimeout(closeTimer);
+                        closeTimer = null;
+                    }
+                    closeAll();
+                    item.classList.add('is-mega-open');
+                });
+
+                item.addEventListener('mouseleave', function () {
+                    if (closeTimer) clearTimeout(closeTimer);
+                    closeTimer = setTimeout(function () {
+                        item.classList.remove('is-mega-open');
+                    }, closeDelay);
+                });
+            });
+
+            root.addEventListener('mouseleave', function () {
+                if (closeTimer) clearTimeout(closeTimer);
+                closeTimer = setTimeout(closeAll, closeDelay);
+            });
+        })();
     }
 
     function safeSetHtml(id, html) {
@@ -259,6 +307,8 @@
     }
 
     function boot() {
+        ensureChatbotScript();
+
         var root = getRoot();
         if (!root) return;
         var profile = getProfile(root);

@@ -2,452 +2,831 @@
 <html lang="zh-CN">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>关于我们 - 元芯传感</title>
-    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Specific Styles for About Page */
-        .vs-about-hero {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../../assets/images/about_ban.jpg');
-            background-size: cover;
-            background-position: center;
-            height: 480px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: white;
-            margin-bottom: 0;
-            position: relative;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公司简介 - 元芯传感</title>
+  <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
-        .vs-about-hero h1 {
-            font-size: 64px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
 
-        .vs-about-hero p {
-            font-size: 24px;
-            font-weight: 300;
-            opacity: 0.95;
-            max-width: 800px;
-        }
+  <style>
+    :root {
+      /* Premium Light Theme */
+      --mc-bg-main: #ffffff;
+      --mc-bg-alt: #f0f4f8;
+      --mc-primary: #0056b3;
+      --mc-secondary: #00a8e8;
 
-        .vs-sticky-nav {
-            background: white;
-            border-bottom: 1px solid var(--color-border);
-            position: sticky;
-            top: 90px;
-            z-index: 900;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
+      /* Text Colors */
+      --mc-text-head: #0f172a;
+      /* Deep Navy-Black */
+      --mc-text-body: #334155;
+      /* Slate 700 */
+      --mc-text-light: #64748b;
+      /* Slate 500 */
 
-        .vs-sticky-nav ul {
-            display: flex;
-            justify-content: center;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
+      /* UI Elements */
+      --mc-border: #e2e8f0;
+      --mc-card-bg: #ffffff;
+      --mc-shadow: 0 20px 40px -6px rgba(15, 23, 42, 0.08), 0 8px 16px -6px rgba(15, 23, 42, 0.04);
+      --mc-shadow-hover: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
 
-        .vs-sticky-nav li {
-            margin: 0;
-        }
+      --font-main: 'Manrope', sans-serif;
+      --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+    }
 
-        .vs-sticky-nav a {
-            display: block;
-            padding: 24px 50px;
-            color: var(--color-text-body);
-            font-weight: 600;
-            font-size: 16px;
-            border-bottom: 4px solid transparent;
-            transition: all 0.3s;
-            text-decoration: none;
-        }
+    body {
+      font-family: var(--font-main);
+      color: var(--mc-text-body);
+      background: var(--mc-bg-main);
+      margin: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
 
-        .vs-sticky-nav a:hover,
-        .vs-sticky-nav a.active {
-            color: var(--color-primary);
-            border-bottom-color: var(--color-accent-blue);
-            background: rgba(0, 55, 100, 0.03);
-        }
+    h1,
+    h2,
+    h3,
+    h4,
+    p {
+      margin: 0;
+    }
 
-        .vs-about-section {
-            padding: 120px 0;
-            scroll-margin-top: 155px;
-        }
+    a {
+      text-decoration: none;
+      color: inherit;
+      transition: .3s;
+    }
 
-        .vs-about-section:nth-child(even) {
-            background: #f8fafc;
-        }
+    /* --- Animations --- */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
 
-        /* Profile Layout */
-        .vs-profile-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 80px;
-            align-items: center;
-        }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-        .vs-profile-text {
-            font-size: 17px;
-            line-height: 1.8;
-            color: #444;
-        }
+    @keyframes scaleIn {
+      from {
+        transform: scale(1.05);
+        opacity: 0;
+      }
 
-        .vs-profile-text p {
-            margin-bottom: 24px;
-        }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
 
-        .vs-profile-img-box {
-            position: relative;
-            z-index: 1;
-        }
+    .reveal {
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease-out) forwards;
+    }
 
-        .vs-profile-img-box::before {
-            content: '';
-            position: absolute;
-            top: -20px;
-            left: -20px;
-            width: 100%;
-            height: 100%;
-            border: 4px solid var(--color-accent-blue);
-            z-index: -1;
-            border-radius: 8px;
-        }
+    .delay-100 {
+      animation-delay: 0.1s;
+    }
 
-        .vs-profile-img-box img {
-            border-radius: 4px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-        }
+    .delay-200 {
+      animation-delay: 0.2s;
+    }
 
-        /* Culture Grid */
-        .vs-culture-header {
-            text-align: center;
-            max-width: 800px;
-            margin: 0 auto 60px;
-        }
+    .delay-300 {
+      animation-delay: 0.3s;
+    }
 
-        .vs-culture-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 40px;
-        }
+    /* --- Hero Section --- */
+    .hero {
+      position: relative;
+      height: 80vh;
+      min-height: 550px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: #fff;
+    }
 
-        .vs-culture-card {
-            background: white;
-            padding: 50px 30px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid #eee;
-        }
+    .hero__bg {
+      position: absolute;
+      inset: 0;
+      background: url('/assets/images/about/hero/about-hero-family.jpg') center/cover no-repeat;
+      /* Slightly lighter overlay for clarity */
+      filter: brightness(0.85);
+      animation: scaleIn 1.2s ease-out forwards;
+    }
 
-        .vs-culture-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: var(--color-accent-blue);
-            transform: scaleX(0);
-            transition: transform 0.4s ease;
-            transform-origin: left;
-        }
+    .hero__overlay {
+      position: absolute;
+      inset: 0;
+      /* Deep Blue Gradient Overlay */
+      background: linear-gradient(135deg, rgba(8, 28, 55, 0.85) 0%, rgba(3, 107, 185, 0.7) 100%);
+      mix-blend-mode: multiply;
+    }
 
-        .vs-culture-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
-        }
+    .hero__content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      max-width: 900px;
+      padding: 0 24px;
+    }
 
-        .vs-culture-card:hover::before {
-            transform: scaleX(1);
-        }
+    .hero__super {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 8px 16px;
+      border-radius: 50px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
 
-        .vs-culture-icon {
-            width: 80px;
-            height: 80px;
-            background: rgba(0, 161, 223, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 30px;
-            font-size: 32px;
-            color: var(--color-accent-blue);
-            transition: all 0.4s ease;
-        }
+    .hero__title {
+      font-size: clamp(42px, 5vw, 72px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
 
-        .vs-culture-card:hover .vs-culture-icon {
-            background: var(--color-accent-blue);
-            color: white;
-            transform: rotateY(180deg);
-        }
+    .hero__desc {
+      font-size: clamp(18px, 2vw, 22px);
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.95);
+      max-width: 760px;
+      margin: 0 auto;
+      font-weight: 400;
+    }
 
-        /* Timeline */
-        .vs-timeline-box {
-            background: white;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-            margin-top: 50px;
-            display: inline-block;
-        }
+    /* --- Vision Section (Intro) --- */
+    .vision {
+      padding: 100px 0;
+      background: #fff;
+      position: relative;
+      /* Subtle background decoration */
+      background-image: radial-gradient(circle at 5% 5%, rgba(0, 86, 179, 0.03) 0%, transparent 25%),
+        radial-gradient(circle at 95% 95%, rgba(0, 168, 232, 0.03) 0%, transparent 25%);
+    }
 
-        .vs-timeline-box img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-        }
+    .container {
+      width: min(1600px, 96vw);
+      /* Increased width for less side whitespace */
+      margin: 0 auto;
+    }
 
-        /* Core Tech Box */
-        .vs-core-tech {
-            margin-top: 80px;
-            background: linear-gradient(135deg, #003764 0%, #001f3f 100%);
-            color: white;
-            padding: 80px 60px;
-            border-radius: 16px;
-            position: relative;
-            overflow: hidden;
-        }
+    .vision__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
 
-        .vs-core-tech::after {
-            content: '';
-            position: absolute;
-            right: -50px;
-            top: -50px;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent);
-            border-radius: 50%;
-        }
+    .vision__text h2 {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--mc-text-head);
+      margin-bottom: 24px;
+      letter-spacing: -0.5px;
+    }
 
-        .vs-core-tech h3 {
-            color: white;
-            font-size: 32px;
-            margin-bottom: 24px;
-        }
+    .vision__text p {
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--mc-text-body);
+      margin-bottom: 24px;
+    }
 
-        .vs-core-tech p {
-            font-size: 18px;
-            line-height: 1.8;
-            opacity: 0.9;
-        }
-    </style>
+    .vision__highlight {
+      font-size: 20px;
+      line-height: 1.6;
+      color: var(--mc-primary);
+      /* Darker Blue Text */
+      font-weight: 600;
+      padding: 24px 30px;
+      border-left: 4px solid var(--mc-primary);
+      margin: 32px 0;
+      background: rgba(0, 86, 179, 0.04);
+      /* Very subtle blue fill */
+      border-radius: 8px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .stat-card {
+      background: #fff;
+      padding: 32px;
+      border-radius: 16px;
+      transition: .3s;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border-color: #cbd5e1;
+    }
+
+    .stat-icon {
+      font-size: 28px;
+      color: var(--mc-primary);
+      margin-bottom: 16px;
+      background: #eff6ff;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+    }
+
+    .stat-num {
+      font-size: 40px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--mc-primary) 0%, var(--mc-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--mc-text-light);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    /* --- Philosophy Bar --- */
+    .philosophy {
+      padding: 100px 0;
+      background: #0f172a;
+      /* Deep Navy Background for Contrast */
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Background Glow Effect */
+    .philosophy::before {
+      content: '';
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(0, 168, 232, 0.15) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .phi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .phi-item {
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      text-align: center;
+      transition: .3s;
+    }
+
+    .phi-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-5px);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .phi-icon {
+      font-size: 42px;
+      margin-bottom: 20px;
+      display: inline-block;
+      background: linear-gradient(135deg, #00d2ff 0%, #007aff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .phi-item h3 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .phi-item p {
+      font-size: 16px;
+      color: #94a3b8;
+      /* Slate 400 */
+      line-height: 1.6;
+    }
+
+    /* --- History / Timeline --- */
+    .history {
+      padding: 100px 0;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 70px;
+    }
+
+    .section-header h2 {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--mc-text-head);
+      margin-bottom: 12px;
+      letter-spacing: -1px;
+    }
+
+    .section-header p {
+      font-size: 18px;
+      color: var(--mc-text-light);
+    }
+
+    .timeline-wrapper {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      /* Fade edges for infinite scroll feel */
+      mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    }
+
+    .timeline-track {
+      display: flex;
+      gap: 48px;
+      width: max-content;
+      animation: scroll 60s linear infinite;
+      /* Slowed down slightly for larger cards */
+    }
+
+    .timeline-track:hover {
+      animation-play-state: paused;
+    }
+
+    @keyframes scroll {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(calc(-50% - 24px));
+      }
+
+      /* Adjust for 1/2 gap */
+    }
+
+    .timeline-node {
+      min-width: 500px;
+      position: relative;
+      padding-top: 20px;
+    }
+
+    /* "Ghost" Year Number in background */
+    .node-year {
+      font-size: 80px;
+      font-weight: 900;
+      color: #f1f5f9;
+      line-height: 1;
+      position: absolute;
+      top: -20px;
+      left: 20px;
+      z-index: 0;
+      letter-spacing: -2px;
+    }
+
+    .node-card {
+      background: #fff;
+      border: 1px solid var(--mc-border);
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+      box-shadow: var(--mc-shadow);
+      transition: .3s;
+      height: 100%;
+    }
+
+    .node-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--mc-shadow-hover);
+      border-color: #cbd5e1;
+    }
+
+    .node-img {
+      height: 320px;
+      overflow: hidden;
+      background: #f1f5f9;
+    }
+
+    .node-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: .6s;
+    }
+
+    .node-card:hover .node-img img {
+      transform: scale(1.05);
+    }
+
+    .node-content {
+      padding: 28px;
+    }
+
+    .node-date {
+      font-size: 14px;
+      color: var(--mc-primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+      letter-spacing: 0.5px;
+    }
+
+    .node-title {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--mc-text-head);
+    }
+
+    /* --- Honors (Grid) --- */
+    .honors {
+      padding: 100px 0;
+      background: var(--mc-bg-alt);
+    }
+
+    .honors-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+    }
+
+    .honor-item {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 380px;
+      transition: .3s;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border: 1px solid transparent;
+    }
+
+    .honor-item img {
+      width: 100%;
+      height: 280px;
+      object-fit: contain;
+      transition: .4s;
+    }
+
+    .honor-item:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--mc-shadow);
+      border-color: #e2e8f0;
+    }
+
+    .honor-label {
+      position: static;
+      opacity: 1;
+      transform: none;
+      background: transparent;
+      color: var(--mc-text-head);
+      padding: 16px 0 0;
+      font-size: 16px;
+      text-align: center;
+      font-weight: 700;
+      width: 100%;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 1024px) {
+      .vision__grid {
+        grid-template-columns: 1fr;
+        gap: 50px;
+      }
+
+      .phi-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+
+      .honors-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero__title {
+        font-size: 48px;
+      }
+
+      .node-year {
+        font-size: 60px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        height: auto;
+        padding: 140px 0 80px;
+      }
+
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .honors-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .node-img {
+        height: 180px;
+      }
+
+      .honor-item {
+        height: 260px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-    <div id="mc-nav-root" data-nav-profile="home"></div>
-<noscript><div class="mc-nav-noscript">
-  <a href="/index.html">首页</a> |
-  <a href="/pages/gassensing/all-products.html">产品</a> |
-  <a href="/pages/solutions/solutions-index.html">解决方案</a> |
-  <a href="/pages/research/index.html">科研服务</a> |
-  <a href="/pages/gassensing/service-cases.html">服务案例</a> |
-  <a href="/pages/about/about.html">公司简介</a> |
-  <a href="/pages/contact/contact.html">联系我们</a>
-</div>
-</noscript>
-<script src="/assets/js/nav-loader.js"></script>
+  <!-- Navigation -->
+  <div id="mc-nav-root" data-nav-profile="home"></div>
+  <noscript>
+    <div class="mc-nav-noscript"><a href="/index.html">首页</a></div>
+  </noscript>
+  <script src="/assets/js/nav-loader.js"></script>
 
-    <main style="padding-top: 90px;">
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero__bg"></div>
+      <div class="hero__overlay"></div>
+      <div class="hero__content reveal">
+        <div class="hero__super">About Metachip Sensing</div>
+        <h1 class="hero__title">用感知重塑<br>工业世界的安全边界</h1>
+        <p class="hero__desc">我们致力于将纳米级先进传感技术带入最严苛的物理世界。</p>
+      </div>
+    </section>
 
-        <!-- Hero -->
-        <section class="vs-about-hero">
-            <div class="vs-container">
-                <h1>关于我们</h1>
-                <p>知微见著 · 智感世界</p>
+    <!-- Vision Section -->
+    <section class="vision">
+      <div class="container">
+        <div class="vision__grid">
+          <div class="vision__text reveal delay-100">
+            <h2>源自北大的硬核科技</h2>
+            <p>元芯传感是由北京大学科研团队孵化创立的高科技企业。依托新一代碳纳米管（CNT）传感技术平台，我们不仅是在制造传感器，更是在构建物理世界与数字世界的精准桥梁。</p>
+            <div class="vision__highlight">
+              “我们深知，每一次精准的感知，都是对生命安全与环境未来的郑重承诺。”
             </div>
-        </section>
+            <p>从万米高空的极寒环境到地下千米的管网深处，我们的技术正在实时守护着氢能、电力、化工等关键领域的安全命脉。</p>
+          </div>
+          <div class="stat-grid reveal delay-200">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-atom"></i></div>
+              <div class="stat-num">20+</div>
+              <div class="stat-label">年基础研究积累</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-microchip"></i></div>
+              <div class="stat-num">CNT</div>
+              <div class="stat-label">全球首创碳基传感</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-file-contract"></i></div>
+              <div class="stat-num">50+</div>
+              <div class="stat-label">核心发明专利</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fas fa-globe-asia"></i></div>
+              <div class="stat-num">Top</div>
+              <div class="stat-label">行业领军企业验证</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        <!-- Sticky Sub-Nav -->
-        <nav class="vs-sticky-nav">
-            <ul>
-                <li><a href="#profile" class="active">公司简介</a></li>
-                <li><a href="#history">发展历程</a></li>
-                <li><a href="#culture">企业文化</a></li>
-            </ul>
-        </nav>
+    <!-- Philosophy Bar -->
+    <section class="philosophy">
+      <div class="container">
+        <div class="phi-grid">
+          <div class="phi-item reveal">
+            <div class="phi-icon"><i class="fas fa-bullseye"></i></div>
+            <h3>极致精准</h3>
+            <p>突破传统极限，在 ppb 级精度上洞察微观世界的每一个变化。</p>
+          </div>
+          <div class="phi-item reveal delay-100">
+            <div class="phi-icon"><i class="fas fa-shield-alt"></i></div>
+            <h3>本质安全</h3>
+            <p>专为易燃易爆、高腐蚀等极端工况设计，稳定是我们的底线。</p>
+          </div>
+          <div class="phi-item reveal delay-200">
+            <div class="phi-icon"><i class="fas fa-network-wired"></i></div>
+            <h3>智能互联</h3>
+            <p>不仅仅是传感器，更是工业物联网中拥有边缘计算能力的智慧节点。</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        <!-- Section 1: Company Profile -->
-        <section id="profile" class="vs-about-section">
-            <div class="vs-container">
-                <div class="vs-profile-layout">
-                    <div>
-                        <span
-                            style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Company
-                            Profile</span>
-                        <h2 class="vs-title" style="margin-top: 10px;">元芯传感 Metachip</h2>
-                        <div class="vs-profile-text">
-                            <p>
-                                <strong>湖南元芯传感科技有限责任公司（Metachip）</strong>立足北京大学科研团队20余年科研成果，专注于先进传感技术产品的研发与制造。我们致力于开发面向下一代高性能集成式传感芯片的碳基FET新型传感技术。
-                            </p>
-                            <p>
-                                传感是信息技术与真实世界的接口。先进传感技术产品是"中国制造2025"的核心内容，关乎国计民生。元芯传感愿与所有志同道合者共同开拓传感技术的无限可能。
-                            </p>
-                            <a href="../../pages/contact/contact.html" class="vs-btn vs-btn--primary">联系我们</a>
+    <!-- Timeline Section (Infinite Scroll) -->
+    <section class="history">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>创新进化之路</h2>
+          <p>从实验室的微观突破到产业界的规模化应用</p>
+        </div>
+
+        <div class="timeline-wrapper reveal delay-100">
+          <div class="timeline-track" id="timelineTrack"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Honors Section -->
+    <section class="honors">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>权威认证与荣誉</h2>
+          <p>实力见证，行业认可</p>
+        </div>
+        <div class="honors-grid reveal delay-200">
+          <div class="honor-item">
+            <img src="/assets/images/about/honors/honor-high-tech-enterprise.png" alt="High Tech">
+            <div class="honor-label">国家高新技术企业</div>
+          </div>
+          <div class="honor-item">
+            <img src="/assets/images/about/honors/honor-iso-management.jpg" alt="ISO">
+            <div class="honor-label">ISO9001 质量体系认证</div>
+          </div>
+          <div class="honor-item">
+            <img src="/assets/images/about/honors/honor-explosion-proof-cert.png" alt="Ex">
+            <div class="honor-label">防爆合格证</div>
+          </div>
+          <div class="honor-item">
+            <img src="/assets/images/about/honors/honor-cma-cert.png" alt="CMA">
+            <div class="honor-label">CMA 计量校准认证</div>
+          </div>
+          <div class="honor-item">
+            <img src="/assets/images/about/honors/honor-sensor-contest-9th.png" alt="Award">
+            <div class="honor-label">传感器大赛二等奖</div>
+          </div>
+          <div class="honor-item">
+            <img src="/assets/images/about/honors/honor-maker-china-10th.png" alt="Award">
+            <div class="honor-label">创客中国优秀奖</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Script -->
+  <script>
+    // Timeline Data
+    const originalHistoryData = [
+      {
+        year: '2022',
+        date: '2022.05',
+        title: '元芯传感正式成立，开启碳纳米管技术产业化征程',
+        img: '/assets/images/about/timeline/timeline-2022-05-founding.png'
+      },
+      {
+        year: '2022',
+        date: '2022.09',
+        title: '华中最大微纳加工中心产线通线，奠定核心制造基石',
+        img: '/assets/images/about/timeline/timeline-2022-09-nano-center.jpg'
+      },
+      {
+        year: '2023',
+        date: '2023.04',
+        title: '碳基传感芯片试产成功，实现核心技术突破',
+        img: '/assets/images/about/timeline/timeline-2023-04-chip-pilot.jpg'
+      },
+      {
+        year: '2023',
+        date: '2023.08',
+        title: '推出首款商业化碳基氢气检测仪，打破国外垄断',
+        img: '/assets/images/about/timeline/timeline-2023-08-commercial-launch.png'
+      },
+      {
+        year: '2023',
+        date: '2023.12',
+        title: '甲烷传感芯片中试成功，拓宽气体感知边界',
+        img: '/assets/images/about/timeline/timeline-2023-12-methane-pilot.png'
+      },
+      {
+        year: '2024',
+        date: '2024.05',
+        title: '获全球氢燃料电池发动机头部企业批量采购',
+        img: '/assets/images/about/timeline/timeline-2024-05-fuel-cell.png'
+      },
+      {
+        year: '2024',
+        date: '2024.09',
+        title: '碳基传感技术赋能中国科学院生物研究项目，助力科学前沿',
+        img: '/assets/images/about/timeline/timeline-2024-09-cas-research.png'
+      },
+      {
+        year: '2024',
+        date: '2024.12',
+        title: '全球首款碳基氢示踪检漏仪发布，定义工业检漏新标准',
+        img: '/assets/images/about/timeline/timeline-2024-12-leak-detector.png'
+      },
+      {
+        year: '2025',
+        date: '2025.04',
+        title: '获批阿尔兹海默症检测核心发明专利，探索生命健康前沿',
+        img: '/assets/images/about/timeline/timeline-2025-04-patent.png'
+      },
+      {
+        year: '2025',
+        date: '2025.05',
+        title: '碳基检测技术获全球发动机龙头企业验证，并深入应用',
+        img: '/assets/images/about/timeline/timeline-2025-05-engine-validation.jpg'
+      },
+      {
+        year: '2025',
+        date: '2025.09',
+        title: '助力国内绿氢装备龙头，实现电解槽安全监测规模化',
+        img: '/assets/images/about/timeline/timeline-2025-09-green-hydrogen.jpg'
+      },
+      {
+        year: '2025',
+        date: '2025.10',
+        title: '战略入股纳为科技，碳基传感挺进水质检测新蓝海',
+        img: '/assets/images/about/timeline/timeline-2025-10-strategic.jpg'
+      }
+    ];
+
+    // Double the data for seamless looping
+    const historyData = [...originalHistoryData, ...originalHistoryData];
+
+    // Render Timeline
+    const track = document.getElementById('timelineTrack');
+
+    historyData.forEach(item => {
+      track.innerHTML += `
+                <div class="timeline-node">
+                    <div class="node-year">${item.year}</div>
+                    <div class="node-card">
+                        <div class="node-img">
+                            <img src="${item.img}" alt="${item.title}" loading="lazy">
+                        </div>
+                        <div class="node-content">
+                            <span class="node-date">${item.date}</span>
+                            <h4 class="node-title">${item.title}</h4>
                         </div>
                     </div>
-                    <div class="vs-profile-img-box">
-                        <!-- Trying a valid local image related to company/lab -->
-                        <img src="../../assets/images/js_ys.jpg" alt="元芯传感实验室" class="vs-img-responsive">
-                    </div>
                 </div>
-            </div>
-        </section>
+            `;
+    });
+  </script>
 
-        <!-- Section 2: History -->
-        <section id="history" class="vs-about-section">
-            <div class="vs-container">
-                <div style="text-align: center; max-width: 800px; margin: 0 auto;">
-                    <span
-                        style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Milestones</span>
-                    <h2 class="vs-title">发展历程</h2>
-                    <p class="vs-text" style="margin: 0 auto;">每一步前行，都是对技术的执着追求与突破。</p>
-                </div>
+  <!-- Scripts -->
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/chatbot.js"></script>
 
-                <div style="text-align: center;">
-                    <div class="vs-timeline-box">
-                        <!-- Verified local timeline image -->
-                        <img src="../../assets/images/chengzhang1.png" alt="发展历程时间轴">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section 3: Culture -->
-        <section id="culture" class="vs-about-section">
-            <div class="vs-container">
-                <div class="vs-culture-header">
-                    <span
-                        style="color: var(--color-accent-blue); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Our
-                        Culture</span>
-                    <h2 class="vs-title">企业文化</h2>
-                    <p class="vs-text" style="margin: 0 auto;">我们共同的价值观与愿景，指引着未来的方向。</p>
-                </div>
-
-                <div class="vs-culture-grid">
-                    <div class="vs-culture-card">
-                        <div class="vs-culture-icon"><i class="fas fa-bullseye"></i></div>
-                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">使命</h3>
-                        <p style="color: #666; font-size: 16px;">专注先进传感技术<br>用发明造福人类</p>
-                    </div>
-
-                    <div class="vs-culture-card">
-                        <div class="vs-culture-icon"><i class="fas fa-eye"></i></div>
-                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">愿景</h3>
-                        <p style="color: #666; font-size: 16px;">知微见著<br>智感世界</p>
-                    </div>
-
-                    <div class="vs-culture-card">
-                        <div class="vs-culture-icon"><i class="fas fa-users"></i></div>
-                        <h3 style="font-size: 22px; margin-bottom: 15px; font-weight: 700;">价值观</h3>
-                        <p style="color: #666; font-size: 16px;">员工第一、成就客户<br>合作共赢</p>
-                    </div>
-                </div>
-
-                <!-- Core Tech Feature -->
-                <div class="vs-core-tech">
-                    <div style="max-width: 900px; margin: 0 auto; text-align: center;">
-                        <h3><i class="fas fa-microchip" style="margin-right: 15px;"></i>核心科技</h3>
-                        <p>
-                            我们的核心材料——<strong>碳纳米管</strong>，被国际半导体路线图委员会(ITRS)认定为延续摩尔定律的最有潜力的候选沟道材料。具有天然超薄尺寸和超高迁移率的独特优势。以碳纳米管晶体管为核心的传感器具备灵活的功能化修饰方式，卓越的灵敏度和优异的集成化检测能力，能够对痕量目标进行精准检测。
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <footer style="background: #1a1a1a; color: #999; padding: 60px 0; border-top: 1px solid #333;">
-        <div class="vs-container" style="text-align: center;">
-            <img src="../../assets/images/logo.png" alt="Logo"
-                style="height: 40px; filter: brightness(0) invert(1); opacity: 0.5; margin: 0 auto 30px;">
-            <p>&copy; 2026 湖南元芯传感科技有限责任公司 版权所有</p>
-        </div>
-    </footer>
-
-    <script>
-        // Sticky Nav Active State on Scroll - Enhanced
-        const sections = document.querySelectorAll('section[id]');
-        const navLinks = document.querySelectorAll('.vs-sticky-nav a');
-        const navBar = document.querySelector('.vs-sticky-nav');
-        const headerH = 90;
-
-        window.addEventListener('scroll', () => {
-            let current = '';
-
-            // Add shadow to nav on scroll
-            if (window.scrollY > 400) {
-                navBar.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)";
-            } else {
-                navBar.style.boxShadow = "none";
-            }
-
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
-                // Offset for fixed header + nav
-                if (pageYOffset >= (sectionTop - 250)) {
-                    current = section.getAttribute('id');
-                }
-            });
-
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href').includes(current)) {
-                    link.classList.add('active');
-                }
-            });
-        });
-
-        // Smooth scroll with offset
-        document.querySelectorAll('.vs-sticky-nav a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                const targetSection = document.querySelector(targetId);
-                const offsetPosition = targetSection.offsetTop - 150; // Adjust for header + nav height
-
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: "smooth"
-                });
-            });
-        });
-    </script>
-
-    
-
-    <!-- AI智能客服 -->
-    <script src="../../assets/js/chatbot.js"></script>
-    
-<!-- FOOTER_START -->
+  <!-- Footer -->
   <div id="mc-footer-root"></div>
   <noscript>
-    <footer class="vs-footer-new">
-      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
-        <a href="/index.html">首页</a> |
-        <a href="/pages/about/policy.html">隐私政策</a> |
-        <a href="/pages/about/terms.html">条款与条件</a>
-      </div>
-    </footer>
+    <footer class="vs-footer-new">...</footer>
   </noscript>
   <script src="/assets/js/footer-loader.js"></script>
-  <!-- FOOTER_END -->
-
 </body>
 
 </html>
