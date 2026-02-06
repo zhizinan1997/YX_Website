@@ -59,6 +59,8 @@ HERO_CONFIG_FILE = HERO_DIR / 'hero.json'
 PARTNERS_DIR = DATA_DIR / 'partners'
 PARTNERS_UPLOADS_DIR = PARTNERS_DIR / 'uploads'
 PARTNERS_CONFIG_FILE = PARTNERS_DIR / 'partners.json'
+PRODUCT_CARD_DIR = DATA_DIR / 'product_cards'
+PRODUCT_CARD_UPLOADS_DIR = PRODUCT_CARD_DIR / 'uploads'
 NEWS_FEATURED_FILE = DATA_DIR / 'news_featured.json'
 NEWS_VISIBILITY_FILE = DATA_DIR / 'news_visibility.json'
 PRODUCT_FEATURED_FILE = DATA_DIR / 'product_featured.json'
@@ -70,6 +72,7 @@ H2_HOME_FILE = DATA_DIR / 'h2_home.json'
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
 HERO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+PRODUCT_CARD_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 RATE_LIMIT_MAX = 5  # Max submissions per IP per hour
 RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
@@ -81,6 +84,8 @@ ALLOWED_HERO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.mp4'}
 ALLOWED_HERO_MIME_TYPES = {'image/png', 'image/jpeg', 'video/mp4'}
 ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.svg', '.webp'}
 ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'}
+ALLOWED_PRODUCT_CARD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
+ALLOWED_PRODUCT_CARD_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp'}
 
 def infer_extension_from_mime(mime: str) -> str:
     if mime == 'image/png':
@@ -98,6 +103,15 @@ def infer_partner_extension_from_mime(mime: str) -> str:
         return '.jpg'
     if mime == 'image/svg+xml':
         return '.svg'
+    if mime == 'image/webp':
+        return '.webp'
+    return ''
+
+def infer_product_card_extension_from_mime(mime: str) -> str:
+    if mime == 'image/png':
+        return '.png'
+    if mime == 'image/jpeg':
+        return '.jpg'
     if mime == 'image/webp':
         return '.webp'
     return ''
@@ -2080,6 +2094,130 @@ def get_products():
 # ============ Product Menu Settings API ============
 
 PRODUCT_SETTINGS_FILE = DATA_DIR / 'product_settings.json'
+PRODUCT_INDUSTRY_FILTERS_FILE = DATA_DIR / 'product_industry_filters.json'
+
+DEFAULT_INDUSTRY_FILTERS = [
+    {'key': 'hydrogen', 'name': '氢能源产品'},
+    {'key': 'power', 'name': '智慧电力产品'},
+    {'key': 'leak', 'name': '工业检漏产品'},
+    {'key': 'research', 'name': '科研服务产品'},
+    {'key': 'custom', 'name': '定制类产品'},
+]
+
+
+def normalize_filter_key(raw_key, fallback_index=0):
+    """Normalize filter key to lowercase ascii slug."""
+    key = (raw_key or '').strip().lower()
+    key = re.sub(r'[^a-z0-9_-]+', '-', key)
+    key = re.sub(r'-{2,}', '-', key).strip('-')
+    if not key:
+        key = f'industry-{fallback_index + 1}'
+    return key
+
+
+def get_industry_filters():
+    """Load industry filters for all-products page."""
+    categories = []
+    if PRODUCT_INDUSTRY_FILTERS_FILE.exists():
+        try:
+            data = json.loads(PRODUCT_INDUSTRY_FILTERS_FILE.read_text(encoding='utf-8'))
+            categories = data.get('categories', [])
+        except Exception:
+            categories = []
+
+    cleaned = []
+    used = set()
+    for idx, item in enumerate(categories):
+        if not isinstance(item, dict):
+            continue
+        name = (item.get('name') or '').strip()
+        if not name:
+            continue
+        key = normalize_filter_key(item.get('key'), idx)
+        if key in used:
+            key = normalize_filter_key(f'{key}-{idx + 1}', idx)
+        used.add(key)
+        cleaned.append({'key': key, 'name': name})
+
+    if not cleaned:
+        cleaned = [dict(item) for item in DEFAULT_INDUSTRY_FILTERS]
+
+    return {'categories': cleaned}
+
+
+def save_industry_filters(data):
+    """Persist industry filters and clean stale product mappings."""
+    raw_categories = data.get('categories', []) if isinstance(data, dict) else []
+    cleaned = []
+    used = set()
+    for idx, item in enumerate(raw_categories):
+        if not isinstance(item, dict):
+            continue
+        name = (item.get('name') or '').strip()
+        if not name:
+            continue
+        key = normalize_filter_key(item.get('key'), idx)
+        if key in used:
+            key = normalize_filter_key(f'{key}-{idx + 1}', idx)
+        used.add(key)
+        cleaned.append({'key': key, 'name': name})
+
+    if not cleaned:
+        cleaned = [dict(item) for item in DEFAULT_INDUSTRY_FILTERS]
+
+    saved = {'categories': cleaned}
+    PRODUCT_INDUSTRY_FILTERS_FILE.write_text(
+        json.dumps(saved, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
+
+    valid_keys = {item['key'] for item in cleaned}
+    settings = get_product_settings()
+    changed = False
+    for product_id, cfg in settings.items():
+        if not isinstance(cfg, dict):
+            continue
+        original = cfg.get('industryCategories', [])
+        if not isinstance(original, list):
+            continue
+        filtered = [k for k in original if k in valid_keys]
+        if filtered != original:
+            cfg['industryCategories'] = filtered
+            changed = True
+    if changed:
+        save_product_settings(settings)
+
+    return saved
+
+
+def infer_default_industry_categories(product):
+    """Infer initial industry categories for products with no custom mapping."""
+    pid = str(product.get('id', ''))
+    name = str(product.get('name', ''))
+    desc = str(product.get('description', ''))
+    text = f'{name} {desc}'
+    categories = []
+
+    if pid.startswith('../customization/'):
+        categories.append('custom')
+    else:
+        categories.append('hydrogen')
+
+    if any(x in text for x in ['电力', '变电', '输电', '发电']):
+        categories.append('power')
+    if any(x in text for x in ['检漏', '泄漏', '漏气', '真空']):
+        categories.append('leak')
+    if any(x in text for x in ['科研', '实验室', '微纳', '开发', '产学研']):
+        categories.append('research')
+    if product.get('category') == 'service':
+        categories.append('research')
+
+    # keep order, remove duplicates
+    deduped = []
+    for key in categories:
+        if key not in deduped:
+            deduped.append(key)
+    return deduped
 
 def get_product_settings():
     """Load product settings (custom names, new badges)."""
@@ -2126,10 +2264,23 @@ def update_product_settings_api():
     
     if 'sortOrder' in data:
         settings[product_id]['sortOrder'] = int(data['sortOrder'])
-    
+
+    if 'cardTitle' in data:
+        settings[product_id]['cardTitle'] = str(data['cardTitle'] or '').strip()
+
+    if 'cardImage' in data:
+        settings[product_id]['cardImage'] = str(data['cardImage'] or '').strip()
+
+    if 'cardSummary' in data:
+        settings[product_id]['cardSummary'] = str(data['cardSummary'] or '').strip()
+
     if 'categories' in data:
         # 支持多分类数组
         settings[product_id]['categories'] = list(data['categories']) if isinstance(data['categories'], list) else [data['categories']]
+
+    if 'industryCategories' in data:
+        # 领域分类（all-products 页面筛选）
+        settings[product_id]['industryCategories'] = list(data['industryCategories']) if isinstance(data['industryCategories'], list) else [data['industryCategories']]
     
     save_product_settings(settings)
     return jsonify({'success': True, 'settings': settings})
@@ -2211,6 +2362,9 @@ def get_products_with_settings_data():
             product['isNew'] = settings[pid].get('isNew', False)
             product['hidden'] = settings[pid].get('hidden', False)
             product['sortOrder'] = settings[pid].get('sortOrder', 999)
+            product['cardTitle'] = settings[pid].get('cardTitle', '')
+            product['cardImage'] = settings[pid].get('cardImage', '')
+            product['cardSummary'] = settings[pid].get('cardSummary', '')
             # 支持多分类：如果设置了 categories 数组则使用，否则使用原始的 category
             custom_categories = settings[pid].get('categories', [])
             if custom_categories:
@@ -2222,7 +2376,15 @@ def get_products_with_settings_data():
             product['isNew'] = False
             product['hidden'] = False
             product['sortOrder'] = 999
+            product['cardTitle'] = ''
+            product['cardImage'] = ''
+            product['cardSummary'] = ''
             product['categories'] = [product.get('category', 'module')]
+
+        if pid in settings and isinstance(settings[pid].get('industryCategories'), list):
+            product['industryCategories'] = settings[pid].get('industryCategories', [])
+        else:
+            product['industryCategories'] = infer_default_industry_categories(product)
 
     # Sort by custom sortOrder first, then by name
     products.sort(key=lambda p: (p.get('sortOrder', 999), p.get('name', '')))
@@ -2310,6 +2472,96 @@ def get_all_case_items():
 # ============ Mega Menu Recommendations API ============
 
 RECOMMENDATIONS_FILE = DATA_DIR / 'recommendations.json'
+MEASUREMENT_TARGETS_FILE = DATA_DIR / 'measurement_targets.json'
+
+
+def is_safe_recommendation_url(url: str) -> bool:
+    """Allow relative paths and http(s) links; block script/data protocols."""
+    u = (url or '').strip().lower()
+    if not u:
+        return False
+    if u.startswith('javascript:') or u.startswith('data:'):
+        return False
+    if u.startswith('http://') or u.startswith('https://'):
+        return True
+    if u.startswith('/') or u.startswith('./') or u.startswith('../'):
+        return True
+    # allow plain relative files like "pages/gassensing/xxx.html"
+    if '://' in u:
+        return False
+    if re.match(r'^[a-z0-9._/-]+\.[a-z0-9]+([?#].*)?$', u):
+        return True
+    return False
+
+
+def normalize_recommendation_items(items):
+    """Normalize recommendation item list and keep only valid entries."""
+    normalized = []
+    if not isinstance(items, list):
+        return normalized
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = (item.get('name') or '').strip()
+        url = (item.get('url') or '').strip()
+        if not name or not is_safe_recommendation_url(url):
+            continue
+        normalized.append({'name': name, 'url': url})
+    return normalized
+
+
+def get_default_measurement_targets():
+    """Default measurement targets for mega menu."""
+    return {
+        'items': [
+            {'name': '环境氢', 'url': '../measurement/measurement-environment-hydrogen.html'},
+            {'name': '氢纯度', 'url': '../measurement/measurement-hydrogen.html'},
+            {'name': '水中氢', 'url': '../measurement/measurement-dissolved-hydrogen.html'},
+            {'name': '油中氢', 'url': '../measurement/measurement-oil-water.html'},
+            {'name': '氢预警', 'url': '../measurement/measurement-hydrogen-warning.html'},
+            {'name': '氢失踪', 'url': '../measurement/measurement-hydrogen-tracking.html'},
+            {'name': '微量水', 'url': '../measurement/measurement-humidity.html'},
+            {'name': '可燃气体', 'url': '../measurement/measurement-combustible-gas.html'}
+        ]
+    }
+
+
+def normalize_measurement_target_items(items):
+    """Normalize measurement target items and keep only valid entries."""
+    normalized = []
+    if not isinstance(items, list):
+        return normalized
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = (item.get('name') or '').strip()
+        url = (item.get('url') or '').strip()
+        if not name or not is_safe_recommendation_url(url):
+            continue
+        normalized.append({'name': name, 'url': url})
+    return normalized
+
+
+def get_measurement_targets():
+    """Load measurement targets settings."""
+    if MEASUREMENT_TARGETS_FILE.exists():
+        try:
+            data = json.loads(MEASUREMENT_TARGETS_FILE.read_text(encoding='utf-8'))
+            items = normalize_measurement_target_items(data.get('items', []))
+            if items:
+                return {'items': items}
+        except Exception:
+            pass
+    return get_default_measurement_targets()
+
+
+def save_measurement_targets(data):
+    """Save measurement targets settings."""
+    MEASUREMENT_TARGETS_FILE.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
 
 def get_default_recommendations():
     """Default recommendations data."""
@@ -2352,13 +2604,38 @@ def update_recommendations_api():
     recommendations = get_recommendations()
     
     if 'latestReleases' in data:
-        recommendations['latestReleases'] = data['latestReleases']
+        latest = normalize_recommendation_items(data['latestReleases'])
+        if not latest:
+            return jsonify({'success': False, 'message': '最新发布链接无效，请使用相对路径或 http(s) 链接'}), 400
+        recommendations['latestReleases'] = latest
     
     if 'applicationAreas' in data:
-        recommendations['applicationAreas'] = data['applicationAreas']
+        apps = normalize_recommendation_items(data['applicationAreas'])
+        if not apps:
+            return jsonify({'success': False, 'message': '应用领域链接无效，请使用相对路径或 http(s) 链接'}), 400
+        recommendations['applicationAreas'] = apps
     
     save_recommendations(recommendations)
     return jsonify({'success': True, 'recommendations': recommendations})
+
+
+@app.route('/api/measurement-targets', methods=['GET'])
+def get_measurement_targets_api():
+    """Get mega menu measurement targets."""
+    return jsonify(get_measurement_targets())
+
+
+@app.route('/api/measurement-targets', methods=['POST'])
+def update_measurement_targets_api():
+    """Update mega menu measurement targets."""
+    data = request.json or {}
+    items = normalize_measurement_target_items(data.get('items', []))
+    if not items:
+        return jsonify({'success': False, 'message': '请至少提供 1 条有效测量对象（名称 + 相对路径或 http(s) 链接）'}), 400
+
+    payload = {'items': items}
+    save_measurement_targets(payload)
+    return jsonify({'success': True, 'items': items})
 
 
 # ============ Hero Carousel API ============
@@ -2569,6 +2846,46 @@ def serve_partners_media(filename):
     return send_from_directory(PARTNERS_UPLOADS_DIR, filename)
 
 
+@app.route('/api/products/card-image/upload', methods=['POST'])
+def upload_product_card_image():
+    """Upload image file for product card and return accessible URL."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '未找到上传文件'}), 400
+
+    file = request.files['file']
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+    filename = secure_filename(file.filename)
+    ext = Path(filename).suffix.lower()
+    content_type = (file.content_type or '').lower()
+
+    if ext not in ALLOWED_PRODUCT_CARD_EXTENSIONS:
+        inferred = infer_product_card_extension_from_mime(content_type)
+        if inferred:
+            ext = inferred
+        else:
+            return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP 图片'}), 400
+
+    if content_type and content_type not in ALLOWED_PRODUCT_CARD_MIME_TYPES:
+        return jsonify({'success': False, 'message': '文件类型不支持'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = PRODUCT_CARD_UPLOADS_DIR / saved_name
+    file.save(save_path)
+
+    return jsonify({
+        'success': True,
+        'url': f'/media/product-cards/{saved_name}'
+    })
+
+
+@app.route('/media/product-cards/<path:filename>')
+def serve_product_card_media(filename):
+    """Serve uploaded product card image files."""
+    return send_from_directory(PRODUCT_CARD_UPLOADS_DIR, filename)
+
+
 @app.route('/api/categories')
 def get_categories_api():
     """Get all product categories for mega menu."""
@@ -2583,6 +2900,20 @@ def get_categories_api():
         {'key': 'service', 'name': '定制服务', 'url': '/pages/gassensing/all-products.html?filter=service'},
     ]
     return jsonify({'categories': categories})
+
+
+@app.route('/api/products/industry-filters', methods=['GET'])
+def get_industry_filters_api():
+    """Get all-products industry filters."""
+    return jsonify(get_industry_filters())
+
+
+@app.route('/api/products/industry-filters', methods=['POST'])
+def save_industry_filters_api():
+    """Update all-products industry filters."""
+    data = request.json or {}
+    saved = save_industry_filters(data)
+    return jsonify({'success': True, 'categories': saved.get('categories', [])})
 
 
 # ============ API Routes ============

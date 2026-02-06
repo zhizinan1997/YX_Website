@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全场景环境氢气监测解决方案 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Site Search -->
+    <link rel="stylesheet" href="../../assets/css/search.css">
+
+    <style>
+        :root {
+            --eh-bg: #eef4f9;
+            --eh-ink: #0e1d2f;
+            --eh-sub: #506072;
+            --eh-blue: #0a67b8;
+            --eh-accent: #20b7ff;
+            --eh-surface: #ffffff;
+            --eh-border: rgba(13, 40, 69, 0.12);
+            --eh-shadow: 0 14px 38px rgba(9, 36, 64, 0.14);
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background: #fff;
+            color: var(--color-text-body);
+        }
+
+        .eh-main {
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .eh-container {
+            width: min(1380px, 92vw);
+            margin: 0 auto;
+        }
+
+        .jjfa-breadcrumb {
+            position: absolute;
+            top: 112px;
+            left: 4vw;
+            font-size: 13px;
+            z-index: 10;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .jjfa-breadcrumb a {
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .eh-hero {
+            min-height: 86vh;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 130px 0 72px;
+            background:
+                linear-gradient(118deg, rgba(5, 36, 65, 0.58) 12%, rgba(9, 44, 74, 0.42) 48%, rgba(9, 69, 114, 0.24) 100%),
+                url("./environment-hydrogen/hydrogen-facility.jpg") center center / cover no-repeat;
+        }
+
+        .eh-hero::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0;
+            height: 180px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(3, 19, 35, 0.35) 100%);
+            pointer-events: none;
+        }
+
+        .eh-glass {
+            position: relative;
+            z-index: 2;
+            max-width: 1040px;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            background: rgba(255, 255, 255, 0.88);
+            border-radius: 12px;
+            padding: 36px 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+            animation: riseIn .8s ease both;
+        }
+
+        .eh-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #1f5e98;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .eh-kicker::before {
+            content: "";
+            width: 36px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--eh-blue), transparent);
+        }
+
+        .eh-title {
+            font-size: 48px;
+            line-height: 1.2;
+            margin: 0 0 16px;
+            letter-spacing: -0.5px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .eh-lead {
+            margin: 0;
+            max-width: 920px;
+            font-size: 20px;
+            line-height: 1.6;
+            color: var(--color-text-muted);
+            font-weight: 400;
+        }
+
+        .eh-stats {
+            padding: 26px 0 10px;
+            background: #fff;
+            border-bottom: 1px solid var(--eh-border);
+        }
+
+        .eh-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .eh-stat {
+            background: var(--eh-surface);
+            border: 1px solid var(--eh-border);
+            border-radius: 8px;
+            padding: 24px 24px 22px;
+            box-shadow: 0 4px 14px rgba(18, 47, 74, 0.08);
+            transition: transform .3s ease, box-shadow .3s ease;
+        }
+
+        .eh-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(9, 36, 64, 0.12);
+        }
+
+        .eh-stat-value {
+            margin: 0 0 6px;
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: var(--color-primary);
+        }
+
+        .eh-stat-label {
+            margin: 0 0 3px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-text-main);
+        }
+
+        .eh-stat-note {
+            margin: 0;
+            font-size: 14px;
+            color: var(--color-text-muted);
+            font-weight: 400;
+        }
+
+        .eh-section {
+            padding: 62px 0;
+        }
+
+        .eh-section-title {
+            text-align: center;
+            margin: 0 0 40px;
+            font-size: 36px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+            color: var(--color-text-main);
+        }
+
+        .eh-mosaic {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            border: 1px solid var(--eh-border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(9, 36, 64, 0.12);
+        }
+
+        .eh-cell {
+            min-height: 330px;
+            position: relative;
+            border-right: 1px solid var(--eh-border);
+            border-bottom: 1px solid var(--eh-border);
+        }
+
+        .eh-cell:nth-child(2n) {
+            border-right: 0;
+        }
+
+        .eh-cell:nth-last-child(-n+2) {
+            border-bottom: 0;
+        }
+
+        .eh-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .eh-copy {
+            padding: 42px 44px;
+            background: #fff;
+        }
+
+        .eh-copy h3 {
+            margin: 0 0 16px;
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--color-primary);
+        }
+
+        .eh-copy p,
+        .eh-copy li {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--color-text-body);
+            font-weight: 400;
+        }
+
+        .eh-copy ul {
+            margin: 0;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .eh-copy li {
+            position: relative;
+            padding-left: 26px;
+            margin-bottom: 12px;
+        }
+
+        .eh-copy li::before {
+            content: "■";
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: var(--color-accent-blue);
+            font-size: 14px;
+        }
+
+        .eh-scene-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .eh-scene {
+            min-height: 280px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--eh-border);
+            box-shadow: 0 8px 24px rgba(9, 36, 64, 0.12);
+            transform: translateZ(0);
+        }
+
+        .eh-scene img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .8s ease;
+        }
+
+        .eh-scene:hover img {
+            transform: scale(1.03);
+        }
+
+        .eh-scene-label {
+            position: absolute;
+            left: 6%;
+            right: 6%;
+            bottom: 10%;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.62);
+            border-radius: 8px;
+            padding: 18px 20px;
+            text-align: center;
+            font-size: clamp(16px, 1.6vw, 28px);
+            font-weight: 700;
+            line-height: 1.25;
+        }
+
+        .eh-products {
+            display: grid;
+            gap: 16px;
+        }
+
+        .eh-product {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 26px;
+            align-items: center;
+            background: #fff;
+            border: 1px solid var(--eh-border);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 6px 18px rgba(14, 43, 68, 0.08);
+            transition: transform .3s ease, box-shadow .3s ease;
+        }
+
+        .eh-product:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(9, 36, 64, 0.12);
+        }
+
+        .eh-product-media {
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 170px;
+            border: 1px solid rgba(15, 53, 84, 0.14);
+            background: #eef5fb;
+        }
+
+        /* 与站点统一的视觉收敛 */
+        .vs-header,
+        .vs-footer-new {
+            font-family: "Inter", "Noto Sans SC", sans-serif;
+        }
+
+        .eh-product-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .eh-product h3 {
+            margin: 0 0 8px;
+            font-size: 20px;
+            line-height: 1.4;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .eh-product p {
+            margin: 0;
+            color: var(--color-text-muted);
+            font-size: 15px;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        .eh-product-meta {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #56708a;
+            letter-spacing: .01em;
+            font-weight: 600;
+        }
+
+        .eh-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: riseIn .5s ease forwards;
+        }
+
+        .eh-reveal[data-delay="1"] {
+            animation-delay: .08s;
+        }
+
+        .eh-reveal[data-delay="2"] {
+            animation-delay: .16s;
+        }
+
+        .eh-reveal[data-delay="3"] {
+            animation-delay: .24s;
+        }
+
+        @keyframes riseIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* New Sections Styles */
+        .eh-features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        .eh-feature-card {
+            background: #fff;
+            padding: 32px;
+            border-radius: 12px;
+            border: 1px solid var(--eh-border);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .eh-feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-color: var(--eh-accent);
+        }
+
+        .eh-feature-icon {
+            font-size: 40px;
+            color: var(--color-primary);
+            margin-bottom: 20px;
+        }
+
+        .eh-feature-card h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: var(--color-text-main);
+        }
+
+        .eh-feature-card p {
+            font-size: 15px;
+            color: var(--color-text-muted);
+            line-height: 1.6;
+        }
+
+        /* Updated FAQ Styles */
+        .eh-faq-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .eh-faq-item {
+            background: #fff;
+            padding: 20px 24px;
+            border-radius: 12px;
+            border: 1px solid var(--eh-border);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .eh-faq-item:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .eh-faq-item.active {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 55, 100, 0.15);
+        }
+
+        .eh-faq-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .eh-faq-item h4 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--color-text-main);
+            line-height: 1.4;
+            transition: color 0.3s;
+        }
+
+        .eh-faq-item.active h4 {
+            color: #fff;
+        }
+
+        .eh-faq-icon {
+            color: var(--color-primary);
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .eh-faq-item.active .eh-faq-icon {
+            color: #fff;
+            transform: rotate(45deg);
+        }
+
+        .eh-faq-body {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.3s ease-out;
+            opacity: 0.8;
+        }
+
+        .eh-faq-item.active .eh-faq-body {
+            grid-template-rows: 1fr;
+            margin-top: 16px;
+            padding-top: 16px;
+            opacity: 1;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .eh-faq-content {
+            overflow: hidden;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1080px) {
+            .eh-glass {
+                padding: 28px 24px;
+            }
+
+            .eh-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .eh-mosaic {
+                grid-template-columns: 1fr;
+            }
+
+            .eh-cell {
+                min-height: 280px;
+                border-right: 0;
+            }
+
+            .eh-cell:nth-last-child(-n+2) {
+                border-bottom: 1px solid var(--eh-border);
+            }
+
+            .eh-cell:last-child {
+                border-bottom: 0;
+            }
+
+            .eh-scene-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .eh-product {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .eh-product-media {
+                min-height: 210px;
+            }
+
+            .eh-features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .eh-faq-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .eh-hero {
+                min-height: 70vh;
+                padding: 112px 0 40px;
+            }
+
+            .jjfa-breadcrumb {
+                font-size: 12px;
+                left: 5vw;
+                top: 90px;
+            }
+
+            .eh-stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .eh-stat-label {
+                font-size: 22px;
+            }
+
+            .eh-stat-note {
+                font-size: 16px;
+            }
+
+            .eh-section {
+                padding: 44px 0;
+            }
+
+            .eh-copy {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="vs-header">
+        <div class="vs-container vs-header__inner">
+            <div style="display: flex; align-items: center;">
+                <a href="..\..\index.html" class="vs-logo">
+                    <img src="..\..\assets\images\logo.png" alt="Metachip Logo"
+                        style="filter: brightness(0) invert(1);">
+                    METACHIP
+                </a>
+            </div>
+
+            <nav class="vs-nav">
+                <ul class="vs-nav__list">
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="all-products.html" class="vs-nav__link">产品</a>
+                        <!-- Compact Inficon Style Mega Menu -->
+                        <div class="vs-mega-menu">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanel('new', this)">
+                                    新品推荐 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('industry', this)">
+                                    行业分类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('target', this)">
+                                    测量对象 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('type', this)">
+                                    产品种类 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanel('list', this)">
+                                    全部产品 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: New -->
+                                <div id="panel-new" class="vs-mega-panel active">
+                                    <h3>新品推荐</h3>
+                                    <div class="vs-mega-grid-v2" id="recommendationsPanel">
+                                        <div>
+                                            <span class="vs-mega-sublist-title">最新发布</span>
+                                            <ul class="vs-mega-list-v2" id="latestReleasesList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <span class="vs-mega-sublist-title">应用领域</span>
+                                            <ul class="vs-mega-list-v2" id="applicationAreasList">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="vs-mega-action">
+                                        <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i class="fas fa-search"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Industry -->
+                                <div id="panel-industry" class="vs-mega-panel">
+                                    <h3>行业分类</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
+                                                </li>
+                                                <li><a href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                                </li>
+                                                <li><a href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2">
+                                                <li><a href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                                </li>
+                                                <li><a href="..\solutions\industry-environment.html">大气环境监测</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Target -->
+                                <div id="panel-target" class="vs-mega-panel">
+                                    <h3>测量对象</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="measurementTargetsRight">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: Type -->
+                                <div id="panel-type" class="vs-mega-panel">
+                                    <h3>产品种类</h3>
+                                    <div class="vs-mega-grid-v2" id="categoriesPanel">
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesLeft">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <ul class="vs-mega-list-v2" id="categoriesRight">
+                                                <li><a href="#">加载中...</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Panel: List -->
+                                <div id="panel-list" class="vs-mega-panel">
+                                    <h3>全部产品</h3>
+                                    <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                        <!-- 产品由JS动态生成 -->
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <a href="all-products.html" class="vs-mega-view-all"
+                                            style="color: var(--color-primary); font-weight: 600;">查看所有产品 <i
+                                                class="fas fa-arrow-right"
+                                                style="margin-left: 6px; font-size: 12px;"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\solutions\solutions-index.html" class="vs-nav__link">解决方案</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar">
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-hydrogen.html">氢能源产业链</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-power-safety.html">智慧电力安全</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-leak-detection.html">工业检漏监测</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-energy-storage.html">绿色能源存储</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\solutions\industry-environment.html">大气环境监测</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\research\index.html" class="vs-nav__link">科研服务</a>
+                        <div class="vs-mega-menu vs-mega-menu--links">
+                            <div class="vs-mega-sidebar">
+                                <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
+                                    href="..\research\micro-nano.html">传感器微纳加工</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\development.html">传感器开发、测试与应用</a>
+                                <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
+                                    href="..\research\cooperation.html">产学研深度合作</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="service-cases.html" class="vs-nav__link">服务案例</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
+                                    精选案例 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelCases('all', this)">
+                                    所有案例 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Featured -->
+                                <div id="panel-cases-featured" class="vs-mega-panel active">
+                                    <h3>精选案例</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="cases\case-1-truck.html">氢能重卡氢气检测</a></li>
+                                            <li><a href="cases\case-6-train.html">氢能源列车检测</a></li>
+                                            <li><a href="cases\case-4-pipeline-safety.html">输氢管道人员安全</a></li>
+                                            <li><a href="cases\case-12-gas-system.html">科研实验室配气</a></li>
+                                            <li><a href="cases\case-13-diesel-engine.html">柴油机真空检漏</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: All -->
+                                <div id="panel-cases-all" class="vs-mega-panel">
+                                    <h3>更多案例</h3>
+                                    <p style="margin-bottom:20px; color:#666; font-size:14px;">浏览我们在各个行业的成功应用案例。</p>
+                                    <a href="service-cases.html" class="vs-mega-view-all"
+                                        style="color: var(--color-primary); font-weight: 600;">查看全部案例 <i
+                                            class="fas fa-arrow-right"
+                                            style="margin-left: 6px; font-size: 12px;"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="vs-nav__item"><a href="..\about\about.html" class="vs-nav__link">公司简介</a></li>
+                    <li class="vs-nav__item"><a href="https://shop176972283.taobao.com" target="_blank"
+                            class="vs-nav__link">线上店铺</a></li>
+                    <li class="vs-nav__item vs-nav__item--has-mega">
+                        <a href="..\contact\contact.html" class="vs-nav__link">联系我们</a>
+                        <div class="vs-mega-menu vs-mega-menu--contact">
+                            <div class="vs-mega-sidebar">
+                                <div class="vs-mega-tab active" onmouseover="showPanelContact('join', this)">
+                                    加入我们 <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <div class="vs-mega-tab" onmouseover="showPanelContact('contact', this)">
+                                    联系方式 <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="vs-mega-content">
+                                <!-- Panel: Join -->
+                                <div id="panel-contact-join" class="vs-mega-panel active">
+                                    <h3>加入我们</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="..\careers\partners.html">合作招募</a></li>
+                                            <li><a href="..\careers\growth.html">成长空间</a></li>
+                                            <li><a href="..\careers\talent.html">人才理念</a></li>
+                                            <li><a href="..\careers\jobs.html">在线招聘</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Panel: Contact -->
+                                <div id="panel-contact-contact" class="vs-mega-panel">
+                                    <h3>联系方式</h3>
+                                    <div class="vs-mega-grid-v2">
+                                        <ul class="vs-mega-list-v2">
+                                            <li><a href="..\contact\contact.html">联系我们</a></li>
+                                            <li><a href="..\contact\feedback.html">在线留言</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="display: flex; gap: 24px; color: white; align-items: center;">
+                <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
+                <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a
+                    href="..\..\pages_en\gassensing\index.html" style="font-size: 14px; font-weight: 500;">EN</a>
+            </div>
+        </div>
+        <script>
+            function showPanel(panelId, tab) {
+                document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + panelId).classList.add('active');
+            }
+            function showPanelContact(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-contact-' + panelId).classList.add('active');
+            }
+            function showPanelSolutions(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-solutions-' + panelId).classList.add('active');
+            }
+            function showPanelCases(panelId, tab) {
+                const menu = tab.closest('.vs-mega-menu');
+                menu.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                menu.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-cases-' + panelId).classList.add('active');
+            }
+        </script>
+    </header>
+
+    <script>
+        function showPanel(panelId, tab) {
+            document.querySelectorAll('.vs-mega-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.vs-mega-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + panelId).classList.add('active');
+        }
+
+        function toggleFaq(item) {
+            const isActive = item.classList.contains('active');
+
+            // Close all
+            document.querySelectorAll('.eh-faq-item').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Toggle clicked
+            if (!isActive) {
+                item.classList.add('active');
+            }
+        }
+    </script>
+
+    <main class="eh-main">
+        <section class="eh-hero">
+            <p class="jjfa-breadcrumb">
+                <a href="../../pages/gassensing/all-products.html">产品</a> - <a
+                    href="../measurement/measurement-environment-hydrogen.html">测量对象</a> - <span>环境氢</span>
+            </p>
+            <div class="eh-container">
+                <div class="eh-glass">
+                    <div class="eh-kicker">Environmental Hydrogen</div>
+                    <h1 class="eh-title">全场景环境氢气安全监测与智能预警</h1>
+                    <p class="eh-lead">
+                        氢气作为未来清洁能源的核心，其易燃易爆特性对安全监测提出了极高要求。元芯传感基于自主研发的 MEMS
+                        微热板技术，提供从微量泄漏探测到高浓度爆炸预警的全量程解决方案。我们致力于为氢能“制、储、运、加、用”全产业链构建一道坚不可摧的数字化安全防线，确保每一次能源流转都在掌控之中。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="eh-stats">
+            <div class="eh-container">
+                <div class="eh-stats-grid">
+                    <article class="eh-stat eh-reveal" data-delay="1">
+                        <p class="eh-stat-value">0-4% Vol</p>
+                        <p class="eh-stat-label">测量范围</p>
+                        <p class="eh-stat-note">覆盖常见泄漏风险区间</p>
+                    </article>
+                    <article class="eh-stat eh-reveal" data-delay="2">
+                        <p class="eh-stat-value">±5% F.S.</p>
+                        <p class="eh-stat-label">精度</p>
+                        <p class="eh-stat-note">适用于日常工况监测</p>
+                    </article>
+                    <article class="eh-stat eh-reveal" data-delay="3">
+                        <p class="eh-stat-value">Ex</p>
+                        <p class="eh-stat-label">防爆认证</p>
+                        <p class="eh-stat-note">高风险场景安装要求</p>
+                    </article>
+                    <article class="eh-stat eh-reveal" data-delay="3">
+                        <p class="eh-stat-value">IoT</p>
+                        <p class="eh-stat-label">声光报警与远程控制</p>
+                        <p class="eh-stat-note">本地联动 + 平台告警</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="eh-section">
+            <div class="eh-container">
+                <div class="eh-mosaic">
+                    <div class="eh-cell">
+                        <img src="./environment-hydrogen/hydrogen-inspection.jpeg" alt="氢气储运场景">
+                    </div>
+                    <div class="eh-cell eh-copy">
+                        <h3>极微分子，隐形威胁</h3>
+                        <p>
+                            氢气是自然界分子最小、扩散最快的气体，极易穿透普通密封材料。其爆炸极限宽（4%-75.6%），且燃烧火焰在日光下几乎不可见。
+                            在密闭工业环境、地下综合管廊或高压储运装备中，微小泄漏若未能及时发现，将迅速积聚形成重大燃爆隐患。传统的点式监测往往存在响应滞后、误报率高等痛点。
+                        </p>
+                    </div>
+                    <div class="eh-cell eh-copy">
+                        <h3>元芯 MEMS 微热板氢气传感技术</h3>
+                        <ul>
+                            <li><strong>极速响应：</strong> 基于纳微米级热容的 MEMS 芯片，实现 T90 < 3s 的秒级响应，将险情控制在萌芽状态。</li>
+                            <li><strong>宽域覆盖：</strong> 独特的双量程设计，单探头同时满足 ppm 级微漏巡检与 %LEL 级爆炸预警需求。</li>
+                            <li><strong>全场景互联：</strong> 深度融合 IoT 技术，支持固定式、便携式、移动机器人等多元终端的协同组网与数据上云。</li>
+                        </ul>
+                    </div>
+                    <div class="eh-cell">
+                        <img src="./environment-hydrogen/gas-mixing-system.png" alt="加氢站与检测系统">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="eh-section" style="background: var(--eh-bg);">
+            <div class="eh-container">
+                <h2 class="eh-section-title">为什么选择元芯解决方案</h2>
+                <div class="eh-features-grid">
+                    <article class="eh-feature-card">
+                        <div class="eh-feature-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h3>主动安全防御</h3>
+                        <p>不同于被动监测，我们的系统具备趋势分析能力，能在气体浓度达到爆炸下限的 10% 前即发出预警，并自动联动排风与切断装置。</p>
+                    </article>
+                    <article class="eh-feature-card">
+                        <div class="eh-feature-icon"><i class="fas fa-filter"></i></div>
+                        <h3>抗硅中毒与抗干扰</h3>
+                        <p>独有的材料配方与 MEMS 结构设计，有效屏蔽硅氧烷、硫化物中毒风险，且对酒精、湿气等环境干扰因素具有极高的辨识度。</p>
+                    </article>
+                    <article class="eh-feature-card">
+                        <div class="eh-feature-icon"><i class="fas fa-tools"></i></div>
+                        <h3>低拥有成本 (TCO)</h3>
+                        <p>传感器寿命长达 5 年以上，且具备自诊断功能。相比传统电化学传感器每年更换的频率，由元芯方案带来的全生命周期运维成本降低 40% 以上。</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="eh-section" style="padding-top: 10px;">
+            <div class="eh-container">
+                <h2 class="eh-section-title">关键应用场景</h2>
+                <div class="eh-scene-grid">
+                    <article class="eh-scene eh-reveal" data-delay="1">
+                        <img src="./environment-hydrogen/hydrogen-facility.jpg" alt="制氢储氢运氢加氢">
+                        <div class="eh-scene-label">氢能源产业（制氢、储氢、运氢、加氢）</div>
+                    </article>
+                    <article class="eh-scene eh-reveal" data-delay="2">
+                        <img src="./environment-hydrogen/gas-mixing-chamber.png" alt="工业生产与实验室">
+                        <div class="eh-scene-label">工业生产与实验室</div>
+                    </article>
+                    <article class="eh-scene eh-reveal" data-delay="3">
+                        <img src="./environment-hydrogen/wearable-hydrogen-alarm.jpg" alt="燃料电池应用">
+                        <div class="eh-scene-label">燃料电池应用</div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="eh-section">
+            <div class="eh-container">
+                <div class="eh-mosaic">
+                    <div class="eh-cell eh-copy">
+                        <h3>核心传感技术：MEMS 微热板芯片</h3>
+                        <p>
+                            元芯传感自主研发的 MEMS 微热板技术，将加热电极与感测电极集成于纳微米级硅基芯片之上。
+                        </p>
+                        <ul>
+                            <li><strong>超低功耗运行：</strong> 芯片功耗仅为毫瓦级（mW），完美适配电池供电的无线仪表及本安型防爆设备。</li>
+                            <li><strong>高稳定性一致性：</strong> 硅基微机械加工工艺保证了传感器的一致性，独特的悬梁热隔离结构极大降低了环境温湿度的影响。</li>
+                            <li><strong>全量程线性响应：</strong> 突破传统催化燃烧传感器的量程限制，单芯片即可实现从 0-1000ppm 到 0-100%LEL 的全线性精准测量。</li>
+                        </ul>
+                    </div>
+                    <div class="eh-cell">
+                        <img src="./environment-hydrogen/test-chamber.png" alt="MEMS Chip Technology">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="eh-section" id="products" style="padding-top: 18px;">
+            <div class="eh-container">
+                <h2 class="eh-section-title">推荐产品</h2>
+                <div class="eh-products">
+                    <article class="eh-product">
+                        <div class="eh-product-media">
+                            <img src="./environment-hydrogen/wearable-hydrogen-alarm.jpg" alt="便携式报警器">
+                        </div>
+                        <div>
+                            <h3>便携式环境氢报警器 Series P</h3>
+                            <p>专为巡检人员设计，具备 IP67 防护等级。配备高亮 OLED 屏与 95dB 蜂鸣器，支持跌倒报警与 SOS 一键呼救，通过蓝牙/LoRa 实时上传人员位置与浓度数据。</p>
+                            <div class="eh-product-meta">0-100% LEL / T90 < 2s / IP67 防尘防水 / 蓝牙+LoRa</div>
+                            </div>
+                    </article>
+                    <article class="eh-product">
+                        <div class="eh-product-media">
+                            <img src="./environment-hydrogen/test-chamber.png" alt="固定式检测器">
+                        </div>
+                        <div>
+                            <h3>固定式防爆氢气探测器 Series F</h3>
+                            <p>采用隔爆外壳设计，获得 Ex d IIC T6 Gb 认证。内置 SIL2 级安全逻辑，支持 OLED 现场显示与红外遥控操作，标配三线制 4-20mA 与 HART
+                                协议，可选配无线模块。</p>
+                            <div class="eh-product-meta">壁挂或管道安装 /Ex d IIC T6 Gb / 4-20mA+HART / 2路继电器</div>
+                        </div>
+                    </article>
+                    <article class="eh-product">
+                        <div class="eh-product-media">
+                            <img src="./environment-hydrogen/gas-mixing-chamber.png" alt="采样分析模块">
+                        </div>
+                        <div>
+                            <h3>多通道吸入式采样分析系统 Series M</h3>
+                            <p>针对复杂管廊、多舱室环境设计的集中式监测柜。内置高性能采样泵与多路切换阀阵列，支持最长 100 米采样管线，具备样气预处理功能，有效滤除水汽与粉尘。</p>
+                            <div class="eh-product-meta">4-16 通道可选 / 流量 2L/min 可调 / 自动反吹 / Modbus TCP</div>
+                        </div>
+                    </article>
+                    <article class="eh-product">
+                        <div class="eh-product-media">
+                            <img src="./environment-hydrogen/hydrogen-inspection.jpeg" alt="车载监测终端">
+                        </div>
+                        <div>
+                            <h3>车载/移动监测终端 Series V</h3>
+                            <p>通过车规级认证，专为氢燃料电池车辆、长管拖车设计。宽电压输入（9-36V），CAN 总线通讯直连 VCU，支持独特的抗振动算法，确保行车过程中的测量稳定性。</p>
+                            <div class="eh-product-meta">车载供电 / CAN 2.0B / 抗振动冲击 / -40℃~+85℃ 宽温</div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="eh-section" style="background: var(--eh-bg);">
+            <div class="eh-container">
+                <h2 class="eh-section-title">常见问题</h2>
+                <div class="eh-faq-grid">
+                    <div class="eh-faq-item" onclick="toggleFaq(this)">
+                        <div class="eh-faq-header">
+                            <h4>预期使用寿命</h4>
+                            <i class="fas fa-plus eh-faq-icon"></i>
+                        </div>
+                        <div class="eh-faq-body">
+                            <div class="eh-faq-content">
+                                元芯 MEMS 环境氢传感器设计寿命超过 5 年（在洁净空气中）。即便在常见的工业微量泄漏环境中，其性能衰减也极低。相比传统电化学传感器 1-2
+                                年的寿命，大幅降低了用户的更换成本。
+                            </div>
+                        </div>
+                    </div>
+                    <div class="eh-faq-item" onclick="toggleFaq(this)">
+                        <div class="eh-faq-header">
+                            <h4>校准周期建议</h4>
+                            <i class="fas fa-plus eh-faq-icon"></i>
+                        </div>
+                        <div class="eh-faq-body">
+                            <div class="eh-faq-content">
+                                得益于 MEMS 芯片卓越的零点稳定性和抗漂移能力，我们建议的标准校准周期为 12-18 个月。对于高安全等级的应用场景（如加氢站），建议每 6
+                                个月进行一次通气功能验证（Bump Test）。
+                            </div>
+                        </div>
+                    </div>
+                    <div class="eh-faq-item" onclick="toggleFaq(this)">
+                        <div class="eh-faq-header">
+                            <h4>通讯协议支持</h4>
+                            <i class="fas fa-plus eh-faq-icon"></i>
+                        </div>
+                        <div class="eh-faq-body">
+                            <div class="eh-faq-content">
+                                我们的全系产品均支持标准的工业接口。有线方式包括 3/4线制 4-20mA、RS485 (Modbus RTU)、CAN 总线；无线方式支持 LoRaWAN、NB-IoT、4G
+                                CAT1 以及 BLE 蓝牙配置，可无缝接入 DCS、PLC 或元芯云平台。
+                            </div>
+                        </div>
+                    </div>
+                    <div class="eh-faq-item" onclick="toggleFaq(this)">
+                        <div class="eh-faq-header">
+                            <h4>抗硅中毒能力</h4>
+                            <i class="fas fa-plus eh-faq-icon"></i>
+                        </div>
+                        <div class="eh-faq-body">
+                            <div class="eh-faq-content">
+                                传统催化燃烧传感器极易因有机硅中毒而失效。元芯 MEMS
+                                传感器采用了专利用于保护催化层的纳米过滤膜技术，并优化了工作温度，使其对硅氧烷、硫化物（H2S）具有极强的抵抗力，即使在恶劣工况下也能长期稳定工作。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 全站搜索 -->
+    <script src="../../assets/js/search.js"></script>
+
+    <!-- AI智能客服 -->
+    <script src="../../assets/js/chatbot.js"></script>
+
+    <!-- FOOTER_START -->
+    <footer class="vs-footer-new">
+        <div class="vs-container">
+            <div class="vs-footer-new__main">
+                <div class="vs-footer-new__brand">
+                    <a href="../../index.html" class="logo-link">
+                        <img src="../../assets/images/logo.png" alt="Metachip Logo" />
+                        METACHIP
+                    </a>
+                    <div class="tagline">湖南元芯传感科技有限责任公司</div>
+                    <div class="address">
+                        <div class="address-item">公司总部</div>
+                        <div class="address-item">湖南省湘潭市高新区</div>
+                        <div class="address-item">双马街道书院路 38 号</div>
+                    </div>
+                </div>
+
+                <div class="vs-footer-new__certs">
+                    <div class="vs-footer-new__cert vs-footer-new__cert--diamond">
+                        <span>FM<br>APPROVED</span>
+                    </div>
+                    <div class="vs-footer-new__cert vs-footer-new__cert--circle">
+                        GLOBAL<br>INTERTEK
+                    </div>
+                </div>
+
+                <div class="vs-footer-new__right">
+                    <div class="vs-footer-new__social">
+                        <a href="#" title="X"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+                        <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                    <div class="vs-footer-new__links">
+                        <a href="../about/policy.html">隐私政策</a>
+                        <a href="#">条款与条件</a>
+                    </div>
+                    <div class="vs-footer-new__copyright">© 2026 湖南元芯传感科技有限责任公司，保留所有权利。</div>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="vs-footer-new__disclaimer">
+                METACHIP 是湖南元芯传感科技有限责任公司的注册商标。规格如有变更，恕不另行通知。
+            </div>
+        </div>
+    </footer>
+    <!-- FOOTER_END -->
+
+</body>
+
+</html>
