@@ -44,13 +44,25 @@
     "sortOrder": 6
   },
   "mc_wd_wearable_alarm": {
-    "sortOrder": 7
+    "sortOrder": 7,
+    "industryCategories": [
+      "hydrogen",
+      "leak"
+    ]
   },
   "mcect_electrochemical_h2": {
-    "sortOrder": 8
+    "sortOrder": 8,
+    "industryCategories": [
+      "hydrogen",
+      "leak"
+    ]
   },
   "mchc_catalytic_h2": {
-    "sortOrder": 9
+    "sortOrder": 9,
+    "industryCategories": [
+      "hydrogen",
+      "leak"
+    ]
   },
   "mchf_carbon_fet_h2": {
     "sortOrder": 10
@@ -65,21 +77,39 @@
   },
   "mchs_palladium_h2": {
     "sortOrder": 13,
-    "hidden": true
+    "hidden": true,
+    "industryCategories": [
+      "hydrogen",
+      "power",
+      "research"
+    ]
   },
   "mctcx_thermal_h2": {
     "sortOrder": 14,
-    "hidden": true
+    "hidden": true,
+    "industryCategories": [
+      "hydrogen",
+      "power"
+    ]
   },
   "portable_gas_test_module": {
     "sortOrder": 15,
-    "hidden": true
+    "hidden": true,
+    "industryCategories": [
+      "hydrogen",
+      "power",
+      "research"
+    ]
   },
   "h2_detection_probe": {
     "sortOrder": 16,
     "hidden": true,
     "categories": [
       "sensor"
+    ],
+    "industryCategories": [
+      "hydrogen",
+      "power"
     ]
   },
   "smart_gas_mixing_system": {
@@ -102,6 +132,17 @@
   "../customization/micronano_fabrication": {
     "categories": [
       "service"
+    ]
+  },
+  "../biosensing/portable_bio_detector": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "service-cases": {
+    "industryCategories": [
+      "hydrogen",
+      "custom"
     ]
   }
 }
