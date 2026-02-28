@@ -350,21 +350,20 @@ img {
 ======================================== */
 .vs-hero__top-title {
     position: absolute;
-    top: 20%;
-    /* Adjusted for better balance */
+    top: 38.2%;
+    transform: translateY(-50%);
     left: 0;
     width: 100%;
     text-align: center;
-    font-size: 80px;
-    /* Larger */
+    font-size: clamp(42px, 5.2vw, 80px);
     font-weight: 700;
     color: #FFFFFF;
-    /* Pure White */
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    /* Stronger shadow for readability */
+    text-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.45),
+        0 8px 20px rgba(0, 0, 0, 0.35),
+        0 0 1px rgba(0, 0, 0, 0.55);
     z-index: 10;
     font-family: var(--font-stack);
-    /* Use modern font stack instead of Times */
     letter-spacing: 1px;
     text-transform: capitalize;
 }

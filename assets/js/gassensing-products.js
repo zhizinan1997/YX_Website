@@ -16,6 +16,15 @@ const ITEMS_PER_PAGE = 6;
 let currentPage = 1;
 let currentFilter = 'all';
 
+function isVisibleGassensingProduct(product) {
+    if (!product || product.hidden) return false;
+    const id = String(product.id || '').trim();
+    if (!id) return false;
+    // 排除当前列表页自身，其他产品（含 ../customization/xxx）允许展示
+    if (id === 'all-products') return false;
+    return true;
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', async function () {
     // 从API加载产品数据
@@ -38,8 +47,8 @@ async function loadProductsFromAPI() {
         const data = await response.json();
 
         if (data.products && data.products.length > 0) {
-            GAS_SENSING_PRODUCTS = data.products;
-            console.log(`Loaded ${data.count} products from API`);
+            GAS_SENSING_PRODUCTS = data.products.filter(isVisibleGassensingProduct);
+            console.log(`Loaded ${GAS_SENSING_PRODUCTS.length} visible products from API`);
         } else {
             console.warn('No products found from API');
         }
@@ -103,6 +112,13 @@ function getFilteredProducts() {
 function renderProducts() {
     const products = getFilteredProducts();
     const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+    const container = document.querySelector('.vs-products-list');
+    if (!container) return;
+
+    if (products.length === 0) {
+        container.innerHTML = '<li style="text-align:center;padding:40px;color:#666;">当前分类暂无可展示产品</li>';
+        return;
+    }
 
     // 确保当前页有效
     if (currentPage > totalPages) currentPage = totalPages;
@@ -111,9 +127,6 @@ function renderProducts() {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
     const pageProducts = products.slice(start, end);
-
-    const container = document.querySelector('.vs-products-list');
-    if (!container) return;
 
     // 淡出效果
     container.style.opacity = '0';
@@ -149,6 +162,10 @@ function renderPagination() {
 
     const container = document.querySelector('.vs-pagination');
     if (!container) return;
+    if (totalItems === 0) {
+        container.innerHTML = '<span>共0个产品</span>';
+        return;
+    }
 
     let html = `<span>共${totalItems}个产品</span>`;
 

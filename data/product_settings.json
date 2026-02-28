@@ -7,7 +7,8 @@
       "module"
     ],
     "industryCategories": [
-      "hydrogen"
+      "hydrogen",
+      "custom"
     ],
     "cardTitle": "油中氢【测试】",
     "cardSummary": "这是摘要内容【测试】"
@@ -69,15 +70,15 @@
   },
   "mchm_h2_sensor": {
     "sortOrder": 11,
-    "hidden": true
+    "hidden": false
   },
   "mchp_vehicle_h2": {
     "sortOrder": 12,
-    "hidden": true
+    "hidden": false
   },
   "mchs_palladium_h2": {
     "sortOrder": 13,
-    "hidden": true,
+    "hidden": false,
     "industryCategories": [
       "hydrogen",
       "power",
@@ -86,7 +87,7 @@
   },
   "mctcx_thermal_h2": {
     "sortOrder": 14,
-    "hidden": true,
+    "hidden": false,
     "industryCategories": [
       "hydrogen",
       "power"
@@ -94,7 +95,7 @@
   },
   "portable_gas_test_module": {
     "sortOrder": 15,
-    "hidden": true,
+    "hidden": false,
     "industryCategories": [
       "hydrogen",
       "power",
@@ -103,25 +104,30 @@
   },
   "h2_detection_probe": {
     "sortOrder": 16,
-    "hidden": true,
+    "hidden": false,
     "categories": [
       "sensor"
     ],
     "industryCategories": [
-      "hydrogen",
-      "power"
+      "custom"
     ]
   },
   "smart_gas_mixing_system": {
     "sortOrder": 17,
-    "hidden": true,
+    "hidden": false,
     "categories": [
       "system"
+    ],
+    "industryCategories": [
+      "custom"
     ]
   },
   "../customization/custom_instrument_dev": {
     "categories": [
       "service"
+    ],
+    "industryCategories": [
+      "custom"
     ]
   },
   "../customization/custom_gas_sensing_module": {
@@ -132,17 +138,53 @@
   "../customization/micronano_fabrication": {
     "categories": [
       "service"
+    ],
+    "industryCategories": [
+      "custom"
     ]
   },
   "../biosensing/portable_bio_detector": {
     "industryCategories": [
       "hydrogen"
-    ]
+    ],
+    "hidden": true
   },
   "service-cases": {
     "industryCategories": [
-      "hydrogen",
       "custom"
     ]
+  },
+  "../biosensing/igzo_device": {
+    "hidden": true
+  },
+  "../biosensing/mc_bw_bio_workstation": {
+    "hidden": true
+  },
+  "../biosensing/carbon_bio_package_chip": {
+    "hidden": true
+  },
+  "../biosensing/chlorine_detection_chip": {
+    "hidden": true
+  },
+  "../biosensing/blood_potassium_chip": {
+    "hidden": true
+  },
+  "../biosensing/respiratory_virus_chip": {
+    "hidden": true
+  },
+  "all-products": {
+    "hidden": true
+  },
+  "../biosensing/index_page_2": {
+    "hidden": true
+  },
+  "../biosensing/custom_bio_sensor_chip": {
+    "hidden": true
+  },
+  "../biosensing/carbon_bio_platform": {
+    "hidden": true
+  },
+  "../biosensing/ion_detector": {
+    "hidden": true
   }
 }
