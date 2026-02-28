@@ -10,11 +10,14 @@ import hashlib
 import threading
 import re
 import uuid
+import html
+import mimetypes
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
+from urllib.parse import urlparse
 
-from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string, Response, stream_with_context
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string, Response, stream_with_context, make_response
 from werkzeug.utils import secure_filename
 
 # Optional imports for PDF parsing and OpenAI
@@ -65,14 +68,17 @@ NEWS_FEATURED_FILE = DATA_DIR / 'news_featured.json'
 NEWS_VISIBILITY_FILE = DATA_DIR / 'news_visibility.json'
 PRODUCT_FEATURED_FILE = DATA_DIR / 'product_featured.json'
 SOLUTIONS_FEATURED_FILE = DATA_DIR / 'solutions_featured.json'
+HOME_SECTION_VISIBILITY_FILE = DATA_DIR / 'home_section_visibility.json'
 JOBS_FILE = DATA_DIR / 'jobs.json'
 H2_HOME_FILE = DATA_DIR / 'h2_home.json'
+NEWS_UPLOADS_DIR = DATA_DIR / 'news_uploads'
 
 # Ensure directories exist
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
 HERO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PRODUCT_CARD_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+NEWS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 RATE_LIMIT_MAX = 5  # Max submissions per IP per hour
 RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
@@ -86,6 +92,8 @@ ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.svg', '.webp'}
 ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'}
 ALLOWED_PRODUCT_CARD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_PRODUCT_CARD_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp'}
+ALLOWED_NEWS_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'}
+ALLOWED_NEWS_IMAGE_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'}
 
 def infer_extension_from_mime(mime: str) -> str:
     if mime == 'image/png':
@@ -114,6 +122,19 @@ def infer_product_card_extension_from_mime(mime: str) -> str:
         return '.jpg'
     if mime == 'image/webp':
         return '.webp'
+    return ''
+
+def infer_news_image_extension_from_mime(mime: str) -> str:
+    if mime == 'image/png':
+        return '.png'
+    if mime == 'image/jpeg':
+        return '.jpg'
+    if mime == 'image/webp':
+        return '.webp'
+    if mime == 'image/gif':
+        return '.gif'
+    if mime == 'image/svg+xml':
+        return '.svg'
     return ''
 
 def get_hero_config():
@@ -643,24 +664,24 @@ def render_markdown(content: str) -> str:
             continue
 
         # Ordered list
-        if re.match(r'^\\d+\\.\\s+', line):
+        if re.match(r'^\d+\.\s+', line):
             if in_ul:
                 html_lines.append('</ul>')
                 in_ul = False
             if not in_ol:
                 html_lines.append('<ol>')
                 in_ol = True
-            item = re.sub(r'^\\d+\\.\\s+', '', line)
+            item = re.sub(r'^\d+\.\s+', '', line)
             html_lines.append(f'<li>{item}</li>')
             continue
 
         close_lists()
 
         # Inline formatting
-        line = re.sub(r'\\*\\*(.+?)\\*\\*', r'<strong>\\1</strong>', line)
-        line = re.sub(r'\\*(.+?)\\*', r'<em>\\1</em>', line)
-        line = re.sub(r'!\\[(.*?)\\]\\((.*?)\\)', r'<img src="\\2" alt="\\1">', line)
-        line = re.sub(r'\\[(.*?)\\]\\((.*?)\\)', r'<a href="\\2">\\1</a>', line)
+        line = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', line)
+        line = re.sub(r'\*(.+?)\*', r'<em>\1</em>', line)
+        line = re.sub(r'!\[(.*?)\]\((.*?)\)', r'<img src="\2" alt="\1">', line)
+        line = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', line)
 
         html_lines.append(f'<p>{line}</p>')
 
@@ -669,25 +690,93 @@ def render_markdown(content: str) -> str:
 
 def parse_news_article_html(filepath: Path):
     """Parse a news article HTML to extract fields."""
+    def extract_first_div_by_class(html_text: str, class_name: str) -> str:
+        start_re = re.compile(
+            rf'<div\b[^>]*class=["\'][^"\']*\b{re.escape(class_name)}\b[^"\']*["\'][^>]*>',
+            re.I
+        )
+        start_match = start_re.search(html_text)
+        if not start_match:
+            return ''
+
+        tag_re = re.compile(r'<div\b[^>]*>|</div\s*>', re.I)
+        depth = 1
+        content_start = start_match.end()
+        for m in tag_re.finditer(html_text, content_start):
+            tag = m.group(0)
+            if tag.lower().startswith('</div'):
+                depth -= 1
+                if depth == 0:
+                    return html_text[content_start:m.start()]
+            else:
+                depth += 1
+        return ''
+
     if not filepath.exists():
         return None
     content = filepath.read_text(encoding='utf-8')
     title_match = re.search(r'<h1 class="article-hero__title">(.*?)</h1>', content, re.S)
     date_match = re.search(r'<div class="article-hero__meta">(.*?)</div>', content, re.S)
-    body_match = re.search(r'<div class="article-content">(.*?)</div>', content, re.S)
     title = title_match.group(1).strip() if title_match else ''
     date = date_match.group(1).strip() if date_match else ''
-    body_html = body_match.group(1).strip() if body_match else ''
-    image_match = re.search(r'<img\\s+[^>]*src=\"([^\"]+)\"', body_html)
-    image_url = image_match.group(1) if image_match else ''
-    if image_url:
-        body_html = re.sub(r'<img\\s+[^>]*>\\s*', '', body_html, count=1)
+    body_html = extract_first_div_by_class(content, 'article-content').strip()
+    # Only treat leading image as cover image.
+    # For many historical pages, images are embedded inside body content and should not be stripped.
+    leading_image_match = re.match(r'^\s*<img\s+[^>]*src="([^"]+)"[^>]*>\s*', body_html, re.I)
+    if leading_image_match:
+        image_url = leading_image_match.group(1)
+        body_html = re.sub(r'^\s*<img\s+[^>]*>\s*', '', body_html, count=1, flags=re.I)
+    else:
+        image_url = ''
+    body_text = body_html
+    body_text = re.sub(r'(?i)<br\\s*/?>', '\n', body_text)
+    body_text = re.sub(r'(?i)</p\\s*>', '\n', body_text)
+    body_text = re.sub(r'(?i)</div\\s*>', '\n', body_text)
+    body_text = re.sub(r'<[^>]+>', '', body_text)
+    body_text = html.unescape(body_text)
+    body_text = re.sub(r'\n{3,}', '\n\n', body_text).strip()
     return {
         'title': title,
         'date': date,
         'image_url': image_url,
-        'content_html': body_html
+        'content_html': body_html,
+        'content_text': body_text
     }
+
+def derive_news_cover_and_summary(content_html: str, image_url: str = '', summary: str = ''):
+    """Fill optional cover image and summary from article content."""
+    html_body = content_html or ''
+    final_image = (image_url or '').strip()
+    final_summary = (summary or '').strip()
+
+    if not final_image:
+        img_match = re.search(r'<img\s+[^>]*src=["\']([^"\']+)["\']', html_body, re.I)
+        if img_match:
+            final_image = img_match.group(1).strip()
+    if not final_image:
+        final_image = '/assets/images/logo.png'
+
+    if not final_summary:
+        # Prefer first paragraph text.
+        para_match = re.search(r'<p\b[^>]*>(.*?)</p>', html_body, re.I | re.S)
+        candidate = ''
+        if para_match:
+            candidate = para_match.group(1)
+        else:
+            # Fallback to first block content if no <p>.
+            block_match = re.search(r'<(?:div|li|blockquote)\b[^>]*>(.*?)</(?:div|li|blockquote)>', html_body, re.I | re.S)
+            if block_match:
+                candidate = block_match.group(1)
+            else:
+                candidate = html_body
+
+        candidate = re.sub(r'(?i)<br\s*/?>', '\n', candidate)
+        candidate = re.sub(r'<[^>]+>', '', candidate)
+        candidate = html.unescape(candidate).replace('\u00a0', ' ')
+        candidate = re.sub(r'\s+', ' ', candidate).strip()
+        final_summary = candidate
+
+    return final_image, final_summary
 
 def insert_news_card(news_html_path: Path, card_html: str) -> bool:
     """Insert a news card into news.html after the Page 1 marker."""
@@ -709,6 +798,33 @@ def insert_news_card(news_html_path: Path, card_html: str) -> bool:
         news_html_path.write_text(content, encoding='utf-8')
         return True
     return False
+
+def build_news_card_regex(filename: str):
+    """Match a news card by filename across different href styles."""
+    return re.compile(
+        rf'<a\s+[^>]*href\s*=\s*["\'][^"\']*{re.escape(filename)}[^"\']*["\'][^>]*>.*?</a>',
+        re.DOTALL | re.IGNORECASE
+    )
+
+def dedupe_news_cards(content: str, filename: str):
+    """Remove duplicate cards for the same news filename, keeping the first."""
+    pattern = build_news_card_regex(filename)
+    matches = list(pattern.finditer(content))
+    if len(matches) <= 1:
+        return content, 0
+    out = []
+    last = 0
+    removed = 0
+    for idx, m in enumerate(matches):
+        out.append(content[last:m.start()])
+        if idx == 0:
+            out.append(m.group(0))
+        else:
+            removed += 1
+        last = m.end()
+    out.append(content[last:])
+    return ''.join(out), removed
+
 def get_all_news_items():
     """Flatten all news items into a list preserving category order."""
     news_data = parse_news_from_html()
@@ -840,6 +956,41 @@ def save_featured_solutions_config(new_config):
         normalized.append(sid)
     saved = {'ids': normalized[:3]}
     SOLUTIONS_FEATURED_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    return saved
+
+def get_home_section_visibility_config():
+    """Load homepage section visibility config."""
+    default_config = {
+        'partners': True,
+        'products': True,
+        'news': True,
+        'solutions': True
+    }
+    if HOME_SECTION_VISIBILITY_FILE.exists():
+        try:
+            config = json.loads(HOME_SECTION_VISIBILITY_FILE.read_text(encoding='utf-8'))
+            if isinstance(config, dict):
+                return {
+                    'partners': bool(config.get('partners', True)),
+                    'products': bool(config.get('products', True)),
+                    'news': bool(config.get('news', True)),
+                    'solutions': bool(config.get('solutions', True))
+                }
+        except Exception:
+            pass
+    HOME_SECTION_VISIBILITY_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    return default_config
+
+def save_home_section_visibility_config(new_config):
+    """Save homepage section visibility config."""
+    existing = get_home_section_visibility_config()
+    saved = {
+        'partners': bool(new_config.get('partners', existing.get('partners', True))),
+        'products': bool(new_config.get('products', existing.get('products', True))),
+        'news': bool(new_config.get('news', existing.get('news', True))),
+        'solutions': bool(new_config.get('solutions', existing.get('solutions', True)))
+    }
+    HOME_SECTION_VISIBILITY_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
     return saved
 
 
@@ -1567,8 +1718,8 @@ def create_news():
     content = (data.get('content') or '').strip()
     content_is_html = bool(data.get('content_is_html', False))
 
-    if not title or not date or not category or not image_url or not summary or not content:
-        return jsonify({'success': False, 'message': '请填写完整信息'}), 400
+    if not title or not date or not category or not content:
+        return jsonify({'success': False, 'message': '请填写标题、日期、分类和正文'}), 400
 
     if category not in {'enterprise', 'industry', 'science'}:
         return jsonify({'success': False, 'message': '请选择正确的资讯分类'}), 400
@@ -1578,6 +1729,8 @@ def create_news():
         content_html = content
     else:
         content_html = render_markdown(content)
+
+    image_url, summary = derive_news_cover_and_summary(content_html, image_url, summary)
 
     # Create news file
     news_dir = Path(__file__).parent / 'pages' / 'news'
@@ -1631,16 +1784,73 @@ def update_news_visibility():
     news_index = Path(__file__).parent / 'pages' / 'news' / 'news.html'
     if news_index.exists():
         content = news_index.read_text(encoding='utf-8')
-        pattern = re.compile(rf'(<a\\s+[^>]*href=\"\\.{2}/\\.{2}/pages/news/{re.escape(Path(link).name)}\"[^>]*)(>)', re.IGNORECASE)
-        def repl(match):
-            tag_start = match.group(1)
-            if 'data-hidden' in tag_start:
-                tag_start = re.sub(r'data-hidden=\"(true|false)\"', f'data-hidden=\"{str(hidden).lower()}\"', tag_start)
-            else:
-                tag_start += f' data-hidden=\"{str(hidden).lower()}\"'
-            return tag_start + match.group(2)
-        content = pattern.sub(repl, content, count=1)
+        filename = Path(link).name
+        card_pattern = build_news_card_regex(filename)
+        card_match = card_pattern.search(content)
+        if card_match:
+            card_html = card_match.group(0)
+            open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
+            if open_tag_match:
+                open_tag = open_tag_match.group(0)
+                if 'data-hidden=' in open_tag:
+                    open_tag = re.sub(
+                        r'data-hidden\s*=\s*["\'](true|false)["\']',
+                        f'data-hidden="{str(hidden).lower()}"',
+                        open_tag,
+                        flags=re.IGNORECASE
+                    )
+                else:
+                    open_tag = open_tag[:-1] + f' data-hidden="{str(hidden).lower()}">'
+                card_html = card_html[:open_tag_match.start()] + open_tag + card_html[open_tag_match.end():]
+                content = content[:card_match.start()] + card_html + content[card_match.end():]
         news_index.write_text(content, encoding='utf-8')
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/news/category', methods=['POST'])
+@login_required
+def update_news_category():
+    """Quick update news category in news list card."""
+    data = request.json or {}
+    link = (data.get('link') or '').strip()
+    category = (data.get('category') or '').strip()
+
+    if not link:
+        return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+    if category not in {'enterprise', 'industry', 'science'}:
+        return jsonify({'success': False, 'message': '分类不合法'}), 400
+
+    filename = Path(link).name
+    news_index = Path(__file__).parent / 'pages' / 'news' / 'news.html'
+    if not news_index.exists():
+        return jsonify({'success': False, 'message': 'news.html 不存在'}), 404
+
+    content = news_index.read_text(encoding='utf-8')
+    card_pattern = build_news_card_regex(filename)
+    card_match = card_pattern.search(content)
+    if not card_match:
+        return jsonify({'success': False, 'message': '未找到对应资讯卡片'}), 404
+
+    card_html = card_match.group(0)
+    open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
+    if not open_tag_match:
+        return jsonify({'success': False, 'message': '卡片格式异常'}), 500
+
+    open_tag = open_tag_match.group(0)
+    if 'data-category=' in open_tag:
+        open_tag = re.sub(
+            r'data-category\s*=\s*["\'][^"\']*["\']',
+            f'data-category="{category}"',
+            open_tag,
+            flags=re.IGNORECASE
+        )
+    else:
+        open_tag = open_tag[:-1] + f' data-category="{category}">'
+
+    card_html = card_html[:open_tag_match.start()] + open_tag + card_html[open_tag_match.end():]
+    content = content[:card_match.start()] + card_html + content[card_match.end():]
+    news_index.write_text(content, encoding='utf-8')
 
     return jsonify({'success': True})
 
@@ -1667,8 +1877,8 @@ def delete_news():
     news_index = news_dir / 'news.html'
     if news_index.exists():
         content = news_index.read_text(encoding='utf-8')
-        pattern = re.compile(rf'<a\\s+[^>]*href=\"\\.{2}/\\.{2}/pages/news/{re.escape(filename)}\"[^>]*>.*?</a>', re.DOTALL | re.IGNORECASE)
-        content, _ = pattern.subn('', content, count=1)
+        pattern = build_news_card_regex(filename)
+        content, _ = pattern.subn('', content)
         news_index.write_text(content, encoding='utf-8')
 
     hidden_links = get_hidden_news_links()
@@ -1695,8 +1905,8 @@ def update_news():
 
     if not link:
         return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
-    if not title or not date or not category or not image_url or not summary or not content:
-        return jsonify({'success': False, 'message': '请填写完整信息'}), 400
+    if not title or not date or not category or not content:
+        return jsonify({'success': False, 'message': '请填写标题、日期、分类和正文'}), 400
     if category not in {'enterprise', 'industry', 'science'}:
         return jsonify({'success': False, 'message': '请选择正确的资讯分类'}), 400
 
@@ -1704,6 +1914,8 @@ def update_news():
         content_html = content
     else:
         content_html = render_markdown(content)
+
+    image_url, summary = derive_news_cover_and_summary(content_html, image_url, summary)
 
     filename = Path(link).name
     news_dir = Path(__file__).parent / 'pages' / 'news'
@@ -1731,9 +1943,10 @@ def update_news():
                         </div>
                     </a>
 """
-        pattern = re.compile(rf'<a\\s+[^>]*href=\"\\.{2}/\\.{2}/pages/news/{re.escape(filename)}\"[^>]*>.*?</a>', re.DOTALL | re.IGNORECASE)
+        pattern = build_news_card_regex(filename)
         content_text, count = pattern.subn(card_html, content_text, count=1)
         if count:
+            content_text, _ = dedupe_news_cards(content_text, filename)
             news_index.write_text(content_text, encoding='utf-8')
         else:
             insert_news_card(news_index, card_html)
@@ -1770,11 +1983,136 @@ def preview_news_content():
         html = render_markdown(content)
     return jsonify({'success': True, 'html': html})
 
+@app.route('/api/news/preview-page', methods=['POST'])
+@login_required
+def preview_news_page():
+    """Render full news page HTML for 1:1 admin preview."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip() or '标题预览'
+    date = (data.get('date') or '').strip() or datetime.now().strftime('%Y-%m-%d')
+    image_url = (data.get('image_url') or '').strip() or '/assets/images/logo.png'
+    content = (data.get('content') or '').strip()
+    is_html = bool(data.get('content_is_html', False))
+
+    content_html = content if is_html else render_markdown(content)
+    page_html = build_news_article_html(title, date, image_url, content_html)
+    resize_bridge = """
+<style>
+/* Preview-only guard: prevent vh-based feedback loops in iframe auto-height */
+html, body {
+  min-height: 0 !important;
+  height: auto !important;
+}
+body {
+  overflow-x: hidden !important;
+}
+.article-hero {
+  height: clamp(260px, 32vw, 420px) !important;
+  min-height: 260px !important;
+}
+</style>
+<div id="__preview_end_marker__" style="height:1px;width:100%;"></div>
+<script>
+(function () {
+  function sendHeight() {
+    var marker = document.getElementById('__preview_end_marker__');
+    var h = 0;
+    if (marker) {
+      var rect = marker.getBoundingClientRect();
+      h = Math.ceil((window.scrollY || window.pageYOffset || 0) + rect.top + rect.height);
+    } else {
+      var d = document.documentElement;
+      var b = document.body;
+      h = Math.max(
+        d ? d.scrollHeight : 0,
+        b ? b.scrollHeight : 0,
+        d ? d.offsetHeight : 0,
+        b ? b.offsetHeight : 0
+      );
+    }
+    try { parent.postMessage({ type: 'news-preview-height', height: h }, '*'); } catch (e) {}
+  }
+  window.addEventListener('load', sendHeight);
+  document.addEventListener('DOMContentLoaded', sendHeight);
+  window.addEventListener('resize', sendHeight);
+  setTimeout(sendHeight, 100);
+  setTimeout(sendHeight, 500);
+  setTimeout(sendHeight, 1200);
+  if (document.images) {
+    Array.prototype.forEach.call(document.images, function (img) {
+      if (!img.complete) {
+        img.addEventListener('load', sendHeight, { once: true });
+        img.addEventListener('error', sendHeight, { once: true });
+      }
+    });
+  }
+  var mo = new MutationObserver(function () { sendHeight(); });
+  mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+})();
+</script>
+"""
+    if '</body>' in page_html:
+        page_html = page_html.replace('</body>', resize_bridge + '\n</body>')
+    else:
+        page_html += resize_bridge
+    return jsonify({'success': True, 'page_html': page_html})
+
 
 @app.route('/api/news/ai-polish', methods=['POST'])
 @login_required
 def ai_polish_news():
-    """Use AI to polish news content to Markdown."""
+    """Use AI to typeset news content without changing visible text."""
+    def extract_visible_text(text: str, is_html: bool, collapse_whitespace: bool) -> str:
+        s = text or ''
+        if is_html:
+            s = re.sub(r'(?is)<script.*?>.*?</script>', '', s)
+            s = re.sub(r'(?is)<style.*?>.*?</style>', '', s)
+            s = re.sub(r'(?i)<br\\s*/?>', '\n', s)
+            s = re.sub(r'(?is)<[^>]+>', '', s)
+        s = html.unescape(s)
+        s = s.replace('\u00a0', ' ')
+        if collapse_whitespace:
+            s = re.sub(r'\s+', '', s)
+        else:
+            s = re.sub(r'\s+', ' ', s).strip()
+        return s
+
+    def get_first_diff_hint(before_text: str, after_text: str, window: int = 18):
+        n = min(len(before_text), len(after_text))
+        idx = 0
+        while idx < n and before_text[idx] == after_text[idx]:
+            idx += 1
+        if idx >= n and len(before_text) == len(after_text):
+            return 0, before_text[:window], after_text[:window]
+        start = max(0, idx - window)
+        end_before = min(len(before_text), idx + window)
+        end_after = min(len(after_text), idx + window)
+        return idx, before_text[start:end_before], after_text[start:end_after]
+
+    def sanitize_ai_typeset_output(text: str, is_html: bool) -> str:
+        s = (text or '').strip()
+        if not s:
+            return s
+        # Remove markdown code fences if the model wrapped output.
+        s = re.sub(r'^\s*```(?:html|markdown)?\s*', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'\s*```\s*$', '', s)
+
+        # Remove common metadata prefixes accidentally generated by model.
+        # Example:
+        # 新闻标题：xxx
+        # 摘要：xxx
+        # 正文：...
+        s = re.sub(r'^\s*(?:新闻标题|标题)\s*[：:].*?(?:\n|<br\s*/?>)+', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'^\s*摘要\s*[：:].*?(?:\n|<br\s*/?>)+', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'^\s*正文\s*[：:]\s*', '', s, flags=re.IGNORECASE)
+
+        if is_html:
+            # Some models prepend <p>标题：...</p><p>摘要：...</p>
+            s = re.sub(r'^\s*<p>\s*(?:新闻标题|标题)\s*[：:].*?</p>\s*', '', s, flags=re.IGNORECASE | re.DOTALL)
+            s = re.sub(r'^\s*<p>\s*摘要\s*[：:].*?</p>\s*', '', s, flags=re.IGNORECASE | re.DOTALL)
+            s = re.sub(r'^\s*<p>\s*正文\s*[：:]\s*</p>\s*', '', s, flags=re.IGNORECASE | re.DOTALL)
+        return s.strip()
+
     config = get_chatbot_config()
     if not config.get('enabled', True):
         return jsonify({'success': False, 'message': 'AI客服暂时不可用'}), 503
@@ -1785,15 +2123,23 @@ def ai_polish_news():
     title = (data.get('title') or '').strip()
     summary = (data.get('summary') or '').strip()
     content = (data.get('content') or '').strip()
+    content_is_html = bool(data.get('content_is_html', True))
     if not content:
         return jsonify({'success': False, 'message': '请输入正文内容'}), 400
 
+    output_mode = 'HTML' if content_is_html else 'Markdown'
     system_prompt = (
-        "你是一名企业资讯编辑，请根据给定内容进行润色排版。"
-        "输出为 Markdown，保持事实不变，不新增虚构信息。"
-        "结构清晰，适当使用小标题、列表与重点强调。"
+        "你是一名企业资讯排版助手。你的任务只允许“排版”，不允许“改写”。"
+        "必须严格保持输入正文的可见文字完全一致（不得增删改任何字、数字、标点、顺序）。"
+        "可以调整段落结构、换行、列表、标题层级、强调样式。"
+        f"输出格式必须是 {output_mode}。只输出排版后的正文片段本身。"
+        "禁止输出“标题：”“摘要：”“正文：”等前缀，禁止输出解释。"
     )
-    user_prompt = f"标题：{title}\n摘要：{summary}\n正文：\n{content}\n\n请输出润色后的 Markdown 正文。"
+    user_prompt = (
+        f"上下文（仅供理解，不得输出）：标题={title}；摘要={summary}\n"
+        f"待排版正文（仅此内容可输出）：\n{content}\n\n"
+        f"请仅做排版并输出正文片段（{output_mode}）。"
+    )
     messages = [
         {'role': 'system', 'content': system_prompt},
         {'role': 'user', 'content': user_prompt}
@@ -1802,7 +2148,26 @@ def ai_polish_news():
     response, error = call_openai_api(messages, stream=False)
     if error:
         return jsonify({'success': False, 'message': error}), 500
-    return jsonify({'success': True, 'content': response})
+
+    response = sanitize_ai_typeset_output(response or '', content_is_html)
+
+    before_norm = extract_visible_text(content, content_is_html, collapse_whitespace=True)
+    after_norm = extract_visible_text(response or '', content_is_html, collapse_whitespace=True)
+    if before_norm != after_norm:
+        before_human = extract_visible_text(content, content_is_html, collapse_whitespace=False)
+        after_human = extract_visible_text(response or '', content_is_html, collapse_whitespace=False)
+        diff_index, before_excerpt, after_excerpt = get_first_diff_hint(before_human, after_human)
+        return jsonify({
+            'success': True,
+            'content': response or content,
+            'changed_text': True,
+            'warning': '检测到 AI 可能改写了部分正文，已直接替换。你可以使用“撤销替换”恢复。',
+            'diff_index': diff_index,
+            'before_excerpt': before_excerpt,
+            'after_excerpt': after_excerpt
+        })
+
+    return jsonify({'success': True, 'content': response, 'changed_text': False})
 
 
 # ============ Product Images API ============
@@ -2845,6 +3210,19 @@ def serve_partners_media(filename):
     """Serve uploaded partner logo files."""
     return send_from_directory(PARTNERS_UPLOADS_DIR, filename)
 
+@app.route('/api/home/section-visibility', methods=['GET'])
+def get_home_section_visibility():
+    """Get homepage section visibility for frontend and admin."""
+    return jsonify(get_home_section_visibility_config())
+
+@app.route('/api/home/section-visibility', methods=['POST'])
+@login_required
+def update_home_section_visibility():
+    """Update homepage section visibility."""
+    data = request.json or {}
+    config = save_home_section_visibility_config(data)
+    return jsonify({'success': True, 'config': config})
+
 
 @app.route('/api/products/card-image/upload', methods=['POST'])
 def upload_product_card_image():
@@ -2884,6 +3262,105 @@ def upload_product_card_image():
 def serve_product_card_media(filename):
     """Serve uploaded product card image files."""
     return send_from_directory(PRODUCT_CARD_UPLOADS_DIR, filename)
+
+@app.route('/api/news/image/import', methods=['POST'])
+@login_required
+def import_news_image_from_url():
+    """Download an image URL to local media and return local URL."""
+    data = request.json or {}
+    source_url = (data.get('url') or '').strip()
+    if not source_url:
+        return jsonify({'success': False, 'message': '缺少图片链接'}), 400
+    if not (source_url.startswith('http://') or source_url.startswith('https://')):
+        return jsonify({'success': False, 'message': '仅支持 http/https 图片链接'}), 400
+
+    parsed = urlparse(source_url)
+    ext = Path(parsed.path).suffix.lower()
+    content_type = ''
+    content = b''
+
+    try:
+        if REQUESTS_SUPPORT:
+            resp = requests.get(source_url, timeout=20)
+            resp.raise_for_status()
+            content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
+            content = resp.content or b''
+        elif HTTPX_SUPPORT:
+            resp = httpx.get(source_url, timeout=20.0, follow_redirects=True)
+            resp.raise_for_status()
+            content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
+            content = resp.content or b''
+        else:
+            return jsonify({'success': False, 'message': '服务端缺少下载客户端依赖'}), 500
+    except Exception:
+        return jsonify({'success': False, 'message': '图片下载失败，请检查链接是否可访问'}), 400
+
+    if len(content) == 0:
+        return jsonify({'success': False, 'message': '图片内容为空'}), 400
+    if len(content) > 15 * 1024 * 1024:
+        return jsonify({'success': False, 'message': '图片过大（最大15MB）'}), 400
+
+    if ext not in ALLOWED_NEWS_IMAGE_EXTENSIONS:
+        if content_type in ALLOWED_NEWS_IMAGE_MIME_TYPES:
+            ext = infer_news_image_extension_from_mime(content_type)
+        else:
+            guessed = mimetypes.guess_extension(content_type) if content_type else ''
+            ext = (guessed or '').lower()
+            if ext == '.jpe':
+                ext = '.jpg'
+            if ext not in ALLOWED_NEWS_IMAGE_EXTENSIONS:
+                return jsonify({'success': False, 'message': '链接内容不是受支持的图片格式'}), 400
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = NEWS_UPLOADS_DIR / filename
+    file_path.write_bytes(content)
+    return jsonify({'success': True, 'url': f'/media/news/{filename}'})
+
+@app.route('/api/news/image/upload', methods=['POST'])
+@login_required
+def upload_news_image_file():
+    """Upload a local image file for news rich text editor."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+    file = request.files['file']
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+    original_name = file.filename
+    filename = secure_filename(original_name)
+    ext = Path(filename).suffix.lower()
+    mime = (file.mimetype or '').lower()
+
+    if ext not in ALLOWED_NEWS_IMAGE_EXTENSIONS:
+        inferred = infer_news_image_extension_from_mime(mime)
+        if inferred:
+            ext = inferred
+        else:
+            return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF/SVG'}), 400
+
+    if mime and mime not in ALLOWED_NEWS_IMAGE_MIME_TYPES:
+        inferred = infer_news_image_extension_from_mime(mime)
+        if not inferred:
+            return jsonify({'success': False, 'message': '文件类型不受支持'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = NEWS_UPLOADS_DIR / saved_name
+    file.save(str(save_path))
+
+    if save_path.stat().st_size > 15 * 1024 * 1024:
+        try:
+            save_path.unlink()
+        except Exception:
+            pass
+        return jsonify({'success': False, 'message': '图片过大（最大15MB）'}), 400
+
+    return jsonify({'success': True, 'url': f'/media/news/{saved_name}'})
+
+@app.route('/media/news/<path:filename>')
+def serve_news_media(filename):
+    """Serve imported news images."""
+    return send_from_directory(NEWS_UPLOADS_DIR, filename)
 
 
 @app.route('/api/categories')
@@ -3418,7 +3895,11 @@ def update_chatbot_config():
 @app.route('/admin')
 def admin_page():
     """Admin login/dashboard page."""
-    return send_from_directory('admin', 'index.html')
+    resp = make_response(send_from_directory('admin', 'index.html'))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @app.route('/admin/login', methods=['POST'])

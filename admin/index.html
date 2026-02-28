@@ -543,6 +543,75 @@
             background: #ffebee;
             color: #c62828;
         }
+
+        .news-editor-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid #d9e0ea;
+            border-bottom: 0;
+            border-radius: 8px 8px 0 0;
+            background: #f7f9fc;
+        }
+
+        .news-editor-toolbar .btn-sm {
+            border: 1px solid #c8d3e3;
+            background: #fff;
+            color: #1e2f4d;
+        }
+
+        .news-editor-toolbar .btn-sm.active {
+            background: #0f2f5f;
+            color: #fff;
+            border-color: #0f2f5f;
+        }
+
+        .news-color-palette {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border: 1px solid #c8d3e3;
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        .news-color-swatch {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .news-editor-surface {
+            min-height: 340px;
+            max-height: 520px;
+            overflow: auto;
+            border: 1px solid #d9e0ea;
+            border-radius: 0 0 8px 8px;
+            padding: 14px;
+            background: #fff;
+            line-height: 1.8;
+            outline: none;
+        }
+
+        .news-editor-surface img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            display: block;
+            margin: 10px auto;
+        }
+
+        .news-editor-source {
+            min-height: 340px !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
     </style>
 </head>
 
@@ -703,6 +772,7 @@
                                         <th>产品名称</th>
                                         <th>简称</th>
                                         <th>分类</th>
+                                        <th>显示</th>
                                         <th>卡片标题（产品页）</th>
                                         <th>卡片图片（产品页）</th>
                                         <th>卡片摘要（产品页）</th>
@@ -825,6 +895,13 @@
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                                 支持上传图片或使用 CDN 链接，拖拽调整顺序。
                             </p>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <span style="color: #666; font-size: 14px;">首页模块状态：</span>
+                                <strong id="partnersVisibilityStatus" style="color: #28a745;">显示中</strong>
+                                <button id="partnersVisibilityToggleBtn" class="btn-primary"
+                                    style="width: auto; padding: 8px 16px;"
+                                    onclick="toggleHomeSectionVisibility('partners')">隐藏</button>
+                            </div>
                         </div>
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
@@ -873,6 +950,13 @@
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                                 从 <code>pages/news/</code> 中选择要显示在首页的 3 条资讯。
                             </p>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                <span style="color: #666; font-size: 14px;">首页模块状态：</span>
+                                <strong id="newsVisibilityStatus" style="color: #28a745;">显示中</strong>
+                                <button id="newsVisibilityToggleBtn" class="btn-primary"
+                                    style="width: auto; padding: 8px 16px;"
+                                    onclick="toggleHomeSectionVisibility('news')">隐藏</button>
+                            </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
                                 <div>
@@ -906,6 +990,13 @@
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                                 从产品库中选择要显示在首页的 3 个产品。
                             </p>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <span style="color: #666; font-size: 14px;">首页模块状态：</span>
+                                <strong id="productsVisibilityStatus" style="color: #28a745;">显示中</strong>
+                                <button id="productsVisibilityToggleBtn" class="btn-primary"
+                                    style="width: auto; padding: 8px 16px;"
+                                    onclick="toggleHomeSectionVisibility('products')">隐藏</button>
+                            </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
                                 <div>
@@ -939,6 +1030,13 @@
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                                 从 <code>pages/solutions/</code> 中选择要显示在首页的 3 条解决方案。
                             </p>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                                <span style="color: #666; font-size: 14px;">首页模块状态：</span>
+                                <strong id="solutionsVisibilityStatus" style="color: #28a745;">显示中</strong>
+                                <button id="solutionsVisibilityToggleBtn" class="btn-primary"
+                                    style="width: auto; padding: 8px 16px;"
+                                    onclick="toggleHomeSectionVisibility('solutions')">隐藏</button>
+                            </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
                                 <div>
@@ -1409,31 +1507,167 @@
                                 </div>
                                 <div class="form-group">
                                     <label>封面图片链接</label>
-                                    <input type="text" id="newsImage" class="form-control" placeholder="https://..."
-                                        required>
+                                    <input type="text" id="newsImage" class="form-control"
+                                        placeholder="非必填：留空时自动使用正文第一张图片；若正文无图则使用默认图片">
+                                    <div class="form-hint">非必填：默认取正文首图作为封面。</div>
                                 </div>
                                 <div class="form-group">
                                     <label>摘要（首页卡片展示）</label>
-                                    <textarea id="newsSummary" class="form-control" rows="3" required></textarea>
+                                    <textarea id="newsSummary" class="form-control" rows="3"
+                                        placeholder="非必填：留空时自动使用正文第一段话作为摘要"></textarea>
+                                    <div class="form-hint">非必填：默认取正文首段作为摘要。</div>
                                 </div>
                             </div>
 
                             <div>
                                 <div class="form-group">
                                     <label>正文内容</label>
-                                    <textarea id="newsContent" class="form-control" rows="14"
-                                        placeholder="一段一行；如需HTML可勾选下方开关" required></textarea>
+                                    <div class="news-editor-toolbar">
+                                        <button type="button" class="btn-sm active" id="newsModeVisualBtn"
+                                            onclick="switchNewsEditorMode('visual')">可视化</button>
+                                        <button type="button" class="btn-sm" id="newsModeSourceBtn"
+                                            onclick="switchNewsEditorMode('source')">HTML源码</button>
+                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('bold')"><b>B</b></button>
+                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('italic')"><i>I</i></button>
+                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('insertUnorderedList')">• 列表</button>
+                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h2')">H2</button>
+                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h3')">H3</button>
+                                        <select class="form-control" id="newsFontSizeSelect"
+                                            style="max-width: 110px; padding: 6px 8px;"
+                                            onchange="applyNewsFontSize(this.value)">
+                                            <option value="">字号</option>
+                                            <option value="10px">10</option>
+                                            <option value="11px">11</option>
+                                            <option value="12px">12</option>
+                                            <option value="13px">13</option>
+                                            <option value="14px">14</option>
+                                            <option value="15px">15</option>
+                                            <option value="16px">16</option>
+                                            <option value="17px">17</option>
+                                            <option value="18px">18</option>
+                                            <option value="19px">19</option>
+                                            <option value="20px">20</option>
+                                            <option value="22px">22</option>
+                                            <option value="24px">24</option>
+                                            <option value="26px">26</option>
+                                            <option value="28px">28</option>
+                                            <option value="32px">32</option>
+                                            <option value="36px">36</option>
+                                            <option value="40px">40</option>
+                                            <option value="48px">48</option>
+                                            <option value="56px">56</option>
+                                            <option value="64px">64</option>
+                                            <option value="72px">72</option>
+                                        </select>
+                                        <input type="number" id="newsFontSizeCustom" class="form-control"
+                                            min="8" max="200" step="1" placeholder="自定义字号"
+                                            style="max-width: 110px; padding: 6px 8px;"
+                                            onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsFontSizeCustom();}">
+                                        <button type="button" class="btn-sm" onclick="applyNewsFontSizeCustom()">应用字号</button>
+                                        <input type="color" id="newsFontColorInput" value="#1e2f4d"
+                                            title="文字颜色" style="width: 38px; height: 32px; padding: 2px; border: 1px solid #c8d3e3; border-radius: 4px;"
+                                            onchange="applyNewsFontColor(this.value)">
+                                        <div class="news-color-palette" title="常用颜色">
+                                            <button type="button" class="news-color-swatch" style="background:#000000;" onclick="setNewsColorPreset('#000000')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#595959;" onclick="setNewsColorPreset('#595959')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#c00000;" onclick="setNewsColorPreset('#c00000')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#ed7d31;" onclick="setNewsColorPreset('#ed7d31')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#ffc000;" onclick="setNewsColorPreset('#ffc000')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#70ad47;" onclick="setNewsColorPreset('#70ad47')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#00b0f0;" onclick="setNewsColorPreset('#00b0f0')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#4472c4;" onclick="setNewsColorPreset('#4472c4')"></button>
+                                            <button type="button" class="news-color-swatch" style="background:#7030a0;" onclick="setNewsColorPreset('#7030a0')"></button>
+                                        </div>
+                                        <select class="form-control" id="newsLineHeightSelect"
+                                            style="max-width: 106px; padding: 6px 8px;"
+                                            onchange="applyNewsLineHeight(this.value)">
+                                            <option value="">行距</option>
+                                            <option value="1">1.0</option>
+                                            <option value="1.15">1.15</option>
+                                            <option value="1.2">1.2</option>
+                                            <option value="1.35">1.35</option>
+                                            <option value="1.5">1.5</option>
+                                            <option value="1.65">1.65</option>
+                                            <option value="1.8">1.8</option>
+                                            <option value="2">2.0</option>
+                                            <option value="2.4">2.4</option>
+                                            <option value="3">3.0</option>
+                                        </select>
+                                        <input type="number" id="newsLineHeightCustom" class="form-control"
+                                            min="0.8" max="5" step="0.05" placeholder="自定义行距"
+                                            style="max-width: 110px; padding: 6px 8px;"
+                                            onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsLineHeightCustom();}">
+                                        <button type="button" class="btn-sm" onclick="applyNewsLineHeightCustom()">应用行距</button>
+                                        <select class="form-control" id="newsFirstIndentSelect"
+                                            style="max-width: 108px; padding: 6px 8px;"
+                                            onchange="applyNewsFirstIndent(this.value)">
+                                            <option value="">首行缩进</option>
+                                            <option value="0">无缩进</option>
+                                            <option value="2em">2字符</option>
+                                            <option value="4em">4字符</option>
+                                        </select>
+                                        <select class="form-control" id="newsParaBeforeSelect"
+                                            style="max-width: 92px; padding: 6px 8px;"
+                                            onchange="applyNewsParagraphSpacing('before', this.value)">
+                                            <option value="">段前</option>
+                                            <option value="0">0</option>
+                                            <option value="8px">8</option>
+                                            <option value="12px">12</option>
+                                            <option value="16px">16</option>
+                                            <option value="24px">24</option>
+                                        </select>
+                                        <select class="form-control" id="newsParaAfterSelect"
+                                            style="max-width: 92px; padding: 6px 8px;"
+                                            onchange="applyNewsParagraphSpacing('after', this.value)">
+                                            <option value="">段后</option>
+                                            <option value="0">0</option>
+                                            <option value="8px">8</option>
+                                            <option value="12px">12</option>
+                                            <option value="16px">16</option>
+                                            <option value="24px">24</option>
+                                        </select>
+                                        <button type="button" class="btn-sm" onclick="insertNewsLink()">插入链接</button>
+                                        <select class="form-control" id="newsImageSizePreset"
+                                            style="max-width: 116px; padding: 6px 8px;">
+                                            <option value="100%">图片宽度100%</option>
+                                            <option value="80%">图片宽度80%</option>
+                                            <option value="60%" selected>图片宽度60%</option>
+                                            <option value="40%">图片宽度40%</option>
+                                            <option value="320px">320px</option>
+                                            <option value="480px">480px</option>
+                                            <option value="640px">640px</option>
+                                            <option value="800px">800px</option>
+                                        </select>
+                                        <input type="text" id="newsImageSizeCustom" class="form-control"
+                                            placeholder="自定义宽度(如 520px/55%)"
+                                            style="max-width: 180px; padding: 6px 8px;">
+                                        <button type="button" class="btn-sm" onclick="applySizeToSelectedNewsImage()">设置所选图宽</button>
+                                        <button type="button" class="btn-sm" onclick="triggerNewsImageUpload()">上传图片文件</button>
+                                        <input type="file" id="newsImageFileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                                            style="display:none;" onchange="uploadNewsImageFile(this)">
+                                        <input type="text" id="newsInsertImageUrl" class="form-control"
+                                            placeholder="粘贴图片URL后点击导入" style="max-width: 280px; padding: 6px 10px;">
+                                        <button type="button" class="btn-sm" onclick="insertNewsImageFromUrl()">导入图片URL</button>
+                                    </div>
+                                    <div id="newsContentEditor" class="news-editor-surface" contenteditable="true"></div>
+                                    <textarea id="newsContent" class="form-control news-editor-source" rows="14"
+                                        placeholder="HTML源码模式" style="display:none;"></textarea>
                                 </div>
                                 <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
-                                    <button type="button" class="btn-sm" onclick="aiPolishNews()">AI 排版</button>
+                                    <button type="button" class="btn-sm"
+                                        onmousedown="saveNewsEditorSelection(); return false;"
+                                        onclick="aiPolishNews()">AI 排版（选区/段落）</button>
                                     <span style="font-size: 12px; color:#666;">将根据已配置的 AI 客服进行润色排版（Markdown）</span>
+                                </div>
+                                <div id="newsAiActions" style="display:none; gap:10px; align-items:center; margin-bottom: 12px;">
+                                    <button type="button" class="btn-sm btn-danger" onclick="revertAiTypesetChange()">撤销替换</button>
                                 </div>
                                 <div class="form-group" style="display:flex; align-items:center; gap:10px;">
                                     <label class="toggle-switch" style="margin:0;">
-                                        <input type="checkbox" id="newsContentIsHtml">
+                                        <input type="checkbox" id="newsContentIsHtml" checked disabled>
                                         <span class="toggle-slider"></span>
                                     </label>
-                                    <span style="font-size: 13px; color:#666;">内容为 HTML（不自动包裹段落）</span>
+                                    <span style="font-size: 13px; color:#666;">富文本编辑（保存为 HTML）</span>
                                 </div>
                                 <div style="display:flex; gap:12px; align-items:center;">
                                     <button type="submit" id="newsSubmitBtn" class="btn-primary"
@@ -1452,17 +1686,12 @@
                         <h3 class="section-header" style="display:flex; align-items:center; gap:10px;">
                             <span
                                 style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#0f2f5f; color:#fff; font-size:12px;">预</span>
-                            页面实时预览
+                            页面实时预览（1:1 完整页面）
                         </h3>
                         <div id="newsPreview"
-                            style="border: 1px solid #e1e6ef; border-radius: 10px; padding: 24px; background: #fbfcff;">
-                            <div style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color:#0f2f5f;"
-                                id="newsPreviewTitle">
-                                标题预览</div>
-                            <div style="color:#607087; font-size: 13px; margin-bottom: 16px;" id="newsPreviewDate">日期
-                            </div>
-                            <div id="newsPreviewImageWrap" style="margin-bottom: 16px;"></div>
-                            <div id="newsPreviewContent" style="line-height: 1.9; color:#2b2f36;"></div>
+                            style="border: 1px solid #e1e6ef; border-radius: 10px; background: #f3f6fb; min-height: 640px; overflow: visible;">
+                            <iframe id="newsPreviewFrame" title="news-preview" scrolling="no"
+                                style="width: 100%; min-height: 640px; border: 0; background: #fff; display:block;"></iframe>
                         </div>
                     </div>
 
@@ -1844,7 +2073,7 @@
 
         async function loadProducts() {
             const tbody = document.getElementById('productsTableBody');
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">加载中...</td></tr>';
 
             try {
                 // 使用带设置的 API
@@ -1853,7 +2082,7 @@
                 productsData = data.products || [];
 
                 if (productsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="no-data">暂无产品数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无产品数据</td></tr>';
                     return;
                 }
 
@@ -1870,7 +2099,7 @@
                 };
 
                 tbody.innerHTML = productsData.map(p => `
-                    <tr>
+                    <tr style="${p.hidden ? 'opacity: 0.5;' : ''}">
                         <td>
                             <img src="${p.image}" alt="${p.name}" 
                                 style="width: 60px; height: 40px; object-fit: contain; background: #f0f0f0; border-radius: 4px;"
@@ -1879,6 +2108,12 @@
                         <td><strong>${p.name}</strong></td>
                         <td>${p.shortName || '-'}</td>
                         <td><span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 12px;">${categoryLabels[p.category] || p.category}</span></td>
+                        <td style="text-align: center; min-width: 90px;">
+                            <label class="toggle-switch" style="margin: 0;">
+                                <input type="checkbox" class="product-list-visible" data-id="${escapeHtml(p.id)}" ${!p.hidden ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </td>
                         <td style="min-width: 220px;">
                             <input type="text" class="form-control product-card-title" data-id="${escapeHtml(p.id)}"
                                 value="${escapeHtml(p.cardTitle || '')}"
@@ -1917,6 +2152,17 @@
                         saveProductSetting(e.target.dataset.id, 'cardSummary', e.target.value);
                     });
                 });
+                tbody.querySelectorAll('.product-list-visible').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const hidden = !e.target.checked;
+                        const row = e.target.closest('tr');
+                        if (row) row.style.opacity = hidden ? '0.5' : '1';
+                        const product = productsData.find(p => String(p.id) === String(e.target.dataset.id));
+                        if (product) product.hidden = hidden;
+                        saveProductSetting(e.target.dataset.id, 'hidden', hidden);
+                        renderIndustrySettings();
+                    });
+                });
                 tbody.querySelectorAll('.product-card-image-upload-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const pid = btn.dataset.id;
@@ -1943,7 +2189,7 @@
 
             } catch (e) {
                 console.error('Load products error:', e);
-                tbody.innerHTML = '<tr><td colspan="8" class="no-data">加载失败，请刷新重试</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
             }
         }
 
@@ -2043,6 +2289,8 @@
                 checkbox.addEventListener('change', (e) => {
                     const row = e.target.closest('tr');
                     const hidden = !e.target.checked;
+                    const product = productsData.find(p => String(p.id) === String(e.target.dataset.id));
+                    if (product) product.hidden = hidden;
                     saveProductSetting(e.target.dataset.id, 'hidden', hidden);
                     row.style.opacity = hidden ? '0.5' : '1';
                     // Update hidden badge
@@ -2053,6 +2301,7 @@
                     } else if (!hidden && existingHiddenBadge) {
                         existingHiddenBadge.remove();
                     }
+                    renderIndustrySettings();
                 });
             });
         }
@@ -2110,6 +2359,7 @@
             const filterEditor = document.getElementById('industryFilterEditor');
             const assignEditor = document.getElementById('industryAssignEditor');
             if (!filterEditor || !assignEditor) return;
+            const visibleProducts = productsData.filter(p => !p.hidden);
 
             const rowsHtml = industryFiltersData.map((item, idx) => `
                 <tr data-index="${idx}" style="border-bottom: 1px solid #eee;">
@@ -2155,7 +2405,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${productsData.map(p => {
+                        ${visibleProducts.length === 0 ? `
+                            <tr>
+                                <td colspan="${industryFiltersData.length + 1}" style="padding:14px; text-align:center; color:#999;">
+                                    当前没有可显示的产品（隐藏产品不会出现在此处）
+                                </td>
+                            </tr>
+                        ` : visibleProducts.map(p => {
                 const selected = Array.isArray(p.industryCategories) ? p.industryCategories : [];
                 return `
                             <tr style="border-bottom:1px solid #eee;">
@@ -2531,7 +2787,10 @@
                 const result = await res.json();
                 if (!result.success) {
                     console.error('Save failed:', result.message);
+                    return;
                 }
+                const target = productsData.find(p => String(p.id) === String(productId));
+                if (target) target[field] = value;
             } catch (e) {
                 console.error('Save error:', e);
             }
@@ -2847,11 +3106,66 @@
 
         // --- Partners Logic ---
         let partnersConfig = { items: [] };
+        let homeSectionVisibility = { partners: true, products: true, news: true, solutions: true };
+
+        function updateHomeSectionVisibilityUI(section) {
+            const isVisible = !!homeSectionVisibility[section];
+            const statusEl = document.getElementById(`${section}VisibilityStatus`);
+            const btnEl = document.getElementById(`${section}VisibilityToggleBtn`);
+            if (statusEl) {
+                statusEl.textContent = isVisible ? '显示中' : '已隐藏';
+                statusEl.style.color = isVisible ? '#28a745' : '#dc3545';
+            }
+            if (btnEl) {
+                btnEl.textContent = isVisible ? '隐藏' : '显示';
+            }
+        }
+
+        async function loadHomeSectionVisibility() {
+            try {
+                const res = await fetch('/api/home/section-visibility');
+                const data = await res.json();
+                homeSectionVisibility = {
+                    partners: data.partners !== false,
+                    products: data.products !== false,
+                    news: data.news !== false,
+                    solutions: data.solutions !== false
+                };
+            } catch (e) {
+                homeSectionVisibility = { partners: true, products: true, news: true, solutions: true };
+            }
+            updateHomeSectionVisibilityUI('partners');
+            updateHomeSectionVisibilityUI('products');
+            updateHomeSectionVisibilityUI('news');
+            updateHomeSectionVisibilityUI('solutions');
+        }
+
+        async function toggleHomeSectionVisibility(section) {
+            const nextVisible = !homeSectionVisibility[section];
+            try {
+                const payload = { ...homeSectionVisibility, [section]: nextVisible };
+                const res = await fetch('/api/home/section-visibility', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    homeSectionVisibility = data.config || payload;
+                    updateHomeSectionVisibilityUI(section);
+                    return;
+                }
+                alert(data.message || '保存失败');
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
 
         async function loadPartnersConfig() {
             const listEl = document.getElementById('partnersList');
             if (!listEl) return;
             listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
+            loadHomeSectionVisibility();
 
             try {
                 const res = await fetch('/api/partners');
@@ -3064,6 +3378,7 @@
             selects.forEach(sel => {
                 if (sel) sel.innerHTML = '<option value="">加载中...</option>';
             });
+            loadHomeSectionVisibility();
 
             try {
                 const [allRes, featuredRes] = await Promise.all([
@@ -3170,6 +3485,7 @@
                 document.getElementById('featuredProduct2'),
                 document.getElementById('featuredProduct3')
             ];
+            loadHomeSectionVisibility();
 
             selects.forEach(sel => {
                 if (sel) sel.innerHTML = '<option value="">加载中...</option>';
@@ -3285,6 +3601,7 @@
             selects.forEach(sel => {
                 if (sel) sel.innerHTML = '<option value="">加载中...</option>';
             });
+            loadHomeSectionVisibility();
 
             try {
                 const [allRes, featuredRes] = await Promise.all([
@@ -3930,6 +4247,469 @@
 
         // --- News Create ---
         let editingNewsLink = '';
+        let newsEditorMode = 'visual';
+        let newsEditorSavedRange = null;
+        let aiTypesetPending = false;
+        let aiTypesetBeforeHtml = '';
+        let newsPreviewBridgeBound = false;
+        const newsEditorEl = document.getElementById('newsContentEditor');
+        const newsSourceEl = document.getElementById('newsContent');
+        const newsAiActionsEl = document.getElementById('newsAiActions');
+
+        function updateAiTypesetActionVisibility() {
+            if (!newsAiActionsEl) return;
+            newsAiActionsEl.style.display = aiTypesetPending ? 'flex' : 'none';
+        }
+
+        function bindNewsPreviewBridge() {
+            if (newsPreviewBridgeBound) return;
+            window.addEventListener('message', (event) => {
+                const data = event.data || {};
+                if (data.type !== 'news-preview-height') return;
+                const frameEl = document.getElementById('newsPreviewFrame');
+                if (!frameEl) return;
+                if (event.source !== frameEl.contentWindow) return;
+                const h = Number(data.height || 0);
+                if (!Number.isFinite(h) || h <= 0) return;
+                const target = Math.min(Math.max(Math.ceil(h + 20), 640), 5200);
+                const current = parseInt(frameEl.style.height || '640', 10);
+                if (Math.abs(target - current) > 6) {
+                    frameEl.style.height = `${target}px`;
+                }
+            });
+            newsPreviewBridgeBound = true;
+        }
+
+        function revertAiTypesetChange() {
+            if (!aiTypesetPending) return;
+            setNewsEditorHtml(aiTypesetBeforeHtml || '');
+            switchNewsEditorMode('visual');
+            aiTypesetPending = false;
+            aiTypesetBeforeHtml = '';
+            updateAiTypesetActionVisibility();
+            updateNewsPreview();
+            const msg = document.getElementById('newsCreateMsg');
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = '已撤销替换，恢复到 AI 排版前内容';
+            }
+        }
+
+        function saveNewsEditorSelection() {
+            if (!newsEditorEl || newsEditorMode !== 'visual') return;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+            if (!newsEditorEl.contains(range.commonAncestorContainer)) return;
+            newsEditorSavedRange = range.cloneRange();
+        }
+
+        function restoreNewsEditorSelection() {
+            if (!newsEditorEl || newsEditorMode !== 'visual' || !newsEditorSavedRange) return;
+            const sel = window.getSelection();
+            if (!sel) return;
+            sel.removeAllRanges();
+            sel.addRange(newsEditorSavedRange);
+        }
+
+        function getNewsEditorHtml() {
+            if (!newsEditorEl || !newsSourceEl) return '';
+            if (newsEditorMode === 'source') {
+                return (newsSourceEl.value || '').trim();
+            }
+            newsSourceEl.value = (newsEditorEl.innerHTML || '').trim();
+            return newsSourceEl.value;
+        }
+
+        function setNewsEditorHtml(html) {
+            if (!newsEditorEl || !newsSourceEl) return;
+            const value = html || '';
+            newsEditorEl.innerHTML = value;
+            newsSourceEl.value = value;
+        }
+
+        function switchNewsEditorMode(mode) {
+            if (!newsEditorEl || !newsSourceEl) return;
+            const visualBtn = document.getElementById('newsModeVisualBtn');
+            const sourceBtn = document.getElementById('newsModeSourceBtn');
+            if (mode === 'source') {
+                newsSourceEl.value = newsEditorEl.innerHTML || '';
+                newsEditorEl.style.display = 'none';
+                newsSourceEl.style.display = 'block';
+                newsEditorMode = 'source';
+                if (visualBtn) visualBtn.classList.remove('active');
+                if (sourceBtn) sourceBtn.classList.add('active');
+            } else {
+                newsEditorEl.innerHTML = newsSourceEl.value || '';
+                newsSourceEl.style.display = 'none';
+                newsEditorEl.style.display = 'block';
+                newsEditorMode = 'visual';
+                if (sourceBtn) sourceBtn.classList.remove('active');
+                if (visualBtn) visualBtn.classList.add('active');
+            }
+            schedulePreview();
+        }
+
+        function applyNewsFormat(cmd, value = null) {
+            if (!newsEditorEl || newsEditorMode !== 'visual') {
+                switchNewsEditorMode('visual');
+            }
+            newsEditorEl.focus();
+            restoreNewsEditorSelection();
+            document.execCommand(cmd, false, value);
+            saveNewsEditorSelection();
+            schedulePreview();
+        }
+
+        function applyNewsFontSize(size) {
+            if (!size) return;
+            if (/^\d+(\.\d+)?$/.test(size)) size = `${size}px`;
+            applyNewsFormat('styleWithCSS', true);
+            applyNewsFormat('fontSize', '7');
+            if (!newsEditorEl) return;
+            const fonts = newsEditorEl.querySelectorAll('font[size="7"]');
+            fonts.forEach(node => {
+                node.removeAttribute('size');
+                node.style.fontSize = size;
+            });
+            schedulePreview();
+        }
+
+        function applyNewsFontSizeCustom() {
+            const input = document.getElementById('newsFontSizeCustom');
+            if (!input) return;
+            const val = parseFloat(input.value);
+            if (!Number.isFinite(val) || val < 8 || val > 200) {
+                alert('请输入 8 - 200 之间的字号');
+                return;
+            }
+            applyNewsFontSize(`${val}px`);
+        }
+
+        function applyNewsFontColor(color) {
+            if (!color) return;
+            applyNewsFormat('styleWithCSS', true);
+            applyNewsFormat('foreColor', color);
+        }
+
+        function setNewsColorPreset(color) {
+            const colorInput = document.getElementById('newsFontColorInput');
+            if (colorInput) colorInput.value = color;
+            applyNewsFontColor(color);
+        }
+
+        function getNewsSelectionBlocks() {
+            if (!newsEditorEl) return [];
+            const sel = window.getSelection();
+            if ((!sel || sel.rangeCount === 0) && newsEditorSavedRange) {
+                const fakeSel = window.getSelection();
+                if (fakeSel) {
+                    fakeSel.removeAllRanges();
+                    fakeSel.addRange(newsEditorSavedRange);
+                }
+            }
+            if (!sel || sel.rangeCount === 0) return [];
+            const range = sel.getRangeAt(0);
+            if (!newsEditorEl.contains(range.commonAncestorContainer)) return [];
+            const selector = 'p,div,li,h1,h2,h3,h4,h5,h6,blockquote';
+            const blocks = Array.from(newsEditorEl.querySelectorAll(selector)).filter(el => {
+                try {
+                    return range.intersectsNode(el);
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (blocks.length) return blocks;
+
+            let node = sel.anchorNode;
+            if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+            while (node && node !== newsEditorEl) {
+                if (node.matches && node.matches(selector)) return [node];
+                node = node.parentElement;
+            }
+            return [];
+        }
+
+        function applyNewsBlockStyle(styleSetter) {
+            if (!newsEditorEl) return;
+            if (newsEditorMode !== 'visual') switchNewsEditorMode('visual');
+            restoreNewsEditorSelection();
+            const blocks = getNewsSelectionBlocks();
+            if (blocks.length > 0) {
+                blocks.forEach(styleSetter);
+            } else {
+                const allBlocks = Array.from(newsEditorEl.querySelectorAll('p,div,li,h1,h2,h3,h4,h5,h6,blockquote'));
+                if (allBlocks.length > 0) allBlocks.forEach(styleSetter);
+                else styleSetter(newsEditorEl);
+            }
+            saveNewsEditorSelection();
+            schedulePreview();
+        }
+
+        function applyNewsLineHeight(value) {
+            if (!value) return;
+            applyNewsBlockStyle((el) => { el.style.lineHeight = value; });
+        }
+
+        function applyNewsLineHeightCustom() {
+            const input = document.getElementById('newsLineHeightCustom');
+            if (!input) return;
+            const val = parseFloat(input.value);
+            if (!Number.isFinite(val) || val < 0.8 || val > 5) {
+                alert('请输入 0.8 - 5.0 之间的行间距');
+                return;
+            }
+            applyNewsLineHeight(String(val));
+        }
+
+        function applyNewsFirstIndent(value) {
+            if (typeof value === 'undefined' || value === '') return;
+            applyNewsBlockStyle((el) => { el.style.textIndent = value; });
+        }
+
+        function applyNewsParagraphSpacing(type, value) {
+            if (!value) return;
+            applyNewsBlockStyle((el) => {
+                if (type === 'before') el.style.marginTop = value;
+                if (type === 'after') el.style.marginBottom = value;
+            });
+        }
+
+        function insertNewsLink() {
+            const link = prompt('请输入链接（http/https）');
+            if (!link) return;
+            applyNewsFormat('createLink', link.trim());
+        }
+
+        function getNewsImageWidthSetting() {
+            const preset = document.getElementById('newsImageSizePreset')?.value || '60%';
+            const customRaw = (document.getElementById('newsImageSizeCustom')?.value || '').trim();
+            const raw = customRaw || preset;
+            if (!raw) return '60%';
+            if (/^\d+(\.\d+)?%$/.test(raw)) return raw;
+            if (/^\d+(\.\d+)?px$/i.test(raw)) return raw.toLowerCase();
+            if (/^\d+(\.\d+)?$/.test(raw)) return `${raw}px`;
+            return preset || '60%';
+        }
+
+        function insertHtmlToNewsEditor(html) {
+            if (!newsEditorEl) return;
+            if (newsEditorMode !== 'visual') {
+                switchNewsEditorMode('visual');
+            }
+            newsEditorEl.focus();
+            document.execCommand('insertHTML', false, html);
+            schedulePreview();
+        }
+
+        function htmlFromRange(range) {
+            const div = document.createElement('div');
+            div.appendChild(range.cloneContents());
+            return div.innerHTML;
+        }
+
+        function fragmentFromHtml(html) {
+            const tpl = document.createElement('template');
+            tpl.innerHTML = html || '';
+            return tpl.content.cloneNode(true);
+        }
+
+        function getCurrentNewsBlock() {
+            if (!newsEditorEl) return null;
+            let node = null;
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                node = range.commonAncestorContainer;
+            } else if (newsEditorSavedRange) {
+                node = newsEditorSavedRange.commonAncestorContainer;
+            }
+            if (!node) node = newsEditorEl;
+            if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+            if (!node || node === newsEditorEl) return null;
+            if (!newsEditorEl.contains(node)) return null;
+            return node.closest ? node.closest('p,div,li,h1,h2,h3,h4,h5,h6,blockquote') : null;
+        }
+
+        function getAiPolishTarget() {
+            if (!newsEditorEl || !newsSourceEl) return null;
+
+            if (newsEditorMode === 'source') {
+                const value = newsSourceEl.value || '';
+                const start = Number.isFinite(newsSourceEl.selectionStart) ? newsSourceEl.selectionStart : 0;
+                const end = Number.isFinite(newsSourceEl.selectionEnd) ? newsSourceEl.selectionEnd : start;
+                if (end > start) {
+                    return {
+                        content: value.slice(start, end),
+                        apply: (newHtml) => {
+                            newsSourceEl.value = value.slice(0, start) + (newHtml || '') + value.slice(end);
+                            switchNewsEditorMode('source');
+                        }
+                    };
+                }
+                return {
+                    content: value,
+                    apply: (newHtml) => {
+                        newsSourceEl.value = newHtml || '';
+                        switchNewsEditorMode('source');
+                    }
+                };
+            }
+
+            restoreNewsEditorSelection();
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                if (newsEditorEl.contains(range.commonAncestorContainer) && !range.collapsed) {
+                    const selectedText = (range.toString() || '').trim();
+                    const selectedHtml = htmlFromRange(range).trim();
+                    if (selectedText || selectedHtml) {
+                        const savedRange = range.cloneRange();
+                        return {
+                            content: selectedHtml || selectedText,
+                            apply: (newHtml) => {
+                                const liveSel = window.getSelection();
+                                if (!liveSel) return;
+                                liveSel.removeAllRanges();
+                                liveSel.addRange(savedRange);
+                                const liveRange = liveSel.getRangeAt(0);
+                                liveRange.deleteContents();
+                                liveRange.insertNode(fragmentFromHtml(newHtml || ''));
+                                liveSel.removeAllRanges();
+                            }
+                        };
+                    }
+                }
+            }
+
+            const block = getCurrentNewsBlock();
+            if (block) {
+                return {
+                    content: block.innerHTML || block.textContent || '',
+                    apply: (newHtml) => { block.innerHTML = newHtml || ''; }
+                };
+            }
+
+            return {
+                content: newsEditorEl.innerHTML || '',
+                apply: (newHtml) => { newsEditorEl.innerHTML = newHtml || ''; }
+            };
+        }
+
+        function triggerNewsImageUpload() {
+            const input = document.getElementById('newsImageFileInput');
+            if (input) input.click();
+        }
+
+        async function uploadNewsImageFile(inputEl) {
+            const msg = document.getElementById('newsCreateMsg');
+            const file = inputEl?.files?.[0];
+            if (!file) return;
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = '正在上传图片...';
+            }
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch('/api/news/image/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '上传失败');
+                const width = getNewsImageWidthSetting();
+                insertHtmlToNewsEditor(
+                    `<p style="text-align:center;"><img src="${data.url}" alt="news-image" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
+                );
+                if (msg) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '✓ 图片上传并插入成功';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || '图片上传失败';
+                }
+            } finally {
+                if (inputEl) inputEl.value = '';
+            }
+        }
+
+        async function insertNewsImageFromUrl() {
+            const input = document.getElementById('newsInsertImageUrl');
+            const msg = document.getElementById('newsCreateMsg');
+            const rawUrl = (input?.value || '').trim();
+            if (!rawUrl) {
+                alert('请先粘贴图片链接');
+                return;
+            }
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = '正在下载并导入图片...';
+            }
+            try {
+                const res = await fetch('/api/news/image/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: rawUrl })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    throw new Error(data.message || '导入失败');
+                }
+                const width = getNewsImageWidthSetting();
+                insertHtmlToNewsEditor(
+                    `<p style="text-align:center;"><img src="${data.url}" alt="news-image" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
+                );
+                if (input) input.value = '';
+                if (msg) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '✓ 图片已导入';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || '图片导入失败';
+                }
+            }
+        }
+
+        function getSelectedNewsImageElement() {
+            if (!newsEditorEl) return null;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            let node = sel.anchorNode;
+            if (!node) return null;
+            if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+            if (!node) return null;
+            if (node.tagName === 'IMG') return node;
+            const inNode = node.querySelector ? node.querySelector('img') : null;
+            if (inNode) return inNode;
+            const closest = node.closest ? node.closest('img') : null;
+            if (closest) return closest;
+            return null;
+        }
+
+        function applySizeToSelectedNewsImage() {
+            if (!newsEditorEl || newsEditorMode !== 'visual') switchNewsEditorMode('visual');
+            restoreNewsEditorSelection();
+            const img = getSelectedNewsImageElement();
+            const width = getNewsImageWidthSetting();
+            if (!img) {
+                alert('请先把光标放到目标图片上再设置大小');
+                return;
+            }
+            img.style.width = width;
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            img.style.margin = '0 auto';
+            const parentP = img.closest('p');
+            if (parentP) parentP.style.textAlign = 'center';
+            schedulePreview();
+        }
+
         const newsCreateForm = document.getElementById('newsCreateForm');
         if (newsCreateForm) {
             newsCreateForm.addEventListener('submit', async (e) => {
@@ -3945,9 +4725,17 @@
                     category: document.getElementById('newsCategory').value,
                     image_url: document.getElementById('newsImage').value.trim(),
                     summary: document.getElementById('newsSummary').value.trim(),
-                    content: document.getElementById('newsContent').value.trim(),
-                    content_is_html: document.getElementById('newsContentIsHtml').checked
+                    content: getNewsEditorHtml(),
+                    content_is_html: true
                 };
+
+                if (!payload.content) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '请填写正文内容';
+                    }
+                    return;
+                }
 
                 try {
                     const endpoint = editingNewsLink ? '/api/news/update' : '/api/news/create';
@@ -3964,10 +4752,17 @@
                             msg.textContent = editingNewsLink ? '✓ 修改成功' : '✓ 生成成功';
                         }
                         if (linkEl && data.link) {
-                            linkEl.innerHTML = `新页面：<a href="${data.link}" target="_blank">${data.link}</a>`;
+                            const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                            linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
                         }
                         newsCreateForm.reset();
+                        setNewsEditorHtml('');
+                        switchNewsEditorMode('visual');
+                        aiTypesetPending = false;
+                        aiTypesetBeforeHtml = '';
+                        updateAiTypesetActionVisibility();
                         cancelNewsEdit();
+                        updateNewsPreview();
                         loadFeaturedNews();
                         loadNewsList();
                     } else {
@@ -3997,14 +4792,27 @@
                     listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#888;">暂无资讯</div>';
                     return;
                 }
+                const categoryOptions = (selected) => `
+                    <option value="enterprise" ${selected === 'enterprise' ? 'selected' : ''}>企业新闻</option>
+                    <option value="industry" ${selected === 'industry' ? 'selected' : ''}>行业动态</option>
+                    <option value="science" ${selected === 'science' ? 'selected' : ''}>科普知识</option>
+                `;
                 listEl.innerHTML = items.map(item => `
                     <div class="file-item" style="align-items: flex-start;">
                         <div class="file-info">
                             <img src="${item.image || ''}" alt="news" style="width: 72px; height: 46px; object-fit: cover; border-radius: 6px;">
                             <div>
                                 <div style="font-weight: 600;">${escapeHtml(item.title || '')}</div>
-                                <div class="file-meta">${item.date || ''} · ${item.category || ''}</div>
+                                <div class="file-meta">${item.date || ''}</div>
+                                <div class="file-meta" style="margin-top: 4px;">摘要：${escapeHtml(item.desc || '（无）')}</div>
                                 <div class="file-meta">${escapeHtml(item.link || '')}</div>
+                                <div style="margin-top: 8px; display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:12px; color:#666;">分类</span>
+                                    <select class="form-control" style="width: 130px; padding: 6px 8px;"
+                                        onchange="quickUpdateNewsCategory('${item.link}', this.value)">
+                                        ${categoryOptions(item.category || 'enterprise')}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div style="display:flex; gap:8px; align-items:center;">
@@ -4018,6 +4826,26 @@
                 `).join('');
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#dc3545;">加载失败</div>';
+            }
+        }
+
+        async function quickUpdateNewsCategory(link, category) {
+            try {
+                const res = await fetch('/api/news/category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link, category })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.message || '分类更新失败');
+                    loadNewsList();
+                    return;
+                }
+                loadFeaturedNews();
+            } catch (e) {
+                alert('网络错误');
+                loadNewsList();
             }
         }
 
@@ -4037,8 +4865,11 @@
                 document.getElementById('newsCategory').value = item.category || 'enterprise';
                 document.getElementById('newsImage').value = detail.image_url || item.image || '';
                 document.getElementById('newsSummary').value = item.desc || '';
-                document.getElementById('newsContent').value = detail.content_html || '';
-                document.getElementById('newsContentIsHtml').checked = true;
+                setNewsEditorHtml(detail.content_html || detail.content_text || '');
+                switchNewsEditorMode('visual');
+                aiTypesetPending = false;
+                aiTypesetBeforeHtml = '';
+                updateAiTypesetActionVisibility();
                 document.getElementById('newsSubmitBtn').textContent = '保存修改';
                 document.getElementById('newsCancelEdit').style.display = 'inline-flex';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4054,6 +4885,9 @@
             const cancelBtn = document.getElementById('newsCancelEdit');
             if (btn) btn.textContent = '生成资讯';
             if (cancelBtn) cancelBtn.style.display = 'none';
+            aiTypesetPending = false;
+            aiTypesetBeforeHtml = '';
+            updateAiTypesetActionVisibility();
         }
 
         async function deleteNewsItem(link) {
@@ -4103,86 +4937,136 @@
 
         async function updateNewsPreview() {
             const title = document.getElementById('newsTitle')?.value.trim() || '标题预览';
-            const date = document.getElementById('newsDate')?.value || '日期';
+            const date = document.getElementById('newsDate')?.value || '';
             const image = document.getElementById('newsImage')?.value.trim();
-            const content = document.getElementById('newsContent')?.value.trim();
-            const isHtml = document.getElementById('newsContentIsHtml')?.checked;
-
-            const titleEl = document.getElementById('newsPreviewTitle');
-            const dateEl = document.getElementById('newsPreviewDate');
-            const imageWrap = document.getElementById('newsPreviewImageWrap');
-            const contentEl = document.getElementById('newsPreviewContent');
-            if (titleEl) titleEl.textContent = title || '标题预览';
-            if (dateEl) dateEl.textContent = date || '日期';
-            if (imageWrap) {
-                imageWrap.innerHTML = image ? `<img src="${image}" style="width:100%; max-height: 240px; object-fit: cover; border-radius: 8px;">` : '';
-            }
-            if (!contentEl) return;
+            const content = getNewsEditorHtml();
+            const frameEl = document.getElementById('newsPreviewFrame');
+            if (!frameEl) return;
+            bindNewsPreviewBridge();
+            frameEl.style.height = '640px';
 
             try {
-                const res = await fetch('/api/news/preview', {
+                const res = await fetch('/api/news/preview-page', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content, content_is_html: isHtml })
+                    body: JSON.stringify({
+                        title,
+                        date,
+                        image_url: image,
+                        content,
+                        content_is_html: true
+                    })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    contentEl.innerHTML = data.html || '';
+                    frameEl.srcdoc = data.page_html || '';
                 }
             } catch (e) {
-                contentEl.innerHTML = '';
+                frameEl.srcdoc = '<!doctype html><html><body style="font-family:sans-serif;padding:24px;color:#666;">预览加载失败</body></html>';
             }
         }
 
         function bindNewsPreviewEvents() {
-            ['newsTitle', 'newsDate', 'newsImage', 'newsContent', 'newsContentIsHtml'].forEach(id => {
+            ['newsTitle', 'newsDate', 'newsImage'].forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
                 el.addEventListener('input', schedulePreview);
                 el.addEventListener('change', schedulePreview);
             });
+            if (newsEditorEl) {
+                newsEditorEl.addEventListener('input', schedulePreview);
+                newsEditorEl.addEventListener('keyup', schedulePreview);
+                newsEditorEl.addEventListener('keyup', saveNewsEditorSelection);
+                newsEditorEl.addEventListener('mouseup', saveNewsEditorSelection);
+                newsEditorEl.addEventListener('focus', saveNewsEditorSelection);
+                newsEditorEl.addEventListener('blur', saveNewsEditorSelection);
+            }
+            if (newsSourceEl) {
+                newsSourceEl.addEventListener('input', schedulePreview);
+                newsSourceEl.addEventListener('change', schedulePreview);
+            }
         }
 
         async function aiPolishNews() {
-            const contentEl = document.getElementById('newsContent');
             const msg = document.getElementById('newsCreateMsg');
-            if (!contentEl) return;
-            const content = contentEl.value.trim();
-            if (!content) {
+            const fullBeforeHtml = getNewsEditorHtml();
+            const target = getAiPolishTarget();
+            const content = (target?.content || '').trim();
+            if (!content || !target) {
                 alert('请输入正文内容');
                 return;
             }
             if (msg) {
                 msg.style.color = '#666';
-                msg.textContent = 'AI 排版中...';
+                msg.textContent = '正在自动排版当前选中内容/段落...';
             }
             try {
+                aiTypesetBeforeHtml = fullBeforeHtml;
                 const res = await fetch('/api/news/ai-polish', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         title: document.getElementById('newsTitle')?.value.trim(),
                         summary: document.getElementById('newsSummary')?.value.trim(),
-                        content
+                        content,
+                        content_is_html: true
                     })
                 });
                 const data = await res.json();
-                if (data.success) {
-                    contentEl.value = data.content || '';
-                    document.getElementById('newsContentIsHtml').checked = false;
-                    updateNewsPreview();
-                    if (msg) {
-                        msg.style.color = '#28a745';
-                        msg.textContent = '✓ AI 排版完成';
+                if (!data.success) {
+                    const blocked = String(data.message || '').includes('改动了正文字符');
+                    if (blocked) {
+                        setNewsEditorHtml(fullBeforeHtml);
+                        switchNewsEditorMode(newsEditorMode === 'source' ? 'source' : 'visual');
+                        const beforeExcerpt = String(data.before_excerpt || '').trim();
+                        const afterExcerpt = String(data.after_excerpt || '').trim();
+                        const diffIndex = Number.isFinite(data.diff_index) ? data.diff_index : '';
+                        if (msg) {
+                            msg.style.color = '#d97706';
+                            const hint = (beforeExcerpt || afterExcerpt)
+                                ? ` 差异片段：原文「${beforeExcerpt}」→ AI「${afterExcerpt}」`
+                                : '';
+                            msg.textContent = `AI 排版结果触发拦截，正文已保持不变。请缩小选区后重试。${hint}`;
+                        }
+                        if (beforeExcerpt || afterExcerpt) {
+                            alert(
+                                `AI 触发拦截（位置索引约 ${diffIndex}）\n原文片段：${beforeExcerpt}\nAI片段：${afterExcerpt}\n\n建议：缩小到单段再排版，或分段逐次排版。`
+                            );
+                        }
+                        return;
                     }
-                } else if (msg) {
-                    msg.style.color = '#dc3545';
-                    msg.textContent = data.message || 'AI 排版失败';
+                    throw new Error(data.message || 'AI 排版失败');
+                }
+                const polished = (data.content || '').trim();
+                if (!polished) {
+                    throw new Error('AI 返回内容为空，已保留原文');
+                }
+                target.apply(polished);
+                const afterHtml = getNewsEditorHtml();
+                if (!afterHtml.trim()) {
+                    setNewsEditorHtml(fullBeforeHtml);
+                    throw new Error('排版结果异常，已自动恢复原内容');
+                }
+                switchNewsEditorMode(newsEditorMode === 'source' ? 'source' : 'visual');
+                updateNewsPreview();
+                aiTypesetPending = true;
+                updateAiTypesetActionVisibility();
+                if (msg) {
+                    if (data.warning) {
+                        msg.style.color = '#d97706';
+                        msg.textContent = `${data.warning}`;
+                    } else {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ AI 排版已替换当前选区/段落，可点击“撤销替换”恢复';
+                    }
                 }
             } catch (e) {
+                // 任意失败都恢复排版前内容，避免“正文消失”
+                setNewsEditorHtml(fullBeforeHtml);
+                switchNewsEditorMode(newsEditorMode === 'source' ? 'source' : 'visual');
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = 'AI 排版失败';
+                    msg.textContent = e?.message || 'AI 排版失败';
                 }
             }
         }

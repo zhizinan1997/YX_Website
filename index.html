@@ -54,6 +54,18 @@
   <section class="vs-hero">
     <div class="vs-hero__media" id="heroMedia"></div>
     <style>
+      .vs-hero {
+        height: 100vh;
+        min-height: 100vh;
+      }
+
+      @supports (height: 100svh) {
+        .vs-hero {
+          height: 100svh;
+          min-height: 100svh;
+        }
+      }
+
       .vs-hero__media {
         position: absolute;
         top: 0;
@@ -262,7 +274,7 @@
   <!-- ========================================
        Partners Section (Marquee)
   ======================================== -->
-  <section class="vs-partners">
+  <section class="vs-partners" id="partnersSection">
     <div class="vs-partners__row">
       <div class="vs-partners__header">
         <h2 class="vs-partners__title">合作伙伴</h2>
@@ -276,6 +288,7 @@
 
   <script>
     (function () {
+      const sectionEl = document.getElementById('partnersSection');
       const track = document.getElementById('partnersTrack');
       if (!track) return;
 
@@ -293,15 +306,23 @@
         track.style.setProperty('--marquee-duration', `${base}s`);
       }
 
-      fetch('/api/partners')
+      fetch('/api/home/section-visibility')
         .then(res => res.json())
-        .then(data => {
-          const items = (data.items || []).filter(i => i && i.url);
-          if (items.length === 0) {
-            track.innerHTML = '<div style="padding: 10px; color:#888; font-size: 13px;">暂无合作伙伴</div>';
+        .then(visibility => {
+          if (visibility && visibility.partners === false) {
+            if (sectionEl) sectionEl.style.display = 'none';
             return;
           }
-          buildLogos(items);
+          return fetch('/api/partners')
+            .then(res => res.json())
+            .then(data => {
+              const items = (data.items || []).filter(i => i && i.url);
+              if (items.length === 0) {
+                track.innerHTML = '<div style="padding: 10px; color:#888; font-size: 13px;">暂无合作伙伴</div>';
+                return;
+              }
+              buildLogos(items);
+            });
         })
         .catch(() => {
           track.innerHTML = '<div style="padding: 10px; color:#888; font-size: 13px;">加载失败</div>';
@@ -312,7 +333,7 @@
   <!-- ========================================
        Product Showcase Section
   ======================================== -->
-    <section class="vs-product-showcase">
+    <section class="vs-product-showcase" id="productShowcaseSection">
       <div class="vs-container">
         <div class="vs-product-showcase__header">
           <div>
@@ -330,6 +351,7 @@
 
     <script>
       (function () {
+        const sectionEl = document.getElementById('productShowcaseSection');
         const grid = document.getElementById('productShowcaseGrid');
         if (!grid) return;
 
@@ -353,9 +375,17 @@
           `).join('');
         }
 
-        fetch('/api/products/featured')
+        fetch('/api/home/section-visibility')
           .then(res => res.json())
-          .then(data => render(data.items || []))
+          .then(visibility => {
+            if (visibility && visibility.products === false) {
+              if (sectionEl) sectionEl.style.display = 'none';
+              return;
+            }
+            return fetch('/api/products/featured')
+              .then(res => res.json())
+              .then(data => render(data.items || []));
+          })
           .catch(() => render([]));
       })();
     </script>
@@ -363,7 +393,7 @@
   <!-- ========================================
        Solutions Showcase Section
   ======================================== -->
-    <section class="vs-product-showcase vs-solutions-showcase">
+    <section class="vs-product-showcase vs-solutions-showcase" id="solutionsShowcaseSection">
       <div class="vs-container">
         <div class="vs-product-showcase__header">
           <div>
@@ -381,6 +411,7 @@
 
     <script>
       (function () {
+        const sectionEl = document.getElementById('solutionsShowcaseSection');
         const grid = document.getElementById('solutionsShowcaseGrid');
         if (!grid) return;
 
@@ -404,9 +435,17 @@
           `).join('');
         }
 
-        fetch('/api/solutions/featured')
+        fetch('/api/home/section-visibility')
           .then(res => res.json())
-          .then(data => render(data.items || []))
+          .then(visibility => {
+            if (visibility && visibility.solutions === false) {
+              if (sectionEl) sectionEl.style.display = 'none';
+              return;
+            }
+            return fetch('/api/solutions/featured')
+              .then(res => res.json())
+              .then(data => render(data.items || []));
+          })
           .catch(() => render([]));
       })();
     </script>
@@ -414,7 +453,7 @@
   <!-- ========================================
        Latest News Section
   ======================================== -->
-    <section class="vs-latest-news">
+    <section class="vs-latest-news" id="latestNewsSection">
       <div class="vs-container">
         <div class="vs-latest-news__header">
           <div>
@@ -432,6 +471,7 @@
 
     <script>
       (function () {
+        const sectionEl = document.getElementById('latestNewsSection');
         const grid = document.getElementById('latestNewsGrid');
         if (!grid) return;
 
@@ -456,9 +496,17 @@
           `).join('');
         }
 
-        fetch('/api/news/featured')
+        fetch('/api/home/section-visibility')
           .then(res => res.json())
-          .then(data => render(data.items || []))
+          .then(visibility => {
+            if (visibility && visibility.news === false) {
+              if (sectionEl) sectionEl.style.display = 'none';
+              return;
+            }
+            return fetch('/api/news/featured')
+              .then(res => res.json())
+              .then(data => render(data.items || []));
+          })
           .catch(() => render([]));
       })();
     </script>
