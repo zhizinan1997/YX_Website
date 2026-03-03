@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "name": "氢能源产业链",
+      "url": "/pages/solutions/industry-hydrogen.html"
+    },
+    {
+      "name": "智慧电力安全",
+      "url": "/pages/solutions/industry-power-safety.html"
+    },
+    {
+      "name": "工业检漏监测",
+      "url": "/pages/solutions/industry-leak-detection.html"
+    },
+    {
+      "name": "绿色能源存储",
+      "url": "/pages/solutions/industry-energy-storage.html"
+    },
+    {
+      "name": "大气环境监测",
+      "url": "/pages/solutions/industry-environment.html"
+    },
+    {
+      "name": "石油化工业",
+      "url": "https://www.baidu.com"
+    }
+  ]
+}

@@ -480,13 +480,19 @@
             grid.innerHTML = '<div style="color:#888;">暂无资讯</div>';
             return;
           }
+          const categoryLabels = {
+            enterprise: '企业新闻',
+            industry: '行业动态',
+            science: '科普知识'
+          };
           grid.innerHTML = items.map(item => `
             <a href="${item.link}" class="vs-latest-news__item">
               <div class="vs-latest-news__img">
                 <img src="${item.image || ''}" alt="News">
               </div>
               <div class="vs-card-meta">
-                <span class="vs-card-tag">资讯</span>
+                <span class="vs-card-tag">${categoryLabels[item.category] || '资讯'}</span>
+                <span class="vs-card-tag">${item.division || '未分配事业部'}</span>
                 <span class="vs-latest-news__date">${item.date || ''}</span>
               </div>
               <h3 class="vs-latest-news__item-title">${item.title || ''}</h3>
@@ -708,6 +714,91 @@
 
   <!-- 全站搜索 -->
   <script src="assets/js/search.js"></script>
+
+  <script>
+    (function () {
+      const PREFETCH_CACHE = 'yx-video-prefetch-v1';
+
+      function runWhenIdle(task) {
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(task, { timeout: 3000 });
+        } else {
+          setTimeout(task, 300);
+        }
+      }
+
+      function preloadImage(url) {
+        return new Promise(resolve => {
+          if (!url) {
+            resolve();
+            return;
+          }
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = url;
+          if (img.complete) resolve();
+        });
+      }
+
+      async function waitHomeHeroImagesReady() {
+        try {
+          const res = await fetch('/api/hero');
+          const data = await res.json();
+          const urls = (data.items || [])
+            .filter(item => item && item.type === 'image' && item.url)
+            .map(item => item.url);
+          if (!urls.length) return;
+          await Promise.all(urls.map(preloadImage));
+        } catch (_) {
+          // Silently ignore: prefetch is best effort.
+        }
+      }
+
+      async function prefetchH2Videos() {
+        if (!('caches' in window)) return;
+        function toVideoFetchUrl(rawUrl) {
+          const absolute = new URL(rawUrl, window.location.origin);
+          if (absolute.origin === window.location.origin) return absolute.href;
+          return `${window.location.origin}/api/video-proxy?url=${encodeURIComponent(absolute.href)}`;
+        }
+        try {
+          const res = await fetch('/api/h2-home');
+          const data = await res.json();
+          const urls = (data.items || [])
+            .map(item => item && item.url)
+            .filter(Boolean)
+            .map(toVideoFetchUrl)
+            .slice(0, 3);
+          if (!urls.length) return;
+
+          const cache = await caches.open(PREFETCH_CACHE);
+          for (const url of urls) {
+            const request = new Request(url, { credentials: 'same-origin' });
+            const hit = await cache.match(request);
+            if (hit) continue;
+            try {
+              const videoRes = await fetch(request);
+              if (videoRes.ok) {
+                await cache.put(request, videoRes.clone());
+              }
+            } catch (_) {
+              // Ignore single file failure.
+            }
+          }
+        } catch (_) {
+          // Silently ignore: prefetch is best effort.
+        }
+      }
+
+      window.addEventListener('load', () => {
+        runWhenIdle(async () => {
+          await waitHomeHeroImagesReady();
+          await prefetchH2Videos();
+        });
+      });
+    })();
+  </script>
     
 </body>
 

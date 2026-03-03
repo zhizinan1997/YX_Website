@@ -8,16 +8,21 @@ import json
 import time
 import hashlib
 import threading
+import base64
 import re
 import uuid
 import html
 import mimetypes
+import shutil
+import tempfile
+import zipfile
+import posixpath
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
 from urllib.parse import urlparse
 
-from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string, Response, stream_with_context, make_response
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string, Response, stream_with_context, make_response, send_file, after_this_request
 from werkzeug.utils import secure_filename
 
 # Optional imports for PDF parsing and OpenAI
@@ -72,6 +77,7 @@ HOME_SECTION_VISIBILITY_FILE = DATA_DIR / 'home_section_visibility.json'
 JOBS_FILE = DATA_DIR / 'jobs.json'
 H2_HOME_FILE = DATA_DIR / 'h2_home.json'
 NEWS_UPLOADS_DIR = DATA_DIR / 'news_uploads'
+RESUME_UPLOADS_DIR = DATA_DIR / 'resumes'
 
 # Ensure directories exist
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -79,6 +85,7 @@ HERO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PRODUCT_CARD_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 NEWS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+RESUME_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 RATE_LIMIT_MAX = 5  # Max submissions per IP per hour
 RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
@@ -88,6 +95,20 @@ MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_HERO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.mp4'}
 ALLOWED_HERO_MIME_TYPES = {'image/png', 'image/jpeg', 'video/mp4'}
+ALLOWED_RESUME_EXTENSIONS = {'.pdf', '.doc', '.docx'}
+BACKUP_ALLOWED_DIRS = [
+    'data',
+    'pages',
+    'pages_en',
+    'assets/partials'
+]
+BACKUP_ALLOWED_FILES = [
+    'index.html',
+    'index_en.html',
+    'assets/js/nav-loader.js',
+    'admin/index.html',
+    'server.py'
+]
 ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.svg', '.webp'}
 ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'}
 ALLOWED_PRODUCT_CARD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
@@ -359,7 +380,8 @@ def parse_news_from_html():
                             'title': '',
                             'date': '',
                             'desc': '',
-                            'image': ''
+                            'image': '',
+                            'division': attrs_dict.get('data-division', '').strip()
                         }
                 
                 elif self.in_card:
@@ -1128,12 +1150,67 @@ def parse_jobs_from_html(html_text):
         return []
 
 
+def clean_job_text(value: str) -> str:
+    """Normalize legacy whitespace/HTML entities in job fields."""
+    if value is None:
+        return ''
+    text = str(value)
+    text = text.replace('\u00a0', ' ')
+    text = re.sub(r'&nbsp;?', ' ', text, flags=re.IGNORECASE)
+    text = html.unescape(text)
+    text = text.replace('\u00a0', ' ')
+    return re.sub(r'\s+', ' ', text).strip()
+
+
+def normalize_job_date(value: str) -> str:
+    """Normalize date to YYYY-MM-DD for <input type=date> compatibility."""
+    text = clean_job_text(value)
+    if not text:
+        return ''
+
+    m = re.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', text)
+    if not m:
+        m = re.search(r'(\d{4})/(\d{1,2})/(\d{1,2})', text)
+    if m:
+        y, mo, d = m.groups()
+        return f"{int(y):04d}-{int(mo):02d}-{int(d):02d}"
+    return text
+
+
+def normalize_job_record(item):
+    """Sanitize one job object from storage/user input."""
+    if not isinstance(item, dict):
+        return None
+    return {
+        'id': clean_job_text(item.get('id') or ''),
+        'title': clean_job_text(item.get('title') or ''),
+        'department': clean_job_text(item.get('department') or ''),
+        'location': clean_job_text(item.get('location') or ''),
+        'date': normalize_job_date(item.get('date') or ''),
+        'content_html': (item.get('content_html') or '').strip(),
+        'visible': bool(item.get('visible', True))
+    }
+
+
 def load_jobs_data():
     if JOBS_FILE.exists():
         try:
             data = json.loads(JOBS_FILE.read_text(encoding='utf-8'))
             if isinstance(data, dict) and isinstance(data.get('jobs', []), list):
-                return data
+                normalized_jobs = []
+                changed = False
+                for raw in data.get('jobs', []):
+                    normalized = normalize_job_record(raw)
+                    if not normalized:
+                        changed = True
+                        continue
+                    normalized_jobs.append(normalized)
+                    if normalized != raw:
+                        changed = True
+                normalized_data = {'jobs': normalized_jobs}
+                if changed:
+                    save_jobs_data(normalized_data)
+                return normalized_data
         except Exception:
             pass
 
@@ -1364,13 +1441,13 @@ def get_jobs_admin():
 def save_job_admin():
     """Create or update a job."""
     data = request.json or {}
-    title = (data.get('title') or '').strip()
-    department = (data.get('department') or '').strip()
-    location = (data.get('location') or '').strip()
-    date = (data.get('date') or '').strip()
+    title = clean_job_text(data.get('title') or '')
+    department = clean_job_text(data.get('department') or '')
+    location = clean_job_text(data.get('location') or '')
+    date = normalize_job_date(data.get('date') or '')
     content_html = (data.get('content_html') or '').strip()
     visible = bool(data.get('visible', True))
-    job_id = (data.get('id') or '').strip()
+    job_id = clean_job_text(data.get('id') or '')
 
     if not title or not department or not location or not date:
         return jsonify({'success': False, 'message': '请填写完整的职位信息'}), 400
@@ -1451,6 +1528,84 @@ def get_jobs_public():
 @app.route('/api/h2-home', methods=['GET'])
 def get_h2_home():
     return jsonify(get_h2_home_config())
+
+
+def normalize_remote_video_url(raw_url: str) -> str:
+    """Normalize remote video URL for allowlist checks."""
+    if not raw_url:
+        return ''
+    try:
+        parsed = urlparse(raw_url.strip())
+    except Exception:
+        return ''
+    if parsed.scheme not in {'http', 'https'}:
+        return ''
+    if not parsed.netloc:
+        return ''
+    # Remove fragment only; keep query params because some CDNs require them.
+    return parsed._replace(fragment='').geturl()
+
+
+def get_allowed_h2_video_urls() -> set:
+    """Allow proxying only URLs configured in H2 home video settings."""
+    config = get_h2_home_config()
+    allowed = set()
+    for item in config.get('items', []) or []:
+        if not isinstance(item, dict):
+            continue
+        url = normalize_remote_video_url(item.get('url', ''))
+        if url:
+            allowed.add(url)
+    return allowed
+
+
+@app.route('/api/video-proxy')
+def proxy_video():
+    """Same-origin video proxy for cross-origin CDN sources."""
+    raw_url = (request.args.get('url') or '').strip()
+    target_url = normalize_remote_video_url(raw_url)
+    if not target_url:
+        return jsonify({'success': False, 'message': '视频地址不合法'}), 400
+
+    allowed_urls = get_allowed_h2_video_urls()
+    if target_url not in allowed_urls:
+        return jsonify({'success': False, 'message': '该视频地址未授权代理'}), 403
+
+    if not REQUESTS_SUPPORT:
+        return jsonify({'success': False, 'message': '服务器缺少 requests 依赖，无法代理视频'}), 500
+
+    upstream_headers = {}
+    range_header = request.headers.get('Range')
+    if range_header:
+        upstream_headers['Range'] = range_header
+
+    try:
+        upstream = requests.get(target_url, headers=upstream_headers, stream=True, timeout=(8, 120))
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'代理视频失败: {e}'}), 502
+
+    passthrough_headers = [
+        'Content-Type', 'Content-Length', 'Content-Range',
+        'Accept-Ranges', 'ETag', 'Last-Modified', 'Cache-Control'
+    ]
+    response_headers = {}
+    for key in passthrough_headers:
+        value = upstream.headers.get(key)
+        if value:
+            response_headers[key] = value
+    if not response_headers.get('Cache-Control'):
+        response_headers['Cache-Control'] = 'public, max-age=86400'
+    response_headers['Access-Control-Allow-Origin'] = '*'
+
+    def generate():
+        try:
+            for chunk in upstream.iter_content(chunk_size=64 * 1024):
+                if chunk:
+                    yield chunk
+        finally:
+            upstream.close()
+
+    return Response(stream_with_context(generate()), status=upstream.status_code, headers=response_headers)
 
 
 @app.route('/api/h2-home', methods=['POST'])
@@ -1578,35 +1733,99 @@ def get_news_list():
 
 
 def get_all_news_items():
-    """Scan news.html for all news items."""
+    """Scan news.html for all news items with metadata."""
     news_index = Path(__file__).parent / 'pages' / 'news' / 'news.html'
-    items = []
     if not news_index.exists():
-        return items
+        return []
+
     content = news_index.read_text(encoding='utf-8')
-    # Parse news cards - updated pattern to match actual HTML structure
-    import re
-    pattern = re.compile(
-        r'<a\s+href="([^"]*)"[^>]*class="vs-card"[^>]*>.*?'
-        r'<img\s+src="([^"]*)"[^>]*>.*?'
-        r'<div class="vs-news-meta">[^<]*<i[^>]*></i>\s*([^<]*)</div>.*?'
-        r'<h3 class="vs-card__title">([^<]*)</h3>.*?'
-        r'<p class="vs-card__desc">([^<]*)</p>',
-        re.DOTALL | re.IGNORECASE
-    )
-    for match in pattern.finditer(content):
-        link, image, date, title, summary = match.groups()
-        # Normalize link
-        if link.startswith('../../pages/news/'):
-            link = '/pages/news/' + link.replace('../../pages/news/', '')
-        items.append({
-            'link': link.strip(),
-            'image': image.strip(),
-            'date': date.strip(),
-            'title': title.strip(),
-            'summary': summary.strip()
-        })
-    return items
+
+    from html.parser import HTMLParser
+
+    class NewsListParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.items = []
+            self.current_item = None
+            self.current_category = ''
+            self.in_card = False
+            self.in_title = False
+            self.in_meta = False
+            self.in_desc = False
+
+        def handle_starttag(self, tag, attrs):
+            attrs_dict = dict(attrs)
+            if tag == 'a' and 'vs-card' in attrs_dict.get('class', ''):
+                self.in_card = True
+                self.current_category = (attrs_dict.get('data-category', '') or '').strip()
+                self.current_item = {
+                    'link': (attrs_dict.get('href', '') or '').strip(),
+                    'image': '',
+                    'date': '',
+                    'title': '',
+                    'desc': '',
+                    'summary': '',
+                    'category': self.current_category,
+                    'division': (attrs_dict.get('data-division', '') or '').strip()
+                }
+                return
+
+            if not self.in_card or not self.current_item:
+                return
+
+            if tag == 'img' and not self.current_item['image']:
+                self.current_item['image'] = (attrs_dict.get('src', '') or '').strip()
+            elif tag == 'h3' and 'vs-card__title' in attrs_dict.get('class', ''):
+                self.in_title = True
+            elif tag == 'div' and 'vs-news-meta' in attrs_dict.get('class', ''):
+                self.in_meta = True
+            elif tag == 'p' and 'vs-card__desc' in attrs_dict.get('class', ''):
+                self.in_desc = True
+
+        def handle_endtag(self, tag):
+            if tag == 'a' and self.in_card:
+                if self.current_item:
+                    link = self.current_item.get('link', '')
+                    if link.startswith('../../pages/news/'):
+                        link = '/pages/news/' + link.replace('../../pages/news/', '')
+                    self.current_item['link'] = link
+                    self.current_item['summary'] = self.current_item.get('desc', '')
+                    self.items.append(self.current_item)
+                self.current_item = None
+                self.current_category = ''
+                self.in_card = False
+                self.in_title = False
+                self.in_meta = False
+                self.in_desc = False
+            elif tag == 'h3':
+                self.in_title = False
+            elif tag == 'div':
+                self.in_meta = False
+            elif tag == 'p':
+                self.in_desc = False
+
+        def handle_data(self, data):
+            if not self.current_item:
+                return
+            text = (data or '').strip()
+            if not text:
+                return
+            if self.in_title:
+                self.current_item['title'] += text
+            elif self.in_meta:
+                date_match = re.search(r'\d{4}-\d{2}-\d{2}', text)
+                if date_match:
+                    self.current_item['date'] = date_match.group(0)
+            elif self.in_desc:
+                self.current_item['desc'] += text
+
+    parser = NewsListParser()
+    parser.feed(content)
+
+    hidden_links = get_hidden_news_links()
+    for item in parser.items:
+        item['hidden'] = item.get('link') in hidden_links
+    return parser.items
 
 
 def save_h2_home_news(items):
@@ -1713,13 +1932,14 @@ def create_news():
     title = (data.get('title') or '').strip()
     date = (data.get('date') or '').strip()
     category = (data.get('category') or '').strip()
+    division = (data.get('division') or '').strip()
     image_url = (data.get('image_url') or '').strip()
     summary = (data.get('summary') or '').strip()
     content = (data.get('content') or '').strip()
     content_is_html = bool(data.get('content_is_html', False))
 
-    if not title or not date or not category or not content:
-        return jsonify({'success': False, 'message': '请填写标题、日期、分类和正文'}), 400
+    if not title or not date or not category or not division or not content:
+        return jsonify({'success': False, 'message': '请填写标题、日期、分类、归属事业部和正文'}), 400
 
     if category not in {'enterprise', 'industry', 'science'}:
         return jsonify({'success': False, 'message': '请选择正确的资讯分类'}), 400
@@ -1738,12 +1958,12 @@ def create_news():
     news_id = get_next_news_id()
     filename = f'news_show.aspx_id_{news_id}.html'
     filepath = news_dir / filename
-    html = build_news_article_html(title, date, image_url, content_html)
-    filepath.write_text(html, encoding='utf-8')
+    article_html = build_news_article_html(title, date, image_url, content_html)
+    filepath.write_text(article_html, encoding='utf-8')
 
     # Insert card into news list
     card_html = f"""
-                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-hidden="false">
+                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-division="{html.escape(division, quote=True)}" data-hidden="false">
                         <div class="vs-card__img-wrapper">
                             <img src="{image_url}" alt="News Image">
                         </div>
@@ -1898,6 +2118,7 @@ def update_news():
     title = (data.get('title') or '').strip()
     date = (data.get('date') or '').strip()
     category = (data.get('category') or '').strip()
+    division = (data.get('division') or '').strip()
     image_url = (data.get('image_url') or '').strip()
     summary = (data.get('summary') or '').strip()
     content = (data.get('content') or '').strip()
@@ -1905,8 +2126,8 @@ def update_news():
 
     if not link:
         return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
-    if not title or not date or not category or not content:
-        return jsonify({'success': False, 'message': '请填写标题、日期、分类和正文'}), 400
+    if not title or not date or not category or not division or not content:
+        return jsonify({'success': False, 'message': '请填写标题、日期、分类、归属事业部和正文'}), 400
     if category not in {'enterprise', 'industry', 'science'}:
         return jsonify({'success': False, 'message': '请选择正确的资讯分类'}), 400
 
@@ -1923,15 +2144,15 @@ def update_news():
     if not filepath.exists():
         return jsonify({'success': False, 'message': '资讯文件不存在'}), 404
 
-    html = build_news_article_html(title, date, image_url, content_html)
-    filepath.write_text(html, encoding='utf-8')
+    article_html = build_news_article_html(title, date, image_url, content_html)
+    filepath.write_text(article_html, encoding='utf-8')
 
     # Update card in news.html
     news_index = news_dir / 'news.html'
     if news_index.exists():
         content_text = news_index.read_text(encoding='utf-8')
         card_html = f"""
-                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-hidden="false">
+                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-division="{html.escape(division, quote=True)}" data-hidden="false">
                         <div class="vs-card__img-wrapper">
                             <img src="{image_url}" alt="News Image">
                         </div>
@@ -2226,6 +2447,1284 @@ DEFAULT_PRODUCT_CATEGORIES = {
     '../customization/micronano_fabrication': 'service',
 }
 
+
+PRODUCT_TEMPLATE_FILE = Path(__file__).parent / 'pages' / 'gassensing' / '模板.html'
+PRODUCT_ADMIN_DATA_PREFIX = 'MC_PRODUCT_ADMIN_DATA:'
+
+
+def get_product_template_html() -> str:
+    """Load product page template HTML from pages/gassensing/模板.html."""
+    if not PRODUCT_TEMPLATE_FILE.exists():
+        raise FileNotFoundError(f'产品模板不存在: {PRODUCT_TEMPLATE_FILE}')
+    return PRODUCT_TEMPLATE_FILE.read_text(encoding='utf-8', errors='ignore')
+
+
+def extract_product_template_placeholders(template_html: str):
+    """Extract ordered unique placeholders like 【产品名字】 from template."""
+    seen = set()
+    ordered = []
+    for token in re.findall(r'【[^】]+】', template_html or ''):
+        if token in seen:
+            continue
+        seen.add(token)
+        ordered.append(token)
+    return ordered
+
+
+def split_product_detail_from_editor(content_html: str):
+    """Split visual editor content into two detail paragraphs."""
+    source = (content_html or '').strip()
+    if not source:
+        return '', ''
+
+    paragraphs = re.findall(r'<p\b[^>]*>(.*?)</p>', source, re.S | re.I)
+    if paragraphs:
+        cleaned = []
+        for p in paragraphs:
+            text = re.sub(r'<[^>]+>', '', p)
+            text = html.unescape(text).strip()
+            if text:
+                cleaned.append(text)
+        if cleaned:
+            return cleaned[0], (cleaned[1] if len(cleaned) > 1 else '')
+
+    plain = re.sub(r'(?i)<br\s*/?>', '\n', source)
+    plain = re.sub(r'<[^>]+>', '', plain)
+    plain = html.unescape(plain)
+    parts = [x.strip() for x in re.split(r'\n{2,}|\n', plain) if x.strip()]
+    if not parts:
+        return '', ''
+    return parts[0], (parts[1] if len(parts) > 1 else '')
+
+
+def _strip_html_text(fragment: str) -> str:
+    if not fragment:
+        return ''
+    text = re.sub(r'<[^>]+>', '', fragment, flags=re.S)
+    return html.unescape(text).strip()
+
+
+def extract_legacy_template_fields(page_html: str, defaults: dict):
+    """Extract template-like fields from legacy product HTML structure."""
+    extracted = {}
+    content = page_html or ''
+
+    def set_field(key, value):
+        if key in defaults:
+            val = str(value or '').strip()
+            if val:
+                extracted[key] = val
+
+    def find_anchors_with_class(section_html: str, required_class: str):
+        items = []
+        for m in re.finditer(r'<a\b([^>]*)>(.*?)</a>', section_html or '', re.S | re.I):
+            attrs = m.group(1) or ''
+            body = m.group(2) or ''
+            class_m = re.search(r'class="([^"]*)"', attrs, re.I)
+            href_m = re.search(r'href="([^"]*)"', attrs, re.I)
+            classes = class_m.group(1) if class_m else ''
+            href = href_m.group(1) if href_m else ''
+            if required_class in classes:
+                items.append((href, body))
+        return items
+
+    # Product title / summary
+    h1 = re.search(r'<h1[^>]*>(.*?)</h1>', content, re.S | re.I)
+    if h1:
+        title = _strip_html_text(h1.group(1))
+        for k in ['【这里是产品名字】', '【本页的产品名字】', '【产品名字】']:
+            set_field(k, title)
+    desc = re.search(r'<p[^>]*class="[^"]*vs-product-hero__desc[^"]*"[^>]*>(.*?)</p>', content, re.S | re.I)
+    if desc:
+        set_field('【产品描述】', _strip_html_text(desc.group(1)))
+
+    # Main image / thumbnails
+    main_img = re.search(r'<img[^>]*id="mainImage"[^>]*src="([^"]+)"', content, re.I)
+    if not main_img:
+        main_img = re.search(r'<div[^>]*class="[^"]*vs-gallery-main[^"]*"[^>]*>.*?<img[^>]*src="([^"]+)"', content, re.S | re.I)
+    if main_img:
+        set_field('【主图链接】', main_img.group(1))
+
+    thumbs_block = re.search(r'<div[^>]*class="[^"]*vs-gallery-thumbs[^"]*"[^>]*>(.*?)</div>\s*</div>', content, re.S | re.I)
+    if thumbs_block:
+        thumbs = re.findall(r'<img[^>]*src="([^"]+)"', thumbs_block.group(1), re.I)
+        for i, src in enumerate(thumbs, 1):
+            set_field(f'【缩略图{i}链接】', src)
+
+    # Features
+    feature_ul = re.search(r'<ul[^>]*class="[^"]*vs-feature-list[^"]*"[^>]*>(.*?)</ul>', content, re.S | re.I)
+    if feature_ul:
+        features = re.findall(r'<li[^>]*>(.*?)</li>', feature_ul.group(1), re.S | re.I)
+        for i, item in enumerate(features, 1):
+            set_field(f'【特性{i}】', _strip_html_text(item))
+
+    # Product detail paragraphs
+    detail_block = re.search(
+        r'产品详情\s*</h2>\s*<div[^>]*class="[^"]*vs-product-section__content[^"]*"[^>]*>(.*?)</div>',
+        content, re.S | re.I
+    )
+    if detail_block:
+        ps = re.findall(r'<p[^>]*>(.*?)</p>', detail_block.group(1), re.S | re.I)
+        cleaned = [_strip_html_text(p) for p in ps if _strip_html_text(p)]
+        if cleaned:
+            set_field('【产品详情1】', cleaned[0])
+        if len(cleaned) > 1:
+            set_field('【产品详情2】', cleaned[1])
+
+    # Advantages
+    adv_grid = re.search(r'<div[^>]*class="[^"]*vs-advantages-grid[^"]*"[^>]*>(.*?)</div>\s*</div>\s*</section>', content, re.S | re.I)
+    if adv_grid:
+        cards = re.findall(r'<div[^>]*class="[^"]*vs-advantage-card[^"]*"[^>]*>(.*?)</div>', adv_grid.group(1), re.S | re.I)
+        for i, card in enumerate(cards, 1):
+            h = re.search(r'<h4[^>]*>(.*?)</h4>', card, re.S | re.I)
+            p = re.search(r'<p[^>]*>(.*?)</p>', card, re.S | re.I)
+            if h:
+                set_field(f'【优势{i}】', _strip_html_text(h.group(1)))
+            if p:
+                set_field(f'【优势{i}的描述】', _strip_html_text(p.group(1)))
+
+    # Applications
+    app_grid = re.search(r'<div[^>]*class="[^"]*vs-applications-grid[^"]*"[^>]*>(.*?)</div>\s*</div>\s*</section>', content, re.S | re.I)
+    if app_grid:
+        cards = re.findall(r'<div[^>]*class="[^"]*vs-application-card[^"]*"[^>]*>(.*?)</div>\s*</div>', app_grid.group(1), re.S | re.I)
+        for i, card in enumerate(cards, 1):
+            img = re.search(r'<img[^>]*src="([^"]+)"', card, re.I)
+            h4 = re.search(r'<h4[^>]*>(.*?)</h4>', card, re.S | re.I)
+            p = re.search(r'<p[^>]*>(.*?)</p>', card, re.S | re.I)
+            if img:
+                set_field(f'【应用图{i}链接】', img.group(1))
+            if h4:
+                title = _strip_html_text(h4.group(1)).replace('•', ' ').strip()
+                set_field(f'【应用{i}】', re.sub(r'\s+', ' ', title))
+            if p:
+                set_field(f'【应用{i}的描述】', _strip_html_text(p.group(1)))
+
+    # Specs table
+    specs_table = re.search(r'<table[^>]*class="[^"]*vs-specs-table[^"]*"[^>]*>(.*?)</table>', content, re.S | re.I)
+    if specs_table:
+        rows = re.findall(r'<tr[^>]*>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>\s*</tr>', specs_table.group(1), re.S | re.I)
+        key_map = [
+            (['检测原理', '传感器技术'], '【传感器技术】'),
+            (['检测对象', '检测气体'], '【检测气体】'),
+            (['检测范围'], '【检测范围】'),
+            (['检测精度', '精度'], '【检测精度】'),
+            (['响应速度', '响应时间'], '【响应时间】'),
+            (['最低检测限'], '【最低检测限】'),
+            (['模块功耗', '检测功耗', '功耗'], '【检测功耗】'),
+            (['续航时间', '设计寿命'], '【续航时间】'),
+            (['工作环境', '工作温度'], '【工作温度】'),
+            (['产品尺寸', '尺寸'], '【产品尺寸】'),
+            (['重量'], '【重量】')
+        ]
+        for raw_k, raw_v in rows:
+            k = _strip_html_text(raw_k)
+            v = _strip_html_text(raw_v)
+            for aliases, target in key_map:
+                if any(a in k for a in aliases):
+                    set_field(target, v)
+                    break
+
+    # Related news
+    news_section = re.search(r'<section[^>]*class="[^"]*vs-related-news[^"]*"[^>]*>(.*?)</section>', content, re.S | re.I)
+    if news_section:
+        items = find_anchors_with_class(news_section.group(1), 'vs-news-item')
+        for i, (href, block) in enumerate(items, 1):
+            img = re.search(r'<img[^>]*src="([^"]+)"', block, re.I)
+            h4 = re.search(r'<h4[^>]*>(.*?)</h4>', block, re.S | re.I)
+            p = re.search(r'<p[^>]*>(.*?)</p>', block, re.S | re.I)
+            set_field(f'【新闻链接{i}】', href)
+            if img:
+                set_field(f'【新闻图片{i}链接】', img.group(1))
+            if h4:
+                set_field(f'【新闻标题{i}】', _strip_html_text(h4.group(1)))
+            if p:
+                set_field(f'【新闻描述{i}】', _strip_html_text(p.group(1)))
+
+    # Related products
+    related_section = re.search(r'<section[^>]*class="[^"]*vs-related-products[^"]*"[^>]*>(.*?)</section>', content, re.S | re.I)
+    if related_section:
+        items = find_anchors_with_class(related_section.group(1), 'vs-related-item')
+        for i, (href, block) in enumerate(items, 1):
+            img = re.search(r'<img[^>]*src="([^"]+)"', block, re.I)
+            h4 = re.search(r'<h4[^>]*>(.*?)</h4>', block, re.S | re.I)
+            set_field(f'【相关产品链接{i}】', href)
+            if img:
+                set_field(f'【相关产品图片{i}链接】', img.group(1))
+            if h4:
+                set_field(f'【相关产品标题{i}】', _strip_html_text(h4.group(1)))
+
+    return extracted
+
+
+def normalize_product_template_fields(raw_fields):
+    """Keep only valid template placeholder key/value pairs."""
+    normalized = {}
+    if not isinstance(raw_fields, dict):
+        return normalized
+    for key, value in raw_fields.items():
+        k = str(key or '').strip()
+        if not k.startswith('【') or not k.endswith('】'):
+            continue
+        normalized[k] = str(value or '').strip()
+    return normalized
+
+
+def build_product_template_defaults(title: str, summary: str, image_url: str, detail1: str, detail2: str):
+    """Build default values for all placeholders in 模板.html."""
+    placeholders = extract_product_template_placeholders(get_product_template_html())
+    image = (image_url or '/assets/images/logo.png').strip()
+    defaults = {}
+    for key in placeholders:
+        if '链接' in key:
+            if any(tag in key for tag in ['图片', '主图', '缩略图', '详情图', '应用图']):
+                defaults[key] = image
+            elif '新闻链接' in key or '相关产品链接' in key:
+                defaults[key] = '#'
+            else:
+                defaults[key] = ''
+        else:
+            defaults[key] = ''
+
+    for key in ['【这里是产品名字】', '【本页的产品名字】', '【产品名字】']:
+        defaults[key] = title
+    defaults['【产品描述】'] = summary
+    defaults['【产品详情1】'] = detail1
+    defaults['【产品详情2】'] = detail2
+    defaults['【主图链接】'] = image
+    defaults['【缩略图1链接】'] = image
+    return defaults
+
+
+def sanitize_product_template_value(key: str, value: str) -> str:
+    """Escape placeholder values safely for HTML/template substitution."""
+    v = (value or '').strip()
+    if not v:
+        if '链接' in key:
+            if any(tag in key for tag in ['图片', '主图', '缩略图', '详情图', '应用图']):
+                return '/assets/images/logo.png'
+            if '新闻链接' in key or '相关产品链接' in key:
+                return '#'
+        return ''
+    if '链接' in key and any(tag in key for tag in ['图片', '主图', '缩略图', '详情图', '应用图']):
+        if v.lower().startswith('assets/'):
+            v = '/' + v
+    if '链接' in key:
+        return html.escape(v, quote=True)
+    return html.escape(v, quote=True).replace('\n', '<br>')
+
+
+def inject_product_meta_tags(page_html: str, title: str, short_name: str, image_url: str, summary: str, category: str) -> str:
+    """Inject product-* meta tags for admin scanner compatibility."""
+    safe_title = html.escape(title or '', quote=True)
+    safe_short_name = html.escape(short_name or '', quote=True)
+    safe_image = html.escape(image_url or '', quote=True)
+    safe_summary = html.escape(summary or '', quote=True)
+    safe_category = html.escape(category or 'module', quote=True)
+
+    meta_block = f"""
+    <meta name="product-name" content="{safe_title}" />
+    <meta name="product-short-name" content="{safe_short_name}" />
+    <meta name="product-image" content="{safe_image}" />
+    <meta name="product-description" content="{safe_summary}" />
+    <meta name="product-category" content="{safe_category}" />
+"""
+    if '</head>' in page_html:
+        return page_html.replace('</head>', meta_block + '\n</head>', 1)
+    return page_html + meta_block
+
+
+def encode_product_admin_data(payload: dict) -> str:
+    """Encode admin editor state into HTML comment for future edits."""
+    raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
+    encoded = base64.b64encode(raw.encode('utf-8')).decode('ascii')
+    return f'<!-- {PRODUCT_ADMIN_DATA_PREFIX}{encoded} -->'
+
+
+def decode_product_admin_data(page_html: str):
+    """Decode embedded admin editor payload from HTML comment."""
+    m = re.search(r'<!--\s*' + re.escape(PRODUCT_ADMIN_DATA_PREFIX) + r'([A-Za-z0-9+/=_-]+)\s*-->', page_html or '')
+    if not m:
+        return None
+    try:
+        raw = base64.b64decode(m.group(1)).decode('utf-8')
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        return None
+    return None
+
+
+def render_gassensing_product_html(
+    title: str,
+    short_name: str,
+    category: str,
+    image_url: str,
+    summary: str,
+    content_html: str,
+    template_fields=None
+):
+    """Render product page based on pages/gassensing/模板.html."""
+    safe_title = (title or '').strip()
+    safe_short_name = (short_name or safe_title).strip()
+    safe_category = (category or 'module').strip()
+    safe_image = (image_url or '/assets/images/logo.png').strip()
+    safe_summary = (summary or '').strip()
+    safe_content = (content_html or '').strip()
+
+    detail1, detail2 = split_product_detail_from_editor(safe_content)
+    defaults = build_product_template_defaults(
+        title=safe_title,
+        summary=safe_summary,
+        image_url=safe_image,
+        detail1=detail1,
+        detail2=detail2
+    )
+    incoming = normalize_product_template_fields(template_fields)
+    placeholders = extract_product_template_placeholders(get_product_template_html())
+
+    resolved = dict(defaults)
+    for key in placeholders:
+        if key in incoming and incoming[key]:
+            resolved[key] = incoming[key]
+
+    # Force key fields to match form inputs.
+    for key in ['【这里是产品名字】', '【本页的产品名字】', '【产品名字】']:
+        resolved[key] = safe_title
+    resolved['【产品描述】'] = safe_summary
+    resolved['【主图链接】'] = safe_image
+    if not resolved.get('【缩略图1链接】'):
+        resolved['【缩略图1链接】'] = safe_image
+    if not resolved.get('【产品详情1】'):
+        resolved['【产品详情1】'] = detail1
+    if not resolved.get('【产品详情2】'):
+        resolved['【产品详情2】'] = detail2
+
+    page_html = get_product_template_html()
+    for key in placeholders:
+        page_html = page_html.replace(key, sanitize_product_template_value(key, resolved.get(key, '')))
+
+    page_html = inject_product_meta_tags(
+        page_html=page_html,
+        title=safe_title,
+        short_name=safe_short_name,
+        image_url=safe_image,
+        summary=safe_summary,
+        category=safe_category
+    )
+
+    admin_payload = {
+        'version': 2,
+        'title': safe_title,
+        'short_name': safe_short_name,
+        'category': safe_category,
+        'image_url': safe_image,
+        'summary': safe_summary,
+        'content_html': safe_content,
+        'template_fields': resolved
+    }
+    marker = encode_product_admin_data(admin_payload)
+    if '</body>' in page_html:
+        page_html = page_html.replace('</body>', marker + '\n</body>', 1)
+    else:
+        page_html += '\n' + marker
+
+    return page_html, resolved
+
+
+def parse_gassensing_product_detail(filepath: Path):
+    """Parse product detail page fields for admin editing."""
+    if not filepath.exists():
+        return None
+
+    content = filepath.read_text(encoding='utf-8', errors='ignore')
+    admin_data = decode_product_admin_data(content)
+    if isinstance(admin_data, dict):
+        return {
+            'id': filepath.stem,
+            'title': (admin_data.get('title') or '').strip(),
+            'short_name': (admin_data.get('short_name') or '').strip(),
+            'category': (admin_data.get('category') or 'module').strip(),
+            'image_url': (admin_data.get('image_url') or '').strip(),
+            'summary': (admin_data.get('summary') or '').strip(),
+            'content_html': (admin_data.get('content_html') or '').strip(),
+            'template_fields': normalize_product_template_fields(admin_data.get('template_fields', {}))
+        }
+
+    # Backward compatible fallback for old pages without embedded admin data.
+    base = extract_product_meta_from_html(filepath) or {}
+    title = (base.get('name') or '').strip()
+    short_name = (base.get('shortName') or '').strip()
+    category = (base.get('category') or 'module').strip()
+    image_url = (base.get('image') or '').strip()
+    summary = (base.get('description') or '').strip()
+
+    detail_match = re.search(
+        r'<h3\s+class="section-header">\s*产品详情\s*</h3>\s*<div[^>]*>(.*?)</div>',
+        content,
+        re.S | re.I
+    )
+    if detail_match:
+        content_html = detail_match.group(1).strip()
+    else:
+        article_match = re.search(r'<main\b[^>]*>(.*?)</main>', content, re.S | re.I)
+        content_html = (article_match.group(1).strip() if article_match else '')
+
+    detail1, detail2 = split_product_detail_from_editor(content_html)
+    template_fields = build_product_template_defaults(
+        title=title,
+        summary=summary,
+        image_url=image_url,
+        detail1=detail1,
+        detail2=detail2
+    )
+    legacy_extracted = extract_legacy_template_fields(content, template_fields)
+    if legacy_extracted:
+        template_fields.update(legacy_extracted)
+    return {
+        'id': filepath.stem,
+        'title': title,
+        'short_name': short_name,
+        'category': category,
+        'image_url': image_url,
+        'summary': summary,
+        'content_html': content_html,
+        'template_fields': template_fields
+    }
+
+
+@app.route('/api/products/template/placeholders')
+@login_required
+def get_product_template_placeholders_api():
+    """Get placeholder list from product template for admin visual form."""
+    placeholders = extract_product_template_placeholders(get_product_template_html())
+    return jsonify({'items': placeholders, 'count': len(placeholders)})
+
+
+def call_openai_api_sync_with_custom_config(messages, config):
+    """Call OpenAI-compatible API with explicit config."""
+    api_key = (config or {}).get('api_key', '')
+    api_base = (config or {}).get('api_base', 'https://api.openai.com/v1')
+    model = (config or {}).get('model', 'gpt-4o-mini')
+
+    if not api_key:
+        return None, "产品页编程AI未配置 API Key"
+
+    api_url = api_base.rstrip('/') + '/chat/completions'
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'model': model,
+        'messages': messages,
+        'stream': False
+    }
+    connect_timeout = 20
+    read_timeout = 300
+    attempts = 2
+    try:
+        if REQUESTS_SUPPORT:
+            last_error = None
+            for i in range(attempts):
+                try:
+                    response = requests.post(
+                        api_url,
+                        json=payload,
+                        headers=headers,
+                        timeout=(connect_timeout, read_timeout)
+                    )
+                except requests.exceptions.ReadTimeout:
+                    last_error = f"上游响应超时（>{read_timeout}s）"
+                    if i < attempts - 1:
+                        continue
+                    return None, f"API调用失败: {last_error}"
+                except requests.exceptions.ConnectTimeout:
+                    last_error = f"连接超时（>{connect_timeout}s）"
+                    if i < attempts - 1:
+                        continue
+                    return None, f"API调用失败: {last_error}"
+
+                if response.status_code != 200:
+                    detail = ''
+                    try:
+                        detail = (response.text or '').strip()
+                    except Exception:
+                        detail = ''
+                    if detail:
+                        detail = detail[:500]
+                    return None, f"API错误: {response.status_code}{(' - ' + detail) if detail else ''}"
+                result = response.json()
+                if 'choices' in result and result['choices']:
+                    return result['choices'][0]['message']['content'], None
+                return None, "API返回格式错误"
+            return None, f"API调用失败: {last_error or '未知错误'}"
+        if HTTPX_SUPPORT:
+            last_error = None
+            timeout_obj = httpx.Timeout(connect=connect_timeout, read=read_timeout, write=60, pool=60)
+            for i in range(attempts):
+                try:
+                    response = httpx.post(api_url, json=payload, headers=headers, timeout=timeout_obj)
+                except httpx.ReadTimeout:
+                    last_error = f"上游响应超时（>{read_timeout}s）"
+                    if i < attempts - 1:
+                        continue
+                    return None, f"API调用失败: {last_error}"
+                except httpx.ConnectTimeout:
+                    last_error = f"连接超时（>{connect_timeout}s）"
+                    if i < attempts - 1:
+                        continue
+                    return None, f"API调用失败: {last_error}"
+
+                if response.status_code != 200:
+                    detail = ''
+                    try:
+                        detail = (response.text or '').strip()
+                    except Exception:
+                        detail = ''
+                    if detail:
+                        detail = detail[:500]
+                    return None, f"API错误: {response.status_code}{(' - ' + detail) if detail else ''}"
+                result = response.json()
+                if 'choices' in result and result['choices']:
+                    return result['choices'][0]['message']['content'], None
+                return None, "API返回格式错误"
+            return None, f"API调用失败: {last_error or '未知错误'}"
+        return None, "缺少HTTP客户端库(requests或httpx)"
+    except Exception as e:
+        print(f"Product AI API error: {e}")
+        return None, f"API调用失败: {str(e)}"
+
+
+def _extract_stream_chunk_text(chunk_obj):
+    """Extract text delta from OpenAI-compatible stream chunk."""
+    if not isinstance(chunk_obj, dict):
+        return ''
+    choices = chunk_obj.get('choices') or []
+    if not choices:
+        return ''
+    delta = choices[0].get('delta') or {}
+    content = delta.get('content', '')
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                text = item.get('text')
+                if isinstance(text, str):
+                    parts.append(text)
+        return ''.join(parts)
+    return ''
+
+
+def call_openai_api_stream_with_custom_config(messages, config):
+    """Call OpenAI-compatible stream API with explicit config."""
+    api_key = (config or {}).get('api_key', '')
+    api_base = (config or {}).get('api_base', 'https://api.openai.com/v1')
+    model = (config or {}).get('model', 'gpt-4o-mini')
+
+    if not api_key:
+        return None, "产品页编程AI未配置 API Key"
+
+    api_url = api_base.rstrip('/') + '/chat/completions'
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'model': model,
+        'messages': messages,
+        'stream': True
+    }
+    connect_timeout = 20
+    read_timeout = 300
+
+    if HTTPX_SUPPORT:
+        def gen_httpx():
+            try:
+                timeout_obj = httpx.Timeout(connect=connect_timeout, read=read_timeout, write=60, pool=60)
+                with httpx.Client(timeout=timeout_obj) as client:
+                    with client.stream('POST', api_url, json=payload, headers=headers) as response:
+                        if response.status_code != 200:
+                            detail = (response.text or '').strip()
+                            if detail:
+                                detail = detail[:500]
+                            yield None, f"API错误: {response.status_code}{(' - ' + detail) if detail else ''}"
+                            return
+                        for line in response.iter_lines():
+                            if not line:
+                                continue
+                            if isinstance(line, bytes):
+                                line = line.decode('utf-8', errors='ignore')
+                            if not line.startswith('data: '):
+                                continue
+                            data = line[6:].strip()
+                            if data == '[DONE]':
+                                break
+                            try:
+                                chunk = json.loads(data)
+                            except json.JSONDecodeError:
+                                continue
+                            text = _extract_stream_chunk_text(chunk)
+                            if text:
+                                yield text, None
+            except Exception as e:
+                yield None, f"API调用失败: {str(e)}"
+        return gen_httpx()
+
+    if REQUESTS_SUPPORT:
+        def gen_requests():
+            try:
+                response = requests.post(
+                    api_url,
+                    json=payload,
+                    headers=headers,
+                    stream=True,
+                    timeout=(connect_timeout, read_timeout)
+                )
+                if response.status_code != 200:
+                    detail = (response.text or '').strip()
+                    if detail:
+                        detail = detail[:500]
+                    yield None, f"API错误: {response.status_code}{(' - ' + detail) if detail else ''}"
+                    return
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    line = line.decode('utf-8', errors='ignore')
+                    if not line.startswith('data: '):
+                        continue
+                    data = line[6:].strip()
+                    if data == '[DONE]':
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    text = _extract_stream_chunk_text(chunk)
+                    if text:
+                        yield text, None
+            except Exception as e:
+                yield None, f"API调用失败: {str(e)}"
+        return gen_requests()
+
+    return None, "缺少HTTP客户端库(requests或httpx)"
+
+
+def parse_json_object_from_ai_text(text: str):
+    """Extract first valid JSON object from AI text."""
+    raw = (text or '').strip()
+    if not raw:
+        raise ValueError('AI返回为空')
+    if raw.startswith('```'):
+        raw = re.sub(r'^```[a-zA-Z]*\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+    try:
+        obj = json.loads(raw)
+        if isinstance(obj, dict):
+            return obj
+    except Exception:
+        pass
+
+    match = re.search(r'\{[\s\S]*\}', raw)
+    if not match:
+        raise ValueError('未找到 JSON 对象')
+    obj = json.loads(match.group(0))
+    if not isinstance(obj, dict):
+        raise ValueError('JSON 顶层必须是对象')
+    return obj
+
+
+def extract_html_from_ai_text(text: str, title: str = '产品页面'):
+    """Extract HTML document from model output, with robust fallbacks."""
+    raw = (text or '').strip()
+    if not raw:
+        raise ValueError('AI返回为空')
+    if raw.startswith('```'):
+        raw = re.sub(r'^```[a-zA-Z]*\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        raw = raw.strip()
+
+    # Try JSON wrapper: {"html":"..."} / {"page_html":"..."} / {"content":"..."}
+    try:
+        obj = parse_json_object_from_ai_text(raw)
+        if isinstance(obj, dict):
+            for k in ('page_html', 'html', 'content'):
+                v = obj.get(k)
+                if isinstance(v, str) and v.strip():
+                    raw = v.strip()
+                    break
+    except Exception:
+        pass
+
+    lower = raw.lower()
+    idx = lower.find('<!doctype html')
+    if idx < 0:
+        idx = lower.find('<html')
+    html_text = raw[idx:].strip() if idx >= 0 else raw
+    if '<html' in html_text.lower():
+        return html_text
+
+    # If model returns body/main fragment, wrap to full HTML
+    fragment = html_text.strip()
+    if any(tag in fragment.lower() for tag in ('<body', '<main', '<section', '<div', '<h1', '<h2', '<p')):
+        page = (
+            "<!DOCTYPE html>\n"
+            "<html lang=\"zh-CN\">\n"
+            "<head>\n"
+            "  <meta charset=\"UTF-8\">\n"
+            "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+            f"  <title>{html.escape(title or '产品页面')}</title>\n"
+            "</head>\n"
+            "<body>\n"
+            f"{fragment}\n"
+            "</body>\n"
+            "</html>"
+        )
+        return page
+
+    preview = re.sub(r'\s+', ' ', raw)[:220]
+    raise ValueError(f'AI未返回可识别的HTML（片段预览: {preview}）')
+
+
+def build_product_content_html_from_template_fields(template_fields: dict):
+    """Build editor content_html from template fields for admin edit backfill."""
+    d1 = str((template_fields or {}).get('【产品详情1】', '') or '').strip()
+    d2 = str((template_fields or {}).get('【产品详情2】', '') or '').strip()
+    parts = []
+    if d1:
+        parts.append(f"<p>{html.escape(d1)}</p>")
+    if d2:
+        parts.append(f"<p>{html.escape(d2)}</p>")
+    if not parts:
+        parts.append("<p>请填写产品详情内容</p>")
+    return ''.join(parts)
+
+
+def _normalize_text_lines(value):
+    """Normalize multiline / comma-separated text into clean non-empty lines."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        raw = '\n'.join([str(x or '') for x in value])
+    else:
+        raw = str(value)
+    raw = raw.replace('\r', '\n')
+    raw = raw.replace('，', ',').replace('；', ';')
+    parts = re.split(r'[\n,;]+', raw)
+    return [p.strip() for p in parts if p and p.strip()]
+
+
+def _build_product_ai_html_messages(
+    title,
+    short_name,
+    category,
+    image_url,
+    summary,
+    context_text,
+    detail_image_urls='',
+    news_urls='',
+    related_product_urls=''
+):
+    """Build system/user messages for product full-html generation."""
+    ai_cfg = get_product_page_ai_config()
+    template_html = get_product_template_html()
+    system_prompt = (ai_cfg.get('system_prompt') or '').strip()
+    if not system_prompt:
+        system_prompt = '你是资深前端工程师，擅长基于HTML模板生成可直接上线的产品详情页。'
+    detail_images = _normalize_text_lines(detail_image_urls)
+    news_links = _normalize_text_lines(news_urls)
+    related_links = _normalize_text_lines(related_product_urls)
+    detail_images_block = '\n'.join([f"  - {u}" for u in detail_images]) if detail_images else '  - （无）'
+    news_links_block = '\n'.join([f"  - {u}" for u in news_links]) if news_links else '  - （无）'
+    related_links_block = '\n'.join([f"  - {u}" for u in related_links]) if related_links else '  - （无）'
+    user_prompt = (
+        "请基于“模板HTML”和“产品资料”直接生成完整产品页HTML文件。\n"
+        "硬性要求：\n"
+        "1) 输出必须是完整HTML文档（包含 <!DOCTYPE html> ... </html>）。\n"
+        "2) 请直接开始写代码，代码写完后不要添加任何其他内容。\n"
+        "3) 只输出HTML，不要解释、不要Markdown代码块。\n"
+        "4) 必须参考模板结构与样式，保留可复用的布局和资源引用，不要删掉关键脚本/样式。\n"
+        "5) 内容按资料进行替换与完善，不能编造资质证书、认证、客户案例。\n"
+        "6) 必须确保页面中有可见图片：主图、详情图、新闻图、相关产品图至少要有可显示来源。\n"
+        "7) 若某类图片URL未提供，可优先复用主图或详情图首图，最后兜底 /assets/images/logo.png。\n"
+        "8) 相关新闻与相关产品区块必须保留，并尽量使用提供的 URL 生成链接。\n\n"
+        f"产品资料：\n"
+        f"- 产品标题: {title}\n"
+        f"- 产品简称: {short_name}\n"
+        f"- 产品分类: {category}\n"
+        f"- 产品主图URL: {image_url or '/assets/images/logo.png'}\n"
+        f"- 产品摘要: {summary or '（请你生成）'}\n"
+        f"- 产品详情图片URL列表:\n{detail_images_block}\n"
+        f"- 相关新闻URL列表:\n{news_links_block}\n"
+        f"- 相关产品URL列表:\n{related_links_block}\n"
+        f"- 详细补充资料:\n{context_text or '（无）'}\n\n"
+        "模板HTML如下（请以此为参考生成最终完整HTML）:\n"
+        f"{template_html}"
+    )
+    messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_prompt}
+    ]
+    return messages, ai_cfg
+
+
+def _ensure_html_tail(page_html: str) -> str:
+    """Best-effort close missing body/html tail when output is truncated."""
+    txt = (page_html or '').strip()
+    if '<html' not in txt.lower():
+        return txt
+    low = txt.lower()
+    if '</body>' not in low:
+        txt += '\n</body>'
+        low = txt.lower()
+    if '</html>' not in low:
+        txt += '\n</html>'
+    return txt
+
+
+def _is_html_complete(page_html: str) -> bool:
+    return '</html>' in (page_html or '').lower()
+
+
+def _continuation_prompt():
+    return (
+        "你上一次输出被截断。请仅从中断处继续输出剩余 HTML 代码，"
+        "不要重复之前已输出内容，不要解释，直到输出到 </html> 结束。"
+    )
+
+
+@app.route('/api/products/ai-generate-html', methods=['POST'])
+@login_required
+def ai_generate_product_html():
+    """Generate full product HTML by AI with template.html as reference."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    short_name = (data.get('short_name') or '').strip()
+    category = (data.get('category') or 'sensor').strip()
+    image_url = (data.get('image_url') or '').strip()
+    detail_image_urls = (data.get('detail_image_urls') or '').strip()
+    news_urls = (data.get('news_urls') or '').strip()
+    related_product_urls = (data.get('related_product_urls') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    context_text = (data.get('context_text') or '').strip()
+
+    if not title or not short_name:
+        return jsonify({'success': False, 'message': '请至少填写产品标题和产品简称'}), 400
+
+    messages, ai_cfg = _build_product_ai_html_messages(
+        title=title,
+        short_name=short_name,
+        category=category,
+        image_url=image_url,
+        summary=summary,
+        context_text=context_text,
+        detail_image_urls=detail_image_urls,
+        news_urls=news_urls,
+        related_product_urls=related_product_urls
+    )
+    if not ai_cfg.get('enabled', False):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
+    if not ai_cfg.get('api_key'):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
+
+    response_text = ''
+    attempts_used = 0
+    for _ in range(3):
+        attempts_used += 1
+        piece, error = call_openai_api_sync_with_custom_config(messages, ai_cfg)
+        if error:
+            return jsonify({'success': False, 'message': error}), 502
+        piece = piece or ''
+        response_text += piece
+        if _is_html_complete(response_text):
+            break
+        messages.append({'role': 'assistant', 'content': piece})
+        messages.append({'role': 'user', 'content': _continuation_prompt()})
+
+    try:
+        page_html = extract_html_from_ai_text(_ensure_html_tail(response_text), title=title)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'AI输出HTML解析失败: {str(e)}'}), 500
+
+    return jsonify({'success': True, 'page_html': page_html, 'attempts_used': attempts_used})
+
+
+@app.route('/api/products/ai-generate-html-stream', methods=['POST'])
+@login_required
+def ai_generate_product_html_stream():
+    """Generate full product HTML by AI with streaming + auto continuation."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    short_name = (data.get('short_name') or '').strip()
+    category = (data.get('category') or 'sensor').strip()
+    image_url = (data.get('image_url') or '').strip()
+    detail_image_urls = (data.get('detail_image_urls') or '').strip()
+    news_urls = (data.get('news_urls') or '').strip()
+    related_product_urls = (data.get('related_product_urls') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    context_text = (data.get('context_text') or '').strip()
+
+    if not title or not short_name:
+        return jsonify({'success': False, 'message': '请至少填写产品标题和产品简称'}), 400
+
+    messages, ai_cfg = _build_product_ai_html_messages(
+        title=title,
+        short_name=short_name,
+        category=category,
+        image_url=image_url,
+        summary=summary,
+        context_text=context_text,
+        detail_image_urls=detail_image_urls,
+        news_urls=news_urls,
+        related_product_urls=related_product_urls
+    )
+    if not ai_cfg.get('enabled', False):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
+    if not ai_cfg.get('api_key'):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
+
+    def generate():
+        accumulated = ''
+        for round_idx in range(3):
+            if round_idx > 0:
+                yield f"data: {json.dumps({'type': 'retry', 'attempt': round_idx + 1, 'message': '检测到输出被截断，正在自动续写...' }, ensure_ascii=False)}\n\n"
+
+            stream = call_openai_api_stream_with_custom_config(messages, ai_cfg)
+            if isinstance(stream, tuple):
+                _, err = stream
+                yield f"data: {json.dumps({'type': 'error', 'error': err or 'API调用失败'}, ensure_ascii=False)}\n\n"
+                return
+
+            round_text = ''
+            for chunk, err in stream:
+                if err:
+                    yield f"data: {json.dumps({'type': 'error', 'error': err}, ensure_ascii=False)}\n\n"
+                    return
+                if not chunk:
+                    continue
+                round_text += chunk
+                accumulated += chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk}, ensure_ascii=False)}\n\n"
+
+            if _is_html_complete(accumulated):
+                break
+
+            messages.append({'role': 'assistant', 'content': round_text or accumulated[-4000:]})
+            messages.append({'role': 'user', 'content': _continuation_prompt()})
+
+        accumulated = _ensure_html_tail(accumulated)
+        try:
+            page_html = extract_html_from_ai_text(accumulated, title=title)
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': f'AI输出HTML解析失败: {str(e)}'}, ensure_ascii=False)}\n\n"
+            return
+
+        yield f"data: {json.dumps({'type': 'done', 'page_html': page_html}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    )
+
+
+@app.route('/api/products/ai-revise-html-stream', methods=['POST'])
+@login_required
+def ai_revise_product_html_stream():
+    """Revise already-generated HTML by user instruction (streaming)."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip() or '产品页面'
+    category = (data.get('category') or 'sensor').strip()
+    image_url = (data.get('image_url') or '').strip()
+    detail_image_urls = (data.get('detail_image_urls') or '').strip()
+    news_urls = (data.get('news_urls') or '').strip()
+    related_product_urls = (data.get('related_product_urls') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    context_text = (data.get('context_text') or '').strip()
+    instruction = (data.get('instruction') or '').strip()
+    current_html = (data.get('current_html') or '').strip()
+
+    if not instruction:
+        return jsonify({'success': False, 'message': '请先填写修改意见'}), 400
+    if '<html' not in current_html.lower():
+        return jsonify({'success': False, 'message': '当前HTML为空或格式无效，请先生成HTML'}), 400
+
+    ai_cfg = get_product_page_ai_config()
+    if not ai_cfg.get('enabled', False):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
+    if not ai_cfg.get('api_key'):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
+
+    system_prompt = (ai_cfg.get('system_prompt') or '').strip()
+    if not system_prompt:
+        system_prompt = '你是资深前端工程师，擅长基于HTML模板生成可直接上线的产品详情页。'
+
+    detail_images = _normalize_text_lines(detail_image_urls)
+    news_links = _normalize_text_lines(news_urls)
+    related_links = _normalize_text_lines(related_product_urls)
+    detail_images_block = '\n'.join([f"  - {u}" for u in detail_images]) if detail_images else '  - （无）'
+    news_links_block = '\n'.join([f"  - {u}" for u in news_links]) if news_links else '  - （无）'
+    related_links_block = '\n'.join([f"  - {u}" for u in related_links]) if related_links else '  - （无）'
+
+    messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': (
+            "请基于下方“当前HTML代码”和“修改意见”输出一份修改后的完整HTML。\n"
+            "要求：\n"
+            "1) 只输出完整HTML代码，不要解释，不要Markdown代码块。\n"
+            "2) 尽量保留原有结构和样式，仅按修改意见调整。\n"
+            "3) 输出必须从 <!DOCTYPE html> 或 <html> 开始，并在 </html> 结束。\n\n"
+            "产品资料补充（用于保证图片和链接完整，可结合修改意见一起处理）：\n"
+            f"- 产品标题: {title}\n"
+            f"- 产品分类: {category}\n"
+            f"- 产品主图URL: {image_url or '/assets/images/logo.png'}\n"
+            f"- 产品摘要: {summary or '（未填写）'}\n"
+            f"- 产品详情图片URL列表:\n{detail_images_block}\n"
+            f"- 相关新闻URL列表:\n{news_links_block}\n"
+            f"- 相关产品URL列表:\n{related_links_block}\n"
+            f"- 详细补充资料:\n{context_text or '（无）'}\n\n"
+            f"修改意见：\n{instruction}\n\n"
+            f"当前HTML代码：\n{current_html}"
+        )}
+    ]
+
+    def generate():
+        accumulated = ''
+        for round_idx in range(3):
+            if round_idx > 0:
+                yield f"data: {json.dumps({'type': 'retry', 'attempt': round_idx + 1, 'message': '检测到输出被截断，正在自动续写...' }, ensure_ascii=False)}\n\n"
+
+            stream = call_openai_api_stream_with_custom_config(messages, ai_cfg)
+            if isinstance(stream, tuple):
+                _, err = stream
+                yield f"data: {json.dumps({'type': 'error', 'error': err or 'API调用失败'}, ensure_ascii=False)}\n\n"
+                return
+
+            round_text = ''
+            for chunk, err in stream:
+                if err:
+                    yield f"data: {json.dumps({'type': 'error', 'error': err}, ensure_ascii=False)}\n\n"
+                    return
+                if not chunk:
+                    continue
+                round_text += chunk
+                accumulated += chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk}, ensure_ascii=False)}\n\n"
+
+            if _is_html_complete(accumulated):
+                break
+
+            messages.append({'role': 'assistant', 'content': round_text or accumulated[-4000:]})
+            messages.append({'role': 'user', 'content': _continuation_prompt()})
+
+        accumulated = _ensure_html_tail(accumulated)
+        try:
+            page_html = extract_html_from_ai_text(accumulated, title=title)
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': f'AI输出HTML解析失败: {str(e)}'}, ensure_ascii=False)}\n\n"
+            return
+
+        yield f"data: {json.dumps({'type': 'done', 'page_html': page_html}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    )
+
+
+@app.route('/api/products/ai-create-html', methods=['POST'])
+@login_required
+def ai_create_product_from_html():
+    """Save AI-generated full HTML as a product page file."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    short_name = (data.get('short_name') or '').strip()
+    category = (data.get('category') or '').strip()
+    image_url = (data.get('image_url') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    slug = (data.get('slug') or '').strip()
+    page_html = (data.get('page_html') or '').strip()
+
+    if not title or not short_name or not category or not summary or not slug:
+        return jsonify({'success': False, 'message': '请填写标题、简称、分类、链接标识和摘要'}), 400
+    if not re.fullmatch(r'[a-z0-9_]+', slug):
+        return jsonify({'success': False, 'message': '链接标识仅支持小写字母、数字、下划线'}), 400
+    if '<html' not in page_html.lower():
+        return jsonify({'success': False, 'message': 'HTML源码无效，请先生成完整HTML'}), 400
+    allowed_categories = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
+    if category not in allowed_categories:
+        return jsonify({'success': False, 'message': '产品分类不合法'}), 400
+
+    enriched_html = inject_product_meta_tags(
+        page_html=page_html,
+        title=title,
+        short_name=short_name,
+        image_url=image_url or '/assets/images/logo.png',
+        summary=summary,
+        category=category
+    )
+
+    admin_payload = {
+        'version': 3,
+        'title': title,
+        'short_name': short_name,
+        'category': category,
+        'image_url': image_url or '/assets/images/logo.png',
+        'summary': summary,
+        'content_html': '',
+        'template_fields': {},
+        'source': 'ai-full-html'
+    }
+    marker = encode_product_admin_data(admin_payload)
+    if '</body>' in enriched_html:
+        enriched_html = enriched_html.replace('</body>', marker + '\n</body>', 1)
+    else:
+        enriched_html += '\n' + marker
+
+    products_dir = Path(__file__).parent / 'pages' / 'gassensing'
+    products_dir.mkdir(parents=True, exist_ok=True)
+    filename = f'{slug}.html'
+    filepath = products_dir / filename
+    if filepath.exists():
+        return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
+    filepath.write_text(enriched_html, encoding='utf-8')
+    return jsonify({'success': True, 'filename': filename, 'link': f'/pages/gassensing/{filename}'})
+
+
+@app.route('/api/products/ai-generate-fields', methods=['POST'])
+@login_required
+def ai_generate_product_template_fields():
+    """Generate template fields by product-page coding AI."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    short_name = (data.get('short_name') or '').strip()
+    category = (data.get('category') or 'sensor').strip()
+    image_url = (data.get('image_url') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    context_text = (data.get('context_text') or '').strip()
+
+    if not title or not short_name:
+        return jsonify({'success': False, 'message': '请至少填写产品标题和产品简称'}), 400
+
+    ai_cfg = get_product_page_ai_config()
+    if not ai_cfg.get('enabled', False):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
+    if not ai_cfg.get('api_key'):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
+
+    placeholders = extract_product_template_placeholders(get_product_template_html())
+    defaults = build_product_template_defaults(
+        title=title,
+        summary=summary,
+        image_url=image_url or '/assets/images/logo.png',
+        detail1='',
+        detail2=''
+    )
+    system_prompt = ai_cfg.get('system_prompt') or ''
+    user_prompt = (
+        "请根据以下资料，生成模板字段 JSON。\n"
+        f"产品标题: {title}\n"
+        f"产品简称: {short_name}\n"
+        f"产品分类: {category}\n"
+        f"封面图: {image_url}\n"
+        f"产品摘要: {summary}\n\n"
+        f"补充资料:\n{context_text or '（无）'}\n\n"
+        f"可用占位符列表（只能使用这些 key）:\n{json.dumps(placeholders, ensure_ascii=False)}\n\n"
+        f"默认字段（可参考）:\n{json.dumps(defaults, ensure_ascii=False)}\n"
+    )
+    messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_prompt}
+    ]
+
+    response_text, error = call_openai_api_sync_with_custom_config(messages, ai_cfg)
+    if error:
+        return jsonify({'success': False, 'message': error}), 502
+
+    try:
+        parsed = parse_json_object_from_ai_text(response_text or '')
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'AI输出解析失败: {str(e)}'}), 500
+
+    ai_title = str(parsed.get('title') or title).strip() or title
+    ai_short = str(parsed.get('short_name') or short_name).strip() or short_name
+    ai_summary = str(parsed.get('summary') or summary).strip() or summary
+    ai_fields_raw = parsed.get('template_fields', parsed if isinstance(parsed, dict) else {})
+    ai_fields = normalize_product_template_fields(ai_fields_raw if isinstance(ai_fields_raw, dict) else {})
+
+    merged = dict(defaults)
+    for key in placeholders:
+        if key in ai_fields and str(ai_fields[key]).strip():
+            merged[key] = str(ai_fields[key]).strip()
+
+    for key in ['【这里是产品名字】', '【本页的产品名字】', '【产品名字】']:
+        merged[key] = ai_title
+    if ai_summary:
+        merged['【产品描述】'] = ai_summary
+    if image_url:
+        merged['【主图链接】'] = image_url
+        if not merged.get('【缩略图1链接】'):
+            merged['【缩略图1链接】'] = image_url
+
+    return jsonify({
+        'success': True,
+        'title': ai_title,
+        'short_name': ai_short,
+        'summary': ai_summary,
+        'template_fields': merged
+    })
+
+
+@app.route('/api/products/ai-create', methods=['POST'])
+@login_required
+def ai_create_gassensing_product():
+    """Create product HTML from AI-generated template fields."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    short_name = (data.get('short_name') or '').strip()
+    category = (data.get('category') or '').strip()
+    image_url = (data.get('image_url') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    slug = (data.get('slug') or '').strip()
+    template_fields = normalize_product_template_fields(data.get('template_fields', {}))
+
+    if not title or not short_name or not category or not summary or not slug:
+        return jsonify({'success': False, 'message': '请填写标题、简称、分类、链接标识和摘要'}), 400
+    if not re.fullmatch(r'[a-z0-9_]+', slug):
+        return jsonify({'success': False, 'message': '链接标识仅支持小写字母、数字、下划线'}), 400
+    allowed_categories = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
+    if category not in allowed_categories:
+        return jsonify({'success': False, 'message': '产品分类不合法'}), 400
+
+    content_html = build_product_content_html_from_template_fields(template_fields)
+    html_text, _ = render_gassensing_product_html(
+        title=title,
+        short_name=short_name,
+        category=category,
+        image_url=image_url or '/assets/images/logo.png',
+        summary=summary,
+        content_html=content_html,
+        template_fields=template_fields
+    )
+
+    products_dir = Path(__file__).parent / 'pages' / 'gassensing'
+    products_dir.mkdir(parents=True, exist_ok=True)
+    filename = f'{slug}.html'
+    filepath = products_dir / filename
+    if filepath.exists():
+        return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
+
+    filepath.write_text(html_text, encoding='utf-8')
+    return jsonify({'success': True, 'filename': filename, 'link': f'/pages/gassensing/{filename}'})
+
+
 def extract_product_meta_from_html(filepath):
     """从产品HTML文件中提取meta标签信息"""
     from html.parser import HTMLParser
@@ -2325,10 +3824,198 @@ def extract_product_meta_from_html(filepath):
             'description': description,
             'category': category
         }
-        
     except Exception as e:
         print(f"Error parsing product file {filepath}: {e}")
         return None
+
+
+@app.route('/api/products/create', methods=['POST'])
+@login_required
+def create_gassensing_product():
+    """Create a gassensing product detail page from admin visual form."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip()
+    short_name = (data.get('short_name') or '').strip()
+    category = (data.get('category') or '').strip()
+    image_url = (data.get('image_url') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    slug = (data.get('slug') or '').strip()
+    content = (data.get('content') or '').strip()
+    content_is_html = bool(data.get('content_is_html', False))
+    template_fields = normalize_product_template_fields(data.get('template_fields', {}))
+
+    if not title or not short_name or not category or not summary or not slug or not content:
+        return jsonify({'success': False, 'message': '请填写标题、简称、分类、链接标识、摘要和正文'}), 400
+
+    if not re.fullmatch(r'[a-z0-9_]+', slug):
+        return jsonify({'success': False, 'message': '链接标识仅支持小写字母、数字、下划线'}), 400
+
+    allowed_categories = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
+    if category not in allowed_categories:
+        return jsonify({'success': False, 'message': '产品分类不合法'}), 400
+
+    content_html = content if content_is_html else render_markdown(content)
+    html_text, _ = render_gassensing_product_html(
+        title=title,
+        short_name=short_name,
+        category=category,
+        image_url=image_url or '/assets/images/logo.png',
+        summary=summary,
+        content_html=content_html,
+        template_fields=template_fields
+    )
+
+    products_dir = Path(__file__).parent / 'pages' / 'gassensing'
+    products_dir.mkdir(parents=True, exist_ok=True)
+    filename = f'{slug}.html'
+    filepath = products_dir / filename
+    if filepath.exists():
+        return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
+
+    filepath.write_text(html_text, encoding='utf-8')
+    return jsonify({
+        'success': True,
+        'filename': filename,
+        'link': f'/pages/gassensing/{filename}'
+    })
+
+
+@app.route('/api/products/detail')
+@login_required
+def get_product_detail():
+    """Get one gassensing product detail for admin visual editing."""
+    product_id = (request.args.get('id') or '').strip()
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+    if product_id.startswith('../'):
+        return jsonify({'success': False, 'message': '该产品不在气体传感目录，暂不支持可视化编辑'}), 400
+    if not re.fullmatch(r'[a-z0-9_]+', product_id):
+        return jsonify({'success': False, 'message': '产品ID不合法'}), 400
+
+    filepath = Path(__file__).parent / 'pages' / 'gassensing' / f'{product_id}.html'
+    detail = parse_gassensing_product_detail(filepath)
+    if not detail:
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    return jsonify({'success': True, 'detail': detail})
+
+
+@app.route('/api/products/update', methods=['POST'])
+@login_required
+def update_gassensing_product():
+    """Update an existing gassensing product detail page."""
+    data = request.json or {}
+    original_slug = (data.get('original_slug') or '').strip()
+    slug = (data.get('slug') or '').strip()
+    title = (data.get('title') or '').strip()
+    short_name = (data.get('short_name') or '').strip()
+    category = (data.get('category') or '').strip()
+    image_url = (data.get('image_url') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    content = (data.get('content') or '').strip()
+    content_is_html = bool(data.get('content_is_html', False))
+    template_fields = normalize_product_template_fields(data.get('template_fields', {}))
+
+    if not original_slug or not slug:
+        return jsonify({'success': False, 'message': '缺少原始链接标识或新链接标识'}), 400
+    if not title or not short_name or not category or not summary or not content:
+        return jsonify({'success': False, 'message': '请填写标题、简称、分类、摘要和正文'}), 400
+    if not re.fullmatch(r'[a-z0-9_]+', original_slug) or not re.fullmatch(r'[a-z0-9_]+', slug):
+        return jsonify({'success': False, 'message': '链接标识仅支持小写字母、数字、下划线'}), 400
+
+    allowed_categories = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
+    if category not in allowed_categories:
+        return jsonify({'success': False, 'message': '产品分类不合法'}), 400
+
+    products_dir = Path(__file__).parent / 'pages' / 'gassensing'
+    old_path = products_dir / f'{original_slug}.html'
+    if not old_path.exists():
+        return jsonify({'success': False, 'message': '原产品文件不存在'}), 404
+    new_path = products_dir / f'{slug}.html'
+    if slug != original_slug and new_path.exists():
+        return jsonify({'success': False, 'message': f'目标文件已存在：{slug}.html'}), 409
+
+    content_html = content if content_is_html else render_markdown(content)
+    html_text, _ = render_gassensing_product_html(
+        title=title,
+        short_name=short_name,
+        category=category,
+        image_url=image_url or '/assets/images/logo.png',
+        summary=summary,
+        content_html=content_html,
+        template_fields=template_fields
+    )
+
+    if slug != original_slug:
+        try:
+            old_path.unlink()
+        except Exception:
+            pass
+    new_path.write_text(html_text, encoding='utf-8')
+
+    # Keep product settings in sync when slug changes.
+    if slug != original_slug:
+        settings = get_product_settings()
+        if original_slug in settings:
+            settings[slug] = settings.get(original_slug, {})
+            settings.pop(original_slug, None)
+            save_product_settings(settings)
+
+    return jsonify({
+        'success': True,
+        'filename': f'{slug}.html',
+        'link': f'/pages/gassensing/{slug}.html'
+    })
+
+
+@app.route('/api/products/preview-page', methods=['POST'])
+@login_required
+def preview_product_page():
+    """Render full gassensing product page HTML for admin live preview."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip() or '产品标题'
+    short_name = (data.get('short_name') or '').strip() or title
+    category = (data.get('category') or '').strip() or 'sensor'
+    image_url = (data.get('image_url') or '').strip() or '/assets/images/logo.png'
+    summary = (data.get('summary') or '').strip() or '产品摘要'
+    content = (data.get('content') or '').strip() or '<p>请填写产品详情内容</p>'
+    content_is_html = bool(data.get('content_is_html', False))
+    template_fields = normalize_product_template_fields(data.get('template_fields', {}))
+    content_html = content if content_is_html else render_markdown(content)
+
+    page_html, _ = render_gassensing_product_html(
+        title=title,
+        short_name=short_name,
+        category=category,
+        image_url=image_url,
+        summary=summary,
+        content_html=content_html,
+        template_fields=template_fields
+    )
+
+    resize_bridge = """
+<script>
+(function () {
+  function sendHeight() {
+    var h = Math.max(
+      document.body ? document.body.scrollHeight : 0,
+      document.documentElement ? document.documentElement.scrollHeight : 0
+    );
+    try { parent.postMessage({ type: 'product-preview-height', height: h }, '*'); } catch (e) {}
+  }
+  window.addEventListener('load', sendHeight);
+  window.addEventListener('resize', sendHeight);
+  setTimeout(sendHeight, 100);
+  setTimeout(sendHeight, 500);
+  setTimeout(sendHeight, 1200);
+})();
+</script>
+"""
+    if '</body>' in page_html:
+        page_html = page_html.replace('</body>', resize_bridge + '\n</body>')
+    else:
+        page_html += resize_bridge
+
+    return jsonify({'success': True, 'page_html': page_html})
 
 
 def extract_solution_meta_from_html(filepath):
@@ -2838,6 +4525,7 @@ def get_all_case_items():
 
 RECOMMENDATIONS_FILE = DATA_DIR / 'recommendations.json'
 MEASUREMENT_TARGETS_FILE = DATA_DIR / 'measurement_targets.json'
+NAV_INDUSTRY_CATEGORIES_FILE = DATA_DIR / 'nav_industry_categories.json'
 
 
 def is_safe_recommendation_url(url: str) -> bool:
@@ -2906,6 +4594,56 @@ def normalize_measurement_target_items(items):
             continue
         normalized.append({'name': name, 'url': url})
     return normalized
+
+
+def get_default_nav_industry_categories():
+    """Default industry category links for gas nav mega menu."""
+    return {
+        'items': [
+            {'name': '氢能源产业链', 'url': '/pages/solutions/industry-hydrogen.html'},
+            {'name': '智慧电力安全', 'url': '/pages/solutions/industry-power-safety.html'},
+            {'name': '工业检漏监测', 'url': '/pages/solutions/industry-leak-detection.html'},
+            {'name': '绿色能源存储', 'url': '/pages/solutions/industry-energy-storage.html'},
+            {'name': '大气环境监测', 'url': '/pages/solutions/industry-environment.html'}
+        ]
+    }
+
+
+def normalize_nav_industry_category_items(items):
+    """Normalize industry category items and keep only valid entries."""
+    normalized = []
+    if not isinstance(items, list):
+        return normalized
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = (item.get('name') or '').strip()
+        url = (item.get('url') or '').strip()
+        if not name or not is_safe_recommendation_url(url):
+            continue
+        normalized.append({'name': name, 'url': url})
+    return normalized
+
+
+def get_nav_industry_categories():
+    """Load gas nav industry categories settings."""
+    if NAV_INDUSTRY_CATEGORIES_FILE.exists():
+        try:
+            data = json.loads(NAV_INDUSTRY_CATEGORIES_FILE.read_text(encoding='utf-8'))
+            items = normalize_nav_industry_category_items(data.get('items', []))
+            if items:
+                return {'items': items}
+        except Exception:
+            pass
+    return get_default_nav_industry_categories()
+
+
+def save_nav_industry_categories(data):
+    """Save gas nav industry categories settings."""
+    NAV_INDUSTRY_CATEGORIES_FILE.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
 
 
 def get_measurement_targets():
@@ -3000,6 +4738,26 @@ def update_measurement_targets_api():
 
     payload = {'items': items}
     save_measurement_targets(payload)
+    return jsonify({'success': True, 'items': items})
+
+
+@app.route('/api/nav-industry-categories', methods=['GET'])
+def get_nav_industry_categories_api():
+    """Get gas nav industry categories."""
+    return jsonify(get_nav_industry_categories())
+
+
+@app.route('/api/nav-industry-categories', methods=['POST'])
+@login_required
+def update_nav_industry_categories_api():
+    """Update gas nav industry categories."""
+    data = request.json or {}
+    items = normalize_nav_industry_category_items(data.get('items', []))
+    if not items:
+        return jsonify({'success': False, 'message': '请至少提供 1 条有效行业分类（名称 + 相对路径或 http(s) 链接）'}), 400
+
+    payload = {'items': items}
+    save_nav_industry_categories(payload)
     return jsonify({'success': True, 'items': items})
 
 
@@ -3429,6 +5187,7 @@ def submit_feedback():
         'qq': data.get('txtUserQQ', '').strip(),
         'title': data.get('txtTitle', '').strip() or '无标题',
         'content': content,
+        'is_read': False,
         'timestamp': datetime.now().isoformat(),
         'ip': ip
     }
@@ -3464,9 +5223,270 @@ def delete_message(message_id):
     """Delete a message."""
     filepath = MESSAGES_DIR / f"{message_id}.json"
     if filepath.exists():
+        try:
+            msg = json.loads(filepath.read_text(encoding='utf-8'))
+            resume_url = (msg.get('resume_url') or '').strip()
+            if resume_url.startswith('/media/resumes/'):
+                resume_name = resume_url.split('/media/resumes/', 1)[1]
+                resume_path = RESUME_UPLOADS_DIR / resume_name
+                if resume_path.exists():
+                    resume_path.unlink()
+        except Exception:
+            pass
         filepath.unlink()
         return jsonify({'success': True})
     return jsonify({'success': False, 'message': '留言不存在'}), 404
+
+
+@app.route('/api/messages/<message_id>/read', methods=['POST'])
+@login_required
+def mark_message_read(message_id):
+    """Mark one message as read."""
+    filepath = MESSAGES_DIR / f"{message_id}.json"
+    if not filepath.exists():
+        return jsonify({'success': False, 'message': '留言不存在'}), 404
+    try:
+        msg = json.loads(filepath.read_text(encoding='utf-8'))
+        msg['is_read'] = True
+        filepath.write_text(json.dumps(msg, ensure_ascii=False, indent=2), encoding='utf-8')
+        return jsonify({'success': True})
+    except Exception:
+        return jsonify({'success': False, 'message': '更新失败'}), 500
+
+
+@app.route('/api/job-application', methods=['POST'])
+def submit_job_application():
+    """Handle job application form submission."""
+    ip = get_client_ip()
+
+    if not check_rate_limit(ip):
+        return jsonify({
+            'success': False,
+            'message': '提交过于频繁，请稍后再试。每小时最多提交5条。'
+        }), 429
+
+    data = request.form or {}
+    required_fields = {
+        'name': '姓名',
+        'age': '年龄',
+        'ethnicity': '民族',
+        'gender': '性别',
+        'address': '住址',
+        'phone': '电话',
+        'email': '邮箱',
+        'education': '学历',
+        'school': '毕业院校',
+        'work_experience': '工作经历',
+        'project_experience': '项目经历',
+        'self_statement': '自我陈述'
+    }
+
+    cleaned = {}
+    for key in required_fields:
+        cleaned[key] = clean_job_text(data.get(key, ''))
+        if not cleaned[key]:
+            return jsonify({'success': False, 'message': f'请填写{required_fields[key]}'}), 400
+
+    age_val = re.sub(r'\D+', '', cleaned['age'])
+    if not age_val:
+        return jsonify({'success': False, 'message': '年龄格式不正确'}), 400
+    cleaned['age'] = age_val
+
+    if len(cleaned['self_statement']) > 100:
+        return jsonify({'success': False, 'message': '自我陈述请控制在100字以内'}), 400
+
+    resume_file = request.files.get('resume_file')
+    if not resume_file or not resume_file.filename:
+        return jsonify({'success': False, 'message': '请上传简历文件（PDF或Word）'}), 400
+
+    ext = Path(resume_file.filename).suffix.lower()
+    if ext not in ALLOWED_RESUME_EXTENSIONS:
+        return jsonify({'success': False, 'message': '简历格式仅支持 PDF/DOC/DOCX'}), 400
+
+    # 10MB limit
+    resume_file.stream.seek(0, os.SEEK_END)
+    size = resume_file.stream.tell()
+    resume_file.stream.seek(0)
+    if size > 10 * 1024 * 1024:
+        return jsonify({'success': False, 'message': '简历文件过大（最大10MB）'}), 400
+
+    now = datetime.now()
+    message_id = now.strftime('%Y%m%d%H%M%S%f')
+    safe_name = secure_filename(resume_file.filename) or f'resume{ext}'
+    saved_name = f"{message_id}_{safe_name}"
+    resume_path = RESUME_UPLOADS_DIR / saved_name
+    resume_file.save(resume_path)
+
+    message = {
+        'id': message_id,
+        'message_type': 'job_application',
+        'job_id': clean_job_text(data.get('job_id', '')),
+        'job_title': clean_job_text(data.get('job_title', '')),
+        'name': cleaned['name'],
+        'age': cleaned['age'],
+        'ethnicity': cleaned['ethnicity'],
+        'gender': cleaned['gender'],
+        'address': cleaned['address'],
+        'phone': cleaned['phone'],
+        'email': cleaned['email'],
+        'education': cleaned['education'],
+        'school': cleaned['school'],
+        'work_experience': cleaned['work_experience'],
+        'project_experience': cleaned['project_experience'],
+        'self_statement': cleaned['self_statement'],
+        'resume_filename': safe_name,
+        'resume_url': f'/media/resumes/{saved_name}',
+        'is_read': False,
+        'timestamp': now.isoformat(),
+        'ip': ip
+    }
+
+    filepath = MESSAGES_DIR / f"{message_id}.json"
+    filepath.write_text(json.dumps(message, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    return jsonify({
+        'success': True,
+        'message': '应聘信息提交成功，我们会尽快联系您。'
+    })
+
+
+@app.route('/media/resumes/<path:filename>')
+def serve_resume_media(filename):
+    """Serve uploaded resumes."""
+    return send_from_directory(RESUME_UPLOADS_DIR, filename)
+
+
+@app.route('/api/backup/download', methods=['GET'])
+@login_required
+def download_backup():
+    """Download full backup for data and managed content."""
+    root = Path(__file__).parent
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_name = f'yx_backup_{ts}.zip'
+
+    fd, temp_zip = tempfile.mkstemp(prefix='yx_backup_', suffix='.zip')
+    os.close(fd)
+
+    try:
+        with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+            manifest = {
+                'created_at': datetime.now().isoformat(),
+                'version': 2,
+                'includes': {
+                    'dirs': BACKUP_ALLOWED_DIRS,
+                    'files': BACKUP_ALLOWED_FILES
+                }
+            }
+            zf.writestr('backup_manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
+
+            for rel_dir in BACKUP_ALLOWED_DIRS:
+                abs_dir = root / rel_dir
+                if not abs_dir.exists():
+                    continue
+                for p in abs_dir.rglob('*'):
+                    if p.is_file():
+                        arc = str(p.relative_to(root)).replace('\\', '/')
+                        zf.write(p, arc)
+
+            for rel_file in BACKUP_ALLOWED_FILES:
+                abs_file = root / rel_file
+                if abs_file.exists() and abs_file.is_file():
+                    arc = str(abs_file.relative_to(root)).replace('\\', '/')
+                    zf.write(abs_file, arc)
+
+        @after_this_request
+        def cleanup_temp_file(resp):
+            try:
+                if os.path.exists(temp_zip):
+                    os.remove(temp_zip)
+            except Exception:
+                pass
+            return resp
+
+        return send_file(
+            temp_zip,
+            as_attachment=True,
+            download_name=backup_name,
+            mimetype='application/zip'
+        )
+    except Exception:
+        try:
+            if os.path.exists(temp_zip):
+                os.remove(temp_zip)
+        except Exception:
+            pass
+        return jsonify({'success': False, 'message': '备份生成失败'}), 500
+
+
+@app.route('/api/backup/restore', methods=['POST'])
+@login_required
+def restore_backup():
+    """Restore backup zip after docker redeploy."""
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '请上传备份文件'}), 400
+    if not str(file.filename).lower().endswith('.zip'):
+        return jsonify({'success': False, 'message': '仅支持 ZIP 备份文件'}), 400
+
+    root = Path(__file__).parent
+    allowed_prefixes = [d + '/' for d in BACKUP_ALLOWED_DIRS]
+    allowed_files_set = set(BACKUP_ALLOWED_FILES)
+
+    with tempfile.TemporaryDirectory(prefix='yx_restore_') as td:
+        temp_dir = Path(td)
+        temp_zip = temp_dir / 'upload.zip'
+        file.save(temp_zip)
+
+        try:
+            with zipfile.ZipFile(temp_zip, 'r') as zf:
+                for info in zf.infolist():
+                    if info.is_dir():
+                        continue
+                    raw_name = info.filename.replace('\\', '/')
+                    norm_name = posixpath.normpath(raw_name).lstrip('./')
+                    if norm_name.startswith('../'):
+                        continue
+                    allowed = (
+                        any(norm_name.startswith(prefix) for prefix in allowed_prefixes)
+                        or norm_name in allowed_files_set
+                        or norm_name == 'backup_manifest.json'
+                    )
+                    if not allowed:
+                        continue
+
+                    out_path = temp_dir / norm_name
+                    out_path.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(info, 'r') as src, open(out_path, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)
+        except zipfile.BadZipFile:
+            return jsonify({'success': False, 'message': '备份文件损坏或格式不正确'}), 400
+
+        # Restore full directories (replace existing content)
+        for rel_dir in BACKUP_ALLOWED_DIRS:
+            src_dir = temp_dir / rel_dir
+            if not src_dir.exists():
+                continue
+            dst_dir = root / rel_dir
+            if dst_dir.exists():
+                shutil.rmtree(dst_dir)
+            shutil.copytree(src_dir, dst_dir)
+
+        # Restore single files
+        restored_files = 0
+        for rel_file in BACKUP_ALLOWED_FILES:
+            src_file = temp_dir / rel_file
+            if not src_file.exists() or not src_file.is_file():
+                continue
+            dst_file = root / rel_file
+            dst_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src_file, dst_file)
+            restored_files += 1
+
+    return jsonify({
+        'success': True,
+        'message': '备份恢复成功，建议重启服务后刷新后台。',
+        'restored_files': restored_files
+    })
 
 
 # ============ Chatbot API ============
@@ -3498,6 +5518,36 @@ def get_chatbot_config():
         'max_tokens': int(config.get('chatbot_max_tokens', 1000)),
         'temperature': float(config.get('chatbot_temperature', 0.7)),
         'enabled': config.get('chatbot_enabled', True)
+    }
+
+
+def get_product_page_ai_config():
+    """Get product-page coding AI configuration from config."""
+    config = get_config()
+    default_prompt = '''你是“元芯传感产品页编程助手”，负责根据后台给定的产品资料生成可发布的页面内容。
+
+你在“产品页编程 AI”场景下的硬性规则：
+1) 你的输出目标是完整 HTML 页面代码。
+2) 请直接开始写代码，代码写完后不要添加任何其他内容。
+3) 禁止输出解释、注释说明、Markdown代码块（```）。
+4) 输出尽量完整，包含 <!DOCTYPE html>、<html>、<head>、<body>。
+5) 必须参考提供的模板结构与样式，不要无故删除关键布局和资源引用。
+6) 文案专业、克制、可发布；禁止编造认证/资质/客户背书。
+7) 图片或链接未知时可使用占位路径 /assets/images/logo.png 或保守留空。'''
+    saved_prompt = str(config.get('product_ai_system_prompt', '') or '').strip()
+    looks_like_old_json_prompt = (
+        ('JSON' in saved_prompt and 'template_fields' in saved_prompt) or
+        ('只允许输出一个 JSON 对象' in saved_prompt) or
+        ('JSON 顶层' in saved_prompt)
+    )
+    if not saved_prompt or len(saved_prompt) < 40 or looks_like_old_json_prompt:
+        saved_prompt = default_prompt
+    return {
+        'enabled': config.get('product_ai_enabled', False),
+        'api_key': config.get('product_ai_api_key', ''),
+        'api_base': config.get('product_ai_api_base', 'https://api.openai.com/v1'),
+        'model': config.get('product_ai_model', 'gpt-4o-mini'),
+        'system_prompt': saved_prompt
     }
 
 
@@ -3888,6 +5938,40 @@ def update_chatbot_config():
         update_config(updates)
     
     return jsonify({'success': True, 'message': '配置已更新'})
+
+
+@app.route('/api/product-ai/config', methods=['GET'])
+@login_required
+def get_product_ai_config_api():
+    """Get product-page coding AI configuration (excluding API key for security)."""
+    config = get_product_page_ai_config()
+    if config['api_key']:
+        config['api_key'] = config['api_key'][:8] + '...' + config['api_key'][-4:] if len(config['api_key']) > 12 else '***'
+    return jsonify(config)
+
+
+@app.route('/api/product-ai/config', methods=['POST'])
+@login_required
+def update_product_ai_config():
+    """Update product-page coding AI configuration."""
+    data = request.json or {}
+    updates = {}
+
+    if 'api_key' in data and data['api_key'] and not str(data['api_key']).startswith('***'):
+        updates['product_ai_api_key'] = str(data['api_key']).strip()
+    if 'api_base' in data:
+        updates['product_ai_api_base'] = str(data['api_base']).strip()
+    if 'model' in data:
+        updates['product_ai_model'] = str(data['model']).strip()
+    if 'system_prompt' in data:
+        updates['product_ai_system_prompt'] = str(data['system_prompt'])
+    if 'enabled' in data:
+        updates['product_ai_enabled'] = bool(data['enabled'])
+
+    if updates:
+        update_config(updates)
+
+    return jsonify({'success': True, 'message': '产品页编程AI配置已更新'})
 
 
 # ============ Admin Routes ============

@@ -298,6 +298,36 @@
             );
         }
 
+        if (document.getElementById('gasIndustryLeft') || document.getElementById('gasIndustryRight')) {
+            jobs.push(
+                fetch('/api/nav-industry-categories', { credentials: 'same-origin' })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        var items = Array.isArray(data.items) ? data.items : [];
+                        var half = Math.ceil(items.length / 2);
+                        var left = items.slice(0, half);
+                        var right = items.slice(half);
+                        var render = function (item) {
+                            var url = (item && item.url) ? String(item.url) : '#';
+                            var name = (item && item.name) ? String(item.name) : '未命名';
+                            var external = /^https?:\/\//i.test(url);
+                            var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+                            return '<li><a href="' + url + '"' + target + '>' + name + '</a></li>';
+                        };
+                        if (document.getElementById('gasIndustryLeft')) {
+                            safeSetHtml('gasIndustryLeft', left.length ? left.map(render).join('') : '<li><a href="#">暂无数据</a></li>');
+                        }
+                        if (document.getElementById('gasIndustryRight')) {
+                            safeSetHtml('gasIndustryRight', right.length ? right.map(render).join('') : '<li><a href="#">暂无数据</a></li>');
+                        }
+                    })
+                    .catch(function () {
+                        if (document.getElementById('gasIndustryLeft')) safeSetHtml('gasIndustryLeft', '<li><a href="#">加载失败</a></li>');
+                        if (document.getElementById('gasIndustryRight')) safeSetHtml('gasIndustryRight', '');
+                    })
+            );
+        }
+
         return Promise.all(jobs);
     }
 

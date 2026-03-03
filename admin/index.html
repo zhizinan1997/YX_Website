@@ -16,6 +16,7 @@
             --text-color: #333;
             --bg-color: #f4f6f9;
             --sidebar-width: 260px;
+            --sidebar-collapsed-width: 74px;
         }
 
         * {
@@ -128,6 +129,7 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
+            transition: width 0.2s ease;
         }
 
         .sidebar-header {
@@ -144,6 +146,11 @@
         .sidebar-menu {
             padding: 20px 0;
             flex: 1;
+        }
+
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
         }
 
         .menu-item {
@@ -169,6 +176,27 @@
             text-align: center;
         }
 
+        .menu-item-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .beta-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(234, 88, 12, 0.28);
+        }
+
         .main-content {
             flex: 1;
             overflow-y: auto;
@@ -186,6 +214,61 @@
             position: sticky;
             top: 0;
             z-index: 10;
+        }
+
+        .sidebar-toggle-btn {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-toggle-btn:hover {
+            border-color: rgba(255, 255, 255, 0.45);
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        body.sidebar-collapsed .sidebar {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        body.sidebar-collapsed .sidebar-header {
+            justify-content: center;
+            padding: 0;
+        }
+
+        body.sidebar-collapsed .sidebar-header i {
+            margin-right: 0 !important;
+        }
+
+        body.sidebar-collapsed .sidebar-header .sidebar-title-text {
+            display: none;
+        }
+
+        body.sidebar-collapsed .menu-item {
+            justify-content: center;
+            padding: 15px 0;
+            gap: 0;
+            font-size: 0;
+        }
+
+        body.sidebar-collapsed .menu-item i {
+            width: auto;
+            font-size: 16px;
+        }
+
+        body.sidebar-collapsed .sidebar-toggle-btn span {
+            display: none;
         }
 
         .page-title {
@@ -513,6 +596,73 @@
             line-height: 1.7;
         }
 
+        .msg-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .msg-tab-btn {
+            border: 1px solid #c8d3e3;
+            background: #fff;
+            color: #1e2f4d;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .msg-tab-btn.active {
+            border-color: #0f2f5f;
+            background: #0f2f5f;
+            color: #fff;
+        }
+
+        .msg-panel {
+            display: none;
+        }
+
+        .msg-panel.active {
+            display: block;
+        }
+
+        .backup-guide {
+            border: 2px solid #0f2f5f;
+            background: linear-gradient(135deg, #f7fbff 0%, #eef6ff 100%);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 18px;
+        }
+
+        .backup-guide h4 {
+            margin: 0 0 10px 0;
+            color: #0f2f5f;
+            font-size: 16px;
+        }
+
+        .backup-guide p {
+            margin: 0 0 10px 0;
+            color: #2f3b4f;
+            font-size: 13px;
+            line-height: 1.75;
+        }
+
+        .backup-guide pre {
+            margin: 8px 0 12px 0;
+            background: #081b33;
+            color: #e8f0ff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            overflow: auto;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .backup-guide code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
         textarea.form-control {
             min-height: 120px;
             resize: vertical;
@@ -546,13 +696,65 @@
 
         .news-editor-toolbar {
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 8px;
             padding: 10px;
             border: 1px solid #d9e0ea;
             border-bottom: 0;
             border-radius: 8px 8px 0 0;
             background: #f7f9fc;
+        }
+
+        .news-toolbar-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .news-toolbar-row:not(:last-child) {
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #dde5f1;
+        }
+
+        .news-toolbar-control {
+            width: auto;
+        }
+
+        .news-toolbar-control.short {
+            max-width: 110px;
+            min-width: 92px;
+            padding: 6px 8px;
+        }
+
+        .news-toolbar-control.medium {
+            max-width: 140px;
+            min-width: 108px;
+            padding: 6px 8px;
+        }
+
+        .news-toolbar-control.long {
+            max-width: 280px;
+            min-width: 200px;
+            padding: 6px 10px;
+        }
+
+        .news-toolbar-color {
+            width: 38px;
+            height: 32px;
+            padding: 2px;
+            border: 1px solid #c8d3e3;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 900px) {
+            .news-toolbar-control.short,
+            .news-toolbar-control.medium,
+            .news-toolbar-control.long {
+                max-width: 100%;
+                min-width: 0;
+                flex: 1 1 140px;
+            }
         }
 
         .news-editor-toolbar .btn-sm {
@@ -612,6 +814,72 @@
             border-top-right-radius: 0 !important;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
+
+        .news-ai-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 16px;
+            border-radius: 8px;
+            border: 1px solid #0048a8;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.1px;
+            color: #fff;
+            background: linear-gradient(135deg, #0a5fd6, #0f2f5f);
+            box-shadow: 0 10px 18px rgba(15, 47, 95, 0.24);
+        }
+
+        .news-ai-btn:hover {
+            filter: brightness(1.04);
+            transform: translateY(-1px);
+        }
+
+        .news-ai-revert-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 16px;
+            border-radius: 8px;
+            border: 1px solid #b91c1c;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            box-shadow: 0 10px 18px rgba(185, 28, 28, 0.24);
+        }
+
+        .news-ai-revert-btn:hover {
+            filter: brightness(1.04);
+            transform: translateY(-1px);
+        }
+
+        .news-ai-help {
+            margin-bottom: 12px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #f8fbff;
+            border: 1px solid #d8e8ff;
+            color: #2f3b4f;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .news-ai-help strong {
+            color: #0f2f5f;
+        }
+
+        .news-ai-help ol {
+            margin: 6px 0 0 18px;
+            padding: 0;
+        }
+
+        .news-ai-help code {
+            background: #edf3ff;
+            border: 1px solid #d4e2ff;
+            border-radius: 4px;
+            padding: 1px 4px;
+        }
     </style>
 </head>
 
@@ -642,10 +910,11 @@
     </div>
 
     <!-- DASHBOARD -->
-    <div id="dashboard" class="dashboard" style="display: none;">
+        <div id="dashboard" class="dashboard" style="display: none;">
         <div class="sidebar">
             <div class="sidebar-header">
-                <i class="fas fa-cube" style="margin-right: 10px;"></i> 元芯管理系统
+                <i class="fas fa-cube" style="margin-right: 10px;"></i>
+                <span class="sidebar-title-text">元芯管理系统</span>
             </div>
             <div class="sidebar-menu">
                 <div class="menu-item active" onclick="switchView('messages')">
@@ -661,7 +930,8 @@
                     <i class="fas fa-box"></i> 氢气产品
                 </div>
                 <div class="menu-item" onclick="switchView('news-create')">
-                    <i class="fas fa-pen-nib"></i> 添加资讯 beta
+                    <i class="fas fa-pen-nib"></i>
+                    <span class="menu-item-label">添加资讯 <span class="beta-badge">Beta</span></span>
                 </div>
                 <div class="menu-item" onclick="switchView('jobs')">
                     <i class="fas fa-briefcase"></i> 招聘信息
@@ -672,9 +942,18 @@
                 <div class="menu-item" onclick="switchView('settings')">
                     <i class="fas fa-cog"></i> 账号设置
                 </div>
+                <div class="menu-item" onclick="switchView('backup')">
+                    <i class="fas fa-database"></i> 备份恢复
+                </div>
                 <div class="menu-item" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
                 </div>
+            </div>
+            <div class="sidebar-footer">
+                <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                    <span id="sidebarToggleText">折叠侧边栏</span>
+                </button>
             </div>
         </div>
 
@@ -692,7 +971,7 @@
                 <div id="view-messages" class="view-section active">
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-label">总留言数</div>
+                            <div class="stat-label">总提交数</div>
                             <div class="stat-value" id="totalCount">0</div>
                         </div>
                         <div class="stat-card">
@@ -702,21 +981,48 @@
                     </div>
 
                     <div class="card">
+                        <div style="padding: 16px 20px 0 20px;">
+                            <div class="msg-tabs">
+                                <button type="button" class="msg-tab-btn active" id="msgTabFeedbackBtn"
+                                    onclick="switchMessageDataTab('feedback')">留言信息</button>
+                                <button type="button" class="msg-tab-btn" id="msgTabJobBtn"
+                                    onclick="switchMessageDataTab('job')">应聘信息</button>
+                            </div>
+                        </div>
                         <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>时间</th>
-                                        <th>姓名</th>
-                                        <th>联系电话</th>
-                                        <th>内容摘要</th>
-                                        <th>操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="messagesTableBody">
-                                    <!-- Messages will be loaded here -->
-                                </tbody>
-                            </table>
+                            <div id="messagesPanelFeedback" class="msg-panel active">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>时间</th>
+                                            <th>姓名</th>
+                                            <th>联系电话</th>
+                                            <th>内容摘要</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="messagesTableBody">
+                                        <!-- Feedback messages will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="messagesPanelJob" class="msg-panel">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>时间</th>
+                                            <th>应聘者</th>
+                                            <th>联系方式</th>
+                                            <th>应聘信息（详细）</th>
+                                            <th>简历</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="jobApplicationsTableBody">
+                                        <!-- Job applications will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -724,45 +1030,103 @@
                 <!-- Products View -->
                 <div id="view-products" class="view-section">
                     <div class="tabs">
-                        <button class="tab-btn active" onclick="switchProductTab('add', this)">添加产品</button>
-                        <button class="tab-btn" onclick="switchProductTab('list', this)">产品列表</button>
+                        <button class="tab-btn active" onclick="switchProductTab('add', this)">添加气体传感产品</button>
+                        <button class="tab-btn" onclick="switchProductTab('ai', this)">AI 自动上架 · 气体传感产品</button>
                         <button class="tab-btn" onclick="switchProductTab('industries', this)">领域分类</button>
                     </div>
 
                     <!-- Add Product Tab -->
                     <div id="product-tab-add" class="tab-content active">
                         <div class="card" style="padding: 30px;">
-                            <h3 class="section-header">新产品上架流程</h3>
+                            <h3 class="section-header">可视化上架 · 气体传感产品</h3>
+                            <div id="productCreateBasicPanel" style="display:none;">
+                                <p style="margin-bottom: 18px; color: #666; font-size: 14px;">
+                                    填写后将自动生成 <code>pages/gassensing/</code> 下的产品详情页，生成后可在下方产品列表继续微调卡片展示信息。
+                                </p>
 
-                            <div style="display:grid; grid-template-columns: 1fr; gap: 14px;">
-                                <div style="padding: 14px 16px; background:#f7fbff; border:1px solid #d6e9ff; border-radius:10px;">
-                                    <div style="font-weight:700; color:#0b5394; margin-bottom:6px;">模板位置（相对目录）</div>
-                                    <code>templates/gassensing-product-template.html</code>
-                                </div>
+                                <form id="productCreateForm" style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                                    <div>
+                                        <div class="form-group">
+                                            <label>产品标题</label>
+                                            <input type="text" id="productCreateTitle" class="form-control" placeholder="例如：MCHP-2.0 车载氢气传感模块" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>产品简称</label>
+                                            <input type="text" id="productCreateShortName" class="form-control" placeholder="例如：MCHP-2.0" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>链接标识（文件名）</label>
+                                            <input type="text" id="productCreateSlug" class="form-control" placeholder="例如：mchp_vehicle_h2_v2（仅小写字母/数字/下划线）" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>产品分类</label>
+                                            <select id="productCreateCategory" class="form-control">
+                                                <option value="sensor">传感器 (sensor)</option>
+                                                <option value="module">模块 (module)</option>
+                                                <option value="detector">检测仪 (detector)</option>
+                                                <option value="alarm">报警器 (alarm)</option>
+                                                <option value="system">系统 (system)</option>
+                                                <option value="iot">物联网 (iot)</option>
+                                                <option value="probe">探头 (probe)</option>
+                                                <option value="service">服务 (service)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>封面图片链接</label>
+                                            <input type="text" id="productCreateImage" class="form-control" placeholder="例如：../../assets/images/products/xxx.png">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>产品摘要</label>
+                                            <textarea id="productCreateSummary" class="form-control" rows="4" placeholder="用于产品页主描述和产品卡片默认摘要" required></textarea>
+                                        </div>
+                                    </div>
 
-                                <div style="padding: 14px 16px; background:#fff; border:1px solid #e5e7eb; border-radius:10px;">
-                                    <div style="font-weight:700; color:#333; margin-bottom:8px;">上架步骤</div>
-                                    <ol style="margin:0; padding-left:20px; line-height:1.9; color:#444;">
-                                        <li>复制模板到 <code>pages/gassensing/</code> 目录。</li>
-                                        <li>重命名文件（示例：<code>mc_new_product.html</code>）。建议仅用小写字母、数字、下划线。</li>
-                                        <li>按模板中的 <code>TODO</code> 修改内容：产品名称、主图、摘要、参数、正文。</li>
-                                        <li>必须修改 <code>meta name=\"product-*\"</code> 字段：<code>name / short-name / image / description / category</code>。</li>
-                                        <li>刷新后台 <strong>【氢气产品 → 产品列表】</strong>，确认新产品已被自动扫描。</li>
-                                        <li>在 <strong>【产品列表】</strong> 可选设置卡片标题/图片/摘要（留空则走默认值）。</li>
-                                        <li>在 <strong>【领域分类】</strong> 勾选该产品所属分类，最后前台强刷验证。</li>
-                                    </ol>
-                                </div>
+                                    <div>
+                                        <div class="form-group">
+                                            <label>正文内容</label>
+                                            <div class="news-editor-toolbar">
+                                                <div class="news-toolbar-row">
+                                                    <button type="button" class="btn-sm active" id="productModeVisualBtn" onclick="switchProductEditorMode('visual')">可视化</button>
+                                                    <button type="button" class="btn-sm" id="productModeSourceBtn" onclick="switchProductEditorMode('source')">HTML源码</button>
+                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('bold')"><b>B</b></button>
+                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('italic')"><i>I</i></button>
+                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('insertUnorderedList')">• 列表</button>
+                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('formatBlock','h2')">H2</button>
+                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('formatBlock','h3')">H3</button>
+                                                </div>
+                                            </div>
+                                            <div id="productEditorVisual" class="news-editor-content" contenteditable="true"></div>
+                                            <textarea id="productEditorSource" class="news-editor-source" style="display:none;"></textarea>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
 
-                                <div style="padding: 14px 16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; color:#555; line-height:1.8;">
-                                    <div style="font-weight:700; color:#333; margin-bottom:6px;">默认显示规则</div>
-                                    当未在后台自定义卡片信息时，产品页会默认使用该产品 HTML 中的原始名称、原始图片和原始描述。
+                            <div style="margin-top: 18px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; background: #fafbfc;">
+                                <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 10px;">
+                                    <div style="font-weight: 600; color:#333;">模板字段（自动对接 <code>pages/gassensing/模板.html</code>）</div>
+                                    <button type="button" class="btn-sm" style="width:auto;" onclick="resetProductTemplateFieldsToDefaults()">恢复模板默认映射</button>
                                 </div>
+                                <div style="font-size:12px; color:#666; margin-bottom: 10px;">
+                                    以下字段为模板中的占位符，可按需填写；上方基础信息会自动覆盖“产品名字/主图/产品描述”等关键位。
+                                </div>
+                                <div id="productTemplateFieldsEditor"></div>
+                            </div>
+
+                            <div style="margin-top: 18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                <button id="productCreateSubmitBtn" class="btn-primary" style="width:auto; padding: 12px 28px;">生成产品页面</button>
+                                <button id="productCreateCancelBtn" class="btn-sm" style="display:none; width:auto; padding: 10px 18px;"
+                                    onclick="cancelProductEdit()">取消编辑</button>
+                                <div id="productCreateMsg" style="color:#28a745;"></div>
+                                <div id="productCreateLink" style="font-size:13px;"></div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Product List Tab -->
-                    <div id="product-tab-list" class="tab-content">
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">实时预览效果</h3>
+                            <p style="margin-bottom: 12px; color:#666; font-size:13px;">自动根据上方内容刷新预览（约 500ms 延迟）。</p>
+                            <iframe id="productPreviewFrame" style="width:100%; min-height: 560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff;"></iframe>
+                        </div>
                         <div class="card">
                             <div class="table-container">
                                 <table>
@@ -777,6 +1141,7 @@
                                         <th>卡片图片（产品页）</th>
                                         <th>卡片摘要（产品页）</th>
                                         <th>文件ID</th>
+                                        <th>操作</th>
                                     </tr>
                                 </thead>
                                     <tbody id="productsTableBody">
@@ -791,6 +1156,106 @@
                             <strong>提示：</strong>产品列表从 <code>pages/gassensing/</code> 目录自动扫描。添加新产品只需创建对应的 HTML 文件即可。<br>
                             不填写“卡片标题/卡片图片/卡片摘要”时，产品页将默认使用产品原始名称、原始图片和原始描述。<br>
                             卡片图片支持两种方式：粘贴 HTTPS CDN 链接，或点击“本地上传”上传 PNG/JPG/JPEG/WEBP。
+                        </div>
+                    </div>
+
+                    <!-- AI Product Publish Tab -->
+                    <div id="product-tab-ai" class="tab-content">
+                        <div class="card" style="padding:30px;">
+                            <h3 class="section-header">AI 自动上架 · 气体传感产品</h3>
+                            <p style="margin-bottom: 16px; color:#667085; font-size:13px;">
+                                填写产品资料后，系统将调用“产品页编程 AI”参考 <code>pages/gassensing/模板.html</code> 直接生成完整 HTML，并可保存为产品页面文件（<code>pages/gassensing/*.html</code>）。
+                            </p>
+
+                            <form id="aiProductForm" style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <div class="form-group">
+                                        <label>产品标题</label>
+                                        <input type="text" id="aiProductTitle" class="form-control" placeholder="例如：MCHP-2.0 车载氢气传感模块" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品简称</label>
+                                        <input type="text" id="aiProductShortName" class="form-control" placeholder="例如：MCHP-2.0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>链接标识（文件名）</label>
+                                        <input type="text" id="aiProductSlug" class="form-control" placeholder="例如：mchp_vehicle_h2_v2（仅小写字母/数字/下划线）" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品分类</label>
+                                        <select id="aiProductCategory" class="form-control">
+                                            <option value="sensor">传感器 (sensor)</option>
+                                            <option value="module">模块 (module)</option>
+                                            <option value="detector">检测仪 (detector)</option>
+                                            <option value="alarm">报警器 (alarm)</option>
+                                            <option value="system">系统 (system)</option>
+                                            <option value="iot">物联网 (iot)</option>
+                                            <option value="probe">探头 (probe)</option>
+                                            <option value="service">服务 (service)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品主图 URL</label>
+                                        <input type="text" id="aiProductImage" class="form-control" placeholder="/assets/images/xxx.png 或 https://...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品详情图片 URL（每行一条）</label>
+                                        <textarea id="aiProductDetailImages" class="form-control" rows="3" placeholder="例如：\n/assets/images/products/detail-1.png\nhttps://cdn.example.com/detail-2.jpg"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品摘要</label>
+                                        <textarea id="aiProductSummary" class="form-control" rows="3" placeholder="可留空，让 AI 自动生成"></textarea>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="form-group">
+                                        <label>核心卖点（自由描述）</label>
+                                        <textarea id="aiProductHighlights" class="form-control" rows="4" placeholder="输入你掌握的产品亮点、场景、优势、参数等"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品特性（每行一条）</label>
+                                        <textarea id="aiProductFeatures" class="form-control" rows="4" placeholder="例如：\n秒级响应\n耐高低温\n低功耗"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>技术参数（每行：参数名:参数值）</label>
+                                        <textarea id="aiProductSpecs" class="form-control" rows="5" placeholder="例如：\n检测气体: 氢气 (H2)\n检测范围: 0-10000ppm\n响应时间: ≤1s"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>相关新闻 URL（每行一条）</label>
+                                        <textarea id="aiProductNewsUrls" class="form-control" rows="3" placeholder="例如：\n/news/2026/new-energy-breakthrough.html\nhttps://example.com/news/abc"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>相关产品 URL（每行一条）</label>
+                                        <textarea id="aiProductRelatedUrls" class="form-control" rows="3" placeholder="例如：\n/pages/gassensing/mchp_200.html\nhttps://example.com/products/xyz"></textarea>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px;">
+                                <button type="button" id="aiGenerateFieldsBtn" class="btn-primary" style="width:auto; padding:10px 18px;">AI 生成完整HTML</button>
+                                <button type="button" id="aiCreateProductBtn" class="btn-sm" style="width:auto; padding:10px 18px;">保存为产品页面文件</button>
+                                <span id="aiProductMsg" style="font-size:13px; color:#2563eb; align-self:center;"></span>
+                            </div>
+                            <div id="aiProductLink" style="font-size:13px; margin-top:8px;"></div>
+                        </div>
+
+                        <div class="card" style="padding:30px; margin-top:20px;">
+                            <h3 class="section-header">AI 生成结果（完整 HTML 源码）</h3>
+                            <textarea id="aiProductFieldsJson" class="form-control" rows="18" placeholder="点击“AI 生成完整HTML”后自动填充，可手工微调源码。"></textarea>
+                            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d1d5db;">
+                                <label style="font-size: 13px; color:#374151; font-weight:600;">AI 修改意见（支持多轮）</label>
+                                <textarea id="aiProductModifyInstruction" class="form-control" rows="3" placeholder="例如：把参数区改成表格；把相关新闻改成三列卡片；主图改为圆角阴影并加点击放大"></textarea>
+                                <div style="display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;">
+                                    <button type="button" id="aiProductModifyBtn" class="btn-primary" style="width:auto; padding:10px 18px;">AI 按意见修改HTML</button>
+                                    <span id="aiProductModifyMsg" style="font-size:13px; color:#2563eb;"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding:30px; margin-top:20px;">
+                            <h3 class="section-header">AI 上架预览</h3>
+                            <iframe id="aiProductPreviewFrame" scrolling="no" style="width:100%; min-height:560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff; overflow:hidden;"></iframe>
                         </div>
                     </div>
 
@@ -1400,7 +1865,7 @@
 
                     <div id="h2-home-tab-navbar" class="tab-content">
                         <div class="card" style="padding: 30px;">
-                            <h3 class="section-header">导航栏设置 · 巨幕菜单【产品列表】预览</h3>
+                            <h3 class="section-header">导航栏设置 · 全部产品</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                                 以下是在 hydrogen.html 页面巨幕菜单中显示的产品列表。
                             </p>
@@ -1475,13 +1940,30 @@
                             </div>
                             <div id="measurementTargetsMsg" style="margin-top: 10px; color: #28a745;"></div>
                         </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">导航栏设置 · 行业分类</h3>
+                            <p style="margin-bottom: 16px; color: #666; font-size: 14px;">
+                                设置【产品】→【行业分类】中显示的按钮名称和跳转页面。<br>
+                                链接支持：<code>http://</code>、<code>https://</code> 和相对路径（如 <code>/pages/solutions/industry-hydrogen.html</code>）。
+                            </p>
+                            <div id="navIndustryCategoriesEditor"></div>
+                            <div style="display: flex; gap: 10px; align-items: center; margin-top: 14px;">
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px;"
+                                    onclick="addNavIndustryCategoryRow()">添加一行</button>
+                                <button class="btn-primary" style="width: auto; padding: 10px 20px;"
+                                    onclick="saveNavIndustryCategories()">保存行业分类</button>
+                            </div>
+                            <div id="navIndustryCategoriesMsg" style="margin-top: 10px; color: #28a745;"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- News Create View -->
                 <div id="view-news-create" class="view-section">
                     <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">添加资讯</h3>
+                        <h3 class="section-header" style="display:flex; align-items:center; gap:8px;">添加资讯 <span
+                                class="beta-badge">Beta</span></h3>
                         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                             填写后将自动生成统一风格的资讯页面，并写入 <code>pages/news/</code>。
                         </p>
@@ -1506,6 +1988,10 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
+                                    <label>归属事业部</label>
+                                    <input type="text" id="newsDivision" class="form-control" placeholder="例如：气体传感事业部" required>
+                                </div>
+                                <div class="form-group">
                                     <label>封面图片链接</label>
                                     <input type="text" id="newsImage" class="form-control"
                                         placeholder="非必填：留空时自动使用正文第一张图片；若正文无图则使用默认图片">
@@ -1523,144 +2009,153 @@
                                 <div class="form-group">
                                     <label>正文内容</label>
                                     <div class="news-editor-toolbar">
-                                        <button type="button" class="btn-sm active" id="newsModeVisualBtn"
-                                            onclick="switchNewsEditorMode('visual')">可视化</button>
-                                        <button type="button" class="btn-sm" id="newsModeSourceBtn"
-                                            onclick="switchNewsEditorMode('source')">HTML源码</button>
-                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('bold')"><b>B</b></button>
-                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('italic')"><i>I</i></button>
-                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('insertUnorderedList')">• 列表</button>
-                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h2')">H2</button>
-                                        <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h3')">H3</button>
-                                        <select class="form-control" id="newsFontSizeSelect"
-                                            style="max-width: 110px; padding: 6px 8px;"
-                                            onchange="applyNewsFontSize(this.value)">
-                                            <option value="">字号</option>
-                                            <option value="10px">10</option>
-                                            <option value="11px">11</option>
-                                            <option value="12px">12</option>
-                                            <option value="13px">13</option>
-                                            <option value="14px">14</option>
-                                            <option value="15px">15</option>
-                                            <option value="16px">16</option>
-                                            <option value="17px">17</option>
-                                            <option value="18px">18</option>
-                                            <option value="19px">19</option>
-                                            <option value="20px">20</option>
-                                            <option value="22px">22</option>
-                                            <option value="24px">24</option>
-                                            <option value="26px">26</option>
-                                            <option value="28px">28</option>
-                                            <option value="32px">32</option>
-                                            <option value="36px">36</option>
-                                            <option value="40px">40</option>
-                                            <option value="48px">48</option>
-                                            <option value="56px">56</option>
-                                            <option value="64px">64</option>
-                                            <option value="72px">72</option>
-                                        </select>
-                                        <input type="number" id="newsFontSizeCustom" class="form-control"
-                                            min="8" max="200" step="1" placeholder="自定义字号"
-                                            style="max-width: 110px; padding: 6px 8px;"
-                                            onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsFontSizeCustom();}">
-                                        <button type="button" class="btn-sm" onclick="applyNewsFontSizeCustom()">应用字号</button>
-                                        <input type="color" id="newsFontColorInput" value="#1e2f4d"
-                                            title="文字颜色" style="width: 38px; height: 32px; padding: 2px; border: 1px solid #c8d3e3; border-radius: 4px;"
-                                            onchange="applyNewsFontColor(this.value)">
-                                        <div class="news-color-palette" title="常用颜色">
-                                            <button type="button" class="news-color-swatch" style="background:#000000;" onclick="setNewsColorPreset('#000000')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#595959;" onclick="setNewsColorPreset('#595959')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#c00000;" onclick="setNewsColorPreset('#c00000')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#ed7d31;" onclick="setNewsColorPreset('#ed7d31')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#ffc000;" onclick="setNewsColorPreset('#ffc000')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#70ad47;" onclick="setNewsColorPreset('#70ad47')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#00b0f0;" onclick="setNewsColorPreset('#00b0f0')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#4472c4;" onclick="setNewsColorPreset('#4472c4')"></button>
-                                            <button type="button" class="news-color-swatch" style="background:#7030a0;" onclick="setNewsColorPreset('#7030a0')"></button>
+                                        <div class="news-toolbar-row">
+                                            <button type="button" class="btn-sm active" id="newsModeVisualBtn"
+                                                onclick="switchNewsEditorMode('visual')">可视化</button>
+                                            <button type="button" class="btn-sm" id="newsModeSourceBtn"
+                                                onclick="switchNewsEditorMode('source')">HTML源码</button>
+                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('bold')"><b>B</b></button>
+                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('italic')"><i>I</i></button>
+                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('insertUnorderedList')">• 列表</button>
+                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h2')">H2</button>
+                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h3')">H3</button>
                                         </div>
-                                        <select class="form-control" id="newsLineHeightSelect"
-                                            style="max-width: 106px; padding: 6px 8px;"
-                                            onchange="applyNewsLineHeight(this.value)">
-                                            <option value="">行距</option>
-                                            <option value="1">1.0</option>
-                                            <option value="1.15">1.15</option>
-                                            <option value="1.2">1.2</option>
-                                            <option value="1.35">1.35</option>
-                                            <option value="1.5">1.5</option>
-                                            <option value="1.65">1.65</option>
-                                            <option value="1.8">1.8</option>
-                                            <option value="2">2.0</option>
-                                            <option value="2.4">2.4</option>
-                                            <option value="3">3.0</option>
-                                        </select>
-                                        <input type="number" id="newsLineHeightCustom" class="form-control"
-                                            min="0.8" max="5" step="0.05" placeholder="自定义行距"
-                                            style="max-width: 110px; padding: 6px 8px;"
-                                            onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsLineHeightCustom();}">
-                                        <button type="button" class="btn-sm" onclick="applyNewsLineHeightCustom()">应用行距</button>
-                                        <select class="form-control" id="newsFirstIndentSelect"
-                                            style="max-width: 108px; padding: 6px 8px;"
-                                            onchange="applyNewsFirstIndent(this.value)">
-                                            <option value="">首行缩进</option>
-                                            <option value="0">无缩进</option>
-                                            <option value="2em">2字符</option>
-                                            <option value="4em">4字符</option>
-                                        </select>
-                                        <select class="form-control" id="newsParaBeforeSelect"
-                                            style="max-width: 92px; padding: 6px 8px;"
-                                            onchange="applyNewsParagraphSpacing('before', this.value)">
-                                            <option value="">段前</option>
-                                            <option value="0">0</option>
-                                            <option value="8px">8</option>
-                                            <option value="12px">12</option>
-                                            <option value="16px">16</option>
-                                            <option value="24px">24</option>
-                                        </select>
-                                        <select class="form-control" id="newsParaAfterSelect"
-                                            style="max-width: 92px; padding: 6px 8px;"
-                                            onchange="applyNewsParagraphSpacing('after', this.value)">
-                                            <option value="">段后</option>
-                                            <option value="0">0</option>
-                                            <option value="8px">8</option>
-                                            <option value="12px">12</option>
-                                            <option value="16px">16</option>
-                                            <option value="24px">24</option>
-                                        </select>
-                                        <button type="button" class="btn-sm" onclick="insertNewsLink()">插入链接</button>
-                                        <select class="form-control" id="newsImageSizePreset"
-                                            style="max-width: 116px; padding: 6px 8px;">
-                                            <option value="100%">图片宽度100%</option>
-                                            <option value="80%">图片宽度80%</option>
-                                            <option value="60%" selected>图片宽度60%</option>
-                                            <option value="40%">图片宽度40%</option>
-                                            <option value="320px">320px</option>
-                                            <option value="480px">480px</option>
-                                            <option value="640px">640px</option>
-                                            <option value="800px">800px</option>
-                                        </select>
-                                        <input type="text" id="newsImageSizeCustom" class="form-control"
-                                            placeholder="自定义宽度(如 520px/55%)"
-                                            style="max-width: 180px; padding: 6px 8px;">
-                                        <button type="button" class="btn-sm" onclick="applySizeToSelectedNewsImage()">设置所选图宽</button>
-                                        <button type="button" class="btn-sm" onclick="triggerNewsImageUpload()">上传图片文件</button>
-                                        <input type="file" id="newsImageFileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
-                                            style="display:none;" onchange="uploadNewsImageFile(this)">
-                                        <input type="text" id="newsInsertImageUrl" class="form-control"
-                                            placeholder="粘贴图片URL后点击导入" style="max-width: 280px; padding: 6px 10px;">
-                                        <button type="button" class="btn-sm" onclick="insertNewsImageFromUrl()">导入图片URL</button>
+                                        <div class="news-toolbar-row">
+                                            <select class="form-control news-toolbar-control short" id="newsFontSizeSelect"
+                                                onchange="applyNewsFontSize(this.value)">
+                                                <option value="">字号</option>
+                                                <option value="10px">10</option>
+                                                <option value="11px">11</option>
+                                                <option value="12px">12</option>
+                                                <option value="13px">13</option>
+                                                <option value="14px">14</option>
+                                                <option value="15px">15</option>
+                                                <option value="16px">16</option>
+                                                <option value="17px">17</option>
+                                                <option value="18px">18</option>
+                                                <option value="19px">19</option>
+                                                <option value="20px">20</option>
+                                                <option value="22px">22</option>
+                                                <option value="24px">24</option>
+                                                <option value="26px">26</option>
+                                                <option value="28px">28</option>
+                                                <option value="32px">32</option>
+                                                <option value="36px">36</option>
+                                                <option value="40px">40</option>
+                                                <option value="48px">48</option>
+                                                <option value="56px">56</option>
+                                                <option value="64px">64</option>
+                                                <option value="72px">72</option>
+                                            </select>
+                                            <input type="number" id="newsFontSizeCustom" class="form-control news-toolbar-control short"
+                                                min="8" max="200" step="1" placeholder="自定义字号"
+                                                onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsFontSizeCustom();}">
+                                            <button type="button" class="btn-sm" onclick="applyNewsFontSizeCustom()">应用字号</button>
+                                            <input type="color" id="newsFontColorInput" value="#1e2f4d"
+                                                title="文字颜色" class="news-toolbar-color"
+                                                onchange="applyNewsFontColor(this.value)">
+                                            <div class="news-color-palette" title="常用颜色">
+                                                <button type="button" class="news-color-swatch" style="background:#000000;" onclick="setNewsColorPreset('#000000')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#595959;" onclick="setNewsColorPreset('#595959')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#c00000;" onclick="setNewsColorPreset('#c00000')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#ed7d31;" onclick="setNewsColorPreset('#ed7d31')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#ffc000;" onclick="setNewsColorPreset('#ffc000')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#70ad47;" onclick="setNewsColorPreset('#70ad47')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#00b0f0;" onclick="setNewsColorPreset('#00b0f0')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#4472c4;" onclick="setNewsColorPreset('#4472c4')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#7030a0;" onclick="setNewsColorPreset('#7030a0')"></button>
+                                            </div>
+                                        </div>
+                                        <div class="news-toolbar-row">
+                                            <select class="form-control news-toolbar-control short" id="newsLineHeightSelect"
+                                                onchange="applyNewsLineHeight(this.value)">
+                                                <option value="">行距</option>
+                                                <option value="1">1.0</option>
+                                                <option value="1.15">1.15</option>
+                                                <option value="1.2">1.2</option>
+                                                <option value="1.35">1.35</option>
+                                                <option value="1.5">1.5</option>
+                                                <option value="1.65">1.65</option>
+                                                <option value="1.8">1.8</option>
+                                                <option value="2">2.0</option>
+                                                <option value="2.4">2.4</option>
+                                                <option value="3">3.0</option>
+                                            </select>
+                                            <input type="number" id="newsLineHeightCustom" class="form-control news-toolbar-control short"
+                                                min="0.8" max="5" step="0.05" placeholder="自定义行距"
+                                                onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsLineHeightCustom();}">
+                                            <button type="button" class="btn-sm" onclick="applyNewsLineHeightCustom()">应用行距</button>
+                                            <select class="form-control news-toolbar-control short" id="newsFirstIndentSelect"
+                                                onchange="applyNewsFirstIndent(this.value)">
+                                                <option value="">首行缩进</option>
+                                                <option value="0">无缩进</option>
+                                                <option value="2em">2字符</option>
+                                                <option value="4em">4字符</option>
+                                            </select>
+                                            <select class="form-control news-toolbar-control short" id="newsParaBeforeSelect"
+                                                onchange="applyNewsParagraphSpacing('before', this.value)">
+                                                <option value="">段前</option>
+                                                <option value="0">0</option>
+                                                <option value="8px">8</option>
+                                                <option value="12px">12</option>
+                                                <option value="16px">16</option>
+                                                <option value="24px">24</option>
+                                            </select>
+                                            <select class="form-control news-toolbar-control short" id="newsParaAfterSelect"
+                                                onchange="applyNewsParagraphSpacing('after', this.value)">
+                                                <option value="">段后</option>
+                                                <option value="0">0</option>
+                                                <option value="8px">8</option>
+                                                <option value="12px">12</option>
+                                                <option value="16px">16</option>
+                                                <option value="24px">24</option>
+                                            </select>
+                                            <button type="button" class="btn-sm" onclick="insertNewsLink()">插入链接</button>
+                                        </div>
+                                        <div class="news-toolbar-row">
+                                            <select class="form-control news-toolbar-control medium" id="newsImageSizePreset">
+                                                <option value="100%">图片宽度100%</option>
+                                                <option value="80%">图片宽度80%</option>
+                                                <option value="60%" selected>图片宽度60%</option>
+                                                <option value="40%">图片宽度40%</option>
+                                                <option value="320px">320px</option>
+                                                <option value="480px">480px</option>
+                                                <option value="640px">640px</option>
+                                                <option value="800px">800px</option>
+                                            </select>
+                                            <input type="text" id="newsImageSizeCustom" class="form-control news-toolbar-control medium"
+                                                placeholder="自定义宽度(如 520px/55%)">
+                                            <button type="button" class="btn-sm" onclick="applySizeToSelectedNewsImage()">设置所选图宽</button>
+                                            <button type="button" class="btn-sm" onclick="triggerNewsImageUpload()">上传图片文件</button>
+                                            <input type="file" id="newsImageFileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                                                style="display:none;" onchange="uploadNewsImageFile(this)">
+                                            <input type="text" id="newsInsertImageUrl" class="form-control news-toolbar-control long"
+                                                placeholder="粘贴图片URL后点击导入">
+                                            <button type="button" class="btn-sm" onclick="insertNewsImageFromUrl()">导入图片URL</button>
+                                        </div>
                                     </div>
                                     <div id="newsContentEditor" class="news-editor-surface" contenteditable="true"></div>
                                     <textarea id="newsContent" class="form-control news-editor-source" rows="14"
                                         placeholder="HTML源码模式" style="display:none;"></textarea>
                                 </div>
                                 <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
-                                    <button type="button" class="btn-sm"
+                                    <button type="button" class="btn-sm news-ai-btn"
                                         onmousedown="saveNewsEditorSelection(); return false;"
-                                        onclick="aiPolishNews()">AI 排版（选区/段落）</button>
+                                        onclick="aiPolishNews()"><i class="fas fa-magic"></i> AI 排版（选区/段落）</button>
                                     <span style="font-size: 12px; color:#666;">将根据已配置的 AI 客服进行润色排版（Markdown）</span>
                                 </div>
                                 <div id="newsAiActions" style="display:none; gap:10px; align-items:center; margin-bottom: 12px;">
-                                    <button type="button" class="btn-sm btn-danger" onclick="revertAiTypesetChange()">撤销替换</button>
+                                    <button type="button" class="btn-sm news-ai-revert-btn" onclick="revertAiTypesetChange()"><i
+                                            class="fas fa-rotate-left"></i> 撤销替换</button>
+                                </div>
+                                <div class="news-ai-help">
+                                    <strong>AI 排版使用方式（详细）</strong>
+                                    <ol>
+                                        <li>在正文编辑区先选中需要处理的文字；未选区时，会自动处理当前光标所在段落。</li>
+                                        <li>点击 <code>AI 排版（选区/段落）</code> 后，系统会按当前配置的 AI 参数进行润色和格式整理。</li>
+                                        <li>确认结果后可继续编辑；若结果不满意，点击 <code>撤销替换</code> 可一键恢复到排版前内容。</li>
+                                        <li>建议一次处理 1~3 段，长文请分段操作，成功率和可控性更高。</li>
+                                    </ol>
                                 </div>
                                 <div class="form-group" style="display:flex; align-items:center; gap:10px;">
                                     <label class="toggle-switch" style="margin:0;">
@@ -1741,9 +2236,137 @@
 
                             <div>
                                 <div class="form-group">
-                                    <label>岗位详情（支持 HTML）</label>
-                                    <textarea id="jobContent" class="form-control" rows="12"
-                                        placeholder="可直接粘贴岗位职责/任职资格的 HTML"></textarea>
+                                    <label>岗位详情</label>
+                                    <div class="news-editor-toolbar">
+                                        <div class="news-toolbar-row">
+                                            <button type="button" class="btn-sm active" id="jobModeVisualBtn"
+                                                onclick="switchJobEditorMode('visual')">可视化</button>
+                                            <button type="button" class="btn-sm" id="jobModeSourceBtn"
+                                                onclick="switchJobEditorMode('source')">HTML源码</button>
+                                            <button type="button" class="btn-sm" onclick="applyJobFormat('bold')"><b>B</b></button>
+                                            <button type="button" class="btn-sm" onclick="applyJobFormat('italic')"><i>I</i></button>
+                                            <button type="button" class="btn-sm" onclick="applyJobFormat('insertUnorderedList')">• 列表</button>
+                                            <button type="button" class="btn-sm" onclick="applyJobFormat('formatBlock','h2')">H2</button>
+                                            <button type="button" class="btn-sm" onclick="applyJobFormat('formatBlock','h3')">H3</button>
+                                        </div>
+                                        <div class="news-toolbar-row">
+                                            <select class="form-control news-toolbar-control short" id="jobFontSizeSelect"
+                                                onchange="applyJobFontSize(this.value)">
+                                                <option value="">字号</option>
+                                                <option value="10px">10</option>
+                                                <option value="11px">11</option>
+                                                <option value="12px">12</option>
+                                                <option value="13px">13</option>
+                                                <option value="14px">14</option>
+                                                <option value="15px">15</option>
+                                                <option value="16px">16</option>
+                                                <option value="17px">17</option>
+                                                <option value="18px">18</option>
+                                                <option value="19px">19</option>
+                                                <option value="20px">20</option>
+                                                <option value="22px">22</option>
+                                                <option value="24px">24</option>
+                                                <option value="26px">26</option>
+                                                <option value="28px">28</option>
+                                                <option value="32px">32</option>
+                                                <option value="36px">36</option>
+                                                <option value="40px">40</option>
+                                                <option value="48px">48</option>
+                                                <option value="56px">56</option>
+                                                <option value="64px">64</option>
+                                                <option value="72px">72</option>
+                                            </select>
+                                            <input type="number" id="jobFontSizeCustom" class="form-control news-toolbar-control short"
+                                                min="8" max="200" step="1" placeholder="自定义字号"
+                                                onkeydown="if(event.key==='Enter'){event.preventDefault();applyJobFontSizeCustom();}">
+                                            <button type="button" class="btn-sm" onclick="applyJobFontSizeCustom()">应用字号</button>
+                                            <input type="color" id="jobFontColorInput" value="#1e2f4d"
+                                                title="文字颜色" class="news-toolbar-color"
+                                                onchange="applyJobFontColor(this.value)">
+                                            <div class="news-color-palette" title="常用颜色">
+                                                <button type="button" class="news-color-swatch" style="background:#000000;" onclick="setJobColorPreset('#000000')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#595959;" onclick="setJobColorPreset('#595959')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#c00000;" onclick="setJobColorPreset('#c00000')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#ed7d31;" onclick="setJobColorPreset('#ed7d31')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#ffc000;" onclick="setJobColorPreset('#ffc000')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#70ad47;" onclick="setJobColorPreset('#70ad47')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#00b0f0;" onclick="setJobColorPreset('#00b0f0')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#4472c4;" onclick="setJobColorPreset('#4472c4')"></button>
+                                                <button type="button" class="news-color-swatch" style="background:#7030a0;" onclick="setJobColorPreset('#7030a0')"></button>
+                                            </div>
+                                        </div>
+                                        <div class="news-toolbar-row">
+                                            <select class="form-control news-toolbar-control short" id="jobLineHeightSelect"
+                                                onchange="applyJobLineHeight(this.value)">
+                                                <option value="">行距</option>
+                                                <option value="1">1.0</option>
+                                                <option value="1.15">1.15</option>
+                                                <option value="1.2">1.2</option>
+                                                <option value="1.35">1.35</option>
+                                                <option value="1.5">1.5</option>
+                                                <option value="1.65">1.65</option>
+                                                <option value="1.8">1.8</option>
+                                                <option value="2">2.0</option>
+                                                <option value="2.4">2.4</option>
+                                                <option value="3">3.0</option>
+                                            </select>
+                                            <input type="number" id="jobLineHeightCustom" class="form-control news-toolbar-control short"
+                                                min="0.8" max="5" step="0.05" placeholder="自定义行距"
+                                                onkeydown="if(event.key==='Enter'){event.preventDefault();applyJobLineHeightCustom();}">
+                                            <button type="button" class="btn-sm" onclick="applyJobLineHeightCustom()">应用行距</button>
+                                            <select class="form-control news-toolbar-control short" id="jobFirstIndentSelect"
+                                                onchange="applyJobFirstIndent(this.value)">
+                                                <option value="">首行缩进</option>
+                                                <option value="0">无缩进</option>
+                                                <option value="2em">2字符</option>
+                                                <option value="4em">4字符</option>
+                                            </select>
+                                            <select class="form-control news-toolbar-control short" id="jobParaBeforeSelect"
+                                                onchange="applyJobParagraphSpacing('before', this.value)">
+                                                <option value="">段前</option>
+                                                <option value="0">0</option>
+                                                <option value="8px">8</option>
+                                                <option value="12px">12</option>
+                                                <option value="16px">16</option>
+                                                <option value="24px">24</option>
+                                            </select>
+                                            <select class="form-control news-toolbar-control short" id="jobParaAfterSelect"
+                                                onchange="applyJobParagraphSpacing('after', this.value)">
+                                                <option value="">段后</option>
+                                                <option value="0">0</option>
+                                                <option value="8px">8</option>
+                                                <option value="12px">12</option>
+                                                <option value="16px">16</option>
+                                                <option value="24px">24</option>
+                                            </select>
+                                            <button type="button" class="btn-sm" onclick="insertJobLink()">插入链接</button>
+                                        </div>
+                                        <div class="news-toolbar-row">
+                                            <select class="form-control news-toolbar-control medium" id="jobImageSizePreset">
+                                                <option value="100%">图片宽度100%</option>
+                                                <option value="80%">图片宽度80%</option>
+                                                <option value="60%" selected>图片宽度60%</option>
+                                                <option value="40%">图片宽度40%</option>
+                                                <option value="320px">320px</option>
+                                                <option value="480px">480px</option>
+                                                <option value="640px">640px</option>
+                                                <option value="800px">800px</option>
+                                            </select>
+                                            <input type="text" id="jobImageSizeCustom" class="form-control news-toolbar-control medium"
+                                                placeholder="自定义宽度(如 520px/55%)">
+                                            <button type="button" class="btn-sm" onclick="applySizeToSelectedJobImage()">设置所选图宽</button>
+                                            <button type="button" class="btn-sm" onclick="triggerJobImageUpload()">上传图片文件</button>
+                                            <input type="file" id="jobImageFileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                                                style="display:none;" onchange="uploadJobImageFile(this)">
+                                            <input type="text" id="jobInsertImageUrl" class="form-control news-toolbar-control long"
+                                                placeholder="粘贴图片URL后点击导入">
+                                            <button type="button" class="btn-sm" onclick="insertJobImageFromUrl()">导入图片URL</button>
+                                        </div>
+                                    </div>
+                                    <div id="jobContentEditor" class="news-editor-surface" contenteditable="true"></div>
+                                    <textarea id="jobContent" class="form-control news-editor-source" rows="12"
+                                        placeholder="HTML源码模式" style="display:none;"></textarea>
+                                    <div class="form-hint">支持可视化编辑和 HTML 源码编辑，保存时将写入 HTML。</div>
                                 </div>
                                 <div style="display:flex; gap:12px; align-items:center;">
                                     <button type="submit" class="btn-primary"
@@ -1766,6 +2389,7 @@
                 <div id="view-chatbot" class="view-section">
                     <div class="tabs">
                         <button class="tab-btn active" onclick="switchChatbotTab('config', this)">API 配置</button>
+                        <button class="tab-btn" onclick="switchChatbotTab('product-ai', this)">产品页编程 AI</button>
                         <button class="tab-btn" onclick="switchChatbotTab('knowledge', this)">知识库管理</button>
                     </div>
 
@@ -1838,6 +2462,60 @@
                         </div>
                     </div>
 
+                    <!-- Product Page Coding AI Tab -->
+                    <div id="chatbot-tab-product-ai" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">产品页编程 AI 配置</h3>
+                                <div id="productAiStatus" class="status-indicator disabled">
+                                    <i class="fas fa-circle" style="font-size: 8px;"></i>
+                                    <span>已禁用</span>
+                                </div>
+                            </div>
+
+                            <p style="margin-bottom: 16px; color:#58657a; font-size:13px;">
+                                该配置用于“AI 自动上架 · 气体传感产品”流程，采用 OpenAI 兼容接口生成完整产品页 HTML。
+                            </p>
+
+                            <form id="productAiConfigForm">
+                                <div class="form-group">
+                                    <label>启用产品页编程 AI</label>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="productAiEnabled">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>API Key</label>
+                                    <input type="password" id="productAiApiKey" class="form-control" placeholder="sk-...">
+                                    <div class="form-hint">支持 OpenAI 及兼容 API（如 DeepSeek、智谱等）</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>API Base URL</label>
+                                    <input type="text" id="productAiApiBase" class="form-control" value="https://api.openai.com/v1">
+                                    <div class="form-hint">OpenAI: https://api.openai.com/v1，DeepSeek: https://api.deepseek.com</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>模型名称</label>
+                                    <input type="text" id="productAiModel" class="form-control" value="gpt-4o-mini">
+                                    <div class="form-hint">建议使用具备代码与结构化输出能力的模型</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>系统提示词（已预置，可按需调整）</label>
+                                    <textarea id="productAiSystemPrompt" class="form-control" rows="12"></textarea>
+                                    <div class="form-hint">建议写明“只输出代码，不要任何解释”，以减少输出噪音。</div>
+                                </div>
+
+                                <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存配置</button>
+                                <div id="productAiConfigMsg" class="error-message" style="color: #28a745;"></div>
+                            </form>
+                        </div>
+                    </div>
+
                     <!-- Knowledge Base Tab -->
                     <div id="chatbot-tab-knowledge" class="tab-content">
                         <div class="card" style="padding: 30px;">
@@ -1898,13 +2576,87 @@
                     </div>
                 </div>
 
+                <!-- Backup View -->
+                <div id="view-backup" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <div class="backup-guide">
+                            <h4>推荐方式：Docker 部署 + 定期终端备份</h4>
+                            <p>
+                                建议生产环境使用 Docker / Docker Compose 部署，并定期在终端执行备份（建议每日或每周），
+                                这样即使重部署容器也能快速恢复数据。
+                            </p>
+                            <p><strong>1) 容器内执行备份（宿主机终端执行）</strong></p>
+                            <pre><code>TS=$(date +%F_%H%M%S)
+docker compose exec web sh -lc "cd /app && zip -r /tmp/yx_backup_${TS}.zip data pages pages_en assets/partials index.html index_en.html assets/js/nav-loader.js admin/index.html server.py"</code></pre>
+                            <p><strong>2) 下载备份到宿主机（宿主机终端执行）</strong></p>
+                            <pre><code>TS=$(date +%F_%H%M%S)
+mkdir -p ./backups
+FILE=$(docker compose exec web sh -lc "ls -t /tmp/yx_backup_*.zip | head -n1" | tr -d '\r')
+docker compose cp web:${FILE} ./backups/</code></pre>
+                            <p>
+                                说明：如果你的服务名不是 <code>web</code>，请把命令中的 <code>web</code> 替换为实际服务名
+                                （可用 <code>docker compose ps</code> 查看）。
+                            </p>
+                        </div>
+
+                        <h3 class="section-header">完整备份下载</h3>
+                        <p style="margin-bottom: 16px; color: #666; font-size: 14px; line-height: 1.8;">
+                            备份内容包含：<code>data/</code>（留言、应聘、招聘、上传文件、配置等）、
+                            <code>pages/</code>、<code>pages_en/</code>（产品页/新闻页/招聘页/联系页等业务页面）、
+                            <code>index.html</code>、<code>index_en.html</code>、<code>assets/partials/</code>、<code>assets/js/nav-loader.js</code>、
+                            以及后台管理文件（<code>admin/index.html</code>、<code>server.py</code>）。
+                        </p>
+                        <button type="button" class="btn-primary" style="width:auto; padding: 12px 28px;"
+                            onclick="downloadFullBackup()">下载完整备份（ZIP）</button>
+                    </div>
+
+                    <div class="card" style="padding: 30px; margin-top: 20px;">
+                        <h3 class="section-header">上传恢复（Docker 重部署后）</h3>
+                        <p style="margin-bottom: 16px; color: #666; font-size: 14px; line-height: 1.8;">
+                            上传先前下载的 ZIP 备份包后将覆盖恢复对应目录。恢复成功后请重启服务并刷新后台页面。
+                        </p>
+                        <div class="form-group">
+                            <label>备份文件（.zip）</label>
+                            <input type="file" id="backupRestoreFile" class="form-control" accept=".zip">
+                        </div>
+                        <button type="button" class="btn-primary" style="width:auto; padding: 12px 28px;"
+                            onclick="restoreFromBackup()">上传并恢复</button>
+                        <div id="backupMsg" class="error-message" style="color: #28a745; margin-top: 10px;"></div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
     <script>
+        const SIDEBAR_COLLAPSE_KEY = 'yx_admin_sidebar_collapsed';
+
         // --- Init ---
         checkLoginStatus();
+
+        function updateSidebarToggleButton() {
+            const textEl = document.getElementById('sidebarToggleText');
+            const btnEl = document.getElementById('sidebarToggleBtn');
+            if (!textEl || !btnEl) return;
+            const collapsed = document.body.classList.contains('sidebar-collapsed');
+            textEl.textContent = collapsed ? '显示侧边栏' : '折叠侧边栏';
+            btnEl.setAttribute('aria-label', textEl.textContent);
+            btnEl.title = textEl.textContent;
+        }
+
+        function setSidebarCollapsed(collapsed, save = true) {
+            document.body.classList.toggle('sidebar-collapsed', !!collapsed);
+            updateSidebarToggleButton();
+            if (save) {
+                localStorage.setItem(SIDEBAR_COLLAPSE_KEY, collapsed ? '1' : '0');
+            }
+        }
+
+        function toggleSidebar() {
+            const collapsed = document.body.classList.contains('sidebar-collapsed');
+            setSidebarCollapsed(!collapsed, true);
+        }
 
         // --- Auth Functions ---
         async function checkLoginStatus() {
@@ -1963,13 +2715,15 @@
         function showDashboard() {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('dashboard').style.display = 'flex';
+            const collapsed = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
+            setSidebarCollapsed(collapsed, false);
             loadMessages();
         }
 
         const TAB_GUIDES = {
-            'product-tab-list': '设置说明：可直接修改产品页卡片的标题、图片和摘要；字段留空时使用系统默认值；图片支持 HTTPS 链接或本地上传。',
             'product-tab-industries': '设置说明：先定义领域分类名称，再勾选每个产品所属领域；分类与勾选都会自动保存。',
-            'product-tab-add': '设置说明：按本页流程复制模板、修改占位字段并放入指定目录，即可被系统自动扫描为新产品。',
+            'product-tab-add': '设置说明：本页同时包含“上架流程”和“产品列表”；先按流程创建文件，再在下方列表里设置卡片标题/图片/摘要。',
+            'product-tab-ai': '设置说明：先填写资料并点击“AI 生成完整HTML”，确认源码后点击“保存为产品页面文件”。',
             'home-tab-hero': '设置说明：用于管理官网首页轮播，支持上传和 CDN；调整顺序后保存即可生效。',
             'home-tab-partners': '设置说明：用于管理合作伙伴 Logo，支持上传与链接，拖拽可调整展示顺序。',
             'home-tab-news': '设置说明：选择首页展示的 3 条资讯，保存后首页资讯区会同步更新。',
@@ -1981,6 +2735,7 @@
             'h2-home-tab-news': '设置说明：设置氢气首页最近动态，支持自定义标签、标题和摘要。',
             'h2-home-tab-navbar': '设置说明：集中管理导航栏巨幕菜单（产品列表预览、新品推荐、测量对象）；链接支持 http(s) 和相对路径。',
             'chatbot-tab-config': '设置说明：配置 AI 客服 API 参数与模型，保存后前台客服将按此配置运行。',
+            'chatbot-tab-product-ai': '设置说明：配置“产品页编程 AI”接口参数和系统提示词，供 AI 自动上架流程调用。',
             'chatbot-tab-knowledge': '设置说明：上传和管理知识库文件，AI 客服将优先参考这些资料回答。'
         };
 
@@ -2027,10 +2782,11 @@
                 'products': '氢气产品',
                 'home': '首页设置',
                 'h2-home': '氢气首页',
-                'news-create': '添加资讯 beta',
+                'news-create': '添加资讯',
                 'jobs': '招聘信息',
                 'chatbot': 'AI客服',
-                'settings': '设置'
+                'settings': '设置',
+                'backup': '备份恢复'
             };
             const activeMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.textContent.includes(menuTitles[viewName] || ''));
             if (activeMenu) activeMenu.classList.add('active');
@@ -2045,16 +2801,20 @@
                 'products': '氢气产品',
                 'home': '首页设置',
                 'h2-home': '氢气首页设置',
-                'news-create': '添加资讯 beta',
+                'news-create': '添加资讯',
                 'jobs': '招聘信息',
                 'chatbot': 'AI客服设置',
-                'settings': '账号设置'
+                'settings': '账号设置',
+                'backup': '备份恢复'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
 
             // Load data for the view
             if (viewName === 'messages') loadMessages();
-            if (viewName === 'products') loadProducts();
+            if (viewName === 'products') {
+                bindProductCreateEvents();
+                loadProducts();
+            }
             if (viewName === 'home') {
                 switchHomeTab('hero');
             }
@@ -2070,10 +2830,1084 @@
         // --- Products Logic ---
         let productsData = [];
         let industryFiltersData = [];
+        let productEditorMode = 'visual';
+        let editingProductSlug = '';
+        let productPreviewTimer = null;
+        let productTemplatePlaceholderKeys = [];
+        let productTemplateFieldsData = {};
+        let productTemplateGroupVisibleCounts = {};
+        let aiProductEventsBound = false;
+
+        function syncProductEditorSourceFromVisual() {
+            const visual = document.getElementById('productEditorVisual');
+            const source = document.getElementById('productEditorSource');
+            if (!visual || !source) return;
+            source.value = visual.innerHTML.trim();
+        }
+
+        function syncProductEditorVisualFromSource() {
+            const visual = document.getElementById('productEditorVisual');
+            const source = document.getElementById('productEditorSource');
+            if (!visual || !source) return;
+            visual.innerHTML = source.value || '';
+        }
+
+        function switchProductEditorMode(mode) {
+            const visual = document.getElementById('productEditorVisual');
+            const source = document.getElementById('productEditorSource');
+            const visualBtn = document.getElementById('productModeVisualBtn');
+            const sourceBtn = document.getElementById('productModeSourceBtn');
+            if (!visual || !source || !visualBtn || !sourceBtn) return;
+
+            if (mode === 'source') {
+                syncProductEditorSourceFromVisual();
+                visual.style.display = 'none';
+                source.style.display = 'block';
+                sourceBtn.classList.add('active');
+                visualBtn.classList.remove('active');
+                productEditorMode = 'source';
+            } else {
+                syncProductEditorVisualFromSource();
+                source.style.display = 'none';
+                visual.style.display = 'block';
+                visualBtn.classList.add('active');
+                sourceBtn.classList.remove('active');
+                productEditorMode = 'visual';
+            }
+            scheduleProductPreview();
+        }
+
+        function applyProductFormat(command, value = null) {
+            const visual = document.getElementById('productEditorVisual');
+            if (!visual || productEditorMode !== 'visual') return;
+            visual.focus();
+            try {
+                if (command === 'formatBlock' && value) {
+                    document.execCommand(command, false, `<${value}>`);
+                } else {
+                    document.execCommand(command, false, value);
+                }
+                syncProductEditorSourceFromVisual();
+                scheduleProductPreview();
+            } catch (e) {
+                console.error('applyProductFormat failed:', e);
+            }
+        }
+
+        function getProductEditorHtml() {
+            const visual = document.getElementById('productEditorVisual');
+            const source = document.getElementById('productEditorSource');
+            if (!visual || !source) return '';
+            if (productEditorMode === 'source') {
+                return (source.value || '').trim();
+            }
+            return (visual.innerHTML || '').trim();
+        }
+
+        function getProductDetailPartsFromEditor() {
+            const html = getProductEditorHtml();
+            if (!html) return ['', ''];
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            const ps = Array.from(container.querySelectorAll('p'))
+                .map(p => (p.textContent || '').trim())
+                .filter(Boolean);
+            if (ps.length > 0) return [ps[0], ps[1] || ''];
+            const lines = (container.textContent || '')
+                .split(/\n+/)
+                .map(v => v.trim())
+                .filter(Boolean);
+            return [lines[0] || '', lines[1] || ''];
+        }
+
+        function getProductTemplateDefaultMap() {
+            const title = document.getElementById('productCreateTitle')?.value.trim() || '';
+            const summary = document.getElementById('productCreateSummary')?.value.trim() || '';
+            const image = document.getElementById('productCreateImage')?.value.trim() || '/assets/images/logo.png';
+            const [detail1, detail2] = getProductDetailPartsFromEditor();
+            const defaults = {};
+            productTemplatePlaceholderKeys.forEach(key => {
+                if (key.includes('链接')) {
+                    if (key.includes('图片') || key.includes('主图') || key.includes('缩略图') || key.includes('详情图') || key.includes('应用图')) {
+                        defaults[key] = image;
+                    } else if (key.includes('新闻链接') || key.includes('相关产品链接')) {
+                        defaults[key] = '#';
+                    } else {
+                        defaults[key] = '';
+                    }
+                } else {
+                    defaults[key] = '';
+                }
+            });
+            ['【这里是产品名字】', '【本页的产品名字】', '【产品名字】'].forEach(k => defaults[k] = title);
+            defaults['【产品描述】'] = summary;
+            defaults['【主图链接】'] = image;
+            defaults['【缩略图1链接】'] = image;
+            defaults['【产品详情1】'] = detail1;
+            defaults['【产品详情2】'] = detail2;
+            return defaults;
+        }
+
+        function isProductTemplateImageLinkKey(key) {
+            return key.includes('链接') && (key.includes('图片') || key.includes('主图') || key.includes('缩略图') || key.includes('详情图') || key.includes('应用图'));
+        }
+
+        function normalizeProductTemplateFieldValue(key, value) {
+            const v = (value || '').trim();
+            if (!v) return '';
+            if (isProductTemplateImageLinkKey(key)) {
+                if (/^assets\//i.test(v)) return `/${v}`;
+                return v;
+            }
+            return v;
+        }
+
+        function isLongProductTemplateKey(key) {
+            return !key.includes('链接') && (key.includes('描述') || key.includes('详情'));
+        }
+
+        function getTemplateFieldSimpleName(key) {
+            return String(key || '').replace(/^【|】$/g, '');
+        }
+
+        function buildProductTemplateEditorModel() {
+            const keySet = new Set(productTemplatePlaceholderKeys);
+            const used = new Set();
+            const productNameKeys = ['【这里是产品名字】', '【本页的产品名字】', '【产品名字】'].filter(k => keySet.has(k));
+            productNameKeys.forEach(k => used.add(k));
+
+            const repeatDefs = [
+                {
+                    id: 'thumbs',
+                    title: '缩略图',
+                    defaultVisible: 3,
+                    fields: (i) => [{ key: `【缩略图${i}链接】`, label: `缩略图${i}` }]
+                },
+                {
+                    id: 'features',
+                    title: '产品特性',
+                    defaultVisible: 3,
+                    fields: (i) => [{ key: `【特性${i}】`, label: `特性${i}` }]
+                },
+                {
+                    id: 'advantages',
+                    title: '产品优势',
+                    defaultVisible: 2,
+                    fields: (i) => [
+                        { key: `【优势${i}】`, label: `优势${i}` },
+                        { key: `【优势${i}的描述】`, label: `优势${i}描述` }
+                    ]
+                },
+                {
+                    id: 'detail_images',
+                    title: '详情图',
+                    defaultVisible: 2,
+                    fields: (i) => [
+                        { key: `【详情图${i}链接】`, label: `详情图${i}` },
+                        { key: `【详情图${i}的描述】`, label: `详情图${i}描述` }
+                    ]
+                },
+                {
+                    id: 'applications',
+                    title: '应用场景',
+                    defaultVisible: 2,
+                    fields: (i) => [
+                        { key: `【应用图${i}链接】`, label: `应用图${i}` },
+                        { key: `【应用${i}】`, label: `应用${i}标题` },
+                        { key: `【应用${i}的描述】`, label: `应用${i}描述` }
+                    ]
+                },
+                {
+                    id: 'news',
+                    title: '关联新闻',
+                    defaultVisible: 2,
+                    fields: (i) => [
+                        { key: `【新闻链接${i}】`, label: `新闻${i}链接` },
+                        { key: `【新闻图片${i}链接】`, label: `新闻${i}图片` },
+                        { key: `【新闻标题${i}】`, label: `新闻${i}标题` },
+                        { key: `【新闻描述${i}】`, label: `新闻${i}描述` }
+                    ]
+                },
+                {
+                    id: 'related_products',
+                    title: '相关产品',
+                    defaultVisible: 4,
+                    fields: (i) => [
+                        { key: `【相关产品链接${i}】`, label: `相关产品${i}链接` },
+                        { key: `【相关产品图片${i}链接】`, label: `相关产品${i}图片` },
+                        { key: `【相关产品标题${i}】`, label: `相关产品${i}标题` }
+                    ]
+                }
+            ];
+
+            const repeatGroups = [];
+            repeatDefs.forEach(def => {
+                const items = [];
+                for (let i = 1; i <= 24; i += 1) {
+                    const fields = def.fields(i).filter(f => keySet.has(f.key));
+                    if (!fields.length) continue;
+                    fields.forEach(f => used.add(f.key));
+                    items.push({ index: i, fields });
+                }
+                if (items.length) {
+                    repeatGroups.push({
+                        id: def.id,
+                        title: def.title,
+                        defaultVisible: Math.min(def.defaultVisible || 1, items.length),
+                        items
+                    });
+                }
+            });
+
+            const specKeys = [];
+            const coreKeys = [];
+            const otherKeys = [];
+            productTemplatePlaceholderKeys.forEach(key => {
+                if (used.has(key)) return;
+                if (['【主图链接】', '【产品描述】', '【产品详情1】', '【产品详情2】'].includes(key)) {
+                    coreKeys.push(key);
+                } else if (/(技术|检测|范围|精度|响应|温度|尺寸|重量|功耗|续航)/.test(key)) {
+                    specKeys.push(key);
+                } else {
+                    otherKeys.push(key);
+                }
+            });
+
+            const singleSections = [];
+            if (coreKeys.length) singleSections.push({ id: 'core', title: '核心信息', keys: coreKeys });
+            if (specKeys.length) singleSections.push({ id: 'spec', title: '技术参数', keys: specKeys });
+            if (otherKeys.length) singleSections.push({ id: 'other', title: '其他字段', keys: otherKeys });
+
+            return { productNameKeys, repeatGroups, singleSections };
+        }
+
+        function ensureProductTemplateGroupVisibleCounts(model) {
+            model.repeatGroups.forEach(group => {
+                const current = productTemplateGroupVisibleCounts[group.id];
+                const maxIndexWithValue = group.items.reduce((max, item, idx) => {
+                    const hasValue = item.fields.some(f => (productTemplateFieldsData[f.key] || '').trim());
+                    return hasValue ? idx + 1 : max;
+                }, 0);
+                const fallback = maxIndexWithValue || group.defaultVisible || 1;
+                const next = current == null ? fallback : current;
+                productTemplateGroupVisibleCounts[group.id] = Math.max(1, Math.min(group.items.length, next));
+            });
+        }
+
+        function renderProductTemplateInputField(fieldKey, fieldLabel, fieldValue) {
+            const isLong = isLongProductTemplateKey(fieldKey);
+            const isImageLink = isProductTemplateImageLinkKey(fieldKey);
+            const helper = isImageLink
+                ? '<div style="margin-top:6px; font-size:12px; color:#5f6b7a;">支持 <code>/assets/images/xxx.png</code> 或 <code>https://...</code></div>'
+                : '';
+            if (isLong) {
+                return `
+                    <div style="margin-top:8px;">
+                        <div style="font-size:12px; color:#425166; margin-bottom:6px;">${escapeHtml(fieldLabel)}</div>
+                        <textarea class="form-control product-template-field" data-key="${escapeHtml(fieldKey)}" rows="2">${escapeHtml(fieldValue || '')}</textarea>
+                    </div>
+                `;
+            }
+            return `
+                <div style="margin-top:8px;">
+                    <div style="font-size:12px; color:#425166; margin-bottom:6px;">${escapeHtml(fieldLabel)}</div>
+                    <input type="text" class="form-control product-template-field" data-key="${escapeHtml(fieldKey)}"
+                        value="${escapeHtml(fieldValue || '')}"
+                        placeholder="${isImageLink ? '例如 /assets/images/logo.png 或 https://cdn.example.com/a.png' : ''}">
+                    ${helper}
+                </div>
+            `;
+        }
+
+        function changeProductTemplateGroupCount(groupId, action) {
+            const model = buildProductTemplateEditorModel();
+            const group = model.repeatGroups.find(g => g.id === groupId);
+            if (!group) return;
+            const current = productTemplateGroupVisibleCounts[groupId] || 1;
+            let next = current;
+            if (action === 'add') next = Math.min(group.items.length, current + 1);
+            if (action === 'remove') next = Math.max(1, current - 1);
+            if (next === current) return;
+
+            if (next < current) {
+                for (let i = next; i < current; i += 1) {
+                    const item = group.items[i];
+                    if (!item) continue;
+                    item.fields.forEach(f => {
+                        productTemplateFieldsData[f.key] = '';
+                    });
+                }
+            }
+            productTemplateGroupVisibleCounts[groupId] = next;
+            renderProductTemplateFieldsEditor();
+            scheduleProductPreview();
+        }
+        window.changeProductTemplateGroupCount = changeProductTemplateGroupCount;
+
+        function renderProductTemplateFieldsEditor() {
+            const container = document.getElementById('productTemplateFieldsEditor');
+            if (!container) return;
+            if (!productTemplatePlaceholderKeys.length) {
+                container.innerHTML = '<div style="color:#888; padding:6px 0;">模板字段加载中...</div>';
+                return;
+            }
+            const model = buildProductTemplateEditorModel();
+            ensureProductTemplateGroupVisibleCounts(model);
+
+            const nameSectionHtml = model.productNameKeys.length ? `
+                <div style="border:1px solid #dbe3ef; border-radius: 12px; background:#fff; padding:16px; margin-bottom:14px;">
+                    <div style="font-size:13px; font-weight:700; color:#0f2f5f;">产品名称（已合并 ${model.productNameKeys.length} 个占位符）</div>
+                    <div style="font-size:12px; color:#6b7280; margin-top:4px;">同步映射到：${model.productNameKeys.map(k => `<code>${escapeHtml(k)}</code>`).join('、')}</div>
+                    <input type="text" class="form-control product-template-merged-field"
+                        data-keys="${escapeHtml(model.productNameKeys.join('||'))}"
+                        style="margin-top:10px;"
+                        value="${escapeHtml(model.productNameKeys.map(k => productTemplateFieldsData[k] || '').find(v => v) || '')}">
+                </div>
+            ` : '';
+
+            const repeatSectionHtml = model.repeatGroups.map(group => {
+                const visible = productTemplateGroupVisibleCounts[group.id] || 1;
+                const blocks = group.items.slice(0, visible).map((item, idx) => `
+                    <div style="border:1px solid #e5ebf5; border-radius:10px; padding:12px; background:${idx % 2 ? '#fbfdff' : '#fff'};">
+                        <div style="font-size:12px; font-weight:700; color:#334155;">第 ${item.index} 条</div>
+                        ${item.fields.map(f => renderProductTemplateInputField(f.key, f.label, productTemplateFieldsData[f.key] || '')).join('')}
+                    </div>
+                `).join('');
+                return `
+                    <div style="border:1px solid #dbe3ef; border-radius: 12px; background:#fff; padding:16px; margin-bottom:14px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                            <div>
+                                <div style="font-size:13px; font-weight:700; color:#0f2f5f;">${escapeHtml(group.title)}</div>
+                                <div style="font-size:12px; color:#6b7280;">已显示 ${visible} / ${group.items.length} 条</div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button type="button" class="btn-sm" style="width:auto;" onclick="changeProductTemplateGroupCount('${escapeHtml(group.id)}','remove')">删除一条</button>
+                                <button type="button" class="btn-sm" style="width:auto;" onclick="changeProductTemplateGroupCount('${escapeHtml(group.id)}','add')">添加一条</button>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:10px;">
+                            ${blocks}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const singleSectionHtml = model.singleSections.map(section => `
+                <div style="border:1px solid #dbe3ef; border-radius: 12px; background:#fff; padding:16px; margin-bottom:14px;">
+                    <div style="font-size:13px; font-weight:700; color:#0f2f5f;">${escapeHtml(section.title)}</div>
+                    <div style="margin-top:10px; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:10px;">
+                        ${section.keys.map(k => `
+                            <div style="border:1px solid #e5ebf5; border-radius:10px; padding:12px; background:#fff;">
+                                ${renderProductTemplateInputField(k, getTemplateFieldSimpleName(k), productTemplateFieldsData[k] || '')}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div style="border:1px solid #dbe3ef; border-radius: 12px; background:#f7faff; padding:14px; box-shadow: 0 6px 18px rgba(15, 47, 95, 0.06);">
+                    ${nameSectionHtml}
+                    ${repeatSectionHtml}
+                    ${singleSectionHtml}
+                    ${(!nameSectionHtml && !repeatSectionHtml && !singleSectionHtml) ? '<div style="color:#6b7280;">暂无可配置模板字段</div>' : ''}
+                </div>
+            `;
+
+            container.querySelectorAll('.product-template-field').forEach(el => {
+                el.addEventListener('input', () => {
+                    const key = el.dataset.key || '';
+                    productTemplateFieldsData[key] = normalizeProductTemplateFieldValue(key, el.value || '');
+                    scheduleProductPreview();
+                });
+            });
+            container.querySelectorAll('.product-template-merged-field').forEach(el => {
+                el.addEventListener('input', () => {
+                    const keys = String(el.dataset.keys || '').split('||').filter(Boolean);
+                    const value = (el.value || '').trim();
+                    keys.forEach(k => {
+                        productTemplateFieldsData[k] = value;
+                    });
+                    scheduleProductPreview();
+                });
+            });
+        }
+
+        function collectProductTemplateFieldsFromDom() {
+            const els = Array.from(document.querySelectorAll('.product-template-field'));
+            const mergedEls = Array.from(document.querySelectorAll('.product-template-merged-field'));
+            if (!els.length && !mergedEls.length) return { ...productTemplateFieldsData };
+            const data = { ...productTemplateFieldsData };
+            els.forEach(el => {
+                const key = el.dataset.key || '';
+                if (!key) return;
+                data[key] = normalizeProductTemplateFieldValue(key, el.value || '');
+            });
+            mergedEls.forEach(el => {
+                const keys = String(el.dataset.keys || '').split('||').filter(Boolean);
+                const value = (el.value || '').trim();
+                keys.forEach(k => {
+                    data[k] = value;
+                });
+            });
+            productTemplateFieldsData = data;
+            return data;
+        }
+
+        function applyProductTemplateDefaults(onlyEmpty = true) {
+            const defaults = getProductTemplateDefaultMap();
+            productTemplatePlaceholderKeys.forEach(key => {
+                if (!onlyEmpty || !productTemplateFieldsData[key]) {
+                    productTemplateFieldsData[key] = defaults[key] || '';
+                }
+            });
+        }
+
+        async function loadProductTemplatePlaceholders() {
+            if (productTemplatePlaceholderKeys.length) return;
+            try {
+                const res = await fetch('/api/products/template/placeholders');
+                const data = await res.json();
+                productTemplatePlaceholderKeys = Array.isArray(data.items) ? data.items : [];
+                if (!Object.keys(productTemplateFieldsData).length) {
+                    applyProductTemplateDefaults(false);
+                }
+                productTemplateGroupVisibleCounts = {};
+                renderProductTemplateFieldsEditor();
+            } catch (e) {
+                const container = document.getElementById('productTemplateFieldsEditor');
+                if (container) container.innerHTML = '<div style="color:#dc3545; padding:6px 0;">模板字段加载失败</div>';
+            }
+        }
+
+        function resetProductTemplateFieldsToDefaults() {
+            collectProductTemplateFieldsFromDom();
+            applyProductTemplateDefaults(false);
+            productTemplateGroupVisibleCounts = {};
+            renderProductTemplateFieldsEditor();
+            scheduleProductPreview();
+        }
+
+        function getProductCreatePayload() {
+            collectProductTemplateFieldsFromDom();
+            applyProductTemplateDefaults(true);
+            return {
+                title: document.getElementById('productCreateTitle')?.value.trim() || '',
+                short_name: document.getElementById('productCreateShortName')?.value.trim() || '',
+                slug: document.getElementById('productCreateSlug')?.value.trim() || '',
+                category: document.getElementById('productCreateCategory')?.value || 'sensor',
+                image_url: document.getElementById('productCreateImage')?.value.trim() || '',
+                summary: document.getElementById('productCreateSummary')?.value.trim() || '',
+                content: getProductEditorHtml(),
+                content_is_html: true,
+                template_fields: productTemplateFieldsData
+            };
+        }
+
+        async function updateProductPreview() {
+            const iframe = document.getElementById('productPreviewFrame');
+            if (!iframe) return;
+            const payload = getProductCreatePayload();
+            try {
+                const res = await fetch('/api/products/preview-page', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success && data.page_html) {
+                    iframe.srcdoc = data.page_html;
+                }
+            } catch (e) {
+                // ignore preview errors, keep current frame
+            }
+        }
+
+        function scheduleProductPreview() {
+            if (productPreviewTimer) {
+                clearTimeout(productPreviewTimer);
+                productPreviewTimer = null;
+            }
+            productPreviewTimer = setTimeout(() => {
+                updateProductPreview();
+            }, 500);
+        }
+
+        function cancelProductEdit() {
+            editingProductSlug = '';
+            const submitBtn = document.getElementById('productCreateSubmitBtn');
+            const cancelBtn = document.getElementById('productCreateCancelBtn');
+            if (submitBtn) submitBtn.textContent = '生成产品页面';
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            const form = document.getElementById('productCreateForm');
+            if (form) form.reset();
+            const visual = document.getElementById('productEditorVisual');
+            const source = document.getElementById('productEditorSource');
+            if (visual) visual.innerHTML = '';
+            if (source) source.value = '';
+            productTemplateFieldsData = {};
+            productTemplateGroupVisibleCounts = {};
+            applyProductTemplateDefaults(false);
+            renderProductTemplateFieldsEditor();
+            switchProductEditorMode('visual');
+            scheduleProductPreview();
+        }
+
+        async function editProductItem(productId) {
+            if (!productId || String(productId).startsWith('../')) return;
+            try {
+                const res = await fetch(`/api/products/detail?id=${encodeURIComponent(productId)}`);
+                const data = await res.json();
+                if (!data.success || !data.detail) {
+                    alert(data.message || '读取产品详情失败');
+                    return;
+                }
+                const detail = data.detail;
+                editingProductSlug = detail.id || productId;
+                document.getElementById('productCreateTitle').value = detail.title || '';
+                document.getElementById('productCreateShortName').value = detail.short_name || '';
+                document.getElementById('productCreateSlug').value = detail.id || productId;
+                document.getElementById('productCreateCategory').value = detail.category || 'sensor';
+                document.getElementById('productCreateImage').value = detail.image_url || '';
+                document.getElementById('productCreateSummary').value = detail.summary || '';
+                const visual = document.getElementById('productEditorVisual');
+                const source = document.getElementById('productEditorSource');
+                if (visual) visual.innerHTML = detail.content_html || '';
+                if (source) source.value = detail.content_html || '';
+                await loadProductTemplatePlaceholders();
+                productTemplateFieldsData = (detail.template_fields && typeof detail.template_fields === 'object')
+                    ? { ...detail.template_fields }
+                    : {};
+                productTemplateGroupVisibleCounts = {};
+                applyProductTemplateDefaults(true);
+                renderProductTemplateFieldsEditor();
+                switchProductEditorMode('visual');
+                const submitBtn = document.getElementById('productCreateSubmitBtn');
+                const cancelBtn = document.getElementById('productCreateCancelBtn');
+                if (submitBtn) submitBtn.textContent = '保存修改';
+                if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+                scheduleProductPreview();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        async function submitCreateProduct() {
+            const msg = document.getElementById('productCreateMsg');
+            const linkEl = document.getElementById('productCreateLink');
+            if (msg) {
+                msg.style.color = '#28a745';
+                msg.textContent = '';
+            }
+            if (linkEl) linkEl.textContent = '';
+
+            const payload = getProductCreatePayload();
+
+            if (!payload.title || !payload.short_name || !payload.slug || !payload.summary || !payload.content) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '请完整填写标题、简称、链接标识、摘要和正文';
+                }
+                return;
+            }
+
+            try {
+                const endpoint = editingProductSlug ? '/api/products/update' : '/api/products/create';
+                if (editingProductSlug) payload.original_slug = editingProductSlug;
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    throw new Error(data.message || '生成失败');
+                }
+
+                if (msg) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = editingProductSlug ? '✓ 修改成功' : '✓ 生成成功';
+                }
+                if (linkEl && data.link) {
+                    const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                    linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
+                }
+
+                cancelProductEdit();
+
+                await loadProducts();
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e.message || '保存失败';
+                }
+            }
+        }
+
+        function bindProductCreateEvents() {
+            const submitBtn = document.getElementById('productCreateSubmitBtn');
+            if (submitBtn && !submitBtn.dataset.bound) {
+                submitBtn.addEventListener('click', submitCreateProduct);
+                submitBtn.dataset.bound = '1';
+            }
+
+            const titleInput = document.getElementById('productCreateTitle');
+            const slugInput = document.getElementById('productCreateSlug');
+            if (titleInput && slugInput && !titleInput.dataset.slugBound) {
+                titleInput.addEventListener('input', () => {
+                    if (slugInput.value.trim()) return;
+                    const generated = (titleInput.value || '')
+                        .toLowerCase()
+                        .replace(/\s+/g, '_')
+                        .replace(/[^a-z0-9_]/g, '')
+                        .replace(/_+/g, '_')
+                        .replace(/^_+|_+$/g, '');
+                    slugInput.value = generated;
+                });
+                titleInput.dataset.slugBound = '1';
+            }
+
+            const visual = document.getElementById('productEditorVisual');
+            if (visual && !visual.dataset.bound) {
+                visual.addEventListener('input', () => {
+                    syncProductEditorSourceFromVisual();
+                    scheduleProductPreview();
+                });
+                visual.dataset.bound = '1';
+            }
+
+            const source = document.getElementById('productEditorSource');
+            if (source && !source.dataset.bound) {
+                source.addEventListener('input', scheduleProductPreview);
+                source.dataset.bound = '1';
+            }
+
+            ['productCreateTitle', 'productCreateShortName', 'productCreateSlug', 'productCreateCategory', 'productCreateImage', 'productCreateSummary']
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && !el.dataset.previewBound) {
+                        el.addEventListener('input', scheduleProductPreview);
+                        el.addEventListener('change', scheduleProductPreview);
+                        el.dataset.previewBound = '1';
+                    }
+                });
+
+            if (!window.__productPreviewHeightBound) {
+                window.addEventListener('message', (event) => {
+                    const data = event.data || {};
+                    if (data.type === 'product-preview-height' && data.height) {
+                        const iframe = document.getElementById('productPreviewFrame');
+                        if (iframe) iframe.style.height = `${Math.max(560, Number(data.height) || 560)}px`;
+                    }
+                });
+                window.__productPreviewHeightBound = true;
+            }
+
+            loadProductTemplatePlaceholders();
+            scheduleProductPreview();
+        }
+
+        function getAiProductPayload() {
+            return {
+                title: document.getElementById('aiProductTitle')?.value.trim() || '',
+                short_name: document.getElementById('aiProductShortName')?.value.trim() || '',
+                slug: document.getElementById('aiProductSlug')?.value.trim() || '',
+                category: document.getElementById('aiProductCategory')?.value || 'sensor',
+                image_url: document.getElementById('aiProductImage')?.value.trim() || '',
+                detail_image_urls: document.getElementById('aiProductDetailImages')?.value.trim() || '',
+                news_urls: document.getElementById('aiProductNewsUrls')?.value.trim() || '',
+                related_product_urls: document.getElementById('aiProductRelatedUrls')?.value.trim() || '',
+                summary: document.getElementById('aiProductSummary')?.value.trim() || '',
+                highlights: document.getElementById('aiProductHighlights')?.value.trim() || '',
+                features_text: document.getElementById('aiProductFeatures')?.value.trim() || '',
+                specs_text: document.getElementById('aiProductSpecs')?.value.trim() || ''
+            };
+        }
+
+        function buildAiProductContextText(payload) {
+            return [
+                payload.highlights ? `核心卖点:\n${payload.highlights}` : '',
+                payload.features_text ? `产品特性:\n${payload.features_text}` : '',
+                payload.specs_text ? `技术参数:\n${payload.specs_text}` : '',
+                payload.detail_image_urls ? `详情图片URL:\n${payload.detail_image_urls}` : '',
+                payload.news_urls ? `相关新闻URL:\n${payload.news_urls}` : '',
+                payload.related_product_urls ? `相关产品URL:\n${payload.related_product_urls}` : ''
+            ].filter(Boolean).join('\n\n');
+        }
+
+        function getAiGeneratedHtml() {
+            return document.getElementById('aiProductFieldsJson')?.value || '';
+        }
+
+        function setAiGeneratedHtmlOutput(text) {
+            const box = document.getElementById('aiProductFieldsJson');
+            if (!box) return;
+            box.value = text || '';
+            // Always follow latest streamed output.
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function buildAiPreviewHtmlWithResizeBridge(rawHtml) {
+            const bridge = `
+<script>
+(function () {
+  function sendHeight() {
+    var h = Math.max(
+      document.body ? document.body.scrollHeight : 0,
+      document.documentElement ? document.documentElement.scrollHeight : 0
+    );
+    try { parent.postMessage({ type: 'ai-product-preview-height', height: h }, '*'); } catch (e) {}
+  }
+  window.addEventListener('load', sendHeight);
+  window.addEventListener('resize', sendHeight);
+  setTimeout(sendHeight, 80);
+  setTimeout(sendHeight, 400);
+  setTimeout(sendHeight, 1200);
+})();
+<\/script>`;
+            const html = String(rawHtml || '');
+            if (html.includes('</body>')) return html.replace('</body>', `${bridge}\n</body>`);
+            return `${html}\n${bridge}`;
+        }
+
+        async function updateAiProductPreview() {
+            const iframe = document.getElementById('aiProductPreviewFrame');
+            if (!iframe) return;
+            const html = getAiGeneratedHtml().trim();
+            if (!html) return;
+            iframe.srcdoc = buildAiPreviewHtmlWithResizeBridge(html);
+        }
+
+        async function readAiProductHtmlStream(res, handlers = {}) {
+            if (!res.body) {
+                throw new Error('浏览器不支持流式读取');
+            }
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+            let htmlText = '';
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                while (true) {
+                    const sep = buffer.indexOf('\n\n');
+                    if (sep < 0) break;
+                    const block = buffer.slice(0, sep);
+                    buffer = buffer.slice(sep + 2);
+                    const dataLines = block
+                        .split('\n')
+                        .filter(line => line.startsWith('data: '))
+                        .map(line => line.slice(6));
+                    if (!dataLines.length) continue;
+                    const payloadText = dataLines.join('\n').trim();
+                    if (!payloadText || payloadText === '[DONE]') continue;
+                    let evt = null;
+                    try {
+                        evt = JSON.parse(payloadText);
+                    } catch (e) {
+                        continue;
+                    }
+                    if (evt.type === 'error') {
+                        throw new Error(evt.error || 'AI 请求失败');
+                    }
+                    if (evt.type === 'retry') {
+                        if (typeof handlers.onRetry === 'function') handlers.onRetry(evt);
+                        continue;
+                    }
+                    if (evt.type === 'chunk') {
+                        htmlText += evt.content || '';
+                        if (typeof handlers.onChunk === 'function') handlers.onChunk(htmlText, evt);
+                        continue;
+                    }
+                    if (evt.type === 'done') {
+                        if (evt.page_html) htmlText = evt.page_html;
+                        if (typeof handlers.onDone === 'function') handlers.onDone(htmlText, evt);
+                    }
+                }
+            }
+            return htmlText;
+        }
+
+        async function aiGenerateProductTemplateFields() {
+            const msg = document.getElementById('aiProductMsg');
+            const modifyMsg = document.getElementById('aiProductModifyMsg');
+            const payload = getAiProductPayload();
+            if (!payload.title || !payload.short_name || !payload.slug) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '请先填写产品标题、简称、链接标识';
+                }
+                return;
+            }
+            if (msg) {
+                msg.style.color = '#2563eb';
+                msg.textContent = 'AI 正在流式生成完整HTML...';
+            }
+            if (modifyMsg) {
+                modifyMsg.textContent = '';
+            }
+            setAiGeneratedHtmlOutput('');
+
+            try {
+                const res = await fetch('/api/products/ai-generate-html-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...payload,
+                        context_text: buildAiProductContextText(payload)
+                    })
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'AI 生成失败');
+                }
+                let lastPreviewAt = Date.now();
+                const htmlText = await readAiProductHtmlStream(res, {
+                    onRetry: (evt) => {
+                        if (msg) {
+                            msg.style.color = '#d97706';
+                            msg.textContent = `第 ${evt.attempt || 2} 轮续写中...`;
+                        }
+                    },
+                    onChunk: (chunkedHtml) => {
+                        setAiGeneratedHtmlOutput(chunkedHtml);
+                        const now = Date.now();
+                        if (now - lastPreviewAt > 1500) {
+                            lastPreviewAt = now;
+                            updateAiProductPreview().catch(() => { });
+                        }
+                    },
+                    onDone: (doneHtml) => {
+                        setAiGeneratedHtmlOutput(doneHtml);
+                    }
+                });
+
+                if (!htmlText.trim()) throw new Error('AI 未返回内容');
+
+                if (msg) {
+                    msg.style.color = '#16a34a';
+                    msg.textContent = '✓ AI 完整HTML生成完成';
+                }
+                await updateAiProductPreview();
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || 'AI 生成失败';
+                }
+            }
+        }
+
+        async function aiReviseGeneratedHtml() {
+            const msg = document.getElementById('aiProductMsg');
+            const modifyMsg = document.getElementById('aiProductModifyMsg');
+            const instruction = document.getElementById('aiProductModifyInstruction')?.value.trim() || '';
+            const currentHtml = getAiGeneratedHtml().trim();
+            const payload = getAiProductPayload();
+
+            if (!currentHtml) {
+                if (modifyMsg) {
+                    modifyMsg.style.color = '#dc3545';
+                    modifyMsg.textContent = '请先生成 HTML，再进行修改';
+                }
+                return;
+            }
+            if (!instruction) {
+                if (modifyMsg) {
+                    modifyMsg.style.color = '#dc3545';
+                    modifyMsg.textContent = '请先输入修改意见';
+                }
+                return;
+            }
+
+            if (msg) {
+                msg.style.color = '#2563eb';
+                msg.textContent = 'AI 正在按意见流式修改HTML...';
+            }
+            if (modifyMsg) {
+                modifyMsg.style.color = '#2563eb';
+                modifyMsg.textContent = '流式修改中...';
+            }
+            setAiGeneratedHtmlOutput('');
+
+            try {
+                const res = await fetch('/api/products/ai-revise-html-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: payload.title || payload.short_name || '产品页面',
+                        category: payload.category,
+                        image_url: payload.image_url,
+                        detail_image_urls: payload.detail_image_urls,
+                        news_urls: payload.news_urls,
+                        related_product_urls: payload.related_product_urls,
+                        summary: payload.summary,
+                        context_text: buildAiProductContextText(payload),
+                        instruction,
+                        current_html: currentHtml
+                    })
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'AI 修改失败');
+                }
+                let lastPreviewAt = Date.now();
+                const htmlText = await readAiProductHtmlStream(res, {
+                    onRetry: (evt) => {
+                        if (msg) {
+                            msg.style.color = '#d97706';
+                            msg.textContent = `修改第 ${evt.attempt || 2} 轮续写中...`;
+                        }
+                        if (modifyMsg) {
+                            modifyMsg.style.color = '#d97706';
+                            modifyMsg.textContent = `第 ${evt.attempt || 2} 轮续写中...`;
+                        }
+                    },
+                    onChunk: (chunkedHtml) => {
+                        setAiGeneratedHtmlOutput(chunkedHtml);
+                        const now = Date.now();
+                        if (now - lastPreviewAt > 1500) {
+                            lastPreviewAt = now;
+                            updateAiProductPreview().catch(() => { });
+                        }
+                    },
+                    onDone: (doneHtml) => {
+                        setAiGeneratedHtmlOutput(doneHtml);
+                    }
+                });
+
+                if (!htmlText.trim()) throw new Error('AI 未返回内容');
+
+                if (msg) {
+                    msg.style.color = '#16a34a';
+                    msg.textContent = '✓ AI 修改完成';
+                }
+                if (modifyMsg) {
+                    modifyMsg.style.color = '#16a34a';
+                    modifyMsg.textContent = '✓ 已按意见更新 HTML，可继续输入下一轮意见';
+                }
+                await updateAiProductPreview();
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || 'AI 修改失败';
+                }
+                if (modifyMsg) {
+                    modifyMsg.style.color = '#dc3545';
+                    modifyMsg.textContent = e?.message || 'AI 修改失败';
+                }
+            }
+        }
+
+        async function aiCreateProductPage() {
+            const msg = document.getElementById('aiProductMsg');
+            const linkEl = document.getElementById('aiProductLink');
+            const payload = getAiProductPayload();
+            if (!payload.title || !payload.short_name || !payload.slug) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '请先填写产品标题、简称、链接标识';
+                }
+                return;
+            }
+            const pageHtml = getAiGeneratedHtml().trim();
+            if (!pageHtml) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '请先点击“AI 生成完整HTML”';
+                }
+                return;
+            }
+
+            if (msg) {
+                msg.style.color = '#2563eb';
+                msg.textContent = '正在保存产品页面文件...';
+            }
+            if (linkEl) linkEl.innerHTML = '';
+
+            try {
+                const res = await fetch('/api/products/ai-create-html', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...payload,
+                        page_html: pageHtml
+                    })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '生成失败');
+
+                if (msg) {
+                    msg.style.color = '#16a34a';
+                    msg.textContent = '✓ 产品页已生成';
+                }
+                if (linkEl && data.link) {
+                    const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                    linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
+                }
+                await loadProducts();
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || '生成失败';
+                }
+            }
+        }
+
+        function bindAiProductEvents() {
+            if (aiProductEventsBound) return;
+            aiProductEventsBound = true;
+
+            const titleInput = document.getElementById('aiProductTitle');
+            const slugInput = document.getElementById('aiProductSlug');
+            if (titleInput && slugInput) {
+                titleInput.addEventListener('input', () => {
+                    if (slugInput.value.trim()) return;
+                    const generated = (titleInput.value || '')
+                        .toLowerCase()
+                        .replace(/\s+/g, '_')
+                        .replace(/[^a-z0-9_]/g, '')
+                        .replace(/_+/g, '_')
+                        .replace(/^_+|_+$/g, '');
+                    slugInput.value = generated;
+                });
+            }
+
+            const genBtn = document.getElementById('aiGenerateFieldsBtn');
+            if (genBtn) genBtn.addEventListener('click', aiGenerateProductTemplateFields);
+            const createBtn = document.getElementById('aiCreateProductBtn');
+            if (createBtn) createBtn.addEventListener('click', aiCreateProductPage);
+            const modifyBtn = document.getElementById('aiProductModifyBtn');
+            if (modifyBtn) modifyBtn.addEventListener('click', aiReviseGeneratedHtml);
+
+            if (!window.__aiProductPreviewHeightBound) {
+                window.addEventListener('message', (event) => {
+                    const data = event.data || {};
+                    if (data.type === 'ai-product-preview-height' && data.height) {
+                        const iframe = document.getElementById('aiProductPreviewFrame');
+                        if (iframe) iframe.style.height = `${Math.max(560, Number(data.height) || 560)}px`;
+                    }
+                });
+                window.__aiProductPreviewHeightBound = true;
+            }
+
+            ['aiProductTitle', 'aiProductShortName', 'aiProductSlug', 'aiProductCategory', 'aiProductImage', 'aiProductDetailImages', 'aiProductSummary', 'aiProductHighlights', 'aiProductFeatures', 'aiProductSpecs', 'aiProductNewsUrls', 'aiProductRelatedUrls', 'aiProductFieldsJson']
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('change', () => { updateAiProductPreview().catch(() => { }); });
+                });
+
+            const generatedHtmlBox = document.getElementById('aiProductFieldsJson');
+            if (generatedHtmlBox) {
+                generatedHtmlBox.addEventListener('input', () => { updateAiProductPreview().catch(() => { }); });
+            }
+        }
 
         async function loadProducts() {
             const tbody = document.getElementById('productsTableBody');
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px;">加载中...</td></tr>';
 
             try {
                 // 使用带设置的 API
@@ -2082,7 +3916,7 @@
                 productsData = data.products || [];
 
                 if (productsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无产品数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无产品数据</td></tr>';
                     return;
                 }
 
@@ -2134,6 +3968,11 @@
                                 placeholder="${escapeHtml(p.description || '')}">${escapeHtml(p.cardSummary || '')}</textarea>
                         </td>
                         <td><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">${p.id}</code></td>
+                        <td>
+                            ${String(p.id || '').startsWith('../')
+                        ? '<span style="font-size:12px; color:#999;">仅气体传感可编辑</span>'
+                        : `<button class="btn-sm product-edit-btn" data-id="${escapeHtml(p.id)}">编辑</button>`}
+                        </td>
                     </tr>
                 `).join('');
 
@@ -2179,6 +4018,11 @@
                         e.target.value = '';
                     });
                 });
+                tbody.querySelectorAll('.product-edit-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        editProductItem(btn.dataset.id);
+                    });
+                });
 
                 // Update menu preview
                 updateMenuPreview();
@@ -2189,7 +4033,7 @@
 
             } catch (e) {
                 console.error('Load products error:', e);
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="no-data">加载失败，请刷新重试</td></tr>';
             }
         }
 
@@ -2651,6 +4495,9 @@
 
             const rows = measurementTargetsData.map((item, idx) => `
                 <tr style="border-bottom:1px solid #eee;">
+                    <td class="drag-handle" style="padding:8px; width:44px; text-align:center;">
+                        <i class="fas fa-grip-vertical"></i>
+                    </td>
                     <td style="padding:8px; width:48px; color:#666;">${idx + 1}</td>
                     <td style="padding:8px;">
                         <input type="text" class="form-control measurement-target-name" data-index="${idx}"
@@ -2670,15 +4517,45 @@
                 <table style="width:100%; border-collapse:collapse;">
                     <thead>
                         <tr style="background:#f5f5f5;">
+                            <th style="padding:10px; text-align:center; width:44px; border-bottom:2px solid #ddd;">拖拽</th>
                             <th style="padding:10px; text-align:left; width:48px; border-bottom:2px solid #ddd;">#</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">显示名称</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">跳转链接</th>
                             <th style="padding:10px; text-align:center; width:90px; border-bottom:2px solid #ddd;">操作</th>
                         </tr>
                     </thead>
-                    <tbody>${rows}</tbody>
+                    <tbody id="measurementTargetsTbody">${rows}</tbody>
                 </table>
             `;
+            initMeasurementTargetsSortable();
+        }
+
+        function collectMeasurementTargetsFromDom() {
+            const names = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-name'));
+            const urls = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-url'));
+            return names.map((nameInput, idx) => ({
+                name: (nameInput.value || '').trim(),
+                url: (urls[idx]?.value || '').trim()
+            }));
+        }
+
+        function syncMeasurementTargetsFromDom() {
+            const tbody = document.getElementById('measurementTargetsTbody');
+            if (!tbody) return;
+            measurementTargetsData = collectMeasurementTargetsFromDom();
+        }
+
+        function initMeasurementTargetsSortable() {
+            const tbody = document.getElementById('measurementTargetsTbody');
+            if (!tbody || typeof Sortable === 'undefined') return;
+            new Sortable(tbody, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: function () {
+                    syncMeasurementTargetsFromDom();
+                    renderMeasurementTargetsEditor();
+                }
+            });
         }
 
         async function loadMeasurementTargets() {
@@ -2697,24 +4574,20 @@
         }
 
         function addMeasurementTargetRow() {
+            syncMeasurementTargetsFromDom();
             measurementTargetsData.push({ name: '', url: '' });
             renderMeasurementTargetsEditor();
         }
 
         function removeMeasurementTargetRow(index) {
+            syncMeasurementTargetsFromDom();
             measurementTargetsData.splice(index, 1);
             renderMeasurementTargetsEditor();
         }
 
         async function saveMeasurementTargets() {
             const msg = document.getElementById('measurementTargetsMsg');
-            const names = Array.from(document.querySelectorAll('.measurement-target-name'));
-            const urls = Array.from(document.querySelectorAll('.measurement-target-url'));
-
-            const items = names.map((nameInput, idx) => ({
-                name: (nameInput.value || '').trim(),
-                url: (urls[idx]?.value || '').trim()
-            }));
+            const items = collectMeasurementTargetsFromDom();
 
             const invalid = items.find(item => !item.name || !isValidNavLink(item.url));
             if (invalid) {
@@ -2743,6 +4616,142 @@
                 }
             } catch (e) {
                 console.error('Save measurement targets error:', e);
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '保存失败';
+                }
+            }
+        }
+
+        let navIndustryCategoriesData = [];
+
+        function renderNavIndustryCategoriesEditor() {
+            const container = document.getElementById('navIndustryCategoriesEditor');
+            if (!container) return;
+
+            const rows = navIndustryCategoriesData.map((item, idx) => `
+                <tr style="border-bottom:1px solid #eee;">
+                    <td class="drag-handle" style="padding:8px; width:44px; text-align:center;">
+                        <i class="fas fa-grip-vertical"></i>
+                    </td>
+                    <td style="padding:8px; width:48px; color:#666;">${idx + 1}</td>
+                    <td style="padding:8px;">
+                        <input type="text" class="form-control nav-industry-name" data-index="${idx}"
+                            value="${escapeHtml(item.name || '')}" placeholder="按钮名称（如：氢能源产业链）">
+                    </td>
+                    <td style="padding:8px;">
+                        <input type="text" class="form-control nav-industry-url" data-index="${idx}"
+                            value="${escapeHtml(item.url || '')}" placeholder="相对路径或 http(s) 链接">
+                    </td>
+                    <td style="padding:8px; width:90px; text-align:center;">
+                        <button class="btn-sm btn-danger" onclick="removeNavIndustryCategoryRow(${idx})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f5f5f5;">
+                            <th style="padding:10px; text-align:center; width:44px; border-bottom:2px solid #ddd;">拖拽</th>
+                            <th style="padding:10px; text-align:left; width:48px; border-bottom:2px solid #ddd;">#</th>
+                            <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">按钮名称</th>
+                            <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">跳转链接</th>
+                            <th style="padding:10px; text-align:center; width:90px; border-bottom:2px solid #ddd;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="navIndustryCategoriesTbody">${rows}</tbody>
+                </table>
+            `;
+            initNavIndustryCategoriesSortable();
+        }
+
+        function collectNavIndustryCategoriesFromDom() {
+            const names = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-name'));
+            const urls = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-url'));
+            return names.map((nameInput, idx) => ({
+                name: (nameInput.value || '').trim(),
+                url: (urls[idx]?.value || '').trim()
+            }));
+        }
+
+        function syncNavIndustryCategoriesFromDom() {
+            const tbody = document.getElementById('navIndustryCategoriesTbody');
+            if (!tbody) return;
+            navIndustryCategoriesData = collectNavIndustryCategoriesFromDom();
+        }
+
+        function initNavIndustryCategoriesSortable() {
+            const tbody = document.getElementById('navIndustryCategoriesTbody');
+            if (!tbody || typeof Sortable === 'undefined') return;
+            new Sortable(tbody, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: function () {
+                    syncNavIndustryCategoriesFromDom();
+                    renderNavIndustryCategoriesEditor();
+                }
+            });
+        }
+
+        async function loadNavIndustryCategories() {
+            const container = document.getElementById('navIndustryCategoriesEditor');
+            if (!container) return;
+            container.innerHTML = '<div style="color:#888; padding: 8px 0;">加载中...</div>';
+            try {
+                const res = await fetch('/api/nav-industry-categories');
+                const data = await res.json();
+                navIndustryCategoriesData = Array.isArray(data.items) ? data.items : [];
+                renderNavIndustryCategoriesEditor();
+            } catch (e) {
+                console.error('Load nav industry categories error:', e);
+                container.innerHTML = '<div style="color:#dc3545; padding: 8px 0;">加载失败，请刷新重试</div>';
+            }
+        }
+
+        function addNavIndustryCategoryRow() {
+            syncNavIndustryCategoriesFromDom();
+            navIndustryCategoriesData.push({ name: '', url: '' });
+            renderNavIndustryCategoriesEditor();
+        }
+
+        function removeNavIndustryCategoryRow(index) {
+            syncNavIndustryCategoriesFromDom();
+            navIndustryCategoriesData.splice(index, 1);
+            renderNavIndustryCategoriesEditor();
+        }
+
+        async function saveNavIndustryCategories() {
+            const msg = document.getElementById('navIndustryCategoriesMsg');
+            const items = collectNavIndustryCategoriesFromDom();
+
+            const invalid = items.find(item => !item.name || !isValidNavLink(item.url));
+            if (invalid) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '请填写完整名称，并使用相对路径或 http(s) 链接';
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/nav-industry-categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    throw new Error(result.message || '保存失败');
+                }
+                navIndustryCategoriesData = Array.isArray(result.items) ? result.items : items;
+                renderNavIndustryCategoriesEditor();
+                if (msg) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '✓ 保存成功！刷新 gas 页面即可生效';
+                }
+            } catch (e) {
+                console.error('Save nav industry categories error:', e);
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = '保存失败';
@@ -2846,6 +4855,8 @@
             if (tab) {
                 tab.classList.add('active');
                 renderTabGuide(tab);
+                if (tabName === 'add') bindProductCreateEvents();
+                if (tabName === 'ai') bindAiProductEvents();
             }
         }
 
@@ -3849,6 +5860,7 @@
                     loadRecommendations();
                 }
                 loadMeasurementTargets();
+                loadNavIndustryCategories();
             }
         }
 
@@ -4723,6 +6735,7 @@
                     title: document.getElementById('newsTitle').value.trim(),
                     date: document.getElementById('newsDate').value,
                     category: document.getElementById('newsCategory').value,
+                    division: document.getElementById('newsDivision').value.trim(),
                     image_url: document.getElementById('newsImage').value.trim(),
                     summary: document.getElementById('newsSummary').value.trim(),
                     content: getNewsEditorHtml(),
@@ -4805,6 +6818,7 @@
                                 <div style="font-weight: 600;">${escapeHtml(item.title || '')}</div>
                                 <div class="file-meta">${item.date || ''}</div>
                                 <div class="file-meta" style="margin-top: 4px;">摘要：${escapeHtml(item.desc || '（无）')}</div>
+                                <div class="file-meta">归属事业部：${escapeHtml(item.division || '（未设置）')}</div>
                                 <div class="file-meta">${escapeHtml(item.link || '')}</div>
                                 <div style="margin-top: 8px; display:flex; align-items:center; gap:8px;">
                                     <span style="font-size:12px; color:#666;">分类</span>
@@ -4863,6 +6877,7 @@
                 document.getElementById('newsTitle').value = item.title || '';
                 document.getElementById('newsDate').value = item.date || '';
                 document.getElementById('newsCategory').value = item.category || 'enterprise';
+                document.getElementById('newsDivision').value = item.division || '';
                 document.getElementById('newsImage').value = detail.image_url || item.image || '';
                 document.getElementById('newsSummary').value = item.desc || '';
                 setNewsEditorHtml(detail.content_html || detail.content_text || '');
@@ -5071,6 +7086,350 @@
             }
         }
 
+        // --- Jobs Editor ---
+        let jobEditorMode = 'visual';
+        let jobEditorSavedRange = null;
+        const jobEditorEl = document.getElementById('jobContentEditor');
+        const jobSourceEl = document.getElementById('jobContent');
+
+        function saveJobEditorSelection() {
+            if (!jobEditorEl || jobEditorMode !== 'visual') return;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+            if (!jobEditorEl.contains(range.commonAncestorContainer)) return;
+            jobEditorSavedRange = range.cloneRange();
+        }
+
+        function restoreJobEditorSelection() {
+            if (!jobEditorEl || jobEditorMode !== 'visual' || !jobEditorSavedRange) return;
+            const sel = window.getSelection();
+            if (!sel) return;
+            sel.removeAllRanges();
+            sel.addRange(jobEditorSavedRange);
+        }
+
+        function getJobEditorHtml() {
+            if (!jobEditorEl || !jobSourceEl) return '';
+            if (jobEditorMode === 'source') {
+                return (jobSourceEl.value || '').trim();
+            }
+            jobSourceEl.value = (jobEditorEl.innerHTML || '').trim();
+            return jobSourceEl.value;
+        }
+
+        function setJobEditorHtml(html) {
+            if (!jobEditorEl || !jobSourceEl) return;
+            const value = html || '';
+            jobEditorEl.innerHTML = value;
+            jobSourceEl.value = value;
+        }
+
+        function switchJobEditorMode(mode) {
+            if (!jobEditorEl || !jobSourceEl) return;
+            const visualBtn = document.getElementById('jobModeVisualBtn');
+            const sourceBtn = document.getElementById('jobModeSourceBtn');
+            if (mode === 'source') {
+                jobSourceEl.value = jobEditorEl.innerHTML || '';
+                jobEditorEl.style.display = 'none';
+                jobSourceEl.style.display = 'block';
+                jobEditorMode = 'source';
+                if (visualBtn) visualBtn.classList.remove('active');
+                if (sourceBtn) sourceBtn.classList.add('active');
+            } else {
+                jobEditorEl.innerHTML = jobSourceEl.value || '';
+                jobSourceEl.style.display = 'none';
+                jobEditorEl.style.display = 'block';
+                jobEditorMode = 'visual';
+                if (sourceBtn) sourceBtn.classList.remove('active');
+                if (visualBtn) visualBtn.classList.add('active');
+            }
+        }
+
+        function applyJobFormat(cmd, value = null) {
+            if (!jobEditorEl || jobEditorMode !== 'visual') {
+                switchJobEditorMode('visual');
+            }
+            jobEditorEl.focus();
+            restoreJobEditorSelection();
+            document.execCommand(cmd, false, value);
+            saveJobEditorSelection();
+        }
+
+        function applyJobFontSize(size) {
+            if (!size) return;
+            if (/^\d+(\.\d+)?$/.test(size)) size = `${size}px`;
+            applyJobFormat('styleWithCSS', true);
+            applyJobFormat('fontSize', '7');
+            if (!jobEditorEl) return;
+            const fonts = jobEditorEl.querySelectorAll('font[size="7"]');
+            fonts.forEach(node => {
+                node.removeAttribute('size');
+                node.style.fontSize = size;
+            });
+        }
+
+        function applyJobFontSizeCustom() {
+            const input = document.getElementById('jobFontSizeCustom');
+            if (!input) return;
+            const val = parseFloat(input.value);
+            if (!Number.isFinite(val) || val < 8 || val > 200) {
+                alert('请输入 8 - 200 之间的字号');
+                return;
+            }
+            applyJobFontSize(`${val}px`);
+        }
+
+        function applyJobFontColor(color) {
+            if (!color) return;
+            applyJobFormat('styleWithCSS', true);
+            applyJobFormat('foreColor', color);
+        }
+
+        function setJobColorPreset(color) {
+            const colorInput = document.getElementById('jobFontColorInput');
+            if (colorInput) colorInput.value = color;
+            applyJobFontColor(color);
+        }
+
+        function getJobSelectionBlocks() {
+            if (!jobEditorEl) return [];
+            const sel = window.getSelection();
+            if ((!sel || sel.rangeCount === 0) && jobEditorSavedRange) {
+                const fakeSel = window.getSelection();
+                if (fakeSel) {
+                    fakeSel.removeAllRanges();
+                    fakeSel.addRange(jobEditorSavedRange);
+                }
+            }
+            if (!sel || sel.rangeCount === 0) return [];
+            const range = sel.getRangeAt(0);
+            if (!jobEditorEl.contains(range.commonAncestorContainer)) return [];
+            const selector = 'p,div,li,h1,h2,h3,h4,h5,h6,blockquote';
+            const blocks = Array.from(jobEditorEl.querySelectorAll(selector)).filter(el => {
+                try {
+                    return range.intersectsNode(el);
+                } catch (e) {
+                    return false;
+                }
+            });
+            if (blocks.length) return blocks;
+
+            let node = sel.anchorNode;
+            if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+            while (node && node !== jobEditorEl) {
+                if (node.matches && node.matches(selector)) return [node];
+                node = node.parentElement;
+            }
+            return [];
+        }
+
+        function applyJobBlockStyle(styleSetter) {
+            if (!jobEditorEl) return;
+            if (jobEditorMode !== 'visual') switchJobEditorMode('visual');
+            restoreJobEditorSelection();
+            const blocks = getJobSelectionBlocks();
+            if (blocks.length > 0) {
+                blocks.forEach(styleSetter);
+            } else {
+                const allBlocks = Array.from(jobEditorEl.querySelectorAll('p,div,li,h1,h2,h3,h4,h5,h6,blockquote'));
+                if (allBlocks.length > 0) allBlocks.forEach(styleSetter);
+                else styleSetter(jobEditorEl);
+            }
+            saveJobEditorSelection();
+        }
+
+        function applyJobLineHeight(value) {
+            if (!value) return;
+            applyJobBlockStyle((el) => { el.style.lineHeight = value; });
+        }
+
+        function applyJobLineHeightCustom() {
+            const input = document.getElementById('jobLineHeightCustom');
+            if (!input) return;
+            const val = parseFloat(input.value);
+            if (!Number.isFinite(val) || val < 0.8 || val > 5) {
+                alert('请输入 0.8 - 5.0 之间的行间距');
+                return;
+            }
+            applyJobLineHeight(String(val));
+        }
+
+        function applyJobFirstIndent(value) {
+            if (typeof value === 'undefined' || value === '') return;
+            applyJobBlockStyle((el) => { el.style.textIndent = value; });
+        }
+
+        function applyJobParagraphSpacing(type, value) {
+            if (!value) return;
+            applyJobBlockStyle((el) => {
+                if (type === 'before') el.style.marginTop = value;
+                if (type === 'after') el.style.marginBottom = value;
+            });
+        }
+
+        function insertJobLink() {
+            const link = prompt('请输入链接（http/https）');
+            if (!link) return;
+            applyJobFormat('createLink', link.trim());
+        }
+
+        function getJobImageWidthSetting() {
+            const preset = document.getElementById('jobImageSizePreset')?.value || '60%';
+            const customRaw = (document.getElementById('jobImageSizeCustom')?.value || '').trim();
+            const raw = customRaw || preset;
+            if (!raw) return '60%';
+            if (/^\d+(\.\d+)?%$/.test(raw)) return raw;
+            if (/^\d+(\.\d+)?px$/i.test(raw)) return raw.toLowerCase();
+            if (/^\d+(\.\d+)?$/.test(raw)) return `${raw}px`;
+            return preset || '60%';
+        }
+
+        function insertHtmlToJobEditor(html) {
+            if (!jobEditorEl) return;
+            if (jobEditorMode !== 'visual') {
+                switchJobEditorMode('visual');
+            }
+            jobEditorEl.focus();
+            document.execCommand('insertHTML', false, html);
+        }
+
+        function triggerJobImageUpload() {
+            const input = document.getElementById('jobImageFileInput');
+            if (input) input.click();
+        }
+
+        async function uploadJobImageFile(inputEl) {
+            const msg = document.getElementById('jobMsg');
+            const file = inputEl?.files?.[0];
+            if (!file) return;
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = '正在上传图片...';
+            }
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch('/api/news/image/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '上传失败');
+                const width = getJobImageWidthSetting();
+                insertHtmlToJobEditor(
+                    `<p style="text-align:center;"><img src="${data.url}" alt="job-image" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
+                );
+                if (msg) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '✓ 图片上传并插入成功';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || '图片上传失败';
+                }
+            } finally {
+                if (inputEl) inputEl.value = '';
+            }
+        }
+
+        async function insertJobImageFromUrl() {
+            const input = document.getElementById('jobInsertImageUrl');
+            const msg = document.getElementById('jobMsg');
+            const rawUrl = (input?.value || '').trim();
+            if (!rawUrl) {
+                alert('请先粘贴图片链接');
+                return;
+            }
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = '正在下载并导入图片...';
+            }
+            try {
+                const res = await fetch('/api/news/image/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: rawUrl })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '导入失败');
+                const width = getJobImageWidthSetting();
+                insertHtmlToJobEditor(
+                    `<p style="text-align:center;"><img src="${data.url}" alt="job-image" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
+                );
+                if (input) input.value = '';
+                if (msg) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '✓ 图片已导入';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || '图片导入失败';
+                }
+            }
+        }
+
+        function getSelectedJobImageElement() {
+            if (!jobEditorEl) return null;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            let node = sel.anchorNode;
+            if (!node) return null;
+            if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+            if (!node) return null;
+            if (node.tagName === 'IMG') return node;
+            const inNode = node.querySelector ? node.querySelector('img') : null;
+            if (inNode) return inNode;
+            const closest = node.closest ? node.closest('img') : null;
+            if (closest) return closest;
+            return null;
+        }
+
+        function applySizeToSelectedJobImage() {
+            if (!jobEditorEl || jobEditorMode !== 'visual') switchJobEditorMode('visual');
+            const img = getSelectedJobImageElement();
+            if (!img) {
+                alert('请先在编辑区点击要设置宽度的图片');
+                return;
+            }
+            const width = getJobImageWidthSetting();
+            img.style.width = width;
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            img.style.margin = '0 auto';
+        }
+
+        function bindJobEditorEvents() {
+            if (!jobEditorEl) return;
+            jobEditorEl.addEventListener('keyup', saveJobEditorSelection);
+            jobEditorEl.addEventListener('mouseup', saveJobEditorSelection);
+            jobEditorEl.addEventListener('focus', saveJobEditorSelection);
+            jobEditorEl.addEventListener('blur', saveJobEditorSelection);
+        }
+
+        function cleanJobText(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/\u00a0/g, ' ')
+                .replace(/&nbsp;?/gi, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function normalizeJobDateForInput(value) {
+            const text = cleanJobText(value);
+            if (!text) return '';
+            const match = text.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if (!match) return '';
+            const y = match[1];
+            const m = String(parseInt(match[2], 10)).padStart(2, '0');
+            const d = String(parseInt(match[3], 10)).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
         // --- Jobs Admin ---
         let editingJobId = '';
         let jobsCache = [];
@@ -5087,7 +7446,7 @@
                     department: document.getElementById('jobDepartment')?.value.trim(),
                     location: document.getElementById('jobLocation')?.value.trim(),
                     date: document.getElementById('jobDate')?.value,
-                    content_html: document.getElementById('jobContent')?.value.trim(),
+                    content_html: getJobEditorHtml(),
                     visible: document.getElementById('jobVisible')?.checked
                 };
 
@@ -5105,6 +7464,8 @@
                         }
                         cancelJobEdit();
                         jobForm.reset();
+                        setJobEditorHtml('');
+                        switchJobEditorMode('visual');
                         loadJobsAdmin();
                     } else if (msg) {
                         msg.style.color = '#dc3545';
@@ -5135,8 +7496,8 @@
                     <div class="file-item" style="align-items: flex-start;">
                         <div class="file-info">
                             <div>
-                                <div style="font-weight: 600;">${escapeHtml(item.title || '')}</div>
-                                <div class="file-meta">${escapeHtml(item.department || '')} · ${escapeHtml(item.location || '')} · ${item.date || ''}</div>
+                                <div style="font-weight: 600;">${escapeHtml(cleanJobText(item.title || ''))}</div>
+                                <div class="file-meta">${escapeHtml(cleanJobText(item.department || ''))} · ${escapeHtml(cleanJobText(item.location || ''))} · ${escapeHtml(cleanJobText(item.date || ''))}</div>
                                 <div class="file-meta">ID: ${escapeHtml(item.id || '')}</div>
                             </div>
                         </div>
@@ -5156,11 +7517,12 @@
             const item = jobsCache.find(j => j.id === jobId);
             if (!item) return;
             editingJobId = jobId;
-            document.getElementById('jobTitle').value = item.title || '';
-            document.getElementById('jobDepartment').value = item.department || '';
-            document.getElementById('jobLocation').value = item.location || '';
-            document.getElementById('jobDate').value = item.date || '';
-            document.getElementById('jobContent').value = item.content_html || '';
+            document.getElementById('jobTitle').value = cleanJobText(item.title || '');
+            document.getElementById('jobDepartment').value = cleanJobText(item.department || '');
+            document.getElementById('jobLocation').value = cleanJobText(item.location || '');
+            document.getElementById('jobDate').value = normalizeJobDateForInput(item.date || '');
+            setJobEditorHtml(item.content_html || '');
+            switchJobEditorMode('visual');
             document.getElementById('jobVisible').checked = !!item.visible;
             document.getElementById('jobCancelEdit').style.display = 'inline-flex';
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -5202,10 +7564,31 @@
         }
 
         bindNewsPreviewEvents();
+        bindJobEditorEvents();
         // --- Messages Logic ---
+        function switchMessageDataTab(tabName) {
+            const feedbackBtn = document.getElementById('msgTabFeedbackBtn');
+            const jobBtn = document.getElementById('msgTabJobBtn');
+            const feedbackPanel = document.getElementById('messagesPanelFeedback');
+            const jobPanel = document.getElementById('messagesPanelJob');
+            if (tabName === 'job') {
+                feedbackBtn?.classList.remove('active');
+                jobBtn?.classList.add('active');
+                feedbackPanel?.classList.remove('active');
+                jobPanel?.classList.add('active');
+            } else {
+                jobBtn?.classList.remove('active');
+                feedbackBtn?.classList.add('active');
+                jobPanel?.classList.remove('active');
+                feedbackPanel?.classList.add('active');
+            }
+        }
+
         async function loadMessages() {
-            const tbody = document.getElementById('messagesTableBody');
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            const feedbackTbody = document.getElementById('messagesTableBody');
+            const jobTbody = document.getElementById('jobApplicationsTableBody');
+            if (feedbackTbody) feedbackTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            if (jobTbody) jobTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">加载中...</td></tr>';
 
             try {
                 const res = await fetch('/api/messages');
@@ -5213,49 +7596,115 @@
 
                 const today = new Date().toISOString().split('T')[0];
                 let todayCount = 0;
+                const feedbackItems = [];
+                const jobItems = [];
 
-                if (messages.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="no-data">暂无留言数据</td></tr>';
-                    document.getElementById('totalCount').textContent = '0';
-                    document.getElementById('todayCount').textContent = '0';
-                    return;
+                messages.forEach(msg => {
+                    const dateStr = String(msg.timestamp || '').split('T')[0];
+                    if (dateStr === today) todayCount++;
+                    if (msg.message_type === 'job_application') jobItems.push(msg);
+                    else feedbackItems.push(msg);
+                });
+
+                if (feedbackTbody) {
+                    if (feedbackItems.length === 0) {
+                        feedbackTbody.innerHTML = '<tr><td colspan="5" class="no-data">暂无留言数据</td></tr>';
+                    } else {
+                        feedbackTbody.innerHTML = feedbackItems.map(msg => {
+                            const timestamp = String(msg.timestamp || '');
+                            const dateStr = timestamp.split('T')[0] || '-';
+                            const timeStr = timestamp.length >= 16 ? timestamp.substring(11, 16) : '-';
+                            const isRead = !!msg.is_read;
+                            return `
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:500;">${escapeHtml(dateStr)}</div>
+                                        <div style="font-size:12px; color:#888;">${escapeHtml(timeStr)}</div>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight:600;">${escapeHtml(msg.name || '')}</div>
+                                        <div style="font-size:12px; color:#888;">${escapeHtml(msg.ip || '')}</div>
+                                        <div style="font-size:12px; color:${isRead ? '#16a34a' : '#d97706'};">${isRead ? '已读' : '未读'}</div>
+                                    </td>
+                                    <td>${escapeHtml(msg.phone || '')}</td>
+                                    <td>
+                                        <div title="${escapeHtml(msg.content || '')}" style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                            ${escapeHtml(msg.content || '')}
+                                        </div>
+                                        ${msg.email ? `<div style="font-size:12px; color:#888; margin-top:2px;"><i class="far fa-envelope"></i> ${escapeHtml(msg.email)}</div>` : ''}
+                                    </td>
+                                    <td>
+                                        <button class="btn-sm" onclick="markMessageRead('${msg.id}')" ${isRead ? 'disabled' : ''}>
+                                            ${isRead ? '已读' : '标记已读'}
+                                        </button>
+                                        <button class="btn-sm btn-danger" onclick="deleteMessage('${msg.id}')">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
                 }
 
-                tbody.innerHTML = messages.map(msg => {
-                    const dateStr = msg.timestamp.split('T')[0];
-                    if (dateStr === today) todayCount++;
-
-                    return `
-                        <tr>
-                            <td>
-                                <div style="font-weight:500;">${dateStr}</div>
-                                <div style="font-size:12px; color:#888;">${msg.timestamp.substring(11, 16)}</div>
-                            </td>
-                            <td>
-                                <div style="font-weight:600;">${escapeHtml(msg.name)}</div>
-                                <div style="font-size:12px; color:#888;">${msg.ip}</div>
-                            </td>
-                            <td>${escapeHtml(msg.phone)}</td>
-                            <td>
-                                <div title="${escapeHtml(msg.content)}" style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                                    ${escapeHtml(msg.content)}
-                                </div>
-                                ${msg.email ? `<div style="font-size:12px; color:#888; margin-top:2px;"><i class="far fa-envelope"></i> ${escapeHtml(msg.email)}</div>` : ''}
-                            </td>
-                            <td>
-                                <button class="btn-sm btn-danger" onclick="deleteMessage('${msg.id}')">
-                                    <i class="fas fa-trash"></i> 删除
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+                if (jobTbody) {
+                    if (jobItems.length === 0) {
+                        jobTbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无应聘信息</td></tr>';
+                    } else {
+                        jobTbody.innerHTML = jobItems.map(msg => {
+                            const timestamp = String(msg.timestamp || '');
+                            const dateStr = timestamp.split('T')[0] || '-';
+                            const timeStr = timestamp.length >= 16 ? timestamp.substring(11, 16) : '-';
+                            const isRead = !!msg.is_read;
+                            const resumeHtml = msg.resume_url
+                                ? `<a href="${escapeHtml(msg.resume_url)}" target="_blank" rel="noopener">下载简历</a>`
+                                : '未上传';
+                            const detailsHtml = `
+                                <div><strong>职位：</strong>${escapeHtml(msg.job_title || msg.job_id || '-')}</div>
+                                <div><strong>年龄/民族/性别：</strong>${escapeHtml(msg.age || '-')} / ${escapeHtml(msg.ethnicity || '-')} / ${escapeHtml(msg.gender || '-')}</div>
+                                <div><strong>住址：</strong>${escapeHtml(msg.address || '-')}</div>
+                                <div><strong>学历/院校：</strong>${escapeHtml(msg.education || '-')} / ${escapeHtml(msg.school || '-')}</div>
+                                <div><strong>工作经历：</strong>${escapeHtml(msg.work_experience || '-')}</div>
+                                <div><strong>项目经历：</strong>${escapeHtml(msg.project_experience || '-')}</div>
+                                <div><strong>自我陈述：</strong>${escapeHtml(msg.self_statement || '-')}</div>
+                            `;
+                            return `
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:500;">${escapeHtml(dateStr)}</div>
+                                        <div style="font-size:12px; color:#888;">${escapeHtml(timeStr)}</div>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight:600;">${escapeHtml(msg.name || '')}</div>
+                                        <div style="font-size:12px; color:#888;">IP: ${escapeHtml(msg.ip || '')}</div>
+                                        <div style="font-size:12px; color:${isRead ? '#16a34a' : '#d97706'};">${isRead ? '已读' : '未读'}</div>
+                                    </td>
+                                    <td>
+                                        <div>${escapeHtml(msg.phone || '-')}</div>
+                                        <div style="font-size:12px; color:#888;">${escapeHtml(msg.email || '-')}</div>
+                                    </td>
+                                    <td style="max-width: 460px; line-height:1.7;">${detailsHtml}</td>
+                                    <td>${resumeHtml}</td>
+                                    <td>
+                                        <button class="btn-sm" onclick="markMessageRead('${msg.id}')" ${isRead ? 'disabled' : ''}>
+                                            ${isRead ? '已读' : '标记已读'}
+                                        </button>
+                                        <button class="btn-sm btn-danger" onclick="deleteMessage('${msg.id}')">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
 
                 document.getElementById('totalCount').textContent = messages.length;
                 document.getElementById('todayCount').textContent = todayCount;
 
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败</td></tr>';
+                if (feedbackTbody) feedbackTbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败</td></tr>';
+                if (jobTbody) jobTbody.innerHTML = '<tr><td colspan="6" class="no-data">加载失败</td></tr>';
             }
         }
 
@@ -5270,7 +7719,73 @@
             }
         }
 
+        async function markMessageRead(id) {
+            try {
+                const res = await fetch(`/api/messages/${id}/read`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    loadMessages();
+                } else {
+                    alert(data.message || '标记已读失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
         // --- Settings Logic ---
+        function downloadFullBackup() {
+            window.open('/api/backup/download', '_blank');
+        }
+
+        async function restoreFromBackup() {
+            const fileInput = document.getElementById('backupRestoreFile');
+            const msg = document.getElementById('backupMsg');
+            const file = fileInput?.files?.[0];
+            if (msg) {
+                msg.style.color = '#dc3545';
+                msg.textContent = '';
+            }
+            if (!file) {
+                if (msg) msg.textContent = '请先选择备份 ZIP 文件';
+                return;
+            }
+            if (!String(file.name || '').toLowerCase().endsWith('.zip')) {
+                if (msg) msg.textContent = '仅支持 ZIP 备份文件';
+                return;
+            }
+            if (!confirm('恢复会覆盖当前数据，确认继续吗？')) return;
+
+            const fd = new FormData();
+            fd.append('file', file);
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = '恢复中，请稍候...';
+            }
+            try {
+                const res = await fetch('/api/backup/restore', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = data.message || '恢复成功，请重启服务并刷新后台。';
+                    }
+                    if (fileInput) fileInput.value = '';
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '恢复失败';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误，恢复失败';
+                }
+            }
+        }
+
         document.getElementById('settingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
@@ -5326,6 +7841,7 @@
             }
 
             if (tabName === 'knowledge') loadKnowledgeFiles();
+            if (tabName === 'product-ai') loadProductPageAiConfig();
         }
 
         async function loadChatbotConfig() {
@@ -5342,6 +7858,7 @@
                 document.getElementById('chatbotTemperature').value = config.temperature || 0.7;
 
                 updateStatusIndicator(config.enabled !== false);
+                loadProductPageAiConfig();
 
                 // Also load knowledge files
                 loadKnowledgeFiles();
@@ -5363,6 +7880,78 @@
 
         document.getElementById('chatbotEnabled').addEventListener('change', function () {
             updateStatusIndicator(this.checked);
+        });
+
+        function updateProductAiStatusIndicator(enabled) {
+            const status = document.getElementById('productAiStatus');
+            if (!status) return;
+            if (enabled) {
+                status.className = 'status-indicator enabled';
+                status.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i><span>已启用</span>';
+            } else {
+                status.className = 'status-indicator disabled';
+                status.innerHTML = '<i class="fas fa-circle" style="font-size: 8px;"></i><span>已禁用</span>';
+            }
+        }
+
+        async function loadProductPageAiConfig() {
+            try {
+                const res = await fetch('/api/product-ai/config');
+                const config = await res.json();
+                const enabled = config.enabled === true;
+                const id = (x) => document.getElementById(x);
+                id('productAiEnabled').checked = enabled;
+                id('productAiApiKey').placeholder = config.api_key || 'sk-...';
+                id('productAiApiBase').value = config.api_base || 'https://api.openai.com/v1';
+                id('productAiModel').value = config.model || 'gpt-4o-mini';
+                id('productAiSystemPrompt').value = config.system_prompt || '';
+                updateProductAiStatusIndicator(enabled);
+            } catch (e) {
+                console.error('Failed to load product AI config:', e);
+            }
+        }
+
+        document.getElementById('productAiEnabled').addEventListener('change', function () {
+            updateProductAiStatusIndicator(this.checked);
+        });
+
+        document.getElementById('productAiConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const msg = document.getElementById('productAiConfigMsg');
+            const apiKeyInput = document.getElementById('productAiApiKey');
+            const apiKey = apiKeyInput.value.trim();
+
+            btn.disabled = true;
+            msg.textContent = '';
+            msg.style.color = '#dc3545';
+
+            try {
+                const res = await fetch('/api/product-ai/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enabled: document.getElementById('productAiEnabled').checked,
+                        api_key: apiKey || undefined,
+                        api_base: document.getElementById('productAiApiBase').value,
+                        model: document.getElementById('productAiModel').value,
+                        system_prompt: document.getElementById('productAiSystemPrompt').value
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '产品页编程 AI 配置保存成功！';
+                    apiKeyInput.value = '';
+                    loadProductPageAiConfig();
+                } else {
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e2) {
+                msg.textContent = '网络错误';
+            } finally {
+                btn.disabled = false;
+            }
         });
 
         document.getElementById('chatbotConfigForm').addEventListener('submit', async (e) => {
