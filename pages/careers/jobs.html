@@ -433,6 +433,140 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
+        .job-apply-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 20, 46, 0.56);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 3000;
+        }
+
+        .job-apply-modal.show {
+            display: flex;
+        }
+
+        .job-apply-dialog {
+            width: min(980px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 24px 60px rgba(3, 33, 66, 0.26);
+            padding: 26px;
+        }
+
+        .job-apply-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .job-apply-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #012d58;
+        }
+
+        .job-apply-close {
+            border: none;
+            background: #eef3f8;
+            color: #0a3a68;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .job-apply-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 16px;
+        }
+
+        .job-apply-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .job-apply-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .job-apply-field label {
+            font-size: 13px;
+            color: #425466;
+            font-weight: 600;
+        }
+
+        .job-apply-input, .job-apply-textarea, .job-apply-select {
+            width: 100%;
+            border: 1px solid #d7e2ed;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        .job-apply-input:focus, .job-apply-textarea:focus, .job-apply-select:focus {
+            outline: none;
+            border-color: #1d70c9;
+            box-shadow: 0 0 0 3px rgba(29, 112, 201, 0.14);
+        }
+
+        .job-apply-textarea {
+            min-height: 96px;
+            resize: vertical;
+            line-height: 1.7;
+        }
+
+        .job-apply-tip {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .job-apply-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+            grid-column: 1 / -1;
+        }
+
+        .job-apply-submit {
+            border: none;
+            background: linear-gradient(135deg, #005eb5, #003764);
+            color: #fff;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .job-apply-cancel {
+            border: 1px solid #c8d4e1;
+            background: #fff;
+            color: #1f3650;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .job-apply-msg {
+            grid-column: 1 / -1;
+            font-size: 13px;
+            min-height: 20px;
+        }
+
         @media (max-width: 992px) {
             .job-summary {
                 grid-template-columns: 1fr 1fr;
@@ -451,6 +585,10 @@
         }
         @media (max-width: 600px) {
              .job-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .job-apply-form {
                 grid-template-columns: 1fr;
             }
         }
@@ -524,6 +662,88 @@
         </script>
     </main>
 
+    <div class="job-apply-modal" id="jobApplyModal" aria-hidden="true">
+        <div class="job-apply-dialog" role="dialog" aria-modal="true" aria-labelledby="jobApplyTitle">
+            <div class="job-apply-header">
+                <div class="job-apply-title" id="jobApplyTitle">应聘信息填写</div>
+                <button type="button" class="job-apply-close" id="jobApplyCloseBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="jobApplyForm" class="job-apply-form">
+                <input type="hidden" id="applyJobId" name="job_id">
+                <input type="hidden" id="applyJobTitle" name="job_title">
+
+                <div class="job-apply-field full">
+                    <label for="applyJobTitleView">应聘职位</label>
+                    <input class="job-apply-input" id="applyJobTitleView" readonly>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applyName">姓名</label>
+                    <input class="job-apply-input" id="applyName" name="name" required>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applyAge">年龄</label>
+                    <input class="job-apply-input" id="applyAge" name="age" type="number" min="16" max="100" required>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applyEthnicity">民族</label>
+                    <input class="job-apply-input" id="applyEthnicity" name="ethnicity" required>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applyGender">性别</label>
+                    <select class="job-apply-select" id="applyGender" name="gender" required>
+                        <option value="">请选择</option>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                <div class="job-apply-field full">
+                    <label for="applyAddress">住址</label>
+                    <input class="job-apply-input" id="applyAddress" name="address" required>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applyPhone">电话</label>
+                    <input class="job-apply-input" id="applyPhone" name="phone" required>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applyEmail">邮箱</label>
+                    <input class="job-apply-input" id="applyEmail" name="email" type="email" required>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applyEducation">学历</label>
+                    <input class="job-apply-input" id="applyEducation" name="education" required>
+                </div>
+                <div class="job-apply-field">
+                    <label for="applySchool">毕业院校</label>
+                    <input class="job-apply-input" id="applySchool" name="school" required>
+                </div>
+                <div class="job-apply-field full">
+                    <label for="applyWorkExperience">工作经历</label>
+                    <textarea class="job-apply-textarea" id="applyWorkExperience" name="work_experience" required></textarea>
+                </div>
+                <div class="job-apply-field full">
+                    <label for="applyProjectExperience">项目经历</label>
+                    <textarea class="job-apply-textarea" id="applyProjectExperience" name="project_experience" required></textarea>
+                </div>
+                <div class="job-apply-field full">
+                    <label for="applySelfStatement">自我陈述（100字以内）</label>
+                    <textarea class="job-apply-textarea" id="applySelfStatement" name="self_statement" maxlength="100" required></textarea>
+                </div>
+                <div class="job-apply-field full">
+                    <label for="applyResumeFile">上传简历（PDF / DOC / DOCX）</label>
+                    <input class="job-apply-input" id="applyResumeFile" name="resume_file" type="file" accept=".pdf,.doc,.docx" required>
+                    <div class="job-apply-tip">文件大小不超过 10MB。</div>
+                </div>
+
+                <div class="job-apply-msg" id="jobApplyMsg"></div>
+                <div class="job-apply-actions">
+                    <button type="button" class="job-apply-cancel" id="jobApplyCancelBtn">取消</button>
+                    <button type="submit" class="job-apply-submit" id="jobApplySubmitBtn">提交应聘</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <!-- 全站搜索 -->
     <script src="../../assets/js/search.js"></script>
 
@@ -533,13 +753,37 @@
     <script>
         (function () {
             const list = document.getElementById('jobsList');
-            if (!list) return;
-    
+            const applyModal = document.getElementById('jobApplyModal');
+            const applyForm = document.getElementById('jobApplyForm');
+            const applyMsg = document.getElementById('jobApplyMsg');
+            const applySubmitBtn = document.getElementById('jobApplySubmitBtn');
+            if (!list || !applyModal || !applyForm) return;
+
+            function escapeHtml(raw) {
+                const div = document.createElement('div');
+                div.textContent = raw == null ? '' : String(raw);
+                return div.innerHTML;
+            }
+
+            function closeApplyModal() {
+                applyModal.classList.remove('show');
+                applyModal.setAttribute('aria-hidden', 'true');
+            }
+
+            function openApplyModal(jobId, jobTitle) {
+                const title = (jobTitle || '').trim() || '未命名职位';
+                document.getElementById('applyJobId').value = jobId || '';
+                document.getElementById('applyJobTitle').value = title;
+                document.getElementById('applyJobTitleView').value = title;
+                applyMsg.textContent = '';
+                applyMsg.style.color = '#6b7280';
+                applyModal.classList.add('show');
+                applyModal.setAttribute('aria-hidden', 'false');
+            }
+
             // Toggle job details
             window.toggleJob = function(element) {
                 const item = element.closest('.job-item');
-                // Close others? Optional. Let's keep others open if user wants.
-                // Actually accordion style (close others) is usually cleaner.
                 const wasActive = item.classList.contains('active');
                 
                 // Close all
@@ -565,19 +809,19 @@
                         <div class="job-summary">
                             <div class="job-title">
                                 <span class="job-number">0${idx + 1}</span>
-                                ${item.title || '职位名称'}
+                                ${escapeHtml(item.title || '职位名称')}
                             </div>
                             <div class="job-meta job-icon-tag">
                                 <i class="fas fa-briefcase"></i>
-                                ${item.department || '研发部'}
+                                ${escapeHtml(item.department || '研发部')}
                             </div>
                             <div class="job-meta job-icon-tag">
                                 <i class="fas fa-map-marker-alt"></i>
-                                ${item.location || '长沙'}
+                                ${escapeHtml(item.location || '长沙')}
                             </div>
                             <div class="job-meta job-icon-tag">
                                 <i class="far fa-clock"></i>
-                                ${item.date || '2023-11-01'}
+                                ${escapeHtml(item.date || '2023-11-01')}
                             </div>
                             <div class="job-toggle-icon">
                                 <i class="fas fa-chevron-down"></i>
@@ -586,20 +830,22 @@
                         <div class="job-details">
                             <div class="job-details-content">
                                  ${item.content_html && item.content_html.includes('<dt') ? formatDlToModern(item.content_html) : formatPlainContent(item.content_html)}
-                                 <a href="/pages/contact/contact.html" class="job-apply-btn">申请职位</a>
+                                 <button type="button" class="job-apply-btn js-apply-btn" data-job-id="${escapeHtml(item.id || '')}" data-job-title="${escapeHtml(item.title || '')}">申请职位</button>
                             </div>
                         </div>
                     </li>
                 `).join('');
+
+                list.querySelectorAll('.js-apply-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openApplyModal(btn.dataset.jobId || '', btn.dataset.jobTitle || '');
+                    });
+                });
             }
             
-            // Helper to convert old DL/DT structure to something nicer if needed, 
-            // or just render it. The css handles p and li styles.
             function formatDlToModern(html) {
-                 // The old HTML used <dl><dt>...</dt><dd>...</dd></dl>
-                 // We can just return it, the CSS in the head handles standard tags. 
-                 // But let's replace <dt> with <h4> for better semantics if possible, or 
-                 // styled dt.
                  return html.replace(/<dt>/g, '<h4>').replace(/<\/dt>/g, '</h4>').replace(/<dd>/g, '<div>').replace(/<\/dd>/g, '</div>');
             }
             
@@ -607,35 +853,50 @@
                 if(!html) return '<p>暂无详细描述</p>';
                 return `<h4>岗位职责：</h4><div>${html}</div>`;
             }
+
+            document.getElementById('jobApplyCloseBtn')?.addEventListener('click', closeApplyModal);
+            document.getElementById('jobApplyCancelBtn')?.addEventListener('click', closeApplyModal);
+            applyModal.addEventListener('click', (e) => {
+                if (e.target === applyModal) closeApplyModal();
+            });
+
+            applyForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                applyMsg.style.color = '#6b7280';
+                applyMsg.textContent = '提交中...';
+                applySubmitBtn.disabled = true;
+                try {
+                    const formData = new FormData(applyForm);
+                    const res = await fetch('/api/job-application', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.message || '提交失败');
+                    }
+                    applyMsg.style.color = '#16a34a';
+                    applyMsg.textContent = data.message || '提交成功';
+                    applyForm.reset();
+                    setTimeout(closeApplyModal, 700);
+                } catch (err) {
+                    applyMsg.style.color = '#dc2626';
+                    applyMsg.textContent = err?.message || '提交失败，请稍后重试';
+                } finally {
+                    applySubmitBtn.disabled = false;
+                }
+            });
     
             // Fetch data
             fetch('/api/jobs/public')
                 .then(res => res.json())
                 .then(data => renderJobs(data.items || []))
                 .catch(() => {
-                    // Fallback mock data for development/preview if API fails
-                    // remove this in prod if strictly API driven
-                    console.log('API fetch failed, using mock data for display');
-                    const mockData = [
-                        {
-                            title: "嵌入式软件工程师",
-                            department: "研发中心",
-                            location: "长沙",
-                            date: "2023-10-25",
-                            content_html: "<p>1. 负责传感器嵌入式软件开发；<br>2. 配合硬件工程师完成调试；<br>3. 编写相关技术文档。</p>"
-                        },
-                        {
-                            title: "销售经理",
-                            department: "营销中心",
-                            location: "深圳",
-                            date: "2023-10-20",
-                            content_html: "<p>1. 负责区域内的产品销售；<br>2. 开拓新客户，维护老客户；<br>3. 完成销售业绩指标。</p>"
-                        }
-                    ];
-                     // In real scenario, show empty state or error. 
-                     // Since I can't verify if API is running, I'll render mock data if fetch fails 
-                     // to ensure the user sees the design change.
-                    renderJobs(mockData);
+                    list.innerHTML = `
+                        <li class="empty-state">
+                           <i class="far fa-folder-open" style="font-size: 48px; color: #ddd; margin-bottom: 20px;"></i>
+                           <p>职位加载失败，请稍后重试</p>
+                        </li>`;
                 });
         })();
     </script>

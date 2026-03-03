@@ -152,7 +152,8 @@
   "service-cases": {
     "industryCategories": [
       "custom"
-    ]
+    ],
+    "hidden": true
   },
   "../biosensing/igzo_device": {
     "hidden": true
@@ -185,6 +186,12 @@
     "hidden": true
   },
   "../biosensing/ion_detector": {
+    "hidden": true
+  },
+  "macbook_air": {
+    "hidden": true
+  },
+  "模板": {
     "hidden": true
   }
 }

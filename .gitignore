@@ -18,12 +18,6 @@ env/
 *.swp
 *.swo
 
-# Runtime Data (JSON Database)
-data/messages/*
-!data/messages/.gitkeep
-data/rate_limits.json
-data/config.json
-
 # Archive / Backup
 archive/
 *.bak

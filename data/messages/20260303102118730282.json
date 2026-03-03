@@ -1,0 +1,22 @@
+{
+  "id": "20260303102118730282",
+  "message_type": "job_application",
+  "job_id": "job_1",
+  "job_title": "工艺研发工程师",
+  "name": "智子楠",
+  "age": "28",
+  "ethnicity": "汉族",
+  "gender": "男",
+  "address": "Yiheyuan Road",
+  "phone": "19251109410",
+  "email": "zinanzhi@gmail.com",
+  "education": "在读博士",
+  "school": "北京大学",
+  "work_experience": "1",
+  "project_experience": "2",
+  "self_statement": "3",
+  "resume_filename": "pdf",
+  "resume_url": "/media/resumes/20260303102118730282_pdf",
+  "timestamp": "2026-03-03T10:21:18.730282",
+  "ip": "127.0.0.1"
+}
