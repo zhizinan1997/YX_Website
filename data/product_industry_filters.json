@@ -2,23 +2,23 @@
   "categories": [
     {
       "key": "hydrogen",
-      "name": "氢能源产品"
-    },
-    {
-      "key": "power",
-      "name": "智慧电力产品"
+      "name": "氢能源"
     },
     {
       "key": "leak",
-      "name": "工业检漏产品"
+      "name": "工业检漏"
     },
     {
-      "key": "research",
-      "name": "科研服务产品"
+      "key": "industry-3",
+      "name": "溶解氢分析"
     },
     {
-      "key": "custom",
-      "name": "定制类产品"
+      "key": "industry-4",
+      "name": "测试设备"
+    },
+    {
+      "key": "industry-5",
+      "name": "定制服务"
     }
   ]
 }

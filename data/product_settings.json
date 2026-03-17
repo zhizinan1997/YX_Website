@@ -7,8 +7,7 @@
       "module"
     ],
     "industryCategories": [
-      "hydrogen",
-      "custom"
+      "hydrogen"
     ],
     "cardTitle": "油中氢【测试】",
     "cardSummary": "这是摘要内容【测试】"
@@ -80,26 +79,21 @@
     "sortOrder": 13,
     "hidden": false,
     "industryCategories": [
-      "hydrogen",
-      "power",
-      "research"
+      "hydrogen"
     ]
   },
   "mctcx_thermal_h2": {
     "sortOrder": 14,
     "hidden": false,
     "industryCategories": [
-      "hydrogen",
-      "power"
+      "hydrogen"
     ]
   },
   "portable_gas_test_module": {
     "sortOrder": 15,
     "hidden": false,
     "industryCategories": [
-      "hydrogen",
-      "power",
-      "research"
+      "hydrogen"
     ]
   },
   "h2_detection_probe": {
@@ -108,9 +102,7 @@
     "categories": [
       "sensor"
     ],
-    "industryCategories": [
-      "custom"
-    ]
+    "industryCategories": []
   },
   "smart_gas_mixing_system": {
     "sortOrder": 17,
@@ -118,17 +110,13 @@
     "categories": [
       "system"
     ],
-    "industryCategories": [
-      "custom"
-    ]
+    "industryCategories": []
   },
   "../customization/custom_instrument_dev": {
     "categories": [
       "service"
     ],
-    "industryCategories": [
-      "custom"
-    ]
+    "industryCategories": []
   },
   "../customization/custom_gas_sensing_module": {
     "categories": [
@@ -139,9 +127,7 @@
     "categories": [
       "service"
     ],
-    "industryCategories": [
-      "custom"
-    ]
+    "industryCategories": []
   },
   "../biosensing/portable_bio_detector": {
     "industryCategories": [
@@ -150,9 +136,7 @@
     "hidden": true
   },
   "service-cases": {
-    "industryCategories": [
-      "custom"
-    ],
+    "industryCategories": [],
     "hidden": true
   },
   "../biosensing/igzo_device": {
@@ -193,5 +177,100 @@
   },
   "模板": {
     "hidden": true
+  },
+  "mc_ld_nh2": {
+    "industryCategories": [
+      "leak"
+    ]
+  },
+  "mc_wd_01": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_tm_01": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_td_01": {
+    "industryCategories": [
+      "leak"
+    ]
+  },
+  "mc_pdr_01": {
+    "industryCategories": [
+      "industry-4"
+    ]
+  },
+  "mc_pa_h1": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_ol_h1": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_od_h1": {
+    "industryCategories": [
+      "industry-3"
+    ]
+  },
+  "mc_mgm_01": {
+    "industryCategories": [
+      "industry-4"
+    ]
+  },
+  "mc_ld_w1": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_ld_ph2": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_ld_h2": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_la_h1": {
+    "industryCategories": [
+      "industry-3"
+    ]
+  },
+  "mc_hp_1_0": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_ba_h1": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_hha_01": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "mc_hla_01": {
+    "industryCategories": [
+      "hydrogen"
+    ]
+  },
+  "../customization/semiconductor_device_customization": {
+    "cardTitle": "半导体器件与微纳工艺定制化服务",
+    "cardImage": "/pages/customization/cos/semiconductor-service-01.png",
+    "industryCategories": [
+      "industry-5"
+    ]
+  },
+  "mc_pgd_01": {
+    "industryCategories": []
   }
 }

@@ -352,6 +352,83 @@
             background-color: #fcfcfc;
         }
 
+        .table-container.products-manage-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 8px;
+        }
+
+        .products-manage-table {
+            min-width: 2100px;
+            table-layout: fixed;
+        }
+
+        .products-manage-table th {
+            background: #f3f6fa;
+            text-transform: none;
+            white-space: nowrap;
+            letter-spacing: 0;
+            font-size: 12px;
+        }
+
+        .products-manage-table td {
+            padding: 12px 14px;
+            vertical-align: top;
+        }
+
+        .products-manage-table .cell-image {
+            text-align: center;
+        }
+
+        .products-manage-table .cell-image img {
+            width: 72px;
+            height: 48px;
+            object-fit: contain;
+            background: #f3f4f6;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .products-manage-table .cell-name strong {
+            display: block;
+            line-height: 1.45;
+            color: #0f172a;
+        }
+
+        .products-manage-table .cell-visible {
+            text-align: center;
+            padding-top: 18px;
+        }
+
+        .products-manage-table .cell-fileid code {
+            display: inline-block;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            line-height: 1.4;
+            font-size: 12px;
+        }
+
+        .products-manage-table .cell-actions .action-wrap {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .products-manage-table .cell-actions .btn-sm {
+            width: auto;
+            white-space: nowrap;
+        }
+
+        .products-manage-table .form-control {
+            min-width: 0;
+        }
+
+        .products-manage-table textarea.form-control {
+            min-height: 84px;
+            line-height: 1.5;
+            resize: vertical;
+        }
+
         .btn-sm {
             padding: 6px 12px;
             font-size: 12px;
@@ -374,6 +451,79 @@
             text-align: center;
             padding: 40px;
             color: #999;
+        }
+
+        .msg-detail-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 24px;
+        }
+
+        .msg-detail-modal[hidden] {
+            display: none !important;
+        }
+
+        .msg-detail-dialog {
+            width: min(960px, 96vw);
+            max-height: 88vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+        }
+
+        .msg-detail-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .msg-detail-header h3 {
+            font-size: 18px;
+            color: #0f172a;
+        }
+
+        .msg-detail-body {
+            padding: 18px 20px 22px;
+        }
+
+        .msg-detail-grid {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 10px 14px;
+        }
+
+        .msg-detail-label {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 600;
+            padding-top: 3px;
+        }
+
+        .msg-detail-value {
+            color: #0f172a;
+            font-size: 14px;
+            line-height: 1.7;
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        .msg-detail-value a {
+            color: #0f5ea8;
+            text-decoration: none;
+            font-weight: 600;
         }
 
         /* Settings Page */
@@ -748,6 +898,7 @@
         }
 
         @media (max-width: 900px) {
+
             .news-toolbar-control.short,
             .news-toolbar-control.medium,
             .news-toolbar-control.long {
@@ -910,7 +1061,7 @@
     </div>
 
     <!-- DASHBOARD -->
-        <div id="dashboard" class="dashboard" style="display: none;">
+    <div id="dashboard" class="dashboard" style="display: none;">
         <div class="sidebar">
             <div class="sidebar-header">
                 <i class="fas fa-cube" style="margin-right: 10px;"></i>
@@ -1030,120 +1181,40 @@
                 <!-- Products View -->
                 <div id="view-products" class="view-section">
                     <div class="tabs">
-                        <button class="tab-btn active" onclick="switchProductTab('add', this)">添加气体传感产品</button>
+                        <button class="tab-btn active" onclick="switchProductTab('add', this)">气体传感器产品管理</button>
                         <button class="tab-btn" onclick="switchProductTab('ai', this)">AI 自动上架 · 气体传感产品</button>
                         <button class="tab-btn" onclick="switchProductTab('industries', this)">领域分类</button>
                     </div>
 
                     <!-- Add Product Tab -->
                     <div id="product-tab-add" class="tab-content active">
-                        <div class="card" style="padding: 30px;">
-                            <h3 class="section-header">可视化上架 · 气体传感产品</h3>
-                            <div id="productCreateBasicPanel" style="display:none;">
-                                <p style="margin-bottom: 18px; color: #666; font-size: 14px;">
-                                    填写后将自动生成 <code>pages/gassensing/</code> 下的产品详情页，生成后可在下方产品列表继续微调卡片展示信息。
-                                </p>
-
-                                <form id="productCreateForm" style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                                    <div>
-                                        <div class="form-group">
-                                            <label>产品标题</label>
-                                            <input type="text" id="productCreateTitle" class="form-control" placeholder="例如：MCHP-2.0 车载氢气传感模块" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>产品简称</label>
-                                            <input type="text" id="productCreateShortName" class="form-control" placeholder="例如：MCHP-2.0" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>链接标识（文件名）</label>
-                                            <input type="text" id="productCreateSlug" class="form-control" placeholder="例如：mchp_vehicle_h2_v2（仅小写字母/数字/下划线）" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>产品分类</label>
-                                            <select id="productCreateCategory" class="form-control">
-                                                <option value="sensor">传感器 (sensor)</option>
-                                                <option value="module">模块 (module)</option>
-                                                <option value="detector">检测仪 (detector)</option>
-                                                <option value="alarm">报警器 (alarm)</option>
-                                                <option value="system">系统 (system)</option>
-                                                <option value="iot">物联网 (iot)</option>
-                                                <option value="probe">探头 (probe)</option>
-                                                <option value="service">服务 (service)</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>封面图片链接</label>
-                                            <input type="text" id="productCreateImage" class="form-control" placeholder="例如：../../assets/images/products/xxx.png">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>产品摘要</label>
-                                            <textarea id="productCreateSummary" class="form-control" rows="4" placeholder="用于产品页主描述和产品卡片默认摘要" required></textarea>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div class="form-group">
-                                            <label>正文内容</label>
-                                            <div class="news-editor-toolbar">
-                                                <div class="news-toolbar-row">
-                                                    <button type="button" class="btn-sm active" id="productModeVisualBtn" onclick="switchProductEditorMode('visual')">可视化</button>
-                                                    <button type="button" class="btn-sm" id="productModeSourceBtn" onclick="switchProductEditorMode('source')">HTML源码</button>
-                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('bold')"><b>B</b></button>
-                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('italic')"><i>I</i></button>
-                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('insertUnorderedList')">• 列表</button>
-                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('formatBlock','h2')">H2</button>
-                                                    <button type="button" class="btn-sm" onclick="applyProductFormat('formatBlock','h3')">H3</button>
-                                                </div>
-                                            </div>
-                                            <div id="productEditorVisual" class="news-editor-content" contenteditable="true"></div>
-                                            <textarea id="productEditorSource" class="news-editor-source" style="display:none;"></textarea>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div style="margin-top: 18px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; background: #fafbfc;">
-                                <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; margin-bottom: 10px;">
-                                    <div style="font-weight: 600; color:#333;">模板字段（自动对接 <code>pages/gassensing/模板.html</code>）</div>
-                                    <button type="button" class="btn-sm" style="width:auto;" onclick="resetProductTemplateFieldsToDefaults()">恢复模板默认映射</button>
-                                </div>
-                                <div style="font-size:12px; color:#666; margin-bottom: 10px;">
-                                    以下字段为模板中的占位符，可按需填写；上方基础信息会自动覆盖“产品名字/主图/产品描述”等关键位。
-                                </div>
-                                <div id="productTemplateFieldsEditor"></div>
-                            </div>
-
-                            <div style="margin-top: 18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                                <button id="productCreateSubmitBtn" class="btn-primary" style="width:auto; padding: 12px 28px;">生成产品页面</button>
-                                <button id="productCreateCancelBtn" class="btn-sm" style="display:none; width:auto; padding: 10px 18px;"
-                                    onclick="cancelProductEdit()">取消编辑</button>
-                                <div id="productCreateMsg" style="color:#28a745;"></div>
-                                <div id="productCreateLink" style="font-size:13px;"></div>
-                            </div>
-                        </div>
-
-                        <div class="card" style="padding: 30px; margin-top: 20px;">
-                            <h3 class="section-header">实时预览效果</h3>
-                            <p style="margin-bottom: 12px; color:#666; font-size:13px;">自动根据上方内容刷新预览（约 500ms 延迟）。</p>
-                            <iframe id="productPreviewFrame" style="width:100%; min-height: 560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff;"></iframe>
-                        </div>
                         <div class="card">
-                            <div class="table-container">
-                                <table>
-                                <thead>
-                                    <tr>
-                                        <th>图片</th>
-                                        <th>产品名称</th>
-                                        <th>简称</th>
-                                        <th>分类</th>
-                                        <th>显示</th>
-                                        <th>卡片标题（产品页）</th>
-                                        <th>卡片图片（产品页）</th>
-                                        <th>卡片摘要（产品页）</th>
-                                        <th>文件ID</th>
-                                        <th>操作</th>
-                                    </tr>
-                                </thead>
+                            <div class="table-container products-manage-scroll">
+                                <table class="products-manage-table">
+                                    <colgroup>
+                                        <col style="width: 100px;">
+                                        <col style="width: 240px;">
+                                        <col style="width: 110px;">
+                                        <col style="width: 280px;">
+                                        <col style="width: 360px;">
+                                        <col style="width: 360px;">
+                                        <col style="width: 220px;">
+                                        <col style="width: 320px;">
+                                        <col style="width: 280px;">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>图片</th>
+                                            <th>产品名称</th>
+                                            <th>显示</th>
+                                            <th>卡片标题（产品页）</th>
+                                            <th>卡片图片（产品页）</th>
+                                            <th>卡片摘要（产品页）</th>
+                                            <th>文件ID</th>
+                                            <th>相关新闻</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
                                     <tbody id="productsTableBody">
                                         <!-- Products will be loaded here -->
                                     </tbody>
@@ -1153,7 +1224,7 @@
                         <div
                             style="margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 8px; font-size: 13px; color: #666;">
                             <i class="fas fa-info-circle" style="color: #007bff;"></i>
-                            <strong>提示：</strong>产品列表从 <code>pages/gassensing/</code> 目录自动扫描。添加新产品只需创建对应的 HTML 文件即可。<br>
+                            <strong>提示：</strong>产品列表从 <code>pages/gassensing/</code> 与 <code>pages/customization/</code> 目录自动扫描。添加新产品只需创建对应的 HTML 文件即可。<br>
                             不填写“卡片标题/卡片图片/卡片摘要”时，产品页将默认使用产品原始名称、原始图片和原始描述。<br>
                             卡片图片支持两种方式：粘贴 HTTPS CDN 链接，或点击“本地上传”上传 PNG/JPG/JPEG/WEBP。
                         </div>
@@ -1164,90 +1235,64 @@
                         <div class="card" style="padding:30px;">
                             <h3 class="section-header">AI 自动上架 · 气体传感产品</h3>
                             <p style="margin-bottom: 16px; color:#667085; font-size:13px;">
-                                填写产品资料后，系统将调用“产品页编程 AI”参考 <code>pages/gassensing/模板.html</code> 直接生成完整 HTML，并可保存为产品页面文件（<code>pages/gassensing/*.html</code>）。
+                                填写产品资料后，系统将调用“产品页编程 AI”参考 <code>pages/gassensing/mc_ld_h2.html</code> 直接生成完整
+                                HTML，并可保存为产品页面文件（<code>pages/gassensing/*.html</code>）。
                             </p>
 
-                            <form id="aiProductForm" style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                <div>
-                                    <div class="form-group">
-                                        <label>产品标题</label>
-                                        <input type="text" id="aiProductTitle" class="form-control" placeholder="例如：MCHP-2.0 车载氢气传感模块" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>产品简称</label>
-                                        <input type="text" id="aiProductShortName" class="form-control" placeholder="例如：MCHP-2.0" required>
-                                    </div>
+                            <form id="aiProductForm">
+                                <div style="display:grid; grid-template-columns: 1fr; gap: 16px;">
                                     <div class="form-group">
                                         <label>链接标识（文件名）</label>
-                                        <input type="text" id="aiProductSlug" class="form-control" placeholder="例如：mchp_vehicle_h2_v2（仅小写字母/数字/下划线）" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>产品分类</label>
-                                        <select id="aiProductCategory" class="form-control">
-                                            <option value="sensor">传感器 (sensor)</option>
-                                            <option value="module">模块 (module)</option>
-                                            <option value="detector">检测仪 (detector)</option>
-                                            <option value="alarm">报警器 (alarm)</option>
-                                            <option value="system">系统 (system)</option>
-                                            <option value="iot">物联网 (iot)</option>
-                                            <option value="probe">探头 (probe)</option>
-                                            <option value="service">服务 (service)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>产品主图 URL</label>
-                                        <input type="text" id="aiProductImage" class="form-control" placeholder="/assets/images/xxx.png 或 https://...">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>产品详情图片 URL（每行一条）</label>
-                                        <textarea id="aiProductDetailImages" class="form-control" rows="3" placeholder="例如：\n/assets/images/products/detail-1.png\nhttps://cdn.example.com/detail-2.jpg"></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>产品摘要</label>
-                                        <textarea id="aiProductSummary" class="form-control" rows="3" placeholder="可留空，让 AI 自动生成"></textarea>
+                                        <input type="text" id="aiProductSlug" class="form-control"
+                                            placeholder="例如：mc_ld_h2（仅小写字母/数字/下划线，留空可自动生成）">
                                     </div>
                                 </div>
 
-                                <div>
-                                    <div class="form-group">
-                                        <label>核心卖点（自由描述）</label>
-                                        <textarea id="aiProductHighlights" class="form-control" rows="4" placeholder="输入你掌握的产品亮点、场景、优势、参数等"></textarea>
+                                <div class="form-group">
+                                    <label>产品资料总输入框（请粘贴完整详情）</label>
+                                    <textarea id="aiProductFullContent" class="form-control" rows="18"
+                                        placeholder="请粘贴完整产品资料，例如：\n1. 产品名称：...\n2. 一句概述：...\n3. 产品特点：...\n4. 产品详情：...\n5. 产品优势：...\n6. 主要应用：...\n7. 技术参数：..."></textarea>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 10px;">
+                                    <label>产品图片</label>
+                                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                        <button type="button" class="btn-sm" id="aiProductUploadImagesBtn"
+                                            style="width:auto; padding:10px 18px;">上传产品图</button>
+                                        <input type="file" id="aiProductImagesInput"
+                                            accept="image/*,.png,.jpg,.jpeg,.webp,.bmp,.gif,.svg,.tif,.tiff,.heic,.heif,.avif" multiple
+                                            style="display:none;">
+                                        <span id="aiProductImagesMsg"
+                                            style="font-size:13px; color:#667085;">可上传一张或多张，生成页面时自动用于主图与详情图。</span>
                                     </div>
-                                    <div class="form-group">
-                                        <label>产品特性（每行一条）</label>
-                                        <textarea id="aiProductFeatures" class="form-control" rows="4" placeholder="例如：\n秒级响应\n耐高低温\n低功耗"></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>技术参数（每行：参数名:参数值）</label>
-                                        <textarea id="aiProductSpecs" class="form-control" rows="5" placeholder="例如：\n检测气体: 氢气 (H2)\n检测范围: 0-10000ppm\n响应时间: ≤1s"></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>相关新闻 URL（每行一条）</label>
-                                        <textarea id="aiProductNewsUrls" class="form-control" rows="3" placeholder="例如：\n/news/2026/new-energy-breakthrough.html\nhttps://example.com/news/abc"></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>相关产品 URL（每行一条）</label>
-                                        <textarea id="aiProductRelatedUrls" class="form-control" rows="3" placeholder="例如：\n/pages/gassensing/mchp_200.html\nhttps://example.com/products/xyz"></textarea>
-                                    </div>
+                                    <div id="aiProductImagesList"
+                                        style="margin-top:10px; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px;"></div>
                                 </div>
                             </form>
 
                             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px;">
-                                <button type="button" id="aiGenerateFieldsBtn" class="btn-primary" style="width:auto; padding:10px 18px;">AI 生成完整HTML</button>
-                                <button type="button" id="aiCreateProductBtn" class="btn-sm" style="width:auto; padding:10px 18px;">保存为产品页面文件</button>
-                                <span id="aiProductMsg" style="font-size:13px; color:#2563eb; align-self:center;"></span>
+                                <button type="button" id="aiGenerateFieldsBtn" class="btn-primary"
+                                    style="width:auto; padding:10px 18px;">AI 生成完整HTML</button>
+                                <button type="button" id="aiCreateProductBtn" class="btn-sm"
+                                    style="width:auto; padding:10px 18px;">保存为产品页面文件</button>
+                                <span id="aiProductMsg"
+                                    style="font-size:13px; color:#2563eb; align-self:center;"></span>
                             </div>
                             <div id="aiProductLink" style="font-size:13px; margin-top:8px;"></div>
                         </div>
 
                         <div class="card" style="padding:30px; margin-top:20px;">
                             <h3 class="section-header">AI 生成结果（完整 HTML 源码）</h3>
-                            <textarea id="aiProductFieldsJson" class="form-control" rows="18" placeholder="点击“AI 生成完整HTML”后自动填充，可手工微调源码。"></textarea>
+                            <textarea id="aiProductFieldsJson" class="form-control" rows="18"
+                                placeholder="点击“AI 生成完整HTML”后自动填充，可手工微调源码。"></textarea>
                             <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d1d5db;">
                                 <label style="font-size: 13px; color:#374151; font-weight:600;">AI 修改意见（支持多轮）</label>
-                                <textarea id="aiProductModifyInstruction" class="form-control" rows="3" placeholder="例如：把参数区改成表格；把相关新闻改成三列卡片；主图改为圆角阴影并加点击放大"></textarea>
-                                <div style="display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;">
-                                    <button type="button" id="aiProductModifyBtn" class="btn-primary" style="width:auto; padding:10px 18px;">AI 按意见修改HTML</button>
+                                <textarea id="aiProductModifyInstruction" class="form-control" rows="3"
+                                    placeholder="例如：把参数区改成表格；把相关新闻改成三列卡片；主图改为圆角阴影并加点击放大"></textarea>
+                                <div
+                                    style="display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;">
+                                    <button type="button" id="aiProductModifyBtn" class="btn-primary"
+                                        style="width:auto; padding:10px 18px;">AI 按意见修改HTML</button>
                                     <span id="aiProductModifyMsg" style="font-size:13px; color:#2563eb;"></span>
                                 </div>
                             </div>
@@ -1255,7 +1300,8 @@
 
                         <div class="card" style="padding:30px; margin-top:20px;">
                             <h3 class="section-header">AI 上架预览</h3>
-                            <iframe id="aiProductPreviewFrame" scrolling="no" style="width:100%; min-height:560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff; overflow:hidden;"></iframe>
+                            <iframe id="aiProductPreviewFrame" scrolling="no"
+                                style="width:100%; min-height:560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff; overflow:hidden;"></iframe>
                         </div>
                     </div>
 
@@ -1879,7 +1925,8 @@
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                                 设置巨幕菜单【新品推荐】面板中显示的链接。<br>
                                 链接格式支持：<code>http://</code>、<code>https://</code> 和相对路径。<br>
-                                示例：<code>https://example.com/product</code> 或 <code>../gassensing/ld_h2_detector.html</code>。
+                                示例：<code>https://example.com/product</code> 或
+                                <code>../gassensing/ld_h2_detector.html</code>。
                             </p>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
@@ -1889,15 +1936,13 @@
                                         <label>第一个链接</label>
                                         <input type="text" id="latest1Name" class="form-control" placeholder="名称">
                                         <input type="text" id="latest1Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接"
-                                            style="margin-top: 5px;">
+                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
                                     </div>
                                     <div class="form-group">
                                         <label>第二个链接</label>
                                         <input type="text" id="latest2Name" class="form-control" placeholder="名称">
                                         <input type="text" id="latest2Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接"
-                                            style="margin-top: 5px;">
+                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
                                     </div>
                                 </div>
 
@@ -1907,15 +1952,13 @@
                                         <label>第一个链接</label>
                                         <input type="text" id="app1Name" class="form-control" placeholder="名称">
                                         <input type="text" id="app1Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接"
-                                            style="margin-top: 5px;">
+                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
                                     </div>
                                     <div class="form-group">
                                         <label>第二个链接</label>
                                         <input type="text" id="app2Name" class="form-control" placeholder="名称">
                                         <input type="text" id="app2Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接"
-                                            style="margin-top: 5px;">
+                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
                                     </div>
                                 </div>
                             </div>
@@ -1929,7 +1972,8 @@
                             <h3 class="section-header">导航栏设置 · 测量对象</h3>
                             <p style="margin-bottom: 16px; color: #666; font-size: 14px;">
                                 设置【产品】→【测量对象】中显示的条目和跳转链接。<br>
-                                链接支持：<code>http://</code>、<code>https://</code> 和相对路径（如 <code>../measurement/measurement-hydrogen.html</code>）。
+                                链接支持：<code>http://</code>、<code>https://</code> 和相对路径（如
+                                <code>../measurement/measurement-hydrogen.html</code>）。
                             </p>
                             <div id="measurementTargetsEditor"></div>
                             <div style="display: flex; gap: 10px; align-items: center; margin-top: 14px;">
@@ -1945,7 +1989,8 @@
                             <h3 class="section-header">导航栏设置 · 行业分类</h3>
                             <p style="margin-bottom: 16px; color: #666; font-size: 14px;">
                                 设置【产品】→【行业分类】中显示的按钮名称和跳转页面。<br>
-                                链接支持：<code>http://</code>、<code>https://</code> 和相对路径（如 <code>/pages/solutions/industry-hydrogen.html</code>）。
+                                链接支持：<code>http://</code>、<code>https://</code> 和相对路径（如
+                                <code>/pages/solutions/industry-hydrogen.html</code>）。
                             </p>
                             <div id="navIndustryCategoriesEditor"></div>
                             <div style="display: flex; gap: 10px; align-items: center; margin-top: 14px;">
@@ -1989,7 +2034,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label>归属事业部</label>
-                                    <input type="text" id="newsDivision" class="form-control" placeholder="例如：气体传感事业部" required>
+                                    <input type="text" id="newsDivision" class="form-control" placeholder="例如：气体传感事业部"
+                                        required>
                                 </div>
                                 <div class="form-group">
                                     <label>封面图片链接</label>
@@ -2014,15 +2060,20 @@
                                                 onclick="switchNewsEditorMode('visual')">可视化</button>
                                             <button type="button" class="btn-sm" id="newsModeSourceBtn"
                                                 onclick="switchNewsEditorMode('source')">HTML源码</button>
-                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('bold')"><b>B</b></button>
-                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('italic')"><i>I</i></button>
-                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('insertUnorderedList')">• 列表</button>
-                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h2')">H2</button>
-                                            <button type="button" class="btn-sm" onclick="applyNewsFormat('formatBlock','h3')">H3</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyNewsFormat('bold')"><b>B</b></button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyNewsFormat('italic')"><i>I</i></button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyNewsFormat('insertUnorderedList')">• 列表</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyNewsFormat('formatBlock','h2')">H2</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyNewsFormat('formatBlock','h3')">H3</button>
                                         </div>
                                         <div class="news-toolbar-row">
-                                            <select class="form-control news-toolbar-control short" id="newsFontSizeSelect"
-                                                onchange="applyNewsFontSize(this.value)">
+                                            <select class="form-control news-toolbar-control short"
+                                                id="newsFontSizeSelect" onchange="applyNewsFontSize(this.value)">
                                                 <option value="">字号</option>
                                                 <option value="10px">10</option>
                                                 <option value="11px">11</option>
@@ -2047,28 +2098,47 @@
                                                 <option value="64px">64</option>
                                                 <option value="72px">72</option>
                                             </select>
-                                            <input type="number" id="newsFontSizeCustom" class="form-control news-toolbar-control short"
-                                                min="8" max="200" step="1" placeholder="自定义字号"
+                                            <input type="number" id="newsFontSizeCustom"
+                                                class="form-control news-toolbar-control short" min="8" max="200"
+                                                step="1" placeholder="自定义字号"
                                                 onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsFontSizeCustom();}">
-                                            <button type="button" class="btn-sm" onclick="applyNewsFontSizeCustom()">应用字号</button>
-                                            <input type="color" id="newsFontColorInput" value="#1e2f4d"
-                                                title="文字颜色" class="news-toolbar-color"
-                                                onchange="applyNewsFontColor(this.value)">
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyNewsFontSizeCustom()">应用字号</button>
+                                            <input type="color" id="newsFontColorInput" value="#1e2f4d" title="文字颜色"
+                                                class="news-toolbar-color" onchange="applyNewsFontColor(this.value)">
                                             <div class="news-color-palette" title="常用颜色">
-                                                <button type="button" class="news-color-swatch" style="background:#000000;" onclick="setNewsColorPreset('#000000')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#595959;" onclick="setNewsColorPreset('#595959')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#c00000;" onclick="setNewsColorPreset('#c00000')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#ed7d31;" onclick="setNewsColorPreset('#ed7d31')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#ffc000;" onclick="setNewsColorPreset('#ffc000')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#70ad47;" onclick="setNewsColorPreset('#70ad47')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#00b0f0;" onclick="setNewsColorPreset('#00b0f0')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#4472c4;" onclick="setNewsColorPreset('#4472c4')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#7030a0;" onclick="setNewsColorPreset('#7030a0')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#000000;"
+                                                    onclick="setNewsColorPreset('#000000')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#595959;"
+                                                    onclick="setNewsColorPreset('#595959')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#c00000;"
+                                                    onclick="setNewsColorPreset('#c00000')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#ed7d31;"
+                                                    onclick="setNewsColorPreset('#ed7d31')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#ffc000;"
+                                                    onclick="setNewsColorPreset('#ffc000')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#70ad47;"
+                                                    onclick="setNewsColorPreset('#70ad47')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#00b0f0;"
+                                                    onclick="setNewsColorPreset('#00b0f0')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#4472c4;"
+                                                    onclick="setNewsColorPreset('#4472c4')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#7030a0;"
+                                                    onclick="setNewsColorPreset('#7030a0')"></button>
                                             </div>
                                         </div>
                                         <div class="news-toolbar-row">
-                                            <select class="form-control news-toolbar-control short" id="newsLineHeightSelect"
-                                                onchange="applyNewsLineHeight(this.value)">
+                                            <select class="form-control news-toolbar-control short"
+                                                id="newsLineHeightSelect" onchange="applyNewsLineHeight(this.value)">
                                                 <option value="">行距</option>
                                                 <option value="1">1.0</option>
                                                 <option value="1.15">1.15</option>
@@ -2081,18 +2151,21 @@
                                                 <option value="2.4">2.4</option>
                                                 <option value="3">3.0</option>
                                             </select>
-                                            <input type="number" id="newsLineHeightCustom" class="form-control news-toolbar-control short"
-                                                min="0.8" max="5" step="0.05" placeholder="自定义行距"
+                                            <input type="number" id="newsLineHeightCustom"
+                                                class="form-control news-toolbar-control short" min="0.8" max="5"
+                                                step="0.05" placeholder="自定义行距"
                                                 onkeydown="if(event.key==='Enter'){event.preventDefault();applyNewsLineHeightCustom();}">
-                                            <button type="button" class="btn-sm" onclick="applyNewsLineHeightCustom()">应用行距</button>
-                                            <select class="form-control news-toolbar-control short" id="newsFirstIndentSelect"
-                                                onchange="applyNewsFirstIndent(this.value)">
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyNewsLineHeightCustom()">应用行距</button>
+                                            <select class="form-control news-toolbar-control short"
+                                                id="newsFirstIndentSelect" onchange="applyNewsFirstIndent(this.value)">
                                                 <option value="">首行缩进</option>
                                                 <option value="0">无缩进</option>
                                                 <option value="2em">2字符</option>
                                                 <option value="4em">4字符</option>
                                             </select>
-                                            <select class="form-control news-toolbar-control short" id="newsParaBeforeSelect"
+                                            <select class="form-control news-toolbar-control short"
+                                                id="newsParaBeforeSelect"
                                                 onchange="applyNewsParagraphSpacing('before', this.value)">
                                                 <option value="">段前</option>
                                                 <option value="0">0</option>
@@ -2101,7 +2174,8 @@
                                                 <option value="16px">16</option>
                                                 <option value="24px">24</option>
                                             </select>
-                                            <select class="form-control news-toolbar-control short" id="newsParaAfterSelect"
+                                            <select class="form-control news-toolbar-control short"
+                                                id="newsParaAfterSelect"
                                                 onchange="applyNewsParagraphSpacing('after', this.value)">
                                                 <option value="">段后</option>
                                                 <option value="0">0</option>
@@ -2110,10 +2184,12 @@
                                                 <option value="16px">16</option>
                                                 <option value="24px">24</option>
                                             </select>
-                                            <button type="button" class="btn-sm" onclick="insertNewsLink()">插入链接</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="insertNewsLink()">插入链接</button>
                                         </div>
                                         <div class="news-toolbar-row">
-                                            <select class="form-control news-toolbar-control medium" id="newsImageSizePreset">
+                                            <select class="form-control news-toolbar-control medium"
+                                                id="newsImageSizePreset">
                                                 <option value="100%">图片宽度100%</option>
                                                 <option value="80%">图片宽度80%</option>
                                                 <option value="60%" selected>图片宽度60%</option>
@@ -2123,18 +2199,25 @@
                                                 <option value="640px">640px</option>
                                                 <option value="800px">800px</option>
                                             </select>
-                                            <input type="text" id="newsImageSizeCustom" class="form-control news-toolbar-control medium"
+                                            <input type="text" id="newsImageSizeCustom"
+                                                class="form-control news-toolbar-control medium"
                                                 placeholder="自定义宽度(如 520px/55%)">
-                                            <button type="button" class="btn-sm" onclick="applySizeToSelectedNewsImage()">设置所选图宽</button>
-                                            <button type="button" class="btn-sm" onclick="triggerNewsImageUpload()">上传图片文件</button>
-                                            <input type="file" id="newsImageFileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
-                                                style="display:none;" onchange="uploadNewsImageFile(this)">
-                                            <input type="text" id="newsInsertImageUrl" class="form-control news-toolbar-control long"
+                                            <button type="button" class="btn-sm"
+                                                onclick="applySizeToSelectedNewsImage()">设置所选图宽</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="triggerNewsImageUpload()">上传图片文件</button>
+                                            <input type="file" id="newsImageFileInput"
+                                                accept=".png,.jpg,.jpeg,.webp,.gif,.svg" style="display:none;"
+                                                onchange="uploadNewsImageFile(this)">
+                                            <input type="text" id="newsInsertImageUrl"
+                                                class="form-control news-toolbar-control long"
                                                 placeholder="粘贴图片URL后点击导入">
-                                            <button type="button" class="btn-sm" onclick="insertNewsImageFromUrl()">导入图片URL</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="insertNewsImageFromUrl()">导入图片URL</button>
                                         </div>
                                     </div>
-                                    <div id="newsContentEditor" class="news-editor-surface" contenteditable="true"></div>
+                                    <div id="newsContentEditor" class="news-editor-surface" contenteditable="true">
+                                    </div>
                                     <textarea id="newsContent" class="form-control news-editor-source" rows="14"
                                         placeholder="HTML源码模式" style="display:none;"></textarea>
                                 </div>
@@ -2144,9 +2227,11 @@
                                         onclick="aiPolishNews()"><i class="fas fa-magic"></i> AI 排版（选区/段落）</button>
                                     <span style="font-size: 12px; color:#666;">将根据已配置的 AI 客服进行润色排版（Markdown）</span>
                                 </div>
-                                <div id="newsAiActions" style="display:none; gap:10px; align-items:center; margin-bottom: 12px;">
-                                    <button type="button" class="btn-sm news-ai-revert-btn" onclick="revertAiTypesetChange()"><i
-                                            class="fas fa-rotate-left"></i> 撤销替换</button>
+                                <div id="newsAiActions"
+                                    style="display:none; gap:10px; align-items:center; margin-bottom: 12px;">
+                                    <button type="button" class="btn-sm news-ai-revert-btn"
+                                        onclick="revertAiTypesetChange()"><i class="fas fa-rotate-left"></i>
+                                        撤销替换</button>
                                 </div>
                                 <div class="news-ai-help">
                                     <strong>AI 排版使用方式（详细）</strong>
@@ -2243,15 +2328,20 @@
                                                 onclick="switchJobEditorMode('visual')">可视化</button>
                                             <button type="button" class="btn-sm" id="jobModeSourceBtn"
                                                 onclick="switchJobEditorMode('source')">HTML源码</button>
-                                            <button type="button" class="btn-sm" onclick="applyJobFormat('bold')"><b>B</b></button>
-                                            <button type="button" class="btn-sm" onclick="applyJobFormat('italic')"><i>I</i></button>
-                                            <button type="button" class="btn-sm" onclick="applyJobFormat('insertUnorderedList')">• 列表</button>
-                                            <button type="button" class="btn-sm" onclick="applyJobFormat('formatBlock','h2')">H2</button>
-                                            <button type="button" class="btn-sm" onclick="applyJobFormat('formatBlock','h3')">H3</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyJobFormat('bold')"><b>B</b></button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyJobFormat('italic')"><i>I</i></button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyJobFormat('insertUnorderedList')">• 列表</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyJobFormat('formatBlock','h2')">H2</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyJobFormat('formatBlock','h3')">H3</button>
                                         </div>
                                         <div class="news-toolbar-row">
-                                            <select class="form-control news-toolbar-control short" id="jobFontSizeSelect"
-                                                onchange="applyJobFontSize(this.value)">
+                                            <select class="form-control news-toolbar-control short"
+                                                id="jobFontSizeSelect" onchange="applyJobFontSize(this.value)">
                                                 <option value="">字号</option>
                                                 <option value="10px">10</option>
                                                 <option value="11px">11</option>
@@ -2276,28 +2366,47 @@
                                                 <option value="64px">64</option>
                                                 <option value="72px">72</option>
                                             </select>
-                                            <input type="number" id="jobFontSizeCustom" class="form-control news-toolbar-control short"
-                                                min="8" max="200" step="1" placeholder="自定义字号"
+                                            <input type="number" id="jobFontSizeCustom"
+                                                class="form-control news-toolbar-control short" min="8" max="200"
+                                                step="1" placeholder="自定义字号"
                                                 onkeydown="if(event.key==='Enter'){event.preventDefault();applyJobFontSizeCustom();}">
-                                            <button type="button" class="btn-sm" onclick="applyJobFontSizeCustom()">应用字号</button>
-                                            <input type="color" id="jobFontColorInput" value="#1e2f4d"
-                                                title="文字颜色" class="news-toolbar-color"
-                                                onchange="applyJobFontColor(this.value)">
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyJobFontSizeCustom()">应用字号</button>
+                                            <input type="color" id="jobFontColorInput" value="#1e2f4d" title="文字颜色"
+                                                class="news-toolbar-color" onchange="applyJobFontColor(this.value)">
                                             <div class="news-color-palette" title="常用颜色">
-                                                <button type="button" class="news-color-swatch" style="background:#000000;" onclick="setJobColorPreset('#000000')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#595959;" onclick="setJobColorPreset('#595959')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#c00000;" onclick="setJobColorPreset('#c00000')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#ed7d31;" onclick="setJobColorPreset('#ed7d31')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#ffc000;" onclick="setJobColorPreset('#ffc000')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#70ad47;" onclick="setJobColorPreset('#70ad47')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#00b0f0;" onclick="setJobColorPreset('#00b0f0')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#4472c4;" onclick="setJobColorPreset('#4472c4')"></button>
-                                                <button type="button" class="news-color-swatch" style="background:#7030a0;" onclick="setJobColorPreset('#7030a0')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#000000;"
+                                                    onclick="setJobColorPreset('#000000')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#595959;"
+                                                    onclick="setJobColorPreset('#595959')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#c00000;"
+                                                    onclick="setJobColorPreset('#c00000')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#ed7d31;"
+                                                    onclick="setJobColorPreset('#ed7d31')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#ffc000;"
+                                                    onclick="setJobColorPreset('#ffc000')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#70ad47;"
+                                                    onclick="setJobColorPreset('#70ad47')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#00b0f0;"
+                                                    onclick="setJobColorPreset('#00b0f0')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#4472c4;"
+                                                    onclick="setJobColorPreset('#4472c4')"></button>
+                                                <button type="button" class="news-color-swatch"
+                                                    style="background:#7030a0;"
+                                                    onclick="setJobColorPreset('#7030a0')"></button>
                                             </div>
                                         </div>
                                         <div class="news-toolbar-row">
-                                            <select class="form-control news-toolbar-control short" id="jobLineHeightSelect"
-                                                onchange="applyJobLineHeight(this.value)">
+                                            <select class="form-control news-toolbar-control short"
+                                                id="jobLineHeightSelect" onchange="applyJobLineHeight(this.value)">
                                                 <option value="">行距</option>
                                                 <option value="1">1.0</option>
                                                 <option value="1.15">1.15</option>
@@ -2310,18 +2419,21 @@
                                                 <option value="2.4">2.4</option>
                                                 <option value="3">3.0</option>
                                             </select>
-                                            <input type="number" id="jobLineHeightCustom" class="form-control news-toolbar-control short"
-                                                min="0.8" max="5" step="0.05" placeholder="自定义行距"
+                                            <input type="number" id="jobLineHeightCustom"
+                                                class="form-control news-toolbar-control short" min="0.8" max="5"
+                                                step="0.05" placeholder="自定义行距"
                                                 onkeydown="if(event.key==='Enter'){event.preventDefault();applyJobLineHeightCustom();}">
-                                            <button type="button" class="btn-sm" onclick="applyJobLineHeightCustom()">应用行距</button>
-                                            <select class="form-control news-toolbar-control short" id="jobFirstIndentSelect"
-                                                onchange="applyJobFirstIndent(this.value)">
+                                            <button type="button" class="btn-sm"
+                                                onclick="applyJobLineHeightCustom()">应用行距</button>
+                                            <select class="form-control news-toolbar-control short"
+                                                id="jobFirstIndentSelect" onchange="applyJobFirstIndent(this.value)">
                                                 <option value="">首行缩进</option>
                                                 <option value="0">无缩进</option>
                                                 <option value="2em">2字符</option>
                                                 <option value="4em">4字符</option>
                                             </select>
-                                            <select class="form-control news-toolbar-control short" id="jobParaBeforeSelect"
+                                            <select class="form-control news-toolbar-control short"
+                                                id="jobParaBeforeSelect"
                                                 onchange="applyJobParagraphSpacing('before', this.value)">
                                                 <option value="">段前</option>
                                                 <option value="0">0</option>
@@ -2330,7 +2442,8 @@
                                                 <option value="16px">16</option>
                                                 <option value="24px">24</option>
                                             </select>
-                                            <select class="form-control news-toolbar-control short" id="jobParaAfterSelect"
+                                            <select class="form-control news-toolbar-control short"
+                                                id="jobParaAfterSelect"
                                                 onchange="applyJobParagraphSpacing('after', this.value)">
                                                 <option value="">段后</option>
                                                 <option value="0">0</option>
@@ -2342,7 +2455,8 @@
                                             <button type="button" class="btn-sm" onclick="insertJobLink()">插入链接</button>
                                         </div>
                                         <div class="news-toolbar-row">
-                                            <select class="form-control news-toolbar-control medium" id="jobImageSizePreset">
+                                            <select class="form-control news-toolbar-control medium"
+                                                id="jobImageSizePreset">
                                                 <option value="100%">图片宽度100%</option>
                                                 <option value="80%">图片宽度80%</option>
                                                 <option value="60%" selected>图片宽度60%</option>
@@ -2352,15 +2466,21 @@
                                                 <option value="640px">640px</option>
                                                 <option value="800px">800px</option>
                                             </select>
-                                            <input type="text" id="jobImageSizeCustom" class="form-control news-toolbar-control medium"
+                                            <input type="text" id="jobImageSizeCustom"
+                                                class="form-control news-toolbar-control medium"
                                                 placeholder="自定义宽度(如 520px/55%)">
-                                            <button type="button" class="btn-sm" onclick="applySizeToSelectedJobImage()">设置所选图宽</button>
-                                            <button type="button" class="btn-sm" onclick="triggerJobImageUpload()">上传图片文件</button>
-                                            <input type="file" id="jobImageFileInput" accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
-                                                style="display:none;" onchange="uploadJobImageFile(this)">
-                                            <input type="text" id="jobInsertImageUrl" class="form-control news-toolbar-control long"
+                                            <button type="button" class="btn-sm"
+                                                onclick="applySizeToSelectedJobImage()">设置所选图宽</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="triggerJobImageUpload()">上传图片文件</button>
+                                            <input type="file" id="jobImageFileInput"
+                                                accept=".png,.jpg,.jpeg,.webp,.gif,.svg" style="display:none;"
+                                                onchange="uploadJobImageFile(this)">
+                                            <input type="text" id="jobInsertImageUrl"
+                                                class="form-control news-toolbar-control long"
                                                 placeholder="粘贴图片URL后点击导入">
-                                            <button type="button" class="btn-sm" onclick="insertJobImageFromUrl()">导入图片URL</button>
+                                            <button type="button" class="btn-sm"
+                                                onclick="insertJobImageFromUrl()">导入图片URL</button>
                                         </div>
                                     </div>
                                     <div id="jobContentEditor" class="news-editor-surface" contenteditable="true"></div>
@@ -2438,21 +2558,7 @@
 
                                 <div class="form-group">
                                     <label>系统提示词</label>
-                                    <textarea id="chatbotSystemPrompt" class="form-control" rows="6"></textarea>
-                                    <div class="form-hint">定义AI助手的角色和行为</div>
-                                </div>
-
-                                <div style="display: flex; gap: 20px;">
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>最大 Tokens</label>
-                                        <input type="number" id="chatbotMaxTokens" class="form-control" value="1000"
-                                            min="100" max="100000">
-                                    </div>
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>Temperature</label>
-                                        <input type="number" id="chatbotTemperature" class="form-control" value="0.7"
-                                            min="0" max="2" step="0.1">
-                                    </div>
+                                    <div class="form-hint">已启用内置提示词（后台不可编辑）。</div>
                                 </div>
 
                                 <button type="submit" class="btn-primary"
@@ -2465,8 +2571,10 @@
                     <!-- Product Page Coding AI Tab -->
                     <div id="chatbot-tab-product-ai" class="tab-content">
                         <div class="card" style="padding: 30px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">产品页编程 AI 配置</h3>
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">产品页编程 AI
+                                    配置</h3>
                                 <div id="productAiStatus" class="status-indicator disabled">
                                     <i class="fas fa-circle" style="font-size: 8px;"></i>
                                     <span>已禁用</span>
@@ -2488,14 +2596,17 @@
 
                                 <div class="form-group">
                                     <label>API Key</label>
-                                    <input type="password" id="productAiApiKey" class="form-control" placeholder="sk-...">
+                                    <input type="password" id="productAiApiKey" class="form-control"
+                                        placeholder="sk-...">
                                     <div class="form-hint">支持 OpenAI 及兼容 API（如 DeepSeek、智谱等）</div>
                                 </div>
 
                                 <div class="form-group">
                                     <label>API Base URL</label>
-                                    <input type="text" id="productAiApiBase" class="form-control" value="https://api.openai.com/v1">
-                                    <div class="form-hint">OpenAI: https://api.openai.com/v1，DeepSeek: https://api.deepseek.com</div>
+                                    <input type="text" id="productAiApiBase" class="form-control"
+                                        value="https://api.openai.com/v1">
+                                    <div class="form-hint">OpenAI: https://api.openai.com/v1，DeepSeek:
+                                        https://api.deepseek.com</div>
                                 </div>
 
                                 <div class="form-group">
@@ -2505,12 +2616,12 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>系统提示词（已预置，可按需调整）</label>
-                                    <textarea id="productAiSystemPrompt" class="form-control" rows="12"></textarea>
-                                    <div class="form-hint">建议写明“只输出代码，不要任何解释”，以减少输出噪音。</div>
+                                    <label>系统提示词</label>
+                                    <div class="form-hint">已启用内置提示词（后台不可编辑）。</div>
                                 </div>
 
-                                <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存配置</button>
+                                <button type="submit" class="btn-primary"
+                                    style="width: auto; padding: 12px 30px;">保存配置</button>
                                 <div id="productAiConfigMsg" class="error-message" style="color: #28a745;"></div>
                             </form>
                         </div>
@@ -2629,6 +2740,20 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         </div>
     </div>
 
+    <div id="messageDetailModal" class="msg-detail-modal" hidden onclick="if(event.target===this) closeMessageDetailModal()">
+        <div class="msg-detail-dialog">
+            <div class="msg-detail-header">
+                <h3>留言详情</h3>
+                <button type="button" class="btn-sm btn-danger" onclick="closeMessageDetailModal()">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+            <div class="msg-detail-body">
+                <div class="msg-detail-grid" id="messageDetailContent"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const SIDEBAR_COLLAPSE_KEY = 'yx_admin_sidebar_collapsed';
 
@@ -2722,7 +2847,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         const TAB_GUIDES = {
             'product-tab-industries': '设置说明：先定义领域分类名称，再勾选每个产品所属领域；分类与勾选都会自动保存。',
-            'product-tab-add': '设置说明：本页同时包含“上架流程”和“产品列表”；先按流程创建文件，再在下方列表里设置卡片标题/图片/摘要。',
+            'product-tab-add': '设置说明：本页为“产品列表”管理，可在下方设置卡片标题/图片/摘要与显示状态。',
             'product-tab-ai': '设置说明：先填写资料并点击“AI 生成完整HTML”，确认源码后点击“保存为产品页面文件”。',
             'home-tab-hero': '设置说明：用于管理官网首页轮播，支持上传和 CDN；调整顺序后保存即可生效。',
             'home-tab-partners': '设置说明：用于管理合作伙伴 Logo，支持上传与链接，拖拽可调整展示顺序。',
@@ -2837,6 +2962,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let productTemplateFieldsData = {};
         let productTemplateGroupVisibleCounts = {};
         let aiProductEventsBound = false;
+        let aiUploadedImageUrls = [];
+        const AI_STREAM_IDLE_TIMEOUT_MS = 45000;
+        const AI_STREAM_TOTAL_TIMEOUT_MS = 7 * 60 * 1000;
 
         function syncProductEditorSourceFromVisual() {
             const visual = document.getElementById('productEditorVisual');
@@ -3508,31 +3636,134 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             scheduleProductPreview();
         }
 
+        function aiGuessSlugFromText(rawText) {
+            const text = String(rawText || '');
+            const modelMatch = text.match(/产品名称[:：]\s*([^\n]+)/);
+            const modelToken = modelMatch && modelMatch[1]
+                ? (modelMatch[1].match(/[A-Za-z0-9_.-]+/) || [])[0]
+                : '';
+            const base = (modelToken || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_+|_+$/g, '');
+            return base || '';
+        }
+
+        function aiParseProductFromFullText(fullText) {
+            const text = String(fullText || '').trim();
+            const titleMatch = text.match(/(?:^|\n)\s*(?:\d+\.\s*)?产品名称[:：]\s*([^\n]+)/);
+            const summaryMatch = text.match(/(?:^|\n)\s*(?:\d+\.\s*)?一句概述[:：]\s*([^\n]+)/);
+            const title = (titleMatch && titleMatch[1] ? titleMatch[1].trim() : '').replace(/\s+$/, '');
+            const summary = summaryMatch && summaryMatch[1] ? summaryMatch[1].trim() : '';
+            const shortNameMatch = title.match(/[A-Za-z0-9_.-]+/);
+            const shortName = shortNameMatch ? shortNameMatch[0] : '';
+            return { title, summary, shortName };
+        }
+
+        function renderAiUploadedImages() {
+            const list = document.getElementById('aiProductImagesList');
+            if (!list) return;
+            if (!aiUploadedImageUrls.length) {
+                list.innerHTML = '<div style="font-size:12px; color:#94a3b8;">尚未上传图片</div>';
+                return;
+            }
+            list.innerHTML = aiUploadedImageUrls.map((url, index) => `
+                <div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#fff;">
+                    <img src="${url}" alt="product-image-${index + 1}" style="width:100%; height:90px; object-fit:cover; border-radius:6px; background:#f8fafc;">
+                    <div style="margin-top:6px; font-size:11px; color:#475569; word-break:break-all;">${escapeHtml(url)}</div>
+                </div>
+            `).join('');
+        }
+
+        async function uploadAiProductImages(files) {
+            const msg = document.getElementById('aiProductImagesMsg');
+            const fullContent = document.getElementById('aiProductFullContent')?.value || '';
+            const parsed = aiParseProductFromFullText(fullContent);
+            const slugInput = document.getElementById('aiProductSlug');
+            const slugValue = (slugInput?.value || '').trim() || aiGuessSlugFromText(fullContent);
+            const shortName = parsed.shortName || '';
+
+            if (!slugValue) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = '请先在总输入框写“产品名称”，或手动填写链接标识后再上传图片。';
+                }
+                return;
+            }
+            if (!/^[a-z0-9_]+$/.test(slugValue)) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = '链接标识仅支持小写字母、数字、下划线。';
+                }
+                return;
+            }
+            if (slugInput && !slugInput.value.trim()) slugInput.value = slugValue;
+            if (!files || !files.length) return;
+
+            if (msg) {
+                msg.style.color = '#2563eb';
+                msg.textContent = `正在上传 ${files.length} 张图片...`;
+            }
+
+            const formData = new FormData();
+            formData.append('slug', slugValue);
+            formData.append('short_name', shortName);
+            Array.from(files).forEach(file => formData.append('files', file));
+
+            try {
+                const res = await fetch('/api/products/ai-upload-images', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || '上传失败');
+                }
+                aiUploadedImageUrls = Array.isArray(data.urls) ? data.urls : [];
+                renderAiUploadedImages();
+                if (msg) {
+                    msg.style.color = '#16a34a';
+                    msg.textContent = `✓ 已上传 ${aiUploadedImageUrls.length} 张图片到 ${data.folder || ''}`;
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = e?.message || '图片上传失败';
+                }
+            }
+        }
+
         function getAiProductPayload() {
+            const fullContent = document.getElementById('aiProductFullContent')?.value.trim() || '';
+            const parsed = aiParseProductFromFullText(fullContent);
+            const slugInput = document.getElementById('aiProductSlug');
+            const manualSlug = (slugInput?.value || '').trim();
+            const slug = manualSlug || aiGuessSlugFromText(fullContent);
+            if (slugInput && !manualSlug && slug) slugInput.value = slug;
+            const category = 'detector';
+            const imageUrls = Array.isArray(aiUploadedImageUrls) ? aiUploadedImageUrls : [];
+            const imageUrl = imageUrls[0] || '/assets/images/logo.png';
+
             return {
-                title: document.getElementById('aiProductTitle')?.value.trim() || '',
-                short_name: document.getElementById('aiProductShortName')?.value.trim() || '',
-                slug: document.getElementById('aiProductSlug')?.value.trim() || '',
-                category: document.getElementById('aiProductCategory')?.value || 'sensor',
-                image_url: document.getElementById('aiProductImage')?.value.trim() || '',
-                detail_image_urls: document.getElementById('aiProductDetailImages')?.value.trim() || '',
-                news_urls: document.getElementById('aiProductNewsUrls')?.value.trim() || '',
-                related_product_urls: document.getElementById('aiProductRelatedUrls')?.value.trim() || '',
-                summary: document.getElementById('aiProductSummary')?.value.trim() || '',
-                highlights: document.getElementById('aiProductHighlights')?.value.trim() || '',
-                features_text: document.getElementById('aiProductFeatures')?.value.trim() || '',
-                specs_text: document.getElementById('aiProductSpecs')?.value.trim() || ''
+                title: parsed.title || slug || '未命名产品',
+                short_name: parsed.shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
+                slug: slug,
+                category: category,
+                image_url: imageUrl,
+                detail_image_urls: imageUrls.join('\n'),
+                news_urls: '',
+                related_product_urls: '',
+                summary: parsed.summary || '',
+                context_text: fullContent,
+                full_text: fullContent
             };
         }
 
         function buildAiProductContextText(payload) {
             return [
-                payload.highlights ? `核心卖点:\n${payload.highlights}` : '',
-                payload.features_text ? `产品特性:\n${payload.features_text}` : '',
-                payload.specs_text ? `技术参数:\n${payload.specs_text}` : '',
-                payload.detail_image_urls ? `详情图片URL:\n${payload.detail_image_urls}` : '',
-                payload.news_urls ? `相关新闻URL:\n${payload.news_urls}` : '',
-                payload.related_product_urls ? `相关产品URL:\n${payload.related_product_urls}` : ''
+                payload.full_text ? `产品资料全文:\n${payload.full_text}` : '',
+                payload.detail_image_urls ? `已上传产品图片URL:\n${payload.detail_image_urls}` : ''
             ].filter(Boolean).join('\n\n');
         }
 
@@ -3579,65 +3810,134 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             iframe.srcdoc = buildAiPreviewHtmlWithResizeBridge(html);
         }
 
-        async function readAiProductHtmlStream(res, handlers = {}) {
+        async function readAiProductHtmlStream(res, handlers = {}, options = {}) {
             if (!res.body) {
                 throw new Error('浏览器不支持流式读取');
             }
             const reader = res.body.getReader();
             const decoder = new TextDecoder('utf-8');
+            const idleTimeoutMs = Number(options.idleTimeoutMs) || AI_STREAM_IDLE_TIMEOUT_MS;
+            const totalTimeoutMs = Number(options.totalTimeoutMs) || AI_STREAM_TOTAL_TIMEOUT_MS;
+            const startedAt = Date.now();
             let buffer = '';
             let htmlText = '';
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
+            const readWithIdleTimeout = async () => {
+                let timer = null;
+                try {
+                    return await Promise.race([
+                        reader.read(),
+                        new Promise((_, reject) => {
+                            timer = setTimeout(() => {
+                                reject(new Error(`流式输出超过 ${Math.round(idleTimeoutMs / 1000)} 秒无响应`));
+                            }, idleTimeoutMs);
+                        })
+                    ]);
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
+            };
+
+            try {
                 while (true) {
-                    const sep = buffer.indexOf('\n\n');
-                    if (sep < 0) break;
-                    const block = buffer.slice(0, sep);
-                    buffer = buffer.slice(sep + 2);
-                    const dataLines = block
-                        .split('\n')
-                        .filter(line => line.startsWith('data: '))
-                        .map(line => line.slice(6));
-                    if (!dataLines.length) continue;
-                    const payloadText = dataLines.join('\n').trim();
-                    if (!payloadText || payloadText === '[DONE]') continue;
-                    let evt = null;
-                    try {
-                        evt = JSON.parse(payloadText);
-                    } catch (e) {
-                        continue;
+                    if (Date.now() - startedAt > totalTimeoutMs) {
+                        throw new Error(`流式生成超时（>${Math.round(totalTimeoutMs / 60000)} 分钟）`);
                     }
-                    if (evt.type === 'error') {
-                        throw new Error(evt.error || 'AI 请求失败');
-                    }
-                    if (evt.type === 'retry') {
-                        if (typeof handlers.onRetry === 'function') handlers.onRetry(evt);
-                        continue;
-                    }
-                    if (evt.type === 'chunk') {
-                        htmlText += evt.content || '';
-                        if (typeof handlers.onChunk === 'function') handlers.onChunk(htmlText, evt);
-                        continue;
-                    }
-                    if (evt.type === 'done') {
-                        if (evt.page_html) htmlText = evt.page_html;
-                        if (typeof handlers.onDone === 'function') handlers.onDone(htmlText, evt);
+                    const { done, value } = await readWithIdleTimeout();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    while (true) {
+                        const sep = buffer.indexOf('\n\n');
+                        if (sep < 0) break;
+                        const block = buffer.slice(0, sep);
+                        buffer = buffer.slice(sep + 2);
+                        const dataLines = block
+                            .split('\n')
+                            .filter(line => line.startsWith('data: '))
+                            .map(line => line.slice(6));
+                        if (!dataLines.length) continue;
+                        const payloadText = dataLines.join('\n').trim();
+                        if (!payloadText || payloadText === '[DONE]') continue;
+                        let evt = null;
+                        try {
+                            evt = JSON.parse(payloadText);
+                        } catch (e) {
+                            continue;
+                        }
+                        if (evt.type === 'error') {
+                            throw new Error(evt.error || 'AI 请求失败');
+                        }
+                        if (evt.type === 'retry') {
+                            if (typeof handlers.onRetry === 'function') handlers.onRetry(evt);
+                            continue;
+                        }
+                        if (evt.type === 'chunk') {
+                            htmlText += evt.content || '';
+                            if (typeof handlers.onChunk === 'function') handlers.onChunk(htmlText, evt);
+                            continue;
+                        }
+                        if (evt.type === 'done') {
+                            if (evt.page_html) htmlText = evt.page_html;
+                            if (typeof handlers.onDone === 'function') handlers.onDone(htmlText, evt);
+                        }
                     }
                 }
+                return htmlText;
+            } catch (e) {
+                try { await reader.cancel(); } catch (_) { }
+                throw e;
+            } finally {
+                try { reader.releaseLock(); } catch (_) { }
             }
-            return htmlText;
+        }
+
+        async function fetchAiProductHtmlFallback(payload) {
+            const res = await fetch('/api/products/ai-generate-html', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...payload,
+                    context_text: buildAiProductContextText(payload)
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || '稳定模式生成失败');
+            }
+            return data.page_html || '';
+        }
+
+        async function fetchAiProductRevisedHtmlFallback(payload, instruction, currentHtml) {
+            const res = await fetch('/api/products/ai-revise-html', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: payload.title || payload.short_name || '产品页面',
+                    category: payload.category,
+                    image_url: payload.image_url,
+                    detail_image_urls: payload.detail_image_urls,
+                    news_urls: payload.news_urls,
+                    related_product_urls: payload.related_product_urls,
+                    summary: payload.summary,
+                    context_text: buildAiProductContextText(payload),
+                    instruction,
+                    current_html: currentHtml
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || '稳定模式修改失败');
+            }
+            return data.page_html || '';
         }
 
         async function aiGenerateProductTemplateFields() {
             const msg = document.getElementById('aiProductMsg');
             const modifyMsg = document.getElementById('aiProductModifyMsg');
             const payload = getAiProductPayload();
-            if (!payload.title || !payload.short_name || !payload.slug) {
+            if (!payload.slug || !payload.context_text) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先填写产品标题、简称、链接标识';
+                    msg.textContent = '请先填写产品资料总输入框，并提供可用的链接标识。';
                 }
                 return;
             }
@@ -3650,10 +3950,16 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
             setAiGeneratedHtmlOutput('');
 
+            const streamController = new AbortController();
+            const streamAbortTimer = setTimeout(() => {
+                streamController.abort();
+            }, AI_STREAM_TOTAL_TIMEOUT_MS);
+
             try {
                 const res = await fetch('/api/products/ai-generate-html-stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    signal: streamController.signal,
                     body: JSON.stringify({
                         ...payload,
                         context_text: buildAiProductContextText(payload)
@@ -3682,6 +3988,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     onDone: (doneHtml) => {
                         setAiGeneratedHtmlOutput(doneHtml);
                     }
+                }, {
+                    idleTimeoutMs: AI_STREAM_IDLE_TIMEOUT_MS,
+                    totalTimeoutMs: AI_STREAM_TOTAL_TIMEOUT_MS
                 });
 
                 if (!htmlText.trim()) throw new Error('AI 未返回内容');
@@ -3693,9 +4002,28 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 await updateAiProductPreview();
             } catch (e) {
                 if (msg) {
+                    msg.style.color = '#d97706';
+                    msg.textContent = `流式生成异常：${e?.message || '未知错误'}，正在自动切换稳定模式...`;
+                }
+                try {
+                    const fallbackHtml = await fetchAiProductHtmlFallback(payload);
+                    if (!fallbackHtml.trim()) throw new Error('稳定模式未返回内容');
+                    setAiGeneratedHtmlOutput(fallbackHtml);
+                    await updateAiProductPreview();
+                    if (msg) {
+                        msg.style.color = '#16a34a';
+                        msg.textContent = '✓ 流式中断，已自动切换稳定模式并完成生成';
+                    }
+                    return;
+                } catch (fallbackErr) {
+                    e = fallbackErr;
+                }
+                if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = e?.message || 'AI 生成失败';
                 }
+            } finally {
+                clearTimeout(streamAbortTimer);
             }
         }
 
@@ -3731,10 +4059,16 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
             setAiGeneratedHtmlOutput('');
 
+            const streamController = new AbortController();
+            const streamAbortTimer = setTimeout(() => {
+                streamController.abort();
+            }, AI_STREAM_TOTAL_TIMEOUT_MS);
+
             try {
                 const res = await fetch('/api/products/ai-revise-html-stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    signal: streamController.signal,
                     body: JSON.stringify({
                         title: payload.title || payload.short_name || '产品页面',
                         category: payload.category,
@@ -3775,6 +4109,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     onDone: (doneHtml) => {
                         setAiGeneratedHtmlOutput(doneHtml);
                     }
+                }, {
+                    idleTimeoutMs: AI_STREAM_IDLE_TIMEOUT_MS,
+                    totalTimeoutMs: AI_STREAM_TOTAL_TIMEOUT_MS
                 });
 
                 if (!htmlText.trim()) throw new Error('AI 未返回内容');
@@ -3790,6 +4127,31 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 await updateAiProductPreview();
             } catch (e) {
                 if (msg) {
+                    msg.style.color = '#d97706';
+                    msg.textContent = `流式修改异常：${e?.message || '未知错误'}，正在自动切换稳定模式...`;
+                }
+                if (modifyMsg) {
+                    modifyMsg.style.color = '#d97706';
+                    modifyMsg.textContent = '流式异常，切换稳定模式中...';
+                }
+                try {
+                    const fallbackHtml = await fetchAiProductRevisedHtmlFallback(payload, instruction, currentHtml);
+                    if (!fallbackHtml.trim()) throw new Error('稳定模式未返回内容');
+                    setAiGeneratedHtmlOutput(fallbackHtml);
+                    await updateAiProductPreview();
+                    if (msg) {
+                        msg.style.color = '#16a34a';
+                        msg.textContent = '✓ 流式中断，已自动切换稳定模式并完成修改';
+                    }
+                    if (modifyMsg) {
+                        modifyMsg.style.color = '#16a34a';
+                        modifyMsg.textContent = '✓ 稳定模式修改完成';
+                    }
+                    return;
+                } catch (fallbackErr) {
+                    e = fallbackErr;
+                }
+                if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = e?.message || 'AI 修改失败';
                 }
@@ -3797,6 +4159,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     modifyMsg.style.color = '#dc3545';
                     modifyMsg.textContent = e?.message || 'AI 修改失败';
                 }
+            } finally {
+                clearTimeout(streamAbortTimer);
             }
         }
 
@@ -3804,10 +4168,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const msg = document.getElementById('aiProductMsg');
             const linkEl = document.getElementById('aiProductLink');
             const payload = getAiProductPayload();
-            if (!payload.title || !payload.short_name || !payload.slug) {
+            if (!payload.slug || !payload.context_text) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先填写产品标题、简称、链接标识';
+                    msg.textContent = '请先填写产品资料总输入框，并提供可用的链接标识。';
                 }
                 return;
             }
@@ -3859,18 +4223,13 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (aiProductEventsBound) return;
             aiProductEventsBound = true;
 
-            const titleInput = document.getElementById('aiProductTitle');
+            const fullContentInput = document.getElementById('aiProductFullContent');
             const slugInput = document.getElementById('aiProductSlug');
-            if (titleInput && slugInput) {
-                titleInput.addEventListener('input', () => {
+            if (fullContentInput && slugInput) {
+                fullContentInput.addEventListener('input', () => {
                     if (slugInput.value.trim()) return;
-                    const generated = (titleInput.value || '')
-                        .toLowerCase()
-                        .replace(/\s+/g, '_')
-                        .replace(/[^a-z0-9_]/g, '')
-                        .replace(/_+/g, '_')
-                        .replace(/^_+|_+$/g, '');
-                    slugInput.value = generated;
+                    const guessed = aiGuessSlugFromText(fullContentInput.value || '');
+                    if (guessed) slugInput.value = guessed;
                 });
             }
 
@@ -3880,6 +4239,16 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (createBtn) createBtn.addEventListener('click', aiCreateProductPage);
             const modifyBtn = document.getElementById('aiProductModifyBtn');
             if (modifyBtn) modifyBtn.addEventListener('click', aiReviseGeneratedHtml);
+            const uploadBtn = document.getElementById('aiProductUploadImagesBtn');
+            const imagesInput = document.getElementById('aiProductImagesInput');
+            if (uploadBtn && imagesInput) {
+                uploadBtn.addEventListener('click', () => imagesInput.click());
+                imagesInput.addEventListener('change', async () => {
+                    const files = imagesInput.files;
+                    await uploadAiProductImages(files);
+                    imagesInput.value = '';
+                });
+            }
 
             if (!window.__aiProductPreviewHeightBound) {
                 window.addEventListener('message', (event) => {
@@ -3892,7 +4261,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 window.__aiProductPreviewHeightBound = true;
             }
 
-            ['aiProductTitle', 'aiProductShortName', 'aiProductSlug', 'aiProductCategory', 'aiProductImage', 'aiProductDetailImages', 'aiProductSummary', 'aiProductHighlights', 'aiProductFeatures', 'aiProductSpecs', 'aiProductNewsUrls', 'aiProductRelatedUrls', 'aiProductFieldsJson']
+            ['aiProductSlug', 'aiProductFullContent', 'aiProductFieldsJson']
                 .forEach(id => {
                     const el = document.getElementById(id);
                     if (!el) return;
@@ -3903,57 +4272,140 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (generatedHtmlBox) {
                 generatedHtmlBox.addEventListener('input', () => { updateAiProductPreview().catch(() => { }); });
             }
+
+            renderAiUploadedImages();
+        }
+
+        function escapeAttr(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function normalizeRelatedNewsLinks(links) {
+            const list = Array.isArray(links) ? links : [];
+            const out = [];
+            list.forEach(item => {
+                const link = String(item || '').trim();
+                if (!link || out.includes(link)) return;
+                out.push(link);
+            });
+            return out.slice(0, 2);
+        }
+
+        function buildNewsOptionsHtml(newsItems, selected) {
+            const selectedLink = String(selected || '');
+            const base = '<option value="">默认（最新两条）</option>';
+            const options = (newsItems || []).map(item => {
+                const link = String(item.link || '');
+                const date = String(item.date || '');
+                const title = String(item.title || item.link || '');
+                const label = `${date ? `[${date}] ` : ''}${title}`;
+                return `<option value="${escapeAttr(link)}" ${selectedLink === link ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+            }).join('');
+            return base + options;
+        }
+
+        function triggerProductCodeDownload(productId) {
+            if (!productId) return;
+            const url = `/api/products/code/download?id=${encodeURIComponent(productId)}`;
+            window.open(url, '_blank');
+        }
+
+        async function uploadProductCodeFile(productId, file) {
+            const tbody = document.getElementById('productsTableBody');
+            const msgEl = tbody
+                ? Array.from(tbody.querySelectorAll('.product-code-action-msg')).find(el => String(el.dataset.id) === String(productId))
+                : null;
+            if (!file) return;
+            if (!/\.html?$/i.test(file.name || '')) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = '请上传 .html 文件';
+                }
+                return;
+            }
+            if (msgEl) {
+                msgEl.style.color = '#666';
+                msgEl.textContent = '上传中...';
+            }
+            try {
+                const formData = new FormData();
+                formData.append('id', productId);
+                formData.append('file', file);
+                const res = await fetch('/api/products/code/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || '上传失败');
+                }
+                if (msgEl) {
+                    msgEl.style.color = '#2e7d32';
+                    msgEl.textContent = '✓ 上传覆盖成功';
+                }
+            } catch (e) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = e?.message || '上传失败';
+                }
+            }
         }
 
         async function loadProducts() {
             const tbody = document.getElementById('productsTableBody');
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">加载中...</td></tr>';
 
             try {
-                // 使用带设置的 API
-                const res = await fetch('/api/products/with-settings');
+                const [res, newsRes] = await Promise.all([
+                    fetch('/api/products/with-settings'),
+                    fetch('/api/news/list')
+                ]);
                 const data = await res.json();
-                productsData = data.products || [];
+                const newsData = await newsRes.json();
+                const rawProducts = data.products || [];
+                const newsItems = (newsData.items || []).filter(item => !item.hidden);
+                productsData = rawProducts.filter(p => {
+                    const pid = String(p?.id || '');
+                    if (!pid) return false;
+                    if (pid === 'all-products') return false;
+                    if (pid.startsWith('../biosensing/')) return false;
+                    if (pid.startsWith('../customization/')) return true;
+                    return !pid.startsWith('../');
+                });
 
                 if (productsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无产品数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无产品数据</td></tr>';
                     return;
                 }
 
-                // Category labels
-                const categoryLabels = {
-                    'iot': '物联网',
-                    'sensor': '传感器',
-                    'module': '检测模块',
-                    'detector': '检测仪',
-                    'alarm': '报警器',
-                    'system': '监测系统',
-                    'probe': '探头',
-                    'service': '定制服务'
-                };
-
-                tbody.innerHTML = productsData.map(p => `
+                tbody.innerHTML = productsData.map(p => {
+                    const relatedNews = normalizeRelatedNewsLinks(p.relatedNews || []);
+                    const news1 = relatedNews[0] || '';
+                    const news2 = relatedNews[1] || '';
+                    const pidEsc = escapeHtml(p.id);
+                    return `
                     <tr style="${p.hidden ? 'opacity: 0.5;' : ''}">
-                        <td>
+                        <td class="cell-image">
                             <img src="${p.image}" alt="${p.name}" 
-                                style="width: 60px; height: 40px; object-fit: contain; background: #f0f0f0; border-radius: 4px;"
                                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 40%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/><text x=%2230%22 y=%2225%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%228%22>无图</text></svg>'">
                         </td>
-                        <td><strong>${p.name}</strong></td>
-                        <td>${p.shortName || '-'}</td>
-                        <td><span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 12px;">${categoryLabels[p.category] || p.category}</span></td>
-                        <td style="text-align: center; min-width: 90px;">
+                        <td class="cell-name"><strong>${p.name}</strong></td>
+                        <td class="cell-visible">
                             <label class="toggle-switch" style="margin: 0;">
                                 <input type="checkbox" class="product-list-visible" data-id="${escapeHtml(p.id)}" ${!p.hidden ? 'checked' : ''}>
                                 <span class="toggle-slider"></span>
                             </label>
                         </td>
-                        <td style="min-width: 220px;">
+                        <td class="cell-title">
                             <input type="text" class="form-control product-card-title" data-id="${escapeHtml(p.id)}"
                                 value="${escapeHtml(p.cardTitle || '')}"
                                 placeholder="${escapeHtml(p.name || '')}">
                         </td>
-                        <td style="min-width: 260px;">
+                        <td class="cell-image-config">
                             <input type="text" class="form-control product-card-image" data-id="${escapeHtml(p.id)}"
                                 value="${escapeHtml(p.cardImage || '')}"
                                 placeholder="${escapeHtml(p.image || '')}">
@@ -3963,18 +4415,30 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                 <span class="product-card-image-msg" data-id="${escapeHtml(p.id)}" style="font-size:11px; color:#666;"></span>
                             </div>
                         </td>
-                        <td style="min-width: 300px;">
-                            <textarea class="form-control product-card-summary" data-id="${escapeHtml(p.id)}" rows="2"
+                        <td class="cell-summary">
+                            <textarea class="form-control product-card-summary" data-id="${pidEsc}" rows="2"
                                 placeholder="${escapeHtml(p.description || '')}">${escapeHtml(p.cardSummary || '')}</textarea>
                         </td>
-                        <td><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">${p.id}</code></td>
-                        <td>
-                            ${String(p.id || '').startsWith('../')
-                        ? '<span style="font-size:12px; color:#999;">仅气体传感可编辑</span>'
-                        : `<button class="btn-sm product-edit-btn" data-id="${escapeHtml(p.id)}">编辑</button>`}
+                        <td class="cell-fileid"><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">${p.id}</code></td>
+                        <td class="cell-news">
+                            <select class="form-control product-related-news-select" data-id="${pidEsc}" data-slot="1" style="margin-bottom:6px;">
+                                ${buildNewsOptionsHtml(newsItems, news1)}
+                            </select>
+                            <select class="form-control product-related-news-select" data-id="${pidEsc}" data-slot="2">
+                                ${buildNewsOptionsHtml(newsItems, news2)}
+                            </select>
+                        </td>
+                        <td class="cell-actions">
+                            <div class="action-wrap">
+                                <button type="button" class="btn-sm product-download-code-btn" data-id="${pidEsc}">下载代码</button>
+                                <button type="button" class="btn-sm product-upload-code-btn" data-id="${pidEsc}">上传覆盖代码</button>
+                                <input type="file" class="product-upload-code-file" data-id="${pidEsc}" accept=".html,text/html" style="display:none;">
+                            </div>
+                            <div class="product-code-action-msg" data-id="${pidEsc}" style="font-size:11px; color:#666; margin-top:6px;"></div>
                         </td>
                     </tr>
-                `).join('');
+                `;
+                }).join('');
 
                 tbody.querySelectorAll('.product-card-title').forEach(input => {
                     input.addEventListener('change', (e) => {
@@ -4018,12 +4482,40 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         e.target.value = '';
                     });
                 });
-                tbody.querySelectorAll('.product-edit-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        editProductItem(btn.dataset.id);
+                tbody.querySelectorAll('.product-related-news-select').forEach(select => {
+                    select.addEventListener('change', async (e) => {
+                        const pid = e.target.dataset.id;
+                        const row = e.target.closest('tr');
+                        if (!pid || !row) return;
+                        const values = Array.from(row.querySelectorAll('.product-related-news-select'))
+                            .map(el => String(el.value || '').trim())
+                            .filter(Boolean);
+                        const deduped = values.filter((v, idx) => values.indexOf(v) === idx).slice(0, 2);
+                        await saveProductSetting(pid, 'relatedNews', deduped);
                     });
                 });
-
+                tbody.querySelectorAll('.product-download-code-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        triggerProductCodeDownload(btn.dataset.id);
+                    });
+                });
+                tbody.querySelectorAll('.product-upload-code-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const pid = btn.dataset.id;
+                        const fileInput = Array.from(tbody.querySelectorAll('.product-upload-code-file'))
+                            .find(el => String(el.dataset.id) === String(pid));
+                        if (fileInput) fileInput.click();
+                    });
+                });
+                tbody.querySelectorAll('.product-upload-code-file').forEach(input => {
+                    input.addEventListener('change', async (e) => {
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        const pid = e.target.dataset.id;
+                        await uploadProductCodeFile(pid, file);
+                        e.target.value = '';
+                    });
+                });
                 // Update menu preview
                 updateMenuPreview();
                 // Update industry filter settings
@@ -4033,7 +4525,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
             } catch (e) {
                 console.error('Load products error:', e);
-                tbody.innerHTML = '<tr><td colspan="10" class="no-data">加载失败，请刷新重试</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
             }
         }
 
@@ -7566,6 +8058,84 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         bindNewsPreviewEvents();
         bindJobEditorEvents();
         // --- Messages Logic ---
+        let messageDetailMap = {};
+
+        function closeMessageDetailModal() {
+            const modal = document.getElementById('messageDetailModal');
+            if (!modal) return;
+            modal.hidden = true;
+        }
+
+        function formatMessageDetailValue(value) {
+            const raw = String(value ?? '').trim();
+            if (!raw) return '-';
+            return escapeHtml(raw).replace(/\n/g, '<br>');
+        }
+
+        function buildMessageDetailItem(label, valueHtml) {
+            return `
+                <div class="msg-detail-label">${escapeHtml(label)}</div>
+                <div class="msg-detail-value">${valueHtml}</div>
+            `;
+        }
+
+        function viewMessageDetail(id) {
+            const message = messageDetailMap[String(id || '')];
+            if (!message) {
+                alert('未找到该留言详情，请刷新后重试。');
+                return;
+            }
+
+            const isJob = message.message_type === 'job_application';
+            const timestamp = String(message.timestamp || '');
+            const statusText = message.is_read ? '已读' : '未读';
+            const title = String(message.title || message.txtTitle || '');
+            const content = String(message.content || message.txtContent || '');
+            const items = [];
+
+            items.push(buildMessageDetailItem('提交时间', formatMessageDetailValue(timestamp)));
+            items.push(buildMessageDetailItem('状态', formatMessageDetailValue(statusText)));
+            items.push(buildMessageDetailItem('姓名', formatMessageDetailValue(message.name)));
+            items.push(buildMessageDetailItem('联系电话', formatMessageDetailValue(message.phone)));
+            items.push(buildMessageDetailItem('邮箱', formatMessageDetailValue(message.email)));
+            items.push(buildMessageDetailItem('来源 IP', formatMessageDetailValue(message.ip)));
+            items.push(buildMessageDetailItem('类型', formatMessageDetailValue(isJob ? '应聘信息' : '留言信息')));
+
+            if (title) {
+                items.push(buildMessageDetailItem('标题', formatMessageDetailValue(title)));
+            }
+            if (content) {
+                items.push(buildMessageDetailItem('内容', formatMessageDetailValue(content)));
+            }
+
+            if (isJob) {
+                items.push(buildMessageDetailItem('应聘岗位', formatMessageDetailValue(message.job_title || message.job_id)));
+                items.push(buildMessageDetailItem('年龄', formatMessageDetailValue(message.age)));
+                items.push(buildMessageDetailItem('民族', formatMessageDetailValue(message.ethnicity)));
+                items.push(buildMessageDetailItem('性别', formatMessageDetailValue(message.gender)));
+                items.push(buildMessageDetailItem('住址', formatMessageDetailValue(message.address)));
+                items.push(buildMessageDetailItem('学历', formatMessageDetailValue(message.education)));
+                items.push(buildMessageDetailItem('院校', formatMessageDetailValue(message.school)));
+                items.push(buildMessageDetailItem('工作经历', formatMessageDetailValue(message.work_experience)));
+                items.push(buildMessageDetailItem('项目经历', formatMessageDetailValue(message.project_experience)));
+                items.push(buildMessageDetailItem('自我陈述', formatMessageDetailValue(message.self_statement)));
+                if (message.resume_url) {
+                    const resumeLink = `<a href="${escapeHtml(String(message.resume_url))}" target="_blank" rel="noopener">点击下载简历</a>`;
+                    items.push(buildMessageDetailItem('简历文件', resumeLink));
+                }
+            }
+
+            const contentEl = document.getElementById('messageDetailContent');
+            const modal = document.getElementById('messageDetailModal');
+            if (!contentEl || !modal) return;
+            contentEl.innerHTML = items.join('');
+            modal.hidden = false;
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') closeMessageDetailModal();
+        });
+
         function switchMessageDataTab(tabName) {
             const feedbackBtn = document.getElementById('msgTabFeedbackBtn');
             const jobBtn = document.getElementById('msgTabJobBtn');
@@ -7598,8 +8168,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 let todayCount = 0;
                 const feedbackItems = [];
                 const jobItems = [];
+                messageDetailMap = {};
 
                 messages.forEach(msg => {
+                    if (msg && msg.id) messageDetailMap[String(msg.id)] = msg;
                     const dateStr = String(msg.timestamp || '').split('T')[0];
                     if (dateStr === today) todayCount++;
                     if (msg.message_type === 'job_application') jobItems.push(msg);
@@ -7634,6 +8206,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                         ${msg.email ? `<div style="font-size:12px; color:#888; margin-top:2px;"><i class="far fa-envelope"></i> ${escapeHtml(msg.email)}</div>` : ''}
                                     </td>
                                     <td>
+                                        <button class="btn-sm" onclick="viewMessageDetail('${msg.id}')">
+                                            <i class="far fa-eye"></i> 查看
+                                        </button>
                                         <button class="btn-sm" onclick="markMessageRead('${msg.id}')" ${isRead ? 'disabled' : ''}>
                                             ${isRead ? '已读' : '标记已读'}
                                         </button>
@@ -7686,6 +8261,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                     <td style="max-width: 460px; line-height:1.7;">${detailsHtml}</td>
                                     <td>${resumeHtml}</td>
                                     <td>
+                                        <button class="btn-sm" onclick="viewMessageDetail('${msg.id}')">
+                                            <i class="far fa-eye"></i> 查看
+                                        </button>
                                         <button class="btn-sm" onclick="markMessageRead('${msg.id}')" ${isRead ? 'disabled' : ''}>
                                             ${isRead ? '已读' : '标记已读'}
                                         </button>
@@ -7853,9 +8431,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 document.getElementById('chatbotApiKey').placeholder = config.api_key || 'sk-...';
                 document.getElementById('chatbotApiBase').value = config.api_base || 'https://api.openai.com/v1';
                 document.getElementById('chatbotModel').value = config.model || 'gpt-3.5-turbo';
-                document.getElementById('chatbotSystemPrompt').value = config.system_prompt || '';
-                document.getElementById('chatbotMaxTokens').value = config.max_tokens || 1000;
-                document.getElementById('chatbotTemperature').value = config.temperature || 0.7;
 
                 updateStatusIndicator(config.enabled !== false);
                 loadProductPageAiConfig();
@@ -7904,7 +8479,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 id('productAiApiKey').placeholder = config.api_key || 'sk-...';
                 id('productAiApiBase').value = config.api_base || 'https://api.openai.com/v1';
                 id('productAiModel').value = config.model || 'gpt-4o-mini';
-                id('productAiSystemPrompt').value = config.system_prompt || '';
                 updateProductAiStatusIndicator(enabled);
             } catch (e) {
                 console.error('Failed to load product AI config:', e);
@@ -7934,8 +8508,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         enabled: document.getElementById('productAiEnabled').checked,
                         api_key: apiKey || undefined,
                         api_base: document.getElementById('productAiApiBase').value,
-                        model: document.getElementById('productAiModel').value,
-                        system_prompt: document.getElementById('productAiSystemPrompt').value
+                        model: document.getElementById('productAiModel').value
                     })
                 });
                 const data = await res.json();
@@ -7974,10 +8547,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         enabled: document.getElementById('chatbotEnabled').checked,
                         api_key: apiKey || undefined,
                         api_base: document.getElementById('chatbotApiBase').value,
-                        model: document.getElementById('chatbotModel').value,
-                        system_prompt: document.getElementById('chatbotSystemPrompt').value,
-                        max_tokens: parseInt(document.getElementById('chatbotMaxTokens').value),
-                        temperature: parseFloat(document.getElementById('chatbotTemperature').value)
+                        model: document.getElementById('chatbotModel').value
                     })
                 });
                 const data = await res.json();
@@ -8125,19 +8695,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
     <!-- I18N Translation -->
     <script src="../assets/js/i18n.js"></script>
-<!-- FOOTER_START -->
-  <div id="mc-footer-root"></div>
-  <noscript>
-    <footer class="vs-footer-new">
-      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
-        <a href="/index.html">首页</a> |
-        <a href="/pages/about/policy.html">隐私政策</a> |
-        <a href="/pages/about/terms.html">条款与条件</a>
-      </div>
-    </footer>
-  </noscript>
-  <script src="/assets/js/footer-loader.js"></script>
-  <!-- FOOTER_END -->
+    <!-- FOOTER_START -->
+    <div id="mc-footer-root"></div>
+    <noscript>
+        <footer class="vs-footer-new">
+            <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+                <a href="/index.html">首页</a> |
+                <a href="/pages/about/policy.html">隐私政策</a> |
+                <a href="/pages/about/terms.html">条款与条件</a>
+            </div>
+        </footer>
+    </noscript>
+    <script src="/assets/js/footer-loader.js"></script>
+    <!-- FOOTER_END -->
 
 </body>
 
