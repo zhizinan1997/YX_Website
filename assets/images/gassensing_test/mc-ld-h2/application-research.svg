@@ -1,0 +1,21 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgResearch" x1="0" y1="0" x2="1200" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0E4D5E"/>
+      <stop offset="1" stop-color="#1D6A7D"/>
+    </linearGradient>
+    <linearGradient id="glassResearch" x1="114" y1="88" x2="1048" y2="584" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D8F7FF" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#9CD7E8" stop-opacity="0.12"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bgResearch)"/>
+  <rect x="102" y="156" width="302" height="382" rx="18" fill="#CFF4FF" fill-opacity="0.18"/>
+  <rect x="438" y="220" width="220" height="318" rx="18" fill="#B5EAF8" fill-opacity="0.16"/>
+  <rect x="692" y="178" width="168" height="360" rx="18" fill="#BEEFFB" fill-opacity="0.14"/>
+  <rect x="882" y="250" width="184" height="288" rx="18" fill="#BEEFFB" fill-opacity="0.16"/>
+  <path d="M114 90L1048 586" stroke="url(#glassResearch)" stroke-width="2"/>
+  <path d="M146 66L1080 562" stroke="url(#glassResearch)" stroke-width="2"/>
+  <circle cx="968" cy="130" r="88" fill="#E8FCFF" fill-opacity="0.16"/>
+  <text x="96" y="108" fill="#EDFEFF" font-family="Arial, sans-serif" font-size="56" font-weight="700">Research Labs</text>
+</svg>

@@ -1,0 +1,22 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgIndustry" x1="0" y1="0" x2="1200" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#223750"/>
+      <stop offset="1" stop-color="#435E7D"/>
+    </linearGradient>
+    <linearGradient id="sparkIndustry" x1="72" y1="605" x2="1124" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A0C7E9" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#D7ECFF" stop-opacity="0.48"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bgIndustry)"/>
+  <rect x="88" y="356" width="154" height="215" rx="12" fill="#13283E" fill-opacity="0.78"/>
+  <rect x="262" y="304" width="184" height="267" rx="12" fill="#1A3148" fill-opacity="0.78"/>
+  <rect x="468" y="236" width="214" height="335" rx="12" fill="#203A53" fill-opacity="0.78"/>
+  <rect x="706" y="280" width="174" height="291" rx="12" fill="#1A334C" fill-opacity="0.78"/>
+  <rect x="902" y="326" width="210" height="245" rx="12" fill="#142C44" fill-opacity="0.78"/>
+  <path d="M72 606L1124 124" stroke="url(#sparkIndustry)" stroke-width="4"/>
+  <path d="M124 644L1172 162" stroke="url(#sparkIndustry)" stroke-width="2"/>
+  <circle cx="1034" cy="148" r="92" fill="#D7ECFF" fill-opacity="0.12"/>
+  <text x="96" y="102" fill="#EDF7FF" font-family="Arial, sans-serif" font-size="56" font-weight="700">Industrial Safety</text>
+</svg>

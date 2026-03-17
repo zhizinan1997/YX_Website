@@ -115,6 +115,14 @@ ALLOWED_PRODUCT_CARD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_PRODUCT_CARD_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp'}
 ALLOWED_NEWS_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'}
 ALLOWED_NEWS_IMAGE_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'}
+ALLOWED_AI_PRODUCT_IMAGE_EXTENSIONS = {
+    '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif', '.svg',
+    '.tif', '.tiff', '.avif', '.heic', '.heif'
+}
+ALLOWED_AI_PRODUCT_IMAGE_MIME_TYPES = {
+    'image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif', 'image/svg+xml',
+    'image/tiff', 'image/avif', 'image/heic', 'image/heif'
+}
 
 def infer_extension_from_mime(mime: str) -> str:
     if mime == 'image/png':
@@ -156,6 +164,84 @@ def infer_news_image_extension_from_mime(mime: str) -> str:
         return '.gif'
     if mime == 'image/svg+xml':
         return '.svg'
+    return ''
+
+
+def infer_ai_product_image_extension_from_mime(mime: str) -> str:
+    mime = (mime or '').split(';')[0].strip().lower()
+    if mime == 'image/png':
+        return '.png'
+    if mime == 'image/jpeg':
+        return '.jpg'
+    if mime == 'image/webp':
+        return '.webp'
+    if mime == 'image/bmp':
+        return '.bmp'
+    if mime == 'image/gif':
+        return '.gif'
+    if mime == 'image/svg+xml':
+        return '.svg'
+    if mime == 'image/tiff':
+        return '.tif'
+    if mime == 'image/avif':
+        return '.avif'
+    if mime == 'image/heic':
+        return '.heic'
+    if mime == 'image/heif':
+        return '.heif'
+    return ''
+
+
+def infer_ai_product_image_extension_from_bytes(sample: bytes) -> str:
+    """Best-effort image extension sniffing from file header bytes."""
+    sample = sample or b''
+    if sample.startswith(b'\x89PNG\r\n\x1a\n'):
+        return '.png'
+    if len(sample) >= 3 and sample[:3] == b'\xff\xd8\xff':
+        return '.jpg'
+    if sample.startswith((b'GIF87a', b'GIF89a')):
+        return '.gif'
+    if sample.startswith(b'BM'):
+        return '.bmp'
+    if len(sample) >= 12 and sample[:4] == b'RIFF' and sample[8:12] == b'WEBP':
+        return '.webp'
+    if sample.startswith((b'II*\x00', b'MM\x00*')):
+        return '.tif'
+    if len(sample) >= 12 and sample[4:8] == b'ftyp':
+        brand = sample[8:12].lower()
+        if brand in {b'avif', b'avis'}:
+            return '.avif'
+        if brand in {b'heic', b'heix', b'hevc', b'hevx', b'mif1', b'msf1'}:
+            return '.heic'
+    lower = sample[:512].decode('utf-8', errors='ignore').lower()
+    if '<svg' in lower:
+        return '.svg'
+    return ''
+
+
+def normalize_ai_product_image_extension(filename: str, mime: str, sample: bytes) -> str:
+    """Normalize uploaded image extension with filename/mime/signature fallback."""
+    ext = Path((filename or '')).suffix.lower()
+    if ext == '.jpe':
+        ext = '.jpg'
+    if ext in ALLOWED_AI_PRODUCT_IMAGE_EXTENSIONS:
+        return ext
+
+    inferred = infer_ai_product_image_extension_from_mime(mime)
+    if inferred:
+        return inferred
+
+    mime_clean = (mime or '').split(';')[0].strip().lower()
+    guessed = (mimetypes.guess_extension(mime_clean) or '').lower() if mime_clean else ''
+    if guessed == '.jpe':
+        guessed = '.jpg'
+    if guessed in ALLOWED_AI_PRODUCT_IMAGE_EXTENSIONS:
+        return guessed
+
+    inferred_by_bytes = infer_ai_product_image_extension_from_bytes(sample)
+    if inferred_by_bytes in ALLOWED_AI_PRODUCT_IMAGE_EXTENSIONS:
+        return inferred_by_bytes
+
     return ''
 
 def get_hero_config():
@@ -1085,6 +1171,25 @@ def build_product_link(product):
     return f"pages/gassensing/{pid}.html"
 
 
+def resolve_product_html_path_by_id(product_id: str):
+    """Resolve product id to local html path in pages directories."""
+    pid = str(product_id or '').strip()
+    base_dir = Path(__file__).parent / 'pages'
+    if pid.startswith('../customization/'):
+        slug = pid.replace('../customization/', '').strip('/')
+        if not re.fullmatch(r'[a-z0-9_]+', slug):
+            return None, ''
+        return base_dir / 'customization' / f'{slug}.html', slug
+    if pid.startswith('../biosensing/'):
+        slug = pid.replace('../biosensing/', '').strip('/')
+        if not re.fullmatch(r'[a-z0-9_]+', slug):
+            return None, ''
+        return base_dir / 'biosensing' / f'{slug}.html', slug
+    if not re.fullmatch(r'[a-z0-9_]+', pid):
+        return None, ''
+    return base_dir / 'gassensing' / f'{pid}.html', pid
+
+
 def build_solution_link(solution):
     sid = solution.get('id', '')
     return f"pages/solutions/{sid}.html"
@@ -1730,6 +1835,83 @@ def get_news_list():
     """Get all news for admin selection."""
     items = get_all_news_items()
     return jsonify({'items': items, 'count': len(items)})
+
+
+def normalize_news_link_for_product(link: str) -> str:
+    raw = str(link or '').strip()
+    if not raw:
+        return ''
+    if raw.startswith('../../'):
+        return '/' + raw.replace('../../', '', 1)
+    if raw.startswith('../'):
+        return '/' + raw.replace('../', '', 1)
+    if raw.startswith('pages/'):
+        return '/' + raw
+    return raw
+
+
+@app.route('/api/products/related-news')
+def get_product_related_news():
+    """Get 2 related news for a product by settings; fallback to latest 2."""
+    product_id = (request.args.get('id') or '').strip()
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+
+    all_items = [item for item in get_all_news_items() if not item.get('hidden')]
+    normalized_items = []
+    for item in all_items:
+        normalized_link = normalize_news_link_for_product(item.get('link', ''))
+        if not normalized_link:
+            continue
+        normalized_items.append({
+            'link': normalized_link,
+            'title': item.get('title', ''),
+            'image': item.get('image', '') or '/assets/images/logo.png',
+            'desc': item.get('summary') or item.get('desc') or '',
+            '_date': item.get('date', '')
+        })
+
+    item_map = {item['link']: item for item in normalized_items}
+    settings = get_product_settings()
+    selected_links = _normalize_related_news_links((settings.get(product_id) or {}).get('relatedNews', []))
+
+    selected_items = []
+    for link in selected_links:
+        normalized = normalize_news_link_for_product(link)
+        if normalized in item_map:
+            selected_items.append(item_map[normalized])
+
+    if selected_items:
+        selected_links_set = {item.get('link') for item in selected_items}
+        def sort_key(item):
+            date_str = str(item.get('_date') or '').strip()
+            try:
+                return datetime.strptime(date_str, '%Y-%m-%d')
+            except Exception:
+                return datetime.min
+        latest_pool = sorted(normalized_items, key=sort_key, reverse=True)
+        for item in latest_pool:
+            if len(selected_items) >= 2:
+                break
+            if item.get('link') in selected_links_set:
+                continue
+            selected_items.append(item)
+            selected_links_set.add(item.get('link'))
+        for item in selected_items[:2]:
+            item.pop('_date', None)
+        return jsonify({'success': True, 'items': selected_items[:2]})
+
+    def sort_key(item):
+        date_str = str(item.get('_date') or '').strip()
+        try:
+            return datetime.strptime(date_str, '%Y-%m-%d')
+        except Exception:
+            return datetime.min
+
+    latest = sorted(normalized_items, key=sort_key, reverse=True)[:2]
+    for item in latest:
+        item.pop('_date', None)
+    return jsonify({'success': True, 'items': latest})
 
 
 def get_all_news_items():
@@ -2449,6 +2631,7 @@ DEFAULT_PRODUCT_CATEGORIES = {
 
 
 PRODUCT_TEMPLATE_FILE = Path(__file__).parent / 'pages' / 'gassensing' / '模板.html'
+PRODUCT_AI_REFERENCE_FILE = Path(__file__).parent / 'pages' / 'gassensing' / 'mc_ld_h2.html'
 PRODUCT_ADMIN_DATA_PREFIX = 'MC_PRODUCT_ADMIN_DATA:'
 
 
@@ -2457,6 +2640,13 @@ def get_product_template_html() -> str:
     if not PRODUCT_TEMPLATE_FILE.exists():
         raise FileNotFoundError(f'产品模板不存在: {PRODUCT_TEMPLATE_FILE}')
     return PRODUCT_TEMPLATE_FILE.read_text(encoding='utf-8', errors='ignore')
+
+
+def get_product_ai_reference_html() -> str:
+    """Load AI generation reference HTML, fallback to generic template."""
+    if PRODUCT_AI_REFERENCE_FILE.exists():
+        return PRODUCT_AI_REFERENCE_FILE.read_text(encoding='utf-8', errors='ignore')
+    return get_product_template_html()
 
 
 def extract_product_template_placeholders(template_html: str):
@@ -3231,10 +3421,8 @@ def _build_product_ai_html_messages(
 ):
     """Build system/user messages for product full-html generation."""
     ai_cfg = get_product_page_ai_config()
-    template_html = get_product_template_html()
-    system_prompt = (ai_cfg.get('system_prompt') or '').strip()
-    if not system_prompt:
-        system_prompt = '你是资深前端工程师，擅长基于HTML模板生成可直接上线的产品详情页。'
+    reference_html = get_product_ai_reference_html()
+    system_prompt = get_product_page_ai_system_prompt()
     detail_images = _normalize_text_lines(detail_image_urls)
     news_links = _normalize_text_lines(news_urls)
     related_links = _normalize_text_lines(related_product_urls)
@@ -3242,7 +3430,7 @@ def _build_product_ai_html_messages(
     news_links_block = '\n'.join([f"  - {u}" for u in news_links]) if news_links else '  - （无）'
     related_links_block = '\n'.join([f"  - {u}" for u in related_links]) if related_links else '  - （无）'
     user_prompt = (
-        "请基于“模板HTML”和“产品资料”直接生成完整产品页HTML文件。\n"
+        "请基于“参考样例HTML”和“产品资料”直接生成完整产品页HTML文件。\n"
         "硬性要求：\n"
         "1) 输出必须是完整HTML文档（包含 <!DOCTYPE html> ... </html>）。\n"
         "2) 请直接开始写代码，代码写完后不要添加任何其他内容。\n"
@@ -3252,6 +3440,9 @@ def _build_product_ai_html_messages(
         "6) 必须确保页面中有可见图片：主图、详情图、新闻图、相关产品图至少要有可显示来源。\n"
         "7) 若某类图片URL未提供，可优先复用主图或详情图首图，最后兜底 /assets/images/logo.png。\n"
         "8) 相关新闻与相关产品区块必须保留，并尽量使用提供的 URL 生成链接。\n\n"
+        "9) 相关新闻区块必须包含 `.vs-related-news .vs-news-grid` 结构。\n"
+        "10) 相关产品区块必须包含 `.vs-related-products .vs-related-grid` 结构。\n"
+        "11) 必须保留 `<script src=\"/assets/js/nav-loader.js\"></script>` 以支持动态数据填充。\n\n"
         f"产品资料：\n"
         f"- 产品标题: {title}\n"
         f"- 产品简称: {short_name}\n"
@@ -3262,8 +3453,8 @@ def _build_product_ai_html_messages(
         f"- 相关新闻URL列表:\n{news_links_block}\n"
         f"- 相关产品URL列表:\n{related_links_block}\n"
         f"- 详细补充资料:\n{context_text or '（无）'}\n\n"
-        "模板HTML如下（请以此为参考生成最终完整HTML）:\n"
-        f"{template_html}"
+        "参考样例HTML如下（请以此为参考生成最终完整HTML）:\n"
+        f"{reference_html}"
     )
     messages = [
         {'role': 'system', 'content': system_prompt},
@@ -3295,6 +3486,69 @@ def _continuation_prompt():
         "你上一次输出被截断。请仅从中断处继续输出剩余 HTML 代码，"
         "不要重复之前已输出内容，不要解释，直到输出到 </html> 结束。"
     )
+
+
+def _insert_before_last_tag(text: str, tag: str, snippet: str) -> str:
+    pattern = re.compile(rf'</{re.escape(tag)}\s*>', re.I)
+    matches = list(pattern.finditer(text or ''))
+    if matches:
+        m = matches[-1]
+        return (text or '')[:m.start()] + snippet + '\n' + (text or '')[m.start():]
+    return (text or '') + '\n' + snippet
+
+
+def _build_related_section_html(section_class: str, title: str, grid_class: str, loading_text: str) -> str:
+    return (
+        f'<section class="{section_class}">\n'
+        '    <div class="vs-container">\n'
+        f'        <h2>{title}</h2>\n'
+        f'        <div class="{grid_class}">\n'
+        f'            <p style="grid-column: 1/-1; text-align:center; color:#64748b;">{loading_text}</p>\n'
+        '        </div>\n'
+        '    </div>\n'
+        '</section>'
+    )
+
+
+def ensure_product_dynamic_sections(page_html: str) -> str:
+    """Post-process AI HTML to ensure related-news/products dynamic blocks are renderable."""
+    text = str(page_html or '')
+    if not text.strip():
+        return text
+
+    if not re.search(r'<script[^>]*src=["\']/assets/js/nav-loader\.js["\']', text, re.I):
+        nav_script = '<script src="/assets/js/nav-loader.js"></script>'
+        if re.search(r'</head\s*>', text, re.I):
+            text = _insert_before_last_tag(text, 'head', nav_script)
+        else:
+            text = _insert_before_last_tag(text, 'body', nav_script)
+
+    checks = [
+        ('vs-related-news', '相关新闻', 'vs-news-grid', '正在加载相关新闻...'),
+        ('vs-related-products', '相关产品', 'vs-related-grid', '正在加载相关产品...')
+    ]
+
+    for section_class, title, grid_class, loading_text in checks:
+        section_pattern = re.compile(
+            rf'<section[^>]*class=["\'][^"\']*\b{re.escape(section_class)}\b[^"\']*["\'][^>]*>.*?</section>',
+            re.S | re.I
+        )
+        grid_pattern = re.compile(
+            rf'class=["\'][^"\']*\b{re.escape(grid_class)}\b[^"\']*["\']',
+            re.I
+        )
+        section_html = _build_related_section_html(section_class, title, grid_class, loading_text)
+        m = section_pattern.search(text)
+        if not m:
+            if re.search(r'</main\s*>', text, re.I):
+                text = _insert_before_last_tag(text, 'main', section_html)
+            else:
+                text = _insert_before_last_tag(text, 'body', section_html)
+            continue
+        if not grid_pattern.search(m.group(0)):
+            text = text[:m.start()] + section_html + text[m.end():]
+
+    return text
 
 
 @app.route('/api/products/ai-generate-html', methods=['POST'])
@@ -3347,10 +3601,79 @@ def ai_generate_product_html():
 
     try:
         page_html = extract_html_from_ai_text(_ensure_html_tail(response_text), title=title)
+        page_html = ensure_product_dynamic_sections(page_html)
     except Exception as e:
         return jsonify({'success': False, 'message': f'AI输出HTML解析失败: {str(e)}'}), 500
 
     return jsonify({'success': True, 'page_html': page_html, 'attempts_used': attempts_used})
+
+
+@app.route('/api/products/ai-upload-images', methods=['POST'])
+@login_required
+def ai_upload_product_images():
+    """Upload AI product images into pages/gassensing/<MODEL>/ folder."""
+    slug = (request.form.get('slug') or '').strip().lower()
+    short_name = (request.form.get('short_name') or '').strip()
+    files = request.files.getlist('files')
+
+    if not slug or not re.fullmatch(r'[a-z0-9_]+', slug):
+        return jsonify({'success': False, 'message': '请提供合法链接标识（小写字母/数字/下划线）'}), 400
+    if not files:
+        return jsonify({'success': False, 'message': '请至少上传一张图片'}), 400
+
+    slug_dash = slug.replace('_', '-')
+    model_folder = re.sub(r'[^A-Za-z0-9._-]+', '', short_name.upper()) if short_name else ''
+    if not model_folder:
+        model_folder = slug_dash.upper()
+
+    target_dir = Path(__file__).parent / 'pages' / 'gassensing' / model_folder
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    existing = sorted(target_dir.glob(f'{slug_dash}-product-*.*'))
+    counter = len(existing) + 1
+    urls = []
+
+    for uploaded in files:
+        original_name = uploaded.filename or ''
+        mime = (uploaded.mimetype or uploaded.content_type or '').lower()
+        sample = b''
+        try:
+            stream = uploaded.stream
+            current_pos = stream.tell()
+            sample = stream.read(1024)
+            stream.seek(current_pos)
+        except Exception:
+            sample = b''
+
+        ext = normalize_ai_product_image_extension(original_name, mime, sample)
+        if not ext:
+            display_ext = Path((original_name or '')).suffix.lower() or '未知'
+            return jsonify({
+                'success': False,
+                'message': (
+                    f'不支持的图片格式: {display_ext}。'
+                    '支持 PNG/JPG/JPEG/WEBP/BMP/GIF/SVG/TIF/TIFF/HEIC/HEIF/AVIF'
+                )
+            }), 400
+
+        mime_clean = (mime or '').split(';')[0].strip().lower()
+        if mime_clean and mime_clean.startswith('image/') and mime_clean not in ALLOWED_AI_PRODUCT_IMAGE_MIME_TYPES:
+            inferred_from_mime = infer_ai_product_image_extension_from_mime(mime_clean)
+            if not inferred_from_mime:
+                return jsonify({'success': False, 'message': f'文件类型不受支持: {mime_clean}'}), 400
+
+        while True:
+            filename = f'{slug_dash}-product-{counter:02d}{ext}'
+            filepath = target_dir / filename
+            if not filepath.exists():
+                break
+            counter += 1
+
+        uploaded.save(str(filepath))
+        urls.append(f'/pages/gassensing/{model_folder}/{filename}')
+        counter += 1
+
+    return jsonify({'success': True, 'folder': model_folder, 'urls': urls})
 
 
 @app.route('/api/products/ai-generate-html-stream', methods=['POST'])
@@ -3419,6 +3742,7 @@ def ai_generate_product_html_stream():
         accumulated = _ensure_html_tail(accumulated)
         try:
             page_html = extract_html_from_ai_text(accumulated, title=title)
+            page_html = ensure_product_dynamic_sections(page_html)
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'error': f'AI输出HTML解析失败: {str(e)}'}, ensure_ascii=False)}\n\n"
             return
@@ -3431,6 +3755,52 @@ def ai_generate_product_html_stream():
         mimetype='text/event-stream',
         headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
+
+
+def _build_product_ai_revise_messages(
+    title,
+    category,
+    image_url,
+    detail_image_urls,
+    news_urls,
+    related_product_urls,
+    summary,
+    context_text,
+    instruction,
+    current_html
+):
+    """Build system/user messages for product HTML revise workflow."""
+    system_prompt = get_product_page_ai_system_prompt()
+    detail_images = _normalize_text_lines(detail_image_urls)
+    news_links = _normalize_text_lines(news_urls)
+    related_links = _normalize_text_lines(related_product_urls)
+    detail_images_block = '\n'.join([f"  - {u}" for u in detail_images]) if detail_images else '  - （无）'
+    news_links_block = '\n'.join([f"  - {u}" for u in news_links]) if news_links else '  - （无）'
+    related_links_block = '\n'.join([f"  - {u}" for u in related_links]) if related_links else '  - （无）'
+    return [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': (
+            "请基于下方“当前HTML代码”和“修改意见”输出一份修改后的完整HTML。\n"
+            "要求：\n"
+            "1) 只输出完整HTML代码，不要解释，不要Markdown代码块。\n"
+            "2) 尽量保留原有结构和样式，仅按修改意见调整。\n"
+            "3) 输出必须从 <!DOCTYPE html> 或 <html> 开始，并在 </html> 结束。\n\n"
+            "4) 相关新闻区块必须保留 `.vs-related-news .vs-news-grid` 结构。\n"
+            "5) 相关产品区块必须保留 `.vs-related-products .vs-related-grid` 结构。\n"
+            "6) 必须保留 `<script src=\"/assets/js/nav-loader.js\"></script>`。\n\n"
+            "产品资料补充（用于保证图片和链接完整，可结合修改意见一起处理）：\n"
+            f"- 产品标题: {title}\n"
+            f"- 产品分类: {category}\n"
+            f"- 产品主图URL: {image_url or '/assets/images/logo.png'}\n"
+            f"- 产品摘要: {summary or '（未填写）'}\n"
+            f"- 产品详情图片URL列表:\n{detail_images_block}\n"
+            f"- 相关新闻URL列表:\n{news_links_block}\n"
+            f"- 相关产品URL列表:\n{related_links_block}\n"
+            f"- 详细补充资料:\n{context_text or '（无）'}\n\n"
+            f"修改意见：\n{instruction}\n\n"
+            f"当前HTML代码：\n{current_html}"
+        )}
+    ]
 
 
 @app.route('/api/products/ai-revise-html-stream', methods=['POST'])
@@ -3460,38 +3830,18 @@ def ai_revise_product_html_stream():
     if not ai_cfg.get('api_key'):
         return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
 
-    system_prompt = (ai_cfg.get('system_prompt') or '').strip()
-    if not system_prompt:
-        system_prompt = '你是资深前端工程师，擅长基于HTML模板生成可直接上线的产品详情页。'
-
-    detail_images = _normalize_text_lines(detail_image_urls)
-    news_links = _normalize_text_lines(news_urls)
-    related_links = _normalize_text_lines(related_product_urls)
-    detail_images_block = '\n'.join([f"  - {u}" for u in detail_images]) if detail_images else '  - （无）'
-    news_links_block = '\n'.join([f"  - {u}" for u in news_links]) if news_links else '  - （无）'
-    related_links_block = '\n'.join([f"  - {u}" for u in related_links]) if related_links else '  - （无）'
-
-    messages = [
-        {'role': 'system', 'content': system_prompt},
-        {'role': 'user', 'content': (
-            "请基于下方“当前HTML代码”和“修改意见”输出一份修改后的完整HTML。\n"
-            "要求：\n"
-            "1) 只输出完整HTML代码，不要解释，不要Markdown代码块。\n"
-            "2) 尽量保留原有结构和样式，仅按修改意见调整。\n"
-            "3) 输出必须从 <!DOCTYPE html> 或 <html> 开始，并在 </html> 结束。\n\n"
-            "产品资料补充（用于保证图片和链接完整，可结合修改意见一起处理）：\n"
-            f"- 产品标题: {title}\n"
-            f"- 产品分类: {category}\n"
-            f"- 产品主图URL: {image_url or '/assets/images/logo.png'}\n"
-            f"- 产品摘要: {summary or '（未填写）'}\n"
-            f"- 产品详情图片URL列表:\n{detail_images_block}\n"
-            f"- 相关新闻URL列表:\n{news_links_block}\n"
-            f"- 相关产品URL列表:\n{related_links_block}\n"
-            f"- 详细补充资料:\n{context_text or '（无）'}\n\n"
-            f"修改意见：\n{instruction}\n\n"
-            f"当前HTML代码：\n{current_html}"
-        )}
-    ]
+    messages = _build_product_ai_revise_messages(
+        title=title,
+        category=category,
+        image_url=image_url,
+        detail_image_urls=detail_image_urls,
+        news_urls=news_urls,
+        related_product_urls=related_product_urls,
+        summary=summary,
+        context_text=context_text,
+        instruction=instruction,
+        current_html=current_html
+    )
 
     def generate():
         accumulated = ''
@@ -3525,6 +3875,7 @@ def ai_revise_product_html_stream():
         accumulated = _ensure_html_tail(accumulated)
         try:
             page_html = extract_html_from_ai_text(accumulated, title=title)
+            page_html = ensure_product_dynamic_sections(page_html)
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'error': f'AI输出HTML解析失败: {str(e)}'}, ensure_ascii=False)}\n\n"
             return
@@ -3537,6 +3888,69 @@ def ai_revise_product_html_stream():
         mimetype='text/event-stream',
         headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
+
+
+@app.route('/api/products/ai-revise-html', methods=['POST'])
+@login_required
+def ai_revise_product_html():
+    """Revise already-generated HTML by user instruction (non-stream fallback)."""
+    data = request.json or {}
+    title = (data.get('title') or '').strip() or '产品页面'
+    category = (data.get('category') or 'sensor').strip()
+    image_url = (data.get('image_url') or '').strip()
+    detail_image_urls = (data.get('detail_image_urls') or '').strip()
+    news_urls = (data.get('news_urls') or '').strip()
+    related_product_urls = (data.get('related_product_urls') or '').strip()
+    summary = (data.get('summary') or '').strip()
+    context_text = (data.get('context_text') or '').strip()
+    instruction = (data.get('instruction') or '').strip()
+    current_html = (data.get('current_html') or '').strip()
+
+    if not instruction:
+        return jsonify({'success': False, 'message': '请先填写修改意见'}), 400
+    if '<html' not in current_html.lower():
+        return jsonify({'success': False, 'message': '当前HTML为空或格式无效，请先生成HTML'}), 400
+
+    ai_cfg = get_product_page_ai_config()
+    if not ai_cfg.get('enabled', False):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
+    if not ai_cfg.get('api_key'):
+        return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
+
+    messages = _build_product_ai_revise_messages(
+        title=title,
+        category=category,
+        image_url=image_url,
+        detail_image_urls=detail_image_urls,
+        news_urls=news_urls,
+        related_product_urls=related_product_urls,
+        summary=summary,
+        context_text=context_text,
+        instruction=instruction,
+        current_html=current_html
+    )
+
+    response_text = ''
+    attempts_used = 0
+    for _ in range(3):
+        attempts_used += 1
+        piece, error = call_openai_api_sync_with_custom_config(messages, ai_cfg)
+        if error:
+            return jsonify({'success': False, 'message': error}), 502
+        piece = piece or ''
+        response_text += piece
+        if _is_html_complete(response_text):
+            break
+        messages.append({'role': 'assistant', 'content': piece or response_text[-4000:]})
+        messages.append({'role': 'user', 'content': _continuation_prompt()})
+
+    try:
+        page_html = extract_html_from_ai_text(_ensure_html_tail(response_text), title=title)
+        page_html = ensure_product_dynamic_sections(page_html)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'AI输出HTML解析失败: {str(e)}'}), 500
+
+    return jsonify({'success': True, 'page_html': page_html, 'attempts_used': attempts_used})
 
 
 @app.route('/api/products/ai-create-html', methods=['POST'])
@@ -3552,8 +3966,8 @@ def ai_create_product_from_html():
     slug = (data.get('slug') or '').strip()
     page_html = (data.get('page_html') or '').strip()
 
-    if not title or not short_name or not category or not summary or not slug:
-        return jsonify({'success': False, 'message': '请填写标题、简称、分类、链接标识和摘要'}), 400
+    if not title or not category or not slug:
+        return jsonify({'success': False, 'message': '请填写标题、分类和链接标识'}), 400
     if not re.fullmatch(r'[a-z0-9_]+', slug):
         return jsonify({'success': False, 'message': '链接标识仅支持小写字母、数字、下划线'}), 400
     if '<html' not in page_html.lower():
@@ -3562,6 +3976,12 @@ def ai_create_product_from_html():
     if category not in allowed_categories:
         return jsonify({'success': False, 'message': '产品分类不合法'}), 400
 
+    if not short_name:
+        short_name = slug.replace('_', '-').upper()
+    if not summary:
+        summary = title
+
+    page_html = ensure_product_dynamic_sections(page_html)
     enriched_html = inject_product_meta_tags(
         page_html=page_html,
         title=title,
@@ -3627,7 +4047,7 @@ def ai_generate_product_template_fields():
         detail1='',
         detail2=''
     )
-    system_prompt = ai_cfg.get('system_prompt') or ''
+    system_prompt = get_product_page_ai_system_prompt()
     user_prompt = (
         "请根据以下资料，生成模板字段 JSON。\n"
         f"产品标题: {title}\n"
@@ -3807,8 +4227,18 @@ def extract_product_meta_from_html(filepath):
             # 自动生成简称（截取前20个字符）
             short_name = name[:20] + ('...' if len(name) > 20 else '')
         
-        # 图片：meta > 第一张图片
-        image = parser.meta.get('image', '') or parser.first_img
+        # 图片：meta > 主图(mainImage) > 缩略图首图(vs-gallery-thumbs) > 第一张图片
+        main_img = re.search(r'<img[^>]*id="mainImage"[^>]*src="([^"]+)"', content, re.I)
+        gallery_thumb = re.search(
+            r'<div[^>]*class="[^"]*vs-gallery-thumbs[^"]*"[^>]*>.*?<img[^>]*src="([^"]+)"',
+            content, re.S | re.I
+        )
+        image = (
+            parser.meta.get('image', '')
+            or (main_img.group(1) if main_img else '')
+            or (gallery_thumb.group(1) if gallery_thumb else '')
+            or parser.first_img
+        )
         
         # 描述：meta > 第一段
         description = parser.meta.get('description', '') or parser.first_p[:200] if parser.first_p else ''
@@ -4095,6 +4525,17 @@ def extract_solution_meta_from_html(filepath):
         return None
 
 
+def normalize_scanned_image_path(image, web_dir_prefix):
+    """Normalize extracted image path for cross-directory rendering."""
+    img = str(image or '').strip()
+    if not img:
+        return ''
+    if img.startswith(('http://', 'https://', '/', 'data:', 'blob:')):
+        return img
+    clean = img.lstrip('./')
+    return f"{web_dir_prefix.rstrip('/')}/{clean}"
+
+
 @app.route('/api/products')
 def get_products():
     """自动扫描产品目录并返回产品列表"""
@@ -4111,6 +4552,7 @@ def get_products():
                 continue
             product = extract_product_meta_from_html(filepath)
             if product:
+                product['image'] = normalize_scanned_image_path(product.get('image', ''), '/pages/gassensing')
                 products.append(product)
     
     # 扫描 customization 目录（定制服务）
@@ -4122,6 +4564,7 @@ def get_products():
             if product:
                 # 为 customization 产品添加路径前缀
                 product['id'] = '../customization/' + product['id']
+                product['image'] = normalize_scanned_image_path(product.get('image', ''), '/pages/customization')
                 product['isCustomization'] = True
                 products.append(product)
 
@@ -4133,6 +4576,7 @@ def get_products():
             product = extract_product_meta_from_html(filepath)
             if product:
                 product['id'] = '../biosensing/' + product['id']
+                product['image'] = normalize_scanned_image_path(product.get('image', ''), '/pages/biosensing')
                 product['isBiosensing'] = True
                 products.append(product)
     
@@ -4285,6 +4729,36 @@ def save_product_settings(settings):
     PRODUCT_SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
+def _normalize_related_news_links(value):
+    """Normalize product related news setting to max 2 unique links."""
+    if isinstance(value, list):
+        raw_list = value
+    elif isinstance(value, str):
+        raw_list = [x.strip() for x in re.split(r'[\n,;]+', value) if x and x.strip()]
+    else:
+        raw_list = []
+
+    cleaned = []
+    seen = set()
+    for item in raw_list:
+        link = str(item or '').strip()
+        if not link:
+            continue
+        if link.startswith('../../'):
+            link = '/' + link.replace('../../', '', 1)
+        elif link.startswith('../'):
+            link = '/' + link.replace('../', '', 1)
+        elif link.startswith('pages/'):
+            link = '/' + link
+        if link in seen:
+            continue
+        seen.add(link)
+        cleaned.append(link)
+        if len(cleaned) >= 2:
+            break
+    return cleaned
+
+
 @app.route('/api/products/settings', methods=['GET'])
 def get_product_settings_api():
     """Get product menu settings."""
@@ -4333,6 +4807,9 @@ def update_product_settings_api():
     if 'industryCategories' in data:
         # 领域分类（all-products 页面筛选）
         settings[product_id]['industryCategories'] = list(data['industryCategories']) if isinstance(data['industryCategories'], list) else [data['industryCategories']]
+
+    if 'relatedNews' in data:
+        settings[product_id]['relatedNews'] = _normalize_related_news_links(data['relatedNews'])
     
     save_product_settings(settings)
     return jsonify({'success': True, 'settings': settings})
@@ -4358,6 +4835,48 @@ def update_product_sort_order():
     return jsonify({'success': True, 'message': f'已更新 {len(order)} 个产品的排序'})
 
 
+@app.route('/api/products/code/download')
+@login_required
+def download_product_code():
+    """Download product html source by product id."""
+    product_id = (request.args.get('id') or '').strip()
+    filepath, slug = resolve_product_html_path_by_id(product_id)
+    if not filepath or not filepath.exists():
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    return send_file(
+        filepath,
+        as_attachment=True,
+        download_name=f'{slug}.html',
+        mimetype='text/html'
+    )
+
+
+@app.route('/api/products/code/upload', methods=['POST'])
+@login_required
+def upload_product_code():
+    """Upload and overwrite product html source by product id."""
+    product_id = (request.form.get('id') or '').strip()
+    upload_file = request.files.get('file')
+    filepath, _ = resolve_product_html_path_by_id(product_id)
+    if not filepath or not filepath.exists():
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    if not upload_file or not upload_file.filename:
+        return jsonify({'success': False, 'message': '未选择上传文件'}), 400
+    if not str(upload_file.filename).lower().endswith('.html'):
+        return jsonify({'success': False, 'message': '仅支持上传 .html 文件'}), 400
+
+    raw = upload_file.read()
+    try:
+        content = raw.decode('utf-8')
+    except UnicodeDecodeError:
+        content = raw.decode('utf-8', errors='ignore')
+    if '<html' not in content.lower():
+        return jsonify({'success': False, 'message': '上传内容不是有效的HTML文件'}), 400
+
+    filepath.write_text(content, encoding='utf-8')
+    return jsonify({'success': True, 'message': '覆盖上传成功'})
+
+
 @app.route('/api/products/with-settings')
 def get_products_with_settings():
     """Get products with merged settings."""
@@ -4381,6 +4900,7 @@ def get_products_with_settings_data():
                 continue
             product = extract_product_meta_from_html(filepath)
             if product:
+                product['image'] = normalize_scanned_image_path(product.get('image', ''), '/pages/gassensing')
                 products.append(product)
 
     # Scan customization directory
@@ -4391,6 +4911,7 @@ def get_products_with_settings_data():
             product = extract_product_meta_from_html(filepath)
             if product:
                 product['id'] = '../customization/' + product['id']
+                product['image'] = normalize_scanned_image_path(product.get('image', ''), '/pages/customization')
                 product['isCustomization'] = True
                 products.append(product)
 
@@ -4402,6 +4923,7 @@ def get_products_with_settings_data():
             product = extract_product_meta_from_html(filepath)
             if product:
                 product['id'] = '../biosensing/' + product['id']
+                product['image'] = normalize_scanned_image_path(product.get('image', ''), '/pages/biosensing')
                 product['isBiosensing'] = True
                 products.append(product)
 
@@ -4417,6 +4939,7 @@ def get_products_with_settings_data():
             product['cardTitle'] = settings[pid].get('cardTitle', '')
             product['cardImage'] = settings[pid].get('cardImage', '')
             product['cardSummary'] = settings[pid].get('cardSummary', '')
+            product['relatedNews'] = _normalize_related_news_links(settings[pid].get('relatedNews', []))
             # 支持多分类：如果设置了 categories 数组则使用，否则使用原始的 category
             custom_categories = settings[pid].get('categories', [])
             if custom_categories:
@@ -4431,6 +4954,7 @@ def get_products_with_settings_data():
             product['cardTitle'] = ''
             product['cardImage'] = ''
             product['cardSummary'] = ''
+            product['relatedNews'] = []
             product['categories'] = [product.get('category', 'module')]
 
         if pid in settings and isinstance(settings[pid].get('industryCategories'), list):
@@ -5499,14 +6023,7 @@ _knowledge_cache = {
 }
 _knowledge_lock = threading.Lock()
 
-def get_chatbot_config():
-    """Get chatbot configuration from config."""
-    config = get_config()
-    return {
-        'api_key': config.get('chatbot_api_key', ''),
-        'api_base': config.get('chatbot_api_base', 'https://api.openai.com/v1'),
-        'model': config.get('chatbot_model', 'gpt-3.5-turbo'),
-        'system_prompt': config.get('chatbot_system_prompt', '''你是元芯传感的智能客服助手。你的职责是回答用户关于公司产品、技术和服务的问题。
+CHATBOT_SYSTEM_PROMPT = '''你是元芯传感的智能客服助手。你的职责是回答用户关于公司产品、技术和服务的问题。
 
 公司信息：
 - 公司名称：湖南元芯传感科技有限责任公司
@@ -5514,17 +6031,9 @@ def get_chatbot_config():
 - 核心技术：碳基电子传感技术
 - 主要产品：氢气传感器、生物传感器、气体检测模组
 
-请用专业、友好的语气回答问题。如果遇到不确定的问题，请引导用户联系我们的销售团队。'''),
-        'max_tokens': int(config.get('chatbot_max_tokens', 1000)),
-        'temperature': float(config.get('chatbot_temperature', 0.7)),
-        'enabled': config.get('chatbot_enabled', True)
-    }
+请用专业、友好的语气回答问题。如果遇到不确定的问题，请引导用户联系我们的销售团队。'''
 
-
-def get_product_page_ai_config():
-    """Get product-page coding AI configuration from config."""
-    config = get_config()
-    default_prompt = '''你是“元芯传感产品页编程助手”，负责根据后台给定的产品资料生成可发布的页面内容。
+PRODUCT_AI_SYSTEM_PROMPT = '''你是“元芯传感产品页编程助手”，负责根据后台给定的产品资料生成可发布的页面内容。
 
 你在“产品页编程 AI”场景下的硬性规则：
 1) 你的输出目标是完整 HTML 页面代码。
@@ -5534,20 +6043,35 @@ def get_product_page_ai_config():
 5) 必须参考提供的模板结构与样式，不要无故删除关键布局和资源引用。
 6) 文案专业、克制、可发布；禁止编造认证/资质/客户背书。
 7) 图片或链接未知时可使用占位路径 /assets/images/logo.png 或保守留空。'''
-    saved_prompt = str(config.get('product_ai_system_prompt', '') or '').strip()
-    looks_like_old_json_prompt = (
-        ('JSON' in saved_prompt and 'template_fields' in saved_prompt) or
-        ('只允许输出一个 JSON 对象' in saved_prompt) or
-        ('JSON 顶层' in saved_prompt)
-    )
-    if not saved_prompt or len(saved_prompt) < 40 or looks_like_old_json_prompt:
-        saved_prompt = default_prompt
+
+
+def get_chatbot_system_prompt():
+    return CHATBOT_SYSTEM_PROMPT
+
+
+def get_product_page_ai_system_prompt():
+    return PRODUCT_AI_SYSTEM_PROMPT
+
+
+def get_chatbot_config():
+    """Get chatbot configuration from config."""
+    config = get_config()
+    return {
+        'api_key': config.get('chatbot_api_key', ''),
+        'api_base': config.get('chatbot_api_base', 'https://api.openai.com/v1'),
+        'model': config.get('chatbot_model', 'gpt-3.5-turbo'),
+        'enabled': config.get('chatbot_enabled', True)
+    }
+
+
+def get_product_page_ai_config():
+    """Get product-page coding AI configuration from config."""
+    config = get_config()
     return {
         'enabled': config.get('product_ai_enabled', False),
         'api_key': config.get('product_ai_api_key', ''),
         'api_base': config.get('product_ai_api_base', 'https://api.openai.com/v1'),
-        'model': config.get('product_ai_model', 'gpt-4o-mini'),
-        'system_prompt': saved_prompt
+        'model': config.get('product_ai_model', 'gpt-4o-mini')
     }
 
 
@@ -5620,8 +6144,6 @@ def call_openai_api_sync(messages):
     payload = {
         'model': config['model'],
         'messages': messages,
-        'max_tokens': config['max_tokens'],
-        'temperature': config['temperature'],
         'stream': False
     }
 
@@ -5667,8 +6189,6 @@ def call_openai_api_stream(messages):
     payload = {
         'model': config['model'],
         'messages': messages,
-        'max_tokens': config['max_tokens'],
-        'temperature': config['temperature'],
         'stream': True
     }
 
@@ -5753,7 +6273,7 @@ def chatbot_chat():
     knowledge = load_knowledge_base()
     
     # Build system prompt with knowledge base
-    system_prompt = config['system_prompt']
+    system_prompt = get_chatbot_system_prompt()
     if knowledge:
         system_prompt += f"\n\n以下是公司知识库的相关内容，请参考这些信息回答用户问题：\n{knowledge[:8000]}"  # Limit knowledge base size
     
@@ -5922,15 +6442,6 @@ def update_chatbot_config():
     if 'model' in data:
         updates['chatbot_model'] = data['model']
     
-    if 'system_prompt' in data:
-        updates['chatbot_system_prompt'] = data['system_prompt']
-    
-    if 'max_tokens' in data:
-        updates['chatbot_max_tokens'] = int(data['max_tokens'])
-    
-    if 'temperature' in data:
-        updates['chatbot_temperature'] = float(data['temperature'])
-    
     if 'enabled' in data:
         updates['chatbot_enabled'] = bool(data['enabled'])
     
@@ -5963,8 +6474,6 @@ def update_product_ai_config():
         updates['product_ai_api_base'] = str(data['api_base']).strip()
     if 'model' in data:
         updates['product_ai_model'] = str(data['model']).strip()
-    if 'system_prompt' in data:
-        updates['product_ai_system_prompt'] = str(data['system_prompt'])
     if 'enabled' in data:
         updates['product_ai_enabled'] = bool(data['enabled'])
 

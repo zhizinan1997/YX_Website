@@ -195,6 +195,142 @@
         return '/pages/gassensing/' + id + '.html';
     }
 
+    function escapeHtmlText(text) {
+        return String(text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function detectCurrentProductId() {
+        var path = String(window.location.pathname || '');
+        var m = path.match(/^\/pages\/gassensing\/([a-z0-9_]+)\.html$/i);
+        if (m && m[1]) {
+            var slug = String(m[1]).toLowerCase();
+            if (slug === 'all-products' || slug === 'index') return '';
+            return slug;
+        }
+        m = path.match(/^\/pages\/customization\/([a-z0-9_]+)\.html$/i);
+        if (m && m[1]) {
+            return '../customization/' + String(m[1]).toLowerCase();
+        }
+        return '';
+    }
+
+    function renderProductRelatedNews(items) {
+        var grid = document.querySelector('.vs-related-news .vs-news-grid');
+        if (!grid || !Array.isArray(items) || !items.length) return;
+        var html = items.slice(0, 2).map(function (item) {
+            var link = (item && item.link) ? String(item.link) : '#';
+            var title = (item && item.title) ? String(item.title) : '相关新闻';
+            var image = (item && item.image) ? String(item.image) : '/assets/images/logo.png';
+            var desc = (item && item.desc) ? String(item.desc) : '';
+            return '' +
+                '<a href="' + link + '" class="vs-news-item">' +
+                '  <img src="' + image + '" alt="新闻图片">' +
+                '  <div class="vs-news-item__content">' +
+                '    <h4>' + escapeHtmlText(title) + '</h4>' +
+                '    <p>' + escapeHtmlText(desc) + '</p>' +
+                '  </div>' +
+                '</a>';
+        }).join('');
+        if (html) grid.innerHTML = html;
+    }
+
+    function bindProductRelatedNewsData() {
+        var productId = detectCurrentProductId();
+        if (!productId) return Promise.resolve();
+        if (!document.querySelector('.vs-related-news .vs-news-grid')) return Promise.resolve();
+        return fetch('/api/products/related-news?id=' + encodeURIComponent(productId), { credentials: 'same-origin' })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data && data.success && Array.isArray(data.items)) {
+                    renderProductRelatedNews(data.items);
+                }
+            })
+            .catch(function () { });
+    }
+
+    function shuffleArray(list) {
+        var arr = Array.isArray(list) ? list.slice() : [];
+        for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = tmp;
+        }
+        return arr;
+    }
+
+    function normalizeProductCardTitle(product) {
+        return String(
+            (product && (product.cardTitle || product.displayName || product.shortName || product.name)) || '产品'
+        );
+    }
+
+    function normalizeProductCardImage(product) {
+        var image = String((product && (product.cardImage || product.image)) || '').trim();
+        return image || '/assets/images/logo.png';
+    }
+
+    function renderProductRelatedProducts(items) {
+        var grid = document.querySelector('.vs-related-products .vs-related-grid');
+        if (!grid) return;
+        if (!Array.isArray(items) || !items.length) {
+            grid.innerHTML = '<p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">暂无相关产品</p>';
+            return;
+        }
+
+        var html = items.map(function (item) {
+            var href = buildProductHref(item);
+            var title = normalizeProductCardTitle(item);
+            var image = normalizeProductCardImage(item);
+            return '' +
+                '<a href="' + href + '" class="vs-related-item">' +
+                '  <img src="' + image + '" alt="' + escapeHtmlText(title) + '">' +
+                '  <h4>' + escapeHtmlText(title) + '</h4>' +
+                '</a>';
+        }).join('');
+
+        grid.innerHTML = html;
+    }
+
+    function bindProductRelatedProductsData() {
+        var productId = detectCurrentProductId();
+        if (!productId) return Promise.resolve();
+        if (!document.querySelector('.vs-related-products .vs-related-grid')) return Promise.resolve();
+        var isCustomizationPage = productId.indexOf('../customization/') === 0;
+
+        return fetch('/api/products/with-settings', { credentials: 'same-origin' })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                var allProducts = (data && Array.isArray(data.products)) ? data.products : [];
+                var seen = Object.create(null);
+                var filtered = [];
+
+                allProducts.forEach(function (product) {
+                    var id = String((product && product.id) || '');
+                    if (!id || (product && product.hidden)) return;
+                    if (isCustomizationPage) {
+                        if (id.indexOf('../customization/') !== 0) return;
+                    } else {
+                        if (id.indexOf('../') === 0) return;
+                    }
+                    if (id === productId) return;
+                    if (id === 'all-products' || id === 'index') return;
+                    if (seen[id]) return;
+                    seen[id] = true;
+                    filtered.push(product);
+                });
+
+                var picked = shuffleArray(filtered).slice(0, 8);
+                renderProductRelatedProducts(picked);
+            })
+            .catch(function () { });
+    }
+
     function bindGasDynamicData() {
         var jobs = [];
 
@@ -328,7 +464,17 @@
             );
         }
 
+        jobs.push(bindProductRelatedNewsData());
+        jobs.push(bindProductRelatedProductsData());
+
         return Promise.all(jobs);
+    }
+
+    function bindStandaloneProductData() {
+        return Promise.all([
+            bindProductRelatedNewsData(),
+            bindProductRelatedProductsData()
+        ]);
     }
 
     function bindBioDynamicData() {
@@ -340,7 +486,10 @@
         ensureChatbotScript();
 
         var root = getRoot();
-        if (!root) return;
+        if (!root) {
+            bindStandaloneProductData();
+            return;
+        }
         var profile = getProfile(root);
         ensureNavStylesheet();
         ensureNoScriptFallback(root, profile);
@@ -354,6 +503,9 @@
             })
             .catch(function (err) {
                 console.error('[nav-loader] failed:', err);
+            })
+            .finally(function () {
+                bindStandaloneProductData();
             });
     }
 
