@@ -1080,6 +1080,9 @@
                 <div class="menu-item" onclick="switchView('products')">
                     <i class="fas fa-box"></i> 氢气产品
                 </div>
+                <div class="menu-item" onclick="switchView('hydrogen-solutions')">
+                    <i class="fas fa-project-diagram"></i> 氢气方案
+                </div>
                 <div class="menu-item" onclick="switchView('news-create')">
                     <i class="fas fa-pen-nib"></i>
                     <span class="menu-item-label">添加资讯 <span class="beta-badge">Beta</span></span>
@@ -1122,12 +1125,24 @@
                 <div id="view-messages" class="view-section active">
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-label">总提交数</div>
+                            <div class="stat-label">总留言数</div>
                             <div class="stat-value" id="totalCount">0</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-label">今日新增</div>
+                            <div class="stat-label">应聘留言数</div>
+                            <div class="stat-value" id="jobCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">今日留言数</div>
                             <div class="stat-value" id="todayCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">已读留言数</div>
+                            <div class="stat-value" id="readCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">已删留言数</div>
+                            <div class="stat-value" id="deletedCount">0</div>
                         </div>
                     </div>
 
@@ -1317,6 +1332,24 @@
                         </div>
                     </div>
 
+                </div>
+
+                <!-- Hydrogen Solutions View -->
+                <div id="view-hydrogen-solutions" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <h3 class="section-header">氢气方案 · 相关产品设置</h3>
+                        <p style="margin-bottom: 16px; color: #667085; font-size: 14px;">
+                            为“氢能源产业链 + 智慧电力安全 + 工业检漏监测”页面的各方案设置【相关产品】。每个方案可选择 1-4 个产品，产品来源于【氢气产品】列表。
+                        </p>
+                        <div id="hydrogenSolutionsEditor">
+                            <div style="color:#888; padding: 8px 0;">加载中...</div>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center; margin-top:14px;">
+                            <button class="btn-primary" style="width:auto; padding:10px 20px;"
+                                onclick="saveHydrogenSolutionsConfig()">保存氢气方案配置</button>
+                        </div>
+                        <div id="hydrogenSolutionsMsg" style="margin-top: 10px; color: #28a745;"></div>
+                    </div>
                 </div>
 
                 <!-- Home Settings View -->
@@ -2849,6 +2882,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'product-tab-industries': '设置说明：先定义领域分类名称，再勾选每个产品所属领域；分类与勾选都会自动保存。',
             'product-tab-add': '设置说明：本页为“产品列表”管理，可在下方设置卡片标题/图片/摘要与显示状态。',
             'product-tab-ai': '设置说明：先填写资料并点击“AI 生成完整HTML”，确认源码后点击“保存为产品页面文件”。',
+            'view-hydrogen-solutions': '设置说明：为氢能产业链、智慧电力安全、工业检漏监测方案分别设置 1-4 个“相关产品”，保存后对应前台方案页会按方案展示。',
             'home-tab-hero': '设置说明：用于管理官网首页轮播，支持上传和 CDN；调整顺序后保存即可生效。',
             'home-tab-partners': '设置说明：用于管理合作伙伴 Logo，支持上传与链接，拖拽可调整展示顺序。',
             'home-tab-news': '设置说明：选择首页展示的 3 条资讯，保存后首页资讯区会同步更新。',
@@ -2905,6 +2939,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const menuTitles = {
                 'messages': '留言',
                 'products': '氢气产品',
+                'hydrogen-solutions': '氢气方案',
                 'home': '首页设置',
                 'h2-home': '氢气首页',
                 'news-create': '添加资讯',
@@ -2924,6 +2959,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const titles = {
                 'messages': '留言管理',
                 'products': '氢气产品',
+                'hydrogen-solutions': '氢气方案',
                 'home': '首页设置',
                 'h2-home': '氢气首页设置',
                 'news-create': '添加资讯',
@@ -2940,6 +2976,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 bindProductCreateEvents();
                 loadProducts();
             }
+            if (viewName === 'hydrogen-solutions') loadHydrogenSolutionsConfig();
             if (viewName === 'home') {
                 switchHomeTab('hero');
             }
@@ -2963,6 +3000,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let productTemplateGroupVisibleCounts = {};
         let aiProductEventsBound = false;
         let aiUploadedImageUrls = [];
+        let hydrogenSolutionDefinitions = [];
+        let hydrogenSolutionsConfig = [];
+        let hydrogenSolutionProductOptions = [];
         const AI_STREAM_IDLE_TIMEOUT_MS = 45000;
         const AI_STREAM_TOTAL_TIMEOUT_MS = 7 * 60 * 1000;
 
@@ -4526,6 +4566,180 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             } catch (e) {
                 console.error('Load products error:', e);
                 tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
+            }
+        }
+
+        function normalizeHydrogenSolutionConfigRows(definitions, configRows) {
+            const cfgMap = {};
+            (Array.isArray(configRows) ? configRows : []).forEach(item => {
+                if (!item || typeof item !== 'object') return;
+                const sid = String(item.id || '').trim();
+                if (!sid) return;
+                const list = Array.isArray(item.relatedProductIds) ? item.relatedProductIds : [];
+                const deduped = [];
+                list.forEach(pid => {
+                    const id = String(pid || '').trim();
+                    if (!id || deduped.includes(id)) return;
+                    deduped.push(id);
+                });
+                cfgMap[sid] = deduped.slice(0, 4);
+            });
+
+            return (Array.isArray(definitions) ? definitions : []).map(def => ({
+                id: String(def.id || '').trim(),
+                title: String(def.title || '').trim(),
+                relatedProductIds: (cfgMap[String(def.id || '').trim()] || []).slice(0, 4)
+            }));
+        }
+
+        function renderHydrogenSolutionsEditor() {
+            const editor = document.getElementById('hydrogenSolutionsEditor');
+            if (!editor) return;
+
+            if (!hydrogenSolutionDefinitions.length) {
+                editor.innerHTML = '<div style="color:#888; padding: 8px 0;">暂无方案配置项</div>';
+                return;
+            }
+            if (!hydrogenSolutionProductOptions.length) {
+                editor.innerHTML = '<div style="color:#dc3545; padding: 8px 0;">未读取到产品列表，请先检查【氢气产品】配置</div>';
+                return;
+            }
+
+            const baseOption = '<option value="">未选择</option>';
+            const allOptions = hydrogenSolutionProductOptions.map(item => {
+                const title = String(item.title || item.id || '');
+                return `<option value="${escapeAttr(item.id)}">${escapeHtml(title)}</option>`;
+            }).join('');
+
+            editor.innerHTML = `
+                <div class="table-container" style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse: collapse; min-width: 1180px;">
+                        <thead>
+                            <tr style="background:#f6f8fb;">
+                                <th style="padding:10px; text-align:left; border-bottom:2px solid #e5e7eb; width: 320px;">方案</th>
+                                <th style="padding:10px; text-align:left; border-bottom:2px solid #e5e7eb;">相关产品1</th>
+                                <th style="padding:10px; text-align:left; border-bottom:2px solid #e5e7eb;">相关产品2</th>
+                                <th style="padding:10px; text-align:left; border-bottom:2px solid #e5e7eb;">相关产品3</th>
+                                <th style="padding:10px; text-align:left; border-bottom:2px solid #e5e7eb;">相关产品4</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${hydrogenSolutionsConfig.map(row => {
+                const selected = Array.isArray(row.relatedProductIds) ? row.relatedProductIds : [];
+                const makeSelect = slot => `
+                                    <select class="form-control hydrogen-solution-product-select" data-solution-id="${escapeAttr(row.id)}" data-slot="${slot}" style="min-width:200px;">
+                                        ${baseOption}${allOptions}
+                                    </select>
+                                `;
+                return `
+                                <tr style="border-bottom:1px solid #eef2f7;">
+                                    <td style="padding:10px;">
+                                        <div style="font-weight:600; color:#0f2f5f;">${escapeHtml(row.title || row.id)}</div>
+                                        <div style="font-size:12px; color:#6b7280; margin-top:4px;">${escapeHtml(row.id)}</div>
+                                    </td>
+                                    <td style="padding:10px;">${makeSelect(1)}</td>
+                                    <td style="padding:10px;">${makeSelect(2)}</td>
+                                    <td style="padding:10px;">${makeSelect(3)}</td>
+                                    <td style="padding:10px;">${makeSelect(4)}</td>
+                                </tr>
+                            `;
+            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top:12px; padding:12px; background:#eef6ff; border-radius:8px; font-size:13px; color:#334155;">
+                    每个方案至少选择 1 个，最多 4 个；同一方案内不允许重复产品。
+                </div>
+            `;
+
+            editor.querySelectorAll('.hydrogen-solution-product-select').forEach(select => {
+                const sid = String(select.dataset.solutionId || '');
+                const slot = Math.max(0, Number(select.dataset.slot || 1) - 1);
+                const row = hydrogenSolutionsConfig.find(item => item.id === sid);
+                const selected = Array.isArray(row?.relatedProductIds) ? row.relatedProductIds : [];
+                select.value = selected[slot] || '';
+                select.addEventListener('change', () => {
+                    const msg = document.getElementById('hydrogenSolutionsMsg');
+                    if (msg) msg.textContent = '';
+                    const currentRow = hydrogenSolutionsConfig.find(item => item.id === sid);
+                    if (!currentRow) return;
+                    const values = Array.from(editor.querySelectorAll(`.hydrogen-solution-product-select[data-solution-id="${sid}"]`))
+                        .map(el => String(el.value || '').trim())
+                        .filter(Boolean);
+                    currentRow.relatedProductIds = values.filter((pid, idx) => values.indexOf(pid) === idx).slice(0, 4);
+                    Array.from(editor.querySelectorAll(`.hydrogen-solution-product-select[data-solution-id="${sid}"]`))
+                        .forEach((el, idx) => { el.value = currentRow.relatedProductIds[idx] || ''; });
+                });
+            });
+        }
+
+        async function loadHydrogenSolutionsConfig() {
+            const editor = document.getElementById('hydrogenSolutionsEditor');
+            const msg = document.getElementById('hydrogenSolutionsMsg');
+            if (!editor) return;
+            editor.innerHTML = '<div style="color:#888; padding: 8px 0;">加载中...</div>';
+            if (msg) msg.textContent = '';
+
+            try {
+                const res = await fetch('/api/admin/hydrogen-solutions/config');
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.message || '加载失败');
+
+                hydrogenSolutionDefinitions = Array.isArray(data.definitions) ? data.definitions : [];
+                hydrogenSolutionProductOptions = Array.isArray(data.products) ? data.products : [];
+                const configRows = (data.config && Array.isArray(data.config.solutions)) ? data.config.solutions : [];
+                hydrogenSolutionsConfig = normalizeHydrogenSolutionConfigRows(hydrogenSolutionDefinitions, configRows);
+                renderHydrogenSolutionsEditor();
+            } catch (e) {
+                editor.innerHTML = `<div style="color:#dc3545; padding: 8px 0;">${escapeHtml(e?.message || '加载失败')}</div>`;
+            }
+        }
+
+        async function saveHydrogenSolutionsConfig() {
+            const msg = document.getElementById('hydrogenSolutionsMsg');
+            if (msg) {
+                msg.style.color = '#2563eb';
+                msg.textContent = '保存中...';
+            }
+
+            const payloadSolutions = hydrogenSolutionsConfig.map(item => {
+                const ids = Array.isArray(item.relatedProductIds) ? item.relatedProductIds : [];
+                const deduped = ids.map(x => String(x || '').trim()).filter(Boolean)
+                    .filter((pid, idx, arr) => arr.indexOf(pid) === idx)
+                    .slice(0, 4);
+                return { id: item.id, relatedProductIds: deduped };
+            });
+
+            const invalidRow = payloadSolutions.find(item => item.relatedProductIds.length < 1 || item.relatedProductIds.length > 4);
+            if (invalidRow) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = `方案“${invalidRow.id}”请至少选择 1 个、最多 4 个产品`;
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/hydrogen-solutions/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ solutions: payloadSolutions })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.message || '保存失败');
+
+                const rows = (data.config && Array.isArray(data.config.solutions)) ? data.config.solutions : payloadSolutions;
+                hydrogenSolutionsConfig = normalizeHydrogenSolutionConfigRows(hydrogenSolutionDefinitions, rows);
+                renderHydrogenSolutionsEditor();
+                if (msg) {
+                    msg.style.color = '#28a745';
+                    msg.textContent = '✓ 保存成功';
+                }
+            } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = e?.message || '保存失败';
+                }
             }
         }
 
@@ -8162,18 +8376,16 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
             try {
                 const res = await fetch('/api/messages');
-                const messages = await res.json();
+                const payload = await res.json();
+                const messages = Array.isArray(payload) ? payload : (payload.messages || []);
+                const stats = (payload && !Array.isArray(payload)) ? (payload.stats || {}) : {};
 
-                const today = new Date().toISOString().split('T')[0];
-                let todayCount = 0;
                 const feedbackItems = [];
                 const jobItems = [];
                 messageDetailMap = {};
 
                 messages.forEach(msg => {
                     if (msg && msg.id) messageDetailMap[String(msg.id)] = msg;
-                    const dateStr = String(msg.timestamp || '').split('T')[0];
-                    if (dateStr === today) todayCount++;
                     if (msg.message_type === 'job_application') jobItems.push(msg);
                     else feedbackItems.push(msg);
                 });
@@ -8277,12 +8489,20 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     }
                 }
 
-                document.getElementById('totalCount').textContent = messages.length;
-                document.getElementById('todayCount').textContent = todayCount;
+                document.getElementById('totalCount').textContent = Number(stats.total_count ?? messages.length) || 0;
+                document.getElementById('jobCount').textContent = Number(stats.job_count ?? jobItems.length) || 0;
+                document.getElementById('todayCount').textContent = Number(stats.today_count ?? 0) || 0;
+                document.getElementById('readCount').textContent = Number(stats.read_count ?? 0) || 0;
+                document.getElementById('deletedCount').textContent = Number(stats.deleted_count ?? 0) || 0;
 
             } catch (e) {
                 if (feedbackTbody) feedbackTbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败</td></tr>';
                 if (jobTbody) jobTbody.innerHTML = '<tr><td colspan="6" class="no-data">加载失败</td></tr>';
+                document.getElementById('totalCount').textContent = '0';
+                document.getElementById('jobCount').textContent = '0';
+                document.getElementById('todayCount').textContent = '0';
+                document.getElementById('readCount').textContent = '0';
+                document.getElementById('deletedCount').textContent = '0';
             }
         }
 

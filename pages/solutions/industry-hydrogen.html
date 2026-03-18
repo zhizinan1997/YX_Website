@@ -162,112 +162,300 @@
             padding-left: 5px;
         }
 
-        /* Hero Banner */
-        .jjfa-hero {
+        /* Aero Hero Banner */
+        .aero-hero {
+            background-color: #1a1631;
             position: relative;
-            background: linear-gradient(135deg, rgba(0, 55, 100, 0) 0%, rgba(0, 30, 60, 0.3) 100%),
-                url('../../assets/images/industry-banner.png') center/cover;
-            height: 60vh;
-            min-height: 450px;
+            min-height: 600px;
+            overflow: hidden;
+            color: #ffffff;
+        }
+
+        /* The vs-container inside hero handles horizontal alignment */
+        .aero-hero>.vs-container {
+            position: relative;
+            z-index: 5;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
-            text-align: center;
-            color: white;
-            padding: 0 20px;
+            min-height: 600px;
         }
 
-        .jjfa-hero h1 {
-            font-size: 48px;
+        .aero-hero-content {
+            width: 50%;
+            max-width: 600px;
+            padding: 96px 0;
+        }
+
+        .aero-breadcrumb {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+            padding-top: 24px;
+            margin-bottom: auto;
+            /* push hero content to center */
+        }
+
+        .aero-breadcrumb a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .aero-breadcrumb a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .aero-hero-content h1 {
+            font-size: 44px;
             font-weight: 700;
             margin-bottom: 16px;
-            line-height: 1.3;
+            line-height: 1.15;
+            color: #ffffff;
+            letter-spacing: -0.5px;
         }
 
-        .jjfa-hero h1 span {
-            display: block;
-            font-size: 32px;
+        .aero-subtitle {
+            font-size: 22px;
             font-weight: 400;
-            opacity: 0.9;
+            color: #93a5be;
+            margin-bottom: 30px;
         }
 
-        .jjfa-breadcrumb {
+        .aero-desc {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1.8;
+        }
+
+        .aero-hero-image-wrapper {
             position: absolute;
-            top: 40px;
-            left: 5%;
-            font-size: 13px;
-            opacity: 0.8;
-            margin-top: 0;
-            z-index: 10;
+            top: 0;
+            right: 0;
+            width: 55%;
+            height: 100%;
+            z-index: 1;
         }
 
-        .jjfa-breadcrumb a {
-            color: white;
-            opacity: 0.8;
-        }
-
-        .jjfa-breadcrumb a:hover {
-            opacity: 1;
-        }
-
-        /* Solution Tabs Section */
-        .solution-tabs-section {
-            background: #f8f9fa;
-            padding: 80px 0;
-        }
-
-        .solution-tabs-container {
-            display: flex;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .solution-tabs-nav {
-            background: var(--color-primary);
-            min-width: 280px;
-        }
-
-        .solution-tab-btn {
-            display: block;
+        .aero-hero-image {
             width: 100%;
-            padding: 24px 30px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 16px;
-            font-weight: 500;
+            height: 100%;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 1200px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .aero-hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        @media (max-width: 992px) {
+            .aero-hero>.vs-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .aero-hero-content {
+                width: 100%;
+                max-width: 100%;
+                padding: 60px 0;
+            }
+
+            .aero-hero-image-wrapper {
+                display: none;
+            }
+        }
+
+        /* Solutions Carousel */
+        .solutions-carousel-section {
+            background: #ffffff;
+            padding: 88px 0 80px;
+        }
+
+        .carousel-title-bar {
+            position: relative;
+            margin-bottom: 48px;
+            padding: 0 80px;
+            /* reserve space for absolutely positioned arrows */
+        }
+
+        .carousel-arrow {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
             border: none;
-            background: transparent;
-            text-align: left;
+            background: #0d3560;
+            color: #ffffff;
+            font-size: 22px;
             cursor: pointer;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            z-index: 3;
+            box-shadow: 0 6px 20px rgba(13, 53, 96, 0.45), 0 2px 6px rgba(0, 0, 0, 0.2);
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
-        .solution-tab-btn:hover,
-        .solution-tab-btn.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-            border-left: 4px solid var(--color-accent-orange);
+        #carousel-prev {
+            left: 0;
         }
 
-        .solution-tabs-content {
+        #carousel-next {
+            right: 0;
+        }
+
+        .carousel-arrow:hover {
+            background: #0f4b83;
+            box-shadow: 0 10px 28px rgba(15, 75, 131, 0.55), 0 2px 8px rgba(0, 0, 0, 0.18);
+            transform: translateY(-50%) scale(1.08);
+        }
+
+        /* Title track with 3 visible titles */
+        .carousel-title-track {
             flex: 1;
-            padding: 50px;
+            overflow: visible;
+            position: relative;
+            margin: 0 16px;
+            /* Fade mask: transparent at edges, opaque in center */
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.3) 15%, black 30%, black 70%, rgba(0, 0, 0, 0.3) 85%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.3) 15%, black 30%, black 70%, rgba(0, 0, 0, 0.3) 85%, transparent 100%);
+        }
+
+        .carousel-title-slider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+
+        .carousel-title-item {
+            flex: 0 0 33.333%;
+            text-align: center;
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--color-primary, #003764);
+            line-height: 1.3;
+            padding: 12px 20px;
+            white-space: nowrap;
+            overflow: visible;
+            text-overflow: clip;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .carousel-title-item.side {
+            opacity: 0.35;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .carousel-title-item.center {
+            opacity: 1;
+            font-size: 40px;
+            white-space: nowrap;
+            overflow: visible;
+            text-overflow: clip;
+        }
+
+        .carousel-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #d6e3f0;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+
+        .carousel-dot.active {
+            background: #0f4b83;
+            transform: scale(1.3);
+        }
+
+        .carousel-panels-wrapper {
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
         }
 
         .solution-panel {
             display: none;
-            animation: fadeIn 0.4s ease;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            animation: carouselFadeIn 0.5s ease;
         }
 
         .solution-panel.active {
             display: flex;
-            flex-direction: column;
-            gap: 30px;
-            align-items: center;
-            text-align: center;
+        }
+
+        .panel-desc-wrapper {
+            text-align: left;
+            width: 100%;
+            padding-top: 48px;
+        }
+
+        .panel-desc-text {
+            font-size: 18px;
+            line-height: 1.95;
+            color: #555;
+            text-align: justify;
+            text-indent: 2em;
+            margin-bottom: 48px;
+        }
+
+        @keyframes carouselFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .carousel-title-item {
+                font-size: 22px;
+                padding: 8px 10px;
+            }
+
+            .carousel-title-item.side {
+                font-size: 16px;
+            }
+
+            .carousel-arrow {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+
+            .carousel-title-bar {
+                margin-bottom: 32px;
+            }
         }
 
         .solution-panel-img {
@@ -567,75 +755,290 @@
             }
         }
 
-        /* Core Products */
-        .products-section {
-            padding: 80px 0;
-            background: #f8f9fa;
+        /* Unified Panel Section Styles */
+        .unified-section {
+            background: linear-gradient(180deg, #f5f8fc 0%, #eef3f9 100%);
+            padding: 0 0 84px;
         }
 
-        .section-title {
-            text-align: center;
+        /* Unified Panel Base */
+        .unified-panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #d9e5f2;
+            border-radius: 18px;
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+            padding: 58px 72px;
+            margin: 0 auto;
+        }
+
+        .unified-title {
             font-size: 32px;
-            color: var(--color-primary);
-            margin-bottom: 50px;
-            font-weight: 600;
+            color: var(--color-primary, #003764);
+            margin-bottom: 54px;
+            font-weight: 700;
+            text-align: center;
+            position: relative;
+            letter-spacing: 0.6px;
         }
 
-        .products-grid {
+        .unified-title::after {
+            content: '';
+            width: 72px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #f4a261, #f38a2f);
+            display: block;
+            margin: 16px auto 0;
+        }
+
+        /* Core Products Redesign aligned with upper layout */
+        .related-products-section {
+            padding-bottom: 52px !important;
+        }
+
+        .related-products-panel {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, #ffffff 0%, #f6f9fd 100%);
+            border: 1px solid #d3e2f1;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+        }
+
+        .related-products-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 4% 8%, rgba(88, 160, 222, 0.12), transparent 30%),
+                radial-gradient(circle at 96% 12%, rgba(243, 138, 47, 0.12), transparent 28%);
+            opacity: 1;
+            pointer-events: none;
+        }
+
+        .related-products-head {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 34px;
+        }
+
+        .related-products-copy {
+            max-width: 760px;
+        }
+
+        .related-products-panel .unified-title {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        .related-products-panel .unified-title::after {
+            margin: 14px 0 0;
+        }
+
+        .related-products-subtitle {
+            font-size: 16px;
+            line-height: 1.75;
+            color: #4b5d6f;
+            max-width: 56ch;
+            margin: 0;
+        }
+
+        .products-card-grid {
+            position: relative;
+            z-index: 1;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 24px;
         }
 
-        .product-card {
-            background: white;
-            border-radius: 8px;
+        .product-item {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            min-height: 260px;
+            background: #ffffff;
+            border: 1px solid #d8e4f0;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s ease;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
             text-decoration: none;
             color: inherit;
         }
 
-        .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        .product-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background: linear-gradient(180deg, #0f4b83 0%, #62a6de 100%);
+            opacity: 0.95;
+            pointer-events: none;
         }
 
-        .product-card-img {
-            height: 200px;
-            background: #f5f5f5;
+        .product-item:hover {
+            border-color: #bfd5ea;
+            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.11);
+            transform: translateY(-5px);
+        }
+
+        .product-img-box {
+            position: relative;
+            flex: 0 0 238px;
+            background: linear-gradient(180deg, #eff5fb 0%, #e2ecf7 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            align-self: stretch;
+            min-height: 260px;
+            border-right: 1px solid #d8e4f0;
+            overflow: hidden;
         }
 
-        .product-card-img img {
-            max-width: 100%;
-            max-height: 100%;
+        .product-img-box::before {
+            content: '';
+            position: absolute;
+            inset: 12px;
+            border-radius: 10px;
+            border: 1px dashed rgba(15, 75, 131, 0.24);
+            pointer-events: none;
+        }
+
+        .product-img-box::after {
+            content: '';
+            position: absolute;
+            right: -42px;
+            bottom: -42px;
+            width: 122px;
+            height: 122px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(243, 138, 47, 0.22) 0%, rgba(243, 138, 47, 0) 70%);
+        }
+
+        .product-img-box img {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
             object-fit: contain;
+            filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.2));
+            transition: transform 0.35s ease;
         }
 
-        .product-card-body {
-            padding: 24px;
+        .product-item:hover .product-img-box img {
+            transform: scale(1.06);
         }
 
-        .product-card-body h4 {
-            font-size: 16px;
-            color: var(--color-primary);
-            margin-bottom: 16px;
-            font-weight: 600;
+        .product-info {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 28px 30px 26px;
+            flex: 1;
         }
 
-        .product-features {
+        .product-meta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #5f7388;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            margin-bottom: 12px;
+        }
+
+        .product-meta::before {
+            content: '';
+            width: 22px;
+            height: 2px;
+            background: linear-gradient(90deg, #1c7dc4 0%, rgba(28, 125, 196, 0.2) 100%);
+        }
+
+        .product-info h4 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0f4b83;
+            margin-bottom: 0;
+            line-height: 1.35;
+        }
+
+        .product-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .product-list li {
+            position: relative;
+            padding: 10px 12px 10px 34px;
+            font-size: 14px;
+            color: #405263;
+            line-height: 1.65;
+            margin-bottom: 0;
+            border-radius: 10px;
+            background: #f7fafe;
+            border: 1px solid #e1eaf4;
+        }
+
+        .product-list li::before {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            background: #f38a2f;
+            box-shadow: 0 0 0 3px rgba(243, 138, 47, 0.15);
+        }
+
+        .product-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding-top: 2px;
+        }
+
+        .product-footer-note {
             font-size: 13px;
-            color: #666;
-            line-height: 1.8;
+            color: #617486;
+            line-height: 1.6;
         }
 
-        .product-features p {
-            margin-bottom: 4px;
+        .product-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #0f4b83;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            background: rgba(15, 75, 131, 0.08);
+            padding: 8px 14px;
+            border-radius: 999px;
+        }
+
+        .product-cta::after {
+            content: '›';
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .product-item:hover .product-cta::after {
+            transform: translateX(4px);
         }
 
         /* Platform Section */
@@ -827,131 +1230,496 @@
 
         /* New Sub-solution Grid Layout */
         .solution-sub-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            margin-top: 50px;
+            width: 100%;
+            max-width: none;
+            margin: 180px 0 0;
+            display: flex;
+            flex-direction: column;
+            gap: 180px;
             text-align: left;
         }
 
         .solution-sub-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            min-height: 820px;
+            border-radius: 14px;
+            overflow: visible;
+            background: transparent;
+            box-shadow: none;
+            border: none;
+            transition: transform 0.25s ease;
+        }
+
+        .solution-sub-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: calc(50% - 42px);
+            right: 0;
+            border-radius: 14px;
+            background: #d6e6f3;
+            z-index: 0;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .solution-sub-card:nth-child(even)::before {
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: calc(50% - 42px);
+            background: #e4e6ec;
         }
 
         .solution-sub-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 40px rgba(0, 55, 100, 0.12);
-            border-color: rgba(0, 55, 100, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .solution-sub-card:hover::before {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
         }
 
         .sub-card-img {
-            height: 220px;
-            overflow: hidden;
             position: relative;
+            z-index: 2;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            height: auto;
+            margin: 60px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
         }
 
         .sub-card-img img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.6s ease;
+            transition: transform 0.55s ease;
         }
 
         .solution-sub-card:hover .sub-card-img img {
-            transform: scale(1.08);
+            transform: scale(1.06);
         }
 
         .sub-card-content {
-            padding: 28px;
-            flex: 1;
+            position: relative;
+            z-index: 2;
+            padding: 98px 70px 98px 112px;
             display: flex;
             flex-direction: column;
+            justify-content: center;
+        }
+
+        .solution-sub-card:nth-child(even) {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .solution-sub-card:nth-child(even) .sub-card-img {
+            order: 2;
+            justify-self: end;
+            margin: 80px 0;
+        }
+
+        .solution-sub-card:nth-child(even) .sub-card-content {
+            order: 1;
+            padding: 98px 112px 98px 70px;
         }
 
         .sub-card-content h4 {
-            color: var(--color-primary);
-            font-size: 19px;
-            margin-bottom: 16px;
+            color: #0f4b83;
+            font-size: 34px;
+            margin-bottom: 28px;
             font-weight: 700;
-            line-height: 1.4;
-            border-bottom: 2px solid var(--color-accent-orange);
-            padding-bottom: 10px;
-            display: inline-block;
+            line-height: 1.3;
+            letter-spacing: 0.2px;
         }
 
         .sub-card-content p {
-            color: #555;
-            font-size: 14px;
-            line-height: 1.8;
+            color: #334155;
+            font-size: 18px;
+            line-height: 1.88;
             margin-bottom: 0;
-            text-align: justify;
-        }
-
-        /* Design Advantages Section */
-        .design-advantages-section {
-            background-color: var(--color-primary-dark, #002848);
-            color: white;
-            padding: 100px 0;
             text-align: left;
+            max-width: 48ch;
         }
 
-        .design-advantages-section h2 {
-            font-size: 32px;
-            margin-bottom: 80px;
-            font-weight: 500;
-            color: white;
-            opacity: 1;
+        /* Panel intro spacing and first-line indent */
+        .solution-panel>div[style*="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;"] {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
         }
 
-        .advantages-new-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 50px;
+        .solution-panel>div[style*="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;"]>h3 {
+            margin-bottom: 40px !important;
+            text-align: left !important;
         }
 
-        .advantage-new-item {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        .solution-panel-title-main {
+            font-size: 42px !important;
+            text-align: center !important;
+            line-height: 1.28 !important;
+            letter-spacing: 0.4px;
+            margin-bottom: 46px !important;
         }
 
-        .advantage-new-item h4 {
-            font-size: 24px;
-            font-weight: 600;
-            color: white;
-            letter-spacing: 0.5px;
+        .solution-panel>div[style*="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;"]>p {
+            text-indent: 2em;
+            margin-bottom: 16px !important;
         }
 
-        .advantage-new-item p {
-            font-size: 16px;
-            line-height: 1.8;
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 300;
-        }
+        @media (max-width: 1160px) {
+            .solution-sub-card::before {
+                left: calc(50% - 30px);
+            }
 
-        @media (max-width: 1200px) {
-            .advantages-new-grid {
-                gap: 30px;
+            .solution-sub-card:nth-child(even)::before {
+                right: calc(50% - 30px);
+            }
+
+            .sub-card-content {
+                padding: 74px 48px 74px 78px;
+            }
+
+            .solution-sub-card:nth-child(even) .sub-card-content {
+                padding: 74px 78px 74px 48px;
+            }
+
+            .sub-card-content h4 {
+                font-size: 30px;
+            }
+
+            .sub-card-content p {
+                font-size: 17px;
+                line-height: 1.8;
             }
         }
 
-        @media (max-width: 992px) {
-            .advantages-new-grid {
+        @media (max-width: 960px) {
+            .solution-sub-grid {
+                gap: 28px;
+                margin-top: 40px;
+            }
+
+            .solution-panel-title-main {
+                font-size: 34px !important;
+                margin-bottom: 30px !important;
+            }
+
+            .solution-sub-card,
+            .solution-sub-card:nth-child(even) {
+                display: block;
+                min-height: 0;
+                background: #e8eef5;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+                transform: none;
+            }
+
+            .solution-sub-card::before,
+            .solution-sub-card:nth-child(even)::before {
+                display: none;
+            }
+
+            .sub-card-img,
+            .solution-sub-card:nth-child(even) .sub-card-img {
+                width: 100%;
+                aspect-ratio: 4 / 3;
+                height: auto;
+                margin: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .sub-card-content,
+            .solution-sub-card:nth-child(even) .sub-card-content {
+                padding: 24px 20px 24px;
+            }
+
+            .sub-card-content h4 {
+                font-size: 25px;
+                margin-bottom: 12px;
+            }
+
+            .sub-card-content p {
+                font-size: 16px;
+                line-height: 1.82;
+            }
+        }
+
+        /* Design Advantages Redesign (FeaturesGrid style) */
+        .advantages-section {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding-top: clamp(40px, 40px + (100vw - 375px) * 0.0628571429, 73px);
+            padding-bottom: clamp(24px, 24px + (100vw - 375px) * 0.0457142857, 48px);
+            background: #1c1842;
+            color: #fff;
+        }
+
+        .unified-panel.advantages-panel {
+            position: relative;
+            background: #1c1842;
+            border: none;
+            border-radius: 0.5em;
+            box-shadow: none;
+            overflow: hidden;
+            padding: clamp(40px, 40px + (100vw - 375px) * 0.0628571429, 73px) 0 clamp(24px, 24px + (100vw - 375px) * 0.0457142857, 48px);
+        }
+
+        .unified-panel.advantages-panel::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 5;
+            border-bottom-right-radius: 23em;
+            background: radial-gradient(circle 45em at calc(100% - 23em) calc(100% + 18em),
+                    #69c7f9 0,
+                    #46a3f4 40%,
+                    rgba(52, 124, 243, 0.3) 80%,
+                    rgba(52, 124, 243, 0) 100%);
+        }
+
+        .unified-panel.advantages-panel::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 7;
+            background-image: url(https://www.aeroqual.com/_next/static/media/noise-tile.df4a68a1.png);
+            opacity: 0.02;
+            background-size: 180px 180px;
+            mix-blend-mode: soft-light;
+            pointer-events: none;
+        }
+
+        .advantages-content {
+            position: relative;
+            z-index: 10;
+            padding: 0 56px;
+            transform: translateY(-18px);
+        }
+
+        .advantages-panel .unified-title {
+            color: #f2f6ff;
+            text-align: left;
+            margin-bottom: 44px;
+            font-size: 34px;
+            letter-spacing: 0.4px;
+            font-weight: 500;
+        }
+
+        .advantages-panel .unified-title::after {
+            display: none;
+        }
+
+        .advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 34px;
+            align-items: stretch;
+            position: relative;
+            z-index: 10;
+        }
+
+        .advantage-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            min-height: 260px;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.28s ease;
+            position: relative;
+            transform: translateY(-16px);
+        }
+
+        .advantage-card::before {
+            display: none;
+        }
+
+        .advantage-card:hover {
+            transform: translateY(-20px);
+        }
+
+        .advantage-icon-wrapper {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 50% 50%, rgba(62, 98, 214, 0.28) 0%, rgba(31, 46, 123, 0.22) 58%, rgba(20, 31, 96, 0.18) 100%);
+            border: 1px solid rgba(105, 199, 249, 0.55);
+            color: #edf4ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            margin: 0 0 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 0 0 1px rgba(105, 199, 249, 0.14);
+        }
+
+        .advantage-card:hover .advantage-icon-wrapper {
+            transform: translateY(-1px) scale(1.03);
+            box-shadow: inset 0 0 0 1px rgba(151, 221, 255, 0.22), 0 0 0 1px rgba(105, 199, 249, 0.18);
+        }
+
+        .advantage-card h4 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #f8fbff;
+            margin-bottom: 12px;
+            line-height: 1.3;
+            letter-spacing: -0.01em;
+        }
+
+        .advantage-card p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(236, 245, 255, 0.9);
+            margin: 0;
+            text-align: center;
+            max-width: 30ch;
+        }
+
+        @media (max-width: 1200px) {
+            .products-card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-item {
+                max-width: 860px;
+                margin: 0 auto;
+            }
+
+            .advantages-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+
+            .advantages-content {
+                padding: 0 34px;
+            }
+
+            .unified-panel.advantages-panel {
+                border-radius: 0.5em;
+                padding-top: clamp(73px, 73px + (100vw - 900px) * 0.0264705882, 100px);
+                padding-bottom: clamp(48px, 48px + (100vw - 900px) * 0.031372549, 80px);
+            }
+
+            .advantages-panel .unified-title {
+                font-size: 30px;
+                margin-bottom: 42px;
+            }
+
+            .advantage-card h4 {
+                font-size: 24px;
+            }
+
+            .advantage-card p {
+                font-size: 14px;
+            }
+
+            .unified-panel {
+                padding: 50px 40px;
+            }
+
+            .related-products-head {
+                margin-bottom: 32px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .product-item {
+                flex-direction: column;
+                min-height: auto;
+            }
+
+            .product-img-box {
+                flex: none;
+                width: 100%;
+                min-height: 220px;
+                padding: 16px;
+                border-right: none;
+                border-bottom: 1px solid #d8e4f0;
+            }
+
+            .unified-panel {
+                padding: 40px 30px;
+            }
+
+            .advantages-content {
+                padding: 0 22px;
+            }
+
+            .unified-panel.advantages-panel {
+                border-radius: 0.5em;
+            }
+
+            .related-products-panel .unified-title {
+                font-size: 27px;
+            }
+
+            .related-products-subtitle {
+                font-size: 15px;
+            }
+
+            .product-info {
+                padding: 26px 22px 24px;
+            }
+
+            .product-info h4 {
+                font-size: 20px;
+            }
+
+            .product-footer {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
 
         @media (max-width: 576px) {
-            .advantages-new-grid {
+            .advantages-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .unified-panel.advantages-panel {
+                border-radius: 0.5em;
+                padding: 34px 0 40px;
+            }
+
+            .advantages-panel .unified-title {
+                font-size: 26px;
+                margin-bottom: 30px;
+                text-align: center;
+            }
+
+            .advantage-card h4 {
+                font-size: 22px;
+            }
+
+            .unified-title {
+                font-size: 26px;
+                margin-bottom: 30px;
+            }
+
+            .unified-panel {
+                padding: 30px 20px;
             }
         }
     </style>
@@ -963,468 +1731,364 @@
 
     <!-- Header -->
     <div id="mc-nav-root" data-nav-profile="gas"></div>
-<noscript><div class="mc-nav-noscript">
-  <a href="/index.html">首页</a> |
-  <a href="/pages/gassensing/all-products.html">产品</a> |
-  <a href="/pages/solutions/solutions-index.html">解决方案</a> |
-  <a href="/pages/research/index.html">科研服务</a> |
-  <a href="/pages/gassensing/service-cases.html">服务案例</a> |
-  <a href="/pages/about/about.html">公司简介</a> |
-  <a href="/pages/contact/contact.html">联系我们</a>
-</div>
-</noscript>
-<script src="/assets/js/nav-loader.js"></script>
+    <noscript>
+        <div class="mc-nav-noscript">
+            <a href="/index.html">首页</a> |
+            <a href="/pages/gassensing/all-products.html">产品</a> |
+            <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+            <a href="/pages/research/index.html">科研服务</a> |
+            <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+            <a href="/pages/about/about.html">公司简介</a> |
+            <a href="/pages/contact/contact.html">联系我们</a>
+        </div>
+    </noscript>
+    <script src="/assets/js/nav-loader.js"></script>
 
-    
 
-<main style="padding-top: 90px;">
-        <!-- Hero Banner -->
-        <section class="jjfa-hero">
-            <h1>为氢安全而生<span>元芯传感氢能安全解决方案</span></h1>
-            <p class="jjfa-breadcrumb">
-                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>氢能源产业链</span>
-            </p>
+
+    <main style="padding-top: 90px;">
+        <!-- Modern Hero Banner -->
+        <section class="aero-hero">
+            <div class="vs-container">
+                <div class="aero-breadcrumb">
+                    <a href="../../index.html">首页</a> &gt; <a href="solutions-index.html">行业解决方案</a> &gt;
+                    <span>氢能源产业链</span>
+                </div>
+                <div class="aero-hero-content">
+                    <h1>为氢安全而生</h1>
+                    <p class="aero-subtitle">元芯传感氢能安全解决方案</p>
+                    <p class="aero-desc">
+                        氢能作为21世纪最具潜力的清洁能源，其安全性是走向商业化应用的生命线。元芯传感凭借前沿的MEMS传感技术，为氢燃料电池、制氢储运、加氢站等氢能全产业链提供高精度、高可靠、极速响应的氢泄漏监测解决方案。
+                    </p>
+                </div>
+            </div>
+            <div class="aero-hero-image-wrapper">
+                <div class="aero-hero-image">
+                    <img src="../../assets/images/industry-banner.png" alt="氢能安全方案">
+                </div>
+            </div>
         </section>
 
-        <!-- Solution Tabs -->
-        <section class="solution-tabs-section">
+        <!-- Solutions Carousel -->
+        <section class="solutions-carousel-section" id="solutions-carousel">
             <div class="vs-container">
-                <div class="solution-tabs-container">
-                    <div class="solution-tabs-nav">
-                        <button class="solution-tab-btn active"
-                            onclick="switchSolutionTab(0, this)">电解水制氢过程在线分析与泄漏监测解决方案</button>
-                        <button class="solution-tab-btn"
-                            onclick="switchSolutionTab(1, this)">加氢站与燃料电池车氢监测协同安全解决方案</button>
-                        <button class="solution-tab-btn"
-                            onclick="switchSolutionTab(2, this)">涉氢实验室多维度气体泄漏立体监测系统</button>
-                        <button class="solution-tab-btn"
-                            onclick="switchSolutionTab(3, this)">城市能源输氢管网与用氢家庭安全解决方案</button>
-                        <button class="solution-tab-btn" onclick="switchSolutionTab(4, this)">微量氢气泄漏检测解决方案</button>
-                    </div>
-                    <div class="solution-tabs-content">
-                        <!-- Panel 1: 电解水制氢 -->
-                        <div class="solution-panel active">
-                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
-                                <h3
-                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
-                                    电解水制氢过程在线分析与泄漏监测解决方案</h3>
-                                <p
-                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
-                                    随着氢能产业的迅猛发展，电解水制氢作为一种高效的清洁制氢方式，正日益受到关注。然而，确保制氢过程中每一方氢气的品质与安全，是保障下游燃料电池性能、预防安全事故的关键。元芯传感专注于先进传感技术，为电解水制氢提供一体化的在线分析与泄漏监测解决方案。我们的方案涵盖了在线品质分析、确保产出氢气达到燃料电池级纯度；工艺安全监测，从源头预防爆炸风险；以及环境泄漏监测，构筑全域安全防线，为氢能产业的健康发展保驾护航。
-                                </p>
-                            </div>
-
-                            <div class="solution-sub-grid">
-                                <!-- Item 1: Online Quality Analysis -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/electrolysis-h2-equipment.png"
-                                            alt="在线品质分析设备">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>在线品质分析 · 捍卫燃料电池级纯度</h4>
-                                        <p>
-                                            燃料电池对氢气纯度有着极其严苛的要求，任何微量杂质都可能导致电池性能下降甚至永久性损坏。元芯传感的在线品质分析系统，能够实时、高精度地监测电解水制氢过程中氢气的纯度及关键杂质含量。通过对氧气、水蒸气、一氧化碳等杂质的持续监控，确保产出氢气符合燃料电池级标准，有效提升燃料电池的使用寿命与效率，为您的产品赢的市场信赖。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 2: Process Safety -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/electrolysis-h2-tank.jpg" alt="工艺安全监测">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>工艺安全监测 · 从源头预防爆炸风险</h4>
-                                        <p>
-                                            电解水制氢过程中涉及易燃易爆氢气，工艺安全至关重要。元芯传感的工艺安全监测解决方案，通过在关键生产节点部署高灵敏度的氢气传感器，对制氢设备、管道内部及密闭空间的氢气浓度进行不间断监测。一旦氢气浓度异常升高，系统将立即发出预警，并可联动安全系统进行紧急处理，从而在源头上有效预防因氢气泄漏引发的燃爆事故，保障人员与设备安全。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 3: Environmental Safety -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/electrolysis-h2-workers.jpg"
-                                            alt="环境泄漏监测">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>环境泄漏监测 · 构筑全域安全防线</h4>
-                                        <p>
-                                            除了工艺内部监测，电解水制氢厂区及周边环境的氢气泄漏监测同样不可或缺。元芯传感的环境泄漏监测方案，利用分布式传感器网络，对制氢厂房、储氢区、压缩站等区域进行全覆盖的氢气泄漏检测。即使是微量泄漏，也能被迅速捕捉并精确定位，最大程度降低泄漏扩散风险。这不仅有效提升厂区整体安全水平，也展现了企业对环境保护和社会责任的承诺，为周边社区构筑一道坚实的安全防线。
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Panel 2: 加氢站与燃料电池车 -->
-                        <div class="solution-panel">
-                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
-                                <h3
-                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
-                                    加氢站与燃料电池车氢监测协同安全解决方案</h3>
-                                <p
-                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
-                                    随着氢燃料电池汽车的普及，加氢站作为氢能基础设施的核心，以及燃料电池车作为移动终端，其运行安全备受关注。元芯传感深刻理解"站-车"一体化防护的重要性，致力于提供先进的氢监测协同安全解决方案，旨在守护氢能安全运行，构筑从加注到行驶的全方位安全屏障。我们的方案涵盖加氢站固定设施的堡垒级纵深防御，燃料电池车移动终端的贴身式随行守护，以及针对关键节点的高精度巡检排查，共同保障氢能源网络的安全脉搏，推动氢交通的健康发展。
-                                </p>
-                            </div>
-
-                            <div class="solution-sub-grid">
-                                <!-- Item 1: Fixed Facilities -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/hydrogen-station-overview.webp"
-                                            alt="加氢站固定设施">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>固定设施 · 堡垒级纵深防御</h4>
-                                        <p>
-                                            加氢站是氢气储存、压缩、加注的关键场所，其固定设施的氢气泄漏监测是安全运营的基石。元芯传感的解决方案，在加氢站的压缩机房、储氢区、加注岛等高风险区域部署多点位、多层级的氢气传感器。这些传感器能够实时、高灵敏度地监测环境中的氢气浓度，形成密集的堡垒级纵深防御网络。一旦检测到氢气异常，系统将立即发出声光报警，并可联动切断阀门、启动排风系统等应急措施，最大程度降低泄漏风险，保障加氢站的安全稳定运行。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 2: Mobile Terminals -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/hydrogen-truck-fleet.png"
-                                            alt="燃料电池车移动终端">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>移动终端 · 贴身式随行守护</h4>
-                                        <p>
-                                            燃料电池车作为氢能的移动应用终端，其车载氢系统安全同样不容忽视。元芯传感为燃料电池车提供贴身式随行守护的氢气监测方案。通过在燃料电池堆栈、储氢罐附近、高压管路接头等关键部位集成高可靠、小型化的车载氢气传感器，实时监控车内氢气浓度。该系统可与车辆控制系统集成，当检测到潜在泄漏时，及时向驾驶员发出警示，并可触发燃料电池系统停机等安全保护机制，确保车辆在行驶过程中的绝对安全，为用户提供安心无忧的驾驶体验。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 3: Key Points Inspection -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/hydrogen-vehicle-detection.jpg"
-                                            alt="关键节点高精度巡检">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>关键节点 · 高精度巡检排查</h4>
-                                        <p>
-                                            除了在线监测，定期的高精度巡检排查是加氢站和燃料电池车维护保养中不可或缺的一环。元芯传感提供便携式高精度氢气检测仪，便于工作人员对加氢站的阀门、管路接口、排气口，以及燃料电池车的储氢瓶阀门、压力调节器等关键节点进行细致的、点对点的泄漏检测。通过这种主动式巡检，可以发现并处理潜在的微量泄漏，防患于未然，进一步提升氢能源设施与车辆的整体安全水平，确保整个氢能生态系统安全脉搏的稳定跳动。
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Panel 3: 涉氢实验室 -->
-                        <div class="solution-panel">
-                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
-                                <h3
-                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
-                                    涉氢实验室多维度气体泄漏立体监测系统</h3>
-                                <p
-                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
-                                    涉氢实验室是氢能技术研发与创新的前沿阵地，然而，氢气的易燃易爆特性也对实验室安全提出了极高要求。元芯传感深知守护能源科研生命线的重要性，特推出"涉氢实验室多维度气体泄漏立体监测系统"，旨在为科研人员构筑零容忍的本质安全实验环境。该系统通过点-线-面的立体监测网络实现无死角覆盖，提供全流程追溯能力使管理有据可依，并具备智能联动实现秒级应急自处置，为实验室安全提供全方位的智能保障。
-                                </p>
-                            </div>
-
-                            <div class="solution-sub-grid">
-                                <!-- Item 1: Full Coverage -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-main.png"
-                                            alt="立体监测无死角">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>点-线-面 · 立体监测无死角</h4>
-                                        <p>
-                                            传统的单一监测点往往存在盲区，而涉氢实验室的复杂环境需要更全面的防护。元芯传感的立体监测系统通过精密部署，实现了点-线-面的无死角覆盖。在点上，关键设备（如储氢罐、反应釜、气瓶柜）附近部署高精度氢气传感器；在线上，沿氢气输送管线、通风管道设置连续监测带；在面上，对实验室整体空间环境进行网格化监测。这种多维度布局确保任何潜在的氢气泄漏都能被及时捕捉并精准定位，将风险降至最低。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 2: Traceability -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub1.jpg"
-                                            alt="全流程追溯">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>全流程追溯 · 管理有据可依</h4>
-                                        <p>
-                                            实验室安全管理不仅要实时监测，更要具备数据追溯与分析能力。元芯传感的系统集成了先进的数据管理平台，能实时记录并存储所有监测数据，形成完整的安全日志。这使得管理者可以随时进行全流程追溯，了解历史氢气浓度变化、报警事件发生时间及处理情况。这些详实的数据不仅为安全事故的分析提供了有据可依的证据，也为实验室安全管理制度的优化、风险评估模型的建立提供了宝贵支持，实现预防与管理并重。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 3: Smart Linkage -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub2.jpg"
-                                            alt="智能联动秒级处置">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>智能联动 · 秒级应急自处置</h4>
-                                        <p>
-                                            面对氢气泄漏，时间就是生命。元芯传感的系统具备强大的智能联动功能，可实现秒级应急自处置。当系统检测到氢气浓度达到预警阈值时，不仅会立即发出声光报警，还能自动联动实验室的通风系统进行强制排风、切断氢气供应阀门、开启紧急喷淋，并向指定人员发送报警信息。这种快速、自动化的响应机制，最大程度地减少了人工干预时间，有效遏制了风险升级，为科研人员争取宝贵的逃生和处理时间，确保实验室人员与财产安全。
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Panel 4: 城市能源输氢管网与用氢家庭 -->
-                        <div class="solution-panel">
-                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
-                                <h3
-                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
-                                    城市能源输氢管网与用氢家庭安全解决方案</h3>
-                                <p
-                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
-                                    氢能作为未来城市能源的重要组成部分，其在城市管网中的输送和家庭终端的使用，对安全与效率提出了新的挑战。元芯传感致力于为城市能源动脉注入智慧"氢"视力，推出"城市能源输氢管网与用氢家庭安全解决方案"，旨在守护城市能源未来。该方案通过精准计量确保稳定输配，以本质安全理念实现全程守护，并依托智慧物联技术实现预测性维护，为城市氢能基础设施和居民用氢安全构筑全方位、智能化的安全保障体系。
-                                </p>
-                            </div>
-
-                            <div class="solution-sub-grid">
-                                <!-- Item 1: Metering & Transport -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/city-hydrogen-main.png" alt="精准计量稳定输配">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>精准计量 · 稳定输配</h4>
-                                        <p>
-                                            城市能源管网的稳定运行离不开精确的计量与控制。元芯传感的解决方案融入高精度氢气流量与压力传感器，能够对城市输氢管网中的氢气流量、压力进行实时、准确的监测和计量。这些数据不仅是稳定输配的关键依据，有助于管网调度中心实时掌握氢气供应情况，优化资源分配，避免供应中断或压力波动；更是确保氢能交易公平、公正的基础。通过精准计量，元芯传感助力城市构建高效、可靠的氢能输配体系，为城市能源的动脉注入智慧。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 2: Intrinsic Safety -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/city-hydrogen-sub1.jpg" alt="本质安全全程守护">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>本质安全 · 全程守护</h4>
-                                        <p>
-                                            从城市氢能输送管线的埋设，到居民用氢终端的每一处接口，本质安全是不可妥协的底线。元芯传感的解决方案，将高可靠的氢气泄漏检测技术融入整个氢能链条。在城市输氢管网沿线、调压站、入户分支点以及居民用氢器具（如氢能热水器、燃气灶具等）附近，部署高灵敏度、长寿命的氢气传感器。这些传感器能够实现24/7不间断监测，一旦检测到微量氢气泄漏，即刻发出预警，并可联动切断阀门、启动通风等应急措施，实现从源头到末端的全程守护，最大程度地消除安全隐患。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 3: Smart IoT -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/city-hydrogen-sub2.png" alt="智慧物联预测性维护">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>智慧物联 · 预测性维护</h4>
-                                        <p>
-                                            传统的人工巡检和被动式维护方式已无法满足现代城市能源管网的复杂需求。元芯传感的解决方案依托先进的智慧物联平台，将所有监测数据实时上传云端，通过大数据分析和人工智能算法，对管网及终端设备的安全状态进行智能评估。平台不仅能远程可视化监控，还能识别潜在的故障模式，预测设备老化趋势、评估泄漏风险等级。这种预测性维护模式，变被动维修为主动预防，大幅降低运营成本，提升管网的运行韧性，确保城市氢能基础设施持续级、高效、安全地服务于民。
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Panel 5: 微量氢气泄漏检测 -->
-                        <div class="solution-panel">
-                            <div style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%;">
-                                <h3
-                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
-                                    微量氢气泄漏检测解决方案</h3>
-                                <p
-                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
-                                    在高速发展的氢能产业中，无论是氢气制备、储存、运输还是使用环节，微小的氢气泄漏都可能对设备性能、经济效益和长远安全构成潜在威胁。元芯传感致力于让PPM级微漏无所遁形，深知每一次精准的发现，都是对事故的有效避免。我们推出"微量氢气泄漏检测解决方案"，正面向氢能源行业，专注于检测极低浓度的氢气泄漏。该方案凭借外科手术级的精准定位、秒级响应的极速寻源，以及支持预防性巡检的主动防御机制，帮助客户在风险萌芽阶段即发现并解决问题，从而实现防微杜渐，构筑更本质、更持久的安全防线。
-                                </p>
-                            </div>
-
-                            <div class="solution-sub-grid">
-                                <!-- Item 1: Precision Localization -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/trace-h2-main.png" alt="外科手术级精准定位">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>外科手术级 · 精准定位</h4>
-                                        <p>
-                                            在氢能源设施中，微量泄漏点往往隐蔽且难以察觉。元芯传感的解决方案采用最先进的碳纳米管传感技术，具备外科手术级的精准定位能力，能够识别并量化低至PPM级的氢气浓度。无论是高压储氢罐的焊缝、燃料电池堆的微小缝隙，还是输送管路的螺纹连接处，我们的高灵敏度检测设备都能在复杂背景气体中精准捕捉氢气信号，并帮助操作人员快速锁定泄漏的具体位置。这种极致的精准度，确保了维修工作的针对性和高效性，最大程度地避免了盲目排查，从根本上提升了氢能源系统的安全性。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 2: Rapid Tracing -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/trace-h2-sub1.jpg" alt="秒级响应极速寻源">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>秒级响应 · 极速寻源</h4>
-                                        <p>
-                                            微量泄漏虽然短期内不构成直接爆炸风险，但长期累积或在特定条件下也可能引发严重后果。元芯传感的微量氢气泄漏检测方案具备秒级响应的极高灵敏度，能够在氢气以PPM级浓度逸出时即刻做出反应。系统能够迅速捕捉到环境中氢气浓度的微小变化，并启动极速寻源模式，引导操作人员快速接近并确定泄漏源头。这种快速发现和定位的能力，使得维护人员可以在泄漏初期就介入处理，有效避免了泄漏量的持续累积，从而在早期阶段即消除潜在风险，实现对氢能源设施的有效"止血"。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Item 3: Proactive Defense -->
-                                <div class="solution-sub-card">
-                                    <div class="sub-card-img">
-                                        <img src="../../assets/images/solutions/trace-h2-sub2.webp" alt="预防性巡检主动防御">
-                                    </div>
-                                    <div class="sub-card-content">
-                                        <h4>预防性巡检 · 主动防御</h4>
-                                        <p>
-                                            在氢能源行业，安全管理的最高境界是主动防御，将风险消灭在萌芽状态。元芯传感的微量氢气泄漏检测解决方案，是实施预防性巡检的理想工具。我们的便携式PPM级氢气检测设备，可被整合到日常安全巡检流程中，对加氢站、制氢厂、储氢设施、燃料电池应用终端等关键设备的接头、阀门、法兰、焊缝等易泄漏点进行常态化、精细化排查。通过持续的微量泄漏监测与预警，我们能够及时发现并修复潜在的隐患，实现主动安全管理。
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                <!-- Title Bar with Arrows -->
+                <div class="carousel-title-bar">
+                    <button class="carousel-arrow" id="carousel-prev" onclick="switchCarousel(-1)" title="上一个">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                    </button>
+                    <div class="carousel-title-track">
+                        <div class="carousel-title-slider" id="carousel-slider">
+                            <div class="carousel-title-item side" onclick="goToCarousel(4)">微量氢气泄漏检测解决方案</div>
+                            <div class="carousel-title-item center" onclick="goToCarousel(0)">电解水制氢过程在线分析与泄漏监测解决方案</div>
+                            <div class="carousel-title-item side" onclick="goToCarousel(1)">加氢站与燃料电池车氢监测协同安全解决方案</div>
                         </div>
                     </div>
+                    <button class="carousel-arrow" id="carousel-next" onclick="switchCarousel(1)" title="下一个">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                    </button>
                 </div>
+
+                <!-- Indicator Dots -->
+                <div class="carousel-indicators" id="carousel-dots">
+                    <button class="carousel-dot active" title="方案1" onclick="goToCarousel(0)"></button>
+                    <button class="carousel-dot" title="方案2" onclick="goToCarousel(1)"></button>
+                    <button class="carousel-dot" title="方案3" onclick="goToCarousel(2)"></button>
+                    <button class="carousel-dot" title="方案4" onclick="goToCarousel(3)"></button>
+                    <button class="carousel-dot" title="方案5" onclick="goToCarousel(4)"></button>
+                </div>
+
+                <!-- Panels Wrapper -->
+                <div class="carousel-panels-wrapper">
+                    <!-- Panel 1: 电解水制氢 -->
+                    <div class="solution-panel active">
+                        <div class="panel-desc-wrapper">
+
+                            <p class="panel-desc-text">
+                                随着氢能产业的迅猛发展，电解水制氢作为一种高效的清洁制氢方式，正日益受到关注。然而，确保制氢过程中每一方氢气的品质与安全，是保障下游燃料电池性能、预防安全事故的关键。元芯传感专注于先进传感技术，为电解水制氢提供一体化的在线分析与泄漏监测解决方案。我们的方案涵盖了在线品质分析、确保产出氢气达到燃料电池级纯度；工艺安全监测，从源头预防爆炸风险；以及环境泄漏监测，构筑全域安全防线，为氢能产业的健康发展保驾护航。
+                            </p>
+                        </div>
+
+                        <div class="solution-sub-grid">
+                            <!-- Item 1: Online Quality Analysis -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/electrolysis-h2-equipment.png"
+                                        alt="在线品质分析设备">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>在线品质分析 · 捍卫燃料电池级纯度</h4>
+                                    <p>
+                                        燃料电池对氢气纯度有着极其严苛的要求，任何微量杂质都可能导致电池性能下降甚至永久性损坏。元芯传感的在线品质分析系统，能够实时、高精度地监测电解水制氢过程中氢气的纯度及关键杂质含量。通过对氧气、水蒸气、一氧化碳等杂质的持续监控，确保产出氢气符合燃料电池级标准，有效提升燃料电池的使用寿命与效率，为您的产品赢的市场信赖。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 2: Process Safety -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/electrolysis-h2-tank.jpg" alt="工艺安全监测">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>工艺安全监测 · 从源头预防爆炸风险</h4>
+                                    <p>
+                                        电解水制氢过程中涉及易燃易爆氢气，工艺安全至关重要。元芯传感的工艺安全监测解决方案，通过在关键生产节点部署高灵敏度的氢气传感器，对制氢设备、管道内部及密闭空间的氢气浓度进行不间断监测。一旦氢气浓度异常升高，系统将立即发出预警，并可联动安全系统进行紧急处理，从而在源头上有效预防因氢气泄漏引发的燃爆事故，保障人员与设备安全。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 3: Environmental Safety -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/electrolysis-h2-workers.jpg" alt="环境泄漏监测">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>环境泄漏监测 · 构筑全域安全防线</h4>
+                                    <p>
+                                        除了工艺内部监测，电解水制氢厂区及周边环境的氢气泄漏监测同样不可或缺。元芯传感的环境泄漏监测方案，利用分布式传感器网络，对制氢厂房、储氢区、压缩站等区域进行全覆盖的氢气泄漏检测。即使是微量泄漏，也能被迅速捕捉并精确定位，最大程度降低泄漏扩散风险。这不仅有效提升厂区整体安全水平，也展现了企业对环境保护和社会责任的承诺，为周边社区构筑一道坚实的安全防线。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel 2: 加氢站与燃料电池车 -->
+                    <div class="solution-panel">
+                        <div class="panel-desc-wrapper">
+
+                            <p class="panel-desc-text">
+                                随着氢燃料电池汽车的普及，加氢站作为氢能基础设施的核心，以及燃料电池车作为移动终端，其运行安全备受关注。元芯传感深刻理解"站-车"一体化防护的重要性，致力于提供先进的氢监测协同安全解决方案，旨在守护氢能安全运行，构筑从加注到行驶的全方位安全屏障。我们的方案涵盖加氢站固定设施的堡垒级纵深防御，燃料电池车移动终端的贴身式随行守护，以及针对关键节点的高精度巡检排查，共同保障氢能源网络的安全脉搏，推动氢交通的健康发展。
+                            </p>
+                        </div>
+
+                        <div class="solution-sub-grid">
+                            <!-- Item 1: Fixed Facilities -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/hydrogen-station-overview.webp"
+                                        alt="加氢站固定设施">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>固定设施 · 堡垒级纵深防御</h4>
+                                    <p>
+                                        加氢站是氢气储存、压缩、加注的关键场所，其固定设施的氢气泄漏监测是安全运营的基石。元芯传感的解决方案，在加氢站的压缩机房、储氢区、加注岛等高风险区域部署多点位、多层级的氢气传感器。这些传感器能够实时、高灵敏度地监测环境中的氢气浓度，形成密集的堡垒级纵深防御网络。一旦检测到氢气异常，系统将立即发出声光报警，并可联动切断阀门、启动排风系统等应急措施，最大程度降低泄漏风险，保障加氢站的安全稳定运行。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 2: Mobile Terminals -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/hydrogen-truck-fleet.png" alt="燃料电池车移动终端">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>移动终端 · 贴身式随行守护</h4>
+                                    <p>
+                                        燃料电池车作为氢能的移动应用终端，其车载氢系统安全同样不容忽视。元芯传感为燃料电池车提供贴身式随行守护的氢气监测方案。通过在燃料电池堆栈、储氢罐附近、高压管路接头等关键部位集成高可靠、小型化的车载氢气传感器，实时监控车内氢气浓度。该系统可与车辆控制系统集成，当检测到潜在泄漏时，及时向驾驶员发出警示，并可触发燃料电池系统停机等安全保护机制，确保车辆在行驶过程中的绝对安全，为用户提供安心无忧的驾驶体验。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 3: Key Points Inspection -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/hydrogen-vehicle-detection.jpg"
+                                        alt="关键节点高精度巡检">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>关键节点 · 高精度巡检排查</h4>
+                                    <p>
+                                        除了在线监测，定期的高精度巡检排查是加氢站和燃料电池车维护保养中不可或缺的一环。元芯传感提供便携式高精度氢气检测仪，便于工作人员对加氢站的阀门、管路接口、排气口，以及燃料电池车的储氢瓶阀门、压力调节器等关键节点进行细致的、点对点的泄漏检测。通过这种主动式巡检，可以发现并处理潜在的微量泄漏，防患于未然，进一步提升氢能源设施与车辆的整体安全水平，确保整个氢能生态系统安全脉搏的稳定跳动。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel 3: 涉氢实验室 -->
+                    <div class="solution-panel">
+                        <div class="panel-desc-wrapper">
+
+                            <p class="panel-desc-text">
+                                涉氢实验室是氢能技术研发与创新的前沿阵地，然而，氢气的易燃易爆特性也对实验室安全提出了极高要求。元芯传感深知守护能源科研生命线的重要性，特推出"涉氢实验室多维度气体泄漏立体监测系统"，旨在为科研人员构筑零容忍的本质安全实验环境。该系统通过点-线-面的立体监测网络实现无死角覆盖，提供全流程追溯能力使管理有据可依，并具备智能联动实现秒级应急自处置，为实验室安全提供全方位的智能保障。
+                            </p>
+                        </div>
+
+                        <div class="solution-sub-grid">
+                            <!-- Item 1: Full Coverage -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/hydrogen-lab-monitoring-main.png"
+                                        alt="立体监测无死角">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>点-线-面 · 立体监测无死角</h4>
+                                    <p>
+                                        传统的单一监测点往往存在盲区，而涉氢实验室的复杂环境需要更全面的防护。元芯传感的立体监测系统通过精密部署，实现了点-线-面的无死角覆盖。在点上，关键设备（如储氢罐、反应釜、气瓶柜）附近部署高精度氢气传感器；在线上，沿氢气输送管线、通风管道设置连续监测带；在面上，对实验室整体空间环境进行网格化监测。这种多维度布局确保任何潜在的氢气泄漏都能被及时捕捉并精准定位，将风险降至最低。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 2: Traceability -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub1.jpg"
+                                        alt="全流程追溯">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>全流程追溯 · 管理有据可依</h4>
+                                    <p>
+                                        实验室安全管理不仅要实时监测，更要具备数据追溯与分析能力。元芯传感的系统集成了先进的数据管理平台，能实时记录并存储所有监测数据，形成完整的安全日志。这使得管理者可以随时进行全流程追溯，了解历史氢气浓度变化、报警事件发生时间及处理情况。这些详实的数据不仅为安全事故的分析提供了有据可依的证据，也为实验室安全管理制度的优化、风险评估模型的建立提供了宝贵支持，实现预防与管理并重。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 3: Smart Linkage -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/hydrogen-lab-monitoring-sub2.jpg"
+                                        alt="智能联动秒级处置">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>智能联动 · 秒级应急自处置</h4>
+                                    <p>
+                                        面对氢气泄漏，时间就是生命。元芯传感的系统具备强大的智能联动功能，可实现秒级应急自处置。当系统检测到氢气浓度达到预警阈值时，不仅会立即发出声光报警，还能自动联动实验室的通风系统进行强制排风、切断氢气供应阀门、开启紧急喷淋，并向指定人员发送报警信息。这种快速、自动化的响应机制，最大程度地减少了人工干预时间，有效遏制了风险升级，为科研人员争取宝贵的逃生和处理时间，确保实验室人员与财产安全。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel 4: 城市能源输氢管网与用氢家庭 -->
+                    <div class="solution-panel">
+                        <div class="panel-desc-wrapper">
+
+                            <p class="panel-desc-text">
+                                氢能作为未来城市能源的重要组成部分，其在城市管网中的输送和家庭终端的使用，对安全与效率提出了新的挑战。元芯传感致力于为城市能源动脉注入智慧"氢"视力，推出"城市能源输氢管网与用氢家庭安全解决方案"，旨在守护城市能源未来。该方案通过精准计量确保稳定输配，以本质安全理念实现全程守护，并依托智慧物联技术实现预测性维护，为城市氢能基础设施和居民用氢安全构筑全方位、智能化的安全保障体系。
+                            </p>
+                        </div>
+
+                        <div class="solution-sub-grid">
+                            <!-- Item 1: Metering & Transport -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/city-hydrogen-main.png" alt="精准计量稳定输配">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>精准计量 · 稳定输配</h4>
+                                    <p>
+                                        城市能源管网的稳定运行离不开精确的计量与控制。元芯传感的解决方案融入高精度氢气流量与压力传感器，能够对城市输氢管网中的氢气流量、压力进行实时、准确的监测和计量。这些数据不仅是稳定输配的关键依据，有助于管网调度中心实时掌握氢气供应情况，优化资源分配，避免供应中断或压力波动；更是确保氢能交易公平、公正的基础。通过精准计量，元芯传感助力城市构建高效、可靠的氢能输配体系，为城市能源的动脉注入智慧。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 2: Intrinsic Safety -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/city-hydrogen-sub1.jpg" alt="本质安全全程守护">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>本质安全 · 全程守护</h4>
+                                    <p>
+                                        从城市氢能输送管线的埋设，到居民用氢终端的每一处接口，本质安全是不可妥协的底线。元芯传感的解决方案，将高可靠的氢气泄漏检测技术融入整个氢能链条。在城市输氢管网沿线、调压站、入户分支点以及居民用氢器具（如氢能热水器、燃气灶具等）附近，部署高灵敏度、长寿命的氢气传感器。这些传感器能够实现24/7不间断监测，一旦检测到微量氢气泄漏，即刻发出预警，并可联动切断阀门、启动通风等应急措施，实现从源头到末端的全程守护，最大程度地消除安全隐患。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 3: Smart IoT -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/city-hydrogen-sub2.png" alt="智慧物联预测性维护">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>智慧物联 · 预测性维护</h4>
+                                    <p>
+                                        传统的人工巡检和被动式维护方式已无法满足现代城市能源管网的复杂需求。元芯传感的解决方案依托先进的智慧物联平台，将所有监测数据实时上传云端，通过大数据分析和人工智能算法，对管网及终端设备的安全状态进行智能评估。平台不仅能远程可视化监控，还能识别潜在的故障模式，预测设备老化趋势、评估泄漏风险等级。这种预测性维护模式，变被动维修为主动预防，大幅降低运营成本，提升管网的运行韧性，确保城市氢能基础设施持续级、高效、安全地服务于民。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Panel 5: 微量氢气泄漏检测 -->
+                    <div class="solution-panel">
+                        <div class="panel-desc-wrapper">
+
+                            <p class="panel-desc-text">
+                                在高速发展的氢能产业中，无论是氢气制备、储存、运输还是使用环节，微小的氢气泄漏都可能对设备性能、经济效益和长远安全构成潜在威胁。元芯传感致力于让PPM级微漏无所遁形，深知每一次精准的发现，都是对事故的有效避免。我们推出"微量氢气泄漏检测解决方案"，正面向氢能源行业，专注于检测极低浓度的氢气泄漏。该方案凭借外科手术级的精准定位、秒级响应的极速寻源，以及支持预防性巡检的主动防御机制，帮助客户在风险萌芽阶段即发现并解决问题，从而实现防微杜渐，构筑更本质、更持久的安全防线。
+                            </p>
+                        </div>
+
+                        <div class="solution-sub-grid">
+                            <!-- Item 1: Precision Localization -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/trace-h2-main.png" alt="外科手术级精准定位">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>外科手术级 · 精准定位</h4>
+                                    <p>
+                                        在氢能源设施中，微量泄漏点往往隐蔽且难以察觉。元芯传感的解决方案采用最先进的碳纳米管传感技术，具备外科手术级的精准定位能力，能够识别并量化低至PPM级的氢气浓度。无论是高压储氢罐的焊缝、燃料电池堆的微小缝隙，还是输送管路的螺纹连接处，我们的高灵敏度检测设备都能在复杂背景气体中精准捕捉氢气信号，并帮助操作人员快速锁定泄漏的具体位置。这种极致的精准度，确保了维修工作的针对性和高效性，最大程度地避免了盲目排查，从根本上提升了氢能源系统的安全性。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 2: Rapid Tracing -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/trace-h2-sub1.jpg" alt="秒级响应极速寻源">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>秒级响应 · 极速寻源</h4>
+                                    <p>
+                                        微量泄漏虽然短期内不构成直接爆炸风险，但长期累积或在特定条件下也可能引发严重后果。元芯传感的微量氢气泄漏检测方案具备秒级响应的极高灵敏度，能够在氢气以PPM级浓度逸出时即刻做出反应。系统能够迅速捕捉到环境中氢气浓度的微小变化，并启动极速寻源模式，引导操作人员快速接近并确定泄漏源头。这种快速发现和定位的能力，使得维护人员可以在泄漏初期就介入处理，有效避免了泄漏量的持续累积，从而在早期阶段即消除潜在风险，实现对氢能源设施的有效"止血"。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Item 3: Proactive Defense -->
+                            <div class="solution-sub-card">
+                                <div class="sub-card-img">
+                                    <img src="../../assets/images/solutions/trace-h2-sub2.webp" alt="预防性巡检主动防御">
+                                </div>
+                                <div class="sub-card-content">
+                                    <h4>预防性巡检 · 主动防御</h4>
+                                    <p>
+                                        在氢能源行业，安全管理的最高境界是主动防御，将风险消灭在萌芽状态。元芯传感的微量氢气泄漏检测解决方案，是实施预防性巡检的理想工具。我们的便携式PPM级氢气检测设备，可被整合到日常安全巡检流程中，对加氢站、制氢厂、储氢设施、燃料电池应用终端等关键设备的接头、阀门、法兰、焊缝等易泄漏点进行常态化、精细化排查。通过持续的微量泄漏监测与预警，我们能够及时发现并修复潜在的隐患，实现主动安全管理。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- /.carousel-panels-wrapper -->
             </div>
         </section>
 
         <!-- Design Advantages Section -->
-        <section class="design-advantages-section">
+        <section class="unified-section advantages-section">
             <div class="vs-container">
-                <h2 id="adv-title">解决方案设计优势</h2>
-                <div class="advantages-new-grid" id="adv-grid">
-                    <div class="advantage-new-item">
-                        <h4>零死角覆盖</h4>
-                        <p>点线面结合，消除传统监测盲区，全面提升制、储、运、加、用各环节的安全防护等级。</p>
-                    </div>
-                    <div class="advantage-new-item">
-                        <h4>高效风险管理</h4>
-                        <p>实时数据采集与全流程数字化追溯，支持科学预警决策，大幅提升企业安全管理效能。</p>
-                    </div>
-                    <div class="advantage-new-item">
-                        <h4>极速应急响应</h4>
-                        <p>通过智能传感物联，实现系统自动切断、联动排风等秒级风险处置，规避重大事故风险。</p>
-                    </div>
-                    <div class="advantage-new-item">
-                        <h4>本质安全提升</h4>
-                        <p>从硬件源头到应用末端，构建主动预防、智慧感知、本质安全的氢能全生命周期防护体系。</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Technology Advantages -->
-        <section class="tech-section">
-            <div class="vs-container">
-                <div class="tech-header">
-                    <h2>基于碳基传感技术优势，全面智能化<span
-                            style="display:block; margin-top:10px; font-weight:300; opacity:0.8; font-size:24px;">打造智慧安全守护方案</span>
-                    </h2>
-                </div>
-
-                <div class="tech-diagram-container">
-                    <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501041356470874.jpg"
-                        alt="碳基传感技术优势拓扑图">
-                </div>
-
-                <div class="tech-features-grid">
-                    <div class="tf-card">
-                        <div class="tf-icon"><i class="fas fa-shield-alt"></i></div>
-                        <h4>安全保障</h4>
-                        <p>本质安全防爆设计</p>
-                    </div>
-                    <div class="tf-card">
-                        <div class="tf-icon"><i class="fas fa-bolt"></i></div>
-                        <h4>快速响应</h4>
-                        <p>秒级预警联动</p>
-                    </div>
-                    <div class="tf-card">
-                        <div class="tf-icon"><i class="fas fa-globe"></i></div>
-                        <h4>远程监控</h4>
-                        <p>多终端实时互联</p>
-                    </div>
-                    <div class="tf-card">
-                        <div class="tf-icon"><i class="fas fa-brain"></i></div>
-                        <h4>智慧高效</h4>
-                        <p>大数据智能分析</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Platform Section -->
-        <section class="platform-section">
-            <div class="vs-container">
-                <div class="platform-container">
-                    <div class="platform-img">
-                        <img src="../../assets/images/iot.jpg" alt="元芯氢能安全管理平台">
-                    </div>
-                    <div class="platform-text">
-                        <h2>元芯氢能安全管理平台</h2>
-                        <p>基于传感器物网联与数字云技术，元芯传感氢安全解决方案可以实现氢气泄漏状态的实时监控，及时向客户推送预警信息，同时通过海量监测数据的智能挖掘分析，构建预警体系和综合预警模型。平台可以实现对氢气制储运加用多场景的安全远程诊断、信息互馈及判识，有效指导现场风险控制。
-                        </p>
+                <div class="unified-panel advantages-panel">
+                    <div class="advantages-content">
+                        <h2 class="unified-title" id="solution-advantages-title">方案优势</h2>
+                        <div class="advantages-grid" id="solution-advantages-grid"></div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Core Products -->
-        <section class="products-section">
+        <section class="unified-section related-products-section" style="padding-bottom: 40px;">
             <div class="vs-container">
-                <h2 class="section-title">核心产品</h2>
-                <div class="products-grid">
-                    <a href="../../pages/products/ld_h2_detector.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101344323886.png"
-                                alt="LD-H2型氢气检测仪">
+                <div class="unified-panel related-products-panel">
+                    <div class="related-products-head">
+                        <div class="related-products-copy">
+                            <h2 class="unified-title">相关产品</h2>
+                            <p class="related-products-subtitle" id="solution-related-products-subtitle">围绕当前氢安全方案，精选可直接落地的检测、报警与监测产品组合。</p>
                         </div>
-                        <div class="product-card-body">
-                            <h4>LD-H2型氢气检测仪</h4>
-                            <div class="product-features">
-                                <p>◆ 高灵敏氢气传感芯片 1秒内探出氢气</p>
-                                <p>◆ 自动零点校准 防水防尘防爆</p>
-                                <p>◆ 最低检测浓度小于1 ppm</p>
-                                <p>◆ 本安型国家防爆认证</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="../../pages/products/mc_wd_wearable_alarm.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="https://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202509191119077851.png"
-                                alt="MC-WD穿戴式氢气报警器">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-WD穿戴式氢气报警器</h4>
-                            <div class="product-features">
-                                <p>◆ 体积小、重量轻，可方便夹戴</p>
-                                <p>◆ ⼀键使用，方便快捷</p>
-                                <p>◆ 防⽔防尘防爆，适用于恶劣工况</p>
-                                <p>◆ 声光震动报警提示</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="../../pages/products/mchp_vehicle_h2.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101345141287.png"
-                                alt="MCHP-1.0型车载氢气传感模块">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MCHP-1.0型车载氢气传感模块</h4>
-                            <div class="product-features">
-                                <p>◆ 可定制量程</p>
-                                <p>◆ 采用车规级元器件与电路设计</p>
-                                <p>◆ 耐高温高湿</p>
-                                <p>◆ 核心器件材质耐用，寿命长</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="../../pages/products/mc_hla_fixed_alarm.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="http://wstx.web.vleader.net.cn/9D939A2595A6407F93967928E013299E/202501101343348440.png"
-                                alt="MC-HLA-01固定式氢气报警器">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-HLA-01固定式氢气报警器</h4>
-                            <div class="product-features">
-                                <p>◆ 碳基传感芯片，响应快，抗干扰</p>
-                                <p>◆ 自动零点校准，免开盖，易维护</p>
-                                <p>◆ 布线简单，安装快速</p>
-                                <p>◆ 物联网功能，支持远程监控</p>
-                            </div>
-                        </div>
-                    </a>
+                    </div>
+                    <div class="products-card-grid" id="solution-related-products-grid"></div>
                 </div>
             </div>
         </section>
@@ -1433,19 +2097,257 @@
 
     <!-- Footer -->
 
-<script>
-        function switchSolutionTab(index, btn) {
-            const container = btn && btn.closest('.solution-tabs-container');
-            if (!container) return;
-            const buttons = container.querySelectorAll('.solution-tab-btn');
-            const panels = container.querySelectorAll('.solution-panel');
-            if (!panels.length || index < 0 || index >= panels.length) return;
+    <script>
+        // Solutions Carousel with Sliding Title Track
+        const carouselTitles = [
+            '电解水制氢过程在线分析与泄漏监测解决方案',
+            '加氢站与燃料电池车氢监测协同安全解决方案',
+            '涉氢实验室多维度气体泄漏立体监测系统',
+            '城市能源输氢管网与用氢家庭安全解决方案',
+            '微量氢气泄漏检测解决方案'
+        ];
+        const carouselSolutionKeys = [
+            'electrolysis_online_leak',
+            'station_vehicle_safety',
+            'lab_multidimensional_monitoring',
+            'city_pipeline_home_safety',
+            'trace_hydrogen_leak_detection'
+        ];
+        const advantageIconSvgs = [
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3v18h18v-2H5V3H3zm16 4l-4.5 4.5-3.5-3.5-5 5V15h2.5l2.5-2.5 3.5 3.5L20 9.5V7h-1z"/></svg>',
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-2V5h-2v2H8V5H6v2H4v2h2v6H4v2h2v2h2v-2h6v2h2v-2h2v-2h2v-6h-2V9h2V7zm-4 8H8V9h8v6z"/></svg>',
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M11 21h-1l1-7H7.5c-.6 0-1-.5-1-1 0-.2.1-.4.2-.6l4-9h1L11 9h3.5c.6 0 1 .5 1 1 0 .2-.1.4-.2.6l-4 10.4z"/></svg>'
+        ];
+        const solutionAdvantages = [
+            [
+                { title: '全链条安全保障', desc: '从制氢品质到环境安全，提供端到端的一体化监测。' },
+                { title: '高精度实时数据', desc: '确保氢气纯度符合严苛标准，及时预警潜在风险。' },
+                { title: '智能联动响应', desc: '系统可与安全设备联动，实现自动化紧急处理。' },
+                { title: '提升运营效率', desc: '减少人工巡检成本，降低因事故造成的停产损失。' }
+            ],
+            [
+                { title: '“站-车”协同联动', desc: '实现加氢站与车载系统的氢安全一体化管理。' },
+                { title: '多层级防护体系', desc: '固定设施与移动终端共同构建全方位安全屏障。' },
+                { title: '实时预警与应急', desc: '快速响应氢气异常，有效预防和控制风险。' },
+                { title: '提升运营信心', desc: '为加氢站运营商和燃料电池车用户提供高水平安全保障。' }
+            ],
+            [
+                { title: '零死角覆盖', desc: '点线面结合，消除传统监测盲区，全面提升安全等级。' },
+                { title: '高效风险管理', desc: '实时数据与全流程追溯，支持科学决策与管理优化。' },
+                { title: '极速应急响应', desc: '智能联动系统，实现自动化、秒级风险处置。' },
+                { title: '本质安全提升', desc: '从源头到末端，构建主动预防的本质安全实验环境。' }
+            ],
+            [
+                { title: '城市级覆盖', desc: '实现从输氢管网到家庭用氢的全链条安全监测与管理。' },
+                { title: '数据驱动决策', desc: '精准计量与智慧物联提供可靠数据，优化运营与调度。' },
+                { title: '主动安全防护', desc: '实时预警与智能联动，将潜在风险扼杀在萌芽状态。' },
+                { title: '降低运营成本', desc: '预测性维护减少非计划停机，提升管网运营效率。' }
+            ],
+            [
+                { title: 'PPM级超高灵敏度', desc: '能够发现极微小的氢气泄漏，实现防微杜渐。' },
+                { title: '精准定位', desc: '外科手术级寻源能力，快速锁定泄漏点，提高维护效率。' },
+                { title: '快速响应', desc: '秒级监测，第一时间发现泄漏，防止风险扩大。' },
+                { title: '主动安全', desc: '支持预防性巡检，将潜在威胁消灭在早期阶段。' }
+            ]
+        ];
+        const fallbackRelatedProducts = {
+            electrolysis_online_leak: [
+                { title: 'MC-OL-H1型在线氢气纯度分析仪', image: '/pages/gassensing/MC-OL-H1/mc-ol-h1-overview-01.jpg', summary: '热导原理在线分析，连续实时监控氢气纯度。', link: '/pages/gassensing/mc_ol_h1.html' },
+                { title: 'MC-LD-H2型手持氢气检测仪', image: '/pages/gassensing/MC-LD-H2/mc-ld-h2-main-view-01.png', summary: '1秒响应，PPM级灵敏度，适合现场巡检。', link: '/pages/gassensing/mc_ld_h2.html' },
+                { title: 'MC-HLA-01型固定式氢气报警器', image: '/pages/gassensing/MC-HLA-01/mc-hla-01-main-view-01.png', summary: '固定式在线监测，声光报警与远程互联。', link: '/pages/gassensing/mc_hla_01.html' },
+                { title: 'MC-LD-PH2型氢气检测仪', image: '/pages/gassensing/MC-LD-PH2/mc-ld-ph2-main-view-01.jpg', summary: '0-100%LEL 宽量程覆盖，适配复杂涉氢工况。', link: '/pages/gassensing/mc_ld_ph2.html' }
+            ]
+        };
+        let solutionRelatedProductsMap = {};
+        let currentCarousel = 0;
+        const total = carouselTitles.length;
+        let isAnimating = false;
 
-            buttons.forEach(function (b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            panels.forEach(function (p) { p.classList.remove('active'); });
-            panels[index].classList.add('active');
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
+
+        function getWrappedIndex(i) {
+            return ((i % total) + total) % total;
+        }
+
+        function getSolutionKeyByIndex(index) {
+            return carouselSolutionKeys[getWrappedIndex(index)] || carouselSolutionKeys[0];
+        }
+
+        function extractSummaryBullets(text) {
+            const raw = String(text || '').trim();
+            if (!raw) return [];
+            const byLine = raw.split('\n').map(s => s.trim()).filter(Boolean);
+            const source = byLine.length > 1 ? byLine : raw.split(/[。；;]+/).map(s => s.trim()).filter(Boolean);
+            return source.filter(Boolean).slice(0, 4);
+        }
+
+        function renderSolutionAdvantages(index) {
+            const grid = document.getElementById('solution-advantages-grid');
+            if (!grid) return;
+            const set = solutionAdvantages[getWrappedIndex(index)] || solutionAdvantages[0];
+            grid.innerHTML = set.map((item, idx) => `
+                <div class="advantage-card">
+                    <div class="advantage-icon-wrapper">${advantageIconSvgs[idx % advantageIconSvgs.length]}</div>
+                    <h4>${escapeHtml(item.title || '')}</h4>
+                    <p>${escapeHtml(item.desc || '')}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderSolutionRelatedProducts(index) {
+            const grid = document.getElementById('solution-related-products-grid');
+            const subtitle = document.getElementById('solution-related-products-subtitle');
+            if (!grid) return;
+            const scenarioTitle = carouselTitles[getWrappedIndex(index)] || carouselTitles[0];
+            if (subtitle) {
+                subtitle.textContent = `围绕「${scenarioTitle}」推荐可直接组合部署的核心检测、报警与在线监测产品，兼顾现场适配性与整体方案一致性。`;
+            }
+            const key = getSolutionKeyByIndex(index);
+            const list = (solutionRelatedProductsMap[key] && solutionRelatedProductsMap[key].length)
+                ? solutionRelatedProductsMap[key]
+                : (fallbackRelatedProducts[key] || fallbackRelatedProducts.electrolysis_online_leak || []);
+
+            if (!list.length) {
+                grid.innerHTML = '<div style="grid-column:1 / -1; text-align:center; color:#667085;">当前方案暂无相关产品配置</div>';
+                return;
+            }
+
+            grid.innerHTML = list.slice(0, 4).map((item, idx) => {
+                const bullets = extractSummaryBullets(item.summary || item.desc || item.description || '');
+                const bulletHtml = bullets.length
+                    ? bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')
+                    : '<li>高可靠产品方案，支持复杂工况监测部署。</li>';
+                const title = item.title || item.name || item.id || '相关产品';
+                const link = item.link || '#';
+                const image = item.image || '/assets/images/logo.png';
+                return `
+                    <a href="${escapeHtml(link)}" class="product-item">
+                        <div class="product-img-box">
+                            <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-body">
+                                <div class="product-meta">方案适配产品</div>
+                                <h4>${escapeHtml(title)}</h4>
+                            </div>
+                            <ul class="product-list">${bulletHtml}</ul>
+                            <div class="product-footer">
+                                <span class="product-footer-note">适配当前方案场景，可用于巡检、固定监测或系统联动部署。</span>
+                                <span class="product-cta">查看产品详情</span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        async function loadHydrogenSolutionConfig() {
+            try {
+                const res = await fetch('/api/solutions/hydrogen/config');
+                const data = await res.json();
+                const map = {};
+                (data.solutions || []).forEach(item => {
+                    const sid = String(item.id || '').trim();
+                    if (!sid) return;
+                    map[sid] = Array.isArray(item.relatedProducts) ? item.relatedProducts.slice(0, 4) : [];
+                });
+                solutionRelatedProductsMap = map;
+            } catch (e) {
+                solutionRelatedProductsMap = {};
+            }
+            renderSolutionRelatedProducts(currentCarousel);
+        }
+
+        function updateTitleTrack() {
+            const slider = document.getElementById('carousel-slider');
+            const items = slider.querySelectorAll('.carousel-title-item');
+            const prevIdx = getWrappedIndex(currentCarousel - 1);
+            const nextIdx = getWrappedIndex(currentCarousel + 1);
+
+            items[0].textContent = carouselTitles[prevIdx];
+            items[0].onclick = function () { goToCarousel(prevIdx, -1); };
+            items[0].className = 'carousel-title-item side';
+
+            items[1].textContent = carouselTitles[currentCarousel];
+            items[1].onclick = null;
+            items[1].className = 'carousel-title-item center';
+
+            items[2].textContent = carouselTitles[nextIdx];
+            items[2].onclick = function () { goToCarousel(nextIdx, 1); };
+            items[2].className = 'carousel-title-item side';
+        }
+
+        function goToCarousel(index, direction) {
+            if (isAnimating) return;
+            if (index === currentCarousel) return;
+
+            const panels = document.querySelectorAll('.carousel-panels-wrapper > .solution-panel');
+            const dots = document.querySelectorAll('.carousel-dot');
+            if (index < 0 || index >= panels.length) return;
+
+            isAnimating = true;
+
+            // Determine slide direction if not provided
+            if (direction === undefined) {
+                // Shortest path direction
+                let diff = index - currentCarousel;
+                if (Math.abs(diff) > total / 2) diff = diff > 0 ? diff - total : diff + total;
+                direction = diff > 0 ? 1 : -1;
+            }
+
+            const slider = document.getElementById('carousel-slider');
+            const itemWidth = slider.querySelector('.carousel-title-item').offsetWidth;
+
+            // Slide: +direction means going next (slide LEFT), -direction means prev (slide RIGHT)
+            const translatePx = -direction * itemWidth;
+
+            // Animate slide
+            slider.style.transition = 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
+            slider.style.transform = `translateX(${translatePx}px)`;
+
+            // Update panels & dots immediately (content fades in)
+            panels[currentCarousel].classList.remove('active');
+            dots[currentCarousel].classList.remove('active');
+            currentCarousel = index;
+            panels[currentCarousel].classList.add('active');
+            dots[currentCarousel].classList.add('active');
+            renderSolutionAdvantages(currentCarousel);
+            renderSolutionRelatedProducts(currentCarousel);
+
+            // After slide animation ends: snap back and update text
+            setTimeout(() => {
+                // Instant reset (no transition)
+                slider.style.transition = 'none';
+                slider.style.transform = 'translateX(0)';
+                updateTitleTrack();
+
+                // Re-enable transition after one frame
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        slider.style.transition = 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
+                        isAnimating = false;
+                    });
+                });
+            }, 460);
+        }
+
+        function switchCarousel(direction) {
+            let next = getWrappedIndex(currentCarousel + direction);
+            goToCarousel(next, direction);
+        }
+
+        updateTitleTrack();
+        renderSolutionAdvantages(currentCarousel);
+        renderSolutionRelatedProducts(currentCarousel);
+        loadHydrogenSolutionConfig();
     </script>
 
     <!-- 全站搜索 -->
@@ -1560,18 +2462,18 @@
     </script>
 
     <!-- FOOTER_START -->
-  <div id="mc-footer-root"></div>
-  <noscript>
-    <footer class="vs-footer-new">
-      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
-        <a href="/index.html">首页</a> |
-        <a href="/pages/about/policy.html">隐私政策</a> |
-        <a href="/pages/about/terms.html">条款与条件</a>
-      </div>
-    </footer>
-  </noscript>
-  <script src="/assets/js/footer-loader.js"></script>
-  <!-- FOOTER_END -->
+    <div id="mc-footer-root"></div>
+    <noscript>
+        <footer class="vs-footer-new">
+            <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+                <a href="/index.html">首页</a> |
+                <a href="/pages/about/policy.html">隐私政策</a> |
+                <a href="/pages/about/terms.html">条款与条件</a>
+            </div>
+        </footer>
+    </noscript>
+    <script src="/assets/js/footer-loader.js"></script>
+    <!-- FOOTER_END -->
 </body>
 
 </html>
