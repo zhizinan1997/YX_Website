@@ -58,6 +58,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'metachip-secret-key-2024')
 # Configuration
 DATA_DIR = Path(__file__).parent / 'data'
 MESSAGES_DIR = DATA_DIR / 'messages'
+MESSAGES_META_FILE = DATA_DIR / 'messages_meta.json'
 KNOWLEDGE_DIR = DATA_DIR / 'knowledge'
 RATE_LIMIT_FILE = DATA_DIR / 'rate_limits.json'
 CONFIG_FILE = DATA_DIR / 'config.json'
@@ -76,6 +77,7 @@ SOLUTIONS_FEATURED_FILE = DATA_DIR / 'solutions_featured.json'
 HOME_SECTION_VISIBILITY_FILE = DATA_DIR / 'home_section_visibility.json'
 JOBS_FILE = DATA_DIR / 'jobs.json'
 H2_HOME_FILE = DATA_DIR / 'h2_home.json'
+HYDROGEN_SOLUTIONS_CONFIG_FILE = DATA_DIR / 'hydrogen_solutions_config.json'
 NEWS_UPLOADS_DIR = DATA_DIR / 'news_uploads'
 RESUME_UPLOADS_DIR = DATA_DIR / 'resumes'
 
@@ -265,6 +267,34 @@ def get_hero_config():
 
     HERO_CONFIG_FILE.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
     return default_config
+
+
+def get_messages_meta():
+    """Load persisted message meta data."""
+    default_meta = {
+        'deleted_count': 0
+    }
+
+    if MESSAGES_META_FILE.exists():
+        try:
+            meta = json.loads(MESSAGES_META_FILE.read_text(encoding='utf-8'))
+            merged = {**default_meta, **(meta if isinstance(meta, dict) else {})}
+            merged['deleted_count'] = max(0, int(merged.get('deleted_count', 0)))
+            return merged
+        except Exception:
+            pass
+
+    MESSAGES_META_FILE.write_text(json.dumps(default_meta, indent=2, ensure_ascii=False), encoding='utf-8')
+    return default_meta
+
+
+def save_messages_meta(meta):
+    """Persist message meta data."""
+    safe_meta = {
+        'deleted_count': max(0, int((meta or {}).get('deleted_count', 0)))
+    }
+    MESSAGES_META_FILE.write_text(json.dumps(safe_meta, indent=2, ensure_ascii=False), encoding='utf-8')
+    return safe_meta
 
 def save_hero_config(new_config):
     """Validate and save hero carousel config."""
@@ -1490,6 +1520,44 @@ def get_gassensing_cases():
 def get_all_solutions():
     """Get all solutions for admin selection."""
     return jsonify({'items': get_all_solution_items()})
+
+
+@app.route('/api/solutions/hydrogen/config')
+def get_hydrogen_solutions_public_config():
+    """Public config for hydrogen solution page (per-solution related products)."""
+    return jsonify({'solutions': build_hydrogen_solution_public_payload()})
+
+
+@app.route('/api/admin/hydrogen-solutions/config')
+@login_required
+def get_hydrogen_solutions_admin_config():
+    """Admin config: solution list + selected related product ids + product options."""
+    products = get_hydrogen_solution_product_pool()
+    product_options = []
+    for product in products:
+        pid = str(product.get('id', '')).strip()
+        if not pid:
+            continue
+        product_options.append({
+            'id': pid,
+            'title': product.get('displayName') or product.get('shortName') or product.get('name') or pid,
+            'image': (product.get('cardImage') or '').strip() or (product.get('image') or '').strip()
+        })
+    return jsonify({
+        'success': True,
+        'definitions': get_hydrogen_solution_definitions(),
+        'config': get_hydrogen_solution_products_config(),
+        'products': product_options
+    })
+
+
+@app.route('/api/admin/hydrogen-solutions/config', methods=['POST'])
+@login_required
+def update_hydrogen_solutions_admin_config():
+    """Persist admin-edited per-solution related product ids."""
+    data = request.json or {}
+    saved = save_hydrogen_solution_products_config(data)
+    return jsonify({'success': True, 'config': saved})
 
 
 @app.route('/api/solutions/featured')
@@ -4973,6 +5041,179 @@ def get_gassensing_products_with_settings():
     return products
 
 
+HYDROGEN_SOLUTION_DEFINITIONS = [
+    {'id': 'electrolysis_online_leak', 'title': '电解水制氢过程在线分析与泄漏监测解决方案'},
+    {'id': 'station_vehicle_safety', 'title': '加氢站与燃料电池车氢监测协同安全解决方案'},
+    {'id': 'lab_multidimensional_monitoring', 'title': '涉氢实验室多维度气体泄漏立体监测系统'},
+    {'id': 'city_pipeline_home_safety', 'title': '城市能源输氢管网与用氢家庭安全解决方案'},
+    {'id': 'trace_hydrogen_leak_detection', 'title': '微量氢气泄漏检测解决方案'},
+    {'id': 'generator_h2_purity_leak', 'title': '氢冷发电机氢气纯度分析与泄漏监测解决方案'},
+    {'id': 'stator_cooling_water_h2', 'title': '发电机组定冷水氢检测解决方案'},
+    {'id': 'nuclear_dissolved_h2', 'title': '核电站水中溶解氢监测解决方案'},
+    {'id': 'transformer_oil_h2', 'title': '变压器油中氢浓度检测解决方案'},
+    {'id': 'general_pipe_container_leak', 'title': '管道容器通用检漏解决方案'},
+    {'id': 'refrigerant_industry_leak', 'title': '冷媒行业检漏解决方案'},
+]
+
+DEFAULT_HYDROGEN_SOLUTION_PRODUCTS = {
+    'electrolysis_online_leak': ['mc_ol_h1', 'mc_ld_h2', 'mc_hla_01', 'mc_pgd_01'],
+    'station_vehicle_safety': ['mc_ld_h2', 'mc_hp_1_0', 'mc_wd_01', 'mc_hla_01'],
+    'lab_multidimensional_monitoring': ['mc_ld_ph2', 'mc_ld_h2', 'mc_wd_01', 'mc_pdr_01'],
+    'city_pipeline_home_safety': ['mc_hha_01', 'mc_hla_01', 'mc_pgd_01', 'mc_ld_nh2'],
+    'trace_hydrogen_leak_detection': ['mc_td_01', 'mc_ld_nh2', 'mc_ld_h2', 'mc_ld_ph2'],
+    'generator_h2_purity_leak': ['mc_ol_h1', 'mc_hla_01', 'mc_ld_h2', 'mc_pgd_01'],
+    'stator_cooling_water_h2': ['mc_pgd_01', 'mc_ol_h1', 'mc_hla_01', 'mc_ld_h2'],
+    'nuclear_dissolved_h2': ['mc_pgd_01', 'mc_ol_h1', 'mc_hla_01', 'mc_wd_01'],
+    'transformer_oil_h2': ['mc_pgd_01', 'mc_ld_h2', 'mc_hla_01', 'mc_td_01'],
+    'general_pipe_container_leak': ['mc_td_01', 'mc_ld_nh2', 'mc_ld_h2', 'mc_ld_ph2'],
+    'refrigerant_industry_leak': ['mc_hla_01', 'mc_wd_01', 'mc_ld_h2', 'mc_td_01'],
+}
+
+
+def get_hydrogen_solution_definitions():
+    return [dict(item) for item in HYDROGEN_SOLUTION_DEFINITIONS]
+
+
+def get_hydrogen_solution_product_pool():
+    """Products that can be selected in hydrogen solution related-product config."""
+    pool = []
+    for product in get_products_with_settings_data():
+        pid = str(product.get('id', '')).strip()
+        if not pid or pid == 'all-products':
+            continue
+        if pid.startswith('../biosensing/'):
+            continue
+        pool.append(product)
+    return pool
+
+
+def normalize_hydrogen_solution_products_config(raw_config):
+    """
+    Normalize stored hydrogen-solution related-product config.
+    Ensure every solution has 1-4 valid product ids.
+    """
+    pool = get_hydrogen_solution_product_pool()
+    available_ids = {str(p.get('id', '')).strip() for p in pool if str(p.get('id', '')).strip()}
+
+    raw_map = {}
+    if isinstance(raw_config, dict):
+        if isinstance(raw_config.get('solutions'), list):
+            for item in raw_config.get('solutions', []):
+                if not isinstance(item, dict):
+                    continue
+                sid = str(item.get('id', '')).strip()
+                if sid:
+                    raw_map[sid] = item.get('relatedProductIds', [])
+        else:
+            for sid, val in raw_config.items():
+                if not isinstance(sid, str):
+                    continue
+                raw_map[sid] = val
+
+    normalized_solutions = []
+    fallback_pool_ids = [pid for pid in (
+        str(p.get('id', '')).strip() for p in pool
+    ) if pid][:4]
+
+    for definition in get_hydrogen_solution_definitions():
+        sid = definition['id']
+        candidate_ids = raw_map.get(sid, [])
+        if not isinstance(candidate_ids, list):
+            candidate_ids = []
+        cleaned_ids = []
+        seen = set()
+        for pid in candidate_ids:
+            product_id = str(pid or '').strip()
+            if not product_id or product_id in seen or product_id not in available_ids:
+                continue
+            seen.add(product_id)
+            cleaned_ids.append(product_id)
+            if len(cleaned_ids) >= 4:
+                break
+
+        if not cleaned_ids:
+            default_ids = DEFAULT_HYDROGEN_SOLUTION_PRODUCTS.get(sid, [])
+            for pid in default_ids:
+                if pid in available_ids and pid not in cleaned_ids:
+                    cleaned_ids.append(pid)
+                if len(cleaned_ids) >= 4:
+                    break
+
+        if not cleaned_ids:
+            cleaned_ids = fallback_pool_ids[:4]
+
+        normalized_solutions.append({
+            'id': sid,
+            'relatedProductIds': cleaned_ids[:4]
+        })
+
+    return {'solutions': normalized_solutions}
+
+
+def get_hydrogen_solution_products_config():
+    if HYDROGEN_SOLUTIONS_CONFIG_FILE.exists():
+        try:
+            raw = json.loads(HYDROGEN_SOLUTIONS_CONFIG_FILE.read_text(encoding='utf-8'))
+        except Exception:
+            raw = {}
+    else:
+        raw = {}
+    normalized = normalize_hydrogen_solution_products_config(raw)
+    return normalized
+
+
+def save_hydrogen_solution_products_config(new_config):
+    normalized = normalize_hydrogen_solution_products_config(new_config)
+    HYDROGEN_SOLUTIONS_CONFIG_FILE.write_text(
+        json.dumps(normalized, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
+    return normalized
+
+
+def to_solution_product_card(product):
+    title = product.get('displayName') or product.get('shortName') or product.get('name') or product.get('id', '')
+    image = (product.get('cardImage') or '').strip() or (product.get('image') or '').strip()
+    summary = (product.get('cardSummary') or '').strip() or (product.get('description') or '').strip()
+    link = '/' + build_product_link(product).lstrip('/')
+    return {
+        'id': product.get('id', ''),
+        'title': title,
+        'image': image,
+        'summary': summary,
+        'link': link
+    }
+
+
+def build_hydrogen_solution_public_payload():
+    config = get_hydrogen_solution_products_config()
+    config_map = {
+        str(item.get('id', '')).strip(): item.get('relatedProductIds', [])
+        for item in config.get('solutions', []) if isinstance(item, dict)
+    }
+    pool = get_hydrogen_solution_product_pool()
+    product_map = {str(p.get('id', '')).strip(): p for p in pool if str(p.get('id', '')).strip()}
+
+    payload = []
+    for definition in get_hydrogen_solution_definitions():
+        sid = definition['id']
+        related_ids = config_map.get(sid, [])
+        related_products = []
+        for pid in related_ids:
+            product = product_map.get(str(pid).strip())
+            if not product:
+                continue
+            related_products.append(to_solution_product_card(product))
+            if len(related_products) >= 4:
+                break
+        payload.append({
+            'id': sid,
+            'title': definition['title'],
+            'relatedProducts': related_products
+        })
+    return payload
+
+
 def extract_case_meta_from_html(filepath):
     """Extract case meta: title, image, summary."""
     from html.parser import HTMLParser
@@ -5732,13 +5973,35 @@ def submit_feedback():
 def get_messages():
     """Get all messages for admin panel."""
     messages = []
+    today = datetime.now().date().isoformat()
+    today_count = 0
+    read_count = 0
+    job_count = 0
     for filepath in sorted(MESSAGES_DIR.glob('*.json'), reverse=True):
         try:
             msg = json.loads(filepath.read_text(encoding='utf-8'))
             messages.append(msg)
+            if str(msg.get('timestamp', '')).split('T')[0] == today:
+                today_count += 1
+            if msg.get('is_read'):
+                read_count += 1
+            if msg.get('message_type') == 'job_application':
+                job_count += 1
         except:
             continue
-    return jsonify(messages)
+
+    meta = get_messages_meta()
+    stats = {
+        'total_count': len(messages),
+        'job_count': job_count,
+        'today_count': today_count,
+        'read_count': read_count,
+        'deleted_count': int(meta.get('deleted_count', 0))
+    }
+    return jsonify({
+        'messages': messages,
+        'stats': stats
+    })
 
 
 @app.route('/api/messages/<message_id>', methods=['DELETE'])
@@ -5758,6 +6021,9 @@ def delete_message(message_id):
         except Exception:
             pass
         filepath.unlink()
+        meta = get_messages_meta()
+        meta['deleted_count'] = int(meta.get('deleted_count', 0)) + 1
+        save_messages_meta(meta)
         return jsonify({'success': True})
     return jsonify({'success': False, 'message': '留言不存在'}), 404
 

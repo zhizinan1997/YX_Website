@@ -1,0 +1,49 @@
+{
+  "solutions": [
+    {
+      "id": "electrolysis_online_leak",
+      "relatedProductIds": [
+        "mc_ol_h1",
+        "mc_pgd_01",
+        "mc_la_h1",
+        "mc_od_h1"
+      ]
+    },
+    {
+      "id": "station_vehicle_safety",
+      "relatedProductIds": [
+        "mc_ld_h2",
+        "mc_hp_1_0",
+        "mc_wd_01",
+        "mc_hla_01"
+      ]
+    },
+    {
+      "id": "lab_multidimensional_monitoring",
+      "relatedProductIds": [
+        "mc_ld_ph2",
+        "mc_ld_h2",
+        "mc_wd_01",
+        "mc_pdr_01"
+      ]
+    },
+    {
+      "id": "city_pipeline_home_safety",
+      "relatedProductIds": [
+        "mc_hha_01",
+        "mc_hla_01",
+        "mc_pgd_01",
+        "mc_ld_nh2"
+      ]
+    },
+    {
+      "id": "trace_hydrogen_leak_detection",
+      "relatedProductIds": [
+        "mc_td_01",
+        "mc_ld_nh2",
+        "mc_ld_h2",
+        "mc_ld_ph2"
+      ]
+    }
+  ]
+}
