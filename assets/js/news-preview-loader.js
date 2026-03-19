@@ -7,7 +7,7 @@
     'use strict';
 
     // 配置：每个分类显示的新闻数量
-    const NEWS_COUNT_PER_CATEGORY = 2;
+    const NEWS_COUNT_PER_CATEGORY = 4;
 
     // 新闻分类配置
     const CATEGORIES = {

@@ -43,7 +43,7 @@
         var link = document.createElement('link');
         link.id = NAV_CSS_ID;
         link.rel = 'stylesheet';
-        link.href = '/assets/css/nav-component.css';
+        link.href = '/assets/css/nav-component.css?v=20260319c';
         document.head.appendChild(link);
     }
 
@@ -139,8 +139,38 @@
             var closeTimer = null;
             var closeDelay = 90;
 
+            function resetMenuOffset(item) {
+                var menu = item && item.querySelector('.vs-mega-menu');
+                if (menu) menu.style.marginLeft = '';
+            }
+
+            function clampMenuToViewport(item) {
+                var menu = item && item.querySelector('.vs-mega-menu');
+                if (!menu) return;
+
+                // Reset offset first, then re-measure to compute the needed shift.
+                menu.style.marginLeft = '0px';
+
+                var rect = menu.getBoundingClientRect();
+                var viewportWidth = window.innerWidth || document.documentElement.clientWidth || rect.right;
+                var gutter = 12;
+                var shiftX = 0;
+
+                if (rect.right > viewportWidth - gutter) {
+                    shiftX -= (rect.right - (viewportWidth - gutter));
+                }
+                if (rect.left < gutter) {
+                    shiftX += (gutter - rect.left);
+                }
+
+                menu.style.marginLeft = Math.abs(shiftX) > 0.5 ? (Math.round(shiftX) + 'px') : '0px';
+            }
+
             function closeAll() {
-                items.forEach(function (it) { it.classList.remove('is-mega-open'); });
+                items.forEach(function (it) {
+                    it.classList.remove('is-mega-open');
+                    resetMenuOffset(it);
+                });
             }
 
             items.forEach(function (item) {
@@ -151,12 +181,16 @@
                     }
                     closeAll();
                     item.classList.add('is-mega-open');
+                    window.requestAnimationFrame(function () {
+                        clampMenuToViewport(item);
+                    });
                 });
 
                 item.addEventListener('mouseleave', function () {
                     if (closeTimer) clearTimeout(closeTimer);
                     closeTimer = setTimeout(function () {
                         item.classList.remove('is-mega-open');
+                        resetMenuOffset(item);
                     }, closeDelay);
                 });
             });
@@ -164,6 +198,11 @@
             root.addEventListener('mouseleave', function () {
                 if (closeTimer) clearTimeout(closeTimer);
                 closeTimer = setTimeout(closeAll, closeDelay);
+            });
+
+            window.addEventListener('resize', function () {
+                var opened = root.querySelector('.vs-nav__item--has-mega.is-mega-open');
+                if (opened) clampMenuToViewport(opened);
             });
         })();
     }

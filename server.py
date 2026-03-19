@@ -17,6 +17,7 @@ import shutil
 import tempfile
 import zipfile
 import posixpath
+import ipaddress
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
@@ -54,6 +55,7 @@ except ImportError:
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = os.environ.get('SECRET_KEY', 'metachip-secret-key-2024')
+CHEM_SUBSCRIPT_SCRIPT_SRC = '/assets/js/chem-subscript.js'
 
 # Configuration
 DATA_DIR = Path(__file__).parent / 'data'
@@ -77,15 +79,21 @@ SOLUTIONS_FEATURED_FILE = DATA_DIR / 'solutions_featured.json'
 HOME_SECTION_VISIBILITY_FILE = DATA_DIR / 'home_section_visibility.json'
 JOBS_FILE = DATA_DIR / 'jobs.json'
 H2_HOME_FILE = DATA_DIR / 'h2_home.json'
+H2_HOME_VIDEO_UPLOADS_DIR = DATA_DIR / 'h2_home_videos'
 HYDROGEN_SOLUTIONS_CONFIG_FILE = DATA_DIR / 'hydrogen_solutions_config.json'
 NEWS_UPLOADS_DIR = DATA_DIR / 'news_uploads'
 RESUME_UPLOADS_DIR = DATA_DIR / 'resumes'
+ADMIN_LOGIN_LOG_FILE = DATA_DIR / 'admin_login_logs.json'
+ADMIN_LOGIN_LOG_LOCK = threading.Lock()
+ADMIN_IP_LOCATION_CACHE = {}
+ADMIN_IP_LOCATION_LOCK = threading.Lock()
 
 # Ensure directories exist
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
 HERO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PRODUCT_CARD_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+H2_HOME_VIDEO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 NEWS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 RESUME_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -97,6 +105,8 @@ MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_HERO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.mp4'}
 ALLOWED_HERO_MIME_TYPES = {'image/png', 'image/jpeg', 'video/mp4'}
+ALLOWED_H2_HOME_VIDEO_EXTENSIONS = {'.mp4', '.webm', '.ogg', '.ogv'}
+ALLOWED_H2_HOME_VIDEO_MIME_TYPES = {'video/mp4', 'video/webm', 'video/ogg'}
 ALLOWED_RESUME_EXTENSIONS = {'.pdf', '.doc', '.docx'}
 BACKUP_ALLOWED_DIRS = [
     'data',
@@ -111,6 +121,33 @@ BACKUP_ALLOWED_FILES = [
     'admin/index.html',
     'server.py'
 ]
+BACKUP_META_FILES = {'backup_manifest.json'}
+BACKUP_EXCLUDED_DIR_NAMES = {
+    '.git',
+    '.hg',
+    '.svn',
+    '.idea',
+    '.vscode',
+    '.pytest_cache',
+    '.mypy_cache',
+    '.ruff_cache',
+    '__pycache__',
+    'node_modules',
+    '.venv',
+    'venv',
+    'backups',
+    '.DS_Store'
+}
+BACKUP_EXCLUDED_FILE_NAMES = {
+    '.DS_Store'
+}
+BACKUP_EXCLUDED_SUFFIXES = (
+    '.pyc',
+    '.pyo',
+    '.swp',
+    '.tmp',
+    '.temp'
+)
 ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.svg', '.webp'}
 ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'}
 ALLOWED_PRODUCT_CARD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
@@ -144,6 +181,15 @@ def infer_partner_extension_from_mime(mime: str) -> str:
         return '.svg'
     if mime == 'image/webp':
         return '.webp'
+    return ''
+
+def infer_h2_home_video_extension_from_mime(mime: str) -> str:
+    if mime == 'video/mp4':
+        return '.mp4'
+    if mime == 'video/webm':
+        return '.webm'
+    if mime == 'video/ogg':
+        return '.ogv'
     return ''
 
 def infer_product_card_extension_from_mime(mime: str) -> str:
@@ -416,6 +462,136 @@ def get_client_ip():
     return request.remote_addr or '127.0.0.1'
 
 
+def load_admin_login_logs():
+    """Load admin login logs from file."""
+    default_data = {'items': []}
+    if ADMIN_LOGIN_LOG_FILE.exists():
+        try:
+            data = json.loads(ADMIN_LOGIN_LOG_FILE.read_text(encoding='utf-8'))
+            items = data.get('items', [])
+            if not isinstance(items, list):
+                items = []
+            normalized = [item for item in items if isinstance(item, dict)]
+            return normalized
+        except Exception:
+            pass
+    ADMIN_LOGIN_LOG_FILE.write_text(
+        json.dumps(default_data, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
+    return []
+
+
+def save_admin_login_logs(items):
+    """Persist admin login logs to file."""
+    safe_items = [item for item in (items or []) if isinstance(item, dict)]
+    ADMIN_LOGIN_LOG_FILE.write_text(
+        json.dumps({'items': safe_items}, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
+
+
+def fetch_ip_location(ip):
+    """Resolve geo location for a public IP by external service."""
+    query_url = (
+        f'http://ip-api.com/json/{ip}'
+        '?lang=zh-CN&fields=status,country,regionName,city,isp'
+    )
+    if REQUESTS_SUPPORT:
+        try:
+            res = requests.get(query_url, timeout=2.5)
+            if res.ok:
+                data = res.json()
+                if data.get('status') == 'success':
+                    parts = [
+                        str(data.get('country') or '').strip(),
+                        str(data.get('regionName') or '').strip(),
+                        str(data.get('city') or '').strip(),
+                        str(data.get('isp') or '').strip()
+                    ]
+                    parts = [part for part in parts if part]
+                    if parts:
+                        return ' / '.join(parts)
+        except Exception:
+            pass
+
+    if HTTPX_SUPPORT:
+        try:
+            res = httpx.get(query_url, timeout=2.5)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get('status') == 'success':
+                    parts = [
+                        str(data.get('country') or '').strip(),
+                        str(data.get('regionName') or '').strip(),
+                        str(data.get('city') or '').strip(),
+                        str(data.get('isp') or '').strip()
+                    ]
+                    parts = [part for part in parts if part]
+                    if parts:
+                        return ' / '.join(parts)
+        except Exception:
+            pass
+
+    return '未知'
+
+
+def resolve_ip_location(ip):
+    """Get a readable location text for IP."""
+    ip_text = str(ip or '').strip()
+    if not ip_text:
+        return '未知'
+
+    with ADMIN_IP_LOCATION_LOCK:
+        cached = ADMIN_IP_LOCATION_CACHE.get(ip_text)
+        if cached:
+            return cached
+
+    location = '未知'
+    try:
+        ip_obj = ipaddress.ip_address(ip_text)
+        if ip_obj.is_loopback:
+            location = '本机回环地址'
+        elif ip_obj.is_private:
+            location = '内网地址'
+        elif ip_obj.is_unspecified:
+            location = '未指定地址'
+        elif ip_obj.is_reserved:
+            location = '保留地址'
+        elif ip_obj.is_multicast:
+            location = '组播地址'
+        else:
+            location = fetch_ip_location(ip_text)
+    except ValueError:
+        location = '未知'
+
+    with ADMIN_IP_LOCATION_LOCK:
+        if len(ADMIN_IP_LOCATION_CACHE) >= 1024:
+            ADMIN_IP_LOCATION_CACHE.clear()
+        ADMIN_IP_LOCATION_CACHE[ip_text] = location
+    return location
+
+
+def append_admin_login_log(operation, success, username='', detail=''):
+    """Append one immutable admin login-operation log record."""
+    ip = get_client_ip()
+    log_item = {
+        'id': uuid.uuid4().hex,
+        'ip': ip,
+        'location': resolve_ip_location(ip),
+        'success': bool(success),
+        'timestamp': datetime.now().isoformat(timespec='seconds'),
+        'operation': str(operation or '后台操作').strip(),
+        'username': str(username or '').strip(),
+        'detail': str(detail or '').strip()
+    }
+
+    with ADMIN_LOGIN_LOG_LOCK:
+        items = load_admin_login_logs()
+        items.append(log_item)
+        save_admin_login_logs(items)
+
+
 def check_rate_limit(ip: str) -> bool:
     """Check if IP is within rate limit. Returns True if allowed."""
     now = time.time()
@@ -456,6 +632,47 @@ def login_required(f):
             return redirect('/admin')
         return f(*args, **kwargs)
     return decorated_function
+
+
+@app.after_request
+def inject_chem_subscript_script(response):
+    """Inject chemical-formula subscript script into all HTML responses."""
+    try:
+        # Never inject into admin pages; admin has large inline scripts that may
+        # contain literal "</body>" inside JS strings.
+        path = request.path or ''
+        if path.startswith('/admin'):
+            return response
+
+        content_type = (response.headers.get('Content-Type') or '').lower()
+        if 'text/html' not in content_type:
+            return response
+
+        response.direct_passthrough = False
+        html_body = response.get_data(as_text=True)
+        if not html_body:
+            return response
+
+        script_tag = f'<script src="{CHEM_SUBSCRIPT_SCRIPT_SRC}" defer></script>'
+        if CHEM_SUBSCRIPT_SCRIPT_SRC in html_body:
+            return response
+
+        lower_body = html_body.lower()
+        body_pos = lower_body.rfind('</body>')
+        html_pos = lower_body.rfind('</html>')
+
+        if body_pos != -1:
+            html_body = html_body[:body_pos] + script_tag + '\n' + html_body[body_pos:]
+        elif html_pos != -1:
+            html_body = html_body[:html_pos] + script_tag + '\n' + html_body[html_pos:]
+        else:
+            html_body += script_tag
+
+        response.set_data(html_body)
+    except Exception:
+        # Keep responses unchanged if injection fails for any reason.
+        pass
+    return response
 
 
 
@@ -1701,6 +1918,43 @@ def get_jobs_public():
 @app.route('/api/h2-home', methods=['GET'])
 def get_h2_home():
     return jsonify(get_h2_home_config())
+
+
+@app.route('/api/h2-home/upload-video', methods=['POST'])
+@login_required
+def upload_h2_home_video():
+    """Upload local video file for H2 homepage hero background."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+    file = request.files['file']
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+    original_name = file.filename
+    filename = secure_filename(original_name)
+    ext = Path(filename).suffix.lower()
+    mime = (file.mimetype or '').lower()
+
+    if ext not in ALLOWED_H2_HOME_VIDEO_EXTENSIONS:
+        inferred_ext = infer_h2_home_video_extension_from_mime(mime)
+        if inferred_ext:
+            ext = inferred_ext
+        else:
+            return jsonify({'success': False, 'message': '只支持 MP4/WEBM/OGG 视频文件'}), 400
+
+    saved_name = f"{uuid.uuid4().hex}{ext}"
+    save_path = H2_HOME_VIDEO_UPLOADS_DIR / saved_name
+    file.save(str(save_path))
+
+    return jsonify({
+        'success': True,
+        'item': {
+            'id': uuid.uuid4().hex,
+            'url': f"/media/h2-home/{saved_name}",
+            'source': 'upload'
+        }
+    })
 
 
 def normalize_remote_video_url(raw_url: str) -> str:
@@ -5631,6 +5885,12 @@ def serve_hero_media(filename):
     return send_from_directory(HERO_UPLOADS_DIR, filename)
 
 
+@app.route('/media/h2-home/<path:filename>')
+def serve_h2_home_media(filename):
+    """Serve uploaded H2 home video files."""
+    return send_from_directory(H2_HOME_VIDEO_UPLOADS_DIR, filename)
+
+
 # ============ Partners API ============
 
 @app.route('/api/partners', methods=['GET'])
@@ -6146,10 +6406,63 @@ def serve_resume_media(filename):
     return send_from_directory(RESUME_UPLOADS_DIR, filename)
 
 
+def normalize_backup_rel_path(raw_path: str) -> str:
+    """Normalize backup relative path and guard against traversal."""
+    if not raw_path:
+        return ''
+    normalized = posixpath.normpath(str(raw_path).replace('\\', '/')).lstrip('./')
+    if not normalized or normalized.startswith('../') or normalized.startswith('/'):
+        return ''
+    return normalized
+
+
+def should_include_site_backup_path(rel_path: str) -> bool:
+    """Decide whether a relative path should be included in full-site backup."""
+    normalized = normalize_backup_rel_path(rel_path)
+    if not normalized:
+        return False
+    if normalized in BACKUP_META_FILES:
+        return False
+
+    parts = [p for p in normalized.split('/') if p and p != '.']
+    if not parts:
+        return False
+
+    # Exclude cache/dev directories from any depth.
+    for part in parts[:-1]:
+        if part in BACKUP_EXCLUDED_DIR_NAMES:
+            return False
+
+    filename = parts[-1]
+    if filename in BACKUP_EXCLUDED_FILE_NAMES:
+        return False
+
+    filename_lower = filename.lower()
+    if any(filename_lower.endswith(suffix) for suffix in BACKUP_EXCLUDED_SUFFIXES):
+        return False
+
+    return True
+
+
+def iter_site_backup_files(root: Path):
+    """Yield (abs_file_path, rel_posix_path) for backup-eligible files."""
+    for current_root, dirnames, filenames in os.walk(root, topdown=True):
+        dirnames[:] = [d for d in dirnames if d not in BACKUP_EXCLUDED_DIR_NAMES]
+
+        current_dir = Path(current_root)
+        for filename in filenames:
+            abs_path = current_dir / filename
+            if not abs_path.is_file() or abs_path.is_symlink():
+                continue
+            rel_posix = abs_path.relative_to(root).as_posix()
+            if should_include_site_backup_path(rel_posix):
+                yield abs_path, rel_posix
+
+
 @app.route('/api/backup/download', methods=['GET'])
 @login_required
 def download_backup():
-    """Download full backup for data and managed content."""
+    """Download full-site backup (excluding cache/dev directories)."""
     root = Path(__file__).parent
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup_name = f'yx_backup_{ts}.zip'
@@ -6158,31 +6471,28 @@ def download_backup():
     os.close(fd)
 
     try:
+        included_files = list(iter_site_backup_files(root))
+
         with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
             manifest = {
                 'created_at': datetime.now().isoformat(),
-                'version': 2,
+                'version': 3,
+                'scope': 'full_site',
                 'includes': {
-                    'dirs': BACKUP_ALLOWED_DIRS,
-                    'files': BACKUP_ALLOWED_FILES
+                    'mode': 'walk_root_with_excludes',
+                    'root': '.',
+                    'excluded_dir_names': sorted(BACKUP_EXCLUDED_DIR_NAMES),
+                    'excluded_file_names': sorted(BACKUP_EXCLUDED_FILE_NAMES),
+                    'excluded_suffixes': list(BACKUP_EXCLUDED_SUFFIXES)
+                },
+                'stats': {
+                    'file_count': len(included_files)
                 }
             }
             zf.writestr('backup_manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
 
-            for rel_dir in BACKUP_ALLOWED_DIRS:
-                abs_dir = root / rel_dir
-                if not abs_dir.exists():
-                    continue
-                for p in abs_dir.rglob('*'):
-                    if p.is_file():
-                        arc = str(p.relative_to(root)).replace('\\', '/')
-                        zf.write(p, arc)
-
-            for rel_file in BACKUP_ALLOWED_FILES:
-                abs_file = root / rel_file
-                if abs_file.exists() and abs_file.is_file():
-                    arc = str(abs_file.relative_to(root)).replace('\\', '/')
-                    zf.write(abs_file, arc)
+            for abs_path, rel_posix in included_files:
+                zf.write(abs_path, rel_posix)
 
         @after_this_request
         def cleanup_temp_file(resp):
@@ -6219,63 +6529,55 @@ def restore_backup():
         return jsonify({'success': False, 'message': '仅支持 ZIP 备份文件'}), 400
 
     root = Path(__file__).parent
-    allowed_prefixes = [d + '/' for d in BACKUP_ALLOWED_DIRS]
-    allowed_files_set = set(BACKUP_ALLOWED_FILES)
 
     with tempfile.TemporaryDirectory(prefix='yx_restore_') as td:
         temp_dir = Path(td)
         temp_zip = temp_dir / 'upload.zip'
         file.save(temp_zip)
 
+        extracted_rel_paths = set()
+
         try:
             with zipfile.ZipFile(temp_zip, 'r') as zf:
                 for info in zf.infolist():
                     if info.is_dir():
                         continue
-                    raw_name = info.filename.replace('\\', '/')
-                    norm_name = posixpath.normpath(raw_name).lstrip('./')
-                    if norm_name.startswith('../'):
+                    norm_name = normalize_backup_rel_path(info.filename)
+                    if not norm_name:
                         continue
-                    allowed = (
-                        any(norm_name.startswith(prefix) for prefix in allowed_prefixes)
-                        or norm_name in allowed_files_set
-                        or norm_name == 'backup_manifest.json'
-                    )
-                    if not allowed:
+                    if norm_name in BACKUP_META_FILES:
+                        continue
+                    if not should_include_site_backup_path(norm_name):
                         continue
 
                     out_path = temp_dir / norm_name
                     out_path.parent.mkdir(parents=True, exist_ok=True)
                     with zf.open(info, 'r') as src, open(out_path, 'wb') as dst:
                         shutil.copyfileobj(src, dst)
+                    extracted_rel_paths.add(norm_name)
         except zipfile.BadZipFile:
             return jsonify({'success': False, 'message': '备份文件损坏或格式不正确'}), 400
 
-        # Restore full directories (replace existing content)
-        for rel_dir in BACKUP_ALLOWED_DIRS:
-            src_dir = temp_dir / rel_dir
-            if not src_dir.exists():
-                continue
-            dst_dir = root / rel_dir
-            if dst_dir.exists():
-                shutil.rmtree(dst_dir)
-            shutil.copytree(src_dir, dst_dir)
+        if not extracted_rel_paths:
+            return jsonify({'success': False, 'message': '备份包中没有可恢复的有效站点文件'}), 400
 
-        # Restore single files
+        restored_top_entries = set()
         restored_files = 0
-        for rel_file in BACKUP_ALLOWED_FILES:
-            src_file = temp_dir / rel_file
+        for rel_path in sorted(extracted_rel_paths):
+            src_file = temp_dir / rel_path
             if not src_file.exists() or not src_file.is_file():
                 continue
-            dst_file = root / rel_file
+            dst_file = root / rel_path
             dst_file.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src_file, dst_file)
             restored_files += 1
+            restored_top_entries.add(rel_path.split('/', 1)[0])
 
     return jsonify({
         'success': True,
         'message': '备份恢复成功，建议重启服务后刷新后台。',
-        'restored_files': restored_files
+        'restored_files': restored_files,
+        'restored_entries': len(restored_top_entries)
     })
 
 
@@ -6751,7 +7053,7 @@ def update_product_ai_config():
 
 # ============ Admin Routes ============
 
-@app.route('/admin')
+@app.route('/admin', strict_slashes=False)
 def admin_page():
     """Admin login/dashboard page."""
     resp = make_response(send_from_directory('admin', 'index.html'))
@@ -6772,7 +7074,20 @@ def admin_login():
     
     if username == config['admin_username'] and password == config['admin_password']:
         session['admin_logged_in'] = True
+        session['admin_username'] = config['admin_username']
+        append_admin_login_log(
+            operation='后台登录',
+            success=True,
+            username=config['admin_username'],
+            detail='用户名和密码验证通过'
+        )
         return jsonify({'success': True})
+    append_admin_login_log(
+        operation='后台登录',
+        success=False,
+        username=username,
+        detail='用户名或密码错误'
+    )
     return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
 
 
@@ -6786,17 +7101,37 @@ def change_password():
     new_password = data.get('newPassword', '').strip()
     
     config = get_config()
+    current_admin = session.get('admin_username') or config.get('admin_username', '')
     
     if old_password != config['admin_password']:
+        append_admin_login_log(
+            operation='修改账号密码',
+            success=False,
+            username=current_admin,
+            detail='原密码校验失败'
+        )
         return jsonify({'success': False, 'message': '原密码错误'}), 400
         
     if not new_username or not new_password:
-         return jsonify({'success': False, 'message': '用户名和密码不能为空'}), 400
+        append_admin_login_log(
+            operation='修改账号密码',
+            success=False,
+            username=current_admin,
+            detail='新用户名或新密码为空'
+        )
+        return jsonify({'success': False, 'message': '用户名和密码不能为空'}), 400
          
     update_config({
         'admin_username': new_username,
         'admin_password': new_password
     })
+    session['admin_username'] = new_username
+    append_admin_login_log(
+        operation='修改账号密码',
+        success=True,
+        username=new_username,
+        detail='账号信息更新成功'
+    )
     
     return jsonify({'success': True, 'message': '修改成功'})
 
@@ -6804,7 +7139,16 @@ def change_password():
 @app.route('/admin/logout', methods=['POST'])
 def admin_logout():
     """Handle admin logout."""
+    username = session.get('admin_username') or ''
+    if session.get('admin_logged_in'):
+        append_admin_login_log(
+            operation='退出登录',
+            success=True,
+            username=username,
+            detail='管理员主动退出'
+        )
     session.pop('admin_logged_in', None)
+    session.pop('admin_username', None)
     return jsonify({'success': True})
 
 
@@ -6812,6 +7156,24 @@ def admin_logout():
 def admin_check():
     """Check if admin is logged in."""
     return jsonify({'logged_in': session.get('admin_logged_in', False)})
+
+
+@app.route('/api/admin/login-logs')
+@login_required
+def admin_login_logs():
+    """Get immutable admin login-operation logs."""
+    limit_raw = request.args.get('limit', '200')
+    try:
+        limit = int(limit_raw)
+    except (TypeError, ValueError):
+        limit = 200
+    limit = max(1, min(limit, 1000))
+
+    with ADMIN_LOGIN_LOG_LOCK:
+        items = load_admin_login_logs()
+
+    output = list(reversed(items))[:limit]
+    return jsonify({'items': output, 'count': len(output)})
 
 
 # ============ Site Search API ============

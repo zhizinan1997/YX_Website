@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "id": "111e583124b04bcabffb9e5c8787403a",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-19T11:32:37",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过"
+    },
+    {
+      "id": "6d66eaefc3d14c9f8d5b7777021d9076",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-19T11:34:55",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过"
+    }
+  ]
+}

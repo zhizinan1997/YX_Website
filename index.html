@@ -26,6 +26,13 @@
 
   <!-- Site Search -->
   <link rel="stylesheet" href="assets/css/search.css" />
+  <style>
+    /* 首页“元芯专家解决方案”卡片图片：铺满区域，去除上下留白 */
+    .vs-solutions-showcase .vs-product-showcase__img img {
+      object-fit: cover;
+      object-position: center;
+    }
+  </style>
 </head>
 
 <body>
@@ -46,7 +53,7 @@
   <a href="/pages/contact/contact.html">联系我们</a>
 </div>
 </noscript>
-<script src="/assets/js/nav-loader.js"></script>
+<script src="/assets/js/nav-loader.js?v=20260319b"></script>
 
   <!-- ========================================
        Hero Section (High Impact)
@@ -398,7 +405,7 @@
         <div class="vs-product-showcase__header">
           <div>
             <h2 class="vs-product-showcase__title">元芯专家解决方案</h2>
-            <p class="vs-product-showcase__subtitle">覆盖关键场景的行业解决方案。</p>
+            <p class="vs-product-showcase__subtitle">围绕氢能安全、工业过程与环境监测的场景化方案。</p>
           </div>
           <a href="pages/solutions/industry-hydrogen.html" class="vs-product-showcase__link">
             查看全部解决方案 <span>→</span>
@@ -417,20 +424,20 @@
 
         function render(items) {
           if (!items || items.length === 0) {
-            grid.innerHTML = '<div style="color:#888;">暂无解决方案</div>';
+            grid.innerHTML = '<div class="vs-solutions-showcase__empty">暂无解决方案</div>';
             return;
           }
           grid.innerHTML = items.map(item => `
             <a href="${item.link}" class="vs-product-showcase__item">
               <div class="vs-product-showcase__img">
                 <img src="${item.image || ''}" alt="Solution">
-              </div>
-              <div class="vs-card-meta">
-                <span class="vs-card-tag">解决方案</span>
+                <span class="vs-solutions-showcase__badge">方案</span>
               </div>
               <h3 class="vs-product-showcase__item-title">${item.title || ''}</h3>
               <p class="vs-product-showcase__desc">${item.desc || ''}</p>
-              <div class="vs-card-more">查看详情</div>
+              <div class="vs-solutions-showcase__actions">
+                <span class="vs-solutions-showcase__arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+              </div>
             </a>
           `).join('');
         }
@@ -456,16 +463,14 @@
     <section class="vs-latest-news" id="latestNewsSection">
       <div class="vs-container">
         <div class="vs-latest-news__header">
-          <div>
-            <h2 class="vs-latest-news__title">最新资讯</h2>
-            <p class="vs-latest-news__subtitle">来自元芯的最新动态与行业见解。</p>
-          </div>
-          <a href="pages/news/news.html" class="vs-latest-news__link">
-            阅读更多资讯 <span>→</span>
-          </a>
+          <h2 class="vs-latest-news__title">最新资讯</h2>
+          <p class="vs-latest-news__subtitle">产品更新和其他有趣的内容</p>
         </div>
 
         <div class="vs-latest-news__grid" id="latestNewsGrid"></div>
+        <div class="vs-latest-news__footer">
+          <a href="pages/news/news.html" class="vs-latest-news__link">查看所有新闻</a>
+        </div>
       </div>
     </section>
 
@@ -477,27 +482,35 @@
 
         function render(items) {
           if (!items || items.length === 0) {
-            grid.innerHTML = '<div style="color:#888;">暂无资讯</div>';
+            grid.innerHTML = '<div class="vs-latest-news__empty">暂无资讯</div>';
             return;
           }
+
           const categoryLabels = {
-            enterprise: '企业新闻',
-            industry: '行业动态',
-            science: '科普知识'
+            enterprise: '新闻',
+            industry: '应用',
+            science: '洞察'
           };
+
+          function formatNewsDate(dateText) {
+            if (!dateText) return '';
+            const match = String(dateText).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) return String(dateText);
+            return `${parseInt(match[3], 10)} ${parseInt(match[2], 10)}月 ${match[1]}`;
+          }
+
           grid.innerHTML = items.map(item => `
             <a href="${item.link}" class="vs-latest-news__item">
               <div class="vs-latest-news__img">
                 <img src="${item.image || ''}" alt="News">
+                <span class="vs-latest-news__badge">${categoryLabels[item.category] || '新闻'}</span>
               </div>
-              <div class="vs-card-meta">
-                <span class="vs-card-tag">${categoryLabels[item.category] || '资讯'}</span>
-                <span class="vs-card-tag">${item.division || '未分配事业部'}</span>
-                <span class="vs-latest-news__date">${item.date || ''}</span>
-              </div>
+              <span class="vs-latest-news__date">${formatNewsDate(item.date)}</span>
               <h3 class="vs-latest-news__item-title">${item.title || ''}</h3>
               <p class="vs-latest-news__desc">${item.desc || ''}</p>
-              <div class="vs-card-more">阅读更多</div>
+              <div class="vs-latest-news__card-actions">
+                <span class="vs-latest-news__arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+              </div>
             </a>
           `).join('');
         }
@@ -682,8 +695,9 @@
   ======================================== -->
   <section class="vs-careers">
     <div class="vs-careers__content">
-      <h2 class="vs-careers__title">加入元芯，与我们一起为世界创造价值</h2>
-      <a href="pages/careers/jobs.html" class="vs-btn">查看职位</a>
+      <h2 class="vs-careers__title">在元芯工作</h2>
+      <p class="vs-careers__desc">元芯团队始终把客户对产品质量、生产效率与安全的需求放在首位。我们以更快的创新节奏不断拓展技术视野，也以更高标准要求自己，把每一次交付做到更好。</p>
+      <a href="pages/careers/jobs.html" class="vs-btn">加入我们的团队</a>
     </div>
   </section>
 
@@ -707,7 +721,7 @@
   
 
   <!-- 新闻预览自动加载器 -->
-  <script src="assets/js/news-preview-loader.js"></script>
+  <script src="assets/js/news-preview-loader.js?v=20260319a"></script>
 
   <!-- AI智能客服 -->
   <script src="assets/js/chatbot.js"></script>

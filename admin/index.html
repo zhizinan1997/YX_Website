@@ -777,6 +777,66 @@
             display: block;
         }
 
+        .audit-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 20px 0 20px;
+            flex-wrap: wrap;
+        }
+
+        .audit-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f2f5f;
+        }
+
+        .audit-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .audit-refresh-btn {
+            width: auto;
+            padding: 6px 12px;
+            border: 1px solid #bfd2ef;
+            border-radius: 6px;
+            background: #f4f8ff;
+            color: #0f2f5f;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .audit-refresh-btn:hover {
+            background: #e7f0ff;
+        }
+
+        .audit-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .audit-status-ok {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .audit-status-fail {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
         .backup-guide {
             border: 2px solid #0f2f5f;
             background: linear-gradient(135deg, #f7fbff 0%, #eef6ff 100%);
@@ -1189,6 +1249,35 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="audit-card-header">
+                            <div class="audit-card-title">历史登录日志</div>
+                            <div class="audit-card-meta">
+                                <span>逐条记录，默认只读，不允许删除</span>
+                                <button type="button" class="audit-refresh-btn" onclick="loadAdminLoginLogs()">刷新</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>登录 IP</th>
+                                        <th>IP 物理地址</th>
+                                        <th>登录是否成功</th>
+                                        <th>登录时间</th>
+                                        <th>执行操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminLoginLogsBody">
+                                    <tr>
+                                        <td colspan="6" class="no-data">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1642,6 +1731,18 @@
                                     onclick="addH2HomeUrlBatch()">批量添加</button>
                             </div>
                             <div class="form-hint">建议使用可直接访问的视频链接（MP4/WEBM/OGG）。</div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">上传本地视频</h3>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button class="btn-primary" type="button" style="width: auto; padding: 10px 20px;"
+                                    onclick="triggerH2HomeVideoUpload()">选择本地视频</button>
+                                <input type="file" id="h2HomeVideoFileInput" accept="video/mp4,video/webm,video/ogg,.mp4,.webm,.ogg,.ogv"
+                                    multiple style="display: none;" onchange="uploadH2HomeVideoFiles(this)">
+                                <span class="form-hint" style="margin: 0;">支持 MP4/WEBM/OGG，可一次选择多个文件。</span>
+                            </div>
+                            <div id="h2HomeVideoUploadMsg" style="margin-top: 10px; color: #28a745;"></div>
                         </div>
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
@@ -2724,14 +2825,17 @@
                 <div id="view-backup" class="view-section">
                     <div class="card" style="padding: 30px;">
                         <div class="backup-guide">
-                            <h4>推荐方式：Docker 部署 + 定期终端备份</h4>
+                            <h4>推荐方式：整站备份（后台一键下载）</h4>
                             <p>
-                                建议生产环境使用 Docker / Docker Compose 部署，并定期在终端执行备份（建议每日或每周），
-                                这样即使重部署容器也能快速恢复数据。
+                                当前“下载备份 ZIP”已升级为尽可能完整的整站备份：会自动扫描项目根目录并打包站点文件，
+                                同时排除缓存/开发目录（如 <code>.git</code>、<code>node_modules</code>、<code>__pycache__</code>、<code>.venv</code> 等）。
+                            </p>
+                            <p>
+                                建议在关键改版前、上线前、以及每周至少执行一次整站备份。恢复时将按备份包内容覆盖对应文件。
                             </p>
                             <p><strong>1) 容器内执行备份（宿主机终端执行）</strong></p>
                             <pre><code>TS=$(date +%F_%H%M%S)
-docker compose exec web sh -lc "cd /app && zip -r /tmp/yx_backup_${TS}.zip data pages pages_en assets/partials index.html index_en.html assets/js/nav-loader.js admin/index.html server.py"</code></pre>
+docker compose exec web sh -lc "cd /app && zip -r /tmp/yx_backup_${TS}.zip . -x '.git/*' 'node_modules/*' '__pycache__/*' '.venv/*' 'venv/*' '.pytest_cache/*' '.mypy_cache/*' '.ruff_cache/*' 'backups/*'"</code></pre>
                             <p><strong>2) 下载备份到宿主机（宿主机终端执行）</strong></p>
                             <pre><code>TS=$(date +%F_%H%M%S)
 mkdir -p ./backups
@@ -2745,13 +2849,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
                         <h3 class="section-header">完整备份下载</h3>
                         <p style="margin-bottom: 16px; color: #666; font-size: 14px; line-height: 1.8;">
-                            备份内容包含：<code>data/</code>（留言、应聘、招聘、上传文件、配置等）、
-                            <code>pages/</code>、<code>pages_en/</code>（产品页/新闻页/招聘页/联系页等业务页面）、
-                            <code>index.html</code>、<code>index_en.html</code>、<code>assets/partials/</code>、<code>assets/js/nav-loader.js</code>、
-                            以及后台管理文件（<code>admin/index.html</code>、<code>server.py</code>）。
+                            备份内容：尽可能整站（页面、静态资源、后台代码、数据文件、模板与工具脚本等），并自动排除缓存目录。
+                            该 ZIP 可用于灾难恢复、服务器迁移或 Docker 重部署后快速回滚。
                         </p>
                         <button type="button" class="btn-primary" style="width:auto; padding: 12px 28px;"
-                            onclick="downloadFullBackup()">下载完整备份（ZIP）</button>
+                            onclick="downloadFullBackup()">下载整站备份（ZIP）</button>
                     </div>
 
                     <div class="card" style="padding: 30px; margin-top: 20px;">
@@ -2831,38 +2933,42 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button');
-            const err = document.getElementById('loginError');
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm && loginForm.dataset.loginBound !== '1') {
+            loginForm.dataset.loginBound = '1';
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button');
+                const err = document.getElementById('loginError');
 
-            btn.disabled = true;
-            btn.textContent = '登录中...';
-            err.textContent = '';
+                btn.disabled = true;
+                btn.textContent = '登录中...';
+                err.textContent = '';
 
-            try {
-                const res = await fetch('/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: document.getElementById('username').value,
-                        password: document.getElementById('password').value
-                    })
-                });
-                const data = await res.json();
+                try {
+                    const res = await fetch('/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: document.getElementById('username').value,
+                            password: document.getElementById('password').value
+                        })
+                    });
+                    const data = await res.json();
 
-                if (data.success) {
-                    showDashboard();
-                } else {
-                    err.textContent = data.message || '登录失败';
+                    if (data.success) {
+                        showDashboard();
+                    } else {
+                        err.textContent = data.message || '登录失败';
+                    }
+                } catch (e) {
+                    err.textContent = '网络错误';
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '登 录';
                 }
-            } catch (e) {
-                err.textContent = '网络错误';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '登 录';
-            }
-        });
+            });
+        }
 
         async function logout() {
             if (!confirm('确定要退出登录吗？')) return;
@@ -3820,26 +3926,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         function buildAiPreviewHtmlWithResizeBridge(rawHtml) {
-            const bridge = `
-<script>
-(function () {
-  function sendHeight() {
-    var h = Math.max(
-      document.body ? document.body.scrollHeight : 0,
-      document.documentElement ? document.documentElement.scrollHeight : 0
-    );
-    try { parent.postMessage({ type: 'ai-product-preview-height', height: h }, '*'); } catch (e) {}
-  }
-  window.addEventListener('load', sendHeight);
-  window.addEventListener('resize', sendHeight);
-  setTimeout(sendHeight, 80);
-  setTimeout(sendHeight, 400);
-  setTimeout(sendHeight, 1200);
-})();
-<\/script>`;
-            const html = String(rawHtml || '');
-            if (html.includes('</body>')) return html.replace('</body>', `${bridge}\n</body>`);
-            return `${html}\n${bridge}`;
+            return String(rawHtml || '');
         }
 
         async function updateAiProductPreview() {
@@ -6450,7 +6537,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         <video src="${item.url}" muted playsinline></video>
                     </div>
                     <div class="hero-meta">
-                        <div style="font-weight: 600; color: #333;">视频 · CDN链接</div>
+                        <div style="font-weight: 600; color: #333;">视频 · ${isH2HomeLocalVideo(item.url) ? '本地上传' : 'CDN链接'}</div>
                         <div class="hero-url">${escapeHtml(item.url)}</div>
                     </div>
                     <button class="btn-sm btn-danger" onclick="deleteH2HomeItem('${item.id}')">
@@ -6468,6 +6555,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     }
                 });
             }
+        }
+
+        function isH2HomeLocalVideo(url) {
+            return typeof url === 'string' && url.startsWith('/media/h2-home/');
         }
 
         function syncH2HomeOrder() {
@@ -6505,6 +6596,62 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             });
             if (textarea) textarea.value = '';
             renderH2HomeList();
+        }
+
+        function triggerH2HomeVideoUpload() {
+            const input = document.getElementById('h2HomeVideoFileInput');
+            if (input) input.click();
+        }
+
+        async function uploadH2HomeVideoFiles(inputEl) {
+            const msg = document.getElementById('h2HomeVideoUploadMsg');
+            const files = Array.from(inputEl?.files || []);
+            if (!files.length) return;
+
+            if (msg) {
+                msg.style.color = '#666';
+                msg.textContent = `正在上传 ${files.length} 个视频...`;
+            }
+
+            let successCount = 0;
+            const errors = [];
+
+            for (const file of files) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const res = await fetch('/api/h2-home/upload-video', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success || !data.item?.url) {
+                        throw new Error(data.message || '上传失败');
+                    }
+                    h2HomeConfig.items = h2HomeConfig.items || [];
+                    h2HomeConfig.items.push({
+                        id: data.item.id || generateClientId(),
+                        url: data.item.url
+                    });
+                    successCount += 1;
+                } catch (e) {
+                    errors.push(`${file.name}: ${e?.message || '上传失败'}`);
+                }
+            }
+
+            renderH2HomeList();
+
+            if (msg) {
+                if (errors.length) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = `已上传 ${successCount} 个，失败 ${errors.length} 个。${errors[0] || ''}`;
+                } else {
+                    msg.style.color = '#28a745';
+                    msg.textContent = `✓ 已上传 ${successCount} 个视频，请点击“保存设置”生效。`;
+                }
+            }
+
+            if (inputEl) inputEl.value = '';
         }
 
         function deleteH2HomeItem(id) {
@@ -8368,6 +8515,57 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        function formatAuditTimestamp(rawValue) {
+            const raw = String(rawValue || '').trim();
+            if (!raw) return '-';
+            if (raw.includes('T')) return raw.replace('T', ' ').slice(0, 19);
+            return raw;
+        }
+
+        async function loadAdminLoginLogs() {
+            const tbody = document.getElementById('adminLoginLogsBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载中...</td></tr>';
+
+            try {
+                const res = await fetch('/api/admin/login-logs?limit=300');
+                const payload = await res.json();
+                if (!res.ok) throw new Error(payload?.message || '加载失败');
+
+                const items = Array.isArray(payload?.items) ? payload.items : [];
+                if (!items.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无历史登录日志</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = items.map((item, index) => {
+                    const success = item?.success === true;
+                    const operation = escapeHtml(item?.operation || '-');
+                    const username = escapeHtml(item?.username || '');
+                    const detail = escapeHtml(item?.detail || '');
+                    const operationExtra = [];
+                    if (username) operationExtra.push(`<div style="font-size:12px; color:#64748b;">账号：${username}</div>`);
+                    if (detail) operationExtra.push(`<div style="font-size:12px; color:#64748b;">说明：${detail}</div>`);
+
+                    return `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${escapeHtml(item?.ip || '-')}</td>
+                            <td>${escapeHtml(item?.location || '未知')}</td>
+                            <td><span class="audit-status-badge ${success ? 'audit-status-ok' : 'audit-status-fail'}">${success ? '成功' : '失败'}</span></td>
+                            <td>${escapeHtml(formatAuditTimestamp(item?.timestamp))}</td>
+                            <td>
+                                <div>${operation}</div>
+                                ${operationExtra.join('')}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载失败</td></tr>';
+            }
+        }
+
         async function loadMessages() {
             const feedbackTbody = document.getElementById('messagesTableBody');
             const jobTbody = document.getElementById('jobApplicationsTableBody');
@@ -8503,6 +8701,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 document.getElementById('todayCount').textContent = '0';
                 document.getElementById('readCount').textContent = '0';
                 document.getElementById('deletedCount').textContent = '0';
+            } finally {
+                loadAdminLoginLogs();
             }
         }
 
@@ -8569,7 +8769,12 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 if (res.ok && data.success) {
                     if (msg) {
                         msg.style.color = '#28a745';
-                        msg.textContent = data.message || '恢复成功，请重启服务并刷新后台。';
+                        const restoredFiles = Number(data.restored_files || 0);
+                        const restoredEntries = Number(data.restored_entries || 0);
+                        const extra = restoredFiles
+                            ? `（已恢复 ${restoredFiles} 个文件，${restoredEntries} 个顶层条目）`
+                            : '';
+                        msg.textContent = (data.message || '恢复成功，请重启服务并刷新后台。') + extra;
                     }
                     if (fileInput) fileInput.value = '';
                 } else if (msg) {
@@ -8909,25 +9114,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
     </script>
-
-    <!-- AI智能客服 -->
-    <script src="../assets/js/chatbot.js"></script>
-
-    <!-- I18N Translation -->
-    <script src="../assets/js/i18n.js"></script>
-    <!-- FOOTER_START -->
-    <div id="mc-footer-root"></div>
-    <noscript>
-        <footer class="vs-footer-new">
-            <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
-                <a href="/index.html">首页</a> |
-                <a href="/pages/about/policy.html">隐私政策</a> |
-                <a href="/pages/about/terms.html">条款与条件</a>
-            </div>
-        </footer>
-    </noscript>
-    <script src="/assets/js/footer-loader.js"></script>
-    <!-- FOOTER_END -->
 
 </body>
 

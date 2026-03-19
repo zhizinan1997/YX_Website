@@ -18,48 +18,28 @@
     },
     {
       "id": "case-10-liquid-h2.html",
-      "customSubtitle": "",
+      "customSubtitle": "测试副标题",
       "customTitle": ""
     },
     {
       "id": "case-11-mining-truck.html",
-      "customSubtitle": "",
+      "customSubtitle": "测试副标题",
       "customTitle": ""
     },
     {
       "id": "case-12-gas-system.html",
-      "customSubtitle": "",
+      "customSubtitle": "测试副标题",
       "customTitle": ""
     },
     {
       "id": "case-13-diesel-engine.html",
-      "customSubtitle": "",
+      "customSubtitle": "测试副标题",
       "customTitle": ""
     },
     {
       "id": "case-2-car-leak.html",
-      "customSubtitle": "",
+      "customSubtitle": "测试副标题",
       "customTitle": ""
-    }
-  ],
-  "news": [
-    {
-      "link": "/pages/news/news_show.aspx_id_55.html",
-      "customTag": "",
-      "customTitle": "",
-      "customDesc": ""
-    },
-    {
-      "link": "/pages/news/news_show.aspx_id_68.html",
-      "customTag": "",
-      "customTitle": "",
-      "customDesc": ""
-    },
-    {
-      "link": "/pages/news/news_show.aspx_id_59.html",
-      "customTag": "",
-      "customTitle": "",
-      "customDesc": ""
     }
   ]
 }

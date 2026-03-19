@@ -167,6 +167,7 @@ img {
     font-weight: 500;
     padding: 10px 0;
     position: relative;
+    white-space: nowrap;
 }
 
 .vs-nav__link::after {
@@ -186,6 +187,21 @@ img {
 
 .vs-nav__item:hover .vs-nav__link::after {
     width: 100%;
+}
+
+/* Home navigation compact mode for medium desktop widths */
+@media (max-width: 1200px) {
+    .vs-header--home .vs-nav__list {
+        gap: 24px;
+    }
+
+    .vs-header--home .vs-nav__link {
+        font-size: 14px;
+    }
+
+    .vs-header--home .vs-logo {
+        font-size: 20px;
+    }
 }
 
 /* 简单的 Dropdown 模拟 Mega Menu */
@@ -971,17 +987,17 @@ img {
 ======================================== */
 .vs-careers {
     position: relative;
-    height: 600px;
+    min-height: 700px;
     background-image: url('../images/careers-bg.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
-    /* 视差滚动效果 */
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     color: var(--color-white);
+    overflow: hidden;
 }
 
 .vs-careers::before {
@@ -991,52 +1007,86 @@ img {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    /* 深色遮罩，保证文字清晰 */
+    background: linear-gradient(120deg, rgba(6, 33, 58, 0.68) 0%, rgba(8, 49, 76, 0.55) 45%, rgba(0, 0, 0, 0.4) 100%);
+    z-index: 1;
+}
+
+.vs-careers::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 58%);
+    pointer-events: none;
     z-index: 1;
 }
 
 .vs-careers__content {
     position: relative;
     z-index: 2;
-    padding: 0 20px;
-    max-width: 1000px;
+    padding: 0 24px;
+    max-width: 1080px;
 }
 
 .vs-careers__title {
-    font-size: 56px;
-    font-weight: 600;
-    margin-bottom: 40px;
+    font-size: clamp(42px, 4.8vw, 64px);
+    font-weight: 700;
+    margin-bottom: 18px;
     line-height: 1.2;
-    letter-spacing: -1px;
+    letter-spacing: -0.8px;
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+}
+
+.vs-careers__desc {
+    font-size: clamp(18px, 1.5vw, 24px);
+    line-height: 1.85;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0 auto 34px;
+    max-width: 980px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.24);
 }
 
 .vs-careers .vs-btn {
-    padding: 18px 48px;
+    padding: 18px 52px;
     border-radius: 50px;
-    /* 胶囊按钮 */
-    font-size: 18px;
-    background: #cddc39;
-    /* 酸橙绿 */
+    font-size: 24px;
+    background: linear-gradient(180deg, #dbe94b 0%, #c8d83f 100%);
     color: #003764;
-    /* 深蓝文字 */
     border: none;
     font-weight: 700;
+    letter-spacing: 0.4px;
+    box-shadow: 0 12px 22px rgba(48, 62, 16, 0.35);
 }
 
 .vs-careers .vs-btn:hover {
-    background: #dce775;
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(180deg, #e3ef63 0%, #cddf49 100%);
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 16px 26px rgba(32, 43, 10, 0.42);
 }
 
 @media (max-width: 768px) {
     .vs-careers {
-        height: 400px;
+        min-height: 520px;
+        background-attachment: scroll;
+    }
+
+    .vs-careers__content {
+        padding: 0 16px;
+        max-width: calc(100% - 16px);
     }
 
     .vs-careers__title {
-        font-size: 32px;
+        font-size: clamp(30px, 9vw, 42px);
+    }
+
+    .vs-careers__desc {
+        font-size: clamp(15px, 4.4vw, 18px);
+        line-height: 1.7;
+        margin-bottom: 28px;
+    }
+
+    .vs-careers .vs-btn {
+        font-size: 18px;
+        padding: 14px 34px;
     }
 }
 
@@ -1524,11 +1574,151 @@ img {
 }
 
 /* ========================================
+   Solutions Showcase (Homepage Override)
+======================================== */
+.vs-solutions-showcase {
+    background: linear-gradient(180deg, #f5f7fb 0%, #eef2f7 100%);
+}
+
+.vs-solutions-showcase .vs-product-showcase__header {
+    gap: 14px;
+}
+
+.vs-solutions-showcase .vs-product-showcase__title {
+    font-size: clamp(30px, 2.7vw, 38px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.vs-solutions-showcase .vs-product-showcase__subtitle {
+    font-size: 15px;
+    color: #4f5f75;
+}
+
+.vs-solutions-showcase .vs-product-showcase__link {
+    background: #dde5f0;
+    border: 0;
+    color: #0f4c90;
+    font-weight: 700;
+    padding: 11px 24px;
+    border-radius: 12px;
+}
+
+.vs-solutions-showcase .vs-product-showcase__link:hover {
+    background: #0f4c90;
+    color: #fff;
+}
+
+.vs-solutions-showcase .vs-product-showcase__grid {
+    gap: 28px;
+}
+
+.vs-solutions-showcase .vs-product-showcase__item {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.vs-solutions-showcase .vs-product-showcase__item:hover {
+    box-shadow: none;
+    transform: translateY(-3px);
+}
+
+.vs-solutions-showcase .vs-product-showcase__img {
+    aspect-ratio: 16 / 10;
+    border: 0;
+    border-radius: 18px;
+    background: #d9e0ea;
+    margin-bottom: 18px;
+}
+
+.vs-solutions-showcase .vs-product-showcase__img img {
+    object-fit: cover;
+}
+
+.vs-solutions-showcase .vs-product-showcase__item:hover .vs-product-showcase__img img {
+    transform: scale(1.04);
+}
+
+.vs-solutions-showcase__badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 24px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.vs-solutions-showcase .vs-product-showcase__item-title {
+    margin: 0 0 10px;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #0c3f7d;
+}
+
+.vs-solutions-showcase .vs-product-showcase__item:hover .vs-product-showcase__item-title {
+    color: #0a4c97;
+}
+
+.vs-solutions-showcase .vs-product-showcase__desc {
+    margin: 0 0 22px;
+    font-size: 15px;
+    color: #3d4654;
+    line-height: 1.65;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
+.vs-solutions-showcase__actions {
+    margin-top: auto;
+}
+
+.vs-solutions-showcase__arrow {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    border: 2px solid #0a56c7;
+    color: #0a56c7;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.25s ease;
+}
+
+.vs-solutions-showcase .vs-product-showcase__item:hover .vs-solutions-showcase__arrow {
+    background: #0a56c7;
+    color: #fff;
+    transform: translateX(2px);
+}
+
+.vs-solutions-showcase__empty {
+    grid-column: 1 / -1;
+    color: #6b7280;
+    text-align: center;
+    font-size: 16px;
+    padding: 24px 0;
+}
+
+/* ========================================
    Latest News Section (Enhanced Card Style)
 ======================================== */
 .vs-latest-news {
-    padding: 90px 0 110px;
-    background: #ffffff;
+    padding: 96px 0 116px;
+    background: #eceef0;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -1542,46 +1732,45 @@ img {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 16px;
-    margin-bottom: 56px;
+    gap: 12px;
+    margin-bottom: 48px;
     border-bottom: 0;
 }
 
 .vs-latest-news__title {
-    font-size: 32px;
-    font-weight: 600;
+    font-size: clamp(30px, 2.8vw, 38px);
+    font-weight: 700;
     color: #0f2f5f;
     margin: 0;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.6px;
 }
 
 .vs-latest-news__subtitle {
-    font-size: 16px;
-    color: #666;
+    font-size: clamp(15px, 1.05vw, 18px);
+    color: #475569;
     margin: 0;
+    line-height: 1.45;
 }
 
 .vs-latest-news__link {
-    color: #0f2f5f;
-    font-weight: 600;
-    font-size: 14px;
+    color: #0f4c90;
+    font-weight: 700;
+    font-size: 16px;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
     transition: all 0.3s ease;
-    padding: 9px 22px;
-    border-radius: 999px;
-    border: 1px solid rgba(15, 47, 95, 0.35);
-    background: #ffffff;
+    padding: 12px 30px;
+    border-radius: 14px;
+    border: 0;
+    background: #dfe3e8;
 }
 
 .vs-latest-news__link:hover {
-    gap: 12px;
-    background: #0f2f5f;
+    background: #0f4c90;
     color: #fff;
     text-decoration: none;
-    border-color: #0f2f5f;
+    transform: translateY(-1px);
 }
 
 .vs-latest-news__grid {
@@ -1594,74 +1783,129 @@ img {
     display: flex;
     flex-direction: column;
     text-decoration: none;
-    background: #fff;
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-    transition: all 0.35s ease;
-    border: 1px solid #e6e6e6;
+    color: inherit;
+    min-height: 100%;
+    transition: transform 0.35s ease;
 }
 
 .vs-latest-news__item:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-3px);
 }
 
 .vs-latest-news__img {
     width: 100%;
-    aspect-ratio: 16/9;
-    background: #f2f4f7;
-    margin-bottom: 0;
+    aspect-ratio: 16 / 10;
+    background: #d8dfe7;
+    border-radius: 18px;
+    margin-bottom: 20px;
     overflow: hidden;
     position: relative;
-    border-bottom: 1px solid #e6e6e6;
 }
 
 .vs-latest-news__img img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.2, 1, 0.2, 1);
+    transition: transform 0.7s cubic-bezier(0.2, 1, 0.2, 1);
 }
 
-/* Hover effect: Zoom image slightly */
 .vs-latest-news__item:hover .vs-latest-news__img img {
-    transform: scale(1.08);
+    transform: scale(1.04);
+}
+
+.vs-latest-news__badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 24px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(4px);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .vs-latest-news__date {
-    font-size: 12px;
-    color: #0f2f5f;
-    margin: 0;
+    font-size: 13px;
+    color: #66758a;
+    margin: 0 0 10px;
     display: inline-block;
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.4px;
+    font-weight: 500;
+    letter-spacing: 1.4px;
 }
 
 .vs-latest-news__item-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #0f2f5f;
-    line-height: 1.5;
-    margin: 0 18px 8px 18px;
-    transition: color 0.3s ease;
-}
-
-.vs-latest-news__item:hover .vs-latest-news__item-title {
-    color: var(--color-primary);
-}
-
-.vs-latest-news__desc {
-    font-size: 13px;
-    color: #6b7280;
-    line-height: 1.7;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0c3f7d;
+    line-height: 1.32;
+    margin: 0 0 12px;
+    transition: color 0.28s ease;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin: 0 18px 18px 18px;
+}
+
+.vs-latest-news__item:hover .vs-latest-news__item-title {
+    color: #0a4c97;
+}
+
+.vs-latest-news__desc {
+    font-size: 16px;
+    color: #3d4654;
+    line-height: 1.65;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0 0 26px;
+}
+
+.vs-latest-news__card-actions {
+    margin-top: auto;
+}
+
+.vs-latest-news__arrow {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    border: 2px solid #0a56c7;
+    color: #0a56c7;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.25s ease;
+}
+
+.vs-latest-news__item:hover .vs-latest-news__arrow {
+    background: #0a56c7;
+    color: #fff;
+    transform: translateX(2px);
+}
+
+.vs-latest-news__footer {
+    margin-top: 52px;
+    text-align: center;
+}
+
+.vs-latest-news__empty {
+    grid-column: 1 / -1;
+    color: #6b7280;
+    text-align: center;
+    font-size: 16px;
+    padding: 24px 0;
 }
 
 /* Responsive */
@@ -1717,8 +1961,7 @@ img {
     }
 
     .vs-latest-news__grid {
-        gap: 80px;
-        /* Even wider gap for ultra-wide feel */
+        gap: 36px;
     }
 
     .vs-product-showcase__grid {
@@ -1727,7 +1970,6 @@ img {
 
     .vs-latest-news__title {
         font-size: 42px;
-        /* Logo larger for big screens */
     }
 
     .vs-product-showcase__title {

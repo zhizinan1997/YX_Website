@@ -43,10 +43,14 @@
         .jjfa-breadcrumb {
             position: absolute;
             top: 112px;
-            left: 4vw;
-            font-size: 13px;
+            left: max(32px, calc((100vw - var(--container-width)) / 2));
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
             z-index: 10;
-            color: rgba(255, 255, 255, 0.92);
+            color: rgba(255, 255, 255, 0.8);
+            text-align: left;
         }
 
         .jjfa-breadcrumb a {
@@ -577,9 +581,10 @@
             }
 
             .jjfa-breadcrumb {
-                font-size: 12px;
-                left: 5vw;
                 top: 90px;
+                left: max(32px, calc((100vw - var(--container-width)) / 2));
+                font-size: 12px;
+                gap: 8px;
             }
 
             .eh-stats-grid {
@@ -864,6 +869,37 @@
             </div>
         </section>
     </main>
+
+    <script>
+        window.toggleFaq = function (item) {
+            if (!item || !item.classList || !item.classList.contains('eh-faq-item')) return;
+
+            const willOpen = !item.classList.contains('active');
+            document.querySelectorAll('.eh-faq-grid .eh-faq-item').forEach(faq => {
+                faq.classList.remove('active');
+                faq.setAttribute('aria-expanded', 'false');
+            });
+
+            if (willOpen) {
+                item.classList.add('active');
+                item.setAttribute('aria-expanded', 'true');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.eh-faq-grid .eh-faq-item').forEach(item => {
+                item.setAttribute('role', 'button');
+                item.setAttribute('tabindex', '0');
+                item.setAttribute('aria-expanded', item.classList.contains('active') ? 'true' : 'false');
+                item.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        window.toggleFaq(this);
+                    }
+                });
+            });
+        });
+    </script>
 
     <!-- 全站搜索 -->
     <script src="../../assets/js/search.js"></script>
