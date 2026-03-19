@@ -751,6 +751,138 @@
 <!-- 全站搜索 -->
 
     
+    <script>
+        let currentPage = 1;
+        let currentCategory = 'all';
+        const itemsPerPage = 9;
+
+        function getActiveCards() {
+            return Array.from(document.querySelectorAll('.vs-card[data-category]'))
+                .filter(card => String(card.dataset.hidden || '').toLowerCase() !== 'true');
+        }
+
+        function filterAndPaginate(shouldScroll = false) {
+            const allCards = document.querySelectorAll('.vs-card[data-category]');
+            const activeCards = getActiveCards();
+            const visibleCards = [];
+
+            allCards.forEach(card => card.classList.remove('visible'));
+
+            activeCards.forEach(card => {
+                if (currentCategory === 'all' || card.dataset.category === currentCategory) {
+                    visibleCards.push(card);
+                }
+            });
+
+            const totalPages = Math.max(1, Math.ceil(visibleCards.length / itemsPerPage));
+            if (currentPage > totalPages) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            visibleCards.forEach((card, index) => {
+                if (index >= startIndex && index < endIndex) {
+                    card.classList.add('visible');
+                }
+            });
+
+            updatePaginationUI(totalPages);
+            updateEmptyState(visibleCards.length);
+
+            if (shouldScroll) {
+                const grid = document.getElementById('newsGrid');
+                if (grid) {
+                    grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }
+
+        function updateEmptyState(count) {
+            const grid = document.getElementById('newsGrid');
+            if (!grid) return;
+            let empty = document.getElementById('newsEmptyState');
+            if (count > 0) {
+                if (empty) empty.remove();
+                return;
+            }
+            if (!empty) {
+                empty = document.createElement('div');
+                empty.id = 'newsEmptyState';
+                empty.style.gridColumn = '1 / -1';
+                empty.style.textAlign = 'center';
+                empty.style.color = '#64748b';
+                empty.style.padding = '24px 0';
+                empty.style.fontSize = '16px';
+                empty.textContent = '当前分类暂无资讯';
+                grid.appendChild(empty);
+            }
+        }
+
+        function updatePaginationUI(totalPages) {
+            const paginationContainer = document.getElementById('pagination');
+            if (!paginationContainer) return;
+
+            if (totalPages <= 1) {
+                paginationContainer.style.display = 'none';
+                return;
+            }
+            paginationContainer.style.display = 'flex';
+
+            let html = '';
+            html += currentPage === 1
+                ? '<span class="page-btn disabled">« 上一页</span>'
+                : '<span class="page-btn" id="prevBtn">« 上一页</span>';
+
+            for (let i = 1; i <= totalPages; i += 1) {
+                html += `<span class="page-num ${i === currentPage ? 'current' : ''}" data-page="${i}">${i}</span>`;
+            }
+
+            html += currentPage === totalPages
+                ? '<span class="page-btn disabled">下一页 »</span>'
+                : '<span class="page-btn" id="nextBtn">下一页 »</span>';
+
+            paginationContainer.innerHTML = html;
+
+            paginationContainer.querySelectorAll('.page-num').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    currentPage = parseInt(this.dataset.page, 10);
+                    filterAndPaginate(true);
+                });
+            });
+
+            const prevBtn = paginationContainer.querySelector('#prevBtn');
+            const nextBtn = paginationContainer.querySelector('#nextBtn');
+            if (prevBtn) prevBtn.addEventListener('click', () => {
+                currentPage -= 1;
+                filterAndPaginate(true);
+            });
+            if (nextBtn) nextBtn.addEventListener('click', () => {
+                currentPage += 1;
+                filterAndPaginate(true);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            filterAndPaginate(false);
+
+            document.querySelectorAll('#categoryTabs .vs-filter-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('#categoryTabs .vs-filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentCategory = this.dataset.category || 'all';
+                    currentPage = 1;
+                    filterAndPaginate(false);
+                });
+            });
+
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const targetBtn = document.querySelector(`#categoryTabs .vs-filter-btn[data-category="${hash}"]`);
+                if (targetBtn) {
+                    setTimeout(() => targetBtn.click(), 80);
+                }
+            }
+        });
+    </script>
 
   <script src="../../assets/js/search.js"></script>
 

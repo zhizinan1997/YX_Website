@@ -251,7 +251,8 @@
   "mc_ba_h1": {
     "industryCategories": [
       "hydrogen"
-    ]
+    ],
+    "hidden": true
   },
   "mc_hha_01": {
     "industryCategories": [

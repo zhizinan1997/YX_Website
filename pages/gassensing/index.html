@@ -672,307 +672,6 @@
             }
         }
 
-        /* H2 Cases Section */
-        .h2-cases {
-            padding: 60px 0 80px;
-            background: #ffffff;
-        }
-
-        .h2-cases .vs-container {
-            padding-left: 0;
-            padding-right: 0;
-        }
-
-        .h2-cases__header {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            margin-bottom: 28px;
-        }
-
-        .h2-cases__title {
-            font-size: 26px;
-            font-weight: 700;
-            color: #0f2f5f;
-        }
-
-        .h2-cases__subtitle {
-            font-size: 15px;
-            color: #6b7b8f;
-            margin-top: 8px;
-            font-weight: 400;
-        }
-
-        .h2-cases__grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 28px;
-        }
-
-        .h2-case-card {
-            background: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .h2-case-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
-            border-color: rgba(0, 0, 0, 0.03);
-        }
-
-        .h2-case-card__img {
-            width: 100%;
-            aspect-ratio: 16/10;
-            background: #f4f6fb;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .h2-case-card__img img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
-        }
-
-        .h2-case-card:hover .h2-case-card__img img {
-            transform: scale(1.08);
-        }
-
-        .h2-case-card__body {
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        .h2-case-card__tag {
-            font-size: 12px;
-            color: #0066cc;
-            /* Brand Blue */
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .h2-case-card__tag::before {
-            content: '';
-            display: block;
-            width: 6px;
-            height: 6px;
-            background: #0066cc;
-            border-radius: 50%;
-        }
-
-        .h2-case-card__title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #002a5c;
-            /* Darker Brand Color */
-            line-height: 1.5;
-            margin-bottom: 20px;
-            flex: 1;
-            transition: color 0.2s ease;
-        }
-
-        .h2-case-card:hover .h2-case-card__title {
-            color: #0066cc;
-        }
-
-        .h2-case-card__link {
-            display: inline-flex;
-            align-items: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: #444;
-            margin-top: auto;
-            transition: color 0.2s ease;
-        }
-
-        .h2-case-card__link .icon-circle {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            background-color: #f0f7ff;
-            border-radius: 50%;
-            margin-left: 10px;
-            transition: all 0.3s ease;
-            color: #0066cc;
-        }
-
-        .h2-case-card__link .icon-circle i {
-            font-size: 12px;
-        }
-
-        .h2-case-card:hover .h2-case-card__link {
-            color: #0066cc;
-        }
-
-        .h2-case-card:hover .h2-case-card__link .icon-circle {
-            background-color: #0066cc;
-            color: #fff;
-            transform: translateX(4px);
-        }
-
-        @media (max-width: 1100px) {
-            .h2-cases__grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 700px) {
-            .h2-cases__grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* H2 News Section */
-        .h2-news {
-            padding: 60px 0 80px;
-            background: #f8f9fb;
-        }
-
-        .h2-news .vs-container {
-            padding-left: 0;
-            padding-right: 0;
-        }
-
-        .h2-news__header {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            margin-bottom: 28px;
-        }
-
-        .h2-news__title {
-            font-size: 26px;
-            font-weight: 700;
-            color: #0f2f5f;
-        }
-
-        .h2-news__subtitle {
-            font-size: 15px;
-            color: #6b7b8f;
-            margin-top: 8px;
-            font-weight: 400;
-        }
-
-        .h2-news__grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 28px;
-        }
-
-        .h2-news-card {
-            background: #fff;
-            border-radius: 12px;
-            overflow: hidden;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .h2-news-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.12);
-        }
-
-        .h2-news-card__img {
-            width: 100%;
-            aspect-ratio: 16/10;
-            background: #e9ecf1;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .h2-news-card__img img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-
-        .h2-news-card:hover .h2-news-card__img img {
-            transform: scale(1.05);
-        }
-
-        .h2-news-card__tag {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            background: rgba(0, 60, 90, 0.85);
-            color: #fff;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 5px 12px;
-            border-radius: 4px;
-        }
-
-        .h2-news-card__body {
-            padding: 20px 20px 24px;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        .h2-news-card__date {
-            font-size: 13px;
-            color: #6b7b8f;
-            margin-bottom: 10px;
-        }
-
-        .h2-news-card__title {
-            font-size: 17px;
-            font-weight: 700;
-            color: #0f2f5f;
-            line-height: 1.5;
-            margin-bottom: 12px;
-            transition: color 0.2s ease;
-        }
-
-        .h2-news-card:hover .h2-news-card__title {
-            color: #0066cc;
-        }
-
-        .h2-news-card__desc {
-            font-size: 14px;
-            color: #5f6b80;
-            line-height: 1.7;
-            flex: 1;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        @media (max-width: 1100px) {
-            .h2-news__grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 700px) {
-            .h2-news__grid {
-                grid-template-columns: 1fr;
-            }
-        }
     </style>
 </head>
 
@@ -1146,15 +845,19 @@
             </section>
         </div><!-- end h2-hero-stack -->
 
-        <section class="h2-cases">
+        <section class="vs-product-showcase vs-solutions-showcase" id="h2CasesSection">
             <div class="vs-container">
-                <div class="h2-cases__header">
+                <div class="vs-product-showcase__header">
                     <div>
-                        <div class="h2-cases__title">应用案例</div>
-                        <div class="h2-cases__subtitle">探索元芯传感在各行业的成功应用，见证氢气检测技术的无限可能</div>
+                        <h2 class="vs-product-showcase__title">应用案例</h2>
+                        <p class="vs-product-showcase__subtitle">探索元芯传感在各行业的成功应用，见证氢气检测技术的无限可能</p>
                     </div>
+                    <a href="/pages/gassensing/service-cases.html" class="vs-product-showcase__link">
+                        查看全部案例 <span>→</span>
+                    </a>
                 </div>
-                <div class="h2-cases__grid" id="h2CasesGrid"></div>
+
+                <div class="vs-product-showcase__grid" id="h2CasesGrid"></div>
             </div>
         </section>
 
@@ -1163,27 +866,35 @@
                 const grid = document.getElementById('h2CasesGrid');
                 if (!grid) return;
 
+                function normalizeLink(rawLink) {
+                    if (!rawLink) return '#';
+                    const link = String(rawLink).trim();
+                    if (!link) return '#';
+                    if (/^(?:https?:)?\/\//.test(link) || link.startsWith('/')) return link;
+                    return `/${link.replace(/^\.?\//, '')}`;
+                }
+
                 function render(items) {
                     if (!items || items.length === 0) {
-                        grid.innerHTML = '<div style="color:#888;">暂无案例</div>';
+                        grid.innerHTML = '<div class="vs-solutions-showcase__empty">暂无案例</div>';
                         return;
                     }
                     grid.innerHTML = items.map(item => {
-                        // Use custom titles if provided, otherwise fallback to defaults
-                        const subtitle = item.customSubtitle || 'Case Study';
-                        const mainTitle = item.customTitle || item.title || '';
+                        const badge = item.customTag || '案例';
+                        const title = item.customTitle || item.title || '';
+                        const desc = item.customDesc || item.summary || item.desc || '';
+                        const link = normalizeLink(item.link);
+
                         return `
-                        <a href="/${item.link}" class="h2-case-card">
-                            <div class="h2-case-card__img">
+                        <a href="${link}" class="vs-product-showcase__item">
+                            <div class="vs-product-showcase__img">
                                 <img src="${item.image || ''}" alt="case">
+                                <span class="vs-solutions-showcase__badge">${badge}</span>
                             </div>
-                            <div class="h2-case-card__body">
-                                <div class="h2-case-card__tag">${subtitle}</div>
-                                <div class="h2-case-card__title">${mainTitle}</div>
-                                <div class="h2-case-card__link">
-                                    Read More 
-                                    <span class="icon-circle"><i class="fas fa-chevron-right"></i></span>
-                                </div>
+                            <h3 class="vs-product-showcase__item-title">${title}</h3>
+                            <p class="vs-product-showcase__desc">${desc}</p>
+                            <div class="vs-solutions-showcase__actions">
+                                <span class="vs-solutions-showcase__arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                             </div>
                         </a>`;
                     }).join('');
@@ -1196,16 +907,17 @@
             })();
         </script>
 
-        <!-- Recent News Section -->
-        <section class="h2-news">
+        <section class="vs-latest-news" id="h2NewsSection">
             <div class="vs-container">
-                <div class="h2-news__header">
-                    <div>
-                        <div class="h2-news__title">最近动态</div>
-                        <div class="h2-news__subtitle">了解元芯传感的最新资讯与行业洞察</div>
-                    </div>
+                <div class="vs-latest-news__header">
+                    <h2 class="vs-latest-news__title">最新动态</h2>
+                    <p class="vs-latest-news__subtitle">了解元芯传感的最新资讯与行业洞察</p>
                 </div>
-                <div class="h2-news__grid" id="h2NewsGrid"></div>
+
+                <div class="vs-latest-news__grid" id="h2NewsGrid"></div>
+                <div class="vs-latest-news__footer">
+                    <a href="/pages/news/news.html" class="vs-latest-news__link">查看所有新闻</a>
+                </div>
             </div>
         </section>
 
@@ -1214,25 +926,51 @@
                 const grid = document.getElementById('h2NewsGrid');
                 if (!grid) return;
 
+                const categoryLabels = {
+                    enterprise: '新闻',
+                    industry: '应用',
+                    science: '洞察'
+                };
+
+                function normalizeLink(rawLink) {
+                    if (!rawLink) return '#';
+                    const link = String(rawLink).trim();
+                    if (!link) return '#';
+                    if (/^(?:https?:)?\/\//.test(link) || link.startsWith('/')) return link;
+                    return `/${link.replace(/^\.?\//, '')}`;
+                }
+
+                function formatNewsDate(dateText) {
+                    if (!dateText) return '';
+                    const match = String(dateText).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if (!match) return String(dateText);
+                    return `${parseInt(match[3], 10)} ${parseInt(match[2], 10)}月 ${match[1]}`;
+                }
+
                 function render(items) {
                     if (!items || items.length === 0) {
-                        grid.innerHTML = '<div style="color:#888;">暂无动态</div>';
+                        grid.innerHTML = '<div class="vs-latest-news__empty">暂无动态</div>';
                         return;
                     }
+
                     grid.innerHTML = items.map(item => {
-                        const tag = item.customTag || '新闻资讯';
+                        const tag = item.customTag || categoryLabels[item.category] || '资讯';
                         const title = item.customTitle || item.title || '';
                         const desc = item.customDesc || item.summary || item.desc || '';
+                        const link = normalizeLink(item.link);
+                        const dateText = item.customDate || item.date || '';
+
                         return `
-                        <a href="${item.link}" class="h2-news-card">
-                            <div class="h2-news-card__img">
+                        <a href="${link}" class="vs-latest-news__item">
+                            <div class="vs-latest-news__img">
                                 <img src="${item.image || ''}" alt="news">
-                                <span class="h2-news-card__tag">${tag}</span>
+                                <span class="vs-latest-news__badge">${tag}</span>
                             </div>
-                            <div class="h2-news-card__body">
-                                <div class="h2-news-card__date">${item.date || ''}</div>
-                                <div class="h2-news-card__title">${title}</div>
-                                <div class="h2-news-card__desc">${desc}</div>
+                            <span class="vs-latest-news__date">${formatNewsDate(dateText)}</span>
+                            <h3 class="vs-latest-news__item-title">${title}</h3>
+                            <p class="vs-latest-news__desc">${desc}</p>
+                            <div class="vs-latest-news__card-actions">
+                                <span class="vs-latest-news__arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                             </div>
                         </a>`;
                     }).join('');

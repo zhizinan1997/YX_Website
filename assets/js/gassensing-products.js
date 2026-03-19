@@ -22,6 +22,11 @@ function isVisibleGassensingProduct(product) {
     if (!id) return false;
     // 排除当前列表页自身，其他产品（含 ../customization/xxx）允许展示
     if (id === 'all-products') return false;
+    // 与 admin「氢气产品」保持一致：
+    // 仅展示 gassensing 与 customization，排除 biosensing 等其他业务线
+    if (id.startsWith('../biosensing/')) return false;
+    if (id.startsWith('../customization/')) return true;
+    if (id.startsWith('../')) return false;
     return true;
 }
 

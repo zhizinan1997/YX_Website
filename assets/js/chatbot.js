@@ -13,7 +13,26 @@
     let conversationHistory = [];
 
     // DOM Elements
-    let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton;
+    let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton, suggestionTrack;
+    let bodyOverflowBackup = '';
+
+    // 输入区预设问题（滚动展示，可一键发送）
+    const PRESET_QUESTIONS = [
+        '介绍一下元芯传感',
+        '氢气传感器有哪些产品',
+        '你们有哪些行业解决方案',
+        '怎么选择适合的检测方案',
+        '支持哪些定制化服务',
+        '如何获取产品报价',
+        '售后和技术支持怎么联系',
+        '可以提供测试样机吗'
+    ];
+
+    const WAITING_STATUS_MESSAGES = [
+        '小助手已收到您的问题',
+        '小助手正在努力查询总结中',
+        '请稍候'
+    ];
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
@@ -28,6 +47,8 @@
 
         loadStyles().then(() => {
             createChatbotUI();
+            ensureTriggerPlacement();
+            renderPresetQuestions();
             bindEvents();
         });
         // 不再加载历史记录
@@ -110,15 +131,20 @@
                     </div>
                 </div>
                 <div class="chatbot-input-area">
-                    <textarea class="chatbot-input" id="chatbotInput" placeholder="输入您的问题..." rows="1"></textarea>
-                    <button class="chatbot-send" id="chatbotSend" aria-label="发送">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+                    <div class="chatbot-suggestion-ticker" aria-label="可点击发送的预设问题">
+                        <div class="chatbot-suggestion-track" id="chatbotSuggestionTrack"></div>
+                    </div>
+                    <div class="chatbot-input-row">
+                        <textarea class="chatbot-input" id="chatbotInput" placeholder="输入您的问题..." rows="1"></textarea>
+                        <button class="chatbot-send" id="chatbotSend" aria-label="发送">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
 
-        // Append to body
+        // Append trigger and window
         document.body.insertAdjacentHTML('beforeend', triggerHTML);
         document.body.insertAdjacentHTML('beforeend', windowHTML);
 
@@ -128,12 +154,79 @@
         messagesContainer = document.getElementById('chatbotMessages');
         inputField = document.getElementById('chatbotInput');
         sendButton = document.getElementById('chatbotSend');
+        suggestionTrack = document.getElementById('chatbotSuggestionTrack');
+    }
+
+    function renderPresetQuestions() {
+        if (!suggestionTrack) return;
+
+        const buildGroup = (hidden) => {
+            const group = document.createElement('div');
+            group.className = 'chatbot-suggestion-group';
+            if (hidden) group.setAttribute('aria-hidden', 'true');
+
+            PRESET_QUESTIONS.forEach((question) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'chatbot-suggestion-pill';
+                btn.setAttribute('data-question', question);
+                btn.setAttribute('title', question);
+                btn.textContent = question;
+                group.appendChild(btn);
+            });
+
+            return group;
+        };
+
+        suggestionTrack.innerHTML = '';
+        suggestionTrack.appendChild(buildGroup(false));
+        suggestionTrack.appendChild(buildGroup(true));
+    }
+
+    function getNavActionsContainer() {
+        return document.querySelector('.mc-nav-actions');
+    }
+
+    function placeTriggerToBestContainer() {
+        if (!chatbotTrigger) return false;
+        const navActions = getNavActionsContainer();
+        if (navActions) {
+            if (chatbotTrigger.parentElement !== navActions) {
+                navActions.appendChild(chatbotTrigger);
+            }
+            chatbotTrigger.classList.add('chatbot-trigger--nav');
+            return true;
+        }
+
+        // Fallback for pages without shared nav component
+        if (chatbotTrigger.parentElement !== document.body) {
+            document.body.appendChild(chatbotTrigger);
+        }
+        chatbotTrigger.classList.remove('chatbot-trigger--nav');
+        return false;
+    }
+
+    function ensureTriggerPlacement() {
+        // Try immediately
+        const placed = placeTriggerToBestContainer();
+        if (placed) return;
+
+        // Nav may be injected asynchronously by nav-loader, retry briefly.
+        let retries = 0;
+        const maxRetries = 30;
+        const timer = setInterval(() => {
+            retries += 1;
+            if (placeTriggerToBestContainer() || retries >= maxRetries) {
+                clearInterval(timer);
+            }
+        }, 250);
     }
 
     function bindEvents() {
         // Toggle chat window
         chatbotTrigger.addEventListener('click', toggleChatWindow);
         document.getElementById('chatbotClose').addEventListener('click', closeChatWindow);
+        chatbotWindow.addEventListener('wheel', handleChatWindowWheel, { passive: false });
 
         // Send message
         sendButton.addEventListener('click', sendMessage);
@@ -149,6 +242,16 @@
 
         // Quick action buttons
         document.addEventListener('click', (e) => {
+            const suggestionBtn = e.target.closest('.chatbot-suggestion-pill');
+            if (suggestionBtn) {
+                const question = suggestionBtn.getAttribute('data-question');
+                if (question) {
+                    inputField.value = question;
+                    sendMessage();
+                }
+                return;
+            }
+
             if (e.target.classList.contains('quick-action-btn')) {
                 const question = e.target.getAttribute('data-question');
                 if (question) {
@@ -158,13 +261,12 @@
             }
         });
 
-        // Close on outside click (optional)
+        // Close on outside click
         document.addEventListener('click', (e) => {
             if (chatbotWindow.classList.contains('open') &&
                 !chatbotWindow.contains(e.target) &&
                 !chatbotTrigger.contains(e.target)) {
-                // Optionally close on outside click
-                // closeChatWindow();
+                closeChatWindow();
             }
         });
     }
@@ -178,6 +280,7 @@
     }
 
     function openChatWindow() {
+        lockPageScroll();
         chatbotWindow.style.display = 'flex';
         // Force reflow
         chatbotWindow.offsetHeight;
@@ -187,6 +290,7 @@
     }
 
     function closeChatWindow() {
+        unlockPageScroll();
         chatbotWindow.classList.remove('open');
         chatbotTrigger.classList.remove('active');
 
@@ -196,6 +300,24 @@
             // 关闭时清除对话记录
             clearChatHistory();
         }, 300);
+    }
+
+    function lockPageScroll() {
+        bodyOverflowBackup = document.body.style.overflow || '';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function unlockPageScroll() {
+        document.body.style.overflow = bodyOverflowBackup;
+    }
+
+    function handleChatWindowWheel(e) {
+        if (!chatbotWindow || !chatbotWindow.classList.contains('open')) return;
+        if (!messagesContainer) return;
+
+        // Always keep wheel scroll inside chatbot window to avoid page scroll bleed-through.
+        messagesContainer.scrollTop += e.deltaY;
+        e.preventDefault();
     }
 
     function clearChatHistory() {
@@ -259,7 +381,7 @@
             });
 
             // Remove typing indicator
-            typingEl.remove();
+            removeTypingIndicator(typingEl);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -282,7 +404,7 @@
                 }
             }
         } catch (error) {
-            typingEl.remove();
+            removeTypingIndicator(typingEl);
             console.error('Chat error:', error);
             appendError('网络连接失败，请稍后重试。');
         } finally {
@@ -447,15 +569,42 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <div class="typing-status" aria-live="polite"></div>
+                    <div class="typing-dots" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
                 </div>
             </div>
         `;
         messagesContainer.insertAdjacentHTML('beforeend', typingHTML);
         scrollToBottom();
-        return messagesContainer.lastElementChild;
+        const typingEl = messagesContainer.lastElementChild;
+        const statusEl = typingEl && typingEl.querySelector('.typing-status');
+        if (statusEl) {
+            let idx = 0;
+            statusEl.textContent = WAITING_STATUS_MESSAGES[idx];
+            const timer = setInterval(() => {
+                if (!typingEl || !typingEl.isConnected) {
+                    clearInterval(timer);
+                    return;
+                }
+                idx = (idx + 1) % WAITING_STATUS_MESSAGES.length;
+                statusEl.textContent = WAITING_STATUS_MESSAGES[idx];
+            }, 1400);
+            typingEl._statusTimer = timer;
+        }
+        return typingEl;
+    }
+
+    function removeTypingIndicator(typingEl) {
+        if (!typingEl) return;
+        if (typingEl._statusTimer) {
+            clearInterval(typingEl._statusTimer);
+            typingEl._statusTimer = null;
+        }
+        typingEl.remove();
     }
 
     function appendError(message) {
@@ -471,6 +620,9 @@
     function setInputEnabled(enabled) {
         inputField.disabled = !enabled;
         sendButton.disabled = !enabled;
+        document.querySelectorAll('.chatbot-suggestion-pill').forEach((btn) => {
+            btn.disabled = !enabled;
+        });
     }
 
     function scrollToBottom() {

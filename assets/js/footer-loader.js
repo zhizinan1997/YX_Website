@@ -43,6 +43,10 @@
   }
 
   function boot() {
+    if (/^\/admin(?:\/|$)/.test(window.location.pathname)) {
+      return;
+    }
+
     ensureChatbotScript();
 
     var root = document.getElementById(ROOT_ID);
