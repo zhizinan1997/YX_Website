@@ -698,7 +698,7 @@
                 style="position: relative; background: #000; overflow: hidden; display: flex; align-items: center; color: #fff; font-family: 'Inter', sans-serif;">
 
                 <video id="h2HeroVideo" muted playsinline preload="auto"
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; opacity: 0; transition: opacity 0.8s ease;"></video>
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; opacity: 0; visibility: hidden; pointer-events: none;"></video>
                 <div class="vs-container"
                     style="position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center;">
 
@@ -736,13 +736,73 @@
 
                 <script>
                     (function () {
-                        const video = document.getElementById('h2HeroVideo');
-                        if (!video) return;
-                        const PREFETCH_CACHE = 'yx-video-prefetch-v1';
+                        const baseVideo = document.getElementById('h2HeroVideo');
+                        if (!baseVideo) return;
+
+                        const TARGET_OPACITY = '0.85';
+                        const READY_TIMEOUT_MS = 12000;
+                        const PLAY_TIMEOUT_MS = 5000;
+
+                        function styleHeroVideo(el, visible) {
+                            el.muted = true;
+                            el.playsInline = true;
+                            el.preload = 'auto';
+                            el.setAttribute('muted', '');
+                            el.setAttribute('playsinline', '');
+                            el.style.position = 'absolute';
+                            el.style.top = '0';
+                            el.style.left = '0';
+                            el.style.width = '100%';
+                            el.style.height = '100%';
+                            el.style.objectFit = 'cover';
+                            el.style.zIndex = '0';
+                            el.style.pointerEvents = 'none';
+                            el.style.opacity = visible ? TARGET_OPACITY : '0';
+                            el.style.visibility = visible ? 'visible' : 'hidden';
+                            el.style.transition = 'none';
+                            el.style.backgroundColor = 'transparent';
+                        }
+
+                        function showVideo(video) {
+                            video.style.visibility = 'visible';
+                            video.style.opacity = TARGET_OPACITY;
+                        }
+
+                        function hideVideo(video) {
+                            video.style.opacity = '0';
+                            video.style.visibility = 'hidden';
+                        }
+
+                        styleHeroVideo(baseVideo, false);
+                        const standbyVideo = document.createElement('video');
+                        standbyVideo.id = 'h2HeroVideoStandby';
+                        styleHeroVideo(standbyVideo, false);
+                        baseVideo.insertAdjacentElement('afterend', standbyVideo);
+
                         let playlist = [];
-                        let current = 0;
-                        let started = false;
-                        let objectUrl = '';
+                        let activeIndex = 0;
+                        let activeVideo = baseVideo;
+                        let nextVideo = standbyVideo;
+                        let switching = false;
+                        let preparedIndex = -1;
+                        let retryTimer = null;
+
+                        function clearRetry() {
+                            if (!retryTimer) return;
+                            clearTimeout(retryTimer);
+                            retryTimer = null;
+                        }
+
+                        function scheduleRetry(targetIndex) {
+                            clearRetry();
+                            retryTimer = setTimeout(() => {
+                                retryTimer = null;
+                                if (!playlist.length) return;
+                                const expected = (activeIndex + 1) % playlist.length;
+                                const safeTarget = targetIndex === expected ? targetIndex : expected;
+                                switchToIndex(safeTarget).catch(() => { });
+                            }, 350);
+                        }
 
                         function toVideoFetchUrl(rawUrl) {
                             const absolute = new URL(rawUrl, window.location.origin);
@@ -750,67 +810,170 @@
                             return `${window.location.origin}/api/video-proxy?url=${encodeURIComponent(absolute.href)}`;
                         }
 
-                        function releaseObjectUrl() {
-                            if (!objectUrl) return;
-                            URL.revokeObjectURL(objectUrl);
-                            objectUrl = '';
-                        }
+                        function waitForPlayable(video, timeoutMs = READY_TIMEOUT_MS) {
+                            return new Promise(resolve => {
+                                if (!video) {
+                                    resolve(false);
+                                    return;
+                                }
+                                if (video.readyState >= 3) {
+                                    resolve(true);
+                                    return;
+                                }
 
-                        async function resolveCachedVideoUrl(rawUrl) {
-                            const normalized = toVideoFetchUrl(rawUrl);
-                            if (!('caches' in window)) return normalized;
-                            try {
-                                const cache = await caches.open(PREFETCH_CACHE);
-                                const request = new Request(normalized, { credentials: 'same-origin' });
-                                const hit = await cache.match(request);
-                                if (!hit) return normalized;
-                                const blob = await hit.blob();
-                                releaseObjectUrl();
-                                objectUrl = URL.createObjectURL(blob);
-                                return objectUrl;
-                            } catch (_) {
-                                return normalized;
-                            }
-                        }
+                                let done = false;
+                                const finish = (ok) => {
+                                    if (done) return;
+                                    done = true;
+                                    clearTimeout(timerId);
+                                    resolve(ok);
+                                };
 
-                        async function setSource(idx) {
-                            const item = playlist[idx];
-                            if (!item || !item.url) return;
-                            const src = await resolveCachedVideoUrl(item.url);
-                            video.src = src;
-                            video.load();
-                            playVideo();
-                        }
-
-                        function playVideo() {
-                            if (started) return;
-                            started = true;
-                            video.play().then(() => {
-                                video.style.opacity = '0.85';
-                            }).catch(() => {
-                                video.style.opacity = '0.85';
-                            }).finally(() => {
-                                started = false;
+                                const timerId = setTimeout(() => finish(false), timeoutMs);
+                                video.addEventListener('loadeddata', () => finish(true), { once: true });
+                                video.addEventListener('canplay', () => finish(true), { once: true });
+                                video.addEventListener('error', () => finish(false), { once: true });
                             });
                         }
 
-                        video.addEventListener('ended', () => {
-                            if (!playlist.length) return;
-                            current = (current + 1) % playlist.length;
-                            setSource(current);
-                        });
+                        function waitForPlaybackStart(video, timeoutMs = PLAY_TIMEOUT_MS) {
+                            return new Promise(resolve => {
+                                if (!video) {
+                                    resolve(false);
+                                    return;
+                                }
+
+                                let done = false;
+                                const finish = (ok) => {
+                                    if (done) return;
+                                    done = true;
+                                    clearTimeout(timerId);
+                                    resolve(ok);
+                                };
+
+                                const timerId = setTimeout(() => finish(false), timeoutMs);
+                                const onSuccess = () => finish(true);
+
+                                video.addEventListener('playing', onSuccess, { once: true });
+                                video.addEventListener('timeupdate', onSuccess, { once: true });
+                                video.addEventListener('error', () => finish(false), { once: true });
+
+                                if (typeof video.requestVideoFrameCallback === 'function') {
+                                    try {
+                                        video.requestVideoFrameCallback(() => finish(true));
+                                    } catch (_) { }
+                                }
+
+                                try {
+                                    const playPromise = video.play();
+                                    if (playPromise && typeof playPromise.catch === 'function') {
+                                        playPromise.catch(() => { });
+                                    }
+                                } catch (_) { }
+
+                                if (!video.paused && video.readyState >= 2) {
+                                    requestAnimationFrame(() => finish(true));
+                                }
+                            });
+                        }
+
+                        function setVideoSource(video, idx) {
+                            if (!playlist.length) return false;
+                            const item = playlist[idx];
+                            if (!item || !item.url) return false;
+                            const src = toVideoFetchUrl(item.url);
+                            if (video.dataset.src === src) return true;
+                            video.dataset.src = src;
+                            video.src = src;
+                            video.load();
+                            return true;
+                        }
+
+                        async function ensurePrepared(idx) {
+                            if (!playlist.length) return false;
+                            if (preparedIndex === idx && nextVideo.readyState >= 2) return true;
+                            if (!setVideoSource(nextVideo, idx)) return false;
+                            const ready = await waitForPlayable(nextVideo);
+                            preparedIndex = ready ? idx : -1;
+                            return ready;
+                        }
+
+                        async function prepareNextFrom(index) {
+                            if (playlist.length <= 1) return true;
+                            const nextIndex = (index + 1) % playlist.length;
+                            return ensurePrepared(nextIndex);
+                        }
+
+                        async function switchToIndex(targetIndex) {
+                            if (switching || playlist.length <= 1) return;
+                            switching = true;
+                            try {
+                                const expected = (activeIndex + 1) % playlist.length;
+                                const safeTarget = targetIndex === expected ? targetIndex : expected;
+                                const ready = await ensurePrepared(safeTarget);
+                                if (!ready) {
+                                    scheduleRetry(safeTarget);
+                                    return;
+                                }
+
+                                const started = await waitForPlaybackStart(nextVideo);
+                                if (!started) {
+                                    scheduleRetry(safeTarget);
+                                    return;
+                                }
+
+                                clearRetry();
+                                showVideo(nextVideo);
+                                hideVideo(activeVideo);
+                                activeVideo.pause();
+                                activeVideo.currentTime = 0;
+
+                                const previousActive = activeVideo;
+                                activeVideo = nextVideo;
+                                nextVideo = previousActive;
+                                activeIndex = safeTarget;
+                                preparedIndex = -1;
+
+                                prepareNextFrom(activeIndex).catch(() => { });
+                            } finally {
+                                switching = false;
+                            }
+                        }
+
+                        function onVideoEnded(event) {
+                            if (event.target !== activeVideo || !playlist.length) return;
+                            if (playlist.length <= 1) {
+                                activeVideo.currentTime = 0;
+                                waitForPlaybackStart(activeVideo).then(ok => {
+                                    if (ok) showVideo(activeVideo);
+                                }).catch(() => { });
+                                return;
+                            }
+                            const targetIndex = (activeIndex + 1) % playlist.length;
+                            switchToIndex(targetIndex).catch(() => { });
+                        }
+
+                        baseVideo.addEventListener('ended', onVideoEnded);
+                        standbyVideo.addEventListener('ended', onVideoEnded);
 
                         fetch('/api/h2-home')
                             .then(res => res.json())
-                            .then(data => {
+                            .then(async data => {
                                 playlist = (data.items || []).filter(i => i && i.url);
                                 if (!playlist.length) return;
-                                current = 0;
-                                setSource(current);
+
+                                activeIndex = 0;
+                                setVideoSource(activeVideo, activeIndex);
+                                const ready = await waitForPlayable(activeVideo);
+                                if (!ready) return;
+                                activeVideo.currentTime = 0;
+                                const started = await waitForPlaybackStart(activeVideo);
+                                if (!started) return;
+                                showVideo(activeVideo);
+                                hideVideo(nextVideo);
+                                prepareNextFrom(activeIndex).catch(() => { });
                             })
                             .catch(() => { });
-
-                        window.addEventListener('beforeunload', releaseObjectUrl);
                     })();
                 </script>
 

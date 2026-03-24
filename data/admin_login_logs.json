@@ -19,6 +19,16 @@
       "operation": "后台登录",
       "username": "admin",
       "detail": "用户名和密码验证通过"
+    },
+    {
+      "id": "8b988ccbeefa451e939d7fb2a7fb61f2",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-24T10:39:07",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过"
     }
   ]
 }

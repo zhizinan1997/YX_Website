@@ -1,0 +1,2024 @@
+{
+  "meta": {
+    "base_url": "http://localhost:8000",
+    "runs_per_strategy": 3,
+    "timeout_s": 90,
+    "initial_video_prefetch_count": 3,
+    "home_current_range_bytes": 524288,
+    "h2_first_video_range_bytes": 1048576,
+    "h2_next_video_metadata_range_bytes": 262144,
+    "full_download_max_workers": 6,
+    "cache_policy": "no-cache headers + cache-busting query parameter",
+    "generated_at_epoch": 1774322148
+  },
+  "summary": {
+    "strategies": {
+      "initial": {
+        "homepage_first_media_seconds_avg": 4.8290487776394,
+        "homepage_all_resources_seconds_avg": 13.153624277658915,
+        "h2_first_media_seconds_avg": 0.5393053196603432,
+        "h2_all_resources_seconds_avg": 0.5393053196603432,
+        "homepage_all_images_full_download_seconds_avg": 12.151859861352326,
+        "h2_all_videos_full_download_seconds_avg": 2.738032610989952
+      },
+      "current": {
+        "homepage_first_media_seconds_avg": 0.90863548599494,
+        "homepage_all_resources_seconds_avg": 5.890750083335054,
+        "h2_first_media_seconds_avg": 0.503584805681991,
+        "h2_all_resources_seconds_avg": 0.8314144999991792,
+        "homepage_all_images_full_download_seconds_avg": 12.127767291346876,
+        "h2_all_videos_full_download_seconds_avg": 3.4234425556690744
+      }
+    },
+    "delta_current_minus_initial": {
+      "homepage_first_media_seconds": -3.92041329164446,
+      "homepage_all_resources_seconds": -7.262874194323861,
+      "h2_first_media_seconds": -0.035720513978352186,
+      "h2_all_resources_seconds": 0.2921091803388359,
+      "homepage_all_images_full_download_seconds": -0.024092570005450398,
+      "h2_all_videos_full_download_seconds": 0.6854099446791224
+    }
+  },
+  "records": [
+    {
+      "strategy": "initial",
+      "iteration": 1,
+      "result": {
+        "runToken": "1774321996-initial-1-d30641",
+        "strategy": "initial",
+        "homepage": {
+          "firstMediaReadyS": 7.7436028749798425,
+          "allResourcesReadyS": 12.382359625014942,
+          "steps": [
+            {
+              "name": "home_first_image_ready",
+              "at_s": 7.7436028749798425
+            },
+            {
+              "name": "home_all_hero_images_done",
+              "at_s": 9.41774833301315
+            },
+            {
+              "name": "home_initial_all_resources_done",
+              "at_s": 12.382359625014942
+            }
+          ],
+          "requests": [
+            {
+              "name": "home_initial_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774321996-initial-1-d30641-home_initial_api_hero-584286ad",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.006361666019074619,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_0",
+              "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_0-b1141cb0",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 7.7351032919832505,
+              "bytes_read": 3325811,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_1",
+              "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_1-a4746825",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 4.747144834022038,
+              "bytes_read": 8585981,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_2",
+              "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_2-b3ff4805",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 9.407949625048786,
+              "bytes_read": 9330481,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_3",
+              "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_3-a109f776",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.7055081669823267,
+              "bytes_read": 7864697,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_4",
+              "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_4-438bb643",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 8.747095624974463,
+              "bytes_read": 7163492,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_5",
+              "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_5-bbb883d9",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.3664524580235593,
+              "bytes_read": 8959707,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_6",
+              "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_6-a555db41",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 5.765013916010503,
+              "bytes_read": 8209083,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_7",
+              "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_7-5f9889c6",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 3.141036416986026,
+              "bytes_read": 2952473,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_8",
+              "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_8-5f5c3b26",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 4.710408041952178,
+              "bytes_read": 7351316,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_9",
+              "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774321996-initial-1-d30641-home_initial_img_9-9e045bf8",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.5342997499974445,
+              "bytes_read": 8914207,
+              "error": ""
+            },
+            {
+              "name": "home_initial_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774321996-initial-1-d30641-home_initial_api_h2-a0b78ee1",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0036177499569021165,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_0",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774321996-initial-1-d30641-home_initial_video_full_0-fdcb76ac",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.8532570420065895,
+              "bytes_read": 4568163,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_1",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774321996-initial-1-d30641-home_initial_video_full_1-3bd71ed2",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.879311625030823,
+              "bytes_read": 2201335,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_2",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774321996-initial-1-d30641-home_initial_video_full_2-cc79d4a7",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 1.2262827079975978,
+              "bytes_read": 4772008,
+              "error": ""
+            }
+          ]
+        },
+        "h2page": {
+          "firstMediaReadyS": 0.48698200000217184,
+          "allResourcesReadyS": 0.48698200000217184,
+          "steps": [
+            {
+              "name": "h2_first_video_ready",
+              "at_s": 0.48698200000217184
+            },
+            {
+              "name": "h2_initial_all_resources_done",
+              "at_s": 0.48698200000217184
+            }
+          ],
+          "requests": [
+            {
+              "name": "h2_initial_api",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774321996-initial-1-d30641-h2_initial_api-3bdc17ab",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0028051669942215085,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "h2_initial_first_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774321996-initial-1-d30641-h2_initial_first_video_range-1e64aed1",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.48363116703694686,
+              "bytes_read": 1048576,
+              "error": ""
+            }
+          ]
+        },
+        "fullDownload": {
+          "homepageAllImages": {
+            "totalCount": 10,
+            "okCount": 10,
+            "failedCount": 0,
+            "totalBytes": 72657248,
+            "elapsedS": 11.557772917032707,
+            "requests": [
+              {
+                "name": "full_home_img_0",
+                "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774321996-initial-1-d30641-full_home_img_0-f97617d3",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.916576833988074,
+                "bytes_read": 3325811,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_1",
+                "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774321996-initial-1-d30641-full_home_img_1-f97c657b",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.8532859169645235,
+                "bytes_read": 8585981,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_2",
+                "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774321996-initial-1-d30641-full_home_img_2-ecb11ab0",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 8.790547041979153,
+                "bytes_read": 9330481,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_3",
+                "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774321996-initial-1-d30641-full_home_img_3-9c787176",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.995211416040547,
+                "bytes_read": 7864697,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_4",
+                "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774321996-initial-1-d30641-full_home_img_4-a74c4fc5",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 9.414309250016231,
+                "bytes_read": 7163492,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_5",
+                "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774321996-initial-1-d30641-full_home_img_5-2036570d",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.638256082951557,
+                "bytes_read": 8959707,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_6",
+                "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774321996-initial-1-d30641-full_home_img_6-ddcbda31",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 3.629628541006241,
+                "bytes_read": 8209083,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_7",
+                "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774321996-initial-1-d30641-full_home_img_7-0a810f17",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.020711416960694,
+                "bytes_read": 2952473,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_8",
+                "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774321996-initial-1-d30641-full_home_img_8-7ad34c0e",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.129519624984823,
+                "bytes_read": 7351316,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_9",
+                "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774321996-initial-1-d30641-full_home_img_9-12a1ad27",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 8.560093250009231,
+                "bytes_read": 8914207,
+                "error": ""
+              }
+            ]
+          },
+          "h2AllVideos": {
+            "totalCount": 4,
+            "okCount": 4,
+            "failedCount": 0,
+            "totalBytes": 13250463,
+            "elapsedS": 2.6681537079857662,
+            "requests": [
+              {
+                "name": "full_h2_video_0",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774321996-initial-1-d30641-full_h2_video_0-d3d61944",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.6671151249902323,
+                "bytes_read": 4568163,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_1",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774321996-initial-1-d30641-full_h2_video_1-3130d54b",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.527070999960415,
+                "bytes_read": 2201335,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_2",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774321996-initial-1-d30641-full_h2_video_2-670801fb",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.641872665961273,
+                "bytes_read": 4772008,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_3",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F4.mp4&__bench=1774321996-initial-1-d30641-full_h2_video_3-cf484113",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 0.8604027919936925,
+                "bytes_read": 1708957,
+                "error": ""
+              }
+            ]
+          },
+          "errors": [],
+          "requests": [
+            {
+              "name": "full_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774321996-initial-1-d30641-full_api_hero-e0548021",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.003429875010624528,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "full_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774321996-initial-1-d30641-full_api_h2-a0e65082",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.001593667024280876,
+              "bytes_read": 1405,
+              "error": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "strategy": "initial",
+      "iteration": 2,
+      "result": {
+        "runToken": "1774322023-initial-2-e7a7ce",
+        "strategy": "initial",
+        "homepage": {
+          "firstMediaReadyS": 3.2741955829551443,
+          "allResourcesReadyS": 11.87497679196531,
+          "steps": [
+            {
+              "name": "home_first_image_ready",
+              "at_s": 3.2741955829551443
+            },
+            {
+              "name": "home_all_hero_images_done",
+              "at_s": 9.016122749948408
+            },
+            {
+              "name": "home_initial_all_resources_done",
+              "at_s": 11.87497679196531
+            }
+          ],
+          "requests": [
+            {
+              "name": "home_initial_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322023-initial-2-e7a7ce-home_initial_api_hero-6e54b884",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0027043750160373747,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_0",
+              "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_0-f6f8da34",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 3.2708186670206487,
+              "bytes_read": 3325811,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_1",
+              "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_1-6f91ee1d",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 6.233139834017493,
+              "bytes_read": 8585981,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_2",
+              "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_2-10f1a4c6",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 8.86288470798172,
+              "bytes_read": 9330481,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_3",
+              "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_3-d7654d75",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 8.572932999988552,
+              "bytes_read": 7864697,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_4",
+              "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_4-09ae2504",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 6.6045183329842985,
+              "bytes_read": 7163492,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_5",
+              "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_5-0eaf398b",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.5476742920000106,
+              "bytes_read": 8959707,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_6",
+              "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_6-fc674efd",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.714019541046582,
+              "bytes_read": 8209083,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_7",
+              "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_7-7a359d71",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.1015894589945674,
+              "bytes_read": 2952473,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_8",
+              "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_8-60266352",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 6.861525250016712,
+              "bytes_read": 7351316,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_9",
+              "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774322023-initial-2-e7a7ce-home_initial_img_9-d117b351",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 6.46253329096362,
+              "bytes_read": 8914207,
+              "error": ""
+            },
+            {
+              "name": "home_initial_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322023-initial-2-e7a7ce-home_initial_api_h2-9e7a11c1",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.003075125045143068,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_0",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322023-initial-2-e7a7ce-home_initial_video_full_0-13f557d4",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.9658386670053005,
+              "bytes_read": 4568163,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_1",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322023-initial-2-e7a7ce-home_initial_video_full_1-c937bb6c",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.6495266249985434,
+              "bytes_read": 2201335,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_2",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774322023-initial-2-e7a7ce-home_initial_video_full_2-cf2b5c2f",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 1.2390462079783902,
+              "bytes_read": 4772008,
+              "error": ""
+            }
+          ]
+        },
+        "h2page": {
+          "firstMediaReadyS": 0.6157277500024065,
+          "allResourcesReadyS": 0.6157277500024065,
+          "steps": [
+            {
+              "name": "h2_first_video_ready",
+              "at_s": 0.6157277500024065
+            },
+            {
+              "name": "h2_initial_all_resources_done",
+              "at_s": 0.6157277500024065
+            }
+          ],
+          "requests": [
+            {
+              "name": "h2_initial_api",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322023-initial-2-e7a7ce-h2_initial_api-82420d72",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0027645829832181334,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "h2_initial_first_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322023-initial-2-e7a7ce-h2_initial_first_video_range-f2e3e317",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.6123677910072729,
+              "bytes_read": 1048576,
+              "error": ""
+            }
+          ]
+        },
+        "fullDownload": {
+          "homepageAllImages": {
+            "totalCount": 10,
+            "okCount": 10,
+            "failedCount": 0,
+            "totalBytes": 72657248,
+            "elapsedS": 10.222203792014625,
+            "requests": [
+              {
+                "name": "full_home_img_0",
+                "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_0-ef715471",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.3647664170130156,
+                "bytes_read": 3325811,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_1",
+                "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_1-c2695aad",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 10.220811832987238,
+                "bytes_read": 8585981,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_2",
+                "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_2-f386910c",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.0860865409486,
+                "bytes_read": 9330481,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_3",
+                "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_3-0d1df86e",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 6.964354457973968,
+                "bytes_read": 7864697,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_4",
+                "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_4-c516302f",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 3.9343246659846045,
+                "bytes_read": 7163492,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_5",
+                "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_5-4eb28f1b",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.8794982919935137,
+                "bytes_read": 8959707,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_6",
+                "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_6-68148d76",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 6.745346125040669,
+                "bytes_read": 8209083,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_7",
+                "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_7-4443993a",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.1451242500334047,
+                "bytes_read": 2952473,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_8",
+                "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_8-ce708ff0",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.213479583035223,
+                "bytes_read": 7351316,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_9",
+                "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774322023-initial-2-e7a7ce-full_home_img_9-0e8fe6e3",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.230400917003863,
+                "bytes_read": 8914207,
+                "error": ""
+              }
+            ]
+          },
+          "h2AllVideos": {
+            "totalCount": 4,
+            "okCount": 4,
+            "failedCount": 0,
+            "totalBytes": 13250463,
+            "elapsedS": 2.888411250023637,
+            "requests": [
+              {
+                "name": "full_h2_video_0",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322023-initial-2-e7a7ce-full_h2_video_0-51692520",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.887186667008791,
+                "bytes_read": 4568163,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_1",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322023-initial-2-e7a7ce-full_h2_video_1-706e1006",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.0830745000275783,
+                "bytes_read": 2201335,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_2",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774322023-initial-2-e7a7ce-full_h2_video_2-aa986fb0",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 0.9592895830282941,
+                "bytes_read": 4772008,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_3",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F4.mp4&__bench=1774322023-initial-2-e7a7ce-full_h2_video_3-c625f179",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.3056365830125287,
+                "bytes_read": 1708957,
+                "error": ""
+              }
+            ]
+          },
+          "errors": [],
+          "requests": [
+            {
+              "name": "full_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322023-initial-2-e7a7ce-full_api_hero-d3578905",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.004123083024751395,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "full_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322023-initial-2-e7a7ce-full_api_h2-9b520024",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0017852499731816351,
+              "bytes_read": 1405,
+              "error": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "strategy": "initial",
+      "iteration": 3,
+      "result": {
+        "runToken": "1774322048-initial-3-94a8b6",
+        "strategy": "initial",
+        "homepage": {
+          "firstMediaReadyS": 3.469347874983214,
+          "allResourcesReadyS": 15.203536415996496,
+          "steps": [
+            {
+              "name": "home_first_image_ready",
+              "at_s": 3.469347874983214
+            },
+            {
+              "name": "home_all_hero_images_done",
+              "at_s": 11.896262499969453
+            },
+            {
+              "name": "home_initial_all_resources_done",
+              "at_s": 15.203536415996496
+            }
+          ],
+          "requests": [
+            {
+              "name": "home_initial_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322048-initial-3-94a8b6-home_initial_api_hero-e5a14be9",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.00367525004548952,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_0",
+              "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_0-394e2b9b",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 3.4649119580280967,
+              "bytes_read": 3325811,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_1",
+              "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_1-fce856e2",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 6.633595291990787,
+              "bytes_read": 8585981,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_2",
+              "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_2-c2da1aae",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 9.55567583302036,
+              "bytes_read": 9330481,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_3",
+              "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_3-81b66378",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 9.22097758302698,
+              "bytes_read": 7864697,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_4",
+              "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_4-fcd030e5",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 4.993910500023048,
+              "bytes_read": 7163492,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_5",
+              "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_5-ba289e3f",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 6.493275957996957,
+              "bytes_read": 8959707,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_6",
+              "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_6-be5ce090",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 11.268912875035312,
+              "bytes_read": 8209083,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_7",
+              "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_7-fc01b478",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 3.946354750019964,
+              "bytes_read": 2952473,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_8",
+              "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_8-80de4e36",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 3.4399304169928655,
+              "bytes_read": 7351316,
+              "error": ""
+            },
+            {
+              "name": "home_initial_img_9",
+              "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774322048-initial-3-94a8b6-home_initial_img_9-49754774",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 7.9421084159985185,
+              "bytes_read": 8914207,
+              "error": ""
+            },
+            {
+              "name": "home_initial_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322048-initial-3-94a8b6-home_initial_api_h2-6066ef1e",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0032919590012170374,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_0",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322048-initial-3-94a8b6-home_initial_video_full_0-54921e27",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.9354329170309938,
+              "bytes_read": 4568163,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_1",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322048-initial-3-94a8b6-home_initial_video_full_1-bdf056ba",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 1.144037040998228,
+              "bytes_read": 2201335,
+              "error": ""
+            },
+            {
+              "name": "home_initial_video_full_2",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774322048-initial-3-94a8b6-home_initial_video_full_2-48c3faa5",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 1.222899292013608,
+              "bytes_read": 4772008,
+              "error": ""
+            }
+          ]
+        },
+        "h2page": {
+          "firstMediaReadyS": 0.5152062089764513,
+          "allResourcesReadyS": 0.5152062089764513,
+          "steps": [
+            {
+              "name": "h2_first_video_ready",
+              "at_s": 0.5152062089764513
+            },
+            {
+              "name": "h2_initial_all_resources_done",
+              "at_s": 0.5152062089764513
+            }
+          ],
+          "requests": [
+            {
+              "name": "h2_initial_api",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322048-initial-3-94a8b6-h2_initial_api-dbe8e2bb",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.003711707948241383,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "h2_initial_first_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322048-initial-3-94a8b6-h2_initial_first_video_range-620fffbc",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.5104594579897821,
+              "bytes_read": 1048576,
+              "error": ""
+            }
+          ]
+        },
+        "fullDownload": {
+          "homepageAllImages": {
+            "totalCount": 10,
+            "okCount": 10,
+            "failedCount": 0,
+            "totalBytes": 72657248,
+            "elapsedS": 14.675602875009645,
+            "requests": [
+              {
+                "name": "full_home_img_0",
+                "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_0-709098e9",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.6807915420504287,
+                "bytes_read": 3325811,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_1",
+                "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_1-17ebe10e",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.7956894999952056,
+                "bytes_read": 8585981,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_2",
+                "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_2-883c005d",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 14.674147750018165,
+                "bytes_read": 9330481,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_3",
+                "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_3-51dad04b",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 6.2849981670151465,
+                "bytes_read": 7864697,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_4",
+                "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_4-569a02aa",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 12.625099209020846,
+                "bytes_read": 7163492,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_5",
+                "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_5-696ff550",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 7.741607875039335,
+                "bytes_read": 8959707,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_6",
+                "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_6-95a7e2d2",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.3512614170322195,
+                "bytes_read": 8209083,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_7",
+                "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_7-aec64001",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.1632210839889012,
+                "bytes_read": 2952473,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_8",
+                "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_8-c55541a8",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 6.170760833017994,
+                "bytes_read": 7351316,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_9",
+                "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774322048-initial-3-94a8b6-full_home_img_9-f801ae07",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.087859333958477,
+                "bytes_read": 8914207,
+                "error": ""
+              }
+            ]
+          },
+          "h2AllVideos": {
+            "totalCount": 4,
+            "okCount": 4,
+            "failedCount": 0,
+            "totalBytes": 13250463,
+            "elapsedS": 2.6575328749604523,
+            "requests": [
+              {
+                "name": "full_h2_video_0",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322048-initial-3-94a8b6-full_h2_video_0-3b8de8da",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.6568435409571975,
+                "bytes_read": 4568163,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_1",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322048-initial-3-94a8b6-full_h2_video_1-a25c8009",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.7392467080499046,
+                "bytes_read": 2201335,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_2",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774322048-initial-3-94a8b6-full_h2_video_2-ab59275e",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.8902797500486486,
+                "bytes_read": 4772008,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_3",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F4.mp4&__bench=1774322048-initial-3-94a8b6-full_h2_video_3-6b17149f",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.1572532919817604,
+                "bytes_read": 1708957,
+                "error": ""
+              }
+            ]
+          },
+          "errors": [],
+          "requests": [
+            {
+              "name": "full_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322048-initial-3-94a8b6-full_api_hero-8d156771",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0038168749888427556,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "full_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322048-initial-3-94a8b6-full_api_h2-f5b35cc8",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0018303749966435134,
+              "bytes_read": 1405,
+              "error": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "strategy": "current",
+      "iteration": 1,
+      "result": {
+        "runToken": "1774322081-current-1-291c61",
+        "strategy": "current",
+        "homepage": {
+          "firstMediaReadyS": 0.7499025409924798,
+          "allResourcesReadyS": 5.744101374992169,
+          "steps": [
+            {
+              "name": "home_first_image_ready",
+              "at_s": 0.7499025409924798
+            },
+            {
+              "name": "home_current_warm_images_done",
+              "at_s": 5.2915377910248935
+            },
+            {
+              "name": "home_current_all_resources_done",
+              "at_s": 5.744101374992169
+            }
+          ],
+          "requests": [
+            {
+              "name": "home_current_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322081-current-1-291c61-home_current_api_hero-00258689",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0030901250429451466,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "home_current_first_img",
+              "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322081-current-1-291c61-home_current_first_img-527cd0f3",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.7463775409851223,
+              "bytes_read": 3325811,
+              "error": ""
+            },
+            {
+              "name": "home_current_warm_img_0",
+              "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322081-current-1-291c61-home_current_warm_img_0-d430075d",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 1.4110464580007829,
+              "bytes_read": 8585981,
+              "error": ""
+            },
+            {
+              "name": "home_current_warm_img_1",
+              "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322081-current-1-291c61-home_current_warm_img_1-a348bcf0",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 3.129433166992385,
+              "bytes_read": 9330481,
+              "error": ""
+            },
+            {
+              "name": "home_current_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322081-current-1-291c61-home_current_api_h2-f3f9e5b6",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.003669624973554164,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "home_current_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322081-current-1-291c61-home_current_video_range-bd7dcf03",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.44834995799465105,
+              "bytes_read": 524288,
+              "error": ""
+            }
+          ]
+        },
+        "h2page": {
+          "firstMediaReadyS": 0.37206104199867696,
+          "allResourcesReadyS": 0.748599624959752,
+          "steps": [
+            {
+              "name": "h2_first_video_ready",
+              "at_s": 0.37206104199867696
+            },
+            {
+              "name": "h2_current_next_metadata_ready",
+              "at_s": 0.748597375000827
+            },
+            {
+              "name": "h2_current_all_resources_done",
+              "at_s": 0.748599624959752
+            }
+          ],
+          "requests": [
+            {
+              "name": "h2_current_api",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322081-current-1-291c61-h2_current_api-a6fe4bd1",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.00371858396101743,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "h2_current_first_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322081-current-1-291c61-h2_current_first_video_range-fcf97494",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.3677639579982497,
+              "bytes_read": 1048576,
+              "error": ""
+            },
+            {
+              "name": "h2_current_next_metadata",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322081-current-1-291c61-h2_current_next_metadata-b49a2f99",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.37620350002544,
+              "bytes_read": 262144,
+              "error": ""
+            }
+          ]
+        },
+        "fullDownload": {
+          "homepageAllImages": {
+            "totalCount": 10,
+            "okCount": 10,
+            "failedCount": 0,
+            "totalBytes": 72657248,
+            "elapsedS": 10.475296583026648,
+            "requests": [
+              {
+                "name": "full_home_img_0",
+                "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322081-current-1-291c61-full_home_img_0-f0ec1ef8",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.2835845419904217,
+                "bytes_read": 3325811,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_1",
+                "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322081-current-1-291c61-full_home_img_1-86186731",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.030630209017545,
+                "bytes_read": 8585981,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_2",
+                "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322081-current-1-291c61-full_home_img_2-8fba8bc2",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 6.61369895900134,
+                "bytes_read": 9330481,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_3",
+                "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774322081-current-1-291c61-full_home_img_3-21102dff",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 5.183678290981334,
+                "bytes_read": 7864697,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_4",
+                "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774322081-current-1-291c61-full_home_img_4-660ec096",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 6.390421291987877,
+                "bytes_read": 7163492,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_5",
+                "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774322081-current-1-291c61-full_home_img_5-c9667642",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 7.144523375027347,
+                "bytes_read": 8959707,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_6",
+                "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774322081-current-1-291c61-full_home_img_6-6f963406",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 8.443289624992758,
+                "bytes_read": 8209083,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_7",
+                "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774322081-current-1-291c61-full_home_img_7-719b0345",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.2865413749823347,
+                "bytes_read": 2952473,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_8",
+                "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774322081-current-1-291c61-full_home_img_8-57c959e1",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 3.8045007499749772,
+                "bytes_read": 7351316,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_9",
+                "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774322081-current-1-291c61-full_home_img_9-93b1e649",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.75914829102112,
+                "bytes_read": 8914207,
+                "error": ""
+              }
+            ]
+          },
+          "h2AllVideos": {
+            "totalCount": 4,
+            "okCount": 4,
+            "failedCount": 0,
+            "totalBytes": 13250463,
+            "elapsedS": 1.5872189999790862,
+            "requests": [
+              {
+                "name": "full_h2_video_0",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322081-current-1-291c61-full_h2_video_0-b331f433",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.339461458963342,
+                "bytes_read": 4568163,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_1",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322081-current-1-291c61-full_h2_video_1-3674b735",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.0641788329812698,
+                "bytes_read": 2201335,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_2",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774322081-current-1-291c61-full_h2_video_2-7866aeec",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.5852929590037093,
+                "bytes_read": 4772008,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_3",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F4.mp4&__bench=1774322081-current-1-291c61-full_h2_video_3-9599f052",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 0.907044124964159,
+                "bytes_read": 1708957,
+                "error": ""
+              }
+            ]
+          },
+          "errors": [],
+          "requests": [
+            {
+              "name": "full_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322081-current-1-291c61-full_api_hero-b3213217",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0030382919940166175,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "full_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322081-current-1-291c61-full_api_h2-527fc257",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0017286250367760658,
+              "bytes_read": 1405,
+              "error": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "strategy": "current",
+      "iteration": 2,
+      "result": {
+        "runToken": "1774322100-current-2-e8507d",
+        "strategy": "current",
+        "homepage": {
+          "firstMediaReadyS": 0.7990608330001123,
+          "allResourcesReadyS": 5.8054046659963205,
+          "steps": [
+            {
+              "name": "home_first_image_ready",
+              "at_s": 0.7990608330001123
+            },
+            {
+              "name": "home_current_warm_images_done",
+              "at_s": 5.413310500036459
+            },
+            {
+              "name": "home_current_all_resources_done",
+              "at_s": 5.8054046659963205
+            }
+          ],
+          "requests": [
+            {
+              "name": "home_current_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322100-current-2-e8507d-home_current_api_hero-dee5c19c",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0039007909945212305,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "home_current_first_img",
+              "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322100-current-2-e8507d-home_current_first_img-c08d65a3",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.7945288330083713,
+              "bytes_read": 3325811,
+              "error": ""
+            },
+            {
+              "name": "home_current_warm_img_0",
+              "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322100-current-2-e8507d-home_current_warm_img_0-7fa89139",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 1.8595659590209834,
+              "bytes_read": 8585981,
+              "error": ""
+            },
+            {
+              "name": "home_current_warm_img_1",
+              "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322100-current-2-e8507d-home_current_warm_img_1-de6d28ea",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.75363400002243,
+              "bytes_read": 9330481,
+              "error": ""
+            },
+            {
+              "name": "home_current_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322100-current-2-e8507d-home_current_api_h2-1d94c711",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0036572079989127815,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "home_current_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322100-current-2-e8507d-home_current_video_range-c3cba41f",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.3877886250265874,
+              "bytes_read": 524288,
+              "error": ""
+            }
+          ]
+        },
+        "h2page": {
+          "firstMediaReadyS": 0.5027987090288661,
+          "allResourcesReadyS": 0.8452194590354338,
+          "steps": [
+            {
+              "name": "h2_first_video_ready",
+              "at_s": 0.5027987090288661
+            },
+            {
+              "name": "h2_current_next_metadata_ready",
+              "at_s": 0.8452187920338474
+            },
+            {
+              "name": "h2_current_all_resources_done",
+              "at_s": 0.8452194590354338
+            }
+          ],
+          "requests": [
+            {
+              "name": "h2_current_api",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322100-current-2-e8507d-h2_current_api-b2bc60de",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0026250830269418657,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "h2_current_first_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322100-current-2-e8507d-h2_current_first_video_range-ebd11c6a",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.49968024995177984,
+              "bytes_read": 1048576,
+              "error": ""
+            },
+            {
+              "name": "h2_current_next_metadata",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322100-current-2-e8507d-h2_current_next_metadata-dd4f03e0",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.34201333299279213,
+              "bytes_read": 262144,
+              "error": ""
+            }
+          ]
+        },
+        "fullDownload": {
+          "homepageAllImages": {
+            "totalCount": 10,
+            "okCount": 10,
+            "failedCount": 0,
+            "totalBytes": 72657248,
+            "elapsedS": 10.823660708032548,
+            "requests": [
+              {
+                "name": "full_home_img_0",
+                "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322100-current-2-e8507d-full_home_img_0-06260595",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.276764416950755,
+                "bytes_read": 3325811,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_1",
+                "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322100-current-2-e8507d-full_home_img_1-e099bdcf",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 8.532374917005654,
+                "bytes_read": 8585981,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_2",
+                "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322100-current-2-e8507d-full_home_img_2-f23443ac",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 10.82230829197215,
+                "bytes_read": 9330481,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_3",
+                "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774322100-current-2-e8507d-full_home_img_3-39fa2b00",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 10.454753125028219,
+                "bytes_read": 7864697,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_4",
+                "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774322100-current-2-e8507d-full_home_img_4-984a577f",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 7.958698083006311,
+                "bytes_read": 7163492,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_5",
+                "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774322100-current-2-e8507d-full_home_img_5-b6206169",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 7.660156125028152,
+                "bytes_read": 8959707,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_6",
+                "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774322100-current-2-e8507d-full_home_img_6-e0990ac0",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.874091999954544,
+                "bytes_read": 8209083,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_7",
+                "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774322100-current-2-e8507d-full_home_img_7-702c7247",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.6374532919726335,
+                "bytes_read": 2952473,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_8",
+                "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774322100-current-2-e8507d-full_home_img_8-189fcdfd",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.0684214580105618,
+                "bytes_read": 7351316,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_9",
+                "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774322100-current-2-e8507d-full_home_img_9-f2bfa2f6",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.8660055839573033,
+                "bytes_read": 8914207,
+                "error": ""
+              }
+            ]
+          },
+          "h2AllVideos": {
+            "totalCount": 4,
+            "okCount": 4,
+            "failedCount": 0,
+            "totalBytes": 13250463,
+            "elapsedS": 3.9820656669908203,
+            "requests": [
+              {
+                "name": "full_h2_video_0",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322100-current-2-e8507d-full_h2_video_0-1ffbe2e2",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 3.980857875023503,
+                "bytes_read": 4568163,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_1",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322100-current-2-e8507d-full_h2_video_1-acc09f44",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.7511140000424348,
+                "bytes_read": 2201335,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_2",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774322100-current-2-e8507d-full_h2_video_2-23f2c412",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 3.344344582990743,
+                "bytes_read": 4772008,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_3",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F4.mp4&__bench=1774322100-current-2-e8507d-full_h2_video_3-8c18191f",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.2100247089983895,
+                "bytes_read": 1708957,
+                "error": ""
+              }
+            ]
+          },
+          "errors": [],
+          "requests": [
+            {
+              "name": "full_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322100-current-2-e8507d-full_api_hero-8fce8ac3",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.001672334037721157,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "full_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322100-current-2-e8507d-full_api_h2-8e66715d",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0012714170152321458,
+              "bytes_read": 1405,
+              "error": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "strategy": "current",
+      "iteration": 3,
+      "result": {
+        "runToken": "1774322122-current-3-0daa0c",
+        "strategy": "current",
+        "homepage": {
+          "firstMediaReadyS": 1.176943083992228,
+          "allResourcesReadyS": 6.122744209016673,
+          "steps": [
+            {
+              "name": "home_first_image_ready",
+              "at_s": 1.176943083992228
+            },
+            {
+              "name": "home_current_warm_images_done",
+              "at_s": 5.7279861670103855
+            },
+            {
+              "name": "home_current_all_resources_done",
+              "at_s": 6.122744209016673
+            }
+          ],
+          "requests": [
+            {
+              "name": "home_current_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322122-current-3-0daa0c-home_current_api_hero-f5f4ca64",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0036444999859668314,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "home_current_first_img",
+              "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322122-current-3-0daa0c-home_current_first_img-451b49ac",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 1.1727780409855768,
+              "bytes_read": 3325811,
+              "error": ""
+            },
+            {
+              "name": "home_current_warm_img_0",
+              "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322122-current-3-0daa0c-home_current_warm_img_0-cbc711a6",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.4106478330213577,
+              "bytes_read": 8585981,
+              "error": ""
+            },
+            {
+              "name": "home_current_warm_img_1",
+              "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322122-current-3-0daa0c-home_current_warm_img_1-c3631719",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 2.1393902910058387,
+              "bytes_read": 9330481,
+              "error": ""
+            },
+            {
+              "name": "home_current_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322122-current-3-0daa0c-home_current_api_h2-46277736",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0033140829764306545,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "home_current_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322122-current-3-0daa0c-home_current_video_range-a58b7fdd",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.39083912497153506,
+              "bytes_read": 524288,
+              "error": ""
+            }
+          ]
+        },
+        "h2page": {
+          "firstMediaReadyS": 0.6358946660184301,
+          "allResourcesReadyS": 0.9004244160023518,
+          "steps": [
+            {
+              "name": "h2_first_video_ready",
+              "at_s": 0.6358946660184301
+            },
+            {
+              "name": "h2_current_next_metadata_ready",
+              "at_s": 0.9004236250184476
+            },
+            {
+              "name": "h2_current_all_resources_done",
+              "at_s": 0.9004244160023518
+            }
+          ],
+          "requests": [
+            {
+              "name": "h2_current_api",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322122-current-3-0daa0c-h2_current_api-26fdce2a",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.003712375008035451,
+              "bytes_read": 1405,
+              "error": ""
+            },
+            {
+              "name": "h2_current_first_video_range",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322122-current-3-0daa0c-h2_current_first_video_range-70d4ad26",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.6315022499766201,
+              "bytes_read": 1048576,
+              "error": ""
+            },
+            {
+              "name": "h2_current_next_metadata",
+              "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322122-current-3-0daa0c-h2_current_next_metadata-b520a381",
+              "status": 206,
+              "ok": true,
+              "elapsed_s": 0.2640934999799356,
+              "bytes_read": 262144,
+              "error": ""
+            }
+          ]
+        },
+        "fullDownload": {
+          "homepageAllImages": {
+            "totalCount": 10,
+            "okCount": 10,
+            "failedCount": 0,
+            "totalBytes": 72657248,
+            "elapsedS": 15.08434458298143,
+            "requests": [
+              {
+                "name": "full_home_img_0",
+                "url": "http://121.40.30.236:1234/image/1.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_0-667d21da",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.905786707997322,
+                "bytes_read": 3325811,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_1",
+                "url": "http://121.40.30.236:1234/image/2.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_1-7be451fe",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.1973338749958202,
+                "bytes_read": 8585981,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_2",
+                "url": "http://121.40.30.236:1234/image/3.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_2-8689e3a7",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.295844540989492,
+                "bytes_read": 9330481,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_3",
+                "url": "http://121.40.30.236:1234/image/4.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_3-a098977f",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.2950279579963535,
+                "bytes_read": 7864697,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_4",
+                "url": "http://121.40.30.236:1234/image/5.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_4-9fc65337",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 8.726371333003044,
+                "bytes_read": 7163492,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_5",
+                "url": "http://121.40.30.236:1234/image/6.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_5-4f1d753d",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 12.350758917047642,
+                "bytes_read": 8959707,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_6",
+                "url": "http://121.40.30.236:1234/image/7.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_6-63721b02",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 7.029720457969233,
+                "bytes_read": 8209083,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_7",
+                "url": "http://121.40.30.236:1234/image/8.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_7-1282e429",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 2.6179557500290684,
+                "bytes_read": 2952473,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_8",
+                "url": "http://121.40.30.236:1234/image/9.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_8-3fc90631",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 3.9851276670233347,
+                "bytes_read": 7351316,
+                "error": ""
+              },
+              {
+                "name": "full_home_img_9",
+                "url": "http://121.40.30.236:1234/image/10.jpg?__bench=1774322122-current-3-0daa0c-full_home_img_9-d8775abc",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 10.17745045904303,
+                "bytes_read": 8914207,
+                "error": ""
+              }
+            ]
+          },
+          "h2AllVideos": {
+            "totalCount": 4,
+            "okCount": 4,
+            "failedCount": 0,
+            "totalBytes": 13250463,
+            "elapsedS": 4.701043000037316,
+            "requests": [
+              {
+                "name": "full_h2_video_0",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F1.mp4&__bench=1774322122-current-3-0daa0c-full_h2_video_0-c3ce24f7",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.108502124960069,
+                "bytes_read": 4568163,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_1",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F2.mp4&__bench=1774322122-current-3-0daa0c-full_h2_video_1-56f949e7",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.3516467079753056,
+                "bytes_read": 2201335,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_2",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F3.mp4&__bench=1774322122-current-3-0daa0c-full_h2_video_2-34ea4496",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 4.69959395803744,
+                "bytes_read": 4772008,
+                "error": ""
+              },
+              {
+                "name": "full_h2_video_3",
+                "url": "http://localhost:8000/api/video-proxy?url=http%3A%2F%2F121.40.30.236%3A1234%2F4.mp4&__bench=1774322122-current-3-0daa0c-full_h2_video_3-04110859",
+                "status": 200,
+                "ok": true,
+                "elapsed_s": 1.290349624992814,
+                "bytes_read": 1708957,
+                "error": ""
+              }
+            ]
+          },
+          "errors": [],
+          "requests": [
+            {
+              "name": "full_api_hero",
+              "url": "http://localhost:8000/api/hero?__bench=1774322122-current-3-0daa0c-full_api_hero-6454d26f",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.002925792010501027,
+              "bytes_read": 2235,
+              "error": ""
+            },
+            {
+              "name": "full_api_h2",
+              "url": "http://localhost:8000/api/h2-home?__bench=1774322122-current-3-0daa0c-full_api_h2-5382a8b6",
+              "status": 200,
+              "ok": true,
+              "elapsed_s": 0.0019732919754460454,
+              "bytes_read": 1405,
+              "error": ""
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

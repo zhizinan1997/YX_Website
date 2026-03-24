@@ -99,10 +99,13 @@
         opacity: 1;
       }
 
+      .hero-slide picture,
+      .hero-slide img,
       .hero-slide video {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        display: block;
       }
 
       .hero-controls {
@@ -147,6 +150,7 @@
         let timer = null;
         let dots = [];
         let controls = null;
+        let switching = false;
 
         function clearTimer() {
           if (timer) {
@@ -155,26 +159,122 @@
           }
         }
 
+        function ensureSlideMedia(slide, eager) {
+          if (!slide || slide.dataset.mediaReady === '1') return;
+          const type = slide.dataset.type;
+          const item = slide.__item || {};
+          const url = item.url || slide.dataset.url;
+          if (!url) return;
+
+          if (type === 'video') {
+            const video = document.createElement('video');
+            video.src = url;
+            video.muted = true;
+            video.playsInline = true;
+            video.preload = eager ? 'metadata' : 'none';
+            video.loop = true;
+            slide.appendChild(video);
+          } else {
+            const picture = document.createElement('picture');
+            const sources = Array.isArray(item.sources) ? item.sources : [];
+            sources.forEach(sourceDef => {
+              if (!sourceDef || !sourceDef.srcset) return;
+              const source = document.createElement('source');
+              source.srcset = sourceDef.srcset;
+              if (sourceDef.type) source.type = sourceDef.type;
+              if (sourceDef.sizes) source.sizes = sourceDef.sizes;
+              picture.appendChild(source);
+            });
+
+            const img = document.createElement('img');
+            img.src = item.fallback || url;
+            img.alt = '';
+            img.decoding = 'async';
+            // Carousel slides should preload in advance; lazy can delay off-screen slide fetch.
+            img.loading = 'eager';
+            img.fetchPriority = eager ? 'high' : 'low';
+            if (item.width) img.width = Number(item.width) || 0;
+            if (item.height) img.height = Number(item.height) || 0;
+            picture.appendChild(img);
+            slide.appendChild(picture);
+          }
+
+          slide.dataset.mediaReady = '1';
+        }
+
+        function warmNextSlide(slides, index) {
+          if (!slides.length) return;
+          const next = slides[(index + 1) % slides.length];
+          ensureSlideMedia(next, false);
+        }
+
+        function waitForImageReady(slide, timeoutMs) {
+          return new Promise(resolve => {
+            const img = slide ? slide.querySelector('img') : null;
+            if (!img) {
+              resolve(true);
+              return;
+            }
+            if (img.complete && img.naturalWidth > 0) {
+              resolve(true);
+              return;
+            }
+            let done = false;
+            const finish = (ok) => {
+              if (done) return;
+              done = true;
+              clearTimeout(timerId);
+              resolve(ok);
+            };
+            const timerId = setTimeout(() => finish(false), timeoutMs);
+            img.addEventListener('load', () => finish(true), { once: true });
+            img.addEventListener('error', () => finish(false), { once: true });
+          });
+        }
+
+        function waitForVideoReady(slide, timeoutMs) {
+          return new Promise(resolve => {
+            const vid = slide ? slide.querySelector('video') : null;
+            if (!vid) {
+              resolve(true);
+              return;
+            }
+            if (vid.readyState >= 2) {
+              resolve(true);
+              return;
+            }
+            let done = false;
+            const finish = (ok) => {
+              if (done) return;
+              done = true;
+              clearTimeout(timerId);
+              resolve(ok);
+            };
+            const timerId = setTimeout(() => finish(false), timeoutMs);
+            vid.addEventListener('canplay', () => finish(true), { once: true });
+            vid.addEventListener('error', () => finish(false), { once: true });
+          });
+        }
+
+        function waitForSlideReady(slide, timeoutMs = 8000) {
+          if (!slide) return Promise.resolve(false);
+          const type = slide.dataset.type;
+          if (type === 'video') return waitForVideoReady(slide, timeoutMs);
+          return waitForImageReady(slide, timeoutMs);
+        }
+
         function buildSlides(list) {
           container.innerHTML = '';
           list.forEach((item, index) => {
             const slide = document.createElement('div');
             slide.className = 'hero-slide' + (index === 0 ? ' is-active' : '');
-            slide.dataset.index = index;
+            slide.dataset.index = String(index);
             slide.dataset.type = item.type;
-
-            if (item.type === 'video') {
-              const video = document.createElement('video');
-              video.src = item.url;
-              video.muted = true;
-              video.playsInline = true;
-              video.preload = 'metadata';
-              video.loop = true;
-              slide.appendChild(video);
-            } else {
-              slide.style.backgroundImage = `url('${item.url}')`;
+            slide.dataset.url = item.url;
+            slide.__item = item;
+            if (index === 0) {
+              ensureSlideMedia(slide, true);
             }
-
             container.appendChild(slide);
           });
         }
@@ -183,9 +283,11 @@
           const slides = Array.from(container.querySelectorAll('.hero-slide'));
           if (slides.length === 0) return;
 
-          slides.forEach(slide => slide.classList.remove('is-active'));
           const active = slides[index];
           if (!active) return;
+          ensureSlideMedia(active, true);
+
+          slides.forEach(slide => slide.classList.remove('is-active'));
           active.classList.add('is-active');
 
           const type = active.dataset.type;
@@ -208,12 +310,33 @@
             timer = setTimeout(goNext, intervalSeconds * 1000);
           }
 
+          warmNextSlide(slides, index);
           updateDots();
         }
 
-        function goNext() {
-          currentIndex = (currentIndex + 1) % items.length;
-          activateSlide(currentIndex);
+        async function goNext() {
+          if (switching || !items.length) return;
+          switching = true;
+          try {
+            const slides = Array.from(container.querySelectorAll('.hero-slide'));
+            if (!slides.length) return;
+            const nextIndex = (currentIndex + 1) % items.length;
+            const nextSlide = slides[nextIndex];
+            if (!nextSlide) return;
+
+            ensureSlideMedia(nextSlide, true);
+            const ready = await waitForSlideReady(nextSlide, 9000);
+            if (!ready) {
+              // Keep current slide visible and retry later if next media is still not ready.
+              timer = setTimeout(goNext, 900);
+              return;
+            }
+
+            currentIndex = nextIndex;
+            activateSlide(currentIndex);
+          } finally {
+            switching = false;
+          }
         }
 
         function buildControls() {
@@ -258,10 +381,12 @@
           activateSlide(currentIndex);
         }
 
+        // Paint first frame immediately, then replace with real config.
+        startCarousel({ items: fallbackItems, interval_seconds: 5 });
         fetch('/api/hero')
           .then(res => res.json())
           .then(startCarousel)
-          .catch(() => startCarousel({ items: fallbackItems, interval_seconds: 5 }));
+          .catch(() => { });
       })();
     </script>
     <div class="vs-hero__overlay"></div>
@@ -731,8 +856,6 @@
 
   <script>
     (function () {
-      const PREFETCH_CACHE = 'yx-video-prefetch-v1';
-
       function runWhenIdle(task) {
         if ('requestIdleCallback' in window) {
           window.requestIdleCallback(task, { timeout: 3000 });
@@ -759,18 +882,22 @@
         try {
           const res = await fetch('/api/hero');
           const data = await res.json();
-          const urls = (data.items || [])
+          const imageUrls = (data.items || [])
             .filter(item => item && item.type === 'image' && item.url)
             .map(item => item.url);
-          if (!urls.length) return;
-          await Promise.all(urls.map(preloadImage));
+          if (imageUrls.length <= 1) return;
+
+          // Warm only the next couple slides, avoid downloading all hero images at once.
+          const warmQueue = imageUrls.slice(1, 3);
+          for (const url of warmQueue) {
+            await preloadImage(url);
+          }
         } catch (_) {
           // Silently ignore: prefetch is best effort.
         }
       }
 
       async function prefetchH2Videos() {
-        if (!('caches' in window)) return;
         function toVideoFetchUrl(rawUrl) {
           const absolute = new URL(rawUrl, window.location.origin);
           if (absolute.origin === window.location.origin) return absolute.href;
@@ -783,19 +910,16 @@
             .map(item => item && item.url)
             .filter(Boolean)
             .map(toVideoFetchUrl)
-            .slice(0, 3);
+            .slice(0, 1);
           if (!urls.length) return;
 
-          const cache = await caches.open(PREFETCH_CACHE);
           for (const url of urls) {
-            const request = new Request(url, { credentials: 'same-origin' });
-            const hit = await cache.match(request);
-            if (hit) continue;
             try {
-              const videoRes = await fetch(request);
-              if (videoRes.ok) {
-                await cache.put(request, videoRes.clone());
-              }
+              // Warm startup with a small byte range instead of downloading full video files.
+              await fetch(url, {
+                credentials: 'same-origin',
+                headers: { Range: 'bytes=0-524287' }
+              });
             } catch (_) {
               // Ignore single file failure.
             }
