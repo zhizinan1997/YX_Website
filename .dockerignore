@@ -12,6 +12,7 @@ docker-compose.yml
 .venv
 venv
 __pycache__
+**/__pycache__
 *.pyc
 *.pyo
 *.pyd
@@ -19,12 +20,14 @@ __pycache__
 
 # OS
 .DS_Store
+**/.DS_Store
 Thumbs.db
 
 # Temp
 *.tmp
 *.bak
 *.log
+.tmp_*
 
 # Project specific - NOT NEEDED IN PRODUCTION
 archive/
@@ -32,3 +35,25 @@ tools/
 .github/
 README.md
 _templates/
+docs/
+scripts/
+extracted_images/
+hnmetachip_site/
+fuwuanli/
+pages/gassensing_test/
+pic/
+
+# Local benchmark / analysis artifacts
+benchmark_*.json
+benchmark_*.md
+UPDATE_LOG_*.md
+pdf_content.txt
+pdf_extraction_result.txt
+particle-default-effect (1).html
+particle_test.html
+iot.md
+nav-table.txt
+extract_*.py
+fix_lang_toggle.py
+update_nav.py
+update_nav_*.py

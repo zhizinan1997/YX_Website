@@ -5,12 +5,14 @@ WORKDIR /app
 
 # Install dependencies into a virtual environment
 COPY requirements.txt .
-RUN pip install --no-cache-dir --target=/app/deps -r requirements.txt
+RUN pip install --no-cache-dir --no-compile --target=/app/deps -r requirements.txt
 
 # Stage 2: Production stage (minimal)
 FROM python:3.11-alpine
 
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 # Copy only the installed packages from builder
 COPY --from=builder /app/deps /app/deps
