@@ -873,39 +873,240 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
 
+        .changelog-card {
+            padding: 0;
+            border: 1px solid #d9e3f1;
+            background: #f6f9ff;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .changelog-hero {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 24px 26px;
+            background: linear-gradient(135deg, #0f2f5f 0%, #1f4f92 55%, #2f6ec4 100%);
+            color: #f8fbff;
+        }
+
+        .changelog-hero::after {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            right: -60px;
+            top: -100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.23) 0%, rgba(255, 255, 255, 0) 70%);
+            pointer-events: none;
+        }
+
+        .changelog-kicker {
+            font-size: 11px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            opacity: 0.84;
+            margin-bottom: 6px;
+        }
+
+        .changelog-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .changelog-subtitle {
+            margin: 10px 0 0 0;
+            font-size: 13px;
+            line-height: 1.7;
+            color: rgba(248, 251, 255, 0.9);
+        }
+
+        .changelog-refresh-btn {
+            width: auto;
+            padding: 10px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(3px);
+            transition: all 0.2s ease;
+        }
+
+        .changelog-refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.55);
+        }
+
+        .changelog-refresh-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.75;
+        }
+
         .changelog-meta-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 14px;
-            margin-bottom: 20px;
+            padding: 20px 24px 0 24px;
         }
 
         .changelog-meta-item {
             padding: 14px 16px;
-            border: 1px solid #dbe6f4;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #f8fbff 0%, #f2f7ff 100%);
+            border: 1px solid #d8e4f2;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(15, 47, 95, 0.06);
         }
 
         .changelog-meta-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
             font-size: 12px;
-            color: #64748b;
-            margin-bottom: 6px;
+            color: #5f7089;
+            margin-bottom: 8px;
         }
 
         .changelog-meta-value {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 700;
             color: #0f2f5f;
             word-break: break-word;
         }
 
+        .changelog-list-card {
+            margin: 20px 24px 24px 24px;
+            border: 1px solid #dde6f2;
+            border-radius: 12px;
+            background: #fff;
+            padding: 16px;
+        }
+
+        .changelog-list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .changelog-list-header h4 {
+            margin: 0;
+            color: #0f2f5f;
+            font-size: 16px;
+        }
+
+        .changelog-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 62px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #ecf3ff;
+            border: 1px solid #c8daf7;
+            color: #1d4f93;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
         .changelog-updates {
             margin: 0;
-            padding-left: 20px;
-            color: #334155;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .changelog-update-item {
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 11px 10px;
+            border: 1px solid #e7edf6;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #fcfdff 0%, #f7faff 100%);
+        }
+
+        .changelog-update-index {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9f1ff;
+            border: 1px solid #c8daf8;
+            color: #1c4c90;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            margin-top: 1px;
+        }
+
+        .changelog-update-text {
+            color: #1f2f46;
             font-size: 14px;
-            line-height: 1.9;
+            line-height: 1.8;
+            word-break: break-word;
+            white-space: pre-line;
+        }
+
+        .changelog-update-empty {
+            padding: 16px 14px;
+            border: 1px dashed #d9e3f0;
+            border-radius: 10px;
+            color: #64748b;
+            background: #f8fbff;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .changelog-hero {
+                flex-direction: column;
+                padding: 20px 18px;
+            }
+
+            .changelog-title {
+                font-size: 20px;
+            }
+
+            .changelog-refresh-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .changelog-meta-grid {
+                padding: 16px 16px 0 16px;
+            }
+
+            .changelog-list-card {
+                margin: 16px;
+            }
+
+            .changelog-update-item {
+                grid-template-columns: 34px 1fr;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .changelog-update-index {
+                width: 26px;
+                height: 26px;
+                font-size: 11px;
+            }
         }
 
         textarea.form-control {
@@ -2911,20 +3112,37 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
                 <!-- Changelog View -->
                 <div id="view-changelog" class="view-section">
-                    <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">系统更新日志</h3>
+                    <div class="card changelog-card">
+                        <div class="changelog-hero">
+                            <div>
+                                <div class="changelog-kicker">Admin Changelog</div>
+                                <h3 class="changelog-title">系统更新日志</h3>
+                                <p class="changelog-subtitle">展示当前部署版本、构建时间和最新更新项。</p>
+                            </div>
+                            <button type="button" class="changelog-refresh-btn" id="changelogRefreshBtn"
+                                onclick="loadChangelog(true)">
+                                <i class="fas fa-sync-alt"></i> 刷新日志
+                            </button>
+                        </div>
+
                         <div class="changelog-meta-grid">
                             <div class="changelog-meta-item">
-                                <div class="changelog-meta-label">当前版本号</div>
+                                <div class="changelog-meta-label"><i class="fas fa-code-branch"></i> 当前版本号</div>
                                 <div class="changelog-meta-value" id="changelogVersion">-</div>
                             </div>
                             <div class="changelog-meta-item">
-                                <div class="changelog-meta-label">构建时间</div>
+                                <div class="changelog-meta-label"><i class="fas fa-clock"></i> 构建时间</div>
                                 <div class="changelog-meta-value" id="changelogBuildTime">-</div>
                             </div>
                         </div>
-                        <h4 style="margin: 0 0 12px 0; color: #0f2f5f;">更新内容</h4>
-                        <ul class="changelog-updates" id="changelogUpdates"></ul>
+
+                        <div class="changelog-list-card">
+                            <div class="changelog-list-header">
+                                <h4>更新内容</h4>
+                                <span id="changelogCountBadge" class="changelog-count-badge">0 项</span>
+                            </div>
+                            <ul class="changelog-updates" id="changelogUpdates"></ul>
+                        </div>
                     </div>
                 </div>
 
@@ -3112,6 +3330,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const versionEl = document.getElementById('changelogVersion');
             const buildTimeEl = document.getElementById('changelogBuildTime');
             const updatesEl = document.getElementById('changelogUpdates');
+            const countEl = document.getElementById('changelogCountBadge');
             if (!versionEl || !buildTimeEl || !updatesEl) return;
 
             const data = (payload && typeof payload === 'object') ? payload : {};
@@ -3128,20 +3347,45 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
             if (!normalizedUpdates.length) {
                 const emptyItem = document.createElement('li');
+                emptyItem.className = 'changelog-update-empty';
                 emptyItem.textContent = '暂无更新记录';
                 updatesEl.appendChild(emptyItem);
+                if (countEl) countEl.textContent = '0 项';
                 return;
             }
 
-            normalizedUpdates.forEach(text => {
+            normalizedUpdates.forEach((text, index) => {
                 const li = document.createElement('li');
-                li.textContent = text;
+                li.className = 'changelog-update-item';
+
+                const number = document.createElement('span');
+                number.className = 'changelog-update-index';
+                number.textContent = String(index + 1).padStart(2, '0');
+
+                const body = document.createElement('div');
+                body.className = 'changelog-update-text';
+                body.textContent = text;
+
+                li.appendChild(number);
+                li.appendChild(body);
                 updatesEl.appendChild(li);
             });
+
+            if (countEl) countEl.textContent = `${normalizedUpdates.length} 项`;
         }
 
-        async function loadChangelog() {
-            renderChangelog(CHANGELOG_FALLBACK);
+        function setChangelogLoading(isLoading) {
+            const btn = document.getElementById('changelogRefreshBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-sync-alt fa-spin"></i> 刷新中...'
+                : '<i class="fas fa-sync-alt"></i> 刷新日志';
+        }
+
+        async function loadChangelog(manual = false) {
+            if (!manual) renderChangelog(CHANGELOG_FALLBACK);
+            setChangelogLoading(true);
             try {
                 const res = await fetch('/api/admin/changelog', { cache: 'no-store' });
                 if (!res.ok) return;
@@ -3149,6 +3393,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 renderChangelog(data);
             } catch (err) {
                 console.warn('Load changelog failed:', err);
+            } finally {
+                setChangelogLoading(false);
             }
         }
 
