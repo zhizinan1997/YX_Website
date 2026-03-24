@@ -13,18 +13,16 @@ import re
 import uuid
 import html
 import mimetypes
-import shutil
-import tempfile
-import zipfile
-import posixpath
 import ipaddress
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
 from urllib.parse import urlparse
 
-from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string, Response, stream_with_context, make_response, send_file, after_this_request
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, render_template_string, Response, stream_with_context, send_file
 from werkzeug.utils import secure_filename
+from app.routes.admin import register_admin_routes
+from app.routes.backup import register_backup_routes
 
 # Optional imports for PDF parsing and OpenAI
 try:
@@ -53,8 +51,21 @@ try:
 except ImportError:
     MARKDOWN_SUPPORT = False
 
-app = Flask(__name__, static_folder='.', static_url_path='')
-app.secret_key = os.environ.get('SECRET_KEY', 'metachip-secret-key-2024')
+try:
+    from PIL import Image, ImageOps, features as PIL_FEATURES
+    PIL_SUPPORT = True
+except ImportError:
+    PIL_SUPPORT = False
+    PIL_FEATURES = None
+
+def create_app():
+    """Create Flask app instance."""
+    flask_app = Flask(__name__, static_folder='.', static_url_path='')
+    flask_app.secret_key = os.environ.get('SECRET_KEY', 'metachip-secret-key-2024')
+    return flask_app
+
+
+app = create_app()
 CHEM_SUBSCRIPT_SCRIPT_SRC = '/assets/js/chem-subscript.js'
 
 # Configuration
@@ -67,6 +78,8 @@ CONFIG_FILE = DATA_DIR / 'config.json'
 HERO_DIR = DATA_DIR / 'hero'
 HERO_UPLOADS_DIR = HERO_DIR / 'uploads'
 HERO_CONFIG_FILE = HERO_DIR / 'hero.json'
+HERO_DERIVED_DIR = HERO_DIR / 'derived'
+HERO_DERIVED_MANIFEST_FILE = HERO_DERIVED_DIR / 'manifest.json'
 PARTNERS_DIR = DATA_DIR / 'partners'
 PARTNERS_UPLOADS_DIR = PARTNERS_DIR / 'uploads'
 PARTNERS_CONFIG_FILE = PARTNERS_DIR / 'partners.json'
@@ -91,6 +104,7 @@ ADMIN_IP_LOCATION_LOCK = threading.Lock()
 # Ensure directories exist
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
 HERO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+HERO_DERIVED_DIR.mkdir(parents=True, exist_ok=True)
 PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PRODUCT_CARD_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 H2_HOME_VIDEO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
@@ -108,19 +122,6 @@ ALLOWED_HERO_MIME_TYPES = {'image/png', 'image/jpeg', 'video/mp4'}
 ALLOWED_H2_HOME_VIDEO_EXTENSIONS = {'.mp4', '.webm', '.ogg', '.ogv'}
 ALLOWED_H2_HOME_VIDEO_MIME_TYPES = {'video/mp4', 'video/webm', 'video/ogg'}
 ALLOWED_RESUME_EXTENSIONS = {'.pdf', '.doc', '.docx'}
-BACKUP_ALLOWED_DIRS = [
-    'data',
-    'pages',
-    'pages_en',
-    'assets/partials'
-]
-BACKUP_ALLOWED_FILES = [
-    'index.html',
-    'index_en.html',
-    'assets/js/nav-loader.js',
-    'admin/index.html',
-    'server.py'
-]
 BACKUP_META_FILES = {'backup_manifest.json'}
 BACKUP_EXCLUDED_DIR_NAMES = {
     '.git',
@@ -162,6 +163,12 @@ ALLOWED_AI_PRODUCT_IMAGE_MIME_TYPES = {
     'image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif', 'image/svg+xml',
     'image/tiff', 'image/avif', 'image/heic', 'image/heif'
 }
+MEDIA_IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+CONFIG_JSON_CACHE_SECONDS = 120
+CONFIG_JSON_STALE_SECONDS = 600
+HERO_DERIVED_WIDTHS = (768, 1280, 1920)
+HERO_DERIVED_FORMATS = ('avif', 'webp')
+HERO_SOURCE_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.avif'}
 
 def infer_extension_from_mime(mime: str) -> str:
     if mime == 'image/png':
@@ -382,6 +389,280 @@ def save_hero_config(new_config):
     }
     HERO_CONFIG_FILE.write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
     return saved
+
+
+def load_hero_derived_manifest():
+    """Load hero derived-image manifest from disk."""
+    default_manifest = {'version': 1, 'items': {}}
+    if not HERO_DERIVED_MANIFEST_FILE.exists():
+        return default_manifest
+    try:
+        payload = json.loads(HERO_DERIVED_MANIFEST_FILE.read_text(encoding='utf-8'))
+    except Exception:
+        return default_manifest
+    if not isinstance(payload, dict):
+        return default_manifest
+    items = payload.get('items')
+    if not isinstance(items, dict):
+        items = {}
+    return {'version': 1, 'items': items}
+
+
+def save_hero_derived_manifest(manifest):
+    """Persist hero derived-image manifest to disk."""
+    payload = manifest if isinstance(manifest, dict) else {'version': 1, 'items': {}}
+    HERO_DERIVED_MANIFEST_FILE.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding='utf-8'
+    )
+
+
+def hero_source_filename_from_url(url: str) -> str:
+    """Extract local hero source filename from '/media/hero/<filename>' URL."""
+    raw = (url or '').strip()
+    if not raw.startswith('/media/hero/'):
+        return ''
+    return raw.replace('/media/hero/', '', 1).strip()
+
+
+def _iter_hero_variant_filenames(entry):
+    variants = (entry or {}).get('variants', {})
+    if not isinstance(variants, dict):
+        return []
+    names = []
+    for group in variants.values():
+        if not isinstance(group, list):
+            continue
+        for item in group:
+            if not isinstance(item, dict):
+                continue
+            filename = str(item.get('filename') or '').strip()
+            if filename:
+                names.append(filename)
+    return names
+
+
+def remove_hero_variants_for_source(source_filename: str):
+    """Delete derived variants for a source hero image and update manifest."""
+    source_name = (source_filename or '').strip()
+    if not source_name:
+        return
+    manifest = load_hero_derived_manifest()
+    items = manifest.get('items', {})
+    if not isinstance(items, dict):
+        items = {}
+    entry = items.pop(source_name, None)
+    if entry:
+        for variant_name in _iter_hero_variant_filenames(entry):
+            variant_path = HERO_DERIVED_DIR / variant_name
+            if variant_path.exists():
+                try:
+                    variant_path.unlink()
+                except Exception:
+                    pass
+    manifest['items'] = items
+    save_hero_derived_manifest(manifest)
+
+
+def _hero_can_encode_avif() -> bool:
+    if not PIL_SUPPORT or PIL_FEATURES is None:
+        return False
+    try:
+        return bool(PIL_FEATURES.check('avif'))
+    except Exception:
+        return False
+
+
+def generate_hero_variants_for_source(source_filename: str):
+    """Generate AVIF/WebP responsive variants for one hero source image."""
+    source_name = (source_filename or '').strip()
+    if not source_name or not PIL_SUPPORT:
+        return None
+    source_path = HERO_UPLOADS_DIR / source_name
+    if not source_path.exists() or source_path.suffix.lower() not in HERO_SOURCE_IMAGE_EXTENSIONS:
+        return None
+
+    try:
+        with Image.open(source_path) as raw_img:
+            img = ImageOps.exif_transpose(raw_img)
+            src_width, src_height = img.size
+            if src_width <= 0 or src_height <= 0:
+                return None
+            if img.mode in ('RGBA', 'LA') or ('transparency' in img.info):
+                base_img = img.convert('RGBA')
+            else:
+                base_img = img.convert('RGB')
+    except Exception:
+        return None
+
+    resample = Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS
+    variant_widths = sorted({w for w in HERO_DERIVED_WIDTHS if isinstance(w, int) and w > 0})
+    if src_width not in variant_widths:
+        variant_widths.append(src_width)
+    variant_widths = sorted({min(src_width, w) for w in variant_widths if w > 0})
+
+    allow_avif = _hero_can_encode_avif()
+    format_map = []
+    for fmt in HERO_DERIVED_FORMATS:
+        if fmt == 'avif' and not allow_avif:
+            continue
+        if fmt == 'webp':
+            format_map.append(('webp', 'WEBP', {'quality': 80, 'method': 6}))
+        elif fmt == 'avif':
+            format_map.append(('avif', 'AVIF', {'quality': 50, 'speed': 6}))
+
+    if not format_map:
+        return None
+
+    base_name = Path(source_name).stem
+    variants = {}
+    created_files = set()
+    for fmt_name, pil_format, save_options in format_map:
+        rows = []
+        for width in variant_widths:
+            width = int(width)
+            if width <= 0:
+                continue
+            if width == src_width:
+                resized = base_img.copy()
+                height = src_height
+            else:
+                height = max(1, int(round(src_height * width / src_width)))
+                resized = base_img.resize((width, height), resample)
+            out_filename = f'{base_name}-w{width}.{fmt_name}'
+            out_path = HERO_DERIVED_DIR / out_filename
+            try:
+                resized.save(out_path, pil_format, **save_options)
+            except Exception:
+                continue
+            rows.append({'width': width, 'filename': out_filename})
+            created_files.add(out_filename)
+        if rows:
+            rows.sort(key=lambda x: int(x.get('width', 0)))
+            variants[fmt_name] = rows
+
+    if not variants:
+        return None
+
+    manifest = load_hero_derived_manifest()
+    items = manifest.get('items', {})
+    if not isinstance(items, dict):
+        items = {}
+    old_entry = items.get(source_name, {})
+    stale_files = set(_iter_hero_variant_filenames(old_entry)) - created_files
+    for stale in stale_files:
+        stale_path = HERO_DERIVED_DIR / stale
+        if stale_path.exists():
+            try:
+                stale_path.unlink()
+            except Exception:
+                pass
+
+    new_entry = {
+        'width': int(src_width),
+        'height': int(src_height),
+        'variants': variants,
+        'updated_at': int(time.time())
+    }
+    items[source_name] = new_entry
+    manifest['items'] = items
+    save_hero_derived_manifest(manifest)
+    return new_entry
+
+
+def build_hero_api_payload():
+    """Build hero API payload with responsive image sources when available."""
+    config = get_hero_config()
+    items = config.get('items', [])
+    if not isinstance(items, list):
+        items = []
+
+    manifest_items = load_hero_derived_manifest().get('items', {})
+    if not isinstance(manifest_items, dict):
+        manifest_items = {}
+
+    payload_items = []
+    for raw_item in items:
+        if not isinstance(raw_item, dict):
+            continue
+        item = dict(raw_item)
+        if (item.get('type') or '').lower() != 'image':
+            payload_items.append(item)
+            continue
+
+        fallback = str(item.get('url') or '').strip()
+        item['fallback'] = fallback
+        source_name = hero_source_filename_from_url(fallback)
+        if not source_name:
+            payload_items.append(item)
+            continue
+
+        entry = manifest_items.get(source_name)
+        if not isinstance(entry, dict) and PIL_SUPPORT:
+            entry = generate_hero_variants_for_source(source_name)
+            if isinstance(entry, dict):
+                manifest_items[source_name] = entry
+        if not isinstance(entry, dict):
+            payload_items.append(item)
+            continue
+
+        width = int(entry.get('width') or 0)
+        height = int(entry.get('height') or 0)
+        if width > 0:
+            item['width'] = width
+        if height > 0:
+            item['height'] = height
+
+        variants = entry.get('variants', {})
+        if not isinstance(variants, dict):
+            payload_items.append(item)
+            continue
+
+        sources = []
+        for fmt in HERO_DERIVED_FORMATS:
+            rows = variants.get(fmt, [])
+            if not isinstance(rows, list) or not rows:
+                continue
+            srcset_parts = []
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                variant_name = str(row.get('filename') or '').strip()
+                variant_width = int(row.get('width') or 0)
+                if not variant_name or variant_width <= 0:
+                    continue
+                srcset_parts.append(f'/media/hero-derived/{variant_name} {variant_width}w')
+            if not srcset_parts:
+                continue
+            sources.append({
+                'type': f'image/{fmt}',
+                'srcset': ', '.join(srcset_parts),
+                'sizes': '100vw'
+            })
+
+        if sources:
+            item['sources'] = sources
+        payload_items.append(item)
+
+    return {
+        'interval_seconds': config.get('interval_seconds', 5),
+        'items': payload_items
+    }
+
+
+def build_json_etag(payload) -> str:
+    """Build a stable ETag for JSON payloads."""
+    serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+    return hashlib.sha1(serialized.encode('utf-8')).hexdigest()
+
+
+def cached_json_response(payload, max_age: int = CONFIG_JSON_CACHE_SECONDS, stale_seconds: int = CONFIG_JSON_STALE_SECONDS):
+    """Return JSON response with conditional ETag caching headers."""
+    response = jsonify(payload)
+    response.set_etag(build_json_etag(payload))
+    response.headers['Cache-Control'] = f'public, max-age={max_age}, stale-while-revalidate={stale_seconds}'
+    response.make_conditional(request)
+    return response
 
 def get_partners_config():
     """Load partners config from file or defaults."""
@@ -1917,7 +2198,7 @@ def get_jobs_public():
 
 @app.route('/api/h2-home', methods=['GET'])
 def get_h2_home():
-    return jsonify(get_h2_home_config())
+    return cached_json_response(get_h2_home_config())
 
 
 @app.route('/api/h2-home/upload-video', methods=['POST'])
@@ -5785,7 +6066,13 @@ def update_nav_industry_categories_api():
 @app.route('/api/hero', methods=['GET'])
 def get_hero():
     """Get hero carousel configuration."""
-    return jsonify(get_hero_config())
+    payload = build_hero_api_payload()
+    # Admin UI must always see fresh data after edits/deletes.
+    if session.get('admin_logged_in'):
+        response = jsonify(payload)
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+    return cached_json_response(payload)
 
 
 @app.route('/api/hero', methods=['POST'])
@@ -5825,6 +6112,9 @@ def upload_hero_media():
     file.save(str(save_path))
 
     item_type = 'video' if ext == '.mp4' else 'image'
+    if item_type == 'image':
+        generate_hero_variants_for_source(saved_name)
+
     item = {
         'id': uuid.uuid4().hex,
         'type': item_type,
@@ -5861,13 +6151,15 @@ def delete_hero_item(item_id):
             remaining.append(item)
 
     if not deleted_item:
-        return jsonify({'success': False, 'message': '未找到项目'}), 404
+        # DELETE should be idempotent to avoid false failures on repeated clicks.
+        return jsonify({'success': True, 'alreadyDeleted': True, 'message': '项目已不存在'})
 
     if deleted_item.get('source') == 'upload':
         url = deleted_item.get('url', '')
         if url.startswith('/media/hero/'):
             filename = url.replace('/media/hero/', '')
             file_path = HERO_UPLOADS_DIR / filename
+            remove_hero_variants_for_source(filename)
             if file_path.exists():
                 try:
                     file_path.unlink()
@@ -5882,13 +6174,25 @@ def delete_hero_item(item_id):
 @app.route('/media/hero/<path:filename>')
 def serve_hero_media(filename):
     """Serve uploaded hero media files."""
-    return send_from_directory(HERO_UPLOADS_DIR, filename)
+    response = send_from_directory(HERO_UPLOADS_DIR, filename, max_age=31536000)
+    response.headers['Cache-Control'] = MEDIA_IMMUTABLE_CACHE_CONTROL
+    return response
+
+
+@app.route('/media/hero-derived/<path:filename>')
+def serve_hero_derived_media(filename):
+    """Serve derived responsive hero images."""
+    response = send_from_directory(HERO_DERIVED_DIR, filename, max_age=31536000)
+    response.headers['Cache-Control'] = MEDIA_IMMUTABLE_CACHE_CONTROL
+    return response
 
 
 @app.route('/media/h2-home/<path:filename>')
 def serve_h2_home_media(filename):
     """Serve uploaded H2 home video files."""
-    return send_from_directory(H2_HOME_VIDEO_UPLOADS_DIR, filename)
+    response = send_from_directory(H2_HOME_VIDEO_UPLOADS_DIR, filename, max_age=31536000)
+    response.headers['Cache-Control'] = MEDIA_IMMUTABLE_CACHE_CONTROL
+    return response
 
 
 # ============ Partners API ============
@@ -6406,179 +6710,15 @@ def serve_resume_media(filename):
     return send_from_directory(RESUME_UPLOADS_DIR, filename)
 
 
-def normalize_backup_rel_path(raw_path: str) -> str:
-    """Normalize backup relative path and guard against traversal."""
-    if not raw_path:
-        return ''
-    normalized = posixpath.normpath(str(raw_path).replace('\\', '/')).lstrip('./')
-    if not normalized or normalized.startswith('../') or normalized.startswith('/'):
-        return ''
-    return normalized
-
-
-def should_include_site_backup_path(rel_path: str) -> bool:
-    """Decide whether a relative path should be included in full-site backup."""
-    normalized = normalize_backup_rel_path(rel_path)
-    if not normalized:
-        return False
-    if normalized in BACKUP_META_FILES:
-        return False
-
-    parts = [p for p in normalized.split('/') if p and p != '.']
-    if not parts:
-        return False
-
-    # Exclude cache/dev directories from any depth.
-    for part in parts[:-1]:
-        if part in BACKUP_EXCLUDED_DIR_NAMES:
-            return False
-
-    filename = parts[-1]
-    if filename in BACKUP_EXCLUDED_FILE_NAMES:
-        return False
-
-    filename_lower = filename.lower()
-    if any(filename_lower.endswith(suffix) for suffix in BACKUP_EXCLUDED_SUFFIXES):
-        return False
-
-    return True
-
-
-def iter_site_backup_files(root: Path):
-    """Yield (abs_file_path, rel_posix_path) for backup-eligible files."""
-    for current_root, dirnames, filenames in os.walk(root, topdown=True):
-        dirnames[:] = [d for d in dirnames if d not in BACKUP_EXCLUDED_DIR_NAMES]
-
-        current_dir = Path(current_root)
-        for filename in filenames:
-            abs_path = current_dir / filename
-            if not abs_path.is_file() or abs_path.is_symlink():
-                continue
-            rel_posix = abs_path.relative_to(root).as_posix()
-            if should_include_site_backup_path(rel_posix):
-                yield abs_path, rel_posix
-
-
-@app.route('/api/backup/download', methods=['GET'])
-@login_required
-def download_backup():
-    """Download full-site backup (excluding cache/dev directories)."""
-    root = Path(__file__).parent
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_name = f'yx_backup_{ts}.zip'
-
-    fd, temp_zip = tempfile.mkstemp(prefix='yx_backup_', suffix='.zip')
-    os.close(fd)
-
-    try:
-        included_files = list(iter_site_backup_files(root))
-
-        with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
-            manifest = {
-                'created_at': datetime.now().isoformat(),
-                'version': 3,
-                'scope': 'full_site',
-                'includes': {
-                    'mode': 'walk_root_with_excludes',
-                    'root': '.',
-                    'excluded_dir_names': sorted(BACKUP_EXCLUDED_DIR_NAMES),
-                    'excluded_file_names': sorted(BACKUP_EXCLUDED_FILE_NAMES),
-                    'excluded_suffixes': list(BACKUP_EXCLUDED_SUFFIXES)
-                },
-                'stats': {
-                    'file_count': len(included_files)
-                }
-            }
-            zf.writestr('backup_manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
-
-            for abs_path, rel_posix in included_files:
-                zf.write(abs_path, rel_posix)
-
-        @after_this_request
-        def cleanup_temp_file(resp):
-            try:
-                if os.path.exists(temp_zip):
-                    os.remove(temp_zip)
-            except Exception:
-                pass
-            return resp
-
-        return send_file(
-            temp_zip,
-            as_attachment=True,
-            download_name=backup_name,
-            mimetype='application/zip'
-        )
-    except Exception:
-        try:
-            if os.path.exists(temp_zip):
-                os.remove(temp_zip)
-        except Exception:
-            pass
-        return jsonify({'success': False, 'message': '备份生成失败'}), 500
-
-
-@app.route('/api/backup/restore', methods=['POST'])
-@login_required
-def restore_backup():
-    """Restore backup zip after docker redeploy."""
-    file = request.files.get('file')
-    if not file or not file.filename:
-        return jsonify({'success': False, 'message': '请上传备份文件'}), 400
-    if not str(file.filename).lower().endswith('.zip'):
-        return jsonify({'success': False, 'message': '仅支持 ZIP 备份文件'}), 400
-
-    root = Path(__file__).parent
-
-    with tempfile.TemporaryDirectory(prefix='yx_restore_') as td:
-        temp_dir = Path(td)
-        temp_zip = temp_dir / 'upload.zip'
-        file.save(temp_zip)
-
-        extracted_rel_paths = set()
-
-        try:
-            with zipfile.ZipFile(temp_zip, 'r') as zf:
-                for info in zf.infolist():
-                    if info.is_dir():
-                        continue
-                    norm_name = normalize_backup_rel_path(info.filename)
-                    if not norm_name:
-                        continue
-                    if norm_name in BACKUP_META_FILES:
-                        continue
-                    if not should_include_site_backup_path(norm_name):
-                        continue
-
-                    out_path = temp_dir / norm_name
-                    out_path.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(info, 'r') as src, open(out_path, 'wb') as dst:
-                        shutil.copyfileobj(src, dst)
-                    extracted_rel_paths.add(norm_name)
-        except zipfile.BadZipFile:
-            return jsonify({'success': False, 'message': '备份文件损坏或格式不正确'}), 400
-
-        if not extracted_rel_paths:
-            return jsonify({'success': False, 'message': '备份包中没有可恢复的有效站点文件'}), 400
-
-        restored_top_entries = set()
-        restored_files = 0
-        for rel_path in sorted(extracted_rel_paths):
-            src_file = temp_dir / rel_path
-            if not src_file.exists() or not src_file.is_file():
-                continue
-            dst_file = root / rel_path
-            dst_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src_file, dst_file)
-            restored_files += 1
-            restored_top_entries.add(rel_path.split('/', 1)[0])
-
-    return jsonify({
-        'success': True,
-        'message': '备份恢复成功，建议重启服务后刷新后台。',
-        'restored_files': restored_files,
-        'restored_entries': len(restored_top_entries)
-    })
+register_backup_routes(
+    app,
+    login_required=login_required,
+    project_root=Path(__file__).parent,
+    backup_meta_files=BACKUP_META_FILES,
+    backup_excluded_dir_names=BACKUP_EXCLUDED_DIR_NAMES,
+    backup_excluded_file_names=BACKUP_EXCLUDED_FILE_NAMES,
+    backup_excluded_suffixes=BACKUP_EXCLUDED_SUFFIXES,
+)
 
 
 # ============ Chatbot API ============
@@ -7053,127 +7193,16 @@ def update_product_ai_config():
 
 # ============ Admin Routes ============
 
-@app.route('/admin', strict_slashes=False)
-def admin_page():
-    """Admin login/dashboard page."""
-    resp = make_response(send_from_directory('admin', 'index.html'))
-    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
-    return resp
-
-
-@app.route('/admin/login', methods=['POST'])
-def admin_login():
-    """Handle admin login."""
-    data = request.form if request.form else request.json or {}
-    username = data.get('username', '')
-    password = data.get('password', '')
-    
-    config = get_config()
-    
-    if username == config['admin_username'] and password == config['admin_password']:
-        session['admin_logged_in'] = True
-        session['admin_username'] = config['admin_username']
-        append_admin_login_log(
-            operation='后台登录',
-            success=True,
-            username=config['admin_username'],
-            detail='用户名和密码验证通过'
-        )
-        return jsonify({'success': True})
-    append_admin_login_log(
-        operation='后台登录',
-        success=False,
-        username=username,
-        detail='用户名或密码错误'
-    )
-    return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
-
-
-@app.route('/admin/change-password', methods=['POST'])
-@login_required
-def change_password():
-    """Change admin username and password."""
-    data = request.form if request.form else request.json or {}
-    old_password = data.get('oldPassword', '')
-    new_username = data.get('newUsername', '').strip()
-    new_password = data.get('newPassword', '').strip()
-    
-    config = get_config()
-    current_admin = session.get('admin_username') or config.get('admin_username', '')
-    
-    if old_password != config['admin_password']:
-        append_admin_login_log(
-            operation='修改账号密码',
-            success=False,
-            username=current_admin,
-            detail='原密码校验失败'
-        )
-        return jsonify({'success': False, 'message': '原密码错误'}), 400
-        
-    if not new_username or not new_password:
-        append_admin_login_log(
-            operation='修改账号密码',
-            success=False,
-            username=current_admin,
-            detail='新用户名或新密码为空'
-        )
-        return jsonify({'success': False, 'message': '用户名和密码不能为空'}), 400
-         
-    update_config({
-        'admin_username': new_username,
-        'admin_password': new_password
-    })
-    session['admin_username'] = new_username
-    append_admin_login_log(
-        operation='修改账号密码',
-        success=True,
-        username=new_username,
-        detail='账号信息更新成功'
-    )
-    
-    return jsonify({'success': True, 'message': '修改成功'})
-
-
-@app.route('/admin/logout', methods=['POST'])
-def admin_logout():
-    """Handle admin logout."""
-    username = session.get('admin_username') or ''
-    if session.get('admin_logged_in'):
-        append_admin_login_log(
-            operation='退出登录',
-            success=True,
-            username=username,
-            detail='管理员主动退出'
-        )
-    session.pop('admin_logged_in', None)
-    session.pop('admin_username', None)
-    return jsonify({'success': True})
-
-
-@app.route('/admin/check')
-def admin_check():
-    """Check if admin is logged in."""
-    return jsonify({'logged_in': session.get('admin_logged_in', False)})
-
-
-@app.route('/api/admin/login-logs')
-@login_required
-def admin_login_logs():
-    """Get immutable admin login-operation logs."""
-    limit_raw = request.args.get('limit', '200')
-    try:
-        limit = int(limit_raw)
-    except (TypeError, ValueError):
-        limit = 200
-    limit = max(1, min(limit, 1000))
-
-    with ADMIN_LOGIN_LOG_LOCK:
-        items = load_admin_login_logs()
-
-    output = list(reversed(items))[:limit]
-    return jsonify({'items': output, 'count': len(output)})
+register_admin_routes(
+    app,
+    login_required=login_required,
+    get_config=get_config,
+    update_config=update_config,
+    append_admin_login_log=append_admin_login_log,
+    load_admin_login_logs=load_admin_login_logs,
+    admin_login_log_lock=ADMIN_LOGIN_LOG_LOCK,
+    project_root=Path(__file__).parent,
+)
 
 
 # ============ Site Search API ============

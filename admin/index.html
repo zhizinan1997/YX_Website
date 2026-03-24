@@ -873,6 +873,41 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
 
+        .changelog-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .changelog-meta-item {
+            padding: 14px 16px;
+            border: 1px solid #dbe6f4;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f8fbff 0%, #f2f7ff 100%);
+        }
+
+        .changelog-meta-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .changelog-meta-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f2f5f;
+            word-break: break-word;
+        }
+
+        .changelog-updates {
+            margin: 0;
+            padding-left: 20px;
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.9;
+        }
+
         textarea.form-control {
             min-height: 120px;
             resize: vertical;
@@ -1158,6 +1193,9 @@
                 </div>
                 <div class="menu-item" onclick="switchView('backup')">
                     <i class="fas fa-database"></i> 备份恢复
+                </div>
+                <div class="menu-item" onclick="switchView('changelog')">
+                    <i class="fas fa-clipboard-list"></i> 更新日志
                 </div>
                 <div class="menu-item" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
@@ -2871,6 +2909,25 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     </div>
                 </div>
 
+                <!-- Changelog View -->
+                <div id="view-changelog" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <h3 class="section-header">系统更新日志</h3>
+                        <div class="changelog-meta-grid">
+                            <div class="changelog-meta-item">
+                                <div class="changelog-meta-label">当前版本号</div>
+                                <div class="changelog-meta-value" id="changelogVersion">-</div>
+                            </div>
+                            <div class="changelog-meta-item">
+                                <div class="changelog-meta-label">构建时间</div>
+                                <div class="changelog-meta-value" id="changelogBuildTime">-</div>
+                            </div>
+                        </div>
+                        <h4 style="margin: 0 0 12px 0; color: #0f2f5f;">更新内容</h4>
+                        <ul class="changelog-updates" id="changelogUpdates"></ul>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -2891,6 +2948,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
     <script>
         const SIDEBAR_COLLAPSE_KEY = 'yx_admin_sidebar_collapsed';
+        const CHANGELOG_FALLBACK = {
+            version: 'v1.0.0',
+            build_time: document.lastModified || '',
+            updates: ['新增后台「更新日志」入口，可查看版本号、构建时间与更新内容。']
+        };
+
+        function formatChangelogTime(raw) {
+            if (!raw) return '-';
+            const dt = new Date(raw);
+            if (Number.isNaN(dt.getTime())) return String(raw);
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+        }
 
         // --- Init ---
         checkLoginStatus();
@@ -3038,6 +3108,50 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             view.querySelectorAll('.tab-content.active').forEach(tabEl => renderTabGuide(tabEl));
         }
 
+        function renderChangelog(payload) {
+            const versionEl = document.getElementById('changelogVersion');
+            const buildTimeEl = document.getElementById('changelogBuildTime');
+            const updatesEl = document.getElementById('changelogUpdates');
+            if (!versionEl || !buildTimeEl || !updatesEl) return;
+
+            const data = (payload && typeof payload === 'object') ? payload : {};
+            const version = String(data.version || CHANGELOG_FALLBACK.version || '-').trim() || '-';
+            const buildTime = formatChangelogTime(data.build_time || CHANGELOG_FALLBACK.build_time);
+            const updates = Array.isArray(data.updates) ? data.updates : CHANGELOG_FALLBACK.updates;
+            const normalizedUpdates = updates
+                .map(item => String(item || '').trim())
+                .filter(Boolean);
+
+            versionEl.textContent = version;
+            buildTimeEl.textContent = buildTime || '-';
+            updatesEl.innerHTML = '';
+
+            if (!normalizedUpdates.length) {
+                const emptyItem = document.createElement('li');
+                emptyItem.textContent = '暂无更新记录';
+                updatesEl.appendChild(emptyItem);
+                return;
+            }
+
+            normalizedUpdates.forEach(text => {
+                const li = document.createElement('li');
+                li.textContent = text;
+                updatesEl.appendChild(li);
+            });
+        }
+
+        async function loadChangelog() {
+            renderChangelog(CHANGELOG_FALLBACK);
+            try {
+                const res = await fetch('/api/admin/changelog', { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                renderChangelog(data);
+            } catch (err) {
+                console.warn('Load changelog failed:', err);
+            }
+        }
+
         // --- Navigation ---
         function switchView(viewName) {
             // Update Menu
@@ -3052,7 +3166,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'jobs': '招聘信息',
                 'chatbot': 'AI客服',
                 'settings': '设置',
-                'backup': '备份恢复'
+                'backup': '备份恢复',
+                'changelog': '更新日志'
             };
             const activeMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.textContent.includes(menuTitles[viewName] || ''));
             if (activeMenu) activeMenu.classList.add('active');
@@ -3072,7 +3187,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'jobs': '招聘信息',
                 'chatbot': 'AI客服设置',
                 'settings': '账号设置',
-                'backup': '备份恢复'
+                'backup': '备份恢复',
+                'changelog': '更新日志'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
 
@@ -3091,6 +3207,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (viewName === 'news-create') updateNewsPreview();
             if (viewName === 'jobs') loadJobsAdmin();
             if (viewName === 'chatbot') loadChatbotConfig();
+            if (viewName === 'changelog') loadChangelog();
 
             renderGuidesForView(viewName);
         }
@@ -5684,7 +5801,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
 
             try {
-                const res = await fetch('/api/hero');
+                const res = await fetch(`/api/hero?admin_t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
                 heroConfig = data || { interval_seconds: 5, items: [] };
                 document.getElementById('heroInterval').value = heroConfig.interval_seconds || 5;
@@ -5792,6 +5909,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             heroConfig.items.push(makeHeroUrlItem(url, type));
 
             urlInput.value = '';
+            renderHeroList();
             saveHeroConfig();
         }
 
@@ -5817,6 +5935,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             });
 
             batchInput.value = '';
+            renderHeroList();
             saveHeroConfig();
         }
 

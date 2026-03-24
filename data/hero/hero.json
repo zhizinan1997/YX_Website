@@ -2,52 +2,64 @@
   "interval_seconds": 3,
   "items": [
     {
-      "id": "c30818b741e64896b9696ffd0f06707a",
+      "id": "url_1774320819415_0dd45624c0ef88",
       "type": "image",
-      "url": "/media/hero/f579f51b84ed489193a9d8029e458fef.png",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/1.jpg",
+      "source": "url"
     },
     {
-      "id": "d55591d05958424bb651158dae1ca1ae",
+      "id": "url_1774320848286_2480e3274ea4d",
       "type": "image",
-      "url": "/media/hero/cf5f089679b84f0392a201f69b56ca79.jpg",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/2.jpg",
+      "source": "url"
     },
     {
-      "id": "522cfa780b804339ad546ee9472f5553",
+      "id": "url_1774320848286_3bbf2f19dee3d8",
       "type": "image",
-      "url": "/media/hero/6d97e8d532764887a0cfe66536f00402.png",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/3.jpg",
+      "source": "url"
     },
     {
-      "id": "32d8acc1d9dd4be1a09351fa9a07f0a9",
+      "id": "url_1774320848286_7f1be0304d45d",
       "type": "image",
-      "url": "/media/hero/58cee7e6e9a64341b17134543924f6f6.jpg",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/4.jpg",
+      "source": "url"
     },
     {
-      "id": "9786c720ed28477ca66a53c78cbde95d",
+      "id": "url_1774320848286_eaa6a4ae5ba958",
       "type": "image",
-      "url": "/media/hero/49f5bf04a61e4efc836b56c42148b3fe.png",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/5.jpg",
+      "source": "url"
     },
     {
-      "id": "16ce1f326c884977afaae21206d66e34",
+      "id": "url_1774320848286_72cfffda7922d8",
       "type": "image",
-      "url": "/media/hero/692bb3da0fe0449192ef666b4c75e1e7.png",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/6.jpg",
+      "source": "url"
     },
     {
-      "id": "3a00e035b6884ef0837cd703bc50ac8b",
+      "id": "url_1774320848286_1c2ea917f5e438",
       "type": "image",
-      "url": "/media/hero/264aadea612b4e72b774cd6bdfcd54cd.png",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/7.jpg",
+      "source": "url"
     },
     {
-      "id": "6038b88a8c324b04a9d1ec286eee7a39",
+      "id": "url_1774320848286_82485c4d94b908",
       "type": "image",
-      "url": "/media/hero/3f9bd7f0dc8a46678a8f1f7835294e4b.png",
-      "source": "upload"
+      "url": "http://121.40.30.236:1234/image/8.jpg",
+      "source": "url"
+    },
+    {
+      "id": "url_1774320848286_911c8f8dfaa068",
+      "type": "image",
+      "url": "http://121.40.30.236:1234/image/9.jpg",
+      "source": "url"
+    },
+    {
+      "id": "url_1774320848286_f0b1a033d11cd8",
+      "type": "image",
+      "url": "http://121.40.30.236:1234/image/10.jpg",
+      "source": "url"
     }
   ]
 }
