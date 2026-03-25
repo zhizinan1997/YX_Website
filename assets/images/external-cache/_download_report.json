@@ -1,0 +1,9 @@
+{
+  "total_unique_external_image_urls": 0,
+  "downloaded_ok": 0,
+  "download_skipped_existing": 0,
+  "download_failed": 0,
+  "changed_files": 0,
+  "replaced_tokens": 0,
+  "failed": []
+}
