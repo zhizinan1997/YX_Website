@@ -387,6 +387,16 @@
           }
         }
 
+        function toMediaFetchUrl(rawUrl) {
+          if (!rawUrl) return '';
+          try {
+            const absolute = new URL(rawUrl, window.location.origin);
+            return absolute.href;
+          } catch (_) {
+            return rawUrl;
+          }
+        }
+
         function ensureSlideMedia(slide, eager) {
           if (!slide || slide.dataset.mediaReady === '1') return;
           const type = slide.dataset.type;
@@ -396,7 +406,7 @@
 
           if (type === 'video') {
             const video = document.createElement('video');
-            video.src = url;
+            video.src = toMediaFetchUrl(url);
             video.muted = true;
             video.playsInline = true;
             video.preload = eager ? 'metadata' : 'none';
@@ -415,7 +425,7 @@
             });
 
             const img = document.createElement('img');
-            img.src = item.fallback || url;
+            img.src = toMediaFetchUrl(item.fallback || url);
             img.alt = '';
             img.decoding = 'async';
             // Carousel slides should preload in advance; lazy can delay off-screen slide fetch.
@@ -1079,6 +1089,16 @@
 
   <script>
     (function () {
+      function toMediaFetchUrl(rawUrl) {
+        if (!rawUrl) return '';
+        try {
+          const absolute = new URL(rawUrl, window.location.origin);
+          return absolute.href;
+        } catch (_) {
+          return rawUrl;
+        }
+      }
+
       function runWhenIdle(task) {
         if ('requestIdleCallback' in window) {
           window.requestIdleCallback(task, { timeout: 3000 });
@@ -1107,7 +1127,7 @@
           const data = await res.json();
           const imageUrls = (data.items || [])
             .filter(item => item && item.type === 'image' && item.url)
-            .map(item => item.url);
+            .map(item => toMediaFetchUrl(item.url));
           if (imageUrls.length <= 1) return;
 
           // Warm only the next couple slides, avoid downloading all hero images at once.
@@ -1121,18 +1141,13 @@
       }
 
       async function prefetchH2Videos() {
-        function toVideoFetchUrl(rawUrl) {
-          const absolute = new URL(rawUrl, window.location.origin);
-          if (absolute.origin === window.location.origin) return absolute.href;
-          return `${window.location.origin}/api/video-proxy?url=${encodeURIComponent(absolute.href)}`;
-        }
         try {
           const res = await fetch('/api/h2-home');
           const data = await res.json();
           const urls = (data.items || [])
             .map(item => item && item.url)
             .filter(Boolean)
-            .map(toVideoFetchUrl)
+            .map(toMediaFetchUrl)
             .slice(0, 1);
           if (!urls.length) return;
 

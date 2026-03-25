@@ -950,8 +950,7 @@
 
                         function toVideoFetchUrl(rawUrl) {
                             const absolute = new URL(rawUrl, window.location.origin);
-                            if (absolute.origin === window.location.origin) return absolute.href;
-                            return `${window.location.origin}/api/video-proxy?url=${encodeURIComponent(absolute.href)}`;
+                            return absolute.href;
                         }
 
                         function waitForPlayable(video, timeoutMs = READY_TIMEOUT_MS) {
