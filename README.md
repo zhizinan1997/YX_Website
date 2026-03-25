@@ -90,7 +90,7 @@ docker run -d \
   --network bridge \
   -p 2026:8000 \
   -v /root/yxwebsite/data:/app/data \
-  yx_website-website:latest
+  ghcr.io/zhizinan1997/yx_website:latest
 ```
 
 ### 方式二：Docker Compose
