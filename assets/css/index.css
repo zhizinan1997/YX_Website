@@ -3368,7 +3368,7 @@ img.ban_pic {
 }
 
 .case_ban {
-	background: url(http://www.hnmetachip.cn/templates/lqgd/images/case_ban.jpg) no-repeat center bottom;
+	background: url(/assets/images/external-cache/www.hnmetachip.cn/case_ban.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
@@ -4966,7 +4966,7 @@ img.ban_pic {
 .cgqyy_one_li {
 	width: 100%;
 	height: 300px;
-	background: url(http://www.hnmetachip.cn/templates/lqgd/images/yy_jishu.jpg) no-repeat center;
+	background: url(/assets/images/external-cache/www.hnmetachip.cn/yy_jishu.jpg) no-repeat center;
 	padding: 50px 0
 }
 
