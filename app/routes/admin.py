@@ -29,32 +29,61 @@ def _run_git_command(args, cwd: Path) -> str:
     return (proc.stdout or '').strip()
 
 
-def _find_local_update_log(project_root: Path):
-    """Locate changelog markdown file from env or UPDATE_LOG_*.md convention."""
-    explicit = (os.environ.get('APP_CHANGELOG_FILE') or '').strip()
+def _parse_datetime_safe(raw_value: str):
+    """Parse datetime with several common formats."""
+    value = (raw_value or '').strip()
+    if not value:
+        return None
+    for fmt in (
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%Y/%m/%d %H:%M:%S',
+        '%Y/%m/%d %H:%M',
+        '%Y-%m-%d',
+        '%Y/%m/%d',
+    ):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _to_display_time(dt_value):
+    """Format datetime object to standard string."""
+    if not isinstance(dt_value, datetime):
+        return ''
+    return dt_value.strftime('%Y-%m-%d %H:%M:%S')
+
+
+def _get_changelog_dir(project_root: Path) -> Path:
+    """Get changelog directory from env or default folder."""
+    explicit = (os.environ.get('APP_CHANGELOG_DIR') or '').strip()
     if explicit:
         p = Path(explicit).expanduser()
         if not p.is_absolute():
             p = (project_root / p).resolve()
+        return p
+    return (project_root / 'update_logs').resolve()
+
+
+def _find_local_update_logs(project_root: Path):
+    """Locate all local changelog markdown files in update log directory."""
+    explicit_file = (os.environ.get('APP_CHANGELOG_FILE') or '').strip()
+    if explicit_file:
+        p = Path(explicit_file).expanduser()
+        if not p.is_absolute():
+            p = (project_root / p).resolve()
         if p.exists() and p.is_file():
-            return p
+            return [p]
+        return []
 
-    candidates = []
-    for p in project_root.glob('UPDATE_LOG_*.md'):
-        if p.is_file():
-            m = re.search(r'UPDATE_LOG_(\d{4}-\d{2}-\d{2})', p.name)
-            date_key = m.group(1) if m else ''
-            try:
-                mtime = p.stat().st_mtime
-            except OSError:
-                mtime = 0
-            candidates.append((date_key, mtime, p.name, p))
+    changelog_dir = _get_changelog_dir(project_root)
+    if not changelog_dir.exists() or not changelog_dir.is_dir():
+        return []
 
-    if not candidates:
-        return None
-
-    candidates.sort(reverse=True)
-    return candidates[0][3]
+    files = [p for p in changelog_dir.glob('*.md') if p.is_file()]
+    return sorted(files, key=lambda p: p.name, reverse=True)
 
 
 def _extract_updates_from_markdown(text: str, limit: int):
@@ -137,72 +166,119 @@ def _extract_markdown_field(text: str, patterns):
     return ''
 
 
-def _build_payload_from_local_markdown(project_root: Path, limit: int):
-    """Build changelog payload from local markdown log if available."""
-    log_file = _find_local_update_log(project_root)
-    if not log_file:
-        return None
+def _normalize_version_text(raw: str):
+    value = (raw or '').strip()
+    if not value:
+        return ''
+    if value.lower().startswith('v'):
+        return value
+    return f'v{value}'
 
+
+def _extract_release_from_markdown(log_file: Path, item_limit: int):
+    """Build one structured release item from one markdown file."""
     try:
         text = log_file.read_text(encoding='utf-8')
     except Exception:
         return None
 
-    version = (os.environ.get('APP_VERSION') or '').strip()
-    build_time = (os.environ.get('APP_BUILD_TIME') or '').strip()
-
+    version = _normalize_version_text(_extract_markdown_field(
+        text,
+        (
+            r'版本(?:号)?\s*[:：]\s*(.+)$',
+            r'VERSION\s*[:：]\s*(.+)$',
+        ),
+    ))
     if not version:
-        version = _extract_markdown_field(
-            text,
-            (
-                r'版本(?:号)?\s*[:：]\s*(.+)$',
-                r'VERSION\s*[:：]\s*(.+)$',
-            ),
-        )
-    if not version:
-        m = re.search(r'UPDATE_LOG_(\d{4}-\d{2}-\d{2})', log_file.name)
-        if m:
-            version = f"v{m.group(1).replace('-', '.')}"
+        m_version = re.search(r'v(\d+(?:\.\d+)*)', log_file.name, flags=re.IGNORECASE)
+        if m_version:
+            version = f"v{m_version.group(1)}"
 
-    if not build_time:
-        build_time = _extract_markdown_field(
-            text,
-            (
-                r'构建时间\s*[:：]\s*(.+)$',
-                r'更新时间\s*[:：]\s*(.+)$',
-                r'BUILD(?:_TIME)?\s*[:：]\s*(.+)$',
-            ),
-        )
-    if not build_time:
+    build_time_raw = _extract_markdown_field(
+        text,
+        (
+            r'构建时间\s*[:：]\s*(.+)$',
+            r'更新时间\s*[:：]\s*(.+)$',
+            r'BUILD(?:_TIME)?\s*[:：]\s*(.+)$',
+            r'DATE\s*[:：]\s*(.+)$',
+        ),
+    )
+    build_dt = _parse_datetime_safe(build_time_raw)
+    if not build_dt:
+        m_date = re.search(r'(\d{4}-\d{2}-\d{2})', log_file.name)
+        if m_date:
+            build_dt = _parse_datetime_safe(m_date.group(1))
+    if not build_dt:
         try:
-            build_time = datetime.fromtimestamp(log_file.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            build_dt = datetime.fromtimestamp(log_file.stat().st_mtime)
         except OSError:
-            build_time = ''
+            build_dt = datetime.now()
 
-    updates = _extract_updates_from_markdown(text, limit)
+    if not version:
+        version = f"v{build_dt.strftime('%Y.%m.%d')}"
+
+    updates = _extract_updates_from_markdown(text, item_limit)
     if not updates:
         updates = [f'已读取本地更新日志：{log_file.name}']
 
     return {
-        'version': version or 'v1.0.0',
-        'build_time': build_time or datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'updates': updates[:limit],
+        'version': version,
+        'build_time': _to_display_time(build_dt),
+        'updates': updates[:item_limit],
+        '_sort_key': build_dt.timestamp(),
     }
 
 
+def _build_local_changelog_history(project_root: Path, release_limit: int, item_limit: int):
+    """Build structured release history from local markdown files."""
+    files = _find_local_update_logs(project_root)
+    if not files:
+        return []
+
+    history = []
+    for log_file in files:
+        release = _extract_release_from_markdown(log_file, item_limit)
+        if release:
+            history.append(release)
+
+    if not history:
+        return []
+
+    history.sort(key=lambda item: item.get('_sort_key', 0), reverse=True)
+    normalized = []
+    for item in history[:release_limit]:
+        normalized.append({
+            'version': item.get('version', 'v1.0.0'),
+            'build_time': item.get('build_time', ''),
+            'updates': item.get('updates', []),
+        })
+    return normalized
+
+
 def build_admin_changelog_payload(project_root=None):
-    """Build admin changelog payload from local markdown, env vars or git metadata."""
+    """Build admin changelog payload from local markdown history, env vars or git metadata."""
     root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
 
-    limit_raw = (os.environ.get('APP_CHANGELOG_LIMIT') or '12').strip()
+    release_limit_raw = (os.environ.get('APP_CHANGELOG_LIMIT') or '20').strip()
+    item_limit_raw = (os.environ.get('APP_CHANGELOG_ITEM_LIMIT') or '12').strip()
     try:
-        limit = max(1, min(int(limit_raw), 20))
+        release_limit = max(1, min(int(release_limit_raw), 50))
     except ValueError:
-        limit = 12
+        release_limit = 20
+    try:
+        item_limit = max(1, min(int(item_limit_raw), 50))
+    except ValueError:
+        item_limit = 12
 
-    local_payload = _build_payload_from_local_markdown(root, limit)
-    if local_payload:
-        return local_payload
+    history = _build_local_changelog_history(root, release_limit, item_limit)
+    if history:
+        latest = history[0]
+        return {
+            'version': latest.get('version', 'v1.0.0'),
+            'build_time': latest.get('build_time', ''),
+            'updates': latest.get('updates', []),
+            'history': history,
+        }
 
     version = (os.environ.get('APP_VERSION') or '').strip()
     build_time = (os.environ.get('APP_BUILD_TIME') or '').strip()
@@ -218,7 +294,7 @@ def build_admin_changelog_payload(project_root=None):
             root,
         )
 
-    updates_text = _run_git_command(['log', f'-n{limit}', '--pretty=%s'], root)
+    updates_text = _run_git_command(['log', f'-n{item_limit}', '--pretty=%s'], root)
     updates = [line.strip() for line in updates_text.splitlines() if line.strip()] if updates_text else []
 
     if not version:
@@ -231,7 +307,12 @@ def build_admin_changelog_payload(project_root=None):
     return {
         'version': version,
         'build_time': build_time,
-        'updates': updates[:limit],
+        'updates': updates[:item_limit],
+        'history': [{
+            'version': version,
+            'build_time': build_time,
+            'updates': updates[:item_limit],
+        }],
     }
 
 
@@ -370,3 +451,40 @@ def register_admin_routes(
     def admin_changelog():
         """Get current version/build info and recent update entries."""
         return jsonify(build_admin_changelog_payload(project_root=project_root))
+
+    @app.route('/api/changelog/latest')
+    def public_changelog_latest():
+        """Public endpoint for homepage test-version popup."""
+        payload = build_admin_changelog_payload(project_root=project_root)
+        history_raw = payload.get('history') if isinstance(payload, dict) else []
+        history = []
+        if isinstance(history_raw, list):
+            for item in history_raw:
+                if not isinstance(item, dict):
+                    continue
+                updates_raw = item.get('updates', [])
+                updates = [str(x).strip() for x in updates_raw if str(x or '').strip()]
+                history.append({
+                    'version': str(item.get('version', '')).strip() or 'v1.0.0',
+                    'build_time': str(item.get('build_time', '')).strip(),
+                    'updates': updates,
+                })
+
+        if not history:
+            updates_raw = payload.get('updates') if isinstance(payload, dict) else []
+            updates = [str(item).strip() for item in updates_raw if str(item or '').strip()]
+            history = [{
+                'version': str(payload.get('version', 'v1.0.0')),
+                'build_time': str(payload.get('build_time', '')),
+                'updates': updates,
+            }]
+
+        latest = history[0] if history else {'version': 'v1.0.0', 'build_time': '', 'updates': []}
+        latest_updates = latest.get('updates') if isinstance(latest.get('updates'), list) else []
+        latest_update = latest_updates[0] if latest_updates else '暂无更新内容'
+        return jsonify({
+            'version': str(latest.get('version', 'v1.0.0')),
+            'build_time': str(latest.get('build_time', '')),
+            'latest_update': latest_update,
+            'history': history,
+        })
