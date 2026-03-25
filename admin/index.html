@@ -39,28 +39,156 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+            padding: 24px;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(45, 212, 191, 0.2), transparent 35%),
+                radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.22), transparent 40%),
+                linear-gradient(135deg, #00142a 0%, #003366 44%, #0a2442 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-page::before,
+        .login-page::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(2px);
+            pointer-events: none;
+        }
+
+        .login-page::before {
+            width: 340px;
+            height: 340px;
+            top: -120px;
+            left: -90px;
+            background: radial-gradient(circle, rgba(148, 197, 255, 0.3) 0%, rgba(148, 197, 255, 0) 72%);
+        }
+
+        .login-page::after {
+            width: 380px;
+            height: 380px;
+            right: -130px;
+            bottom: -160px;
+            background: radial-gradient(circle, rgba(45, 212, 191, 0.28) 0%, rgba(45, 212, 191, 0) 72%);
         }
 
         .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 34px 34px 26px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            box-shadow: 0 22px 52px rgba(0, 20, 42, 0.34);
             width: 100%;
-            max-width: 400px;
+            max-width: 430px;
             text-align: center;
         }
 
         .login-logo {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 30px;
+            color: #0a345d;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+        }
+
+        .login-logo i {
+            color: #075985;
+            text-shadow: 0 6px 16px rgba(7, 89, 133, 0.2);
+        }
+
+        .login-subtitle {
+            color: #4b5d71;
+            font-size: 13px;
+            margin: 0 0 24px;
+        }
+
+        .login-security-tip {
+            margin-top: 14px;
+            padding: 10px 12px;
+            background: #eef6ff;
+            border: 1px solid #d2e6ff;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #315b86;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-page .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .login-page .form-group label {
+            color: #4f6075;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .login-page .form-control {
+            border: 1px solid #c7d9ee;
+            border-radius: 10px;
+            background: #f8fbff;
+            padding: 12px 14px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+        }
+
+        .login-page .form-control:focus {
+            border-color: #0b4f86;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(11, 79, 134, 0.12);
+            outline: none;
+        }
+
+        .login-page .btn-primary {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: #fff;
+            background: linear-gradient(135deg, #00529c 0%, #003566 100%);
+            box-shadow: 0 12px 24px rgba(0, 53, 102, 0.24);
+            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+        }
+
+        .login-page .btn-primary:hover {
+            filter: brightness(1.03);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 26px rgba(0, 53, 102, 0.3);
+        }
+
+        .login-page .btn-primary:disabled {
+            cursor: not-allowed;
+            transform: none;
+            filter: grayscale(0.1);
+            box-shadow: none;
+        }
+
+        .login-foot-link {
+            margin-top: 18px;
+        }
+
+        .login-foot-link a {
+            color: #6b7f95;
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .login-foot-link a:hover {
+            color: #0b4f86;
         }
 
         .form-group {
@@ -112,6 +240,114 @@
             font-size: 13px;
             margin-top: 10px;
             min-height: 20px;
+        }
+
+        .login-page .error-message {
+            text-align: left;
+            padding: 8px 10px;
+            margin-top: 12px;
+            min-height: 0;
+            background: rgba(254, 226, 226, 0.65);
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            border-radius: 8px;
+            color: #b91c1c;
+            display: none;
+        }
+
+        .login-page .error-message:not(:empty) {
+            display: block;
+        }
+
+        .login-fail-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 3600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(2, 21, 44, 0.45);
+        }
+
+        .login-fail-modal[hidden] {
+            display: none !important;
+        }
+
+        .login-fail-dialog {
+            width: min(420px, 96vw);
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 48px rgba(0, 0, 0, 0.26);
+            border: 1px solid #e5e7eb;
+            padding: 22px 20px 18px;
+        }
+
+        .login-fail-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .login-fail-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .login-fail-head h3 {
+            font-size: 18px;
+            color: #0f172a;
+        }
+
+        .login-fail-reason {
+            color: #334155;
+            line-height: 1.75;
+            font-size: 14px;
+            margin: 0 0 16px;
+            word-break: break-word;
+        }
+
+        .login-fail-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .login-fail-close-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(135deg, #0b4f86, #0f3f66);
+        }
+
+        .login-fail-close-btn:hover {
+            filter: brightness(1.04);
+        }
+
+        @media (max-width: 640px) {
+            .login-page {
+                padding: 14px;
+            }
+
+            .login-box {
+                padding: 24px 18px 18px;
+                border-radius: 14px;
+            }
+
+            .login-logo {
+                font-size: 22px;
+            }
         }
 
         /* --- Dashboard --- */
@@ -837,6 +1073,74 @@
             background: #fee2e2;
         }
 
+        .audit-pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 16px 16px;
+            border-top: 1px solid #e5e7eb;
+            flex-wrap: wrap;
+        }
+
+        .audit-page-info {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .audit-page-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .audit-page-btn {
+            border: 1px solid #bfd2ef;
+            background: #f4f8ff;
+            color: #0f2f5f;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .audit-page-btn:hover {
+            background: #e7f0ff;
+        }
+
+        .audit-page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f8fafc;
+        }
+
+        .audit-page-current {
+            min-width: 84px;
+            text-align: center;
+            font-size: 12px;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .audit-page-size {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        .audit-page-size select {
+            border: 1px solid #bfd2ef;
+            border-radius: 6px;
+            background: #fff;
+            color: #0f2f5f;
+            padding: 4px 6px;
+            font-size: 12px;
+        }
+
         .backup-guide {
             border: 2px solid #0f2f5f;
             background: linear-gradient(135deg, #f7fbff 0%, #eef6ff 100%);
@@ -1353,6 +1657,7 @@
             <div class="login-logo">
                 <i class="fas fa-shield-alt"></i> 元芯传感后台
             </div>
+            <p class="login-subtitle">仅授权管理员可访问，请使用账号密码登录。</p>
             <form id="loginForm">
                 <div class="form-group">
                     <label>用户名</label>
@@ -1365,8 +1670,25 @@
                 <button type="submit" class="btn-primary">登 录</button>
                 <div id="loginError" class="error-message"></div>
             </form>
-            <div style="margin-top: 20px;">
-                <a href="/" style="color: #888; font-size: 13px; text-decoration: none;">← 返回网站首页</a>
+            <div class="login-security-tip">
+                <i class="fas fa-shield-virus"></i>
+                <span>同一 IP 在 12 小时内失败 3 次将被封禁 12 小时</span>
+            </div>
+            <div class="login-foot-link">
+                <a href="/">← 返回网站首页</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="loginFailModal" class="login-fail-modal" hidden onclick="if(event.target===this) closeLoginFailModal()">
+        <div class="login-fail-dialog" role="alertdialog" aria-modal="true" aria-labelledby="loginFailTitle">
+            <div class="login-fail-head">
+                <span class="login-fail-icon"><i class="fas fa-circle-exclamation"></i></span>
+                <h3 id="loginFailTitle">登录失败</h3>
+            </div>
+            <p id="loginFailReason" class="login-fail-reason">用户名或密码错误。</p>
+            <div class="login-fail-actions">
+                <button type="button" class="login-fail-close-btn" onclick="closeLoginFailModal()">知道了</button>
             </div>
         </div>
     </div>
@@ -1522,7 +1844,7 @@
                                         <th>登录 IP</th>
                                         <th>IP 物理地址</th>
                                         <th>登录是否成功</th>
-                                        <th>登录时间</th>
+                                        <th>登录时间（北京时间）</th>
                                         <th>执行操作</th>
                                     </tr>
                                 </thead>
@@ -1532,6 +1854,26 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="audit-pagination-bar">
+                            <div id="adminLoginLogsPageInfo" class="audit-page-info">共 0 条</div>
+                            <div class="audit-page-actions">
+                                <button type="button" id="adminLoginLogsPrevBtn" class="audit-page-btn"
+                                    onclick="changeAdminLoginLogsPage(-1)">上一页</button>
+                                <span id="adminLoginLogsPageCurrent" class="audit-page-current">1 / 1</span>
+                                <button type="button" id="adminLoginLogsNextBtn" class="audit-page-btn"
+                                    onclick="changeAdminLoginLogsPage(1)">下一页</button>
+                                <label class="audit-page-size">
+                                    每页
+                                    <select id="adminLoginLogsPageSize" onchange="changeAdminLoginLogsPageSize(this.value)">
+                                        <option value="10">10</option>
+                                        <option value="20" selected>20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                    条
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3186,6 +3528,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             build_time: document.lastModified || '',
             updates: ['新增后台「更新日志」入口，可查看版本号、构建时间与更新内容。']
         };
+        const ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE = 20;
+        let adminLoginLogsPage = 1;
+        let adminLoginLogsTotalPages = 1;
+        let adminLoginLogsPageSize = ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE;
+        let adminLoginLogsTotal = 0;
 
         function formatChangelogTime(raw) {
             if (!raw) return '-';
@@ -3236,6 +3583,27 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        function showLoginFailModal(reason) {
+            const modal = document.getElementById('loginFailModal');
+            const reasonEl = document.getElementById('loginFailReason');
+            if (reasonEl) reasonEl.textContent = String(reason || '登录失败，请稍后重试。');
+            if (modal) modal.hidden = false;
+        }
+
+        function closeLoginFailModal() {
+            const modal = document.getElementById('loginFailModal');
+            if (!modal) return;
+            modal.hidden = true;
+        }
+
+        async function parseJsonSafe(res) {
+            try {
+                return await res.json();
+            } catch (e) {
+                return {};
+            }
+        }
+
         const loginForm = document.getElementById('loginForm');
         if (loginForm && loginForm.dataset.loginBound !== '1') {
             loginForm.dataset.loginBound = '1';
@@ -3257,15 +3625,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             password: document.getElementById('password').value
                         })
                     });
-                    const data = await res.json();
+                    const data = await parseJsonSafe(res);
 
-                    if (data.success) {
+                    if (res.ok && data.success) {
                         showDashboard();
                     } else {
-                        err.textContent = data.message || '登录失败';
+                        const reason = String(data.message || `登录失败（HTTP ${res.status || '-'}）`);
+                        err.textContent = reason;
+                        showLoginFailModal(reason);
                     }
                 } catch (e) {
-                    err.textContent = '网络错误';
+                    const reason = '网络错误，请检查连接后重试。';
+                    err.textContent = reason;
+                    showLoginFailModal(reason);
                 } finally {
                     btn.disabled = false;
                     btn.textContent = '登 录';
@@ -8908,7 +9280,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') closeMessageDetailModal();
+            if (event.key === 'Escape') {
+                closeMessageDetailModal();
+                closeLoginFailModal();
+            }
         });
 
         function switchMessageDataTab(tabName) {
@@ -8929,24 +9304,104 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        function formatDateInBeijing(dateObj) {
+            if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) return '-';
+            const formatter = new Intl.DateTimeFormat('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            const parts = formatter.formatToParts(dateObj);
+            const map = {};
+            parts.forEach(part => {
+                if (part && part.type) map[part.type] = part.value;
+            });
+            return `${map.year || '0000'}-${map.month || '00'}-${map.day || '00'} ${map.hour || '00'}:${map.minute || '00'}:${map.second || '00'}`;
+        }
+
         function formatAuditTimestamp(rawValue) {
             const raw = String(rawValue || '').trim();
             if (!raw) return '-';
-            if (raw.includes('T')) return raw.replace('T', ' ').slice(0, 19);
-            return raw;
+            const normalized = raw.replace(' ', 'T');
+            const hasTimezone = /[zZ]$|[+\-]\d{2}:?\d{2}$/.test(normalized);
+
+            if (!hasTimezone && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(raw)) {
+                const normalizedRaw = raw.replace('T', ' ');
+                return normalizedRaw.length === 16 ? `${normalizedRaw}:00` : normalizedRaw.slice(0, 19);
+            }
+
+            const dt = new Date(normalized);
+            if (Number.isNaN(dt.getTime())) return raw.replace('T', ' ');
+            return formatDateInBeijing(dt);
         }
 
-        async function loadAdminLoginLogs() {
+        function updateAdminLoginLogsPagination(payload, visibleCount = 0) {
+            const total = Number(payload?.total ?? 0) || 0;
+            const page = Math.max(1, Number(payload?.page ?? 1) || 1);
+            const pageSize = Math.max(5, Number(payload?.page_size ?? adminLoginLogsPageSize) || adminLoginLogsPageSize);
+            const totalPages = Math.max(1, Number(payload?.total_pages ?? 1) || 1);
+
+            adminLoginLogsTotal = total;
+            adminLoginLogsPage = page;
+            adminLoginLogsPageSize = pageSize;
+            adminLoginLogsTotalPages = totalPages;
+
+            const infoEl = document.getElementById('adminLoginLogsPageInfo');
+            const currentEl = document.getElementById('adminLoginLogsPageCurrent');
+            const prevBtn = document.getElementById('adminLoginLogsPrevBtn');
+            const nextBtn = document.getElementById('adminLoginLogsNextBtn');
+            const pageSizeSelect = document.getElementById('adminLoginLogsPageSize');
+
+            if (pageSizeSelect && pageSizeSelect.value !== String(pageSize)) {
+                pageSizeSelect.value = String(pageSize);
+            }
+
+            const start = total > 0 ? ((page - 1) * pageSize + 1) : 0;
+            const end = total > 0 ? Math.min((page - 1) * pageSize + visibleCount, total) : 0;
+            if (infoEl) {
+                infoEl.textContent = total > 0 ? `第 ${start}-${end} 条，共 ${total} 条` : '共 0 条';
+            }
+            if (currentEl) {
+                currentEl.textContent = `${page} / ${totalPages}`;
+            }
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page >= totalPages;
+        }
+
+        function changeAdminLoginLogsPage(delta) {
+            const nextPage = adminLoginLogsPage + Number(delta || 0);
+            if (nextPage < 1 || nextPage > adminLoginLogsTotalPages) return;
+            loadAdminLoginLogs(nextPage);
+        }
+
+        function changeAdminLoginLogsPageSize(rawValue) {
+            const nextSize = Number(rawValue || ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE);
+            if (!Number.isFinite(nextSize) || nextSize < 5 || nextSize > 200) return;
+            adminLoginLogsPageSize = nextSize;
+            adminLoginLogsPage = 1;
+            loadAdminLoginLogs(1);
+        }
+
+        async function loadAdminLoginLogs(page = adminLoginLogsPage) {
             const tbody = document.getElementById('adminLoginLogsBody');
             if (!tbody) return;
             tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载中...</td></tr>';
 
             try {
-                const res = await fetch('/api/admin/login-logs?limit=300');
+                const targetPage = Math.max(1, Number(page) || 1);
+                const pageSize = Math.max(5, Number(adminLoginLogsPageSize) || ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE);
+                const url = `/api/admin/login-logs?page=${targetPage}&page_size=${pageSize}`;
+                const res = await fetch(url);
                 const payload = await res.json();
                 if (!res.ok) throw new Error(payload?.message || '加载失败');
 
                 const items = Array.isArray(payload?.items) ? payload.items : [];
+                updateAdminLoginLogsPagination(payload, items.length);
                 if (!items.length) {
                     tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无历史登录日志</td></tr>';
                     return;
@@ -8960,10 +9415,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     const operationExtra = [];
                     if (username) operationExtra.push(`<div style="font-size:12px; color:#64748b;">账号：${username}</div>`);
                     if (detail) operationExtra.push(`<div style="font-size:12px; color:#64748b;">说明：${detail}</div>`);
+                    const seq = (adminLoginLogsPage - 1) * adminLoginLogsPageSize + index + 1;
 
                     return `
                         <tr>
-                            <td>${index + 1}</td>
+                            <td>${seq}</td>
                             <td>${escapeHtml(item?.ip || '-')}</td>
                             <td>${escapeHtml(item?.location || '未知')}</td>
                             <td><span class="audit-status-badge ${success ? 'audit-status-ok' : 'audit-status-fail'}">${success ? '成功' : '失败'}</span></td>
@@ -8977,6 +9433,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 }).join('');
             } catch (e) {
                 tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载失败</td></tr>';
+                updateAdminLoginLogsPagination({ total: adminLoginLogsTotal, page: adminLoginLogsPage, page_size: adminLoginLogsPageSize, total_pages: adminLoginLogsTotalPages }, 0);
             }
         }
 

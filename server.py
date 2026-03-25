@@ -8,13 +8,14 @@ import json
 import time
 import hashlib
 import threading
+import secrets
 import base64
 import re
 import uuid
 import html
 import mimetypes
 import ipaddress
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from functools import wraps
 from urllib.parse import urlparse
@@ -58,10 +59,46 @@ except ImportError:
     PIL_SUPPORT = False
     PIL_FEATURES = None
 
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
+
+def load_or_create_secret_key() -> str:
+    """Load secret key from env or persistent local file."""
+    env_secret = (os.environ.get('SECRET_KEY') or '').strip()
+    if env_secret:
+        return env_secret
+
+    secret_file = Path(__file__).parent / 'data' / '.flask_secret_key'
+    try:
+        if secret_file.exists():
+            existing = (secret_file.read_text(encoding='utf-8') or '').strip()
+            if len(existing) >= 32:
+                return existing
+
+        secret_file.parent.mkdir(parents=True, exist_ok=True)
+        generated = secrets.token_urlsafe(48)
+        secret_file.write_text(generated, encoding='utf-8')
+        try:
+            os.chmod(secret_file, 0o600)
+        except OSError:
+            pass
+        return generated
+    except Exception:
+        # Keep final fallback for compatibility in constrained runtime.
+        return 'metachip-secret-key-2024'
+
+
 def create_app():
     """Create Flask app instance."""
     flask_app = Flask(__name__, static_folder='.', static_url_path='')
-    flask_app.secret_key = os.environ.get('SECRET_KEY', 'metachip-secret-key-2024')
+    flask_app.secret_key = load_or_create_secret_key()
+    flask_app.config['SESSION_COOKIE_HTTPONLY'] = True
+    flask_app.config['SESSION_COOKIE_SAMESITE'] = (os.environ.get('SESSION_COOKIE_SAMESITE') or 'Lax').strip() or 'Lax'
+    secure_cookie_flag = (os.environ.get('SESSION_COOKIE_SECURE') or '').strip().lower()
+    flask_app.config['SESSION_COOKIE_SECURE'] = secure_cookie_flag in ('1', 'true', 'yes', 'on')
     return flask_app
 
 
@@ -100,6 +137,17 @@ ADMIN_LOGIN_LOG_FILE = DATA_DIR / 'admin_login_logs.json'
 ADMIN_LOGIN_LOG_LOCK = threading.Lock()
 ADMIN_IP_LOCATION_CACHE = {}
 ADMIN_IP_LOCATION_LOCK = threading.Lock()
+ADMIN_IP_LOCATION_CACHE_MAX = 2048
+ADMIN_IP_LOCATION_CACHE_TTL_SUCCESS = 7 * 24 * 3600
+ADMIN_IP_LOCATION_CACHE_TTL_UNKNOWN = 15 * 60
+
+if ZoneInfo is not None:
+    try:
+        BEIJING_TZ = ZoneInfo('Asia/Shanghai')
+    except Exception:
+        BEIJING_TZ = timezone(timedelta(hours=8))
+else:
+    BEIJING_TZ = timezone(timedelta(hours=8))
 
 # Ensure directories exist
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -738,8 +786,14 @@ def update_config(new_config):
 
 def get_client_ip():
     """Get client IP address, considering proxy headers."""
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
+    if trust_proxy_headers:
+        xff = (request.headers.get('X-Forwarded-For') or '').strip()
+        if xff:
+            return xff.split(',')[0].strip()
+        x_real_ip = (request.headers.get('X-Real-IP') or '').strip()
+        if x_real_ip:
+            return x_real_ip
     return request.remote_addr or '127.0.0.1'
 
 
@@ -772,49 +826,117 @@ def save_admin_login_logs(items):
     )
 
 
-def fetch_ip_location(ip):
-    """Resolve geo location for a public IP by external service."""
-    query_url = (
-        f'http://ip-api.com/json/{ip}'
-        '?lang=zh-CN&fields=status,country,regionName,city,isp'
-    )
+def _build_location_text(*parts):
+    cleaned = []
+    seen = set()
+    for value in parts:
+        text = str(value or '').strip()
+        if not text or text in {'-', '--'}:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(text)
+    if not cleaned:
+        return '未知'
+    return ' / '.join(cleaned)
+
+
+def _http_get_json(url: str, timeout: float = 2.5):
+    headers = {
+        'User-Agent': 'YX-Website-Admin/1.0',
+        'Accept': 'application/json,text/plain,*/*',
+    }
+
     if REQUESTS_SUPPORT:
         try:
-            res = requests.get(query_url, timeout=2.5)
+            res = requests.get(url, timeout=timeout, headers=headers)
             if res.ok:
-                data = res.json()
-                if data.get('status') == 'success':
-                    parts = [
-                        str(data.get('country') or '').strip(),
-                        str(data.get('regionName') or '').strip(),
-                        str(data.get('city') or '').strip(),
-                        str(data.get('isp') or '').strip()
-                    ]
-                    parts = [part for part in parts if part]
-                    if parts:
-                        return ' / '.join(parts)
+                return res.json()
         except Exception:
             pass
 
     if HTTPX_SUPPORT:
         try:
-            res = httpx.get(query_url, timeout=2.5)
-            if res.status_code == 200:
-                data = res.json()
-                if data.get('status') == 'success':
-                    parts = [
-                        str(data.get('country') or '').strip(),
-                        str(data.get('regionName') or '').strip(),
-                        str(data.get('city') or '').strip(),
-                        str(data.get('isp') or '').strip()
-                    ]
-                    parts = [part for part in parts if part]
-                    if parts:
-                        return ' / '.join(parts)
+            res = httpx.get(url, timeout=timeout, headers=headers, follow_redirects=True)
+            if 200 <= res.status_code < 300:
+                return res.json()
         except Exception:
             pass
 
+    return None
+
+
+def _fetch_ip_location_from_ipwhois(ip: str):
+    data = _http_get_json(f'https://ipwho.is/{ip}?lang=zh', timeout=2.6)
+    if not isinstance(data, dict):
+        return ''
+    if data.get('success') is False:
+        return ''
+    connection = data.get('connection') if isinstance(data.get('connection'), dict) else {}
+    return _build_location_text(
+        data.get('country') or data.get('country_code'),
+        data.get('region'),
+        data.get('city'),
+        connection.get('isp') or connection.get('org'),
+    )
+
+
+def _fetch_ip_location_from_ipapi_co(ip: str):
+    data = _http_get_json(f'https://ipapi.co/{ip}/json/', timeout=2.6)
+    if not isinstance(data, dict):
+        return ''
+    if data.get('error') is True:
+        return ''
+    return _build_location_text(
+        data.get('country_name') or data.get('country'),
+        data.get('region'),
+        data.get('city'),
+        data.get('org') or data.get('asn'),
+    )
+
+
+def _fetch_ip_location_from_ip_api(ip: str):
+    data = _http_get_json(
+        f'http://ip-api.com/json/{ip}?lang=zh-CN&fields=status,country,regionName,city,isp',
+        timeout=2.6
+    )
+    if not isinstance(data, dict):
+        return ''
+    if data.get('status') != 'success':
+        return ''
+    return _build_location_text(
+        data.get('country'),
+        data.get('regionName'),
+        data.get('city'),
+        data.get('isp'),
+    )
+
+
+def fetch_ip_location(ip):
+    """Resolve geo location for a public IP by external service."""
+    ip_text = str(ip or '').strip()
+    if not ip_text:
+        return '未知'
+
+    for resolver in (
+        _fetch_ip_location_from_ipwhois,
+        _fetch_ip_location_from_ipapi_co,
+        _fetch_ip_location_from_ip_api,
+    ):
+        try:
+            location = str(resolver(ip_text) or '').strip()
+        except Exception:
+            location = ''
+        if location and location != '未知':
+            return location
     return '未知'
+
+
+def _is_unknown_location(value: str) -> bool:
+    text = str(value or '').strip().lower()
+    return not text or text in {'未知', 'unknown', 'n/a', '-'}
 
 
 def resolve_ip_location(ip):
@@ -823,10 +945,17 @@ def resolve_ip_location(ip):
     if not ip_text:
         return '未知'
 
+    now_ts = int(time.time())
     with ADMIN_IP_LOCATION_LOCK:
         cached = ADMIN_IP_LOCATION_CACHE.get(ip_text)
-        if cached:
-            return cached
+        if isinstance(cached, dict):
+            cached_location = str(cached.get('location') or '').strip()
+            expires_at = int(cached.get('expires_at', 0) or 0)
+            if cached_location and expires_at > now_ts:
+                return cached_location
+        elif isinstance(cached, str) and cached.strip() and not _is_unknown_location(cached):
+            # Backward compatibility for legacy in-memory cache format.
+            return cached.strip()
 
     location = '未知'
     try:
@@ -846,11 +975,31 @@ def resolve_ip_location(ip):
     except ValueError:
         location = '未知'
 
+    ttl = ADMIN_IP_LOCATION_CACHE_TTL_UNKNOWN if _is_unknown_location(location) else ADMIN_IP_LOCATION_CACHE_TTL_SUCCESS
+    cache_item = {
+        'location': str(location or '未知').strip() or '未知',
+        'expires_at': now_ts + ttl,
+    }
+
     with ADMIN_IP_LOCATION_LOCK:
-        if len(ADMIN_IP_LOCATION_CACHE) >= 1024:
-            ADMIN_IP_LOCATION_CACHE.clear()
-        ADMIN_IP_LOCATION_CACHE[ip_text] = location
-    return location
+        if len(ADMIN_IP_LOCATION_CACHE) >= ADMIN_IP_LOCATION_CACHE_MAX:
+            # Prefer clearing expired entries first; if still large then reset.
+            expired_keys = []
+            for key, value in ADMIN_IP_LOCATION_CACHE.items():
+                if isinstance(value, dict):
+                    if int(value.get('expires_at', 0) or 0) <= now_ts:
+                        expired_keys.append(key)
+            for key in expired_keys:
+                ADMIN_IP_LOCATION_CACHE.pop(key, None)
+            if len(ADMIN_IP_LOCATION_CACHE) >= ADMIN_IP_LOCATION_CACHE_MAX:
+                ADMIN_IP_LOCATION_CACHE.clear()
+        ADMIN_IP_LOCATION_CACHE[ip_text] = cache_item
+    return cache_item['location']
+
+
+def now_beijing_iso():
+    """Current datetime string in Asia/Shanghai timezone."""
+    return datetime.now(BEIJING_TZ).isoformat(timespec='seconds')
 
 
 def append_admin_login_log(operation, success, username='', detail=''):
@@ -861,7 +1010,7 @@ def append_admin_login_log(operation, success, username='', detail=''):
         'ip': ip,
         'location': resolve_ip_location(ip),
         'success': bool(success),
-        'timestamp': datetime.now().isoformat(timespec='seconds'),
+        'timestamp': now_beijing_iso(),
         'operation': str(operation or '后台操作').strip(),
         'username': str(username or '').strip(),
         'detail': str(detail or '').strip()
