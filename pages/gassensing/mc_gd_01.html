@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC-GD-01型可燃气体检漏仪 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .vs-product-hero { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); padding: 120px 0 80px; color: white; }
+        .vs-product-hero__inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+        .vs-product-gallery { background: white; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); }
+        .vs-gallery-main { width: 100%; height: 380px; display: flex; align-items: center; justify-content: center; position: relative; background: #f8fafc; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+        .vs-gallery-main img { max-width: 100%; max-height: 100%; object-fit: contain; transition: opacity 0.3s ease; }
+        .vs-gallery-thumbs { display: flex; gap: 12px; overflow-x: auto; justify-content: center; padding: 8px 0; }
+        .vs-gallery-thumb { width: 72px; height: 72px; flex-shrink: 0; border-radius: 10px; overflow: hidden; cursor: pointer; background: #f8fafc; border: 3px solid transparent; transition: all 0.2s ease; }
+        .vs-gallery-thumb:hover, .vs-gallery-thumb.active { border-color: var(--color-accent-orange); }
+        .vs-gallery-thumb img { width: 100%; height: 100%; object-fit: contain; }
+        .vs-gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border: none; border-radius: 999px; background: rgba(15, 23, 42, 0.68); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s ease, background 0.2s ease; z-index: 2; }
+        .vs-gallery-main:hover .vs-gallery-nav { opacity: 1; pointer-events: auto; }
+        .vs-gallery-nav:hover { background: rgba(15, 23, 42, 0.9); }
+        .vs-gallery-nav--prev { left: 12px; }
+        .vs-gallery-nav--next { right: 12px; }
+        .vs-product-hero__content h1 { font-size: 42px; font-weight: 700; margin-bottom: 20px; line-height: 1.2; }
+        .vs-product-hero__desc { font-size: 18px; opacity: 0.95; line-height: 1.8; margin-bottom: 28px; }
+        .vs-feature-list { list-style: none; padding: 0; margin: 0 0 30px 0; display: grid; gap: 10px; }
+        .vs-feature-list li { padding: 12px 16px 12px 44px; position: relative; font-size: 15px; background: rgba(255, 255, 255, 0.12); border-radius: 10px; backdrop-filter: blur(10px); }
+        .vs-feature-list li::before { content: '✓'; position: absolute; left: 16px; color: #4ADE80; font-weight: bold; font-size: 18px; }
+        .vs-product-section { padding: 108px 0; }
+        .vs-product-section.alt-bg { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); }
+        .vs-product-section__title { font-size: 32px; font-weight: 700; color: var(--color-primary); margin-bottom: 40px; position: relative; display: inline-block; }
+        .vs-product-section__title::after { content: ''; position: absolute; bottom: -8px; left: 0; width: 60px; height: 4px; background: linear-gradient(90deg, var(--color-accent-orange), #ff9500); border-radius: 2px; }
+        .vs-product-section__content { font-size: 17px; line-height: 2; color: #4a5568; max-width: 1160px; }
+        .vs-product-section__content--full { max-width: none; width: 100%; text-align: justify; text-justify: inter-ideograph; }
+        .vs-product-section__content p { margin-bottom: 22px; }
+        .vs-advantages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 30px; align-items: stretch; }
+        .vs-advantage-card { background: white; padding: 38px 30px 34px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06); transition: all 0.3s ease; border: 1px solid #f1f5f9; min-height: 238px; display: flex; flex-direction: column; }
+        .vs-advantage-card:hover { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12); border-color: var(--color-accent-orange); }
+        .vs-advantage-card i { font-size: 40px; color: var(--color-accent-orange); margin-bottom: 18px; display: block; }
+        .vs-advantage-card h4 { font-size: 20px; font-weight: 600; color: #0b3f6d; margin-bottom: 12px; }
+        .vs-advantage-card p { font-size: 15px; color: #64748b; line-height: 1.85; margin-top: auto; }
+        .vs-certificates { display: flex; gap: 32px; margin-top: 40px; justify-content: center; flex-wrap: wrap; }
+        .vs-certificate { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+        .vs-certificate img { max-width: 540px; height: auto; border-radius: 8px; transition: transform 0.3s ease; }
+        .vs-certificate:hover img { transform: scale(1.02); }
+        .vs-certificate p { text-align: center; margin-top: 12px; font-weight: 600; color: var(--color-primary); }
+        .vs-applications-intro { margin-bottom: 38px; max-width: 980px; }
+        .vs-application-highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; align-items: stretch; }
+        .vs-application-highlight { background: white; padding: 36px 30px 28px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06); transition: all 0.3s ease; border: 1px solid #f1f5f9; display: flex; min-height: 308px; }
+        .vs-application-highlight:hover { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12); border-color: var(--color-accent-orange); }
+        .vs-application-content { display: flex; flex-direction: column; width: 100%; }
+        .vs-application-content__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .vs-application-content__head i { font-size: 20px; color: var(--color-accent-orange); width: 26px; text-align: center; }
+        .vs-application-content h4 { margin: 0; font-size: 24px; font-weight: 600; color: var(--color-primary); }
+        .vs-application-content p { margin: 0; font-size: 17px; line-height: 1.95; color: #64748b; flex: 1; }
+        .vs-application-scenarios { margin-top: 18px; font-size: 15px; line-height: 1.85; color: #566b82; border-top: 1px dashed #d9e3ec; padding-top: 14px; min-height: 64px; }
+        .vs-specs-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 20px; overflow: hidden; border: 1px solid #d8e4ef; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.10); background: #ffffff; margin-top: 8px; }
+        .vs-specs-table td { padding: 22px 28px; border-bottom: 1px solid #dde6ef; font-size: 16px; transition: background-color 0.2s ease; }
+        .vs-specs-table tr:last-child td { border-bottom: none; }
+        .vs-specs-table tr td:first-child { background: linear-gradient(180deg, #0b3f6d 0%, #0a4a7c 100%); color: white; font-weight: 700; width: 220px; letter-spacing: 0.2px; }
+        .vs-specs-table tr td:last-child { background: white; color: #334155; font-weight: 500; }
+        .vs-specs-table tr:nth-child(even) td:last-child { background: #f6f9fc; }
+        .vs-specs-table tr:hover td:last-child { background: #edf5ff; }
+        .vs-specs-table tr:hover td:first-child { background: linear-gradient(180deg, #0c477a 0%, #0b5187 100%); }
+        .vs-related-products { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); padding: 108px 0; }
+        .vs-related-products h2 { font-size: 32px; font-weight: 700; color: var(--color-primary); text-align: center; margin-bottom: 56px; }
+        .vs-related-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+        .vs-related-item { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); transition: all 0.3s ease; text-decoration: none; min-height: 304px; display: flex; flex-direction: column; }
+        .vs-related-item:hover { transform: translateY(-8px); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12); }
+        .vs-related-item img { width: 100%; height: 196px; object-fit: contain; background: #f8fafc; padding: 24px; }
+        .vs-related-item h4 { padding: 22px 16px 24px; font-size: 15px; font-weight: 600; color: #1e293b; text-align: center; line-height: 1.6; margin-top: auto; }
+        .vs-related-news { padding: 108px 0; }
+        .vs-related-news h2 { font-size: 32px; font-weight: 700; color: var(--color-primary); text-align: center; margin-bottom: 56px; }
+        .vs-news-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 36px; }
+        .vs-news-item { display: flex; gap: 24px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06); transition: all 0.3s ease; text-decoration: none; min-height: 220px; }
+        .vs-news-item:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12); }
+        .vs-news-item img { width: 232px; height: 220px; object-fit: cover; flex-shrink: 0; }
+        .vs-news-item__content { padding: 28px 28px 28px 0; display: flex; flex-direction: column; justify-content: center; }
+        .vs-news-item__content h4 { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 14px; line-height: 1.5; }
+        .vs-news-item__content p { font-size: 15px; color: #64748b; line-height: 1.85; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .vs-cta-section { background: transparent; padding: 64px 0 72px; text-align: center; }
+        .vs-cta-panel { position: relative; overflow: hidden; border-radius: 20px; background: linear-gradient(140deg, #0a3a63 0%, #082c4b 58%, #0b4573 100%); padding: 52px 52px 48px; color: #f4f9ff; box-shadow: 0 16px 38px rgba(9, 31, 53, 0.20); }
+        .vs-cta-panel::before { content: ''; position: absolute; right: -120px; top: -120px; width: 340px; height: 340px; background: radial-gradient(circle, rgba(126, 197, 255, 0.28) 0%, rgba(126, 197, 255, 0) 70%); pointer-events: none; }
+        .vs-cta-section h3 { font-size: 36px; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 14px; position: relative; z-index: 1; }
+        .vs-cta-section p { font-size: 18px; line-height: 1.9; color: #d9e8f7; max-width: 900px; margin: 0 auto 26px; position: relative; z-index: 1; }
+        .vs-cta-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: #ffffff; color: #0b3c67; border: none; border-radius: 999px; padding: 14px 34px; font-size: 17px; font-weight: 600; text-decoration: none; transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; box-shadow: 0 10px 24px rgba(8, 32, 54, 0.26); position: relative; z-index: 1; }
+        .vs-cta-btn:hover { background: #eaf3ff; transform: translateY(-2px); box-shadow: 0 14px 28px rgba(8, 32, 54, 0.32); color: #0b3c67; }
+        .vs-feedback-hub { padding: 64px 0 78px; background: #f7fafd; border-top: 1px solid #e5edf5; }
+        .vs-feedback-hub__tools { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 26px; }
+        .vs-tool-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 10px 18px; border-radius: 999px; border: 1px solid #c7d7e8; background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%); color: #1d3f5f; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; box-shadow: 0 3px 0 #c7d8ea, 0 10px 18px rgba(20, 54, 87, 0.12); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease; overflow: hidden; }
+        .vs-tool-btn::before { content: ''; position: absolute; left: 16px; right: 16px; top: 2px; height: 38%; border-radius: 999px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 100%); pointer-events: none; }
+        .vs-tool-btn:hover { border-color: #9fc0df; color: #113453; transform: translateY(-2px); box-shadow: 0 4px 0 #b8cce1, 0 16px 26px rgba(20, 54, 87, 0.18); }
+        .vs-tool-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #bfd0e3, 0 8px 14px rgba(20, 54, 87, 0.16); }
+        .vs-wechat-wrap { position: relative; }
+        .vs-wechat-pop { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); width: 190px; background: #ffffff; border: 1px solid #d7e4f1; border-radius: 12px; box-shadow: 0 12px 30px rgba(15, 36, 62, 0.16); padding: 12px; display: none; z-index: 5; }
+        .vs-wechat-pop.is-open { display: block; }
+        .vs-wechat-pop img { width: 100%; height: auto; border-radius: 8px; display: block; }
+        .vs-wechat-pop p { margin: 8px 0 0; text-align: center; font-size: 12px; color: #4f6479; }
+        .vs-feedback-hub h3 { text-align: center; font-size: 34px; color: #0d3f6c; margin: 0 0 16px; }
+        .vs-feedback-sub { text-align: center; font-size: 17px; color: #5c7288; margin: 0 0 24px; }
+        .vs-feedback-options { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .vs-feedback-chip { position: relative; border: 1px solid #d7e4ef; background: linear-gradient(180deg, #ffffff 0%, #f4f8fd 100%); color: #264965; border-radius: 10px; padding: 11px 16px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 0 #d5e1ec, 0 8px 14px rgba(21, 55, 88, 0.08); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease; overflow: hidden; }
+        .vs-feedback-chip::before { content: ''; position: absolute; left: 10px; right: 10px; top: 1px; height: 42%; border-radius: 999px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 100%); pointer-events: none; }
+        .vs-feedback-chip:hover { transform: translateY(-2px); border-color: #b7cde4; box-shadow: 0 3px 0 #c8d7e6, 0 12px 20px rgba(22, 58, 92, 0.14); }
+        .vs-feedback-chip:active { transform: translateY(1px); box-shadow: 0 1px 0 #cfdeeb, 0 6px 10px rgba(22, 58, 92, 0.12); }
+        .vs-feedback-chip.is-active { background: linear-gradient(180deg, #175286 0%, #0d3f6c 100%); border-color: #0d3f6c; color: #fff; box-shadow: 0 3px 0 #0a3457, 0 12px 20px rgba(10, 46, 77, 0.24); }
+        .vs-feedback-panel { margin-top: 18px; background: #fff; border: 1px solid #dce8f3; border-radius: 14px; padding: 18px 18px 16px; box-shadow: 0 10px 26px rgba(15, 36, 62, 0.10); }
+        .vs-feedback-panel[hidden] { display: none; }
+        .vs-feedback-panel h4 { margin: 0 0 8px; color: #0d3f6c; font-size: 20px; }
+        .vs-feedback-panel p { margin: 0 0 10px; color: #5c7288; font-size: 14px; }
+        .vs-feedback-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+        .vs-feedback-panel input, .vs-feedback-panel textarea { width: 100%; border: 1px solid #d6e2ed; border-radius: 10px; padding: 10px 12px; font-size: 14px; color: #31475d; background: #fbfdff; outline: none; }
+        .vs-feedback-panel input:focus, .vs-feedback-panel textarea:focus { border-color: #86a9cc; background: #fff; }
+        .vs-feedback-panel textarea { min-height: 108px; resize: vertical; margin-bottom: 10px; }
+        .vs-feedback-submit { display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 999px; background: #0d3f6c; color: #fff; font-size: 14px; font-weight: 600; padding: 10px 24px; cursor: pointer; }
+        .vs-feedback-submit:hover { background: #0b365c; }
+        .vs-feedback-msg { margin-top: 10px; font-size: 13px; color: #3f5d78; }
+        .vs-feedback-msg.is-error { color: #b53a3a; }
+        .vs-breadcrumb { padding-top: 12px; padding-bottom: 12px; padding-left: 32px; font-size: 14px; color: rgba(255, 255, 255, 0.8); text-align: left; display: flex; align-items: center; gap: 10px; }
+        .vs-breadcrumb a { color: rgba(255, 255, 255, 0.8); text-decoration: none !important; border-bottom: none !important; display: inline-block; }
+        .vs-breadcrumb a:hover { color: white; }
+        .vs-breadcrumb span { margin: 0; opacity: 0.6; }
+        @media (max-width: 1024px) {
+            .vs-related-grid { grid-template-columns: repeat(3, 1fr); }
+            .vs-application-highlights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 768px) {
+            .vs-product-section { padding: 72px 0; }
+            .vs-product-section__title { font-size: 30px; margin-bottom: 32px; }
+            .vs-product-section__content { font-size: 16px; line-height: 1.9; }
+            .vs-advantage-card, .vs-application-highlight { min-height: auto; padding: 30px 22px 24px; }
+            .vs-application-content h4 { font-size: 22px; }
+            .vs-application-content p { font-size: 16px; line-height: 1.85; }
+            .vs-application-scenarios { font-size: 14px; min-height: auto; }
+            .vs-related-news, .vs-related-products { padding: 72px 0; }
+            .vs-news-item { min-height: auto; flex-direction: column; gap: 0; }
+            .vs-news-item img { width: 100%; height: 200px; }
+            .vs-news-item__content { padding: 20px 18px 22px; }
+            .vs-related-item { min-height: 280px; }
+            .vs-related-item img { height: 182px; }
+            .vs-product-hero__inner { grid-template-columns: 1fr; gap: 40px; }
+            .vs-product-hero__content h1 { font-size: 32px; }
+            .vs-news-grid { grid-template-columns: 1fr; }
+            .vs-related-grid { grid-template-columns: repeat(2, 1fr); }
+            .vs-application-highlights { grid-template-columns: 1fr; }
+            .vs-specs-table { border: none; background: transparent; box-shadow: none; }
+            .vs-specs-table tr { display: block; margin-bottom: 12px; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10); }
+            .vs-specs-table td { display: block; width: 100%; border-bottom: none; }
+            .vs-specs-table tr td:first-child { width: 100%; border-bottom: 1px solid rgba(255, 255, 255, 0.25); border-radius: 14px 14px 0 0; }
+            .vs-specs-table tr td:last-child { border-radius: 0 0 14px 14px; background: #ffffff; }
+            .vs-cta-section { padding: 56px 0 62px; }
+            .vs-cta-panel { border-radius: 16px; padding: 42px 20px 40px; }
+            .vs-cta-section h3 { font-size: 30px; margin-bottom: 14px; }
+            .vs-cta-section p { font-size: 17px; line-height: 1.8; margin-bottom: 24px; }
+            .vs-cta-btn { font-size: 16px; padding: 12px 26px; }
+            .vs-feedback-hub h3 { font-size: 28px; }
+            .vs-feedback-sub { font-size: 16px; }
+            .vs-feedback-form-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 576px) {
+            .vs-related-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+  <link rel="stylesheet" href="../../assets/css/search.css">
+
+    <meta name="product-name" content="MC-GD-01型可燃气体检漏仪" />
+    <meta name="product-short-name" content="MC-GD-01" />
+    <meta name="product-image" content="/pages/gassensing/1./mc-gd-01-product-01.png" />
+    <meta name="product-description" content="搭载高精度传感技术，MC-GD-01型可燃气体检漏仪凭借极速响应与精准探测，为燃气管网、工业场站及复杂受限空间提供专业级的可燃气体泄漏快速筛查与安全保障。" />
+    <meta name="product-category" content="detector" />
+
+</head>
+
+<body>
+
+    <div id="mc-nav-root" data-nav-profile="gas"></div>
+<noscript><div class="mc-nav-noscript">
+  <a href="/index.html">首页</a> |
+  <a href="/pages/gassensing/all-products.html">产品</a> |
+  <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+  <a href="/pages/research/index.html">科研服务</a> |
+  <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+  <a href="/pages/about/about.html">公司简介</a> |
+  <a href="/pages/contact/contact.html">联系我们</a>
+</div>
+</noscript>
+<script src="/assets/js/nav-loader.js"></script>
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index.html">首页</a><span>|</span>
+                <a href="../../pages/gassensing/all-products.html">气体传感产品</a><span>|</span>
+                MC-GD-01型可燃气体检漏仪
+            </div>
+        </div>
+
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <button type="button" class="vs-gallery-nav vs-gallery-nav--prev" onclick="prevImage()" aria-label="上一张">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <img id="mainImage" src="/pages/gassensing/1./mc-gd-01-product-01.png" alt="MC-GD-01型可燃气体检漏仪">
+                            <button type="button" class="vs-gallery-nav vs-gallery-nav--next" onclick="nextImage()" aria-label="下一张">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active" onclick="changeImage(this, '/pages/gassensing/1./mc-gd-01-product-01.png')">
+                                <img src="/pages/gassensing/1./mc-gd-01-product-01.png" alt="产品图1">
+                            </div>
+                            <div class="vs-gallery-thumb" onclick="changeImage(this, '/assets/images/logo.png')">
+                                <img src="/assets/images/logo.png" alt="产品图2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vs-product-hero__content">
+                        <h1>MC-GD-01型可燃气体检漏仪</h1>
+                        <p class="vs-product-hero__desc">搭载高精度传感技术，MC-GD-01型可燃气体检漏仪凭借极速响应与精准探测，为燃气管网、工业场站及复杂受限空间提供专业级的可燃气体泄漏快速筛查与安全保障。</p>
+                        <ul class="vs-feature-list">
+                            <li>极速响应：依托高性能碳基传感芯片，实现毫秒级捕捉。</li>
+                            <li>高灵敏度探测：敏锐发现极微量泄漏，优于传统方案。</li>
+                            <li>多气兼容：广泛适用于甲烷、液化气、丙烷等可燃气体。</li>
+                            <li>本质安全设计：具备严苛的防爆认证与工业级防护等级。</li>
+                            <li>智能动态校准：集成零点自动修正与环境补偿算法。</li>
+                            <li>人机交互友好：配备直观显示与多重声光报警提醒。</li>
+                        </ul>
+                        <div>
+                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary" style="padding: 14px 32px; font-size: 16px; border-radius: 999px;">
+                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品详情</h2>
+                <div class="vs-product-section__content vs-product-section__content--full">
+                    <p>MC-GD-01型可燃气体检漏仪是一款专为燃气巡检与安全维护设计的高性能手持式设备。该产品集成了元芯传感自主研发的高灵敏传感芯片，彻底解决了传统传感器响应慢、易受干扰的难题。在面对城市燃气管网、工商业用气环境中的隐蔽泄漏时，该仪器的毫秒级响应能力可确保作业人员在第一时间发现隐患。</p>
+                    <p>产品外壳采用高强度工程塑料，坚固耐用，具备优异的防水、防尘和防爆性能（Ex等级）。内置的智能处理器支持自动零点校准和多量程自动切换，配合长效续航的锂电池设计，能够满足全天候的现场巡检需求。MC-GD-01不仅是一款检测工具，更是燃气行业和工业生产领域实现“早期预警、精准定位”的防灾减灾核心利器。</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品优势</h2>
+                <div class="vs-advantages-grid">
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-bolt"></i>
+                        <h4>安全预警无延迟</h4>
+                        <p>极速的信号转换能力，协助巡检人员在气体达到爆炸极限前迅速决策。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-crosshairs"></i>
+                        <h4>漏点定位更精准</h4>
+                        <p>超高的探测分辨率，可轻松捕捉微小孔洞的初级泄漏，防患于未然。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-temperature-high"></i>
+                        <h4>环境适应性卓越</h4>
+                        <p>无论是在温差较大的北方冬季还是潮湿的南方雨季，均能保持测量的一致性。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-coins"></i>
+                        <h4>维护成本更优化</h4>
+                        <p>碳基芯片具备更长的使用寿命和更低的标定频率，有效降低企业综合运营成本。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-shield-alt"></i>
+                        <h4>权威品质保障</h4>
+                        <p>严格遵循国家相关防爆标准与计量规范，确保检测结果的法律效力与专业性。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">主要应用</h2>
+                <div class="vs-product-section__content vs-applications-intro">
+                    MC-GD-01型可燃气体检漏仪广泛应用于燃气、工业、市政等各类存在可燃气体积聚与泄漏风险的场所，确保作业人员与环境安全。
+                </div>
+                <div class="vs-application-highlights">
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-fire"></i>
+                                <h4>燃气与市政抢修</h4>
+                            </div>
+                            <p>城镇燃气管网巡检、门站/调压站日常维护、入户安检，以及道路开挖前的管线定位探测和燃气泄漏紧急抢险。</p>
+                            <div class="vs-application-scenarios">重点场景：管网巡检、门站维护、市政抢修</div>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-industry"></i>
+                                <h4>工业生产领域</h4>
+                            </div>
+                            <p>面向石油石化、化工车间、锅炉房、喷漆房等存在可燃气体积聚风险的场所，开展安全检查与隐患排查。</p>
+                            <div class="vs-application-scenarios">重点场景：石油石化、化工车间、锅炉房</div>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-building"></i>
+                                <h4>餐饮与公共安全</h4>
+                            </div>
+                            <p>酒店厨房、大型商场、综合地下管廊的可燃气体快速检测，及易燃易爆品仓库、住宅小区配气房的日常巡查。</p>
+                            <div class="vs-application-scenarios">重点场景：酒店厨房、地下管廊、仓储物业</div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术参数</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>产品型号</td>
+                        <td>MC-GD-01</td>
+                    </tr>
+                    <tr>
+                        <td>检测气体</td>
+                        <td>可燃气体</td>
+                    </tr>
+                    <tr>
+                        <td>响应时间</td>
+                        <td>&lt;1秒</td>
+                    </tr>
+                    <tr>
+                        <td>续航时间</td>
+                        <td>＞6小时</td>
+                    </tr>
+                    <tr>
+                        <td>工作温度</td>
+                        <td>-20℃~45℃</td>
+                    </tr>
+                    <tr>
+                        <td>产品尺寸</td>
+                        <td>约(42x182x31mm)</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <section class="vs-related-news">
+            <div class="vs-container">
+                <h2>相关新闻</h2>
+                <div class="vs-news-grid">
+                    <a href="#" class="vs-news-item">
+                        <img src="/assets/images/logo.png" alt="相关新闻">
+                        <div class="vs-news-item__content">
+                            <h4>元芯传感持续深耕气体检测技术</h4>
+                            <p>我们致力于为燃气管网、工业生产提供更安全、高效的可燃气体检测解决方案，不断推动行业传感技术升级。</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-related-products">
+            <div class="vs-container">
+                <h2>相关产品</h2>
+                <div class="vs-related-grid" id="randomRelatedProducts">
+                    <p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">正在加载相关产品...</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <div class="vs-cta-panel">
+                    <h3>让检测方案更快落地到现场</h3>
+                    <p>把您的工况环境、检测范围与部署要求告诉我们，我们会提供匹配的产品组合和实施建议，帮助项目更快进入可执行阶段。</p>
+                    <a href="../../pages/contact/contact.html" class="vs-cta-btn">
+                        <i class="fas fa-phone"></i>联系技术顾问
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-feedback-hub" id="feedbackHub">
+            <div class="vs-container">
+                <div class="vs-feedback-hub__tools">
+                    <button type="button" class="vs-tool-btn" id="feedbackPrintBtn">
+                        <i class="fas fa-print"></i>打印页面
+                    </button>
+                    <div class="vs-wechat-wrap">
+                        <button type="button" class="vs-tool-btn" id="feedbackWechatBtn" aria-expanded="false" aria-controls="feedbackWechatPop">
+                            <i class="fab fa-weixin"></i>微信咨询
+                        </button>
+                        <div class="vs-wechat-pop" id="feedbackWechatPop" role="dialog" aria-label="微信二维码">
+                            <img src="/assets/images/wx.jpg" alt="微信二维码">
+                            <p>扫码添加微信，获取一对一支持</p>
+                        </div>
+                    </div>
+                    <a href="mailto:stacey_1987@163.com?subject=MC-GD-01%E4%BA%A7%E5%93%81%E8%AF%A6%E6%83%85%E9%A1%B5%E5%92%A8%E8%AF%A2" class="vs-tool-btn">
+                        <i class="fas fa-envelope"></i>发送邮件
+                    </a>
+                </div>
+
+                <h3>您找到需要的信息了吗？</h3>
+                <p class="vs-feedback-sub">欢迎告诉我们页面信息是否清晰，我们会持续优化内容呈现与服务体验。</p>
+
+                <div class="vs-feedback-options" id="feedbackOptions">
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="信息很充分，谢谢！">信息很充分，谢谢！</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="有帮助">有帮助</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="我仍有疑问">我仍有疑问</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="没有帮助">没有帮助</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="请联系我们">请联系我们</button>
+                </div>
+
+                <div class="vs-feedback-panel" id="feedbackPanel" hidden>
+                    <h4 id="feedbackPanelTitle">感谢反馈，欢迎告诉我们更多细节</h4>
+                    <p id="feedbackPanelHint">您提交的信息会进入后台留言系统，便于我们更快安排技术人员跟进。</p>
+
+                    <form id="productFeedbackForm">
+                        <input type="hidden" id="feedbackType" value="">
+                        <div class="vs-feedback-form-grid">
+                            <input type="text" id="feedbackName" name="txtUserName" placeholder="您的称呼（选填）">
+                            <input type="text" id="feedbackPhone" name="txtUserTel" placeholder="联系电话（必填）" required>
+                        </div>
+                        <div class="vs-feedback-form-grid">
+                            <input type="email" id="feedbackEmail" name="txtUserEmail" placeholder="电子邮箱（选填）">
+                            <input type="text" id="feedbackTitle" name="txtTitle" value="MC-GD-01 产品页面反馈">
+                        </div>
+                        <textarea id="feedbackContent" name="txtContent" placeholder="请填写您的意见或需求（必填）" required></textarea>
+                        <button type="submit" class="vs-feedback-submit" id="feedbackSubmitBtn">提交反馈</button>
+                        <div class="vs-feedback-msg" id="feedbackMsg" aria-live="polite"></div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function changeImage(thumb, src) {
+            document.getElementById('mainImage').src = src;
+            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        }
+        function switchImageByOffset(offset) {
+            const thumbs = Array.from(document.querySelectorAll('.vs-gallery-thumb'));
+            if (!thumbs.length) return;
+            let currentIndex = thumbs.findIndex(t => t.classList.contains('active'));
+            if (currentIndex < 0) currentIndex = 0;
+            const nextIndex = (currentIndex + offset + thumbs.length) % thumbs.length;
+            const nextThumb = thumbs[nextIndex];
+            const nextSrc = nextThumb.querySelector('img').getAttribute('src');
+            changeImage(nextThumb, nextSrc);
+        }
+        function prevImage() { switchImageByOffset(-1); }
+        function nextImage() { switchImageByOffset(1); }
+    </script>
+
+    <script>
+        (function () {
+            const relatedProductIds = [
+                'gas_detection_solution', 'mc_aga_01', 'mc_cgld_01', 'mc_gcam_01', 'mc_hha_01',
+                'mc_hla_01', 'mc_hmv_01', 'mc_hp_01', 'mc_ld_nh2', 'mc_ld_ph2', 'mc_mgm_01',
+                'mc_mhm_01', 'mc_nghba_01', 'mc_odha_01', 'mc_odpm_01', 'mc_ohpa_01', 'mc_pdha_01',
+                'mc_pdpm_01', 'mc_pdr_01', 'mc_pgd_01', 'mc_phpa_01', 'mc_rld_01', 'mc_sas_01',
+                'mc_sts_01', 'mc_td_01', 'mc_wd_01', 'semiconductor_device_customization', 'sensor_instrument_customization'
+            ];
+            const fallbackImage = '/assets/images/logo.png';
+            function shuffle(list) {
+                const arr = [...list];
+                for (let i = arr.length - 1; i > 0; i -= 1) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+            function normalizeTitle(id, parsedDoc) {
+                const h1 = parsedDoc.querySelector('.vs-product-hero__content h1');
+                if (h1 && h1.textContent.trim()) return h1.textContent.trim();
+                return id.replace(/_/g, '-').toUpperCase();
+            }
+            function pickFirstProductImage(parsedDoc) {
+                const firstThumb = parsedDoc.querySelector('.vs-gallery-thumbs img');
+                const mainImage = parsedDoc.querySelector('#mainImage');
+                const src = (firstThumb && firstThumb.getAttribute('src')) || (mainImage && mainImage.getAttribute('src')) || '';
+                if (!src || src.includes('【')) return fallbackImage;
+                return src;
+            }
+            async function fetchProductMeta(id) {
+                const pagePath = `${id}.html`;
+                const res = await fetch(pagePath);
+                if (!res.ok) throw new Error(`Failed to fetch ${pagePath}`);
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                return {
+                    id, href: pagePath, title: normalizeTitle(id, doc), image: pickFirstProductImage(doc)
+                };
+            }
+            function renderProducts(products) {
+                const container = document.getElementById('randomRelatedProducts');
+                if (!container) return;
+                if (!products.length) {
+                    container.innerHTML = '<p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">暂无相关产品</p>';
+                    return;
+                }
+                container.innerHTML = products.map(p => `
+                    <a href="${p.href}" class="vs-related-item">
+                        <img src="${p.image}" alt="${p.title}">
+                        <h4>${p.title}</h4>
+                    </a>
+                `).join('');
+            }
+            document.addEventListener('DOMContentLoaded', async function () {
+                const shuffledIds = shuffle([...new Set(relatedProductIds)]);
+                const selected = [];
+                for (const id of shuffledIds) {
+                    if (selected.length >= 4) break;
+                    try {
+                        const meta = await fetchProductMeta(id);
+                        if (!selected.some(item => item.id === meta.id || item.href === meta.href || item.title === meta.title)) {
+                            selected.push(meta);
+                        }
+                    } catch (e) {
+                        console.warn('Skip product page:', id, e);
+                    }
+                }
+                renderProducts(selected);
+            });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            function initFeedbackHub() {
+                const printBtn = document.getElementById('feedbackPrintBtn');
+                const wechatWrap = document.querySelector('.vs-wechat-wrap');
+                const wechatBtn = document.getElementById('feedbackWechatBtn');
+                const wechatPop = document.getElementById('feedbackWechatPop');
+                const feedbackPanel = document.getElementById('feedbackPanel');
+                const feedbackPanelTitle = document.getElementById('feedbackPanelTitle');
+                const feedbackPanelHint = document.getElementById('feedbackPanelHint');
+                const feedbackTypeInput = document.getElementById('feedbackType');
+                const feedbackTitleInput = document.getElementById('feedbackTitle');
+                const feedbackContentInput = document.getElementById('feedbackContent');
+                const feedbackMsg = document.getElementById('feedbackMsg');
+                const form = document.getElementById('productFeedbackForm');
+                const submitBtn = document.getElementById('feedbackSubmitBtn');
+                const chips = document.querySelectorAll('.vs-feedback-chip');
+
+                if (!form || !feedbackPanel || !feedbackMsg || !submitBtn) return;
+
+                const feedbackCopy = {
+                    '信息很充分，谢谢！': { title: '感谢认可，欢迎留下您最满意的部分', hint: '我们会把这些正向反馈用于后续页面优化。', placeholder: '例如：参数说明清晰、应用场景完整、页面浏览体验好。' },
+                    '有帮助': { title: '感谢反馈，欢迎告诉我们还可优化的点', hint: '您提到的改进方向会直接进入产品页面迭代清单。', placeholder: '例如：希望补充更多案例细节、增加选型建议等。' },
+                    '我仍有疑问': { title: '收到，我们来帮您解答疑问', hint: '请尽量描述具体场景和问题，技术顾问会更快跟进。', placeholder: '例如：我的检测范围是xx，是否适合这款产品？' },
+                    '没有帮助': { title: '抱歉没有帮到您，请告诉我们问题所在', hint: '您的建议非常关键，我们会尽快补齐缺失信息。', placeholder: '例如：缺少价格范围、技术参数解释不够清楚等。' },
+                    '请联系我们': { title: '已收到，请填写信息以便我们联系您', hint: '提交后会进入后台留言系统，技术人员将尽快回访。', placeholder: '例如：请联系我做选型，项目场景是xx。' }
+                };
+
+                function setMessage(text, isError) {
+                    feedbackMsg.textContent = text || '';
+                    feedbackMsg.classList.toggle('is-error', Boolean(isError));
+                }
+
+                function openFeedbackPanel(type) {
+                    const pickedType = type || '页面反馈';
+                    const copy = feedbackCopy[pickedType] || feedbackCopy['有帮助'];
+                    feedbackTypeInput.value = pickedType;
+                    feedbackTitleInput.value = `MC-GD-01 页面反馈 - ${pickedType}`;
+                    feedbackPanelTitle.textContent = copy.title;
+                    feedbackPanelHint.textContent = copy.hint;
+                    feedbackContentInput.placeholder = copy.placeholder;
+                    feedbackPanel.hidden = false;
+                    setMessage('');
+                    feedbackPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                if (printBtn) { printBtn.addEventListener('click', function () { window.print(); }); }
+
+                if (wechatBtn && wechatPop) {
+                    wechatBtn.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        const open = wechatPop.classList.toggle('is-open');
+                        wechatBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    });
+                    document.addEventListener('click', function (event) {
+                        if (!wechatWrap || !wechatPop.classList.contains('is-open')) return;
+                        if (!wechatWrap.contains(event.target)) {
+                            wechatPop.classList.remove('is-open');
+                            wechatBtn.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                }
+
+                chips.forEach(function (chip) {
+                    chip.addEventListener('click', function () {
+                        chips.forEach(function (item) { item.classList.remove('is-active'); });
+                        chip.classList.add('is-active');
+                        openFeedbackPanel(chip.dataset.feedbackType || chip.textContent.trim());
+                    });
+                });
+
+                form.addEventListener('submit', async function (event) {
+                    event.preventDefault();
+                    const name = (document.getElementById('feedbackName').value || '').trim();
+                    const phone = (document.getElementById('feedbackPhone').value || '').trim();
+                    const email = (document.getElementById('feedbackEmail').value || '').trim();
+                    const title = (feedbackTitleInput.value || '').trim();
+                    const content = (feedbackContentInput.value || '').trim();
+                    const feedbackType = feedbackTypeInput.value || '未分类反馈';
+
+                    if (!phone) { setMessage('请填写联系电话。', true); return; }
+                    if (!content) { setMessage('请填写反馈内容。', true); return; }
+
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '提交中...';
+                    setMessage('正在提交，请稍候...');
+
+                    try {
+                        const payload = {
+                            txtUserName: name, txtUserTel: phone, txtUserEmail: email,
+                            txtTitle: title || `MC-GD-01 页面反馈 - ${feedbackType}`,
+                            txtContent: `反馈选项：${feedbackType}\n页面：MC-GD-01型可燃气体检漏仪\n反馈内容：${content}`
+                        };
+                        const response = await fetch('/api/feedback', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                        });
+                        let data = {};
+                        try { data = await response.json(); } catch (err) { data = {}; }
+                        if (!response.ok || !data.success) { throw new Error(data.message || '提交失败，请稍后重试。'); }
+                        setMessage(data.message || '提交成功，我们会尽快与您联系。', false);
+                        const keepType = feedbackTypeInput.value;
+                        form.reset();
+                        feedbackTypeInput.value = keepType;
+                        feedbackTitleInput.value = `MC-GD-01 页面反馈 - ${keepType || '用户反馈'}`;
+                    } catch (error) {
+                        setMessage(error.message || '提交失败，请稍后重试。', true);
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '提交反馈';
+                    }
+                });
+            }
+            document.addEventListener('DOMContentLoaded', initFeedbackHub);
+        })();
+    </script>
+
+  <script src="../../assets/js/search.js"></script>
+  <script src="../../assets/js/chatbot.js"></script>
+
+  <div id="mc-footer-root"></div>
+  <noscript>
+    <footer class="vs-footer-new">
+      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+        <a href="/index.html">首页</a> |
+        <a href="/pages/about/policy.html">隐私政策</a> |
+        <a href="/pages/about/terms.html">条款与条件</a>
+      </div>
+    </footer>
+  </noscript>
+  <script src="/assets/js/footer-loader.js"></script>
+<!-- MC_PRODUCT_ADMIN_DATA:eyJ2ZXJzaW9uIjozLCJ0aXRsZSI6IjEuIE1DLUdELTAx5Z6L5Y+v54eD5rCU5L2T5qOA5ryP5LuqIiwic2hvcnRfbmFtZSI6IjEuIiwiY2F0ZWdvcnkiOiJkZXRlY3RvciIsImltYWdlX3VybCI6Ii9wYWdlcy9nYXNzZW5zaW5nLzEuL21jLWdkLTAxLXByb2R1Y3QtMDEucG5nIiwic3VtbWFyeSI6IjEuIOaQrei9vemrmOeyvuW6puS8oOaEn+aKgOacr++8jE1DLUdELTAx5Z6L5Y+v54eD5rCU5L2T5qOA5ryP5Luq5Yet5YCf5p6B6YCf5ZON5bqU5LiO57K+5YeG5o6i5rWL77yM5Li654eD5rCU566h572R44CB5bel5Lia5Zy656uZ5Y+K5aSN5p2C5Y+X6ZmQ56m66Ze05o+Q5L6b5LiT5Lia57qn55qE5Y+v54eD5rCU5L2T5rOE5ryP5b+r6YCf562b5p+l5LiO5a6J5YWo5L+d6Zqc44CCIiwiY29udGVudF9odG1sIjoiIiwidGVtcGxhdGVfZmllbGRzIjp7fSwic291cmNlIjoiYWktZnVsbC1odG1sIn0= -->
+</body>
+
+</html>

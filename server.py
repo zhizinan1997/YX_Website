@@ -3396,16 +3396,23 @@ DEFAULT_PRODUCT_CATEGORIES = {
 }
 
 
-PRODUCT_TEMPLATE_FILE = Path(__file__).parent / 'pages' / 'gassensing' / '模板.html'
+# Legacy path: pages/gassensing/模板.html
+# New default path: templates/gassensing-product-template.html
+PRODUCT_TEMPLATE_FILES = (
+    Path(__file__).parent / 'pages' / 'gassensing' / '模板.html',
+    Path(__file__).parent / 'templates' / 'gassensing-product-template.html',
+)
 PRODUCT_AI_REFERENCE_FILE = Path(__file__).parent / 'pages' / 'gassensing' / 'mc_ld_h2.html'
 PRODUCT_ADMIN_DATA_PREFIX = 'MC_PRODUCT_ADMIN_DATA:'
 
 
 def get_product_template_html() -> str:
-    """Load product page template HTML from pages/gassensing/模板.html."""
-    if not PRODUCT_TEMPLATE_FILE.exists():
-        raise FileNotFoundError(f'产品模板不存在: {PRODUCT_TEMPLATE_FILE}')
-    return PRODUCT_TEMPLATE_FILE.read_text(encoding='utf-8', errors='ignore')
+    """Load product page template HTML from legacy/new template paths."""
+    for template_file in PRODUCT_TEMPLATE_FILES:
+        if template_file.exists():
+            return template_file.read_text(encoding='utf-8', errors='ignore')
+    checked = ' | '.join(str(p) for p in PRODUCT_TEMPLATE_FILES)
+    raise FileNotFoundError(f'产品模板不存在，已检查: {checked}')
 
 
 def get_product_ai_reference_html() -> str:
@@ -3626,7 +3633,7 @@ def normalize_product_template_fields(raw_fields):
 
 
 def build_product_template_defaults(title: str, summary: str, image_url: str, detail1: str, detail2: str):
-    """Build default values for all placeholders in 模板.html."""
+    """Build default values for all placeholders in product template HTML."""
     placeholders = extract_product_template_placeholders(get_product_template_html())
     image = (image_url or '/assets/images/logo.png').strip()
     defaults = {}
@@ -3720,7 +3727,7 @@ def render_gassensing_product_html(
     content_html: str,
     template_fields=None
 ):
-    """Render product page based on pages/gassensing/模板.html."""
+    """Render product page based on resolved product template HTML."""
     safe_title = (title or '').strip()
     safe_short_name = (short_name or safe_title).strip()
     safe_category = (category or 'module').strip()

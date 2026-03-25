@@ -252,7 +252,7 @@
     "industryCategories": [
       "hydrogen"
     ],
-    "hidden": true
+    "hidden": false
   },
   "mc_hha_01": {
     "industryCategories": [
@@ -273,5 +273,9 @@
   },
   "mc_pgd_01": {
     "industryCategories": []
+  },
+  "mc_ld_r1": {
+    "cardTitle": "MC-LD-R1型冷媒泄漏检漏仪",
+    "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。"
   }
 }
