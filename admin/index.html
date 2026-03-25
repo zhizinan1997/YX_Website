@@ -7297,7 +7297,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!listEl) return;
             listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
             try {
-                const res = await fetch('/api/h2-home');
+                const res = await fetch(`/api/h2-home?admin_t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
                 h2HomeConfig = data || { items: [] };
                 renderH2HomeList();

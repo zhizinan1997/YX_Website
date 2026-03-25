@@ -2347,7 +2347,13 @@ def get_jobs_public():
 
 @app.route('/api/h2-home', methods=['GET'])
 def get_h2_home():
-    return cached_json_response(get_h2_home_config())
+    payload = get_h2_home_config()
+    # Admin UI must always see fresh data right after uploads/saves.
+    if session.get('admin_logged_in'):
+        response = jsonify(payload)
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+    return cached_json_response(payload)
 
 
 @app.route('/api/h2-home/upload-video', methods=['POST'])
@@ -2403,11 +2409,9 @@ def normalize_remote_video_url(raw_url: str) -> str:
     return parsed._replace(fragment='').geturl()
 
 
-def get_allowed_h2_video_urls() -> set:
-    """Allow proxying only URLs configured in H2 home video settings."""
-    config = get_h2_home_config()
+def _collect_remote_urls_from_items(items) -> set:
     allowed = set()
-    for item in config.get('items', []) or []:
+    for item in items or []:
         if not isinstance(item, dict):
             continue
         url = normalize_remote_video_url(item.get('url', ''))
@@ -2416,20 +2420,30 @@ def get_allowed_h2_video_urls() -> set:
     return allowed
 
 
+def get_allowed_remote_media_urls() -> set:
+    """Allow proxying only URLs configured in H2-home and home-hero media lists."""
+    allowed = set()
+    h2_config = get_h2_home_config()
+    hero_config = get_hero_config()
+    allowed.update(_collect_remote_urls_from_items(h2_config.get('items', [])))
+    allowed.update(_collect_remote_urls_from_items(hero_config.get('items', [])))
+    return allowed
+
+
 @app.route('/api/video-proxy')
 def proxy_video():
-    """Same-origin video proxy for cross-origin CDN sources."""
+    """Same-origin media proxy for cross-origin CDN sources."""
     raw_url = (request.args.get('url') or '').strip()
     target_url = normalize_remote_video_url(raw_url)
     if not target_url:
-        return jsonify({'success': False, 'message': '视频地址不合法'}), 400
+        return jsonify({'success': False, 'message': '媒体地址不合法'}), 400
 
-    allowed_urls = get_allowed_h2_video_urls()
+    allowed_urls = get_allowed_remote_media_urls()
     if target_url not in allowed_urls:
         return jsonify({'success': False, 'message': '该视频地址未授权代理'}), 403
 
     if not REQUESTS_SUPPORT:
-        return jsonify({'success': False, 'message': '服务器缺少 requests 依赖，无法代理视频'}), 500
+        return jsonify({'success': False, 'message': '服务器缺少 requests 依赖，无法代理媒体'}), 500
 
     upstream_headers = {}
     range_header = request.headers.get('Range')
@@ -2439,7 +2453,7 @@ def proxy_video():
     try:
         upstream = requests.get(target_url, headers=upstream_headers, stream=True, timeout=(8, 120))
     except Exception as e:
-        return jsonify({'success': False, 'message': f'代理视频失败: {e}'}), 502
+        return jsonify({'success': False, 'message': f'代理媒体失败: {e}'}), 502
 
     passthrough_headers = [
         'Content-Type', 'Content-Length', 'Content-Range',

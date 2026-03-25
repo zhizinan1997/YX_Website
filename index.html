@@ -11,7 +11,7 @@
   <title>湖南元芯传感科技 - 先进生物与化学传感技术解决方案</title>
 
   <!-- Vaisala Style V2.0 -->
-  <link rel="stylesheet" href="assets/css/vaisala-style.css" />
+  <link rel="stylesheet" href="assets/css/vaisala-style.css?v=20260325a" />
 
   <!-- Font Awesome (for icons) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -245,7 +245,7 @@
   <a href="/pages/contact/contact.html">联系我们</a>
 </div>
 </noscript>
-<script src="/assets/js/nav-loader.js?v=20260319b"></script>
+<script src="/assets/js/nav-loader.js?v=20260325d"></script>
 
   <div id="homeBetaModal" class="home-beta-modal" role="dialog" aria-modal="true" aria-labelledby="homeBetaModalTitle"
     hidden>
@@ -387,6 +387,16 @@
           }
         }
 
+        function toMediaFetchUrl(rawUrl) {
+          if (!rawUrl) return '';
+          try {
+            const absolute = new URL(rawUrl, window.location.origin);
+            return absolute.href;
+          } catch (_) {
+            return rawUrl;
+          }
+        }
+
         function ensureSlideMedia(slide, eager) {
           if (!slide || slide.dataset.mediaReady === '1') return;
           const type = slide.dataset.type;
@@ -396,7 +406,7 @@
 
           if (type === 'video') {
             const video = document.createElement('video');
-            video.src = url;
+            video.src = toMediaFetchUrl(url);
             video.muted = true;
             video.playsInline = true;
             video.preload = eager ? 'metadata' : 'none';
@@ -415,7 +425,7 @@
             });
 
             const img = document.createElement('img');
-            img.src = item.fallback || url;
+            img.src = toMediaFetchUrl(item.fallback || url);
             img.alt = '';
             img.decoding = 'async';
             // Carousel slides should preload in advance; lazy can delay off-screen slide fetch.
@@ -883,11 +893,6 @@
       })();
     </script>
 
-  </div>
-  </div>
-  </section>
-
-  
   <style>
     /* Partners Marquee */
     .vs-partners {
@@ -1084,6 +1089,16 @@
 
   <script>
     (function () {
+      function toMediaFetchUrl(rawUrl) {
+        if (!rawUrl) return '';
+        try {
+          const absolute = new URL(rawUrl, window.location.origin);
+          return absolute.href;
+        } catch (_) {
+          return rawUrl;
+        }
+      }
+
       function runWhenIdle(task) {
         if ('requestIdleCallback' in window) {
           window.requestIdleCallback(task, { timeout: 3000 });
@@ -1112,7 +1127,7 @@
           const data = await res.json();
           const imageUrls = (data.items || [])
             .filter(item => item && item.type === 'image' && item.url)
-            .map(item => item.url);
+            .map(item => toMediaFetchUrl(item.url));
           if (imageUrls.length <= 1) return;
 
           // Warm only the next couple slides, avoid downloading all hero images at once.
@@ -1126,18 +1141,13 @@
       }
 
       async function prefetchH2Videos() {
-        function toVideoFetchUrl(rawUrl) {
-          const absolute = new URL(rawUrl, window.location.origin);
-          if (absolute.origin === window.location.origin) return absolute.href;
-          return `${window.location.origin}/api/video-proxy?url=${encodeURIComponent(absolute.href)}`;
-        }
         try {
           const res = await fetch('/api/h2-home');
           const data = await res.json();
           const urls = (data.items || [])
             .map(item => item && item.url)
             .filter(Boolean)
-            .map(toVideoFetchUrl)
+            .map(toMediaFetchUrl)
             .slice(0, 1);
           if (!urls.length) return;
 
