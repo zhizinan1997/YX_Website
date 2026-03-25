@@ -5,6 +5,7 @@
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
+    var NAV_ASSET_VERSION = '20260325d';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -43,7 +44,7 @@
         var link = document.createElement('link');
         link.id = NAV_CSS_ID;
         link.rel = 'stylesheet';
-        link.href = '/assets/css/nav-component.css?v=20260319c';
+        link.href = '/assets/css/nav-component.css?v=' + NAV_ASSET_VERSION;
         document.head.appendChild(link);
     }
 
@@ -60,7 +61,7 @@
     }
 
     function injectPartial(root, profile) {
-        return fetchText('/assets/partials/nav-' + profile + '.html').then(function (html) {
+        return fetchText('/assets/partials/nav-' + profile + '.html?v=' + NAV_ASSET_VERSION).then(function (html) {
             root.innerHTML = html;
         });
     }
@@ -123,14 +124,129 @@
             tab.classList.add('active');
         };
 
-        var mobileToggle = root.querySelector('.vs-mobile-toggle');
         var nav = root.querySelector('.vs-nav');
-        if (mobileToggle && nav) {
-            mobileToggle.addEventListener('click', function () {
-                nav.classList.toggle('is-open');
-                mobileToggle.classList.toggle('is-open');
+        var headerInner = root.querySelector('.vs-header__inner') || root.querySelector('.vs-container') || root;
+        var mobileToggle = root.querySelector('.vs-mobile-toggle');
+
+        function isMobileViewport() {
+            return window.matchMedia('(max-width: 1024px)').matches;
+        }
+
+        function getDirectItemToggle(item) {
+            if (!item || !item.children) return null;
+            for (var i = 0; i < item.children.length; i++) {
+                var child = item.children[i];
+                if (child && child.classList && child.classList.contains('vs-nav__item-toggle')) {
+                    return child;
+                }
+            }
+            return null;
+        }
+
+        function closeMobileMegaMenus(exceptItem) {
+            var megaItems = root.querySelectorAll('.vs-nav__item--has-mega');
+            megaItems.forEach(function (item) {
+                if (exceptItem && item === exceptItem) return;
+                item.classList.remove('is-mobile-open');
+                var toggleBtn = getDirectItemToggle(item);
+                if (toggleBtn) {
+                    toggleBtn.classList.remove('is-open');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
             });
         }
+
+        function setMobileToggleVisual(opened) {
+            if (!mobileToggle) return;
+            mobileToggle.classList.toggle('is-open', !!opened);
+            mobileToggle.setAttribute('aria-expanded', opened ? 'true' : 'false');
+            var icon = mobileToggle.querySelector('i');
+            if (icon) {
+                icon.className = opened ? 'fas fa-times' : 'fas fa-bars';
+            }
+        }
+
+        function setMobileNavOpen(opened) {
+            if (!mobileToggle || !nav) return;
+            nav.classList.toggle('is-open', !!opened);
+            setMobileToggleVisual(!!opened);
+            document.body.classList.toggle('mc-nav-mobile-open', !!opened);
+            if (!opened) closeMobileMegaMenus();
+        }
+
+        function ensureMobileStructure() {
+            if (!nav || !headerInner) return;
+
+            if (!mobileToggle) {
+                mobileToggle = document.createElement('button');
+                mobileToggle.type = 'button';
+                mobileToggle.className = 'vs-mobile-toggle';
+                mobileToggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i><span>菜单</span>';
+                mobileToggle.setAttribute('aria-label', '打开导航菜单');
+                var actions = root.querySelector('.mc-nav-actions');
+                if (actions && actions.parentNode === headerInner) {
+                    headerInner.insertBefore(mobileToggle, actions);
+                } else {
+                    headerInner.appendChild(mobileToggle);
+                }
+            }
+
+            if (!nav.id) nav.id = 'mc-nav-menu';
+            mobileToggle.setAttribute('aria-controls', nav.id);
+            setMobileToggleVisual(false);
+
+            var megaItems = root.querySelectorAll('.vs-nav__item--has-mega');
+            megaItems.forEach(function (item) {
+                if (getDirectItemToggle(item)) return;
+                var toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'vs-nav__item-toggle';
+                toggleBtn.setAttribute('aria-label', '展开子菜单');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-down" aria-hidden="true"></i>';
+                item.appendChild(toggleBtn);
+
+                toggleBtn.addEventListener('click', function (event) {
+                    if (!isMobileViewport()) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var willOpen = !item.classList.contains('is-mobile-open');
+                    closeMobileMegaMenus(item);
+                    item.classList.toggle('is-mobile-open', willOpen);
+                    toggleBtn.classList.toggle('is-open', willOpen);
+                    toggleBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                });
+            });
+
+            mobileToggle.addEventListener('click', function (event) {
+                event.preventDefault();
+                var opened = !nav.classList.contains('is-open');
+                setMobileNavOpen(opened);
+            });
+
+            nav.querySelectorAll('.vs-nav__item > .vs-nav__link').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (!isMobileViewport()) return;
+                    var parent = link.parentElement;
+                    if (parent && parent.classList && parent.classList.contains('vs-nav__item--has-mega')) return;
+                    setMobileNavOpen(false);
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (!isMobileViewport()) return;
+                if (root.contains(event.target)) return;
+                setMobileNavOpen(false);
+            });
+
+            window.addEventListener('resize', function () {
+                if (isMobileViewport()) return;
+                setMobileNavOpen(false);
+                closeMobileMegaMenus();
+            });
+        }
+
+        ensureMobileStructure();
 
         // Smooth mega-menu switching on fast pointer movement.
         (function bindMegaHoverBuffer() {
@@ -175,6 +291,7 @@
 
             items.forEach(function (item) {
                 item.addEventListener('mouseenter', function () {
+                    if (isMobileViewport()) return;
                     if (closeTimer) {
                         clearTimeout(closeTimer);
                         closeTimer = null;
@@ -187,6 +304,7 @@
                 });
 
                 item.addEventListener('mouseleave', function () {
+                    if (isMobileViewport()) return;
                     if (closeTimer) clearTimeout(closeTimer);
                     closeTimer = setTimeout(function () {
                         item.classList.remove('is-mega-open');
@@ -196,11 +314,16 @@
             });
 
             root.addEventListener('mouseleave', function () {
+                if (isMobileViewport()) return;
                 if (closeTimer) clearTimeout(closeTimer);
                 closeTimer = setTimeout(closeAll, closeDelay);
             });
 
             window.addEventListener('resize', function () {
+                if (isMobileViewport()) {
+                    items.forEach(function (it) { resetMenuOffset(it); });
+                    return;
+                }
                 var opened = root.querySelector('.vs-nav__item--has-mega.is-mega-open');
                 if (opened) clampMenuToViewport(opened);
             });

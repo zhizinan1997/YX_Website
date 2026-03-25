@@ -159,18 +159,23 @@
   .vs-footer-new__main {
     flex-direction: column;
     align-items: flex-start;
-    padding: 40px 0 26px;
+    padding: 32px 0 22px;
+    gap: 14px;
   }
   .vs-footer-new__brand,
   .vs-footer-new__certs,
   .vs-footer-new__right {
+    flex: 0 0 auto;
+    width: 100%;
     margin-top: 0;
   }
   .vs-footer-new__certs {
     justify-content: flex-start;
+    gap: 10px;
   }
   .vs-footer-new__right {
     align-items: flex-start;
+    gap: 6px;
   }
   .vs-footer-new__brand .tagline {
     font-size: 14px;

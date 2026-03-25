@@ -44,6 +44,50 @@
   padding: 4px;
 }
 
+.vs-mobile-toggle {
+  display: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.vs-mobile-toggle i {
+  font-size: 14px;
+}
+
+body.mc-nav-mobile-open {
+  overflow: hidden;
+}
+
+.vs-nav__item-toggle {
+  display: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.vs-nav__item-toggle i {
+  transition: transform 0.2s ease;
+}
+
+.vs-nav__item-toggle.is-open i {
+  transform: rotate(180deg);
+}
+
 @media (min-width: 1025px) {
   .vs-nav {
     position: absolute;
@@ -295,4 +339,286 @@
 .mc-nav-noscript a {
   color: var(--color-primary);
   text-decoration: none;
+}
+
+/* Keep mobile overrides at file end so they win over base mega-menu rules. */
+@media (max-width: 1024px) {
+  .vs-header {
+    height: auto;
+    min-height: 70px;
+  }
+
+  .vs-header .vs-container,
+  .vs-header__inner {
+    height: auto;
+  }
+
+  .vs-header__inner {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .vs-logo,
+  .vs-mobile-toggle {
+    margin-top: 3px;
+  }
+
+  .mc-nav-actions {
+    display: none;
+  }
+
+  .vs-mobile-toggle {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  .vs-nav {
+    order: 10;
+    width: 100%;
+    margin: 0 !important;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.28s ease;
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 10px;
+    position: static;
+    left: auto;
+    transform: none;
+  }
+
+  .vs-nav.is-open {
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vs-nav__list {
+    flex-direction: column;
+    gap: 0;
+    padding: 6px 0;
+    height: auto;
+  }
+
+  .vs-nav__item {
+    display: block;
+    height: auto;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .vs-nav__item:last-child {
+    border-bottom: 0;
+  }
+
+  .vs-nav__item > .vs-nav__link {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: auto;
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 16px;
+    justify-content: space-between;
+    text-decoration: none;
+  }
+
+  .vs-nav__item > .vs-nav__link::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  .vs-nav__item--has-mega > .vs-nav__link {
+    padding-right: 48px;
+  }
+
+  .vs-nav__item--has-mega.is-mobile-open > .vs-nav__link {
+    background: linear-gradient(90deg, rgba(17, 89, 149, 0.34) 0%, rgba(17, 89, 149, 0.08) 100%);
+    color: #fff;
+  }
+
+  .vs-nav__item:hover .vs-nav__link::after {
+    width: 0 !important;
+  }
+
+  .vs-nav__item-toggle {
+    display: inline-flex;
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    z-index: 2;
+    transition: all 0.2s ease;
+  }
+
+  .vs-nav__item-toggle.is-open {
+    background: linear-gradient(135deg, #0d4e8a 0%, #2c76be 100%);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+  }
+
+  .vs-nav__item--has-mega .vs-mega-menu {
+    position: static;
+    top: auto;
+    left: auto;
+    width: calc(100% - 20px);
+    margin: 0 10px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 10px 24px rgba(8, 32, 61, 0.1);
+    border: 0;
+    border-top: 0;
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: max-height 0.22s ease;
+    display: block;
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  .vs-nav__item--has-mega .vs-mega-menu::before {
+    display: none;
+  }
+
+  .vs-nav__item--has-mega.is-mobile-open .vs-mega-menu {
+    border: 1px solid rgba(25, 74, 122, 0.14);
+    border-top: 1px solid rgba(25, 74, 122, 0.2);
+    margin-bottom: 10px;
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  .vs-mega-menu:not(.vs-mega-menu--links) .vs-mega-sidebar {
+    display: none;
+  }
+
+  .vs-mega-menu--links .vs-mega-sidebar {
+    width: 100%;
+    border-right: 0;
+    border-radius: 0 0 12px 12px;
+    padding: 10px;
+    background: transparent;
+  }
+
+  .vs-mega-content {
+    padding: 12px;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .vs-mega-grid-v2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .vs-mega-panel {
+    display: block !important;
+    animation: none;
+    padding: 10px 11px;
+    border: 1px solid #d9e7f8;
+    border-radius: 11px;
+    background: #fff;
+  }
+
+  .vs-mega-panel + .vs-mega-panel {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #d9e7f8;
+  }
+
+  .vs-mega-panel h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #11457a;
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: #edf5ff;
+    margin-bottom: 10px;
+  }
+
+  .vs-mega-tab {
+    padding: 11px 12px;
+    font-size: 14px;
+    border: 1px solid #dbe8f8;
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 7px;
+  }
+
+  .vs-mega-tab:last-child {
+    margin-bottom: 0;
+  }
+
+  .vs-mega-tab.active,
+  .vs-mega-tab:hover {
+    background: linear-gradient(135deg, #0f4f8a 0%, #2d77bf 100%);
+    border-color: transparent;
+    color: #fff;
+  }
+
+  .vs-mega-sublist-title {
+    margin-bottom: 8px;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    color: #6482a3;
+  }
+
+  .vs-mega-list-v2 {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .vs-mega-list-v2 li {
+    margin: 0;
+  }
+
+  .vs-mega-list-v2 a {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+    border-radius: 9px;
+    border: 1px solid #e1ebf8;
+    background: #f8fbff;
+    color: #163e69;
+    padding: 8px 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    transition: all 0.18s ease;
+  }
+
+  .vs-mega-list-v2 a:hover {
+    color: #0c4e8d;
+    border-color: #c7dbf5;
+    background: #eef5ff;
+    padding-left: 12px;
+    transform: translateX(2px);
+  }
+
+  .vs-mega-action {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #dce9f8;
+  }
+
+  .vs-btn-search {
+    width: 100%;
+    justify-content: center;
+    border-radius: 9px;
+    background: #fff;
+  }
+
+  .vs-mega-menu--news .vs-mega-content {
+    padding: 12px;
+  }
 }
