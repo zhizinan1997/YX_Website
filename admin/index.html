@@ -2000,7 +2000,7 @@
 
                         <div class="card" style="padding:30px; margin-top:20px;">
                             <h3 class="section-header">AI 上架预览</h3>
-                            <iframe id="aiProductPreviewFrame" scrolling="no"
+                            <iframe id="aiProductPreviewFrame" scrolling="auto"
                                 style="width:100%; min-height:560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff; overflow:hidden;"></iframe>
                         </div>
                     </div>
@@ -4650,11 +4650,18 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 if (!res.ok || !data.success) {
                     throw new Error(data.message || '上传失败');
                 }
-                aiUploadedImageUrls = Array.isArray(data.urls) ? data.urls : [];
+                const uploadedUrls = Array.isArray(data.urls) ? data.urls : [];
+                const merged = Array.isArray(aiUploadedImageUrls) ? [...aiUploadedImageUrls] : [];
+                uploadedUrls.forEach(url => {
+                    const v = String(url || '').trim();
+                    if (!v) return;
+                    if (!merged.includes(v)) merged.push(v);
+                });
+                aiUploadedImageUrls = merged;
                 renderAiUploadedImages();
                 if (msg) {
                     msg.style.color = '#16a34a';
-                    msg.textContent = `✓ 已上传 ${aiUploadedImageUrls.length} 张图片到 ${data.folder || ''}`;
+                    msg.textContent = `✓ 本次上传 ${uploadedUrls.length} 张，累计 ${aiUploadedImageUrls.length} 张（${data.folder || ''}）`;
                 }
             } catch (e) {
                 if (msg) {
@@ -4710,7 +4717,70 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         function buildAiPreviewHtmlWithResizeBridge(rawHtml) {
-            return String(rawHtml || '');
+            const source = String(rawHtml || '').trim();
+            if (!source) {
+                return '<!doctype html><html><body style="font-family:sans-serif;padding:24px;color:#666;">预览为空</body></html>';
+            }
+            if (source.includes('ai-product-preview-height')) {
+                return source;
+            }
+
+            const bridge = `<script>
+(function () {
+  function getDocHeight() {
+    var body = document.body;
+    var html = document.documentElement;
+    if (!body || !html) return 0;
+    return Math.max(
+      body.scrollHeight || 0,
+      body.offsetHeight || 0,
+      html.clientHeight || 0,
+      html.scrollHeight || 0,
+      html.offsetHeight || 0
+    );
+  }
+  function notifyHeight() {
+    var h = getDocHeight();
+    if (!h || !isFinite(h)) return;
+    try {
+      parent.postMessage({ type: 'ai-product-preview-height', height: Math.ceil(h) }, '*');
+    } catch (_) {}
+  }
+  window.addEventListener('load', function () {
+    notifyHeight();
+    setTimeout(notifyHeight, 60);
+    setTimeout(notifyHeight, 300);
+    setTimeout(notifyHeight, 900);
+  });
+  window.addEventListener('resize', notifyHeight);
+  if (typeof MutationObserver !== 'undefined') {
+    var observer = new MutationObserver(function () { notifyHeight(); });
+    observer.observe(document.documentElement || document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true
+    });
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(function () { notifyHeight(); });
+    if (document.documentElement) ro.observe(document.documentElement);
+    if (document.body) ro.observe(document.body);
+  }
+  notifyHeight();
+})();
+<\/script>`;
+
+            const lower = source.toLowerCase();
+            const bodyCloseIdx = lower.lastIndexOf('</body>');
+            if (bodyCloseIdx >= 0) {
+                return source.slice(0, bodyCloseIdx) + bridge + source.slice(bodyCloseIdx);
+            }
+            const htmlCloseIdx = lower.lastIndexOf('</html>');
+            if (htmlCloseIdx >= 0) {
+                return source.slice(0, htmlCloseIdx) + bridge + source.slice(htmlCloseIdx);
+            }
+            return source + bridge;
         }
 
         async function updateAiProductPreview() {

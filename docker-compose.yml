@@ -8,6 +8,10 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+      # Admin 新闻/产品页会直接写入 pages 目录；不挂载会在重建容器后丢失
+      - ./pages:/app/pages
+      # 版本更新日志（可选，但建议持久化）
+      - ./update_logs:/app/update_logs
     environment:
       - SECRET_KEY=your-secret-key-change-in-production
       - ADMIN_USERNAME=admin
