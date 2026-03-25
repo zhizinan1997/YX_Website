@@ -1,12 +1,21 @@
 """Admin/auth route module."""
 
+import hmac
+import json
 import os
 import re
 import subprocess
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
 from flask import jsonify, make_response, request, send_from_directory, session
+
+LOGIN_FAIL_WINDOW_SECONDS = 12 * 3600
+LOGIN_FAIL_LIMIT = 3
+LOGIN_BLOCK_SECONDS = 12 * 3600
+LOGIN_ATTEMPTS_LOCK = threading.Lock()
 
 
 def _run_git_command(args, cwd: Path) -> str:
@@ -27,6 +36,106 @@ def _run_git_command(args, cwd: Path) -> str:
     if proc.returncode != 0:
         return ''
     return (proc.stdout or '').strip()
+
+
+def _get_login_attempts_file(project_root: Path) -> Path:
+    data_dir = (project_root / 'data').resolve()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir / 'admin_login_attempts.json'
+
+
+def _load_login_attempts(file_path: Path):
+    default_state = {'ips': {}}
+    if not file_path.exists():
+        return default_state
+    try:
+        data = json.loads(file_path.read_text(encoding='utf-8'))
+        if isinstance(data, dict) and isinstance(data.get('ips'), dict):
+            return data
+    except Exception:
+        pass
+    return default_state
+
+
+def _save_login_attempts(file_path: Path, state):
+    safe_state = state if isinstance(state, dict) else {'ips': {}}
+    if not isinstance(safe_state.get('ips'), dict):
+        safe_state['ips'] = {}
+    tmp = file_path.with_suffix('.tmp')
+    tmp.write_text(json.dumps(safe_state, ensure_ascii=False, indent=2), encoding='utf-8')
+    tmp.replace(file_path)
+
+
+def _get_request_ip(req):
+    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
+    if trust_proxy_headers:
+        xff = (req.headers.get('X-Forwarded-For') or '').strip()
+        if xff:
+            first = xff.split(',')[0].strip()
+            if first:
+                return first
+        x_real_ip = (req.headers.get('X-Real-IP') or '').strip()
+        if x_real_ip:
+            return x_real_ip
+    return (req.remote_addr or 'unknown').strip() or 'unknown'
+
+
+def _prune_login_attempts(state, now_ts: int):
+    ips = state.get('ips') if isinstance(state, dict) else {}
+    if not isinstance(ips, dict):
+        state['ips'] = {}
+        return
+    to_delete = []
+    for ip, item in ips.items():
+        if not isinstance(item, dict):
+            to_delete.append(ip)
+            continue
+        failures = item.get('failures', [])
+        failures = [int(ts) for ts in failures if isinstance(ts, (int, float)) and now_ts - int(ts) <= LOGIN_FAIL_WINDOW_SECONDS]
+        blocked_until = int(item.get('blocked_until', 0) or 0)
+        if blocked_until <= now_ts:
+            blocked_until = 0
+        if not failures and blocked_until <= 0:
+            to_delete.append(ip)
+        else:
+            item['failures'] = failures
+            item['blocked_until'] = blocked_until
+            ips[ip] = item
+    for ip in to_delete:
+        ips.pop(ip, None)
+
+
+def _register_login_failure(state, ip_addr: str, now_ts: int):
+    ips = state.setdefault('ips', {})
+    item = ips.get(ip_addr, {}) if isinstance(ips.get(ip_addr), dict) else {}
+    failures = [int(ts) for ts in item.get('failures', []) if isinstance(ts, (int, float)) and now_ts - int(ts) <= LOGIN_FAIL_WINDOW_SECONDS]
+    failures.append(now_ts)
+    blocked_until = int(item.get('blocked_until', 0) or 0)
+
+    is_blocked_now = False
+    if len(failures) >= LOGIN_FAIL_LIMIT:
+        blocked_until = now_ts + LOGIN_BLOCK_SECONDS
+        failures = []
+        is_blocked_now = True
+
+    item['failures'] = failures
+    item['blocked_until'] = blocked_until
+    ips[ip_addr] = item
+    remaining = max(0, LOGIN_FAIL_LIMIT - len(failures))
+    return is_blocked_now, blocked_until, remaining
+
+
+def _reset_login_attempts_for_ip(state, ip_addr: str):
+    ips = state.get('ips') if isinstance(state, dict) else {}
+    if isinstance(ips, dict):
+        ips.pop(ip_addr, None)
+
+
+def _format_blocked_until(ts_value: int) -> str:
+    ts = int(ts_value or 0)
+    if ts <= 0:
+        return ''
+    return datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def _parse_datetime_safe(raw_value: str):
@@ -336,34 +445,98 @@ def register_admin_routes(
         resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         resp.headers['Pragma'] = 'no-cache'
         resp.headers['Expires'] = '0'
+        resp.headers['X-Frame-Options'] = 'DENY'
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['Referrer-Policy'] = 'same-origin'
         return resp
 
     @app.route('/admin/login', methods=['POST'])
     def admin_login():
         """Handle admin login."""
-        data = request.form if request.form else request.json or {}
-        username = data.get('username', '')
-        password = data.get('password', '')
-
+        data = request.form if request.form else request.get_json(silent=True) or {}
+        username = str(data.get('username', '') or '').strip()
+        password = str(data.get('password', '') or '')
+        ip_addr = _get_request_ip(request)
+        now_ts = int(time.time())
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        attempts_file = _get_login_attempts_file(root)
         config = get_config()
+        admin_username = str(config.get('admin_username', '') or '')
+        admin_password = str(config.get('admin_password', '') or '')
+        credentials_ok = (
+            hmac.compare_digest(username, admin_username)
+            and hmac.compare_digest(password, admin_password)
+        )
+        if not username and not password:
+            fail_reason = '用户名和密码不能为空'
+        elif not username:
+            fail_reason = '用户名不能为空'
+        elif not password:
+            fail_reason = '密码不能为空'
+        else:
+            fail_reason = '用户名或密码错误'
 
-        if username == config['admin_username'] and password == config['admin_password']:
-            session['admin_logged_in'] = True
-            session['admin_username'] = config['admin_username']
+        failed_payload = None
+        failed_status = 401
+        failed_detail = ''
+
+        with LOGIN_ATTEMPTS_LOCK:
+            attempts_state = _load_login_attempts(attempts_file)
+            _prune_login_attempts(attempts_state, now_ts)
+            ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
+            blocked_until = int(ip_item.get('blocked_until', 0) or 0) if isinstance(ip_item, dict) else 0
+
+            if blocked_until > now_ts:
+                _save_login_attempts(attempts_file, attempts_state)
+                blocked_at = _format_blocked_until(blocked_until)
+                failed_payload = {
+                    'success': False,
+                    'message': f'当前 IP 已被封禁，解封时间：{blocked_at}，请稍后再试。'
+                }
+                failed_status = 429
+                failed_detail = f'IP 被封禁，解封时间：{blocked_at or blocked_until}'
+            elif credentials_ok:
+                _reset_login_attempts_for_ip(attempts_state, ip_addr)
+                _save_login_attempts(attempts_file, attempts_state)
+            else:
+                is_blocked_now, blocked_until, remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
+                _save_login_attempts(attempts_file, attempts_state)
+                if is_blocked_now:
+                    blocked_at = _format_blocked_until(blocked_until)
+                    failed_payload = {
+                        'success': False,
+                        'message': f'{fail_reason}。同一 IP 在 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，已封禁至 {blocked_at}。'
+                    }
+                    failed_status = 429
+                    failed_detail = f'{fail_reason}；同一 IP 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，封禁至 {blocked_at or blocked_until}'
+                else:
+                    failed_payload = {
+                        'success': False,
+                        'message': f'{fail_reason}。当前 IP 还可再尝试 {remaining} 次（超过将封禁 12 小时）。'
+                    }
+                    failed_status = 400 if fail_reason != '用户名或密码错误' else 401
+                    failed_detail = f'{fail_reason}；当前 IP 在 12 小时窗口内剩余尝试次数：{remaining}'
+
+        if failed_payload is not None:
             append_admin_login_log(
                 operation='后台登录',
-                success=True,
-                username=config['admin_username'],
-                detail='用户名和密码验证通过'
+                success=False,
+                username=username,
+                detail=failed_detail
             )
-            return jsonify({'success': True})
+            return jsonify(failed_payload), failed_status
+
+        # Successful login: clear old session to reduce fixation risk.
+        session.clear()
+        session['admin_logged_in'] = True
+        session['admin_username'] = admin_username
         append_admin_login_log(
             operation='后台登录',
-            success=False,
-            username=username,
-            detail='用户名或密码错误'
+            success=True,
+            username=admin_username,
+            detail='用户名和密码验证通过'
         )
-        return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
+        return jsonify({'success': True})
 
     @app.route('/admin/change-password', methods=['POST'])
     @login_required
@@ -433,18 +606,57 @@ def register_admin_routes(
     @login_required
     def admin_login_logs():
         """Get immutable admin login-operation logs."""
-        limit_raw = request.args.get('limit', '200')
+        # Backward-compatible mode: ?limit=300
+        limit_raw = request.args.get('limit')
+        page_raw = request.args.get('page')
+        page_size_raw = request.args.get('page_size')
+        if limit_raw and page_raw is None and page_size_raw is None:
+            try:
+                limit = int(limit_raw)
+            except (TypeError, ValueError):
+                limit = 200
+            limit = max(1, min(limit, 1000))
+
+            with admin_login_log_lock:
+                items = load_admin_login_logs()
+
+            output = list(reversed(items))[:limit]
+            return jsonify({'items': output, 'count': len(output)})
+
         try:
-            limit = int(limit_raw)
+            page = int(page_raw or '1')
         except (TypeError, ValueError):
-            limit = 200
-        limit = max(1, min(limit, 1000))
+            page = 1
+        try:
+            page_size = int(page_size_raw or '20')
+        except (TypeError, ValueError):
+            page_size = 20
+
+        page = max(1, page)
+        page_size = max(5, min(page_size, 200))
 
         with admin_login_log_lock:
-            items = load_admin_login_logs()
+            items = list(reversed(load_admin_login_logs()))
 
-        output = list(reversed(items))[:limit]
-        return jsonify({'items': output, 'count': len(output)})
+        total = len(items)
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        if page > total_pages:
+            page = total_pages
+
+        start = (page - 1) * page_size
+        end = start + page_size
+        output = items[start:end]
+
+        return jsonify({
+            'items': output,
+            'count': len(output),
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+        })
 
     @app.route('/api/admin/changelog')
     @login_required
