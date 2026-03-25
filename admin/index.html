@@ -1064,6 +1064,21 @@
             white-space: pre-line;
         }
 
+        .changelog-update-head {
+            color: #0f2f5f;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .changelog-update-detail {
+            color: #2b3f5d;
+            font-size: 14px;
+            line-height: 1.8;
+            white-space: pre-line;
+            word-break: break-word;
+        }
+
         .changelog-update-empty {
             padding: 16px 14px;
             border: 1px dashed #d9e3f0;
@@ -3334,27 +3349,46 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!versionEl || !buildTimeEl || !updatesEl) return;
 
             const data = (payload && typeof payload === 'object') ? payload : {};
-            const version = String(data.version || CHANGELOG_FALLBACK.version || '-').trim() || '-';
-            const buildTime = formatChangelogTime(data.build_time || CHANGELOG_FALLBACK.build_time);
-            const updates = Array.isArray(data.updates) ? data.updates : CHANGELOG_FALLBACK.updates;
-            const normalizedUpdates = updates
-                .map(item => String(item || '').trim())
-                .filter(Boolean);
+            const historyRaw = Array.isArray(data.history) ? data.history : [];
+            const history = historyRaw
+                .map((entry) => {
+                    const item = (entry && typeof entry === 'object') ? entry : {};
+                    const updates = Array.isArray(item.updates) ? item.updates : [];
+                    const normalizedUpdates = updates
+                        .map(text => String(text || '').trim())
+                        .filter(Boolean);
+                    return {
+                        version: String(item.version || '').trim(),
+                        build_time: String(item.build_time || '').trim(),
+                        updates: normalizedUpdates
+                    };
+                })
+                .filter(item => item.version || item.build_time || item.updates.length);
 
-            versionEl.textContent = version;
-            buildTimeEl.textContent = buildTime || '-';
+            if (!history.length) {
+                const fallbackUpdates = Array.isArray(data.updates) ? data.updates : CHANGELOG_FALLBACK.updates;
+                history.push({
+                    version: String(data.version || CHANGELOG_FALLBACK.version || '').trim(),
+                    build_time: String(data.build_time || CHANGELOG_FALLBACK.build_time || '').trim(),
+                    updates: fallbackUpdates.map(text => String(text || '').trim()).filter(Boolean)
+                });
+            }
+
+            const latest = history[0] || { version: '-', build_time: '', updates: [] };
+            versionEl.textContent = latest.version || '-';
+            buildTimeEl.textContent = formatChangelogTime(latest.build_time) || '-';
             updatesEl.innerHTML = '';
 
-            if (!normalizedUpdates.length) {
+            if (!history.length) {
                 const emptyItem = document.createElement('li');
                 emptyItem.className = 'changelog-update-empty';
                 emptyItem.textContent = '暂无更新记录';
                 updatesEl.appendChild(emptyItem);
-                if (countEl) countEl.textContent = '0 项';
+                if (countEl) countEl.textContent = '0 版';
                 return;
             }
 
-            normalizedUpdates.forEach((text, index) => {
+            history.forEach((release, index) => {
                 const li = document.createElement('li');
                 li.className = 'changelog-update-item';
 
@@ -3364,14 +3398,29 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
                 const body = document.createElement('div');
                 body.className = 'changelog-update-text';
-                body.textContent = text;
+
+                const head = document.createElement('div');
+                head.className = 'changelog-update-head';
+                const showVersion = release.version || `v${index + 1}`;
+                const showTime = formatChangelogTime(release.build_time);
+                head.textContent = showTime && showTime !== '-'
+                    ? `${showVersion} · ${showTime}`
+                    : showVersion;
+
+                const detail = document.createElement('div');
+                detail.className = 'changelog-update-detail';
+                const detailLines = release.updates.length ? release.updates : ['暂无更新内容'];
+                detail.textContent = detailLines.map(line => `• ${line}`).join('\n');
+
+                body.appendChild(head);
+                body.appendChild(detail);
 
                 li.appendChild(number);
                 li.appendChild(body);
                 updatesEl.appendChild(li);
             });
 
-            if (countEl) countEl.textContent = `${normalizedUpdates.length} 项`;
+            if (countEl) countEl.textContent = `${history.length} 版`;
         }
 
         function setChangelogLoading(isLoading) {
