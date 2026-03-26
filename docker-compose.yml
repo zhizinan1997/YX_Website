@@ -4,16 +4,40 @@ services:
   website:
     build: .
     container_name: yx-website
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./data:/app/data
       # Admin 新闻/产品页会直接写入 pages 目录；不挂载会在重建容器后丢失
       - ./pages:/app/pages
+      # CDN 素材目录（统一素材源）
+      - ./cdn_assets:/app/cdn_assets
       # 版本更新日志（可选，但建议持久化）
       - ./update_logs:/app/update_logs
     environment:
       - SECRET_KEY=your-secret-key-change-in-production
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=admin123
+      # 可选：容器启动时的 CDN 默认值（后台可覆盖）
+      - CDN_ENABLED=${CDN_ENABLED:-false}
+      - CDN_DOMAIN=${CDN_DOMAIN:-}
+      - TURNSTILE_ENABLED=${TURNSTILE_ENABLED:-false}
+      - TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY:-}
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: yx-gateway
+    depends_on:
+      - website
+    ports:
+      # 主站入口
+      - "${MAIN_PORT:-8000}:80"
+      # CDN 专用入口（仅放行 /cdn_assets/*）
+      - "${CDN_PORT:-8001}:81"
+    volumes:
+      - ./cdn_assets:/app/cdn_assets:ro
     restart: unless-stopped

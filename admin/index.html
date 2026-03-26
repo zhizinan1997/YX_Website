@@ -174,6 +174,20 @@
             transform: none;
             filter: grayscale(0.1);
             box-shadow: none;
+            background: #9aa8b8;
+            color: #eef2f7;
+        }
+
+        .login-page #loginTurnstileWidget {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 66px;
+            padding: 2px 0;
+        }
+
+        .login-page #loginTurnstileWidget>div {
+            margin: 0 auto;
         }
 
         .login-foot-link {
@@ -1667,7 +1681,12 @@
                     <label>密码</label>
                     <input type="password" id="password" class="form-control" placeholder="请输入密码" required>
                 </div>
-                <button type="submit" class="btn-primary">登 录</button>
+                <div id="loginTurnstileWrap" class="form-group" style="display:none;">
+                    <label>人机验证</label>
+                    <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
+                    <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
+                </div>
+                <button type="submit" id="loginSubmitBtn" class="btn-primary">登 录</button>
                 <div id="loginError" class="error-message"></div>
             </form>
             <div class="login-security-tip">
@@ -1693,6 +1712,24 @@
         </div>
     </div>
 
+    <div id="globalActionModal" class="login-fail-modal" hidden onclick="if(event.target===this) closeGlobalActionModal(false)">
+        <div class="login-fail-dialog" role="dialog" aria-modal="true" aria-labelledby="globalActionTitle">
+            <div class="login-fail-head">
+                <span class="login-fail-icon"><i class="fas fa-circle-info"></i></span>
+                <h3 id="globalActionTitle">提示</h3>
+            </div>
+            <p id="globalActionMessage" class="login-fail-reason">操作提示</p>
+            <div id="globalActionInputWrap" style="display:none; margin-bottom: 12px;">
+                <input type="text" id="globalActionInput" class="form-control" placeholder="">
+            </div>
+            <div class="login-fail-actions" style="justify-content: space-between; gap: 10px;">
+                <button type="button" id="globalActionCancelBtn" class="btn-primary"
+                    style="width:auto; padding: 10px 14px; background:#64748b;">取消</button>
+                <button type="button" id="globalActionOkBtn" class="login-fail-close-btn">确定</button>
+            </div>
+        </div>
+    </div>
+
     <!-- DASHBOARD -->
     <div id="dashboard" class="dashboard" style="display: none;">
         <div class="sidebar">
@@ -1701,38 +1738,41 @@
                 <span class="sidebar-title-text">元芯管理系统</span>
             </div>
             <div class="sidebar-menu">
-                <div class="menu-item active" onclick="switchView('messages')">
-                    <i class="fas fa-envelope"></i> 留言管理
+                <div class="menu-item active" data-view="messages" onclick="switchView('messages')">
+                    <i class="fas fa-envelope"></i> 仪表盘
                 </div>
-                <div class="menu-item" onclick="switchView('home')">
+                <div class="menu-item" data-view="home" onclick="switchView('home')">
                     <i class="fas fa-home"></i> 首页设置
                 </div>
-                <div class="menu-item" onclick="switchView('h2-home')">
+                <div class="menu-item" data-view="h2-home" onclick="switchView('h2-home')">
                     <i class="fas fa-bolt"></i> 氢气首页
                 </div>
-                <div class="menu-item" onclick="switchView('products')">
+                <div class="menu-item" data-view="products" onclick="switchView('products')">
                     <i class="fas fa-box"></i> 氢气产品
                 </div>
-                <div class="menu-item" onclick="switchView('hydrogen-solutions')">
+                <div class="menu-item" data-view="hydrogen-solutions" onclick="switchView('hydrogen-solutions')">
                     <i class="fas fa-project-diagram"></i> 氢气方案
                 </div>
-                <div class="menu-item" onclick="switchView('news-create')">
+                <div class="menu-item" data-view="news-create" onclick="switchView('news-create')">
                     <i class="fas fa-pen-nib"></i>
                     <span class="menu-item-label">添加资讯 <span class="beta-badge">Beta</span></span>
                 </div>
-                <div class="menu-item" onclick="switchView('jobs')">
+                <div class="menu-item" data-view="jobs" onclick="switchView('jobs')">
                     <i class="fas fa-briefcase"></i> 招聘信息
                 </div>
-                <div class="menu-item" onclick="switchView('chatbot')">
-                    <i class="fas fa-robot"></i> AI客服设置
+                <div class="menu-item" data-view="chatbot" onclick="switchView('chatbot')">
+                    <i class="fas fa-robot"></i> 智能客服
                 </div>
-                <div class="menu-item" onclick="switchView('settings')">
+                <div class="menu-item" data-view="site-settings" onclick="switchView('site-settings')">
+                    <i class="fas fa-globe"></i> 站点设置
+                </div>
+                <div class="menu-item" data-view="settings" onclick="switchView('settings')">
                     <i class="fas fa-cog"></i> 账号设置
                 </div>
-                <div class="menu-item" onclick="switchView('backup')">
+                <div class="menu-item" data-view="backup" onclick="switchView('backup')">
                     <i class="fas fa-database"></i> 备份恢复
                 </div>
-                <div class="menu-item" onclick="switchView('changelog')">
+                <div class="menu-item" data-view="changelog" onclick="switchView('changelog')">
                     <i class="fas fa-clipboard-list"></i> 更新日志
                 </div>
                 <div class="menu-item" onclick="logout()">
@@ -1749,7 +1789,7 @@
 
         <div class="main-content">
             <div class="top-bar">
-                <div class="page-title" id="pageTitle">留言管理</div>
+                <div class="page-title" id="pageTitle">仪表盘</div>
                 <div style="font-size: 14px; color: #666;">
                     <i class="far fa-user-circle"></i> 管理员
                 </div>
@@ -3249,7 +3289,7 @@
                             <div
                                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                                 <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">
-                                    AI客服配置
+                                    智能客服配置
                                 </h3>
                                 <div id="chatbotStatus" class="status-indicator enabled">
                                     <i class="fas fa-circle" style="font-size: 8px;"></i>
@@ -3362,7 +3402,7 @@
                         <div class="card" style="padding: 30px;">
                             <h3 class="section-header">知识库文件管理</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                上传PDF文档作为AI客服的知识库。AI将根据这些文档内容回答用户问题。
+                                上传PDF文档作为智能客服的知识库。AI将根据这些文档内容回答用户问题。
                             </p>
 
                             <div id="pdfSupportWarning" class="chat-error" style="display: none; margin-bottom: 20px;">
@@ -3394,7 +3434,7 @@
                 <!-- Settings View -->
                 <div id="view-settings" class="view-section">
                     <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">修改管理员账号</h3>
+                        <h3 class="section-header">修改当前账号</h3>
                         <form id="settingsForm">
                             <div class="form-group">
                                 <label>原密码</label>
@@ -3413,6 +3453,203 @@
                             <button type="submit" class="btn-primary"
                                 style="width: auto; padding: 12px 30px;">保存修改</button>
                             <div id="settingsMsg" class="error-message" style="color: #28a745;"></div>
+                        </form>
+                    </div>
+
+                    <div class="card" id="subAccountsCard" style="padding: 30px; margin-top: 20px;">
+                        <h3 class="section-header">子账号管理</h3>
+                        <p style="margin-bottom: 16px; color: #666; font-size: 14px; line-height: 1.75;">
+                            仅超级管理员可配置子账号。可为每个子账号逐项分配侧边栏权限，未授权功能将从侧边栏隐藏且后端 API 会拒绝访问。
+                        </p>
+                        <div id="subAccountsNoAccess" class="error-message" style="color:#b45309; display:none;">
+                            当前账号不是超级管理员，不能管理子账号。
+                        </div>
+
+                        <div id="subAccountsManageArea" style="display:none;">
+                            <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
+                                权限与侧边栏一一对应：<code>仪表盘、首页设置、氢气首页、氢气产品、氢气方案、添加资讯、招聘信息、智能客服、站点设置、账号设置、备份恢复、更新日志</code>。
+                            </div>
+
+                            <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
+                            <form id="subAccountCreateForm">
+                                <div class="form-group">
+                                    <label>用户名</label>
+                                    <input type="text" id="subCreateUsername" class="form-control"
+                                        placeholder="3-32 位字母/数字/._-" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>密码</label>
+                                    <input type="password" id="subCreatePassword" class="form-control"
+                                        placeholder="至少 8 位" required>
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="subCreateEnabled" checked>
+                                        <span>启用该子账号</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>权限（逐项勾选）</label>
+                                    <div id="subCreatePermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
+                                </div>
+                                <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">添加子账号</button>
+                                <div id="subCreateMsg" class="error-message" style="color:#28a745;"></div>
+                            </form>
+
+                            <hr style="margin: 22px 0; border: none; border-top: 1px solid #e5e7eb;">
+
+                            <h4 style="margin-bottom: 10px; color:#0f2f5f;">子账号列表</h4>
+                            <p style="margin-bottom: 10px; color:#64748b; font-size: 13px;">
+                                当前共 <span id="subAccountsListCount">0</span> 个子账号。点击“编辑”可快速定位到下方编辑区。
+                            </p>
+                            <div style="overflow:auto; border:1px solid #e5e7eb; border-radius:8px; margin-bottom: 18px;">
+                                <table class="data-table" style="margin:0;">
+                                    <thead>
+                                        <tr>
+                                            <th>用户名</th>
+                                            <th>状态</th>
+                                            <th>权限</th>
+                                            <th>最近登录</th>
+                                            <th>更新时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subAccountsListBody">
+                                        <tr>
+                                            <td colspan="6" class="no-data">暂无子账号</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h4 style="margin-bottom: 10px; color:#0f2f5f;">编辑子账号</h4>
+                            <div class="form-group">
+                                <label>选择账号</label>
+                                <select id="subEditSelect" class="form-control"></select>
+                            </div>
+                            <form id="subAccountEditForm">
+                                <div class="form-group">
+                                    <label style="display:flex; align-items:center; gap:8px;">
+                                        <input type="checkbox" id="subEditEnabled">
+                                        <span>启用该子账号</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>重置密码（可留空）</label>
+                                    <input type="password" id="subEditPassword" class="form-control"
+                                        placeholder="留空表示不修改密码">
+                                </div>
+                                <div class="form-group">
+                                    <label>权限（逐项勾选）</label>
+                                    <div id="subEditPermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                    <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">保存账号设置</button>
+                                    <button type="button" class="btn-primary" id="subDeleteBtn"
+                                        style="width:auto; padding: 10px 22px; background:#b91c1c;">删除子账号</button>
+                                    <button type="button" class="btn-primary" id="subRefreshBtn"
+                                        style="width:auto; padding: 10px 22px; background:#4b5563;">刷新列表</button>
+                                </div>
+                                <div id="subEditMsg" class="error-message" style="color:#28a745;"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Site Settings View -->
+                <div id="view-site-settings" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <h3 class="section-header">CDN 加速设置</h3>
+                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                            开启后主站访问 <code>/cdn_assets/</code> 资源会优先走 CDN 域名；CDN 异常时网关自动回落到本地目录。
+                        </p>
+                        <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:18px; color:#2f3b4f; font-size:13px; line-height:1.75;">
+                            <div style="font-weight:700; color:#0f2f5f; margin-bottom:6px;">运维操作指南（上线/回滚）</div>
+                            <ol style="margin:0 0 0 18px; padding:0;">
+                                <li>准备阶段：确认 <code>cdn_assets/</code> 已更新，CDN 域名证书正常，源站回源规则已指向当前网关。</li>
+                                <li>填写域名：在“CDN 域名”中填写 <code>https://cdn.example.com</code>（不要带路径）。</li>
+                                <li>连通检测：点击“测试连通性”，建议检测结果为 <code>200</code> 或 <code>206</code>。</li>
+                                <li>启用加速：勾选“启用 CDN 加速”并保存，主站 <code>/cdn_assets/*</code> 将优先走 CDN 域名。</li>
+                                <li>上线验收：抽检首页、产品、新闻、关于页；重点验证大图、视频首帧与 Range 播放。</li>
+                                <li>故障回滚：取消勾选“启用 CDN 加速”并保存，立即恢复主站本地资源链路。</li>
+                                <li>变更留痕：记录操作人、时间、CDN 域名、测试结果和回滚动作，便于审计。</li>
+                            </ol>
+                            <div style="font-weight:700; color:#0f2f5f; margin:10px 0 6px;">后端逻辑说明（给运维/开发）</div>
+                            <ol style="margin:0 0 0 18px; padding:0;">
+                                <li><code>GET /api/cdn/settings</code>：读取当前加速开关与域名（需登录）。</li>
+                                <li><code>POST /api/cdn/settings</code>：保存 <code>cdn_enabled</code>、<code>cdn_domain</code> 到 <code>data/config.json</code>。</li>
+                                <li>域名规范化：后端会规范为 <code>http(s)://host[:port]</code>，自动剔除路径和多余斜杠。</li>
+                                <li><code>POST /api/cdn/test</code>：对样例资源执行 <code>HEAD</code> 与 <code>Range GET</code> 连通性检测。</li>
+                                <li><code>/api/cdn/switch-header</code>：输出 <code>X-CDN-Enabled</code>、<code>X-CDN-Domain</code>，供网关动态分流。</li>
+                                <li>异常兜底：CDN 异常时网关可回源本地 <code>/cdn_assets</code>，后台也可手动关闭开关快速恢复。</li>
+                            </ol>
+                        </div>
+                        <form id="cdnSettingsForm">
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="cdnEnabled">
+                                    <span>启用 CDN 加速</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>CDN 域名</label>
+                                <input type="text" id="cdnDomain" class="form-control"
+                                    placeholder="https://cdn.example.com">
+                                <div class="form-hint">仅填写域名，路径会自动拼接为 <code>/cdn_assets/...</code></div>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存设置</button>
+                                <button type="button" class="btn-primary" style="width: auto; padding: 12px 20px; background: #4b5563;"
+                                    onclick="testCdnConnection()">测试连通性</button>
+                                <span id="cdnStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
+                            </div>
+                            <div id="cdnSettingsMsg" class="error-message" style="color: #28a745;"></div>
+                            <div id="cdnTestMsg" class="error-message" style="color: #28a745;"></div>
+                        </form>
+                    </div>
+
+                    <div class="card" style="padding: 30px; margin-top: 20px;">
+                        <h3 class="section-header">登录人机验证（Cloudflare Turnstile）</h3>
+                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                            启用后，后台登录必须先通过 Turnstile 验证。无需变更你的域名解析，只需填写站点密钥。
+                        </p>
+                        <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:18px; color:#2f3b4f; font-size:13px; line-height:1.75;">
+                            <div style="font-weight:700; color:#0f2f5f; margin-bottom:6px;">Cloudflare 申请 Key 全流程</div>
+                            <ol style="margin:0 0 0 18px; padding:0;">
+                                <li>登录 Cloudflare 控制台，进入 <code>Turnstile</code>（也可直接搜索 Turnstile）。</li>
+                                <li>点击 <code>Add widget</code> 创建新部件，建议名称填 <code>yx-admin-login</code>。</li>
+                                <li>在 <code>Hostname management</code> 中加入你的后台域名（例如 <code>admin.example.com</code>），本地调试可加 <code>localhost</code>。</li>
+                                <li><code>Widget mode</code> 建议使用 <code>Managed</code>（默认），保存后会得到 <code>Site Key</code> 和 <code>Secret Key</code>。</li>
+                                <li>回到本页面：把 <code>Site Key</code> 粘贴到“Site Key（前端）”，把 <code>Secret Key</code> 粘贴到“Secret Key（服务端）”。</li>
+                                <li>勾选“启用 Turnstile 登录保护”，点击“保存设置”。</li>
+                                <li>退出后台重新登录验证：登录页出现 Turnstile 即表示前端已接入；未先完成验证将无法登录。</li>
+                            </ol>
+                            <div style="margin-top:8px; color:#5b6678;">
+                                注意：Turnstile 只是在登录页加载 Cloudflare 的验证脚本并由服务端验签，不需要变更你阿里云 DNS 解析记录。
+                            </div>
+                        </div>
+                        <form id="turnstileSettingsForm">
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="turnstileEnabled">
+                                    <span>启用 Turnstile 登录保护</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>Site Key（前端）</label>
+                                <input type="text" id="turnstileSiteKey" class="form-control"
+                                    placeholder="0x4AAAAA...">
+                            </div>
+                            <div class="form-group">
+                                <label>Secret Key（服务端）</label>
+                                <input type="password" id="turnstileSecretKey" class="form-control"
+                                    placeholder="留空表示保持当前密钥不变">
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存设置</button>
+                                <span id="turnstileStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
+                            </div>
+                            <div id="turnstileSettingsMsg" class="error-message" style="color: #28a745;"></div>
                         </form>
                     </div>
                 </div>
@@ -3533,6 +3770,134 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let adminLoginLogsTotalPages = 1;
         let adminLoginLogsPageSize = ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE;
         let adminLoginLogsTotal = 0;
+        let adminSessionCheckTimer = null;
+        let turnstilePublicConfig = { enabled: false, site_key: '' };
+        let turnstileWidgetId = null;
+        let turnstileToken = '';
+        let turnstileScriptPromise = null;
+        let globalActionResolver = null;
+        const DEFAULT_PERMISSION_CATALOG = [
+            { key: 'messages', label: '仪表盘' },
+            { key: 'home', label: '首页设置' },
+            { key: 'h2-home', label: '氢气首页' },
+            { key: 'products', label: '氢气产品' },
+            { key: 'hydrogen-solutions', label: '氢气方案' },
+            { key: 'news-create', label: '添加资讯' },
+            { key: 'jobs', label: '招聘信息' },
+            { key: 'chatbot', label: '智能客服' },
+            { key: 'site-settings', label: '站点设置' },
+            { key: 'settings', label: '账号设置' },
+            { key: 'backup', label: '备份恢复' },
+            { key: 'changelog', label: '更新日志' }
+        ];
+        let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
+        let currentAdminAuth = {
+            username: '',
+            is_super_admin: false,
+            permissions: []
+        };
+
+        function getLoginSubmitButton() {
+            return document.getElementById('loginSubmitBtn') || document.querySelector('#loginForm button[type="submit"]');
+        }
+
+        function setLoginSubmitState(disabled, text) {
+            const btn = getLoginSubmitButton();
+            if (!btn) return;
+            btn.disabled = !!disabled;
+            btn.textContent = text || '登 录';
+        }
+
+        function closeGlobalActionModal(ok) {
+            const modal = document.getElementById('globalActionModal');
+            const inputWrap = document.getElementById('globalActionInputWrap');
+            const inputEl = document.getElementById('globalActionInput');
+            if (!modal) return;
+            modal.hidden = true;
+            const resolver = globalActionResolver;
+            globalActionResolver = null;
+            if (!resolver) return;
+            resolver({
+                ok: !!ok,
+                value: inputEl ? String(inputEl.value || '') : ''
+            });
+            if (inputWrap) inputWrap.style.display = 'none';
+            if (inputEl) inputEl.value = '';
+        }
+
+        function showGlobalActionModal(options = {}) {
+            const modal = document.getElementById('globalActionModal');
+            const titleEl = document.getElementById('globalActionTitle');
+            const msgEl = document.getElementById('globalActionMessage');
+            const okBtn = document.getElementById('globalActionOkBtn');
+            const cancelBtn = document.getElementById('globalActionCancelBtn');
+            const inputWrap = document.getElementById('globalActionInputWrap');
+            const inputEl = document.getElementById('globalActionInput');
+            if (!modal || !titleEl || !msgEl || !okBtn || !cancelBtn || !inputWrap || !inputEl) {
+                return Promise.resolve({ ok: true, value: '' });
+            }
+
+            const mode = String(options.mode || 'alert');
+            titleEl.textContent = String(options.title || '提示');
+            msgEl.textContent = String(options.message || '');
+            okBtn.textContent = String(options.okText || '确定');
+            cancelBtn.textContent = String(options.cancelText || '取消');
+
+            if (mode === 'alert') {
+                cancelBtn.style.display = 'none';
+                inputWrap.style.display = 'none';
+            } else if (mode === 'prompt') {
+                cancelBtn.style.display = '';
+                inputWrap.style.display = '';
+                inputEl.value = String(options.defaultValue || '');
+                inputEl.placeholder = String(options.placeholder || '');
+            } else {
+                cancelBtn.style.display = '';
+                inputWrap.style.display = 'none';
+            }
+
+            modal.hidden = false;
+
+            return new Promise((resolve) => {
+                globalActionResolver = resolve;
+                okBtn.onclick = () => closeGlobalActionModal(true);
+                cancelBtn.onclick = () => closeGlobalActionModal(false);
+                if (mode === 'prompt') {
+                    setTimeout(() => inputEl.focus(), 0);
+                    inputEl.onkeydown = (e) => {
+                        if (e.key === 'Enter') closeGlobalActionModal(true);
+                    };
+                } else {
+                    setTimeout(() => okBtn.focus(), 0);
+                }
+            });
+        }
+
+        async function showGlobalAlert(message, title = '提示') {
+            await showGlobalActionModal({ mode: 'alert', title, message, okText: '知道了' });
+        }
+
+        async function showGlobalConfirm(message, title = '请确认') {
+            const result = await showGlobalActionModal({ mode: 'confirm', title, message, okText: '确定', cancelText: '取消' });
+            return !!result.ok;
+        }
+
+        async function showGlobalPrompt(message, defaultValue = '', title = '请输入', placeholder = '') {
+            const result = await showGlobalActionModal({
+                mode: 'prompt',
+                title,
+                message,
+                defaultValue,
+                placeholder,
+                okText: '确定',
+                cancelText: '取消'
+            });
+            return result.ok ? result.value : null;
+        }
+
+        window.alert = function (message) {
+            showGlobalAlert(String(message || ''));
+        };
 
         function formatChangelogTime(raw) {
             if (!raw) return '-';
@@ -3543,6 +3908,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         // --- Init ---
+        initLoginSecurity();
         checkLoginStatus();
 
         function updateSidebarToggleButton() {
@@ -3568,13 +3934,174 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             setSidebarCollapsed(!collapsed, true);
         }
 
+        function setAdminAuthFromCheck(data) {
+            const safe = data && typeof data === 'object' ? data : {};
+            currentAdminAuth = {
+                username: String(safe.username || ''),
+                is_super_admin: safe.is_super_admin === true,
+                permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : []
+            };
+            if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
+                permissionCatalog = safe.permission_catalog
+                    .map(item => ({
+                        key: String((item && item.key) || '').trim(),
+                        label: String((item && item.label) || '').trim()
+                    }))
+                    .filter(item => item.key);
+            } else {
+                permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
+            }
+            const usernameInput = document.getElementById('newUsername');
+            if (usernameInput && currentAdminAuth.username) {
+                usernameInput.value = currentAdminAuth.username;
+            }
+        }
+
+        function hasViewPermission(viewName) {
+            if (currentAdminAuth.is_super_admin) return true;
+            return currentAdminAuth.permissions.includes(String(viewName || '').trim());
+        }
+
+        function getFirstAllowedView() {
+            const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
+            for (const el of menuItems) {
+                const key = String(el.dataset.view || '').trim();
+                if (key && hasViewPermission(key)) return key;
+            }
+            return 'messages';
+        }
+
+        function applySidebarPermissions() {
+            const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
+            let activeVisible = false;
+            for (const el of menuItems) {
+                const key = String(el.dataset.view || '').trim();
+                const allowed = hasViewPermission(key);
+                el.style.display = allowed ? '' : 'none';
+                if (allowed && el.classList.contains('active')) {
+                    activeVisible = true;
+                }
+            }
+            if (!activeVisible) {
+                const firstView = getFirstAllowedView();
+                switchView(firstView);
+            }
+        }
+
+        function syncSubAccountManageVisibility() {
+            const noAccess = document.getElementById('subAccountsNoAccess');
+            const manageArea = document.getElementById('subAccountsManageArea');
+            if (!noAccess || !manageArea) return;
+            if (currentAdminAuth.is_super_admin) {
+                noAccess.style.display = 'none';
+                manageArea.style.display = '';
+            } else {
+                noAccess.style.display = 'block';
+                manageArea.style.display = 'none';
+            }
+        }
+
         // --- Auth Functions ---
+        async function initLoginSecurity() {
+            const wrap = document.getElementById('loginTurnstileWrap');
+            const errEl = document.getElementById('loginTurnstileError');
+            if (errEl) errEl.textContent = '';
+            if (wrap) wrap.style.display = 'none';
+            setLoginSubmitState(true, '加载中...');
+            try {
+                const res = await fetch('/api/admin/security/turnstile/public', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                turnstilePublicConfig = {
+                    enabled: data.enabled === true,
+                    site_key: String(data.site_key || '').trim()
+                };
+
+                if (!turnstilePublicConfig.enabled || !turnstilePublicConfig.site_key) {
+                    turnstileToken = '';
+                    setLoginSubmitState(false, '登 录');
+                    return;
+                }
+
+                if (wrap) wrap.style.display = 'block';
+                await ensureTurnstileScriptLoaded();
+                renderLoginTurnstile();
+                setLoginSubmitState(true, '请先完成人机验证');
+            } catch (e) {
+                setLoginSubmitState(true, '人机验证初始化失败');
+                if (errEl) errEl.textContent = '人机验证初始化失败，请稍后重试';
+            }
+        }
+
+        function ensureTurnstileScriptLoaded() {
+            if (window.turnstile) return Promise.resolve();
+            if (turnstileScriptPromise) return turnstileScriptPromise;
+            turnstileScriptPromise = new Promise((resolve, reject) => {
+                const existing = document.querySelector('script[data-turnstile="1"]');
+                if (existing) {
+                    existing.addEventListener('load', () => resolve(), { once: true });
+                    existing.addEventListener('error', () => reject(new Error('Turnstile script load failed')), { once: true });
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+                script.async = true;
+                script.defer = true;
+                script.dataset.turnstile = '1';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Turnstile script load failed'));
+                document.head.appendChild(script);
+            });
+            return turnstileScriptPromise;
+        }
+
+        function renderLoginTurnstile() {
+            const target = document.getElementById('loginTurnstileWidget');
+            const errEl = document.getElementById('loginTurnstileError');
+            if (!target || !window.turnstile || !turnstilePublicConfig.site_key) return;
+            target.innerHTML = '';
+            turnstileWidgetId = window.turnstile.render('#loginTurnstileWidget', {
+                sitekey: turnstilePublicConfig.site_key,
+                theme: 'light',
+                callback: function (token) {
+                    turnstileToken = String(token || '');
+                    if (errEl) errEl.textContent = '';
+                    setLoginSubmitState(false, '登 录');
+                },
+                'expired-callback': function () {
+                    turnstileToken = '';
+                    if (errEl) errEl.textContent = '验证已过期，请重新验证';
+                    setLoginSubmitState(true, '请先完成人机验证');
+                },
+                'error-callback': function () {
+                    turnstileToken = '';
+                    if (errEl) errEl.textContent = '人机验证异常，请刷新后重试';
+                    setLoginSubmitState(true, '请先完成人机验证');
+                }
+            });
+        }
+
+        function resetLoginTurnstile() {
+            turnstileToken = '';
+            const errEl = document.getElementById('loginTurnstileError');
+            if (errEl) errEl.textContent = '';
+            if (turnstilePublicConfig.enabled) {
+                setLoginSubmitState(true, '请先完成人机验证');
+            }
+            if (window.turnstile && turnstileWidgetId !== null && turnstileWidgetId !== undefined) {
+                try {
+                    window.turnstile.reset(turnstileWidgetId);
+                } catch (_) { }
+            }
+        }
+
         async function checkLoginStatus() {
             try {
                 const res = await fetch('/admin/check');
-                const data = await res.json();
+                const data = await parseJsonSafe(res);
                 if (data.logged_in) {
-                    showDashboard();
+                    setAdminAuthFromCheck(data);
+                    showDashboard(data);
                 } else {
                     document.getElementById('loginPage').style.display = 'flex';
                 }
@@ -3609,12 +4136,20 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             loginForm.dataset.loginBound = '1';
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const btn = e.target.querySelector('button');
                 const err = document.getElementById('loginError');
+                const turnstileErr = document.getElementById('loginTurnstileError');
 
-                btn.disabled = true;
-                btn.textContent = '登录中...';
+                setLoginSubmitState(true, '登录中...');
                 err.textContent = '';
+                if (turnstileErr) turnstileErr.textContent = '';
+
+                if (turnstilePublicConfig.enabled) {
+                    if (!turnstileToken) {
+                        if (turnstileErr) turnstileErr.textContent = '请先完成人机验证';
+                        setLoginSubmitState(true, '请先完成人机验证');
+                        return;
+                    }
+                }
 
                 try {
                     const res = await fetch('/admin/login', {
@@ -3622,33 +4157,64 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             username: document.getElementById('username').value,
-                            password: document.getElementById('password').value
+                            password: document.getElementById('password').value,
+                            turnstileToken: turnstileToken
                         })
                     });
                     const data = await parseJsonSafe(res);
 
                     if (res.ok && data.success) {
-                        showDashboard();
+                        await checkLoginStatus();
                     } else {
                         const reason = String(data.message || `登录失败（HTTP ${res.status || '-'}）`);
                         err.textContent = reason;
                         showLoginFailModal(reason);
+                        resetLoginTurnstile();
                     }
                 } catch (e) {
                     const reason = '网络错误，请检查连接后重试。';
                     err.textContent = reason;
                     showLoginFailModal(reason);
+                    resetLoginTurnstile();
                 } finally {
-                    btn.disabled = false;
-                    btn.textContent = '登 录';
+                    if (turnstilePublicConfig.enabled && !turnstileToken) {
+                        setLoginSubmitState(true, '请先完成人机验证');
+                    } else {
+                        setLoginSubmitState(false, '登 录');
+                    }
                 }
             });
         }
 
         async function logout() {
-            if (!confirm('确定要退出登录吗？')) return;
+            if (!await showGlobalConfirm('确定要退出登录吗？')) return;
+            if (adminSessionCheckTimer) {
+                clearInterval(adminSessionCheckTimer);
+                adminSessionCheckTimer = null;
+            }
             await fetch('/admin/logout', { method: 'POST' });
             location.reload();
+        }
+
+        function startAdminSessionWatcher() {
+            if (adminSessionCheckTimer) return;
+            adminSessionCheckTimer = setInterval(async () => {
+                try {
+                    const res = await fetch('/admin/check', { cache: 'no-store' });
+                    const data = await parseJsonSafe(res);
+                    if (!data.logged_in) {
+                        clearInterval(adminSessionCheckTimer);
+                        adminSessionCheckTimer = null;
+                        location.reload();
+                    } else {
+                        setAdminAuthFromCheck(data);
+                        applySidebarPermissions();
+                        syncSubAccountManageVisibility();
+                    }
+                } catch (_) {
+                    // Network errors are ignored here; next interval will retry.
+                }
+            }, 60 * 1000);
         }
 
         function showDashboard() {
@@ -3656,7 +4222,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             document.getElementById('dashboard').style.display = 'flex';
             const collapsed = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
             setSidebarCollapsed(collapsed, false);
-            loadMessages();
+            applySidebarPermissions();
+            syncSubAccountManageVisibility();
+            startAdminSessionWatcher();
+            switchView(getFirstAllowedView());
         }
 
         const TAB_GUIDES = {
@@ -3674,9 +4243,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'h2-home-tab-cases': '设置说明：设置氢气首页案例位，支持为每个案例自定义主副标题。',
             'h2-home-tab-news': '设置说明：设置氢气首页最近动态，支持自定义标签、标题和摘要。',
             'h2-home-tab-navbar': '设置说明：集中管理导航栏巨幕菜单（产品列表预览、新品推荐、测量对象）；链接支持 http(s) 和相对路径。',
-            'chatbot-tab-config': '设置说明：配置 AI 客服 API 参数与模型，保存后前台客服将按此配置运行。',
+            'chatbot-tab-config': '设置说明：配置智能客服 API 参数与模型，保存后前台客服将按此配置运行。',
             'chatbot-tab-product-ai': '设置说明：配置“产品页编程 AI”接口参数和系统提示词，供 AI 自动上架流程调用。',
-            'chatbot-tab-knowledge': '设置说明：上传和管理知识库文件，AI 客服将优先参考这些资料回答。'
+            'chatbot-tab-knowledge': '设置说明：上传和管理知识库文件，智能客服将优先参考这些资料回答。'
         };
 
         function getTabGuideElement(tabEl) {
@@ -3821,38 +4390,34 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         // --- Navigation ---
         function switchView(viewName) {
+            if (!hasViewPermission(viewName)) {
+                showGlobalAlert('当前账号没有访问该功能的权限');
+                return;
+            }
+
+            const targetView = document.getElementById(`view-${viewName}`);
+            if (!targetView) return;
+
             // Update Menu
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            const menuTitles = {
-                'messages': '留言',
-                'products': '氢气产品',
-                'hydrogen-solutions': '氢气方案',
-                'home': '首页设置',
-                'h2-home': '氢气首页',
-                'news-create': '添加资讯',
-                'jobs': '招聘信息',
-                'chatbot': 'AI客服',
-                'settings': '设置',
-                'backup': '备份恢复',
-                'changelog': '更新日志'
-            };
-            const activeMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.textContent.includes(menuTitles[viewName] || ''));
+            const activeMenu = document.querySelector(`.menu-item[data-view="${viewName}"]`);
             if (activeMenu) activeMenu.classList.add('active');
 
             // Update View
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${viewName}`).classList.add('active');
+            targetView.classList.add('active');
 
             // Update Title
             const titles = {
-                'messages': '留言管理',
+                'messages': '仪表盘',
                 'products': '氢气产品',
                 'hydrogen-solutions': '氢气方案',
                 'home': '首页设置',
                 'h2-home': '氢气首页设置',
                 'news-create': '添加资讯',
                 'jobs': '招聘信息',
-                'chatbot': 'AI客服设置',
+                'chatbot': '智能客服',
+                'site-settings': '站点设置',
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'changelog': '更新日志'
@@ -3874,6 +4439,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (viewName === 'news-create') updateNewsPreview();
             if (viewName === 'jobs') loadJobsAdmin();
             if (viewName === 'chatbot') loadChatbotConfig();
+            if (viewName === 'site-settings') {
+                loadCdnSettings();
+                loadTurnstileAdminConfig();
+            }
+            if (viewName === 'settings') loadSubAccounts();
             if (viewName === 'changelog') loadChangelog();
 
             renderGuidesForView(viewName);
@@ -6686,7 +7256,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         async function deleteHeroItem(id) {
-            if (!confirm('确定删除该轮播项吗？此操作无法撤销。')) return;
+            if (!await showGlobalConfirm('确定删除该轮播项吗？此操作无法撤销。')) return;
             try {
                 const res = await fetch(`/api/hero/items/${id}`, { method: 'DELETE' });
                 if (res.ok) {
@@ -6949,7 +7519,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         async function deletePartnerItem(id) {
-            if (!confirm('确定删除该 Logo 吗？此操作无法撤销。')) return;
+            if (!await showGlobalConfirm('确定删除该 Logo 吗？此操作无法撤销。')) return;
             try {
                 const res = await fetch(`/api/partners/items/${id}`, { method: 'DELETE' });
                 if (res.ok) {
@@ -8196,8 +8766,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             });
         }
 
-        function insertNewsLink() {
-            const link = prompt('请输入链接（http/https）');
+        async function insertNewsLink() {
+            const link = await showGlobalPrompt('请输入链接（http/https）', '', '插入链接', 'https://');
             if (!link) return;
             applyNewsFormat('createLink', link.trim());
         }
@@ -8615,7 +9185,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         async function deleteNewsItem(link) {
-            if (!confirm('确定删除该资讯吗？此操作无法撤销。')) return;
+            if (!await showGlobalConfirm('确定删除该资讯吗？此操作无法撤销。')) return;
             try {
                 const res = await fetch('/api/news/delete', {
                     method: 'POST',
@@ -8977,8 +9547,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             });
         }
 
-        function insertJobLink() {
-            const link = prompt('请输入链接（http/https）');
+        async function insertJobLink() {
+            const link = await showGlobalPrompt('请输入链接（http/https）', '', '插入链接', 'https://');
             if (!link) return;
             applyJobFormat('createLink', link.trim());
         }
@@ -9244,7 +9814,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         async function deleteJobItem(jobId) {
-            if (!confirm('确定删除该职位吗？此操作无法撤销。')) return;
+            if (!await showGlobalConfirm('确定删除该职位吗？此操作无法撤销。')) return;
             try {
                 const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
                 const data = await res.json();
@@ -9502,7 +10072,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     `;
                 }).join('');
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载失败</td></tr>';
+                const reason = (e && e.message) ? escapeHtml(String(e.message)) : '加载失败';
+                tbody.innerHTML = `<tr><td colspan="6" class="no-data">${reason}</td></tr>`;
                 updateAdminLoginLogsPagination({ total: adminLoginLogsTotal, page: adminLoginLogsPage, page_size: adminLoginLogsPageSize, total_pages: adminLoginLogsTotalPages }, 0);
             }
         }
@@ -9648,7 +10219,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         async function deleteMessage(id) {
-            if (!confirm('确定删除这条留言吗？此操作无法撤销。')) return;
+            if (!await showGlobalConfirm('确定删除这条留言吗？此操作无法撤销。')) return;
             try {
                 const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
                 if (res.ok) loadMessages();
@@ -9693,7 +10264,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 if (msg) msg.textContent = '仅支持 ZIP 备份文件';
                 return;
             }
-            if (!confirm('恢复会覆盖当前数据，确认继续吗？')) return;
+            if (!await showGlobalConfirm('恢复会覆盖当前数据，确认继续吗？')) return;
 
             const fd = new FormData();
             fd.append('file', file);
@@ -9730,6 +10301,258 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        function normalizeCdnDomainInput(rawValue) {
+            const raw = String(rawValue || '').trim();
+            if (!raw) return '';
+            if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, '');
+            if (raw.startsWith('//')) return (`https:${raw}`).replace(/\/+$/, '');
+            return (`https://${raw}`).replace(/\/+$/, '');
+        }
+
+        function updateCdnStatusText(enabled, domain) {
+            const statusEl = document.getElementById('cdnStatusText');
+            if (!statusEl) return;
+            if (!enabled) {
+                statusEl.textContent = '当前状态：已关闭';
+                statusEl.style.color = '#666';
+                return;
+            }
+            statusEl.textContent = `当前状态：已开启（${domain || '未设置域名'}）`;
+            statusEl.style.color = domain ? '#2e7d32' : '#d97706';
+        }
+
+        async function loadCdnSettings() {
+            const enabledEl = document.getElementById('cdnEnabled');
+            const domainEl = document.getElementById('cdnDomain');
+            const msgEl = document.getElementById('cdnSettingsMsg');
+            if (!enabledEl || !domainEl) return;
+
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#28a745';
+            }
+
+            try {
+                const res = await fetch('/api/cdn/settings', { cache: 'no-store' });
+                const data = await res.json();
+                enabledEl.checked = data.cdn_enabled === true;
+                domainEl.value = data.cdn_domain || '';
+                updateCdnStatusText(enabledEl.checked, domainEl.value.trim());
+            } catch (e) {
+                updateCdnStatusText(false, '');
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = 'CDN 设置加载失败';
+                }
+            }
+        }
+
+        async function testCdnConnection() {
+            const domainEl = document.getElementById('cdnDomain');
+            const msgEl = document.getElementById('cdnTestMsg');
+            if (!domainEl || !msgEl) return;
+
+            const domain = normalizeCdnDomainInput(domainEl.value);
+            if (!domain) {
+                msgEl.style.color = '#dc3545';
+                msgEl.textContent = '请先输入 CDN 域名';
+                return;
+            }
+
+            msgEl.style.color = '#666';
+            msgEl.textContent = '连通性检测中...';
+
+            try {
+                const res = await fetch('/api/cdn/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cdn_domain: domain })
+                });
+                const data = await res.json();
+                const result = data.result || {};
+                if (res.ok && data.success) {
+                    const codeText = [result.head_status, result.get_status].filter(Boolean).join(' / ');
+                    msgEl.style.color = '#28a745';
+                    msgEl.textContent = `连通成功（状态码: ${codeText || 'ok'}）`;
+                } else {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = data.message || result.error || '连通失败';
+                }
+            } catch (e) {
+                msgEl.style.color = '#dc3545';
+                msgEl.textContent = '网络错误，检测失败';
+            }
+        }
+
+        const cdnEnabledEl = document.getElementById('cdnEnabled');
+        if (cdnEnabledEl) {
+            cdnEnabledEl.addEventListener('change', function () {
+                const domain = document.getElementById('cdnDomain')?.value.trim() || '';
+                updateCdnStatusText(this.checked, domain);
+            });
+        }
+
+        const cdnSettingsForm = document.getElementById('cdnSettingsForm');
+        if (cdnSettingsForm) {
+            cdnSettingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button[type="submit"]');
+                const msg = document.getElementById('cdnSettingsMsg');
+                const testMsg = document.getElementById('cdnTestMsg');
+                const enabled = !!document.getElementById('cdnEnabled')?.checked;
+                const domainInput = document.getElementById('cdnDomain');
+                const domain = normalizeCdnDomainInput(domainInput?.value || '');
+
+                if (msg) {
+                    msg.textContent = '';
+                    msg.style.color = '#dc3545';
+                }
+                if (testMsg) {
+                    testMsg.textContent = '';
+                }
+
+                if (enabled && !domain) {
+                    if (msg) msg.textContent = '启用加速时必须填写 CDN 域名';
+                    return;
+                }
+
+                if (domainInput) domainInput.value = domain;
+                if (btn) btn.disabled = true;
+                try {
+                    const res = await fetch('/api/cdn/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            cdn_enabled: enabled,
+                            cdn_domain: domain
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        if (msg) {
+                            msg.style.color = '#28a745';
+                            msg.textContent = 'CDN 设置保存成功';
+                        }
+                        const saved = data.settings || {};
+                        updateCdnStatusText(saved.cdn_enabled === true, saved.cdn_domain || '');
+                    } else if (msg) {
+                        msg.textContent = data.message || '保存失败';
+                    }
+                } catch (err) {
+                    if (msg) msg.textContent = '网络错误，保存失败';
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
+        }
+
+        function updateTurnstileStatusText(enabled, siteKey) {
+            const statusEl = document.getElementById('turnstileStatusText');
+            if (!statusEl) return;
+            if (!enabled) {
+                statusEl.textContent = '当前状态：已关闭';
+                statusEl.style.color = '#666';
+                return;
+            }
+            statusEl.textContent = siteKey ? '当前状态：已开启' : '当前状态：配置不完整';
+            statusEl.style.color = siteKey ? '#2e7d32' : '#d97706';
+        }
+
+        async function loadTurnstileAdminConfig() {
+            const enabledEl = document.getElementById('turnstileEnabled');
+            const siteEl = document.getElementById('turnstileSiteKey');
+            const secretEl = document.getElementById('turnstileSecretKey');
+            const msgEl = document.getElementById('turnstileSettingsMsg');
+            if (!enabledEl || !siteEl || !secretEl) return;
+
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#28a745';
+            }
+
+            try {
+                const res = await fetch('/api/admin/security/turnstile', { cache: 'no-store' });
+                const data = await res.json();
+                enabledEl.checked = data.enabled === true;
+                siteEl.value = data.site_key || '';
+                secretEl.value = '';
+                secretEl.placeholder = data.secret_key ? `${data.secret_key}（留空不修改）` : '留空表示保持当前密钥不变';
+                updateTurnstileStatusText(enabledEl.checked, siteEl.value.trim());
+            } catch (e) {
+                updateTurnstileStatusText(false, '');
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = 'Turnstile 设置加载失败';
+                }
+            }
+        }
+
+        const turnstileEnabledEl = document.getElementById('turnstileEnabled');
+        if (turnstileEnabledEl) {
+            turnstileEnabledEl.addEventListener('change', function () {
+                const site = document.getElementById('turnstileSiteKey')?.value.trim() || '';
+                updateTurnstileStatusText(this.checked, site);
+            });
+        }
+        const turnstileSiteKeyEl = document.getElementById('turnstileSiteKey');
+        if (turnstileSiteKeyEl) {
+            turnstileSiteKeyEl.addEventListener('input', function () {
+                const enabled = !!document.getElementById('turnstileEnabled')?.checked;
+                updateTurnstileStatusText(enabled, this.value.trim());
+            });
+        }
+
+        const turnstileSettingsForm = document.getElementById('turnstileSettingsForm');
+        if (turnstileSettingsForm) {
+            turnstileSettingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button[type="submit"]');
+                const msg = document.getElementById('turnstileSettingsMsg');
+                const enabled = !!document.getElementById('turnstileEnabled')?.checked;
+                const siteKey = String(document.getElementById('turnstileSiteKey')?.value || '').trim();
+                const secretKey = String(document.getElementById('turnstileSecretKey')?.value || '').trim();
+
+                if (msg) {
+                    msg.textContent = '';
+                    msg.style.color = '#dc3545';
+                }
+
+                if (enabled && !siteKey) {
+                    if (msg) msg.textContent = '启用 Turnstile 时必须填写 Site Key';
+                    return;
+                }
+
+                if (btn) btn.disabled = true;
+                try {
+                    const res = await fetch('/api/admin/security/turnstile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            enabled: enabled,
+                            site_key: siteKey,
+                            secret_key: secretKey
+                        })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        if (msg) {
+                            msg.style.color = '#28a745';
+                            msg.textContent = 'Turnstile 设置保存成功';
+                        }
+                        await loadTurnstileAdminConfig();
+                        // Ensure login page uses latest security mode without refresh.
+                        await initLoginSecurity();
+                    } else if (msg) {
+                        msg.textContent = data.message || '保存失败';
+                    }
+                } catch (e) {
+                    if (msg) msg.textContent = '网络错误，保存失败';
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
+        }
+
         document.getElementById('settingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
@@ -9764,6 +10587,368 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 btn.disabled = false;
             }
         });
+
+        let subAccountsCache = [];
+
+        function renderPermissionGrid(containerId, selectedPermissions = []) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const selectedSet = new Set((selectedPermissions || []).map(v => String(v || '').trim()));
+            const catalog = Array.isArray(permissionCatalog) && permissionCatalog.length
+                ? permissionCatalog
+                : DEFAULT_PERMISSION_CATALOG;
+            container.innerHTML = catalog.map(item => {
+                const key = String(item.key || '').trim();
+                const label = String(item.label || key);
+                const checked = selectedSet.has(key) ? 'checked' : '';
+                return `
+                    <label style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px;">
+                        <input type="checkbox" data-permission-key="${escapeHtml(key)}" ${checked}>
+                        <span>${escapeHtml(label)}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function readPermissionGrid(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return [];
+            const output = [];
+            container.querySelectorAll('input[type="checkbox"][data-permission-key]').forEach(el => {
+                if (el.checked) {
+                    const key = String(el.dataset.permissionKey || '').trim();
+                    if (key) output.push(key);
+                }
+            });
+            return output;
+        }
+
+        function getSelectedSubAccount() {
+            const select = document.getElementById('subEditSelect');
+            if (!select) return null;
+            const name = String(select.value || '').trim();
+            if (!name) return null;
+            return subAccountsCache.find(item => String(item.username || '').trim() === name) || null;
+        }
+
+        function fillSubAccountEditForm(target) {
+            const enabledEl = document.getElementById('subEditEnabled');
+            const pwdEl = document.getElementById('subEditPassword');
+            const msgEl = document.getElementById('subEditMsg');
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#28a745';
+            }
+            if (!target) {
+                if (enabledEl) enabledEl.checked = true;
+                if (pwdEl) pwdEl.value = '';
+                renderPermissionGrid('subEditPermissionsGrid', []);
+                return;
+            }
+            if (enabledEl) enabledEl.checked = target.enabled !== false;
+            if (pwdEl) pwdEl.value = '';
+            renderPermissionGrid('subEditPermissionsGrid', Array.isArray(target.permissions) ? target.permissions : []);
+        }
+
+        function refreshSubAccountSelect() {
+            const select = document.getElementById('subEditSelect');
+            if (!select) return;
+            const previous = String(select.value || '').trim();
+            if (!subAccountsCache.length) {
+                select.innerHTML = '<option value="">暂无子账号</option>';
+                select.disabled = true;
+                fillSubAccountEditForm(null);
+                return;
+            }
+            select.disabled = false;
+            select.innerHTML = subAccountsCache.map(item => {
+                const name = String(item.username || '').trim();
+                const status = item.enabled === false ? '（已禁用）' : '';
+                return `<option value="${escapeHtml(name)}">${escapeHtml(name)}${escapeHtml(status)}</option>`;
+            }).join('');
+            const hasPrevious = subAccountsCache.some(item => String(item.username || '').trim() === previous);
+            select.value = hasPrevious ? previous : String(subAccountsCache[0].username || '').trim();
+            fillSubAccountEditForm(getSelectedSubAccount());
+        }
+
+        function permissionLabelMap() {
+            const map = {};
+            const catalog = Array.isArray(permissionCatalog) && permissionCatalog.length
+                ? permissionCatalog
+                : DEFAULT_PERMISSION_CATALOG;
+            for (const item of catalog) {
+                const key = String((item && item.key) || '').trim();
+                if (!key) continue;
+                map[key] = String((item && item.label) || key);
+            }
+            return map;
+        }
+
+        function renderSubAccountsTable() {
+            const tbody = document.getElementById('subAccountsListBody');
+            const countEl = document.getElementById('subAccountsListCount');
+            if (!tbody) return;
+
+            if (countEl) {
+                countEl.textContent = String(subAccountsCache.length || 0);
+            }
+            if (!subAccountsCache.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无子账号</td></tr>';
+                return;
+            }
+
+            const labelMap = permissionLabelMap();
+            tbody.innerHTML = subAccountsCache.map((item) => {
+                const username = String(item.username || '').trim();
+                const enabled = item.enabled !== false;
+                const permissions = Array.isArray(item.permissions)
+                    ? item.permissions.map(v => String(v || '').trim()).filter(Boolean)
+                    : [];
+                const permissionNames = permissions.map(key => labelMap[key] || key);
+                const permissionText = permissionNames.length ? permissionNames.join('、') : '无';
+                const loginText = item.last_login_at ? (formatChangelogTime(item.last_login_at) || item.last_login_at) : '从未登录';
+                const updateText = item.updated_at ? (formatChangelogTime(item.updated_at) || item.updated_at) : '-';
+                const statusText = enabled ? '启用' : '禁用';
+                const statusColor = enabled ? '#16a34a' : '#dc2626';
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(username)}</td>
+                        <td><span style="font-weight:700; color:${statusColor};">${statusText}</span></td>
+                        <td title="${escapeHtml(permissionText)}" style="max-width: 360px;">${escapeHtml(permissionText)}</td>
+                        <td>${escapeHtml(loginText)}</td>
+                        <td>${escapeHtml(updateText)}</td>
+                        <td>
+                            <button type="button" class="btn-sm sub-account-edit-btn" data-username="${escapeHtml(username)}">编辑</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.querySelectorAll('.sub-account-edit-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const username = String(btn.dataset.username || '').trim();
+                    if (!username) return;
+                    const select = document.getElementById('subEditSelect');
+                    if (select) {
+                        select.value = username;
+                        select.dispatchEvent(new Event('change'));
+                    }
+                    document.getElementById('subAccountEditForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+        }
+
+        async function loadSubAccounts() {
+            syncSubAccountManageVisibility();
+            renderPermissionGrid('subCreatePermissionsGrid', ['messages']);
+            if (!currentAdminAuth.is_super_admin) {
+                subAccountsCache = [];
+                refreshSubAccountSelect();
+                renderSubAccountsTable();
+                return;
+            }
+
+            const msgCreate = document.getElementById('subCreateMsg');
+            const msgEdit = document.getElementById('subEditMsg');
+            if (msgCreate) {
+                msgCreate.textContent = '';
+                msgCreate.style.color = '#28a745';
+            }
+            if (msgEdit) {
+                msgEdit.textContent = '';
+                msgEdit.style.color = '#28a745';
+            }
+
+            try {
+                const res = await fetch('/api/admin/subaccounts', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || '子账号列表加载失败');
+                }
+                if (Array.isArray(data.permission_catalog) && data.permission_catalog.length) {
+                    permissionCatalog = data.permission_catalog
+                        .map(item => ({
+                            key: String((item && item.key) || '').trim(),
+                            label: String((item && item.label) || '').trim()
+                        }))
+                        .filter(item => item.key);
+                }
+                subAccountsCache = Array.isArray(data.items) ? data.items : [];
+                renderPermissionGrid('subCreatePermissionsGrid', ['messages']);
+                refreshSubAccountSelect();
+                renderSubAccountsTable();
+            } catch (e) {
+                if (msgEdit) {
+                    msgEdit.style.color = '#dc3545';
+                    msgEdit.textContent = String(e.message || '子账号列表加载失败');
+                }
+                subAccountsCache = [];
+                refreshSubAccountSelect();
+                renderSubAccountsTable();
+            }
+        }
+
+        const subAccountCreateForm = document.getElementById('subAccountCreateForm');
+        if (subAccountCreateForm) {
+            subAccountCreateForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentAdminAuth.is_super_admin) return;
+                const btn = e.target.querySelector('button[type="submit"]');
+                const msg = document.getElementById('subCreateMsg');
+                const username = String(document.getElementById('subCreateUsername')?.value || '').trim();
+                const password = String(document.getElementById('subCreatePassword')?.value || '');
+                const enabled = !!document.getElementById('subCreateEnabled')?.checked;
+                const permissions = readPermissionGrid('subCreatePermissionsGrid');
+
+                if (msg) {
+                    msg.textContent = '';
+                    msg.style.color = '#dc3545';
+                }
+                if (!username || !password) {
+                    if (msg) msg.textContent = '用户名和密码不能为空';
+                    return;
+                }
+                if (permissions.length === 0) {
+                    if (msg) msg.textContent = '请至少选择 1 项权限';
+                    return;
+                }
+
+                if (btn) btn.disabled = true;
+                try {
+                    const res = await fetch('/api/admin/subaccounts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password, enabled, permissions })
+                    });
+                    const data = await parseJsonSafe(res);
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.message || '创建失败');
+                    }
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '子账号创建成功';
+                    }
+                    e.target.reset();
+                    renderPermissionGrid('subCreatePermissionsGrid', ['messages']);
+                    await loadSubAccounts();
+                } catch (err) {
+                    if (msg) msg.textContent = String(err.message || '创建失败');
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
+        }
+
+        const subEditSelectEl = document.getElementById('subEditSelect');
+        if (subEditSelectEl) {
+            subEditSelectEl.addEventListener('change', () => {
+                fillSubAccountEditForm(getSelectedSubAccount());
+            });
+        }
+
+        const subAccountEditForm = document.getElementById('subAccountEditForm');
+        if (subAccountEditForm) {
+            subAccountEditForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentAdminAuth.is_super_admin) return;
+                const target = getSelectedSubAccount();
+                const msg = document.getElementById('subEditMsg');
+                const btn = e.target.querySelector('button[type="submit"]');
+                if (!target) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '请先选择子账号';
+                    }
+                    return;
+                }
+
+                const enabled = !!document.getElementById('subEditEnabled')?.checked;
+                const password = String(document.getElementById('subEditPassword')?.value || '');
+                const permissions = readPermissionGrid('subEditPermissionsGrid');
+                if (permissions.length === 0) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '请至少选择 1 项权限';
+                    }
+                    return;
+                }
+
+                if (msg) {
+                    msg.textContent = '';
+                    msg.style.color = '#dc3545';
+                }
+                if (btn) btn.disabled = true;
+                try {
+                    const res = await fetch(`/api/admin/subaccounts/${encodeURIComponent(target.username)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            enabled,
+                            permissions,
+                            password
+                        })
+                    });
+                    const data = await parseJsonSafe(res);
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.message || '保存失败');
+                    }
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '子账号更新成功';
+                    }
+                    await loadSubAccounts();
+                } catch (err) {
+                    if (msg) msg.textContent = String(err.message || '保存失败');
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
+        }
+
+        const subDeleteBtn = document.getElementById('subDeleteBtn');
+        if (subDeleteBtn) {
+            subDeleteBtn.addEventListener('click', async () => {
+                if (!currentAdminAuth.is_super_admin) return;
+                const target = getSelectedSubAccount();
+                const msg = document.getElementById('subEditMsg');
+                if (!target) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '请先选择子账号';
+                    }
+                    return;
+                }
+                const ok = await showGlobalConfirm(`确定删除子账号 "${target.username}" 吗？此操作无法撤销。`);
+                if (!ok) return;
+                try {
+                    const res = await fetch(`/api/admin/subaccounts/${encodeURIComponent(target.username)}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await parseJsonSafe(res);
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.message || '删除失败');
+                    }
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '子账号已删除';
+                    }
+                    await loadSubAccounts();
+                } catch (err) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = String(err.message || '删除失败');
+                    }
+                }
+            });
+        }
+
+        const subRefreshBtn = document.getElementById('subRefreshBtn');
+        if (subRefreshBtn) {
+            subRefreshBtn.addEventListener('click', async () => {
+                await loadSubAccounts();
+            });
+        }
 
         function escapeHtml(text) {
             if (!text) return '';
@@ -9980,7 +11165,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         async function deleteKnowledgeFile(filename) {
-            if (!confirm(`确定删除文件 "${filename}" 吗？此操作无法撤销。`)) return;
+            if (!await showGlobalConfirm(`确定删除文件 "${filename}" 吗？此操作无法撤销。`)) return;
 
             try {
                 const res = await fetch(`/api/chatbot/knowledge/${encodeURIComponent(filename)}`, { method: 'DELETE' });

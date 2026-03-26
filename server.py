@@ -7,6 +7,7 @@ import os
 import json
 import time
 import hashlib
+import hmac
 import threading
 import secrets
 import base64
@@ -22,7 +23,7 @@ from urllib.parse import urlparse
 
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, render_template_string, Response, stream_with_context, send_file
 from werkzeug.utils import secure_filename
-from app.routes.admin import register_admin_routes
+from app.routes.admin import ADMIN_PERMISSION_KEYS, register_admin_routes, resolve_permission_for_path
 from app.routes.backup import register_backup_routes
 
 # Optional imports for PDF parsing and OpenAI
@@ -87,8 +88,8 @@ def load_or_create_secret_key() -> str:
             pass
         return generated
     except Exception:
-        # Keep final fallback for compatibility in constrained runtime.
-        return 'metachip-secret-key-2024'
+        # Final fallback: random in-memory secret (will rotate on restart).
+        return secrets.token_urlsafe(48)
 
 
 def create_app():
@@ -217,6 +218,10 @@ CONFIG_JSON_STALE_SECONDS = 600
 HERO_DERIVED_WIDTHS = (768, 1280, 1920)
 HERO_DERIVED_FORMATS = ('avif', 'webp')
 HERO_SOURCE_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.avif'}
+try:
+    ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '28800').strip()))
+except Exception:
+    ADMIN_SESSION_MAX_AGE_SECONDS = 28800
 
 def infer_extension_from_mime(mime: str) -> str:
     if mime == 'image/png':
@@ -761,9 +766,23 @@ def save_partners_config(new_config):
 
 def get_config():
     """Load config from file or defaults."""
+    def _env_bool(name: str, default: bool = False) -> bool:
+        raw = (os.environ.get(name) or '').strip().lower()
+        if raw in {'1', 'true', 'yes', 'on'}:
+            return True
+        if raw in {'0', 'false', 'no', 'off'}:
+            return False
+        return default
+
     default_config = {
         'admin_username': os.environ.get('ADMIN_USERNAME', 'admin'),
-        'admin_password': os.environ.get('ADMIN_PASSWORD', 'admin123')
+        'admin_password_hash': (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip(),
+        'admin_password': os.environ.get('ADMIN_PASSWORD', 'admin123'),
+        'cdn_enabled': _env_bool('CDN_ENABLED', False),
+        'cdn_domain': (os.environ.get('CDN_DOMAIN') or os.environ.get('CDN_ASSET_BASE_URL') or '').strip(),
+        'turnstile_enabled': _env_bool('TURNSTILE_ENABLED', False),
+        'turnstile_site_key': (os.environ.get('TURNSTILE_SITE_KEY') or '').strip(),
+        'turnstile_secret_key': (os.environ.get('TURNSTILE_SECRET_KEY') or '').strip(),
     }
     
     if CONFIG_FILE.exists():
@@ -783,6 +802,72 @@ def update_config(new_config):
     config.update(new_config)
     CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding='utf-8')
     return config
+
+
+def normalize_cdn_domain(raw_value: str) -> str:
+    """Normalize CDN base domain to '<scheme>://<host>[:port]'."""
+    value = (raw_value or '').strip()
+    if not value:
+        return ''
+
+    if value.startswith('//'):
+        value = f"https:{value}"
+    elif not re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', value):
+        value = f"https://{value}"
+
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return ''
+
+    if parsed.scheme not in {'http', 'https'}:
+        return ''
+    if not parsed.netloc:
+        return ''
+
+    return f"{parsed.scheme}://{parsed.netloc}".rstrip('/')
+
+
+def _normalize_origin(raw_value: str) -> str:
+    value = str(raw_value or '').strip()
+    if not value:
+        return ''
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return ''
+    if not parsed.scheme or not parsed.netloc:
+        return ''
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+
+
+def is_same_origin_request(req) -> bool:
+    """Basic CSRF guard for admin write actions."""
+    host_origin = _normalize_origin(getattr(req, 'host_url', ''))
+    if not host_origin:
+        return False
+
+    origin = _normalize_origin(req.headers.get('Origin', ''))
+    if origin:
+        return hmac.compare_digest(origin, host_origin)
+
+    referer = _normalize_origin(req.headers.get('Referer', ''))
+    if referer:
+        return hmac.compare_digest(referer, host_origin)
+
+    # Allow non-browser clients with no Origin/Referer.
+    return True
+
+
+def get_cdn_settings() -> dict:
+    """Read CDN acceleration settings from config."""
+    config = get_config()
+    domain = normalize_cdn_domain(str(config.get('cdn_domain') or ''))
+    enabled = bool(config.get('cdn_enabled', False)) and bool(domain)
+    return {
+        'cdn_enabled': enabled,
+        'cdn_domain': domain
+    }
 
 def get_client_ip():
     """Get client IP address, considering proxy headers."""
@@ -1059,6 +1144,48 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('admin_logged_in'):
+            return redirect('/admin')
+        now_ts = int(time.time())
+        try:
+            login_at = int(session.get('admin_login_at') or 0)
+        except Exception:
+            login_at = 0
+        try:
+            ttl = int(session.get('admin_session_ttl') or ADMIN_SESSION_MAX_AGE_SECONDS)
+        except Exception:
+            ttl = ADMIN_SESSION_MAX_AGE_SECONDS
+        if ttl <= 0:
+            ttl = ADMIN_SESSION_MAX_AGE_SECONDS
+        if login_at <= 0 or now_ts - login_at > ttl:
+            session.clear()
+            return redirect('/admin')
+
+        # Backward compatibility for old sessions created before RBAC fields exist.
+        if 'admin_is_super_admin' not in session and 'admin_permissions' not in session:
+            session['admin_is_super_admin'] = True
+            session['admin_permissions'] = list(ADMIN_PERMISSION_KEYS)
+
+        is_super_admin = bool(session.get('admin_is_super_admin', False))
+        if is_super_admin:
+            return f(*args, **kwargs)
+
+        raw_permissions = session.get('admin_permissions', [])
+        permissions = []
+        if isinstance(raw_permissions, (list, tuple, set)):
+            for item in raw_permissions:
+                key = str(item or '').strip()
+                if key in ADMIN_PERMISSION_KEYS and key not in permissions:
+                    permissions.append(key)
+        session['admin_permissions'] = permissions
+
+        required_permission = resolve_permission_for_path(request.path or '', request.method or 'GET')
+        denied = (
+            required_permission == '__unknown__'
+            or (required_permission and required_permission not in permissions)
+        )
+        if denied:
+            if (request.path or '').startswith('/api/'):
+                return jsonify({'success': False, 'message': '当前账号无权限访问该功能'}), 403
             return redirect('/admin')
         return f(*args, **kwargs)
     return decorated_function
@@ -7359,6 +7486,121 @@ def update_product_ai_config():
         update_config(updates)
 
     return jsonify({'success': True, 'message': '产品页编程AI配置已更新'})
+
+
+@app.route('/api/cdn/settings', methods=['GET'])
+@login_required
+def get_cdn_settings_api():
+    """Get CDN acceleration settings."""
+    return jsonify(get_cdn_settings())
+
+
+@app.route('/api/cdn/settings', methods=['POST'])
+@login_required
+def update_cdn_settings_api():
+    """Update CDN acceleration settings."""
+    if not is_same_origin_request(request):
+        return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+
+    data = request.json or {}
+    enabled = bool(data.get('cdn_enabled', False))
+    domain = normalize_cdn_domain(str(data.get('cdn_domain') or ''))
+
+    if enabled and not domain:
+        return jsonify({'success': False, 'message': '启用加速时必须填写有效 CDN 域名'}), 400
+
+    updates = {
+        'cdn_enabled': enabled,
+        'cdn_domain': domain
+    }
+    update_config(updates)
+    return jsonify({'success': True, 'message': 'CDN 设置已保存', 'settings': get_cdn_settings()})
+
+
+@app.route('/api/cdn/test', methods=['POST'])
+@login_required
+def test_cdn_settings_api():
+    """Connectivity test for CDN domain."""
+    if not is_same_origin_request(request):
+        return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+
+    data = request.json or {}
+    settings = get_cdn_settings()
+    domain = normalize_cdn_domain(str(data.get('cdn_domain') or settings.get('cdn_domain') or ''))
+    asset_path = str(data.get('asset_path') or '/cdn_assets/images/common/f1dcc87cdcca.png').strip()
+    if not asset_path.startswith('/'):
+        asset_path = f"/{asset_path}"
+    if not asset_path.startswith('/cdn_assets/'):
+        asset_path = '/cdn_assets/images/common/f1dcc87cdcca.png'
+
+    if not domain:
+        return jsonify({'success': False, 'message': '请先填写有效 CDN 域名'}), 400
+
+    url = f"{domain}{asset_path}"
+    result = {
+        'url': url,
+        'head_status': None,
+        'get_status': None,
+        'reachable': False,
+        'error': ''
+    }
+
+    try:
+        if REQUESTS_SUPPORT:
+            try:
+                head_res = requests.head(url, allow_redirects=True, timeout=(4, 8))
+                result['head_status'] = int(head_res.status_code)
+                if 200 <= head_res.status_code < 400:
+                    result['reachable'] = True
+            except Exception:
+                pass
+
+            try:
+                get_res = requests.get(url, headers={'Range': 'bytes=0-2047'}, stream=True, timeout=(4, 10))
+                result['get_status'] = int(get_res.status_code)
+                if get_res.status_code in (200, 206):
+                    result['reachable'] = True
+            except Exception as e:
+                if not result.get('error'):
+                    result['error'] = str(e)
+        elif HTTPX_SUPPORT:
+            try:
+                head_res = httpx.head(url, follow_redirects=True, timeout=8.0)
+                result['head_status'] = int(head_res.status_code)
+                if 200 <= head_res.status_code < 400:
+                    result['reachable'] = True
+            except Exception:
+                pass
+
+            try:
+                get_res = httpx.get(url, headers={'Range': 'bytes=0-2047'}, follow_redirects=True, timeout=10.0)
+                result['get_status'] = int(get_res.status_code)
+                if get_res.status_code in (200, 206):
+                    result['reachable'] = True
+            except Exception as e:
+                if not result.get('error'):
+                    result['error'] = str(e)
+        else:
+            result['error'] = '缺少 HTTP 客户端依赖（requests/httpx）'
+    except Exception as e:
+        result['error'] = str(e)
+
+    message = 'CDN 可访问' if result['reachable'] else 'CDN 连通性失败'
+    return jsonify({'success': result['reachable'], 'message': message, 'result': result})
+
+
+@app.route('/api/cdn/switch-header', methods=['GET', 'HEAD'])
+def get_cdn_switch_header():
+    """
+    Internal endpoint for gateway auth_request.
+    Returns lightweight headers indicating CDN switch state.
+    """
+    settings = get_cdn_settings()
+    response = Response(status=204)
+    response.headers['X-CDN-Enabled'] = '1' if settings.get('cdn_enabled') else '0'
+    response.headers['X-CDN-Domain'] = settings.get('cdn_domain', '')
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 # ============ Admin Routes ============

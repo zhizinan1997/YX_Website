@@ -1,0 +1,140 @@
+{
+  "generated_at": "2026-03-26T06:28:43.121629+00:00",
+  "scan_roots": [
+    "index.html",
+    "pages",
+    "assets",
+    "data",
+    "admin",
+    "server.py"
+  ],
+  "files_scanned": 222,
+  "files_with_cdn_refs": 146,
+  "cdn_ref_total": 1259,
+  "cdn_ref_unique_paths": 671,
+  "cdn_ref_missing_paths": 0,
+  "all_cdn_refs_exist": true,
+  "missing_paths_sample": [],
+  "reference_samples": [
+    {
+      "file": "index.html",
+      "line": 372,
+      "ref": "/cdn_assets/images/common/0930931327ce.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/micro-nano.html",
+      "line": 13,
+      "ref": "/cdn_assets/images/common/19dcf7b13b11.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/micro-nano.html",
+      "line": 124,
+      "ref": "/cdn_assets/images/common/19dcf7b13b11.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/micro-nano.html",
+      "line": 139,
+      "ref": "/cdn_assets/images/common/f4a5dc42cd04.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 13,
+      "ref": "/cdn_assets/images/common/80833eb56e9a.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 152,
+      "ref": "/cdn_assets/images/common/19dcf7b13b11.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 165,
+      "ref": "/cdn_assets/images/common/15fd06dc7b59.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 178,
+      "ref": "/cdn_assets/images/common/63917dcd7f5a.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 227,
+      "ref": "/cdn_assets/images/common/f1dcc87cdcca.png",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 228,
+      "ref": "/cdn_assets/images/common/f1dcc87cdcca.png",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 229,
+      "ref": "/cdn_assets/images/common/f1dcc87cdcca.png",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 230,
+      "ref": "/cdn_assets/images/common/f1dcc87cdcca.png",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 231,
+      "ref": "/cdn_assets/images/common/f1dcc87cdcca.png",
+      "exists": true
+    },
+    {
+      "file": "pages/research/index.html",
+      "line": 232,
+      "ref": "/cdn_assets/images/common/f1dcc87cdcca.png",
+      "exists": true
+    },
+    {
+      "file": "pages/research/cooperation.html",
+      "line": 13,
+      "ref": "/cdn_assets/images/common/63917dcd7f5a.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/cooperation.html",
+      "line": 109,
+      "ref": "/cdn_assets/images/common/63917dcd7f5a.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/cooperation.html",
+      "line": 122,
+      "ref": "/cdn_assets/images/common/f4a5dc42cd04.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/cooperation.html",
+      "line": 135,
+      "ref": "/cdn_assets/images/common/45e87af40187.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/cooperation.html",
+      "line": 159,
+      "ref": "/cdn_assets/images/common/1b32f848b5e5.jpg",
+      "exists": true
+    },
+    {
+      "file": "pages/research/development.html",
+      "line": 13,
+      "ref": "/cdn_assets/images/common/15fd06dc7b59.jpg",
+      "exists": true
+    }
+  ]
+}

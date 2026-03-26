@@ -30,6 +30,8 @@
 │   ├── config.json        # 管理员账号配置
 │   └── rate_limits.json   # IP限流记录
 ├── pages/                  # 网站各页面
+├── cdn_assets/             # 统一素材目录（图片/视频）
+├── gateway/                # Nginx 网关（主站/CDN 双域名分流）
 ├── tools/                  # 维护脚本
 ├── server.py               # Flask 后端服务器
 ├── Dockerfile              # Docker 构建文件
@@ -77,29 +79,90 @@ python3 server.py
 
 ## 🚀 Docker 部署
 
-### 方式一：Docker Run (推荐)
+### 方式一：Docker Run（双容器手动部署）
 
 ```bash
-# 先创建数据目录
-mkdir -p /root/yxwebsite/data
+# 1) 准备目录与网络
+mkdir -p /root/yxwebsite/{data,pages,update_logs,cdn_assets}
+docker network create yx-net || true
 
-# 然后运行容器
+# 2) 构建网关镜像（website 可直接用 ghcr 镜像）
+cd /root/yxwebsite/YX_Website
+docker build -f gateway/Dockerfile -t yx-gateway:latest .
+
+# 3) 启动网站应用容器（仅内网暴露 8000）
 docker run -d \
   --name yx-website \
   --restart unless-stopped \
-  --network bridge \
-  -p 2026:8000 \
+  --network yx-net \
   -v /root/yxwebsite/data:/app/data \
+  -v /root/yxwebsite/pages:/app/pages \
+  -v /root/yxwebsite/update_logs:/app/update_logs \
+  -v /root/yxwebsite/cdn_assets:/app/cdn_assets \
   ghcr.io/zhizinan1997/yx_website:latest
+
+# 4) 启动网关容器（对外暴露双端口）
+docker run -d \
+  --name yx-gateway \
+  --restart unless-stopped \
+  --network yx-net \
+  -p 2026:80 \
+  -p 2027:81 \
+  -v /root/yxwebsite/cdn_assets:/app/cdn_assets:ro \
+  ghcr.io/zhizinan1997/yx-gateway:latest
 ```
+
+说明：
+
+- `2026` 为主站入口，`2027` 为 CDN 专用入口。
+- 域名绑定通过 DNS/反向代理完成（主站域名指向 `2026`，CDN 域名指向 `2027`）。
+- `MAIN_DOMAIN/CDN_DOMAIN` 不再是容器启动必填项。
 
 ### 方式二：Docker Compose
 
-项目根目录下已包含 `docker-compose.yml`，修改端口映射为 `2026:8000` 后：
+项目根目录下已包含 `docker-compose.yml`，默认会启动两个服务：
+
+- `website`：Flask 应用（仅容器内暴露 `8000`）
+- `gateway`：统一入口网关（主站与 CDN 分流）
+
+默认端口映射：
+
+- 主站入口：`${MAIN_PORT:-8000} -> gateway:80`
+- CDN 入口：`${CDN_PORT:-8001} -> gateway:81`
+
+启动：
 
 ```bash
 docker-compose up -d
 ```
+
+可选环境变量（`.env`）：
+
+```bash
+MAIN_PORT=8000
+CDN_PORT=8001
+```
+
+说明：
+
+- 安全相关参数（管理员账号密码、Turnstile 开关与密钥）统一在容器启动后通过 Admin 界面配置。
+
+## 📡 CDN 加速开关
+
+- 后台“站点设置”中新增 `CDN 加速设置`：
+  - `cdn_enabled`：是否开启
+  - `cdn_domain`：如 `https://cdn.example.com`
+- 代码中的资源路径仍保持 `/cdn_assets/...`，无需批量改源码。
+- 开启后主站 `/cdn_assets/*` 会优先走 CDN 域名；网关在 CDN 异常时回源本地 `cdn_assets`。
+
+## 🔐 Admin 登录防机器人（Turnstile）
+
+- 后台“站点设置”新增 Turnstile 配置：
+  - `启用 Turnstile 登录保护`
+  - `Site Key`（前端）
+  - `Secret Key`（服务端）
+- 登录页会在启用后自动展示人机验证。
+- 无需修改阿里云域名解析；仅需服务器可访问 Cloudflare 验签接口。
 
 ## ⚙️ 管理后台
 

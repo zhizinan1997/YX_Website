@@ -9,13 +9,306 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlencode, urlparse
+from urllib.request import Request, urlopen
+import ssl
 
 from flask import jsonify, make_response, request, send_from_directory, session
+from werkzeug.security import check_password_hash, generate_password_hash
 
 LOGIN_FAIL_WINDOW_SECONDS = 12 * 3600
 LOGIN_FAIL_LIMIT = 3
 LOGIN_BLOCK_SECONDS = 12 * 3600
 LOGIN_ATTEMPTS_LOCK = threading.Lock()
+ADMIN_USERS_LOCK = threading.RLock()
+TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+try:
+    ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '28800').strip()))
+except Exception:
+    ADMIN_SESSION_MAX_AGE_SECONDS = 28800
+
+ADMIN_PERMISSION_CATALOG = [
+    {'key': 'messages', 'label': '仪表盘'},
+    {'key': 'home', 'label': '首页设置'},
+    {'key': 'h2-home', 'label': '氢气首页'},
+    {'key': 'products', 'label': '氢气产品'},
+    {'key': 'hydrogen-solutions', 'label': '氢气方案'},
+    {'key': 'news-create', 'label': '添加资讯'},
+    {'key': 'jobs', 'label': '招聘信息'},
+    {'key': 'chatbot', 'label': '智能客服'},
+    {'key': 'site-settings', 'label': '站点设置'},
+    {'key': 'settings', 'label': '账号设置'},
+    {'key': 'backup', 'label': '备份恢复'},
+    {'key': 'changelog', 'label': '更新日志'},
+]
+ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
+USERNAME_RULE = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
+
+try:
+    import certifi
+    CERTIFI_AVAILABLE = True
+except Exception:
+    certifi = None
+    CERTIFI_AVAILABLE = False
+
+
+def _normalize_username(raw_value: str) -> str:
+    return str(raw_value or '').strip()
+
+
+def _normalize_permissions(raw_permissions, is_super_admin: bool = False):
+    if is_super_admin:
+        return list(ADMIN_PERMISSION_KEYS)
+    output = []
+    source = raw_permissions if isinstance(raw_permissions, (list, tuple, set)) else []
+    for item in source:
+        key = str(item or '').strip()
+        if key in ADMIN_PERMISSION_KEYS and key not in output:
+            output.append(key)
+    return output
+
+
+def _get_admin_users_file(project_root: Path) -> Path:
+    data_dir = (project_root / 'data').resolve()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir / 'admin_users.json'
+
+
+def _load_admin_users(file_path: Path):
+    default_data = {'version': 1, 'users': []}
+    if not file_path.exists():
+        return default_data
+    try:
+        data = json.loads(file_path.read_text(encoding='utf-8'))
+    except Exception:
+        return default_data
+    if not isinstance(data, dict):
+        return default_data
+    users = data.get('users', [])
+    if not isinstance(users, list):
+        users = []
+    return {
+        'version': int(data.get('version', 1) or 1),
+        'users': [item for item in users if isinstance(item, dict)]
+    }
+
+
+def _save_admin_users(file_path: Path, data):
+    payload = data if isinstance(data, dict) else {'version': 1, 'users': []}
+    users = payload.get('users', [])
+    if not isinstance(users, list):
+        users = []
+    payload = {'version': int(payload.get('version', 1) or 1), 'users': users}
+    tmp = file_path.with_suffix('.tmp')
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
+    tmp.replace(file_path)
+
+
+def _find_user(users_data, username: str):
+    name = _normalize_username(username)
+    users = users_data.get('users', []) if isinstance(users_data, dict) else []
+    if not isinstance(users, list):
+        return None, -1
+    for idx, user in enumerate(users):
+        if _normalize_username(user.get('username', '')) == name:
+            return user, idx
+    return None, -1
+
+
+def _hash_password(password: str) -> str:
+    return generate_password_hash(str(password or ''))
+
+
+def _verify_password(password_hash: str, plain_password: str) -> bool:
+    hashed = str(password_hash or '').strip()
+    if not hashed:
+        return False
+    try:
+        return bool(check_password_hash(hashed, str(plain_password or '')))
+    except Exception:
+        return False
+
+
+def resolve_permission_for_path(path: str, method: str = 'GET'):
+    p = str(path or '').strip()
+    m = str(method or 'GET').upper()
+    if not p:
+        return None
+
+    # Public/login/session-check routes are handled elsewhere.
+    if p in {'/admin', '/admin/login', '/admin/logout', '/admin/check'}:
+        return None
+
+    # 历史登录日志为全管理员只读审计信息，不绑定单一侧栏权限，避免子账号误拦截。
+    if p.startswith('/api/admin/login-logs'):
+        return None
+    if p.startswith('/api/admin/subaccounts') or p.startswith('/admin/change-password'):
+        return 'settings'
+    if p.startswith('/api/admin/security/turnstile') or p.startswith('/api/cdn/'):
+        return 'site-settings'
+    if p.startswith('/api/admin/changelog'):
+        return 'changelog'
+    if p.startswith('/api/backup/'):
+        return 'backup'
+    if p.startswith('/api/messages'):
+        return 'messages'
+    if p.startswith('/api/jobs'):
+        return 'jobs'
+    if p.startswith('/api/chatbot') or p.startswith('/api/product-ai'):
+        return 'chatbot'
+    if p.startswith('/api/h2-home'):
+        return 'h2-home'
+    if p.startswith('/api/nav-industry-categories'):
+        return 'products'
+    if p.startswith('/api/admin/hydrogen-solutions') or p.startswith('/api/solutions/all'):
+        return 'hydrogen-solutions'
+    if p.startswith('/api/solutions/featured'):
+        return 'home'
+    if p.startswith('/api/solutions'):
+        return 'hydrogen-solutions'
+    if p.startswith('/api/news/featured'):
+        return 'home'
+    if p.startswith('/api/news'):
+        return 'news-create'
+    if p.startswith('/api/products/featured'):
+        return 'home'
+    if p.startswith('/api/products') or p.startswith('/api/cases/gassensing'):
+        return 'products'
+    if p.startswith('/api/home/section-visibility') or p.startswith('/api/hero') or p.startswith('/api/partners'):
+        return 'home'
+    if p.startswith('/api/search/rebuild'):
+        return 'settings'
+
+    # For sub-accounts, unknown protected API paths are denied by default.
+    if p.startswith('/api/'):
+        return '__unknown__'
+    return None
+
+
+def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: bool = False):
+    now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+    username = _normalize_username(user.get('username') if isinstance(user, dict) else fallback_username)
+    if not username:
+        username = fallback_username
+    enabled = bool(user.get('enabled', True)) if isinstance(user, dict) else True
+    role = 'super_admin' if is_super_admin else 'sub_admin'
+    permissions = _normalize_permissions((user or {}).get('permissions', []), is_super_admin=is_super_admin)
+    if is_super_admin:
+        enabled = True
+    password_hash = str((user or {}).get('password_hash', '') or '').strip()
+    created_at = str((user or {}).get('created_at', '') or '').strip() or now_iso
+    updated_at = str((user or {}).get('updated_at', '') or '').strip() or now_iso
+    last_login_at = str((user or {}).get('last_login_at', '') or '').strip()
+    return {
+        'username': username,
+        'password_hash': password_hash,
+        'role': role,
+        'enabled': enabled,
+        'permissions': permissions,
+        'created_at': created_at,
+        'updated_at': updated_at,
+        'last_login_at': last_login_at,
+    }
+
+
+def _public_user_profile(user):
+    record = user if isinstance(user, dict) else {}
+    return {
+        'username': _normalize_username(record.get('username', '')),
+        'role': str(record.get('role') or 'sub_admin'),
+        'enabled': bool(record.get('enabled', True)),
+        'permissions': _normalize_permissions(record.get('permissions', []), is_super_admin=bool(record.get('role') == 'super_admin')),
+        'created_at': str(record.get('created_at') or ''),
+        'updated_at': str(record.get('updated_at') or ''),
+        'last_login_at': str(record.get('last_login_at') or ''),
+    }
+
+
+def _is_super_admin_session(sess) -> bool:
+    return bool(sess.get('admin_is_super_admin', False))
+
+
+def _ensure_admin_users_store(project_root: Path, get_config, update_config):
+    with ADMIN_USERS_LOCK:
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        users_file = _get_admin_users_file(root)
+        users_data = _load_admin_users(users_file)
+        users = users_data.get('users', [])
+        if not isinstance(users, list):
+            users = []
+
+        config = get_config() or {}
+        config_admin_username = _normalize_username(config.get('admin_username', '')) or 'admin'
+        config_admin_hash = str(config.get('admin_password_hash', '') or '').strip()
+        config_admin_plain = str(config.get('admin_password', '') or '')
+
+        now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+
+        super_idx = -1
+        for idx, item in enumerate(users):
+            if str(item.get('role') or '') == 'super_admin':
+                super_idx = idx
+                break
+
+        changed_users = False
+        if super_idx < 0:
+            initial_hash = config_admin_hash or _hash_password(config_admin_plain or 'admin123')
+            super_user = _sanitize_user_record({
+                'username': config_admin_username,
+                'password_hash': initial_hash,
+                'permissions': list(ADMIN_PERMISSION_KEYS),
+                'created_at': now_iso,
+                'updated_at': now_iso,
+            }, fallback_username=config_admin_username, is_super_admin=True)
+            users.insert(0, super_user)
+            super_idx = 0
+            changed_users = True
+        else:
+            super_user = _sanitize_user_record(users[super_idx], fallback_username=config_admin_username, is_super_admin=True)
+            if not super_user['username']:
+                super_user['username'] = config_admin_username
+            if not super_user['password_hash']:
+                super_user['password_hash'] = config_admin_hash or _hash_password(config_admin_plain or 'admin123')
+            super_user['updated_at'] = now_iso
+            users[super_idx] = super_user
+            changed_users = True
+
+        # Normalize sub accounts and remove duplicate usernames.
+        normalized_users = []
+        seen_names = set()
+        for idx, raw_user in enumerate(users):
+            is_super = idx == super_idx
+            fallback = config_admin_username if is_super else ''
+            item = _sanitize_user_record(raw_user, fallback_username=fallback, is_super_admin=is_super)
+            uname = item['username']
+            if not uname or uname in seen_names:
+                continue
+            if not item['password_hash']:
+                if is_super:
+                    item['password_hash'] = config_admin_hash or _hash_password(config_admin_plain or 'admin123')
+                else:
+                    # Skip invalid sub-account without password hash.
+                    continue
+            seen_names.add(uname)
+            normalized_users.append(item)
+
+        users_data = {'version': 1, 'users': normalized_users}
+        _save_admin_users(users_file, users_data)
+
+        # Sync config to hashed mode and super-admin identity.
+        super_user = next((u for u in normalized_users if str(u.get('role')) == 'super_admin'), None)
+        if super_user is not None:
+            config_updates = {}
+            if _normalize_username(config.get('admin_username', '')) != super_user.get('username', ''):
+                config_updates['admin_username'] = super_user.get('username', '')
+            if str(config.get('admin_password_hash', '') or '').strip() != str(super_user.get('password_hash', '') or '').strip():
+                config_updates['admin_password_hash'] = str(super_user.get('password_hash', '') or '').strip()
+            if str(config.get('admin_password', '') or '').strip():
+                config_updates['admin_password'] = ''
+            if config_updates:
+                update_config(config_updates)
+
+        return users_data, users_file
 
 
 def _run_git_command(args, cwd: Path) -> str:
@@ -156,6 +449,122 @@ def _parse_datetime_safe(raw_value: str):
         except ValueError:
             continue
     return None
+
+
+def _parse_bool(raw, default: bool = False) -> bool:
+    if isinstance(raw, bool):
+        return raw
+    value = str(raw or '').strip().lower()
+    if value in {'1', 'true', 'yes', 'on'}:
+        return True
+    if value in {'0', 'false', 'no', 'off'}:
+        return False
+    return default
+
+
+def _get_turnstile_settings(config):
+    enabled = _parse_bool(config.get('turnstile_enabled', False), False)
+    site_key = str(config.get('turnstile_site_key', '') or '').strip()
+    secret_key = str(config.get('turnstile_secret_key', '') or '').strip()
+    # Enforce key completeness when enabled to avoid half-config.
+    if enabled and (not site_key or not secret_key):
+        enabled = False
+    return {
+        'enabled': enabled,
+        'site_key': site_key,
+        'secret_key': secret_key,
+    }
+
+
+def _verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
+    payload = {
+        'secret': secret_key,
+        'response': token,
+    }
+    if remote_ip:
+        payload['remoteip'] = remote_ip
+
+    req = Request(
+        TURNSTILE_VERIFY_URL,
+        data=urlencode(payload).encode('utf-8'),
+        headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        method='POST',
+    )
+    ssl_context = None
+    if CERTIFI_AVAILABLE and certifi is not None:
+        try:
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+        except Exception:
+            ssl_context = None
+
+    try:
+        with urlopen(req, timeout=8, context=ssl_context) as resp:
+            body = resp.read().decode('utf-8', errors='ignore')
+        result = json.loads(body) if body else {}
+    except Exception as exc:
+        return False, f'验证码服务请求失败: {exc}'
+
+    if bool(result.get('success')):
+        return True, ''
+
+    codes = result.get('error-codes') or []
+    if isinstance(codes, list):
+        code_text = ','.join(str(x) for x in codes if x)
+    else:
+        code_text = str(codes or '').strip()
+    if code_text:
+        return False, f'验证码校验未通过({code_text})'
+    return False, '验证码校验未通过'
+
+
+def _is_admin_session_expired(sess) -> bool:
+    if not sess.get('admin_logged_in'):
+        return True
+    now_ts = int(time.time())
+    try:
+        login_at = int(sess.get('admin_login_at') or 0)
+    except Exception:
+        login_at = 0
+    try:
+        ttl = int(sess.get('admin_session_ttl') or ADMIN_SESSION_MAX_AGE_SECONDS)
+    except Exception:
+        ttl = ADMIN_SESSION_MAX_AGE_SECONDS
+    if ttl <= 0:
+        ttl = ADMIN_SESSION_MAX_AGE_SECONDS
+    if login_at <= 0:
+        return True
+    return (now_ts - login_at) > ttl
+
+
+def _normalize_origin(raw_value: str) -> str:
+    value = str(raw_value or '').strip()
+    if not value:
+        return ''
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return ''
+    if not parsed.scheme or not parsed.netloc:
+        return ''
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+
+
+def _is_same_origin_request(req) -> bool:
+    """Basic CSRF guard for admin write actions."""
+    host_origin = _normalize_origin(getattr(req, 'host_url', ''))
+    if not host_origin:
+        return False
+
+    origin = _normalize_origin(req.headers.get('Origin', ''))
+    if origin:
+        return hmac.compare_digest(origin, host_origin)
+
+    referer = _normalize_origin(req.headers.get('Referer', ''))
+    if referer:
+        return hmac.compare_digest(referer, host_origin)
+
+    # Allow non-browser clients with no Origin/Referer.
+    return True
 
 
 def _to_display_time(dt_value):
@@ -437,6 +846,12 @@ def register_admin_routes(
     project_root=None,
 ):
     """Register admin routes on the given Flask app."""
+    root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+    try:
+        _ensure_admin_users_store(root, get_config, update_config)
+    except Exception:
+        # Keep routes available even if initial migration has temporary issues.
+        pass
 
     @app.route('/admin', strict_slashes=False)
     def admin_page():
@@ -450,29 +865,113 @@ def register_admin_routes(
         resp.headers['Referrer-Policy'] = 'same-origin'
         return resp
 
+    @app.route('/api/admin/security/turnstile/public', methods=['GET'])
+    def admin_turnstile_public_config():
+        """Public config for login page Turnstile widget."""
+        config = get_config()
+        settings = _get_turnstile_settings(config)
+        return jsonify({
+            'enabled': settings['enabled'],
+            'site_key': settings['site_key'] if settings['enabled'] else ''
+        })
+
+    @app.route('/api/admin/security/turnstile', methods=['GET'])
+    @login_required
+    def admin_turnstile_config():
+        """Get Turnstile settings for admin panel."""
+        settings = _get_turnstile_settings(get_config())
+        secret_masked = ''
+        if settings['secret_key']:
+            secret = settings['secret_key']
+            secret_masked = f"{secret[:6]}...{secret[-4:]}" if len(secret) > 12 else '***'
+        return jsonify({
+            'enabled': settings['enabled'],
+            'site_key': settings['site_key'],
+            'secret_key': secret_masked
+        })
+
+    @app.route('/api/admin/security/turnstile', methods=['POST'])
+    @login_required
+    def admin_turnstile_update():
+        """Update Turnstile settings for admin login protection."""
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+        data = request.get_json(silent=True) or {}
+        enabled = _parse_bool(data.get('enabled', False), False)
+        site_key = str(data.get('site_key', '') or '').strip()
+        secret_key_input = str(data.get('secret_key', '') or '').strip()
+
+        config = get_config()
+        existing_secret = str(config.get('turnstile_secret_key', '') or '').strip()
+        # Keep existing secret when masked/empty value submitted.
+        if secret_key_input and not secret_key_input.startswith('***'):
+            secret_key = secret_key_input
+        else:
+            secret_key = existing_secret
+
+        if enabled and (not site_key or not secret_key):
+            return jsonify({'success': False, 'message': '启用 Turnstile 时必须填写 Site Key 和 Secret Key'}), 400
+
+        update_config({
+            'turnstile_enabled': bool(enabled),
+            'turnstile_site_key': site_key,
+            'turnstile_secret_key': secret_key
+        })
+        return jsonify({'success': True, 'message': 'Turnstile 设置已保存'})
+
     @app.route('/admin/login', methods=['POST'])
     def admin_login():
         """Handle admin login."""
         data = request.form if request.form else request.get_json(silent=True) or {}
         username = str(data.get('username', '') or '').strip()
         password = str(data.get('password', '') or '')
+        turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
         ip_addr = _get_request_ip(request)
         now_ts = int(time.time())
         root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
         attempts_file = _get_login_attempts_file(root)
-        config = get_config()
-        admin_username = str(config.get('admin_username', '') or '')
-        admin_password = str(config.get('admin_password', '') or '')
-        credentials_ok = (
-            hmac.compare_digest(username, admin_username)
-            and hmac.compare_digest(password, admin_password)
-        )
+        config = get_config() or {}
+        turnstile_settings = _get_turnstile_settings(config)
+        turnstile_ok = True
+        turnstile_fail_reason = ''
+        if turnstile_settings['enabled']:
+            if not turnstile_token:
+                turnstile_ok = False
+                turnstile_fail_reason = '请先完成人机验证'
+            else:
+                turnstile_ok, detail = _verify_turnstile_token(
+                    secret_key=turnstile_settings['secret_key'],
+                    token=turnstile_token,
+                    remote_ip=ip_addr,
+                )
+                if not turnstile_ok:
+                    turnstile_fail_reason = detail or '验证码校验失败，请重试'
+
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            login_user, login_user_index = _find_user(users_data, username)
+            if login_user is not None:
+                login_user = dict(login_user)
+
+        user_enabled = bool(login_user and login_user.get('enabled', True))
+        user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
+        password_ok = bool(login_user) and user_enabled and _verify_password(user_password_hash, password)
+        credentials_ok = bool(turnstile_ok and password_ok)
+
+        is_super_admin = bool((login_user or {}).get('role') == 'super_admin')
+        user_permissions = _normalize_permissions((login_user or {}).get('permissions', []), is_super_admin=is_super_admin)
+        login_username = _normalize_username((login_user or {}).get('username', '') or username)
+
         if not username and not password:
             fail_reason = '用户名和密码不能为空'
         elif not username:
             fail_reason = '用户名不能为空'
         elif not password:
             fail_reason = '密码不能为空'
+        elif turnstile_settings['enabled'] and not turnstile_ok:
+            fail_reason = turnstile_fail_reason or '验证码校验失败，请重试'
+        elif login_user and not user_enabled:
+            fail_reason = '账号已被禁用，请联系管理员'
         else:
             fail_reason = '用户名或密码错误'
 
@@ -529,12 +1028,28 @@ def register_admin_routes(
         # Successful login: clear old session to reduce fixation risk.
         session.clear()
         session['admin_logged_in'] = True
-        session['admin_username'] = admin_username
+        session['admin_username'] = login_username
+        session['admin_is_super_admin'] = bool(is_super_admin)
+        session['admin_permissions'] = list(user_permissions)
+        session['admin_login_at'] = now_ts
+        session['admin_session_ttl'] = ADMIN_SESSION_MAX_AGE_SECONDS
+
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            user_ref, idx = _find_user(users_data, login_username)
+            if user_ref is not None and idx >= 0:
+                user_ref = dict(user_ref)
+                user_ref['last_login_at'] = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+                user_ref['updated_at'] = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+                users_data['users'][idx] = user_ref
+                _save_admin_users(users_file, users_data)
+
         append_admin_login_log(
             operation='后台登录',
             success=True,
-            username=admin_username,
-            detail='用户名和密码验证通过'
+            username=login_username,
+            detail=('用户名和密码验证通过；人机验证通过' if turnstile_settings['enabled'] else '用户名和密码验证通过')
+            + ('；角色：超级管理员' if is_super_admin else '；角色：子账号')
         )
         return jsonify({'success': True})
 
@@ -542,15 +1057,25 @@ def register_admin_routes(
     @login_required
     def change_password():
         """Change admin username and password."""
-        data = request.form if request.form else request.json or {}
-        old_password = data.get('oldPassword', '')
-        new_username = data.get('newUsername', '').strip()
-        new_password = data.get('newPassword', '').strip()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
 
-        config = get_config()
-        current_admin = session.get('admin_username') or config.get('admin_username', '')
+        data = request.get_json(silent=True) or {}
+        old_password = str(data.get('oldPassword', '') or '')
+        new_username = str(data.get('newUsername', '') or '').strip()
+        new_password = str(data.get('newPassword', '') or '').strip()
 
-        if old_password != config['admin_password']:
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        current_admin = _normalize_username(session.get('admin_username', ''))
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            current_user, current_index = _find_user(users_data, current_admin)
+
+        if current_user is None or current_index < 0:
+            session.clear()
+            return jsonify({'success': False, 'message': '当前会话已失效，请重新登录'}), 401
+
+        if not _verify_password(str(current_user.get('password_hash', '') or ''), old_password):
             append_admin_login_log(
                 operation='修改账号密码',
                 success=False,
@@ -568,10 +1093,41 @@ def register_admin_routes(
             )
             return jsonify({'success': False, 'message': '用户名和密码不能为空'}), 400
 
-        update_config({
-            'admin_username': new_username,
-            'admin_password': new_password
-        })
+        if not USERNAME_RULE.match(new_username):
+            return jsonify({'success': False, 'message': '用户名仅支持 3-32 位字母、数字、下划线、点、短横线'}), 400
+        if len(new_password) < 8:
+            return jsonify({'success': False, 'message': '新密码长度至少 8 位'}), 400
+
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            current_user, current_index = _find_user(users_data, current_admin)
+            if current_user is None or current_index < 0:
+                session.clear()
+                return jsonify({'success': False, 'message': '当前会话已失效，请重新登录'}), 401
+
+            existing, existing_idx = _find_user(users_data, new_username)
+            if existing is not None and existing_idx != current_index:
+                return jsonify({'success': False, 'message': '用户名已存在，请更换'}), 400
+
+            now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+            updated_user = dict(current_user)
+            updated_user['username'] = new_username
+            updated_user['password_hash'] = _hash_password(new_password)
+            updated_user['updated_at'] = now_iso
+            users_data['users'][current_index] = _sanitize_user_record(
+                updated_user,
+                fallback_username=new_username,
+                is_super_admin=bool(str(current_user.get('role') or '') == 'super_admin')
+            )
+            _save_admin_users(users_file, users_data)
+
+            if str(current_user.get('role') or '') == 'super_admin':
+                update_config({
+                    'admin_username': new_username,
+                    'admin_password_hash': users_data['users'][current_index]['password_hash'],
+                    'admin_password': ''
+                })
+
         session['admin_username'] = new_username
         append_admin_login_log(
             operation='修改账号密码',
@@ -581,6 +1137,164 @@ def register_admin_routes(
         )
 
         return jsonify({'success': True, 'message': '修改成功'})
+
+    def _forbidden_subaccount_manage():
+        return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+
+    @app.route('/api/admin/subaccounts/permissions', methods=['GET'])
+    @login_required
+    def admin_permissions_catalog():
+        return jsonify({
+            'success': True,
+            'permission_catalog': ADMIN_PERMISSION_CATALOG,
+            'is_super_admin': bool(_is_super_admin_session(session)),
+        })
+
+    @app.route('/api/admin/subaccounts', methods=['GET'])
+    @login_required
+    def admin_subaccounts_list():
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            users = users_data.get('users', [])
+            items = [_public_user_profile(user) for user in users if str(user.get('role') or '') != 'super_admin']
+        return jsonify({
+            'success': True,
+            'items': items,
+            'permission_catalog': ADMIN_PERMISSION_CATALOG,
+        })
+
+    @app.route('/api/admin/subaccounts', methods=['POST'])
+    @login_required
+    def admin_subaccounts_create():
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+
+        data = request.get_json(silent=True) or {}
+        username = _normalize_username(data.get('username', ''))
+        password = str(data.get('password', '') or '')
+        enabled = bool(data.get('enabled', True))
+        permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
+
+        if not USERNAME_RULE.match(username):
+            return jsonify({'success': False, 'message': '用户名仅支持 3-32 位字母、数字、下划线、点、短横线'}), 400
+        if len(password) < 8:
+            return jsonify({'success': False, 'message': '密码长度至少 8 位'}), 400
+        if not permissions:
+            return jsonify({'success': False, 'message': '请至少分配 1 项权限'}), 400
+
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            existing, _ = _find_user(users_data, username)
+            if existing is not None:
+                return jsonify({'success': False, 'message': '用户名已存在'}), 400
+            now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+            user = _sanitize_user_record({
+                'username': username,
+                'password_hash': _hash_password(password),
+                'role': 'sub_admin',
+                'enabled': enabled,
+                'permissions': permissions,
+                'created_at': now_iso,
+                'updated_at': now_iso,
+                'last_login_at': '',
+            }, fallback_username=username, is_super_admin=False)
+            users_data.setdefault('users', []).append(user)
+            _save_admin_users(users_file, users_data)
+
+        append_admin_login_log(
+            operation='子账号管理',
+            success=True,
+            username=session.get('admin_username', ''),
+            detail=f'新增子账号：{username}'
+        )
+        return jsonify({'success': True, 'message': '子账号创建成功'})
+
+    @app.route('/api/admin/subaccounts/<username>', methods=['PUT'])
+    @login_required
+    def admin_subaccounts_update(username):
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+
+        target_name = _normalize_username(username)
+        data = request.get_json(silent=True) or {}
+        enabled = bool(data.get('enabled', True))
+        permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
+        reset_password = str(data.get('password', '') or '')
+
+        if not permissions:
+            return jsonify({'success': False, 'message': '请至少分配 1 项权限'}), 400
+        if reset_password and len(reset_password) < 8:
+            return jsonify({'success': False, 'message': '新密码长度至少 8 位'}), 400
+
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            target_user, idx = _find_user(users_data, target_name)
+            if target_user is None or idx < 0:
+                return jsonify({'success': False, 'message': '子账号不存在'}), 404
+            if str(target_user.get('role') or '') == 'super_admin':
+                return jsonify({'success': False, 'message': '超级管理员账号不可在此修改'}), 400
+
+            now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+            updated = dict(target_user)
+            updated['enabled'] = enabled
+            updated['permissions'] = permissions
+            if reset_password:
+                updated['password_hash'] = _hash_password(reset_password)
+            updated['updated_at'] = now_iso
+            users_data['users'][idx] = _sanitize_user_record(updated, fallback_username=target_name, is_super_admin=False)
+            _save_admin_users(users_file, users_data)
+
+        append_admin_login_log(
+            operation='子账号管理',
+            success=True,
+            username=session.get('admin_username', ''),
+            detail=f'更新子账号：{target_name}'
+        )
+        return jsonify({'success': True, 'message': '子账号更新成功'})
+
+    @app.route('/api/admin/subaccounts/<username>', methods=['DELETE'])
+    @login_required
+    def admin_subaccounts_delete(username):
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+
+        target_name = _normalize_username(username)
+        current_name = _normalize_username(session.get('admin_username', ''))
+        if target_name == current_name:
+            return jsonify({'success': False, 'message': '不能删除当前登录账号'}), 400
+
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            target_user, idx = _find_user(users_data, target_name)
+            if target_user is None or idx < 0:
+                return jsonify({'success': False, 'message': '子账号不存在'}), 404
+            if str(target_user.get('role') or '') == 'super_admin':
+                return jsonify({'success': False, 'message': '超级管理员账号不可删除'}), 400
+
+            users = users_data.get('users', [])
+            users.pop(idx)
+            users_data['users'] = users
+            _save_admin_users(users_file, users_data)
+
+        append_admin_login_log(
+            operation='子账号管理',
+            success=True,
+            username=session.get('admin_username', ''),
+            detail=f'删除子账号：{target_name}'
+        )
+        return jsonify({'success': True, 'message': '子账号已删除'})
 
     @app.route('/admin/logout', methods=['POST'])
     def admin_logout():
@@ -595,12 +1309,57 @@ def register_admin_routes(
             )
         session.pop('admin_logged_in', None)
         session.pop('admin_username', None)
+        session.pop('admin_is_super_admin', None)
+        session.pop('admin_permissions', None)
+        session.pop('admin_login_at', None)
+        session.pop('admin_session_ttl', None)
         return jsonify({'success': True})
 
     @app.route('/admin/check')
     def admin_check():
         """Check if admin is logged in."""
-        return jsonify({'logged_in': session.get('admin_logged_in', False)})
+        logged_in = bool(session.get('admin_logged_in', False))
+        if logged_in and _is_admin_session_expired(session):
+            session.clear()
+            logged_in = False
+        if not logged_in:
+            return jsonify({
+                'logged_in': False,
+                'username': '',
+                'is_super_admin': False,
+                'permissions': [],
+                'permission_catalog': ADMIN_PERMISSION_CATALOG,
+            })
+
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        current_name = _normalize_username(session.get('admin_username', ''))
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            user, _ = _find_user(users_data, current_name)
+
+        if user is None or not bool(user.get('enabled', True)):
+            session.clear()
+            return jsonify({
+                'logged_in': False,
+                'username': '',
+                'is_super_admin': False,
+                'permissions': [],
+                'permission_catalog': ADMIN_PERMISSION_CATALOG,
+            })
+
+        is_super_admin = bool(str(user.get('role') or '') == 'super_admin')
+        permissions = _normalize_permissions(user.get('permissions', []), is_super_admin=is_super_admin)
+        session['admin_is_super_admin'] = is_super_admin
+        session['admin_permissions'] = permissions
+        session['admin_username'] = _normalize_username(user.get('username', current_name))
+
+        return jsonify({
+            'logged_in': True,
+            'username': session.get('admin_username', ''),
+            'is_super_admin': is_super_admin,
+            'permissions': permissions,
+            'permission_catalog': ADMIN_PERMISSION_CATALOG,
+        })
 
     @app.route('/api/admin/login-logs')
     @login_required
