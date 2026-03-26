@@ -3981,7 +3981,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         function getProductTemplateDefaultMap() {
             const title = document.getElementById('productCreateTitle')?.value.trim() || '';
             const summary = document.getElementById('productCreateSummary')?.value.trim() || '';
-            const image = document.getElementById('productCreateImage')?.value.trim() || '/assets/images/logo.png';
+            const image = document.getElementById('productCreateImage')?.value.trim() || '/cdn_assets/images/common/f1dcc87cdcca.png';
             const [detail1, detail2] = getProductDetailPartsFromEditor();
             const defaults = {};
             productTemplatePlaceholderKeys.forEach(key => {
@@ -4171,7 +4171,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     <div style="font-size:12px; color:#425166; margin-bottom:6px;">${escapeHtml(fieldLabel)}</div>
                     <input type="text" class="form-control product-template-field" data-key="${escapeHtml(fieldKey)}"
                         value="${escapeHtml(fieldValue || '')}"
-                        placeholder="${isImageLink ? '例如 /assets/images/logo.png 或 https://cdn.example.com/a.png' : ''}">
+                        placeholder="${isImageLink ? '例如 /cdn_assets/images/common/f1dcc87cdcca.png 或 https://cdn.example.com/a.png' : ''}">
                     ${helper}
                 </div>
             `;
@@ -4680,7 +4680,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (slugInput && !manualSlug && slug) slugInput.value = slug;
             const category = 'detector';
             const imageUrls = Array.isArray(aiUploadedImageUrls) ? aiUploadedImageUrls : [];
-            const imageUrl = imageUrls[0] || '/assets/images/logo.png';
+            const imageUrl = imageUrls[0] || '/cdn_assets/images/common/f1dcc87cdcca.png';
 
             return {
                 title: parsed.title || slug || '未命名产品',

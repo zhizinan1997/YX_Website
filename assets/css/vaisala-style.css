@@ -1059,7 +1059,7 @@ img {
 .vs-careers {
     position: relative;
     min-height: 700px;
-    background-image: url('../images/careers-bg.png');
+    background-image: url('/cdn_assets/images/common/acf0dd118b9d.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;

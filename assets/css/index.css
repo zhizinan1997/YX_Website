@@ -101,7 +101,7 @@ table {
 	height: 4.8vw;
 	float: right;
 	position: relative;
-	background: url(../images/h_wx.png) no-repeat center;
+	background: url(/cdn_assets/images/common/82a7d0571ac6.png) no-repeat center;
 	margin-right: 28px;
 }
 
@@ -110,7 +110,7 @@ table {
 	height: 4.8vw;
 	float: right;
 	position: relative;
-	background: url(../images/h_sj.png) no-repeat center;
+	background: url(/cdn_assets/images/common/b953ad09963c.png) no-repeat center;
 	margin-right: 28px;
 }
 
@@ -148,7 +148,7 @@ table {
 	width: 62%;
 	float: right;
 	margin-right: 3%;
-	background: url(../images/h_xs.png) no-repeat right center
+	background: url(/cdn_assets/images/common/297028022317.png) no-repeat right center
 }
 
 .nav .nLi {
@@ -224,7 +224,7 @@ table {
 
 .nav .nLi.active h3 p,
 .nav .nLi:hover h3 p {
-	background: url(../images/active.png) no-repeat bottom center
+	background: url(/cdn_assets/images/common/f3984011ac14.png) no-repeat bottom center
 }
 
 .nav .nLi:last-child {
@@ -260,7 +260,7 @@ table {
 }
 
 /*
-#fp-nav ul li a.active{background: url(../images/yuan.png) no-repeat center}
+#fp-nav ul li a.active{background: url(/cdn_assets/images/common/5bd0e5f5c574.png) no-repeat center}
 */
 #fp-nav ul li a.active span {
 	background: #353380;
@@ -282,19 +282,19 @@ table {
 
 .two_header .nav .nLi.active h3 p,
 .two_header .nav .nLi:hover h3 p {
-	background: url(../images/active_h.png) no-repeat bottom center
+	background: url(/cdn_assets/images/common/df1686e5a6b7.png) no-repeat bottom center
 }
 
 .two_header .h_wx {
-	background: url(../images/hh_wx.png) no-repeat center
+	background: url(/cdn_assets/images/common/10af513da1b9.png) no-repeat center
 }
 
 .two_header .h_sj {
-	background: url(../images/hh_sj.png) no-repeat center
+	background: url(/cdn_assets/images/common/eae24f5c7c28.png) no-repeat center
 }
 
 .two_header .nav {
-	background: url(../images/hh_xs.png) no-repeat right center;
+	background: url(/cdn_assets/images/common/01fdd5ac8de7.png) no-repeat right center;
 }
 
 /* ==========================================================================
@@ -823,7 +823,7 @@ img.ban_pic {
 }
 
 .section2_ban {
-	background: url(../images/section2_bj.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/9c304decb2f6.jpg) no-repeat center;
 	width: 100%;
 	height: 100%;
 	transition: transform 5s ease 0s, opacity 2s ease 0s;
@@ -991,7 +991,7 @@ img.ban_pic {
 	color: #333333;
 	font-size: 18px;
 	line-height: 13vh;
-	background: url(../images/jts.png) no-repeat right center;
+	background: url(/cdn_assets/images/common/b7039d0360e9.png) no-repeat right center;
 	padding-right: 40px;
 	margin-left: 15%
 }
@@ -1104,7 +1104,7 @@ img.ban_pic {
 }
 
 .chejian_ban {
-	background: url(../images/cjzs_bj.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/79456b065c1d.jpg) no-repeat center;
 	width: 100%;
 	height: 100%;
 	transition: transform 5s ease 0s, opacity 2s ease 0s;
@@ -1255,7 +1255,7 @@ img.ban_pic {
 }
 
 .section3_ban {
-	background: url(../images/section3_bj.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/8fc330c0c73a.jpg) no-repeat center;
 	width: 100%;
 	height: 100%;
 	transition: transform 5s ease 0s, opacity 2s ease 0s;
@@ -1386,11 +1386,11 @@ img.ban_pic {
 }
 
 .index_product_all .swiper-button-next {
-	background: url(../images/pro_right.png) no-repeat center;
+	background: url(/cdn_assets/images/common/1be3e3390966.png) no-repeat center;
 }
 
 .index_product_all .swiper-button-prev {
-	background: url(../images/pro_left.png) no-repeat center;
+	background: url(/cdn_assets/images/common/08658e8dc4c4.png) no-repeat center;
 }
 
 .index_product_all .swiper-button-next:hover,
@@ -1492,7 +1492,7 @@ img.ban_pic {
 .section4 .slideTxtBox .hd {
 	width: 1349px;
 	height: 633px;
-	background: url(../images/yuan.png) no-repeat center;
+	background: url(/cdn_assets/images/common/5bd0e5f5c574.png) no-repeat center;
 	position: absolute;
 	bottom: 0;
 	left: 50%;
@@ -1504,7 +1504,7 @@ img.ban_pic {
 	width: 100%;
 	height: 100%;
 	margin: 0px auto;
-	background: url(../images/yuan_nl.png) no-repeat center;
+	background: url(/cdn_assets/images/common/9e15aabf4bcc.png) no-repeat center;
 	position: relative
 }
 
@@ -1669,7 +1669,7 @@ img.ban_pic {
 }
 
 .section5_ban {
-	background: url(../images/section5_bj.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/df318da1ce7f.jpg) no-repeat center;
 	width: 100%;
 	height: 100%;
 	transition: transform 5s ease 0s, opacity 2s ease 0s;
@@ -1689,7 +1689,7 @@ img.ban_pic {
 	position: relative;
 	margin: 8vh auto;
 	padding: 0 3%;
-	background: url(../images/lc_xs.png) no-repeat center 118px;
+	background: url(/cdn_assets/images/common/4bcc563f65e7.png) no-repeat center 118px;
 }
 
 .section5_liucheng .swiper-container {
@@ -1746,13 +1746,13 @@ img.ban_pic {
 }
 
 .lc_btn .swiper-button-next {
-	background: url(../images/lc_right.png) no-repeat center;
+	background: url(/cdn_assets/images/common/cfa5638cfb73.png) no-repeat center;
 	border-left: 1px solid #fff;
 	right: 0
 }
 
 .lc_btn .swiper-button-prev {
-	background: url(../images/lc_left.png) no-repeat center;
+	background: url(/cdn_assets/images/common/a651ae7ffac0.png) no-repeat center;
 	border-right: 1px solid #fff;
 	left: 0
 }
@@ -1776,11 +1776,11 @@ img.ban_pic {
 }
 
 .lc_btn .swiper-button-next:hover {
-	background: #f6ce51 url(../images/lc_right.png) no-repeat center;
+	background: #f6ce51 url(/cdn_assets/images/common/cfa5638cfb73.png) no-repeat center;
 }
 
 .lc_btn .swiper-button-prev:hover {
-	background: #f6ce51 url(../images/lc_left.png) no-repeat center;
+	background: #f6ce51 url(/cdn_assets/images/common/a651ae7ffac0.png) no-repeat center;
 }
 
 .section5_liucheng .in_lc_li:hover {
@@ -1822,7 +1822,7 @@ img.ban_pic {
 }
 
 .section6_ban {
-	background: url(../images/section6_bj.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/307b4fbbe1da.jpg) no-repeat center;
 	width: 100%;
 	height: 100%;
 	transition: transform 5s ease 0s, opacity 2s ease 0s;
@@ -1903,22 +1903,22 @@ img.ban_pic {
 }
 
 .section6_left .swiper-button-next {
-	background: #c1c2c3 url(../images/lc_right.png) no-repeat center;
+	background: #c1c2c3 url(/cdn_assets/images/common/cfa5638cfb73.png) no-repeat center;
 	right: auto;
 	left: 77px;
 }
 
 .section6_left .swiper-button-prev {
-	background: #c1c2c3 url(../images/lc_left.png) no-repeat center;
+	background: #c1c2c3 url(/cdn_assets/images/common/a651ae7ffac0.png) no-repeat center;
 	left: 0
 }
 
 .section6_left .swiper-button-prev:hover {
-	background: #616162 url(../images/lc_left.png) no-repeat center;
+	background: #616162 url(/cdn_assets/images/common/a651ae7ffac0.png) no-repeat center;
 }
 
 .section6_left .swiper-button-next:hover {
-	background: #616162 url(../images/lc_right.png) no-repeat center;
+	background: #616162 url(/cdn_assets/images/common/cfa5638cfb73.png) no-repeat center;
 }
 
 .section6_right {
@@ -2053,7 +2053,7 @@ img.ban_pic {
 }
 
 .section7_ban {
-	background: url(../images/section7_bj.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/d477ecb4d368.jpg) no-repeat center;
 	width: 100%;
 	height: 100%;
 	transition: transform 5s ease 0s, opacity 2s ease 0s;
@@ -2314,7 +2314,7 @@ img.ban_pic {
 .index_zhichi .pt {
 	width: 121px;
 	height: 18px;
-	background: url(../images/vl.png) no-repeat;
+	background: url(/cdn_assets/images/common/730cc38533fb.png) no-repeat;
 	margin-top: 22px;
 	margin-right: 10px
 }
@@ -2322,16 +2322,16 @@ img.ban_pic {
 .index_zhichi .js {
 	width: 88px;
 	height: 28px;
-	background: url(../images/wl.png) no-repeat;
+	background: url(/cdn_assets/images/common/bb22815a2877.png) no-repeat;
 	margin-top: 22px;
 }
 
 .index_zhichi .pt:hover {
-	background: url(../images/vl_hover.png) no-repeat
+	background: url(/cdn_assets/images/common/4fd37ad8be01.png) no-repeat
 }
 
 .index_zhichi .js:hover {
-	background: url(../images/wl_hover.png) no-repeat
+	background: url(/cdn_assets/images/common/4f1989f8f8ab.png) no-repeat
 }
 
 .index_zhichi span {
@@ -2827,7 +2827,7 @@ img.ban_pic {
 .ny_pro_dh {
 	width: 100%;
 	height: 58px;
-	background: url(../images/dh1.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/119939a25ed9.png) no-repeat left center;
 	padding-left: 52px;
 	margin-top: 30px
 }
@@ -2865,7 +2865,7 @@ img.ban_pic {
 .ny_pro_24 p {
 	font-size: 14px;
 	color: #313131;
-	background: url(../images/dh.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/a03e10b236b5.png) no-repeat left center;
 	float: left;
 	padding-left: 20px;
 	margin-right: 30px;
@@ -3348,52 +3348,52 @@ img.ban_pic {
 }
 
 .about_ban {
-	background: url(../images/about_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/0e2921324198.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .news_ban {
-	background: url(../images/news_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/d6e23cf0c15f.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .contact_ban {
-	background: url(../images/contact_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/4510c1c49de7.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .service_ban {
-	background: url(../images/service_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/80833eb56e9a.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .case_ban {
-	background: url(/assets/images/external-cache/www.hnmetachip.cn/case_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/external-cache/www.hnmetachip.cn/case_ban.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .rlzy_ban {
-	background: url(../images/rlzy_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/f29b4d867055.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .yyly_ban {
-	background: url(../images/yyly_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/c23cd46f18d4.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .yyyg_ban {
-	background: url(../images/yyyg_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/de1c8d70e173.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .jjfa_ban {
-	background: url(../images/jjfa_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/8ddbc3d4a323.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
 .cgq_ban {
-	background: url(../images/cgq_ban.jpg) no-repeat center bottom;
+	background: url(/cdn_assets/images/common/a8351a61d300.jpg) no-repeat center bottom;
 	background-size: cover;
 }
 
@@ -3594,7 +3594,7 @@ img.ban_pic {
 	float: left;
 	color: #000000;
 	font-size: 20px;
-	background: url(../images/duihao.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/9eedda687e47.png) no-repeat left center;
 	padding-left: 35px;
 	font-size: 20px;
 	font-weight: bold;
@@ -3712,7 +3712,7 @@ img.ban_pic {
 	color: #999999;
 	font-size: 16px;
 	line-height: 26px;
-	background: url(../images/ms_xs.png) no-repeat bottom center;
+	background: url(/cdn_assets/images/common/68109828a48d.png) no-repeat bottom center;
 	padding-bottom: 20px;
 	margin-top: 20px;
 }
@@ -3727,7 +3727,7 @@ img.ban_pic {
 .product_top_cp h4 {
 	color: #000000;
 	font-size: 16px;
-	background: url(../images/duihao.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/9eedda687e47.png) no-repeat left center;
 	padding-left: 30px;
 	font-weight: bold;
 }
@@ -3985,7 +3985,7 @@ img.ban_pic {
 	width: 100%;
 	height: auto;
 	overflow: hidden;
-	background: url(../images/ff_bjs.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/005d03224770.jpg) no-repeat center;
 	background-size: cover;
 	padding: 55px 0 72px;
 	margin: 54px auto
@@ -4081,7 +4081,7 @@ img.ban_pic {
 	width: 100%;
 	height: auto;
 	overflow: hidden;
-	background: url(../images/js_ys.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/45e87af40187.jpg) no-repeat center;
 	padding: 64px 0 90px;
 	margin: 90px 0 60px
 }
@@ -4347,7 +4347,7 @@ img.ban_pic {
 	color: #000000;
 	font-size: 16px;
 	font-weight: bold;
-	background: url(../images/duihao.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/9eedda687e47.png) no-repeat left center;
 	padding-left: 30px;
 	margin: 15px 0
 }
@@ -4581,7 +4581,7 @@ img.ban_pic {
 }
 
 .ny_kyfw_three .container {
-	background: url(../images/kyf7.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/b9f2e172d4fa.jpg) no-repeat center;
 	background-size: cover;
 	padding: 68px 0 80px
 }
@@ -4765,7 +4765,7 @@ img.ban_pic {
 .cgq_zixun_img {
 	width: 100%;
 	height: 390px;
-	background: url(../images/cgq1.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/bb9e65aa0519.jpg) no-repeat center;
 	padding: 60px 0;
 	display: flex;
 	justify-content: flex-end;
@@ -4966,7 +4966,7 @@ img.ban_pic {
 .cgqyy_one_li {
 	width: 100%;
 	height: 300px;
-	background: url(/assets/images/external-cache/www.hnmetachip.cn/yy_jishu.jpg) no-repeat center;
+	background: url(/cdn_assets/images/external-cache/www.hnmetachip.cn/yy_jishu.jpg) no-repeat center;
 	padding: 50px 0
 }
 
@@ -5017,7 +5017,7 @@ img.ban_pic {
 	color: #000000;
 	font-size: 24px;
 	font-weight: bold;
-	background: url(../images/ky_jts.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/1eeef19c4adb.png) no-repeat left center;
 	padding-left: 40px;
 }
 
@@ -5109,7 +5109,7 @@ img.ban_pic {
 .ny_cgqyy_lingyu ul li h4 {
 	color: #000000;
 	font-size: 18px;
-	background: url(../images/ky_jts.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/1eeef19c4adb.png) no-repeat left center;
 	padding-left: 30px;
 	margin-top: 8px;
 }
@@ -5147,7 +5147,7 @@ img.ban_pic {
 	width: 100%;
 	height: auto;
 	overflow: hidden;
-	background: url(../images/yy_case.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/3291b0da13b2.jpg) no-repeat center;
 	background-size: cover;
 	padding: 60px 0 30px
 }
@@ -5203,7 +5203,7 @@ img.ban_pic {
 	width: 100%;
 	height: auto;
 	overflow: hidden;
-	background: url(../images/yy_xiangmu.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/879adeb35358.jpg) no-repeat center;
 	background-size: cover;
 	padding: 64px 0 68px;
 	margin-top: 100px;
@@ -5336,13 +5336,13 @@ img.ban_pic {
 }
 
 .ny_cgqyy_xmsl .swiper-button-next {
-	background: url(../images/yy_right.png) no-repeat center;
+	background: url(/cdn_assets/images/common/b19d59810d06.png) no-repeat center;
 	right: auto;
 	left: 32%
 }
 
 .ny_cgqyy_xmsl .swiper-button-prev {
-	background: url(../images/yy_left.png) no-repeat center;
+	background: url(/cdn_assets/images/common/09fa43039c59.png) no-repeat center;
 	left: 28%
 }
 
@@ -5490,7 +5490,7 @@ img.ban_pic {
 	font-size: 24px;
 	font-weight: bold;
 	padding-left: 30px;
-	background: url(../images/duihao.png) no-repeat left center;
+	background: url(/cdn_assets/images/common/9eedda687e47.png) no-repeat left center;
 	margin: 15px 0
 }
 
@@ -5525,7 +5525,7 @@ img.ban_pic {
 	width: 100%;
 	height: auto;
 	overflow: hidden;
-	background: url(../images/footer_bj.jpg) no-repeat center;
+	background: url(/cdn_assets/images/common/6d3b3095cde0.jpg) no-repeat center;
 	background-size: cover;
 	padding: 60px 0 10px;
 }
@@ -5594,19 +5594,19 @@ img.ban_pic {
 }
 
 .f1 {
-	background: rgba(255, 255, 255, 0.5) url(../images/dz_icon.png) no-repeat 30% center
+	background: rgba(255, 255, 255, 0.5) url(/cdn_assets/images/common/c1a161084bde.png) no-repeat 30% center
 }
 
 .f2 {
-	background: rgba(255, 255, 255, 0.5) url(../images/ly_icon.png) no-repeat 30% center
+	background: rgba(255, 255, 255, 0.5) url(/cdn_assets/images/common/f5fa67b597a1.png) no-repeat 30% center
 }
 
 .f1:hover {
-	background: rgba(255, 255, 255, 0.1) url(../images/dz_icon.png) no-repeat 30% center
+	background: rgba(255, 255, 255, 0.1) url(/cdn_assets/images/common/c1a161084bde.png) no-repeat 30% center
 }
 
 .f2:hover {
-	background: rgba(255, 255, 255, 0.1) url(../images/ly_icon.png) no-repeat 30% center
+	background: rgba(255, 255, 255, 0.1) url(/cdn_assets/images/common/f5fa67b597a1.png) no-repeat 30% center
 }
 
 .footer_top {
@@ -5692,7 +5692,7 @@ img.ban_pic {
 .footer_zhichi .pt {
 	width: 121px;
 	height: 18px;
-	background: url(../images/vl.png) no-repeat;
+	background: url(/cdn_assets/images/common/730cc38533fb.png) no-repeat;
 	margin-top: 16px;
 	margin-right: 10px
 }
@@ -5700,16 +5700,16 @@ img.ban_pic {
 .footer_zhichi .js {
 	width: 90px;
 	height: 18px;
-	background: url(../images/wl.png) no-repeat;
+	background: url(/cdn_assets/images/common/bb22815a2877.png) no-repeat;
 	margin-top: 16px;
 }
 
 .footer_zhichi .pt:hover {
-	background: url(../images/vl_hover.png) no-repeat
+	background: url(/cdn_assets/images/common/4fd37ad8be01.png) no-repeat
 }
 
 .footer_zhichi .js:hover {
-	background: url(../images/wl_hover.png) no-repeat
+	background: url(/cdn_assets/images/common/4f1989f8f8ab.png) no-repeat
 }
 
 .footer_zhichi span {
@@ -5777,7 +5777,7 @@ img.ban_pic {
 	margin: 0 auto;
 	text-align: center;
 	width: 30px;
-	background: url(../images/fx.png) no-repeat;
+	background: url(/cdn_assets/images/common/c759d707fad7.png) no-repeat;
 }
 
 .lxfx li i.icon-tel {

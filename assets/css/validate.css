@@ -3,7 +3,7 @@
 .Validform_checktip{ margin-left:5px; line-height:20px; height:20px; overflow:hidden; color:#999; font-size:12px; }
 .Validform_right{ display:inline-block; color:#71b83d; padding-left:20px; background:url(valid_icons.png) no-repeat -40px -20px; vertical-align:middle;top: 12px;position: absolute; right:0}
 .Validform_wrong{ display:inline-block; color:red; padding-left:20px; white-space:nowrap; background:url(valid_icons.png) no-repeat -20px -40px; vertical-align:middle;top: 12px;position: absolute;  right:0}
-.Validform_loading{ padding-left:20px; background:url(/assets/images/external-cache/www.hnmetachip.cn/icon_onload.gif) no-repeat left center; }
+.Validform_loading{ padding-left:20px; background:url(/cdn_assets/images/external-cache/www.hnmetachip.cn/icon_onload.gif) no-repeat left center; }
 .Validform_error{ background:#FEFBD3; }
 
 #Validform_msg{color:#7d8289; font: 12px/1.5 tahoma, arial, \5b8b\4f53, sans-serif; width:280px; -webkit-box-shadow:2px 2px 3px #aaa; -moz-box-shadow:2px 2px 3px #aaa; background:#fff; position:absolute; top:0px; right:50px; z-index:99999; display:none;filter: progid:DXImageTransform.Microsoft.Shadow(Strength=3, Direction=135, Color='#999999'); box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);}

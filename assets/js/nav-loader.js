@@ -387,7 +387,7 @@
         var html = items.slice(0, 2).map(function (item) {
             var link = (item && item.link) ? String(item.link) : '#';
             var title = (item && item.title) ? String(item.title) : '相关新闻';
-            var image = (item && item.image) ? String(item.image) : '/assets/images/logo.png';
+            var image = (item && item.image) ? String(item.image) : '/cdn_assets/images/common/f1dcc87cdcca.png';
             var desc = (item && item.desc) ? String(item.desc) : '';
             return '' +
                 '<a href="' + link + '" class="vs-news-item">' +
@@ -434,7 +434,7 @@
 
     function normalizeProductCardImage(product) {
         var image = String((product && (product.cardImage || product.image)) || '').trim();
-        return image || '/assets/images/logo.png';
+        return image || '/cdn_assets/images/common/f1dcc87cdcca.png';
     }
 
     function renderProductRelatedProducts(items) {

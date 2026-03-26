@@ -53,7 +53,7 @@
     function createNewsItemHTML(news) {
         return `
       <a href="${news.link}" style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
-        <img src="${news.image}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news" onerror="this.src='assets/images/logo.png'">
+        <img src="${news.image}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news" onerror="this.src='/cdn_assets/images/common/f1dcc87cdcca.png'">
         <div>
           <h4 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
             ${news.title}
