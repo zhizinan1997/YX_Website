@@ -7,70 +7,70 @@ const BIOSENSING_PRODUCTS = [
     {
         id: 'mc_bw_bio_workstation',
         name: 'MC-BW-01 生物传感工作站',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501141610379601.jpg',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/71239bd525e4.jpg',
         description: 'MC-BW-01生物传感工作站具备皮安级的电流测量精度，专为微弱电流信号的便捷测量而设计，同时支持多通道并行测试。',
         category: 'instrument'
     },
     {
         id: 'ion_detector',
         name: '离子检测仪',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501141553278669.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/e7c2ff731b1c.png',
         description: '离子检测仪是一种便携、快速、精准的测试设备，采用离子选择性电极技术，能够在现场进行实时分析。',
         category: 'instrument'
     },
     {
         id: 'portable_bio_detector',
         name: '便携式手持生物检测仪',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501141535249134.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/889872f2cdab.png',
         description: '便携式手持生物测试仪，具备纳安级的电流测量精度，专为微弱电流信号的便捷测量而设计，体积小巧，携带方便。',
         category: 'instrument'
     },
     {
         id: 'carbon_bio_package_chip',
         name: '碳基生物封装芯片',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501101346080807.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5ae73ef90181.png',
         description: 'MCB-P系列碳基生物封装芯片采用碳基场效应晶体管传感原理，具有高均一、微型化、高灵敏、稳定性好的特点。',
         category: 'chip'
     },
     {
         id: 'blood_potassium_chip',
         name: '便携式血钾检测芯片',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501141545220675.bmp',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/c7c3bf65312d.bmp',
         description: '便携式血钾检测芯片，采用离子敏感场效应晶体管检测方法，在体外诊断行业为国内首创。',
         category: 'chip'
     },
     {
         id: 'chlorine_detection_chip',
         name: '余氯检测芯片',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501141602163019.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/e44b0c29e5b8.png',
         description: '余氯检测芯片是采用微纳加工工艺，结合电化学检测原理设计制造的一款针对水质检测方向的芯片。',
         category: 'chip'
     },
     {
         id: 'carbon_bio_platform',
         name: '碳基生物传感平台',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501101345491479.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/8496a8cc6608.png',
         description: '采用碳基场效应晶体管传感原理构建通用型生物传感平台，具有高均一、微型化、高灵敏、低噪声的特点。',
         category: 'platform'
     },
     {
         id: 'custom_bio_sensor_chip',
         name: '定制化生物传感芯片',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501101352242634.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5ae73ef90181.png',
         description: '采用碳基场效应晶体管传感原理，具有高均一、微型化、高灵敏、稳定性好的特点，可定制化生产。',
         category: 'chip'
     },
     {
         id: 'respiratory_virus_chip',
         name: '急性呼吸道病毒检测芯片',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202510200917507059.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ac96ed29d345.png',
         description: '基于碳基场效应晶体管传感技术的急性呼吸道病毒快速检测芯片，可实现多种病毒的高灵敏度检测。',
         category: 'chip'
     },
     {
         id: 'igzo_device',
         name: 'IGZO器件',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202510200908335899.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/a68f7093c2a5.png',
         description: 'IGZO（铟镓锌氧化物）薄膜晶体管器件，具有高迁移率、低漏电流、高透明度等优异特性。',
         category: 'device'
     },
@@ -79,7 +79,7 @@ const BIOSENSING_PRODUCTS = [
     {
         id: '../customization/micronano_fabrication',
         name: '微纳加工服务',
-        image: '/assets/images/external-cache/wstx.web.vleader.net.cn/202501101352373523.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/693d8dddb7ee.png',
         description: '提供从设计到加工到测试的全链条定制化服务，包括贵金属沉积、介质生长及完整的微纳工艺。',
         category: 'service'
     }

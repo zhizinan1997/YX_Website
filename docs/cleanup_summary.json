@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-03-26 13:31:42 +0800",
+  "removed": {
+    "venv": true,
+    "gassensing_test_dir": true,
+    "legacy_files": [
+      "particle_test.html",
+      "nav-table.txt"
+    ],
+    "scripts": [
+      "scripts/beautify_products.py",
+      "scripts/convert_product_pages.py",
+      "scripts/localize_external_images.py",
+      "scripts/migrate_beautify_products.py",
+      "scripts/migrate_product_details.py",
+      "scripts/rename_product_files.py",
+      "scripts/update-products.py"
+    ],
+    "ds_store_files": 14,
+    "pycache_dirs": 3,
+    "empty_dirs": 70
+  },
+  "preserved_empty_dirs": [
+    ".git/branches",
+    ".git/objects/info",
+    "cdn_assets/images/biosensing",
+    "cdn_assets/images/careers",
+    "cdn_assets/images/honors",
+    "cdn_assets/images/news",
+    "cdn_assets/images/partners",
+    "cdn_assets/images/services",
+    "cdn_assets/videos/measurement",
+    "data/h2_home_videos",
+    "data/hero/uploads",
+    "data/news_uploads",
+    "data/partners/uploads",
+    "data/product_cards/uploads"
+  ]
+}
