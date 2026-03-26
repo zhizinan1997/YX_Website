@@ -89,6 +89,286 @@
       "operation": "后台登录",
       "username": "admin",
       "detail": "用户名和密码验证通过"
+    },
+    {
+      "id": "8cbe02db5e904d33aa312e08e9855b8f",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T13:50:59+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过"
+    },
+    {
+      "id": "6a76a511d4ae470b88df0cebbe7ce71a",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": false,
+      "timestamp": "2026-03-26T14:59:49+08:00",
+      "operation": "后台登录",
+      "username": "",
+      "detail": "用户名和密码不能为空；当前 IP 在 12 小时窗口内剩余尝试次数：2"
+    },
+    {
+      "id": "4ca3292a5fe64e6bbab4e9b281360d36",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:00:06+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "1c5f8273576540d68f101e96b9ec1a39",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:00:41+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过"
+    },
+    {
+      "id": "21ae827eb0c647348032eb7d45e50ae5",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:05:33+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "12353854040c488e8d4daac43c6ced5a",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": false,
+      "timestamp": "2026-03-26T15:06:12+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "验证码服务请求失败: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)>；当前 IP 在 12 小时窗口内剩余尝试次数：2"
+    },
+    {
+      "id": "09570dc1e16d40bf930599366a44700c",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:08:48+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过；人机验证通过"
+    },
+    {
+      "id": "5be13b626bda4311b8e5fc8d015a078f",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:08:51+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "ce44d675f13a438ba53e7094a892cdd1",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:10:18+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过；人机验证通过"
+    },
+    {
+      "id": "adc322f1937647bb82fbb03481d2da80",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:11:16+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "7c7edc8307f640ea94e307cf3b82e9f6",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:12:27+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过；人机验证通过"
+    },
+    {
+      "id": "fc01b6d4b54c4aca83089992e83097f8",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:13:57+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "3b5317a787234d729f57896f5483ee6f",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:14:28+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过；人机验证通过"
+    },
+    {
+      "id": "fd7df09932e3419e8bbe8fd1a8a56d9a",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:37:46+08:00",
+      "operation": "子账号管理",
+      "username": "admin",
+      "detail": "新增子账号：editor_test"
+    },
+    {
+      "id": "7b45bdb20d9346fc8a625f163cc737b2",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:37:47+08:00",
+      "operation": "子账号管理",
+      "username": "admin",
+      "detail": "更新子账号：editor_test"
+    },
+    {
+      "id": "861613230bd144ed97f7f593276c0326",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:37:47+08:00",
+      "operation": "子账号管理",
+      "username": "admin",
+      "detail": "删除子账号：editor_test"
+    },
+    {
+      "id": "2039f195a1ea400dbb4311a44a617827",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:40:19+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "62cb5555d53f405688fa5c59a1d61a9c",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:40:28+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过；人机验证通过；角色：超级管理员"
+    },
+    {
+      "id": "a8be1fb31ddf4fe5be0c6a4be7b00033",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:41:36+08:00",
+      "operation": "子账号管理",
+      "username": "admin",
+      "detail": "新增子账号：zhizinan"
+    },
+    {
+      "id": "d5f17d5109a7494b9f2d530762425ffc",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:41:56+08:00",
+      "operation": "子账号管理",
+      "username": "admin",
+      "detail": "新增子账号：liujinjiang"
+    },
+    {
+      "id": "2e490bc2b93a444083d8ee6f5a7d85e6",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:43:09+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "50e25a1a6dfc4a749c7ef534bc93e02d",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:43:18+08:00",
+      "operation": "后台登录",
+      "username": "zhizinan",
+      "detail": "用户名和密码验证通过；人机验证通过；角色：子账号"
+    },
+    {
+      "id": "5cece38387994441b418f6bdb27d42d0",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:43:29+08:00",
+      "operation": "退出登录",
+      "username": "zhizinan",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "63d7366fc20848899cca852e333ce11d",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:43:35+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过；人机验证通过；角色：超级管理员"
+    },
+    {
+      "id": "2d34e556e0bf4a5a8da29bbeb40b962a",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:44:46+08:00",
+      "operation": "退出登录",
+      "username": "admin",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "c0338bbb44f8484aabb8a92b00079a27",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:44:54+08:00",
+      "operation": "后台登录",
+      "username": "zhizinan",
+      "detail": "用户名和密码验证通过；人机验证通过；角色：子账号"
+    },
+    {
+      "id": "80d9945ed8304dd596c07eab59706c0b",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:46:08+08:00",
+      "operation": "退出登录",
+      "username": "zhizinan",
+      "detail": "管理员主动退出"
+    },
+    {
+      "id": "df2ae23b89e94c95bfaed66f46843d05",
+      "ip": "127.0.0.1",
+      "location": "本机回环地址",
+      "success": true,
+      "timestamp": "2026-03-26T15:49:40+08:00",
+      "operation": "后台登录",
+      "username": "admin",
+      "detail": "用户名和密码验证通过；人机验证通过；角色：超级管理员"
     }
   ]
 }
