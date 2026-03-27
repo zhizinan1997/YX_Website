@@ -83,7 +83,7 @@ python3 server.py
 
 ```bash
 # 1) 准备目录与网络
-mkdir -p /root/yxwebsite/{data,pages,update_logs,cdn_assets}
+mkdir -p /root/yxwebsite/{data,pages,update_logs}
 docker network create yx-net || true
 
 # 2) 构建网关镜像（website 可直接用 ghcr 镜像）
@@ -99,7 +99,6 @@ docker run -d \
   -v /root/yxwebsite/data:/app/data \
   -v /root/yxwebsite/pages:/app/pages \
   -v /root/yxwebsite/update_logs:/app/update_logs \
-  -v /root/yxwebsite/cdn_assets:/app/cdn_assets \
   ghcr.io/zhizinan1997/yx_website:latest
 
 # 4) 启动网关容器（对外暴露双端口）
@@ -109,7 +108,6 @@ docker run -d \
   --network yx-net \
   -p 127.0.0.1:2026:80 \
   -p 127.0.0.1:2027:81 \
-  -v /root/yxwebsite/cdn_assets:/app/cdn_assets:ro \
   ghcr.io/zhizinan1997/yx-gateway:latest
 
 ```
@@ -119,6 +117,8 @@ docker run -d \
 - `2026` 为主站入口，`2027` 为 CDN 专用入口。
 - 域名绑定通过 DNS/反向代理完成（主站域名指向 `2026`，CDN 域名指向 `2027`）。
 - `MAIN_DOMAIN/CDN_DOMAIN` 不再是容器启动必填项。
+- 两个镜像默认内置 `cdn_assets`，全新服务器可直接启动使用。
+- 如需挂载外部 `cdn_assets` 目录，请确保目录已预先同步完整素材；空目录挂载会覆盖镜像内素材并导致 404。
 
 ### 宝塔 Nginx 反代（适配双域名）
 
