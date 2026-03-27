@@ -549,19 +549,53 @@ def _normalize_origin(raw_value: str) -> str:
     return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
 
 
+def _first_forwarded_value(raw_value: str) -> str:
+    text = str(raw_value or '').strip()
+    if not text:
+        return ''
+    return text.split(',')[0].strip()
+
+
 def _is_same_origin_request(req) -> bool:
     """Basic CSRF guard for admin write actions."""
-    host_origin = _normalize_origin(getattr(req, 'host_url', ''))
-    if not host_origin:
+    allowed_origins = []
+
+    def add_allowed(raw_origin: str):
+        normalized = _normalize_origin(raw_origin)
+        if normalized and normalized not in allowed_origins:
+            allowed_origins.append(normalized)
+
+    host_url = str(getattr(req, 'host_url', '') or '').strip()
+    add_allowed(host_url)
+
+    parsed_host = urlparse(host_url) if host_url else None
+    host_netloc = (parsed_host.netloc or '').strip().lower() if parsed_host else ''
+    host_scheme = (parsed_host.scheme or '').strip().lower() if parsed_host else ''
+    if host_netloc:
+        if host_scheme == 'http':
+            add_allowed(f'https://{host_netloc}')
+        elif host_scheme == 'https':
+            add_allowed(f'http://{host_netloc}')
+
+    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
+    if trust_proxy_headers:
+        xf_host = _first_forwarded_value(req.headers.get('X-Forwarded-Host', ''))
+        xf_proto = _first_forwarded_value(req.headers.get('X-Forwarded-Proto', '')).lower()
+        if xf_host:
+            proto = xf_proto if xf_proto in {'http', 'https'} else (host_scheme or 'https')
+            add_allowed(f'{proto}://{xf_host}')
+            add_allowed(f'{"https" if proto == "http" else "http"}://{xf_host}')
+
+    if not allowed_origins:
         return False
 
     origin = _normalize_origin(req.headers.get('Origin', ''))
     if origin:
-        return hmac.compare_digest(origin, host_origin)
+        return any(hmac.compare_digest(origin, item) for item in allowed_origins)
 
     referer = _normalize_origin(req.headers.get('Referer', ''))
     if referer:
-        return hmac.compare_digest(referer, host_origin)
+        return any(hmac.compare_digest(referer, item) for item in allowed_origins)
 
     # Allow non-browser clients with no Origin/Referer.
     return True

@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "users": [
+    {
+      "username": "admin",
+      "password_hash": "scrypt:32768:8:1$x3PUoxpHt3yPlFiq$53a9cc4436afb8468455ee3944792fef30ecb48b815c35109ddc6d773a9d0609d240eee40065b62c4a7bcc7b352dea90ac62a4f73db30ef1530f15b52344e84f",
+      "role": "super_admin",
+      "enabled": true,
+      "permissions": [
+        "messages",
+        "home",
+        "h2-home",
+        "products",
+        "hydrogen-solutions",
+        "news-create",
+        "jobs",
+        "chatbot",
+        "site-settings",
+        "settings",
+        "backup",
+        "changelog"
+      ],
+      "created_at": "2026-03-26T07:36:43Z",
+      "updated_at": "2026-03-27T02:17:50Z",
+      "last_login_at": "2026-03-26T08:54:07Z"
+    },
+    {
+      "username": "zhizinan",
+      "password_hash": "scrypt:32768:8:1$ILprAayz6904C2vD$397097b544b7690cf517474de058b5673112efc930dbef8b61bfdbfb4d2959a15edd466da22a202190f4bdbc43744d52201857866b856afec86bfee2998cbf40",
+      "role": "sub_admin",
+      "enabled": true,
+      "permissions": [
+        "messages",
+        "home",
+        "h2-home",
+        "products",
+        "hydrogen-solutions"
+      ],
+      "created_at": "2026-03-26T07:41:35Z",
+      "updated_at": "2026-03-26T07:44:54Z",
+      "last_login_at": "2026-03-26T07:44:54Z"
+    },
+    {
+      "username": "liujinjiang",
+      "password_hash": "scrypt:32768:8:1$TQFpLGDOwQp6jt4t$8bed05784bec50e05b466a86a34865b43a4668a92cdf9dad7312d6abb64ca8646ce0ebfc727aac9c5608a86b24d9c9f4e96e88dd0cffcfa2f001e05b6ab94cee",
+      "role": "sub_admin",
+      "enabled": true,
+      "permissions": [
+        "messages"
+      ],
+      "created_at": "2026-03-26T07:41:56Z",
+      "updated_at": "2026-03-26T07:41:56Z",
+      "last_login_at": ""
+    }
+  ]
+}

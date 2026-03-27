@@ -41,11 +41,35 @@
             height: 100vh;
             padding: 24px;
             background:
-                radial-gradient(circle at 10% 20%, rgba(45, 212, 191, 0.2), transparent 35%),
-                radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.22), transparent 40%),
-                linear-gradient(135deg, #00142a 0%, #003366 44%, #0a2442 100%);
+                radial-gradient(circle at 18% 14%, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0) 32%),
+                radial-gradient(circle at 86% 72%, rgba(45, 212, 191, 0.2) 0%, rgba(45, 212, 191, 0) 34%),
+                linear-gradient(156deg, #01040d 0%, #051527 46%, #08294a 100%);
             position: relative;
             overflow: hidden;
+            isolation: isolate;
+            color: #e8f2ff;
+        }
+
+        .login-bg-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .login-bg-noise {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.16;
+            background-image:
+                radial-gradient(circle at 12% 18%, rgba(148, 197, 255, 0.18) 0%, rgba(148, 197, 255, 0) 38%),
+                radial-gradient(circle at 78% 68%, rgba(45, 212, 191, 0.18) 0%, rgba(45, 212, 191, 0) 39%),
+                repeating-linear-gradient(125deg, rgba(255, 255, 255, 0.045) 0px, rgba(255, 255, 255, 0.045) 1px, transparent 1px, transparent 4px);
+            mix-blend-mode: soft-light;
         }
 
         .login-page::before,
@@ -53,100 +77,139 @@
             content: "";
             position: absolute;
             border-radius: 999px;
-            filter: blur(2px);
+            filter: blur(32px);
             pointer-events: none;
+            z-index: 1;
         }
 
         .login-page::before {
-            width: 340px;
-            height: 340px;
-            top: -120px;
-            left: -90px;
-            background: radial-gradient(circle, rgba(148, 197, 255, 0.3) 0%, rgba(148, 197, 255, 0) 72%);
+            width: 520px;
+            height: 520px;
+            top: -220px;
+            left: -210px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.27) 0%, rgba(56, 189, 248, 0) 74%);
         }
 
         .login-page::after {
-            width: 380px;
-            height: 380px;
-            right: -130px;
-            bottom: -160px;
-            background: radial-gradient(circle, rgba(45, 212, 191, 0.28) 0%, rgba(45, 212, 191, 0) 72%);
+            width: 560px;
+            height: 560px;
+            right: -200px;
+            bottom: -240px;
+            background: radial-gradient(circle, rgba(20, 184, 166, 0.26) 0%, rgba(20, 184, 166, 0) 76%);
         }
 
         .login-box {
             position: relative;
             z-index: 2;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            padding: 34px 34px 26px;
-            border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.55);
-            box-shadow: 0 22px 52px rgba(0, 20, 42, 0.34);
+            overflow: hidden;
+            background: linear-gradient(162deg, rgba(7, 16, 30, 0.76) 0%, rgba(8, 24, 45, 0.68) 50%, rgba(8, 26, 47, 0.74) 100%);
+            backdrop-filter: blur(20px) saturate(135%);
+            padding: 36px 36px 28px;
+            border-radius: 22px;
+            border: 1px solid rgba(143, 203, 255, 0.26);
+            box-shadow:
+                0 28px 80px rgba(2, 8, 23, 0.62),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 0 rgba(11, 37, 65, 0.32);
             width: 100%;
             max-width: 430px;
             text-align: center;
         }
 
+        .login-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 12% 0%, rgba(125, 211, 252, 0.22) 0%, rgba(125, 211, 252, 0) 42%),
+                radial-gradient(circle at 100% 96%, rgba(45, 212, 191, 0.14) 0%, rgba(45, 212, 191, 0) 40%);
+            opacity: 0.9;
+        }
+
+        .login-box::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
         .login-logo {
             font-size: 26px;
             font-weight: 700;
-            color: #0a345d;
+            color: #eff7ff;
             margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+            text-shadow: 0 10px 30px rgba(8, 145, 178, 0.22);
+            position: relative;
+            z-index: 1;
         }
 
         .login-logo i {
-            color: #075985;
-            text-shadow: 0 6px 16px rgba(7, 89, 133, 0.2);
+            color: #7dd3fc;
+            text-shadow: 0 10px 26px rgba(56, 189, 248, 0.4);
         }
 
         .login-subtitle {
-            color: #4b5d71;
+            color: #afc4dd;
             font-size: 13px;
             margin: 0 0 24px;
+            position: relative;
+            z-index: 1;
         }
 
         .login-security-tip {
             margin-top: 14px;
             padding: 10px 12px;
-            background: #eef6ff;
-            border: 1px solid #d2e6ff;
+            background: rgba(5, 24, 46, 0.58);
+            border: 1px solid rgba(114, 171, 225, 0.28);
             border-radius: 10px;
             font-size: 12px;
-            color: #315b86;
+            color: #9db8d6;
             display: flex;
             gap: 8px;
             align-items: center;
             justify-content: center;
+            position: relative;
+            z-index: 1;
         }
 
         .login-page .form-group {
             margin-bottom: 16px;
             text-align: left;
+            position: relative;
+            z-index: 1;
         }
 
         .login-page .form-group label {
-            color: #4f6075;
+            color: #b5cae3;
             font-size: 13px;
             font-weight: 600;
         }
 
         .login-page .form-control {
-            border: 1px solid #c7d9ee;
+            border: 1px solid rgba(110, 152, 201, 0.45);
             border-radius: 10px;
-            background: #f8fbff;
+            background: rgba(8, 23, 42, 0.68);
+            color: #ebf5ff;
             padding: 12px 14px;
             font-size: 14px;
             transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
         }
 
+        .login-page .form-control::placeholder {
+            color: #84a3c4;
+        }
+
         .login-page .form-control:focus {
-            border-color: #0b4f86;
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(11, 79, 134, 0.12);
+            border-color: #7bd6ff;
+            background: rgba(11, 31, 55, 0.82);
+            box-shadow: 0 0 0 4px rgba(59, 168, 218, 0.16), 0 0 28px rgba(14, 165, 233, 0.18);
             outline: none;
         }
 
@@ -158,15 +221,17 @@
             font-weight: 700;
             letter-spacing: 0.3px;
             color: #fff;
-            background: linear-gradient(135deg, #00529c 0%, #003566 100%);
-            box-shadow: 0 12px 24px rgba(0, 53, 102, 0.24);
+            background: linear-gradient(135deg, #0891b2 0%, #0b5fb8 52%, #16469f 100%);
+            box-shadow: 0 12px 28px rgba(8, 145, 178, 0.25);
             transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+            position: relative;
+            z-index: 1;
         }
 
         .login-page .btn-primary:hover {
-            filter: brightness(1.03);
-            transform: translateY(-1px);
-            box-shadow: 0 14px 26px rgba(0, 53, 102, 0.3);
+            filter: brightness(1.06);
+            transform: translateY(-1px) scale(1.005);
+            box-shadow: 0 16px 32px rgba(14, 116, 210, 0.33);
         }
 
         .login-page .btn-primary:disabled {
@@ -195,14 +260,16 @@
         }
 
         .login-foot-link a {
-            color: #6b7f95;
+            color: #95b2cf;
             font-size: 13px;
             text-decoration: none;
             transition: color 0.2s;
+            position: relative;
+            z-index: 1;
         }
 
         .login-foot-link a:hover {
-            color: #0b4f86;
+            color: #d5e9ff;
         }
 
         .form-group {
@@ -261,10 +328,10 @@
             padding: 8px 10px;
             margin-top: 12px;
             min-height: 0;
-            background: rgba(254, 226, 226, 0.65);
-            border: 1px solid rgba(248, 113, 113, 0.35);
+            background: rgba(127, 29, 29, 0.28);
+            border: 1px solid rgba(248, 113, 113, 0.4);
             border-radius: 8px;
-            color: #b91c1c;
+            color: #fecaca;
             display: none;
         }
 
@@ -355,8 +422,8 @@
             }
 
             .login-box {
-                padding: 24px 18px 18px;
-                border-radius: 14px;
+                padding: 26px 20px 20px;
+                border-radius: 18px;
             }
 
             .login-logo {
@@ -1667,6 +1734,8 @@
 
     <!-- LOGIN PAGE -->
     <div id="loginPage" class="login-page">
+        <canvas id="loginBgCanvas" class="login-bg-canvas" aria-hidden="true"></canvas>
+        <div class="login-bg-noise" aria-hidden="true"></div>
         <div class="login-box">
             <div class="login-logo">
                 <i class="fas fa-shield-alt"></i> 元芯传感后台
@@ -3561,7 +3630,7 @@
                     <div class="card" style="padding: 30px;">
                         <h3 class="section-header">CDN 加速设置</h3>
                         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                            开启后主站访问 <code>/cdn_assets/</code> 资源会优先走 CDN 域名；CDN 异常时网关自动回落到本地目录。
+                            开启后主站访问 <code>/cdn_assets/</code> 会返回 <code>302</code> 到 CDN 域名，客户端将直接从 CDN 拉取素材资源。
                         </p>
                         <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:18px; color:#2f3b4f; font-size:13px; line-height:1.75;">
                             <div style="font-weight:700; color:#0f2f5f; margin-bottom:6px;">运维操作指南（上线/回滚）</div>
@@ -3569,7 +3638,7 @@
                                 <li>准备阶段：确认 <code>cdn_assets/</code> 已更新，CDN 域名证书正常，源站回源规则已指向当前网关。</li>
                                 <li>填写域名：在“CDN 域名”中填写 <code>https://cdn.example.com</code>（不要带路径）。</li>
                                 <li>连通检测：点击“测试连通性”，建议检测结果为 <code>200</code> 或 <code>206</code>。</li>
-                                <li>启用加速：勾选“启用 CDN 加速”并保存，主站 <code>/cdn_assets/*</code> 将优先走 CDN 域名。</li>
+                                <li>启用加速：勾选“启用 CDN 加速”并保存，主站 <code>/cdn_assets/*</code> 将返回 <code>302</code> 到 CDN 域名。</li>
                                 <li>上线验收：抽检首页、产品、新闻、关于页；重点验证大图、视频首帧与 Range 播放。</li>
                                 <li>故障回滚：取消勾选“启用 CDN 加速”并保存，立即恢复主站本地资源链路。</li>
                                 <li>变更留痕：记录操作人、时间、CDN 域名、测试结果和回滚动作，便于审计。</li>
@@ -3580,8 +3649,8 @@
                                 <li><code>POST /api/cdn/settings</code>：保存 <code>cdn_enabled</code>、<code>cdn_domain</code> 到 <code>data/config.json</code>。</li>
                                 <li>域名规范化：后端会规范为 <code>http(s)://host[:port]</code>，自动剔除路径和多余斜杠。</li>
                                 <li><code>POST /api/cdn/test</code>：对样例资源执行 <code>HEAD</code> 与 <code>Range GET</code> 连通性检测。</li>
-                                <li><code>/api/cdn/switch-header</code>：输出 <code>X-CDN-Enabled</code>、<code>X-CDN-Domain</code>，供网关动态分流。</li>
-                                <li>异常兜底：CDN 异常时网关可回源本地 <code>/cdn_assets</code>，后台也可手动关闭开关快速恢复。</li>
+                                <li><code>GET /cdn_assets/&lt;path&gt;</code>：开启时返回 <code>302</code> 到 <code>cdn_domain</code>，关闭时回落到主站本地资源。</li>
+                                <li><code>/api/cdn/switch-header</code>：保留兼容接口，用于读取当前开关状态。</li>
                             </ol>
                         </div>
                         <form id="cdnSettingsForm">
@@ -3907,7 +3976,221 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
         }
 
+        function initLoginBackground() {
+            const loginPage = document.getElementById('loginPage');
+            const canvas = document.getElementById('loginBgCanvas');
+            if (!loginPage || !canvas) return;
+
+            const ctx = canvas.getContext('2d', { alpha: true });
+            if (!ctx) return;
+
+            const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+            const motionScale = reducedMotion ? 0.42 : 1;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const dustCount = reducedMotion ? 12 : 26;
+
+            let width = 0;
+            let height = 0;
+            let rafId = 0;
+            let lastTs = performance.now();
+
+            const bloomShapes = [
+                { cx: 0.18, cy: 0.18, rx: 340, ry: 200, hue: 194, alpha: 0.21, phase: 0.3, speed: 0.16, swingX: 28, swingY: 14, tilt: 0.54 },
+                { cx: 0.74, cy: 0.2, rx: 300, ry: 168, hue: 179, alpha: 0.18, phase: 1.7, speed: 0.2, swingX: 20, swingY: 16, tilt: -0.36 },
+                { cx: 0.3, cy: 0.76, rx: 390, ry: 220, hue: 206, alpha: 0.14, phase: 2.3, speed: 0.14, swingX: 18, swingY: 20, tilt: 0.32 },
+                { cx: 0.88, cy: 0.8, rx: 350, ry: 210, hue: 188, alpha: 0.15, phase: 3.2, speed: 0.13, swingX: 16, swingY: 16, tilt: -0.52 }
+            ];
+
+            const auroraBands = [
+                { y: 0.26, width: 0.7, height: 134, hue: 198, alpha: 0.1, phase: 0.3, speed: 0.12, slope: 0.18 },
+                { y: 0.6, width: 0.78, height: 118, hue: 183, alpha: 0.085, phase: 1.9, speed: 0.14, slope: -0.16 },
+                { y: 0.42, width: 0.56, height: 90, hue: 207, alpha: 0.07, phase: 2.8, speed: 0.1, slope: 0.05 }
+            ];
+
+            const hazeLayers = [
+                { x: 0.22, y: 0.36, radius: 360, hue: 205, alpha: 0.08, phase: 0.7, speed: 0.08 },
+                { x: 0.72, y: 0.62, radius: 420, hue: 188, alpha: 0.07, phase: 2.1, speed: 0.07 }
+            ];
+
+            const dust = Array.from({ length: dustCount }, () => ({
+                x: Math.random(),
+                y: Math.random(),
+                vx: (Math.random() - 0.5) * 0.018,
+                vy: (Math.random() - 0.5) * 0.02,
+                size: Math.random() * 1.5 + 0.4,
+                twinkle: Math.random() * Math.PI * 2,
+                alpha: Math.random() * 0.3 + 0.15
+            }));
+
+            function isLoginPageVisible() {
+                return getComputedStyle(loginPage).display !== 'none' && !document.hidden;
+            }
+
+            function resizeCanvas() {
+                const rect = loginPage.getBoundingClientRect();
+                width = Math.max(1, Math.floor(rect.width));
+                height = Math.max(1, Math.floor(rect.height));
+                canvas.width = Math.floor(width * dpr);
+                canvas.height = Math.floor(height * dpr);
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            function drawBaseGradient() {
+                const grad = ctx.createLinearGradient(0, 0, width, height);
+                grad.addColorStop(0, '#01040d');
+                grad.addColorStop(0.44, '#041326');
+                grad.addColorStop(1, '#072645');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            function drawHaze(timeSec) {
+                for (const haze of hazeLayers) {
+                    const r = haze.radius * (1 + Math.sin(timeSec * haze.speed + haze.phase) * 0.06);
+                    const x = width * haze.x + Math.sin(timeSec * haze.speed + haze.phase) * 18;
+                    const y = height * haze.y + Math.cos(timeSec * haze.speed * 0.9 + haze.phase) * 14;
+                    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+                    grad.addColorStop(0, `hsla(${haze.hue}, 75%, 60%, ${haze.alpha})`);
+                    grad.addColorStop(1, `hsla(${haze.hue}, 70%, 45%, 0)`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+                }
+            }
+
+            function drawAurora(timeSec) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+                for (const band of auroraBands) {
+                    const w = width * band.width;
+                    const h = band.height * (1 + Math.sin(timeSec * band.speed + band.phase) * 0.15);
+                    const y = height * band.y + Math.cos(timeSec * band.speed * 0.8 + band.phase) * 22;
+
+                    ctx.save();
+                    ctx.translate(width * 0.5, y);
+                    ctx.rotate(band.slope + Math.sin(timeSec * 0.12 + band.phase) * 0.04);
+                    const grad = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+                    grad.addColorStop(0, `hsla(${band.hue}, 95%, 55%, 0)`);
+                    grad.addColorStop(0.35, `hsla(${band.hue}, 95%, 64%, ${band.alpha})`);
+                    grad.addColorStop(0.65, `hsla(${band.hue + 8}, 95%, 62%, ${band.alpha * 0.85})`);
+                    grad.addColorStop(1, `hsla(${band.hue + 12}, 95%, 52%, 0)`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(-w / 2, -h / 2, w, h);
+                    ctx.restore();
+                }
+                ctx.restore();
+            }
+
+            function drawBloomShapes(timeSec) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+                ctx.filter = 'blur(10px)';
+                for (const shape of bloomShapes) {
+                    const driftX = Math.sin(timeSec * shape.speed + shape.phase) * shape.swingX;
+                    const driftY = Math.cos(timeSec * shape.speed * 0.9 + shape.phase) * shape.swingY;
+                    const px = width * shape.cx + driftX;
+                    const py = height * shape.cy + driftY;
+                    const rx = shape.rx * (1 + Math.sin(timeSec * shape.speed * 0.7 + shape.phase) * 0.09);
+                    const ry = shape.ry * (1 + Math.cos(timeSec * shape.speed * 0.65 + shape.phase) * 0.1);
+                    const rot = shape.tilt + Math.sin(timeSec * 0.1 + shape.phase) * 0.06;
+
+                    ctx.save();
+                    ctx.translate(px, py);
+                    ctx.rotate(rot);
+                    const grad = ctx.createRadialGradient(-rx * 0.18, -ry * 0.12, 0, 0, 0, rx);
+                    grad.addColorStop(0, `hsla(${shape.hue}, 98%, 66%, ${shape.alpha})`);
+                    grad.addColorStop(0.44, `hsla(${shape.hue + 6}, 94%, 58%, ${shape.alpha * 0.5})`);
+                    grad.addColorStop(1, `hsla(${shape.hue + 12}, 98%, 48%, 0)`);
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                ctx.filter = 'none';
+                ctx.restore();
+            }
+
+            function drawDust(dt, timeSec) {
+                for (const p of dust) {
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    if (p.x < -0.02) p.x = 1.02;
+                    else if (p.x > 1.02) p.x = -0.02;
+                    if (p.y < -0.02) p.y = 1.02;
+                    else if (p.y > 1.02) p.y = -0.02;
+
+                    const px = p.x * width;
+                    const py = p.y * height;
+                    const flicker = (Math.sin(timeSec * 1.2 + p.twinkle) + 1) * 0.18;
+                    const alpha = p.alpha + flicker;
+                    ctx.fillStyle = `rgba(196, 230, 255, ${alpha.toFixed(3)})`;
+                    ctx.beginPath();
+                    ctx.arc(px, py, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function drawVignette() {
+                const g = ctx.createRadialGradient(width * 0.52, height * 0.48, Math.min(width, height) * 0.12, width * 0.5, height * 0.5, Math.max(width, height) * 0.74);
+                g.addColorStop(0, 'rgba(1, 7, 16, 0)');
+                g.addColorStop(1, 'rgba(1, 6, 14, 0.56)');
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            function drawFrame(now) {
+                rafId = 0;
+                if (!isLoginPageVisible()) return;
+
+                const dt = Math.min((now - lastTs) / 1000, 0.04);
+                lastTs = now;
+                const timeSec = (now / 1000) * motionScale;
+
+                drawBaseGradient();
+                drawHaze(timeSec);
+                drawAurora(timeSec);
+                drawBloomShapes(timeSec);
+                drawDust(dt * motionScale, timeSec);
+                drawVignette();
+                rafId = requestAnimationFrame(drawFrame);
+            }
+
+            function start() {
+                if (rafId || !isLoginPageVisible()) return;
+                lastTs = performance.now();
+                rafId = requestAnimationFrame(drawFrame);
+            }
+
+            function stop() {
+                if (!rafId) return;
+                cancelAnimationFrame(rafId);
+                rafId = 0;
+            }
+
+            const loginObserver = new MutationObserver(() => {
+                if (isLoginPageVisible()) {
+                    resizeCanvas();
+                    start();
+                } else {
+                    stop();
+                }
+            });
+            loginObserver.observe(loginPage, { attributes: true, attributeFilter: ['style', 'class'] });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) stop();
+                else start();
+            });
+            window.addEventListener('resize', resizeCanvas, { passive: true });
+
+            resizeCanvas();
+            start();
+        }
+
         // --- Init ---
+        initLoginBackground();
         initLoginSecurity();
         checkLoginStatus();
 
