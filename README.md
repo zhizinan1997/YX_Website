@@ -90,13 +90,12 @@ docker network create yx-net || true
 docker pull ghcr.io/zhizinan1997/yx_website:latest
 docker pull ghcr.io/zhizinan1997/yx-gateway:latest
 
-# 3) 启动网站应用容器（仅内网暴露 8000）
+# 3) 启动网站应用容器（仅容器内 8000，不对宿主机开放）
 docker run -d \
   --name yx-website \
   --restart unless-stopped \
   --network yx-net \
   --network-alias yx-website \
-  -p 127.0.0.1:2026:8000 \
   -v /root/yxwebsite/data:/app/data \
   ghcr.io/zhizinan1997/yx_website:latest
 
@@ -115,6 +114,7 @@ docker run -d \
 
 - `2026` 为主站入口，`2027` 为 CDN 专用入口。
 - 域名绑定通过 DNS/反向代理完成（主站域名指向 `2026`，CDN 域名指向 `2027`）。
+- `yx-website` 不映射宿主机端口，仅通过 Docker 网络供 `yx-gateway` 反向代理访问。
 - `yx-website` 默认只挂载 `data`，不要挂载 `/app/pages`，否则会用宿主机旧页面覆盖镜像内新代码。
 - `MAIN_DOMAIN/CDN_DOMAIN` 不再是容器启动必填项。
 - 两个镜像默认内置 `cdn_assets`，全新服务器可直接启动使用。
