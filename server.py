@@ -19,7 +19,7 @@ import ipaddress
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from functools import wraps
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, render_template_string, Response, stream_with_context, send_file
 from werkzeug.utils import secure_filename
@@ -113,6 +113,7 @@ MESSAGES_META_FILE = DATA_DIR / 'messages_meta.json'
 KNOWLEDGE_DIR = DATA_DIR / 'knowledge'
 RATE_LIMIT_FILE = DATA_DIR / 'rate_limits.json'
 CONFIG_FILE = DATA_DIR / 'config.json'
+CDN_ASSETS_DIR = Path(__file__).parent / 'cdn_assets'
 HERO_DIR = DATA_DIR / 'hero'
 HERO_UPLOADS_DIR = HERO_DIR / 'uploads'
 HERO_CONFIG_FILE = HERO_DIR / 'hero.json'
@@ -841,19 +842,53 @@ def _normalize_origin(raw_value: str) -> str:
     return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
 
 
+def _first_forwarded_value(raw_value: str) -> str:
+    text = str(raw_value or '').strip()
+    if not text:
+        return ''
+    return text.split(',')[0].strip()
+
+
 def is_same_origin_request(req) -> bool:
     """Basic CSRF guard for admin write actions."""
-    host_origin = _normalize_origin(getattr(req, 'host_url', ''))
-    if not host_origin:
+    allowed_origins = []
+
+    def add_allowed(raw_origin: str):
+        normalized = _normalize_origin(raw_origin)
+        if normalized and normalized not in allowed_origins:
+            allowed_origins.append(normalized)
+
+    host_url = str(getattr(req, 'host_url', '') or '').strip()
+    add_allowed(host_url)
+
+    parsed_host = urlparse(host_url) if host_url else None
+    host_netloc = (parsed_host.netloc or '').strip().lower() if parsed_host else ''
+    host_scheme = (parsed_host.scheme or '').strip().lower() if parsed_host else ''
+    if host_netloc:
+        if host_scheme == 'http':
+            add_allowed(f'https://{host_netloc}')
+        elif host_scheme == 'https':
+            add_allowed(f'http://{host_netloc}')
+
+    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
+    if trust_proxy_headers:
+        xf_host = _first_forwarded_value(req.headers.get('X-Forwarded-Host', ''))
+        xf_proto = _first_forwarded_value(req.headers.get('X-Forwarded-Proto', '')).lower()
+        if xf_host:
+            proto = xf_proto if xf_proto in {'http', 'https'} else (host_scheme or 'https')
+            add_allowed(f'{proto}://{xf_host}')
+            add_allowed(f'{"https" if proto == "http" else "http"}://{xf_host}')
+
+    if not allowed_origins:
         return False
 
     origin = _normalize_origin(req.headers.get('Origin', ''))
     if origin:
-        return hmac.compare_digest(origin, host_origin)
+        return any(hmac.compare_digest(origin, item) for item in allowed_origins)
 
     referer = _normalize_origin(req.headers.get('Referer', ''))
     if referer:
-        return hmac.compare_digest(referer, host_origin)
+        return any(hmac.compare_digest(referer, item) for item in allowed_origins)
 
     # Allow non-browser clients with no Origin/Referer.
     return True
@@ -7600,6 +7635,46 @@ def get_cdn_switch_header():
     response.headers['X-CDN-Enabled'] = '1' if settings.get('cdn_enabled') else '0'
     response.headers['X-CDN-Domain'] = settings.get('cdn_domain', '')
     response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@app.route('/cdn_assets/<path:asset_path>', methods=['GET', 'HEAD'])
+def serve_cdn_asset_with_redirect(asset_path):
+    """
+    Main-site CDN assets entry:
+    - CDN enabled: redirect client to CDN domain (offload bandwidth from main site)
+    - CDN disabled: serve local cdn_assets file
+    """
+    relative_path = str(asset_path or '').lstrip('/')
+    if not relative_path:
+        return jsonify({'error': '文件路径不能为空'}), 400
+
+    settings = get_cdn_settings()
+    cdn_domain = str(settings.get('cdn_domain') or '').strip()
+    cdn_enabled = bool(settings.get('cdn_enabled', False)) and bool(cdn_domain)
+
+    if cdn_enabled:
+        forwarded_host = _first_forwarded_value(request.headers.get('X-Forwarded-Host', ''))
+        current_host = (forwarded_host or request.host or '').strip().lower()
+        cdn_host = (urlparse(cdn_domain).netloc or '').strip().lower()
+
+        # Prevent accidental same-host redirect loops.
+        if cdn_host and current_host != cdn_host:
+            target = f"{cdn_domain}/cdn_assets/{quote(relative_path, safe='/')}"
+            raw_qs = (request.query_string or b'').decode('utf-8', errors='ignore').strip()
+            if raw_qs:
+                target = f"{target}?{raw_qs}"
+            response = redirect(target, code=302)
+            # Avoid stale cache when toggling CDN switch in admin.
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            response.headers['Vary'] = 'Host'
+            return response
+
+    response = send_from_directory(str(CDN_ASSETS_DIR), relative_path)
+    response.headers['Cache-Control'] = MEDIA_IMMUTABLE_CACHE_CONTROL
+    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 

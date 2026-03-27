@@ -95,6 +95,7 @@ docker run -d \
   --name yx-website \
   --restart unless-stopped \
   --network yx-net \
+  --network-alias yx-website \
   -v /root/yxwebsite/data:/app/data \
   -v /root/yxwebsite/pages:/app/pages \
   -v /root/yxwebsite/update_logs:/app/update_logs \
@@ -106,10 +107,11 @@ docker run -d \
   --name yx-gateway \
   --restart unless-stopped \
   --network yx-net \
-  -p 2026:80 \
-  -p 2027:81 \
+  -p 127.0.0.1:2026:80 \
+  -p 127.0.0.1:2027:81 \
   -v /root/yxwebsite/cdn_assets:/app/cdn_assets:ro \
   ghcr.io/zhizinan1997/yx-gateway:latest
+
 ```
 
 说明：
@@ -117,6 +119,20 @@ docker run -d \
 - `2026` 为主站入口，`2027` 为 CDN 专用入口。
 - 域名绑定通过 DNS/反向代理完成（主站域名指向 `2026`，CDN 域名指向 `2027`）。
 - `MAIN_DOMAIN/CDN_DOMAIN` 不再是容器启动必填项。
+
+### 宝塔 Nginx 反代（适配双域名）
+
+- 主站域名（如 `test.hnmetachip.cn`）反代到：`http://127.0.0.1:2026`
+- CDN 域名（如 `cdn.hnmetachip.cn`）反代到：`http://127.0.0.1:2027`
+- 两个站点都要保持 `Host` 透传（默认即可）。
+- 建议关闭宝塔“反向代理缓存”，至少对 `/cdn_assets/` 关闭，避免历史 `404/302` 被宿主机缓存导致误判。
+
+可在对应站点反代 `location` 中加入：
+
+```nginx
+proxy_no_cache 1;
+proxy_cache_bypass 1;
+```
 
 ### 方式二：Docker Compose
 
@@ -153,7 +169,8 @@ CDN_PORT=8001
   - `cdn_enabled`：是否开启
   - `cdn_domain`：如 `https://cdn.example.com`
 - 代码中的资源路径仍保持 `/cdn_assets/...`，无需批量改源码。
-- 开启后主站 `/cdn_assets/*` 会优先走 CDN 域名；网关在 CDN 异常时回源本地 `cdn_assets`。
+- 开启后主站 `/cdn_assets/*` 会返回 `302` 到 `cdn_domain`，客户端将直接从 CDN 域名拉取资源（主站只承担轻量重定向流量）。
+- 关闭后主站 `/cdn_assets/*` 恢复本地直出。
 
 ## 🔐 Admin 登录防机器人（Turnstile）
 
