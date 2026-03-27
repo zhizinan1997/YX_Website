@@ -114,6 +114,7 @@ KNOWLEDGE_DIR = DATA_DIR / 'knowledge'
 RATE_LIMIT_FILE = DATA_DIR / 'rate_limits.json'
 CONFIG_FILE = DATA_DIR / 'config.json'
 CDN_ASSETS_DIR = Path(__file__).parent / 'cdn_assets'
+SITE_FAVICON_RELATIVE_PATH = Path('images/common/site-favicon.png')
 HERO_DIR = DATA_DIR / 'hero'
 HERO_UPLOADS_DIR = HERO_DIR / 'uploads'
 HERO_CONFIG_FILE = HERO_DIR / 'hero.json'
@@ -223,6 +224,67 @@ try:
     ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '28800').strip()))
 except Exception:
     ADMIN_SESSION_MAX_AGE_SECONDS = 28800
+
+ANTI_CRAWL_STRICT_PRIVATE_PREFIXES = (
+    '/admin',
+    '/api/admin',
+    '/data/',
+    '/update_logs/',
+)
+ANTI_CRAWL_RESOURCE_PREFIXES = (
+    '/assets/',
+    '/cdn_assets/',
+    '/media/',
+)
+ANTI_CRAWL_BOT_UA_KEYWORDS = (
+    'bot',
+    'spider',
+    'crawler',
+    'scrapy',
+    'curl',
+    'wget',
+    'python-requests',
+    'httpx',
+    'okhttp',
+    'java/',
+    'go-http-client',
+    'axios',
+    'headless',
+    'phantomjs',
+    'playwright',
+    'selenium',
+    'slurp',
+    'bingpreview',
+    'googlebot',
+    'baiduspider',
+    'yandex',
+    'duckduckbot',
+    'semrush',
+    'ahrefs',
+    'mj12bot',
+    'facebookexternalhit',
+    'twitterbot',
+    'bytespider',
+    'petalbot',
+    'sogou',
+    'gptbot',
+    'ccbot',
+    'claudebot',
+)
+SEARCH_ENGINE_BOT_UA_KEYWORDS = (
+    'googlebot',
+    'bingbot',
+    'bingpreview',
+    'baiduspider',
+    'sogou',
+    '360spider',
+    'yandex',
+    'duckduckbot',
+    'slurp',
+    'bytespider',
+    'petalbot',
+)
+STRICT_ANTI_CRAWL_HEADERS = 'noindex, nofollow, noarchive, nosnippet, noimageindex'
 
 def infer_extension_from_mime(mime: str) -> str:
     if mime == 'image/png':
@@ -849,6 +911,59 @@ def _first_forwarded_value(raw_value: str) -> str:
     return text.split(',')[0].strip()
 
 
+def _normalize_ip_text(raw_value: str) -> str:
+    """Normalize and validate an IP string (supports bracket/port forms)."""
+    text = str(raw_value or '').strip()
+    if not text or text.lower() == 'unknown':
+        return ''
+
+    candidate = text
+    if text.startswith('[') and ']' in text:
+        candidate = text[1:text.index(']')].strip()
+    elif text.count(':') == 1 and '.' in text:
+        # IPv4 with port, like 1.2.3.4:5678
+        host, _, _port = text.rpartition(':')
+        candidate = host.strip()
+
+    try:
+        ipaddress.ip_address(candidate)
+        return candidate
+    except ValueError:
+        return ''
+
+
+def _is_private_proxy_source(ip_text: str) -> bool:
+    normalized = _normalize_ip_text(ip_text)
+    if not normalized:
+        return False
+    try:
+        ip_obj = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return bool(ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local)
+
+
+def _should_trust_proxy_headers(req) -> bool:
+    """Decide whether proxy headers should be trusted for this request."""
+    raw = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip().lower()
+    if raw in {'1', 'true', 'yes', 'on'}:
+        return True
+    if raw in {'0', 'false', 'no', 'off'}:
+        return False
+
+    remote_ip = _normalize_ip_text(getattr(req, 'remote_addr', '') or '')
+    if not _is_private_proxy_source(remote_ip):
+        return False
+
+    # Auto-trust only when common proxy headers are present.
+    return bool(
+        str(req.headers.get('CF-Connecting-IP') or '').strip()
+        or str(req.headers.get('X-Forwarded-For') or '').strip()
+        or str(req.headers.get('X-Real-IP') or '').strip()
+        or str(req.headers.get('X-Forwarded-Host') or '').strip()
+    )
+
+
 def is_same_origin_request(req) -> bool:
     """Basic CSRF guard for admin write actions."""
     allowed_origins = []
@@ -870,8 +985,7 @@ def is_same_origin_request(req) -> bool:
         elif host_scheme == 'https':
             add_allowed(f'http://{host_netloc}')
 
-    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
-    if trust_proxy_headers:
+    if _should_trust_proxy_headers(req):
         xf_host = _first_forwarded_value(req.headers.get('X-Forwarded-Host', ''))
         xf_proto = _first_forwarded_value(req.headers.get('X-Forwarded-Proto', '')).lower()
         if xf_host:
@@ -906,15 +1020,24 @@ def get_cdn_settings() -> dict:
 
 def get_client_ip():
     """Get client IP address, considering proxy headers."""
-    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
-    if trust_proxy_headers:
+    if _should_trust_proxy_headers(request):
+        cf_ip = _normalize_ip_text(request.headers.get('CF-Connecting-IP', ''))
+        if cf_ip:
+            return cf_ip
+
         xff = (request.headers.get('X-Forwarded-For') or '').strip()
         if xff:
-            return xff.split(',')[0].strip()
-        x_real_ip = (request.headers.get('X-Real-IP') or '').strip()
+            for part in xff.split(','):
+                ip_text = _normalize_ip_text(part)
+                if ip_text:
+                    return ip_text
+
+        x_real_ip = _normalize_ip_text(request.headers.get('X-Real-IP', ''))
         if x_real_ip:
             return x_real_ip
-    return request.remote_addr or '127.0.0.1'
+
+    direct_ip = _normalize_ip_text(request.remote_addr or '')
+    return direct_ip or (request.remote_addr or '127.0.0.1')
 
 
 def load_admin_login_logs():
@@ -1226,13 +1349,191 @@ def login_required(f):
     return decorated_function
 
 
+def _path_matches_prefix(path_value: str, prefix: str) -> bool:
+    path_text = str(path_value or '').strip() or '/'
+    normalized = str(prefix or '').strip()
+    if not normalized:
+        return False
+    base = normalized.rstrip('/')
+    return path_text == base or path_text.startswith(normalized)
+
+
+def _is_anti_crawl_strict_private_path(path_value: str) -> bool:
+    path_text = str(path_value or '').strip() or '/'
+    return any(_path_matches_prefix(path_text, item) for item in ANTI_CRAWL_STRICT_PRIVATE_PREFIXES)
+
+
+def _is_anti_crawl_resource_path(path_value: str) -> bool:
+    path_text = str(path_value or '').strip() or '/'
+    return any(_path_matches_prefix(path_text, item) for item in ANTI_CRAWL_RESOURCE_PREFIXES)
+
+
+def _looks_like_crawler_ua(raw_ua: str) -> bool:
+    ua = str(raw_ua or '').strip().lower()
+    if not ua:
+        # Empty UA is treated as crawler in strict mode.
+        return True
+    return any(keyword in ua for keyword in ANTI_CRAWL_BOT_UA_KEYWORDS)
+
+
+def _is_allowed_search_engine_ua(raw_ua: str) -> bool:
+    ua = str(raw_ua or '').strip().lower()
+    if not ua:
+        return False
+    return any(keyword in ua for keyword in SEARCH_ENGINE_BOT_UA_KEYWORDS)
+
+
+@app.before_request
+def strict_anti_crawl_guard():
+    """Anti-crawl guard.
+    - Strictly block crawler UAs on admin/private paths.
+    - Keep search engines crawlable for public resources used in rendering.
+    """
+    path = request.path or '/'
+    ua = request.headers.get('User-Agent', '')
+    if not _looks_like_crawler_ua(ua):
+        return None
+
+    if _is_anti_crawl_strict_private_path(path):
+        if path.startswith('/api/'):
+            return jsonify({'success': False, 'message': 'Forbidden'}), 403
+        return Response('Forbidden', status=403, mimetype='text/plain')
+
+    if _is_anti_crawl_resource_path(path) and not _is_allowed_search_engine_ua(ua):
+        if path.startswith('/api/'):
+            return jsonify({'success': False, 'message': 'Forbidden'}), 403
+        return Response('Forbidden', status=403, mimetype='text/plain')
+
+    return None
+
+
+def _current_public_base_url() -> tuple[str, str]:
+    """Build public base URL from forwarded headers when present."""
+    forwarded_host = _first_forwarded_value(request.headers.get('X-Forwarded-Host', ''))
+    host = (forwarded_host or request.host or '').strip()
+    forwarded_proto = _first_forwarded_value(request.headers.get('X-Forwarded-Proto', '')).lower()
+    scheme = forwarded_proto if forwarded_proto in {'http', 'https'} else (request.scheme or 'https')
+    if not host:
+        host = 'localhost:8000'
+    return f'{scheme}://{host}', host.split(':', 1)[0]
+
+
+def _collect_public_html_urls():
+    """Collect public HTML URLs for sitemap generation."""
+    root = Path(__file__).parent
+    output = []
+    seen = set()
+
+    def add_url(path_text: str, file_path: Path, changefreq: str = 'weekly', priority: str = '0.7'):
+        url_path = str(path_text or '').strip() or '/'
+        if not url_path.startswith('/'):
+            url_path = f'/{url_path}'
+        if url_path in seen:
+            return
+        seen.add(url_path)
+        try:
+            lastmod = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).strftime('%Y-%m-%d')
+        except Exception:
+            lastmod = datetime.now(tz=timezone.utc).strftime('%Y-%m-%d')
+        output.append({
+            'path': url_path,
+            'lastmod': lastmod,
+            'changefreq': changefreq,
+            'priority': priority,
+        })
+
+    index_file = root / 'index.html'
+    if index_file.exists():
+        add_url('/', index_file, changefreq='daily', priority='1.0')
+
+    pages_root = root / 'pages'
+    if pages_root.exists():
+        for html_file in sorted(pages_root.rglob('*.html')):
+            rel = html_file.relative_to(root).as_posix()
+            if rel.startswith('admin/'):
+                continue
+            url = f'/{rel}'
+            if url.endswith('/index.html'):
+                url = url[:-10] + '/'
+            add_url(url, html_file, changefreq='weekly', priority='0.8' if '/news/' in url else '0.7')
+
+    return output
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    """Robots rules optimized for indexing while protecting private paths."""
+    base_url, host_no_port = _current_public_base_url()
+    lines = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin',
+        'Disallow: /api/admin',
+        'Disallow: /data/',
+        'Disallow: /update_logs/',
+        '',
+        '# Allow rendering resources for SEO',
+        'Allow: /assets/',
+        'Allow: /cdn_assets/',
+        'Allow: /media/',
+        '',
+        'User-agent: bingbot',
+        'Allow: /',
+        'Disallow: /admin',
+        'Disallow: /api/admin',
+        'Disallow: /data/',
+        'Disallow: /update_logs/',
+        '',
+        'User-agent: Baiduspider',
+        'Allow: /',
+        'Disallow: /admin',
+        'Disallow: /api/admin',
+        'Disallow: /data/',
+        'Disallow: /update_logs/',
+        '',
+        f'Sitemap: {base_url}/sitemap.xml',
+    ]
+    if host_no_port:
+        lines.append(f'Host: {host_no_port}')
+    resp = Response('\n'.join(lines) + '\n', mimetype='text/plain')
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """Dynamic sitemap for search engines."""
+    base_url, _ = _current_public_base_url()
+    entries = _collect_public_html_urls()
+    rows = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for item in entries:
+        path = str(item.get('path') or '/').strip() or '/'
+        loc = html.escape(f'{base_url}{path}', quote=True)
+        lastmod = html.escape(str(item.get('lastmod') or ''), quote=True)
+        changefreq = html.escape(str(item.get('changefreq') or 'weekly'), quote=True)
+        priority = html.escape(str(item.get('priority') or '0.7'), quote=True)
+        rows.append('  <url>')
+        rows.append(f'    <loc>{loc}</loc>')
+        rows.append(f'    <lastmod>{lastmod}</lastmod>')
+        rows.append(f'    <changefreq>{changefreq}</changefreq>')
+        rows.append(f'    <priority>{priority}</priority>')
+        rows.append('  </url>')
+    rows.append('</urlset>')
+    resp = Response('\n'.join(rows) + '\n', mimetype='application/xml')
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
 @app.after_request
 def inject_chem_subscript_script(response):
     """Inject chemical-formula subscript script into all HTML responses."""
     try:
+        path = request.path or ''
+        if _is_anti_crawl_strict_private_path(path):
+            response.headers['X-Robots-Tag'] = STRICT_ANTI_CRAWL_HEADERS
+
         # Never inject into admin pages; admin has large inline scripts that may
         # contain literal "</body>" inside JS strings.
-        path = request.path or ''
         if path.startswith('/admin'):
             return response
 
@@ -1394,8 +1695,8 @@ def build_news_article_html(title, date, image_url, content_html):
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{hero_title} - 湖南元芯传感科技有限责任公司</title>
     
-    <!-- Vaisala Style V2.0 -->
-    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <!-- YX Style V2.0 -->
+    <link rel="stylesheet" href="../../assets/css/yx-style.css">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -7898,6 +8199,19 @@ def api_search_rebuild():
 
 
 # ============ Static Files ============
+
+@app.route('/favicon.ico')
+@app.route('/apple-touch-icon.png')
+@app.route('/favicon.png')
+def site_favicon():
+    """Serve a unified site favicon (company logo) for all pages."""
+    favicon_file = CDN_ASSETS_DIR / SITE_FAVICON_RELATIVE_PATH
+    if favicon_file.exists() and favicon_file.is_file():
+        response = send_file(str(favicon_file), mimetype='image/png')
+        response.headers['Cache-Control'] = 'public, max-age=86400'
+        return response
+    return Response(status=204)
+
 
 @app.route('/')
 def index():

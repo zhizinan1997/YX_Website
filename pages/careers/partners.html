@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>合作招募 - 元芯传感</title>
-    <link rel="stylesheet" href="../../assets/css/vaisala-style.css">
+    <link rel="stylesheet" href="../../assets/css/yx-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -338,7 +338,7 @@
                             this.vx = (Math.random() - 0.5) * 1.5;
                             this.vy = (Math.random() - 0.5) * 1.5;
                             this.size = Math.random() * 2 + 1;
-                            this.color = `rgba(0, 161, 223, ${Math.random() * 0.5 + 0.3})`; // Vaisala Blue
+                            this.color = `rgba(0, 161, 223, ${Math.random() * 0.5 + 0.3})`; // YX Blue
                         }
 
                         update() {
@@ -409,7 +409,7 @@
                                 if (dist < mouseDistance) {
                                     // 连接线
                                     ctx.beginPath();
-                                    ctx.strokeStyle = `rgba(243, 112, 33, ${1 - dist / mouseDistance})`; // Vaisala Orange for interaction
+                                    ctx.strokeStyle = `rgba(243, 112, 33, ${1 - dist / mouseDistance})`; // YX Orange for interaction
                                     ctx.lineWidth = 1.5;
                                     ctx.moveTo(p1.x, p1.y);
                                     ctx.lineTo(mouse.x, mouse.y);
