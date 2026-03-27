@@ -533,6 +533,108 @@
             z-index: 10;
         }
 
+        .top-bar-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-home-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #d4dbe6;
+            background: #fff;
+            color: #1f3655;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 8px 12px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .top-home-btn:hover {
+            border-color: #9fb3d1;
+            background: #f5f9ff;
+        }
+
+        .account-menu {
+            position: relative;
+        }
+
+        .account-menu-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #d4dbe6;
+            background: #fff;
+            color: #1f3655;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .account-menu-trigger:hover {
+            border-color: #9fb3d1;
+            background: #f5f9ff;
+        }
+
+        #topbarUsername {
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .account-menu-caret {
+            font-size: 11px;
+            color: #6b7f9f;
+            transition: transform 0.2s ease;
+        }
+
+        .account-menu.is-open .account-menu-caret {
+            transform: rotate(180deg);
+        }
+
+        .account-menu-panel {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            min-width: 148px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(15, 35, 66, 0.14);
+            padding: 8px;
+            z-index: 20;
+        }
+
+        .account-menu-item {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: #1f3655;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 8px 10px;
+            text-align: left;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .account-menu-item:hover {
+            background: #eef4ff;
+            color: #103a6b;
+        }
+
         .sidebar-toggle-btn {
             width: 100%;
             border: 1px solid rgba(255, 255, 255, 0.28);
@@ -592,6 +694,27 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--text-color);
+        }
+
+        @media (max-width: 768px) {
+            .top-bar {
+                padding: 0 16px;
+                gap: 10px;
+            }
+
+            .top-bar-actions {
+                gap: 8px;
+            }
+
+            .top-home-btn {
+                padding: 7px 10px;
+                font-size: 12px;
+            }
+
+            .account-menu-trigger {
+                padding: 7px 10px;
+                font-size: 13px;
+            }
         }
 
         .content-area {
@@ -1859,8 +1982,25 @@
         <div class="main-content">
             <div class="top-bar">
                 <div class="page-title" id="pageTitle">仪表盘</div>
-                <div style="font-size: 14px; color: #666;">
-                    <i class="far fa-user-circle"></i> 管理员
+                <div class="top-bar-actions">
+                    <a class="top-home-btn" href="/" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-external-link-alt"></i>
+                        官网首页
+                    </a>
+                    <div class="account-menu" id="accountMenu">
+                        <button type="button" class="account-menu-trigger" id="accountMenuTrigger"
+                            onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false">
+                            <i class="far fa-user-circle"></i>
+                            <span id="topbarUsername">管理员</span>
+                            <i class="fas fa-chevron-down account-menu-caret"></i>
+                        </button>
+                        <div class="account-menu-panel" id="accountMenuPanel" hidden>
+                            <button type="button" class="account-menu-item" onclick="logoutFromAccountMenu(event)">
+                                <i class="fas fa-sign-out-alt"></i>
+                                退出登录
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -3829,6 +3969,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
     <script>
         const SIDEBAR_COLLAPSE_KEY = 'yx_admin_sidebar_collapsed';
+        const ADMIN_LAST_VIEW_KEY = 'yx_admin_last_view';
         const CHANGELOG_FALLBACK = {
             version: 'v1.0.0',
             build_time: document.lastModified || '',
@@ -3865,6 +4006,53 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             is_super_admin: false,
             permissions: []
         };
+
+        function updateTopbarAccountDisplay() {
+            const usernameEl = document.getElementById('topbarUsername');
+            if (!usernameEl) return;
+            const name = String(currentAdminAuth.username || '').trim();
+            usernameEl.textContent = name || '管理员';
+        }
+
+        function closeAccountMenu() {
+            const wrap = document.getElementById('accountMenu');
+            const panel = document.getElementById('accountMenuPanel');
+            const trigger = document.getElementById('accountMenuTrigger');
+            if (wrap) wrap.classList.remove('is-open');
+            if (panel) panel.hidden = true;
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
+
+        function openAccountMenu() {
+            const wrap = document.getElementById('accountMenu');
+            const panel = document.getElementById('accountMenuPanel');
+            const trigger = document.getElementById('accountMenuTrigger');
+            if (wrap) wrap.classList.add('is-open');
+            if (panel) panel.hidden = false;
+            if (trigger) trigger.setAttribute('aria-expanded', 'true');
+        }
+
+        function toggleAccountMenu(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const panel = document.getElementById('accountMenuPanel');
+            if (!panel || panel.hidden) {
+                openAccountMenu();
+            } else {
+                closeAccountMenu();
+            }
+        }
+
+        async function logoutFromAccountMenu(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            closeAccountMenu();
+            await logout();
+        }
 
         function getLoginSubmitButton() {
             return document.getElementById('loginSubmitBtn') || document.querySelector('#loginForm button[type="submit"]');
@@ -4193,6 +4381,18 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         initLoginBackground();
         initLoginSecurity();
         checkLoginStatus();
+        document.addEventListener('click', (event) => {
+            const wrap = document.getElementById('accountMenu');
+            if (!wrap) return;
+            if (!wrap.contains(event.target)) {
+                closeAccountMenu();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeAccountMenu();
+            }
+        });
 
         function updateSidebarToggleButton() {
             const textEl = document.getElementById('sidebarToggleText');
@@ -4224,6 +4424,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 is_super_admin: safe.is_super_admin === true,
                 permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : []
             };
+            updateTopbarAccountDisplay();
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
                 permissionCatalog = safe.permission_catalog
                     .map(item => ({
@@ -4252,6 +4453,30 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 if (key && hasViewPermission(key)) return key;
             }
             return 'messages';
+        }
+
+        function getStoredAdminView() {
+            const raw = localStorage.getItem(ADMIN_LAST_VIEW_KEY);
+            return String(raw || '').trim();
+        }
+
+        function saveStoredAdminView(viewName) {
+            const name = String(viewName || '').trim();
+            if (!name) return;
+            localStorage.setItem(ADMIN_LAST_VIEW_KEY, name);
+        }
+
+        function getPreferredInitialView() {
+            const stored = getStoredAdminView();
+            if (
+                stored &&
+                hasViewPermission(stored) &&
+                document.querySelector(`.menu-item[data-view="${stored}"]`) &&
+                document.getElementById(`view-${stored}`)
+            ) {
+                return stored;
+            }
+            return getFirstAllowedView();
         }
 
         function applySidebarPermissions() {
@@ -4471,6 +4696,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         async function logout() {
             if (!await showGlobalConfirm('确定要退出登录吗？')) return;
+            closeAccountMenu();
             if (adminSessionCheckTimer) {
                 clearInterval(adminSessionCheckTimer);
                 adminSessionCheckTimer = null;
@@ -4508,7 +4734,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             applySidebarPermissions();
             syncSubAccountManageVisibility();
             startAdminSessionWatcher();
-            switchView(getFirstAllowedView());
+            switchView(getPreferredInitialView());
         }
 
         const TAB_GUIDES = {
@@ -4672,7 +4898,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         // --- Navigation ---
-        function switchView(viewName) {
+        function switchView(viewName, options = {}) {
+            const persist = options && options.persist !== false;
             if (!hasViewPermission(viewName)) {
                 showGlobalAlert('当前账号没有访问该功能的权限');
                 return;
@@ -4689,6 +4916,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             // Update View
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             targetView.classList.add('active');
+            if (persist) saveStoredAdminView(viewName);
 
             // Update Title
             const titles = {

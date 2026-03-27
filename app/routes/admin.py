@@ -1,6 +1,7 @@
 """Admin/auth route module."""
 
 import hmac
+import ipaddress
 import json
 import os
 import re
@@ -360,17 +361,24 @@ def _save_login_attempts(file_path: Path, state):
 
 
 def _get_request_ip(req):
-    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
-    if trust_proxy_headers:
+    if _should_trust_proxy_headers(req):
+        cf_ip = _normalize_ip_text(req.headers.get('CF-Connecting-IP', ''))
+        if cf_ip:
+            return cf_ip
+
         xff = (req.headers.get('X-Forwarded-For') or '').strip()
         if xff:
-            first = xff.split(',')[0].strip()
-            if first:
-                return first
-        x_real_ip = (req.headers.get('X-Real-IP') or '').strip()
+            for part in xff.split(','):
+                ip_text = _normalize_ip_text(part)
+                if ip_text:
+                    return ip_text
+
+        x_real_ip = _normalize_ip_text(req.headers.get('X-Real-IP', ''))
         if x_real_ip:
             return x_real_ip
-    return (req.remote_addr or 'unknown').strip() or 'unknown'
+
+    direct_ip = _normalize_ip_text(req.remote_addr or '')
+    return direct_ip or ((req.remote_addr or 'unknown').strip() or 'unknown')
 
 
 def _prune_login_attempts(state, now_ts: int):
@@ -556,6 +564,55 @@ def _first_forwarded_value(raw_value: str) -> str:
     return text.split(',')[0].strip()
 
 
+def _normalize_ip_text(raw_value: str) -> str:
+    text = str(raw_value or '').strip()
+    if not text or text.lower() == 'unknown':
+        return ''
+
+    candidate = text
+    if text.startswith('[') and ']' in text:
+        candidate = text[1:text.index(']')].strip()
+    elif text.count(':') == 1 and '.' in text:
+        host, _, _port = text.rpartition(':')
+        candidate = host.strip()
+
+    try:
+        ipaddress.ip_address(candidate)
+        return candidate
+    except ValueError:
+        return ''
+
+
+def _is_private_proxy_source(ip_text: str) -> bool:
+    normalized = _normalize_ip_text(ip_text)
+    if not normalized:
+        return False
+    try:
+        ip_obj = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return bool(ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local)
+
+
+def _should_trust_proxy_headers(req) -> bool:
+    raw = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip().lower()
+    if raw in {'1', 'true', 'yes', 'on'}:
+        return True
+    if raw in {'0', 'false', 'no', 'off'}:
+        return False
+
+    remote_ip = _normalize_ip_text(getattr(req, 'remote_addr', '') or '')
+    if not _is_private_proxy_source(remote_ip):
+        return False
+
+    return bool(
+        str(req.headers.get('CF-Connecting-IP') or '').strip()
+        or str(req.headers.get('X-Forwarded-For') or '').strip()
+        or str(req.headers.get('X-Real-IP') or '').strip()
+        or str(req.headers.get('X-Forwarded-Host') or '').strip()
+    )
+
+
 def _is_same_origin_request(req) -> bool:
     """Basic CSRF guard for admin write actions."""
     allowed_origins = []
@@ -577,8 +634,7 @@ def _is_same_origin_request(req) -> bool:
         elif host_scheme == 'https':
             add_allowed(f'http://{host_netloc}')
 
-    trust_proxy_headers = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip() == '1'
-    if trust_proxy_headers:
+    if _should_trust_proxy_headers(req):
         xf_host = _first_forwarded_value(req.headers.get('X-Forwarded-Host', ''))
         xf_proto = _first_forwarded_value(req.headers.get('X-Forwarded-Proto', '')).lower()
         if xf_host:

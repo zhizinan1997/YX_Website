@@ -1,5 +1,5 @@
 /*
- * Vaisala Style Design System v2.0
+ * YX Style Design System v2.0
  * 更精准的高保真复刻，网站项目由花中秋总经理（官网项目负责人）要求
  */
 
@@ -7,9 +7,9 @@
    1. Design Tokens (Refined)
 ======================================== */
 :root {
-    /* 品牌色 - 更精准的 Vaisala 色板 */
+    /* 品牌色 - 更精准的 YX 色板 */
     --color-primary: #003764;
-    /* Vaisala 官方深蓝 */
+    /* YX 官方深蓝 */
     --color-primary-dark: #002848;
     /* 页脚深蓝 */
     --color-accent-blue: #00a1df;
@@ -763,7 +763,7 @@ img {
 
 /* ========================================
    10. Application Areas (Zigzag Layout) - V3.0 Final
-   用户定制：Vaisala 棋盘式全宽布局 (无缝对齐 + 深蓝背景 + 胶囊按钮)
+   用户定制：YX 棋盘式全宽布局 (无缝对齐 + 深蓝背景 + 胶囊按钮)
 ======================================== */
 .vs-app-zigzag {
     display: flex;
