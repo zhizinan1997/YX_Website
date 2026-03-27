@@ -83,12 +83,12 @@ python3 server.py
 
 ```bash
 # 1) 准备目录与网络
-mkdir -p /root/yxwebsite/{data,pages,update_logs}
+mkdir -p /root/yxwebsite/data
 docker network create yx-net || true
 
-# 2) 构建网关镜像（website 可直接用 ghcr 镜像）
-cd /root/yxwebsite/YX_Website
-docker build -f gateway/Dockerfile -t yx-gateway:latest .
+# 2) 拉取镜像
+docker pull ghcr.io/zhizinan1997/yx_website:latest
+docker pull ghcr.io/zhizinan1997/yx-gateway:latest
 
 # 3) 启动网站应用容器（仅内网暴露 8000）
 docker run -d \
@@ -96,9 +96,8 @@ docker run -d \
   --restart unless-stopped \
   --network yx-net \
   --network-alias yx-website \
+  -p 127.0.0.1:2026:8000 \
   -v /root/yxwebsite/data:/app/data \
-  -v /root/yxwebsite/pages:/app/pages \
-  -v /root/yxwebsite/update_logs:/app/update_logs \
   ghcr.io/zhizinan1997/yx_website:latest
 
 # 4) 启动网关容器（对外暴露双端口）
@@ -116,6 +115,7 @@ docker run -d \
 
 - `2026` 为主站入口，`2027` 为 CDN 专用入口。
 - 域名绑定通过 DNS/反向代理完成（主站域名指向 `2026`，CDN 域名指向 `2027`）。
+- `yx-website` 默认只挂载 `data`，不要挂载 `/app/pages`，否则会用宿主机旧页面覆盖镜像内新代码。
 - `MAIN_DOMAIN/CDN_DOMAIN` 不再是容器启动必填项。
 - 两个镜像默认内置 `cdn_assets`，全新服务器可直接启动使用。
 - 如需挂载外部 `cdn_assets` 目录，请确保目录已预先同步完整素材；空目录挂载会覆盖镜像内素材并导致 404。
