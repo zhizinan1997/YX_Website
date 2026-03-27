@@ -1,31 +1,41 @@
-# Stage 1: Build stage (if any compiled deps needed)
+# Stage 1: Install Python dependencies
 FROM python:3.11-alpine AS builder
 
-WORKDIR /app
+WORKDIR /build
 
-# Install dependencies into a virtual environment
 COPY requirements.txt .
-RUN pip install --no-cache-dir --no-compile --target=/app/deps -r requirements.txt
+RUN pip install --no-cache-dir --no-compile --target=/deps -r requirements.txt
 
-# Stage 2: Production stage (minimal)
+# Stage 2: Runtime image
 FROM python:3.11-alpine
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/deps
 
-# Copy only the installed packages from builder
-COPY --from=builder /app/deps /app/deps
-ENV PYTHONPATH=/app/deps
+# Copy installed packages
+COPY --from=builder /deps /app/deps
 
-# Copy website files
-COPY . .
+# Copy only runtime files to keep image small
+COPY server.py /app/server.py
+COPY index.html /app/index.html
+COPY robots.txt /app/robots.txt
+COPY requirements.txt /app/requirements.txt
+COPY admin /app/admin
+COPY app /app/app
+COPY assets /app/assets
+COPY pages /app/pages
+COPY templates /app/templates
+COPY data /app/data
+COPY update_logs /app/update_logs
 
-# Create data directory
+# Include full CDN assets for out-of-the-box deployment on fresh servers.
+COPY cdn_assets /app/cdn_assets
+
+# Ensure required runtime directories exist
 RUN mkdir -p /app/data/messages
 
-# Expose port
 EXPOSE 8000
 
-# Run with gunicorn
 CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "server:app"]
