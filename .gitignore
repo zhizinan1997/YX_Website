@@ -27,3 +27,7 @@ archive/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Runtime generated files
+/data/admin_login_logs.json
+/data/admin_users.json
