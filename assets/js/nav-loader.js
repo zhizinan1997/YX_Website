@@ -340,9 +340,62 @@
         var name = (item && item.name) ? String(item.name) : '未命名链接';
         var external = /^https?:\/\//i.test(url);
         var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
-        return '<li><a href="' + url + '"' + target + '>' + name + '</a></li>';
+        return '<li><a href="' + escapeHtmlText(url) + '"' + target + '>' + escapeHtmlText(name) + '</a></li>';
     }
 
+    function normalizeRecommendationLookupKey(url) {
+        var raw = String(url || '').trim();
+        if (!raw) return '';
+        try {
+            var resolved = new URL(raw, window.location.href);
+            var currentOrigin = String(window.location.origin || '').toLowerCase();
+            var origin = String(resolved.origin || '').toLowerCase();
+            var pathWithQuery = String((resolved.pathname || '') + (resolved.search || '')).toLowerCase();
+            return origin === currentOrigin ? pathWithQuery : (origin + pathWithQuery);
+        } catch (e) {
+            return raw.toLowerCase();
+        }
+    }
+
+    function buildRecommendationProductMap(products) {
+        var map = Object.create(null);
+        if (!Array.isArray(products)) return map;
+        products.forEach(function (product) {
+            if (!product || product.hidden) return;
+            var key = normalizeRecommendationLookupKey(buildProductHref(product));
+            if (!key) return;
+            map[key] = {
+                image: normalizeProductCardImage(product),
+                title: normalizeProductCardTitle(product)
+            };
+        });
+        return map;
+    }
+
+    function buildRecommendationCard(item, productMap) {
+        var url = (item && item.url) ? String(item.url).trim() : '#';
+        var name = (item && item.name) ? String(item.name).trim() : '未命名产品';
+        var external = /^https?:\/\//i.test(url);
+        var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+        var key = normalizeRecommendationLookupKey(url);
+        var matched = key && productMap ? productMap[key] : null;
+        var image = (item && item.image) ? String(item.image).trim() : '';
+        if (!image && matched && matched.image) image = matched.image;
+        if (!image) image = '/cdn_assets/images/common/f1dcc87cdcca.png';
+
+        return '' +
+            '<li class="vs-recommend-card">' +
+            '  <a class="vs-recommend-link" href="' + escapeHtmlText(url) + '"' + target + '>' +
+            '    <span class="vs-recommend-thumb">' +
+            '      <img src="' + escapeHtmlText(image) + '" alt="' + escapeHtmlText(name) + '">' +
+            '    </span>' +
+            '    <span class="vs-recommend-body">' +
+            '      <span class="vs-recommend-title">' + escapeHtmlText(name) + '</span>' +
+            '      <span class="vs-recommend-cta">查看产品 <i class="fas fa-arrow-right"></i></span>' +
+            '    </span>' +
+            '  </a>' +
+            '</li>';
+    }
     function buildProductHref(product) {
         var id = String(product.id || '');
         if (!id) return '#';
@@ -495,13 +548,19 @@
 
     function bindGasDynamicData() {
         var jobs = [];
+        var productsForNavPromise = null;
 
         if (document.getElementById('dynamic-product-list')) {
+            productsForNavPromise = fetch('/api/products/with-settings', { credentials: 'same-origin' })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    return (data && Array.isArray(data.products)) ? data.products : [];
+                });
+
             jobs.push(
-                fetch('/api/products/with-settings', { credentials: 'same-origin' })
-                    .then(function (res) { return res.json(); })
-                    .then(function (data) {
-                        var products = (data.products || []).filter(function (p) { return !p.hidden; });
+                productsForNavPromise
+                    .then(function (allProducts) {
+                        var products = allProducts.filter(function (p) { return !p.hidden; });
                         if (!products.length) {
                             safeSetHtml('dynamic-product-list', '<p style="color:#666;">暂无产品</p>');
                             return;
@@ -523,24 +582,55 @@
         }
 
         if (document.getElementById('latestReleasesList') || document.getElementById('applicationAreasList')) {
+            var recommendationProductMapPromise = Promise.resolve(Object.create(null));
+            if (document.getElementById('latestReleasesList')) {
+                if (productsForNavPromise) {
+                    recommendationProductMapPromise = productsForNavPromise
+                        .then(function (allProducts) { return buildRecommendationProductMap(allProducts); })
+                        .catch(function () { return Object.create(null); });
+                } else {
+                    recommendationProductMapPromise = fetch('/api/products/with-settings', { credentials: 'same-origin' })
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) { return buildRecommendationProductMap(data.products || []); })
+                        .catch(function () { return Object.create(null); });
+                }
+            }
+
             jobs.push(
-                fetch('/api/recommendations', { credentials: 'same-origin' })
-                    .then(function (res) { return res.json(); })
-                    .then(function (data) {
-                        if (document.getElementById('latestReleasesList')) {
-                            safeSetHtml('latestReleasesList', (data.latestReleases || []).map(buildRecommendationLink).join('') || '<li><a href="#">暂无数据</a></li>');
+                Promise.all([
+                    fetch('/api/recommendations', { credentials: 'same-origin' })
+                        .then(function (res) { return res.json(); }),
+                    recommendationProductMapPromise
+                ])
+                    .then(function (results) {
+                        var data = results[0] || {};
+                        var recommendationProductMap = results[1] || Object.create(null);
+
+                        var latestListEl = document.getElementById('latestReleasesList');
+                        if (latestListEl) {
+                            latestListEl.classList.add('vs-mega-list-v2--cards');
+                            var latestItems = Array.isArray(data.latestReleases) ? data.latestReleases : [];
+                            safeSetHtml('latestReleasesList', latestItems.map(function (item) {
+                                return buildRecommendationCard(item, recommendationProductMap);
+                            }).join('') || '<li><a href="#">暂无数据</a></li>');
                         }
-                        if (document.getElementById('applicationAreasList')) {
+
+                        var appListEl = document.getElementById('applicationAreasList');
+                        if (appListEl) {
+                            appListEl.classList.remove('vs-mega-list-v2--cards');
                             safeSetHtml('applicationAreasList', (data.applicationAreas || []).map(buildRecommendationLink).join('') || '<li><a href="#">暂无数据</a></li>');
                         }
                     })
                     .catch(function () {
-                        if (document.getElementById('latestReleasesList')) safeSetHtml('latestReleasesList', '<li><a href="#">加载失败</a></li>');
+                        var latestListEl = document.getElementById('latestReleasesList');
+                        if (latestListEl) {
+                            latestListEl.classList.add('vs-mega-list-v2--cards');
+                            safeSetHtml('latestReleasesList', '<li><a href="#">加载失败</a></li>');
+                        }
                         if (document.getElementById('applicationAreasList')) safeSetHtml('applicationAreasList', '<li><a href="#">加载失败</a></li>');
                     })
             );
         }
-
         if (document.getElementById('categoriesLeft') || document.getElementById('categoriesRight')) {
             jobs.push(
                 fetch('/api/products/industry-filters', { credentials: 'same-origin' })

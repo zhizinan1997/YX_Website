@@ -16,13 +16,14 @@
         "jobs",
         "chatbot",
         "site-settings",
+        "site-reports",
         "settings",
         "backup",
         "changelog"
       ],
       "created_at": "2026-03-26T07:36:43Z",
-      "updated_at": "2026-03-27T03:59:36Z",
-      "last_login_at": "2026-03-27T03:20:21Z"
+      "updated_at": "2026-03-28T13:29:08Z",
+      "last_login_at": "2026-03-28T12:00:27Z"
     },
     {
       "username": "zhizinan",

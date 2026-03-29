@@ -31,7 +31,7 @@
     /* 弱化文字 */
 
     /* 字体 - 工业风 */
-    --font-stack: "Inter", "Roboto", "Helvetica Neue", "Arial", sans-serif;
+    --font-stack: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", "Inter", "Roboto", "Helvetica Neue", "Arial", sans-serif;
 
     /* 布局 */
     --container-width: 1320px;
@@ -57,13 +57,30 @@
     padding: 0;
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 body {
     font-family: var(--font-stack);
     color: var(--color-text-body);
     background: var(--color-white);
     line-height: 1.6;
+    font-weight: 400;
+    font-kerning: normal;
+    font-synthesis: none;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     /* 文字抗锯齿 */
+}
+
+button,
+input,
+textarea,
+select {
+    font-family: inherit;
 }
 
 a {
@@ -75,6 +92,20 @@ a {
 img {
     max-width: 100%;
     display: block;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-stack);
+}
+
+p,
+li {
+    letter-spacing: 0.01em;
 }
 
 /* ========================================
@@ -97,7 +128,7 @@ img {
 
 .vs-title {
     font-size: 36px;
-    font-weight: 300;
+    font-weight: 500;
     /* 细字体标题 */
     color: var(--color-text-main);
     margin-bottom: 24px;
@@ -1503,7 +1534,7 @@ img {
 .vs-product-showcase {
     padding: 90px 0 110px;
     background: #ffffff;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-stack);
 }
 
 .vs-product-showcase .vs-container {
@@ -1790,7 +1821,7 @@ img {
 .vs-latest-news {
     padding: 96px 0 116px;
     background: #eceef0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-stack);
 }
 
 .vs-latest-news .vs-container {
@@ -2360,5 +2391,143 @@ img {
 
     .vs-measurement-hero .vs-container {
         padding: 0 24px;
+    }
+}
+
+/* ========================================
+   Global Mobile Fallbacks
+======================================== */
+@media (max-width: 900px) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
+
+    .vs-container {
+        width: 100%;
+        max-width: 100%;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    main,
+    .vs-page-content,
+    .vs-section,
+    .vs-content-section,
+    .article-container,
+    .article-content {
+        min-width: 0;
+    }
+
+    main [style*="grid-template-columns"],
+    .vs-page-content [style*="grid-template-columns"],
+    .vs-section [style*="grid-template-columns"],
+    .article-container [style*="grid-template-columns"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    main [style*="display: flex"],
+    main [style*="display:flex"],
+    .vs-page-content [style*="display: flex"],
+    .vs-page-content [style*="display:flex"],
+    .vs-section [style*="display: flex"],
+    .vs-section [style*="display:flex"],
+    .article-container [style*="display: flex"],
+    .article-container [style*="display:flex"] {
+        flex-wrap: wrap;
+    }
+
+    main [style*="display: flex"][style*="justify-content: space-between"],
+    main [style*="display:flex"][style*="justify-content:space-between"],
+    .vs-page-content [style*="display: flex"][style*="justify-content: space-between"],
+    .vs-page-content [style*="display:flex"][style*="justify-content:space-between"],
+    .article-container [style*="display: flex"][style*="justify-content: space-between"],
+    .article-container [style*="display:flex"][style*="justify-content:space-between"] {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    main [style*="min-width"],
+    .vs-page-content [style*="min-width"],
+    .article-container [style*="min-width"] {
+        min-width: 0 !important;
+    }
+
+    .article-hero {
+        min-height: 220px !important;
+        height: auto !important;
+        padding: 84px 16px 32px !important;
+    }
+
+    .article-hero__title {
+        font-size: 24px !important;
+        line-height: 1.45 !important;
+    }
+
+    .article-container {
+        padding: 30px 16px !important;
+    }
+
+    .article-content,
+    .keyword_light,
+    .ny_news_show {
+        font-size: 15px;
+        line-height: 1.8;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .article-content img,
+    .article-content [style*="float: left"],
+    .article-content [style*="float:left"],
+    .article-content [style*="float: right"],
+    .article-content [style*="float:right"],
+    .keyword_light img,
+    .keyword_light [style*="float: left"],
+    .keyword_light [style*="float:left"],
+    .keyword_light [style*="float: right"],
+    .keyword_light [style*="float:right"],
+    .ny_news_show img,
+    .ny_news_show [style*="float: left"],
+    .ny_news_show [style*="float:left"],
+    .ny_news_show [style*="float: right"],
+    .ny_news_show [style*="float:right"] {
+        float: none !important;
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    main table,
+    .vs-page-content table,
+    .article-content table,
+    .keyword_light table,
+    .ny_news_show table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    main th,
+    main td,
+    .vs-page-content th,
+    .vs-page-content td,
+    .article-content th,
+    .article-content td,
+    .keyword_light th,
+    .keyword_light td,
+    .ny_news_show th,
+    .ny_news_show td {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .article-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
     }
 }

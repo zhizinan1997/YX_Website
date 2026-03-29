@@ -3,7 +3,7 @@
   "admin_password_hash": "scrypt:32768:8:1$x3PUoxpHt3yPlFiq$53a9cc4436afb8468455ee3944792fef30ecb48b815c35109ddc6d773a9d0609d240eee40065b62c4a7bcc7b352dea90ac62a4f73db30ef1530f15b52344e84f",
   "admin_password": "",
   "cdn_enabled": false,
-  "cdn_domain": "",
+  "cdn_domain": "https://cdn.hnmetachip.cn",
   "turnstile_enabled": true,
   "turnstile_site_key": "0x4AAAAAACwKu-2HPFYY3XaB",
   "turnstile_secret_key": "0x4AAAAAACwKuxfpGhJXKGtu1PhTl9ANq24",

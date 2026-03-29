@@ -29,9 +29,9 @@
     ];
 
     const WAITING_STATUS_MESSAGES = [
-        '小助手已收到您的问题',
-        '小助手正在努力查询总结中',
-        '请稍候'
+        '元芯AI已收到您的问题',
+        '元芯AI正在努力Thinking',
+        '...'
     ];
 
     // Initialize when DOM is ready
@@ -47,7 +47,6 @@
 
         loadStyles().then(() => {
             createChatbotUI();
-            ensureTriggerPlacement();
             renderPresetQuestions();
             bindEvents();
         });
@@ -96,11 +95,11 @@
     }
 
     function createChatbotUI() {
-        // Create floating trigger button
+        // Create floating trigger widget (bottom-right minimized bar)
         const triggerHTML = `
             <button class="chatbot-trigger" id="chatbotTrigger" aria-label="打开智能客服">
-                <i class="fas fa-robot"></i>
-                <i class="fas fa-times"></i>
+                <i class="fas fa-comment-dots chatbot-trigger__icon"></i>
+                <span class="chatbot-trigger__text">有疑问？随时呼叫元芯AI</span>
             </button>
         `;
 
@@ -183,44 +182,8 @@
         suggestionTrack.appendChild(buildGroup(true));
     }
 
-    function getNavActionsContainer() {
-        return document.querySelector('.mc-nav-actions');
-    }
-
-    function placeTriggerToBestContainer() {
-        if (!chatbotTrigger) return false;
-        const navActions = getNavActionsContainer();
-        if (navActions) {
-            if (chatbotTrigger.parentElement !== navActions) {
-                navActions.appendChild(chatbotTrigger);
-            }
-            chatbotTrigger.classList.add('chatbot-trigger--nav');
-            return true;
-        }
-
-        // Fallback for pages without shared nav component
-        if (chatbotTrigger.parentElement !== document.body) {
-            document.body.appendChild(chatbotTrigger);
-        }
-        chatbotTrigger.classList.remove('chatbot-trigger--nav');
-        return false;
-    }
-
-    function ensureTriggerPlacement() {
-        // Try immediately
-        const placed = placeTriggerToBestContainer();
-        if (placed) return;
-
-        // Nav may be injected asynchronously by nav-loader, retry briefly.
-        let retries = 0;
-        const maxRetries = 30;
-        const timer = setInterval(() => {
-            retries += 1;
-            if (placeTriggerToBestContainer() || retries >= maxRetries) {
-                clearInterval(timer);
-            }
-        }, 250);
-    }
+    /* Trigger is always placed as a fixed element on document.body.
+       No nav-bar integration needed. */
 
     function bindEvents() {
         // Toggle chat window
@@ -242,7 +205,10 @@
 
         // Quick action buttons
         document.addEventListener('click', (e) => {
-            const suggestionBtn = e.target.closest('.chatbot-suggestion-pill');
+            const target = e.target instanceof Element ? e.target : null;
+            if (!target) return;
+
+            const suggestionBtn = target.closest('.chatbot-suggestion-pill');
             if (suggestionBtn) {
                 const question = suggestionBtn.getAttribute('data-question');
                 if (question) {
@@ -252,8 +218,9 @@
                 return;
             }
 
-            if (e.target.classList.contains('quick-action-btn')) {
-                const question = e.target.getAttribute('data-question');
+            const quickActionBtn = target.closest('.quick-action-btn');
+            if (quickActionBtn) {
+                const question = quickActionBtn.getAttribute('data-question');
                 if (question) {
                     inputField.value = question;
                     sendMessage();
@@ -367,6 +334,9 @@
         // Disable input while processing
         setInputEnabled(false);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
         try {
             const response = await fetch('/api/chatbot/chat', {
                 method: 'POST',
@@ -377,7 +347,8 @@
                     message: message,
                     session_id: sessionId,
                     history: conversationHistory.slice(-10) // Send last 10 messages for context
-                })
+                }),
+                signal: controller.signal
             });
 
             // Remove typing indicator
@@ -406,8 +377,13 @@
         } catch (error) {
             removeTypingIndicator(typingEl);
             console.error('Chat error:', error);
-            appendError('网络连接失败，请稍后重试。');
+            if (error && error.name === 'AbortError') {
+                appendError('请求超时，请稍后重试。');
+            } else {
+                appendError('网络连接失败，请稍后重试。');
+            }
         } finally {
+            clearTimeout(timeoutId);
             setInputEnabled(true);
             inputField.focus();
         }
@@ -418,49 +394,62 @@
         const decoder = new TextDecoder();
         let botMessage = '';
         let messageEl = null;
+        let hasError = false;
+        let buffer = '';
 
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') {
-                            break;
+                    if (!line.startsWith('data: ')) continue;
+                    const data = line.slice(6).trim();
+                    if (!data) continue;
+                    if (data === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(data);
+
+                        if (parsed.error) {
+                            hasError = true;
+                            appendError(parsed.error);
+                            continue;
                         }
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.content) {
-                                botMessage += parsed.content;
-                                if (!messageEl) {
-                                    messageEl = appendMessage('bot', botMessage, true);
-                                } else {
-                                    updateMessageContent(messageEl, botMessage);
-                                }
-                            }
-                        } catch (e) {
-                            // Not JSON, might be plain text
-                            botMessage += data;
+
+                        if (parsed.content) {
+                            botMessage += parsed.content;
                             if (!messageEl) {
                                 messageEl = appendMessage('bot', botMessage, true);
                             } else {
                                 updateMessageContent(messageEl, botMessage);
                             }
                         }
+                    } catch (e) {
+                        // Not JSON, might be plain text
+                        botMessage += data;
+                        if (!messageEl) {
+                            messageEl = appendMessage('bot', botMessage, true);
+                        } else {
+                            updateMessageContent(messageEl, botMessage);
+                        }
                     }
                 }
             }
         } catch (e) {
             console.error('Streaming error:', e);
+            hasError = true;
+            appendError('流式响应中断，请稍后重试。');
         }
 
         if (botMessage) {
             conversationHistory.push({ role: 'assistant', content: botMessage });
+        } else if (!hasError) {
+            appendError('未收到有效回复，请稍后重试。');
         }
     }
 

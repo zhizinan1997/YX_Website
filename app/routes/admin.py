@@ -38,6 +38,7 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'jobs', 'label': '招聘信息'},
     {'key': 'chatbot', 'label': '智能客服'},
     {'key': 'site-settings', 'label': '站点设置'},
+    {'key': 'site-reports', 'label': '网站报表'},
     {'key': 'settings', 'label': '账号设置'},
     {'key': 'backup', 'label': '备份恢复'},
     {'key': 'changelog', 'label': '更新日志'},
@@ -147,6 +148,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'settings'
     if p.startswith('/api/admin/security/turnstile') or p.startswith('/api/cdn/'):
         return 'site-settings'
+    if p.startswith('/api/admin/site-reports'):
+        return 'site-reports'
     if p.startswith('/api/admin/changelog'):
         return 'changelog'
     if p.startswith('/api/backup/'):

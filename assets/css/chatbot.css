@@ -11,180 +11,90 @@
     --chatbot-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
-/* Floating Chat Button - Minimalist, matching site theme */
+/* ─── Floating Trigger Widget (bottom-right minimized bar) ─── */
 .chatbot-trigger {
     position: fixed;
-    top: 20%;
-    right: 0;
-    width: 56px;
-    height: 56px;
-    border-radius: 28px;
-    background: linear-gradient(135deg, #003764 0%, #004d8c 100%);
-    border: none;
-    cursor: pointer;
+    bottom: 28px;
+    right: 28px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 3px 15px rgba(0, 55, 100, 0.35);
+    gap: 10px;
+    padding: 13px 22px 13px 18px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #003764 0%, #005fa3 100%);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 55, 100, 0.35),
+                0 0 0 0 rgba(0, 95, 163, 0);
     z-index: 9998;
-    /* Dock effect - half hidden by default */
-    transform: translateX(0);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-tap-highlight-color: transparent;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s ease,
+                background 0.3s ease;
+    animation: triggerGlow 3s ease-in-out infinite;
 }
 
-/* Subtle pulse indicator */
-.chatbot-trigger::before {
-    content: '';
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    right: -3px;
-    bottom: -3px;
-    border-radius: 32px;
-    border: 2px solid rgba(0, 55, 100, 0.35);
-    animation: subtlePulse 2.5s ease-in-out infinite;
-    opacity: 1;
-    transition: opacity 0.3s ease;
-}
-
-/* Small orange dot indicator - matching accent color */
-.chatbot-trigger::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #FF6B35;
-    border: 2px solid white;
-    animation: dotPulse 2s ease-in-out infinite;
-    opacity: 1;
-    transition: opacity 0.3s ease;
-}
-
-@keyframes subtlePulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 0.5;
+/* Subtle breathing glow to draw attention */
+@keyframes triggerGlow {
+    0%, 100% {
+        box-shadow: 0 4px 20px rgba(0, 55, 100, 0.35),
+                    0 0 0 0 rgba(0, 95, 163, 0);
     }
-
     50% {
-        transform: scale(1.06);
-        opacity: 0;
-    }
-}
-
-@keyframes dotPulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.15);
+        box-shadow: 0 4px 24px rgba(0, 55, 100, 0.45),
+                    0 0 0 6px rgba(0, 95, 163, 0.08);
     }
 }
 
 .chatbot-trigger:hover {
-    transform: translateX(0);
-    box-shadow: 0 5px 25px rgba(0, 55, 100, 0.45);
-    background: linear-gradient(135deg, #004d8c 0%, #0066b3 100%);
-}
-
-.chatbot-trigger:hover::before {
-    opacity: 0;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(0, 55, 100, 0.5),
+                0 0 0 0 rgba(0, 95, 163, 0);
+    background: linear-gradient(135deg, #004d8c 0%, #0073cc 100%);
+    animation: none;
 }
 
 .chatbot-trigger:active {
-    transform: translateX(0) scale(0.96);
+    transform: translateY(0) scale(0.97);
 }
 
-/* When chat is open, clean look */
+/* When chat is open, hide the trigger */
 .chatbot-trigger.active {
-    transform: translateX(0);
     opacity: 0;
     pointer-events: none;
+    transform: translateY(8px) scale(0.9);
 }
 
-.chatbot-trigger.active::before,
-.chatbot-trigger.active::after {
-    opacity: 0;
-}
-
-.chatbot-trigger i {
-    font-size: 24px;
-    color: white;
+/* Icon inside trigger */
+.chatbot-trigger__icon {
+    font-size: 18px;
+    color: #fff;
+    flex-shrink: 0;
     transition: transform 0.2s ease;
-    position: relative;
-    z-index: 1;
 }
 
-.chatbot-trigger:hover i {
-    transform: scale(1.1);
+.chatbot-trigger:hover .chatbot-trigger__icon {
+    transform: scale(1.12);
 }
 
-.chatbot-trigger.active i.fa-robot {
-    display: none;
-}
-
-.chatbot-trigger.active i.fa-times {
-    display: block;
-}
-
-.chatbot-trigger i.fa-times {
-    display: none;
+/* Text inside trigger */
+.chatbot-trigger__text {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: 0.02em;
 }
 
 .chatbot-trigger:focus,
-.chatbot-trigger:focus-visible,
-.chatbot-trigger:focus-within {
+.chatbot-trigger:focus-visible {
     outline: none;
-    box-shadow: 0 5px 25px rgba(0, 55, 100, 0.45);
-}
-
-/* Navbar mode: place chatbot button next to search icon in header actions */
-.chatbot-trigger.chatbot-trigger--nav {
-    position: static;
-    top: auto;
-    right: auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    box-shadow: none;
-    transform: none;
-    z-index: auto;
-}
-
-.chatbot-trigger.chatbot-trigger--nav::before,
-.chatbot-trigger.chatbot-trigger--nav::after {
-    display: none;
-}
-
-.chatbot-trigger.chatbot-trigger--nav i {
-    font-size: 19px;
-}
-
-.chatbot-trigger.chatbot-trigger--nav:hover {
-    background: rgba(255, 255, 255, 0.12);
-    box-shadow: none;
-    transform: none;
-}
-
-.chatbot-trigger.chatbot-trigger--nav:active {
-    transform: scale(0.96);
-}
-
-.chatbot-trigger.chatbot-trigger--nav.active {
-    opacity: 1;
-    pointer-events: auto;
-    background: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 6px 28px rgba(0, 55, 100, 0.5),
+                0 0 0 3px rgba(0, 102, 204, 0.4);
+    animation: none;
 }
 
 /* Notification Badge */
@@ -695,34 +605,24 @@
     }
 
     .chatbot-trigger {
-        top: auto;
-        bottom: 20px;
-        right: 0;
-        width: 50px;
-        height: 50px;
-        border-radius: 25px;
-        transform: translateX(0);
+        bottom: 16px;
+        right: 16px;
+        padding: 12px;
+        border-radius: 50%;
+        gap: 0;
     }
 
-    .chatbot-trigger:hover,
-    .chatbot-trigger.active {
-        transform: translateX(0);
+    /* Hide text on small screens, show icon only */
+    .chatbot-trigger__text {
+        display: none;
     }
 
-    .chatbot-trigger i {
+    .chatbot-trigger__icon {
         font-size: 22px;
     }
 
-    .chatbot-trigger.chatbot-trigger--nav {
-        position: static;
-        top: auto;
-        right: auto;
-        bottom: auto;
-        left: auto;
-        width: 36px;
-        height: 36px;
-        border-radius: 18px;
-        transform: none;
+    .chatbot-trigger.active {
+        transform: translateY(8px) scale(0.9);
     }
 
     .chatbot-input-area {
