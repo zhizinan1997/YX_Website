@@ -252,17 +252,20 @@
     "industryCategories": [
       "hydrogen"
     ],
-    "hidden": false
+    "hidden": false,
+    "isNew": true
   },
   "mc_hha_01": {
     "industryCategories": [
       "hydrogen"
-    ]
+    ],
+    "isNew": true
   },
   "mc_hla_01": {
     "industryCategories": [
       "hydrogen"
-    ]
+    ],
+    "isNew": true
   },
   "../customization/semiconductor_device_customization": {
     "cardTitle": "半导体器件与微纳工艺定制化服务",
@@ -272,10 +275,19 @@
     ]
   },
   "mc_pgd_01": {
-    "industryCategories": []
+    "industryCategories": [],
+    "displayName": "MC-PGD-01型手持泵吸式可燃气体检测仪"
   },
   "mc_ld_r1": {
     "cardTitle": "MC-LD-R1型冷媒泄漏检漏仪",
-    "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。"
+    "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。",
+    "displayName": "MC-LD-R1型冷媒泄漏检漏仪"
+  },
+  "mc_gd_01": {
+    "displayName": "MC-GD-01型可燃气体检漏仪",
+    "isNew": true
+  },
+  "mc_ol_w1": {
+    "displayName": "MC-OL-W1在线式露点分析仪"
   }
 }

@@ -230,9 +230,14 @@
 
         // Close on outside click
         document.addEventListener('click', (e) => {
-            if (chatbotWindow.classList.contains('open') &&
-                !chatbotWindow.contains(e.target) &&
-                !chatbotTrigger.contains(e.target)) {
+            if (!chatbotWindow.classList.contains('open')) return;
+
+            const eventPath = typeof e.composedPath === 'function' ? e.composedPath() : null;
+            const clickedInsideChatbot = Array.isArray(eventPath)
+                ? eventPath.includes(chatbotWindow) || eventPath.includes(chatbotTrigger)
+                : (chatbotWindow.contains(e.target) || chatbotTrigger.contains(e.target));
+
+            if (!clickedInsideChatbot) {
                 closeChatWindow();
             }
         });

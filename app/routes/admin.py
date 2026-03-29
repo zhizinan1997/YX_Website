@@ -30,6 +30,7 @@ except Exception:
 
 ADMIN_PERMISSION_CATALOG = [
     {'key': 'messages', 'label': '仪表盘'},
+    {'key': 'site-reports', 'label': '网站报表'},
     {'key': 'home', 'label': '首页设置'},
     {'key': 'h2-home', 'label': '氢气首页'},
     {'key': 'products', 'label': '氢气产品'},
@@ -38,7 +39,6 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'jobs', 'label': '招聘信息'},
     {'key': 'chatbot', 'label': '智能客服'},
     {'key': 'site-settings', 'label': '站点设置'},
-    {'key': 'site-reports', 'label': '网站报表'},
     {'key': 'settings', 'label': '账号设置'},
     {'key': 'backup', 'label': '备份恢复'},
     {'key': 'changelog', 'label': '更新日志'},

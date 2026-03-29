@@ -224,6 +224,108 @@
         font-size: 21px;
       }
     }
+
+    body.cookie-consent-visible .chatbot-trigger,
+    body.cookie-consent-visible .chatbot-window {
+      bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .cookie-consent-bar[hidden] {
+      display: none;
+    }
+
+    .cookie-consent-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9800;
+      opacity: 0;
+      transform: translateY(100%);
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .cookie-consent-bar.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .cookie-consent-bar__inner {
+      width: 100%;
+      margin: 0;
+      background: rgba(33, 33, 33, 0.98);
+      color: #eef6ff;
+      box-shadow: 0 -10px 30px rgba(5, 18, 36, 0.22);
+      padding: 14px 24px calc(14px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+    }
+
+    .cookie-consent-bar__text {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+    }
+
+    .cookie-consent-bar__text a {
+      color: #9fd8ff;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .cookie-consent-bar__actions {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .cookie-consent-bar__btn {
+      border: none;
+      border-radius: 999px;
+      min-width: 92px;
+      padding: 10px 24px;
+      background: linear-gradient(135deg, #125fc9 0%, #1f76e6 100%);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(18, 95, 201, 0.32);
+    }
+
+    .cookie-consent-bar__btn:hover {
+      filter: brightness(1.05);
+    }
+
+    @media (max-width: 768px) {
+      body.cookie-consent-visible .chatbot-trigger,
+      body.cookie-consent-visible .chatbot-window {
+        bottom: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+      }
+
+      .cookie-consent-bar__inner {
+        padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .cookie-consent-bar__actions {
+        width: 100%;
+      }
+
+      .cookie-consent-bar__btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 
@@ -1076,6 +1178,18 @@
   <script src="/assets/js/footer-loader.js"></script>
   <!-- FOOTER_END -->
 
+  <div id="cookieConsentBar" class="cookie-consent-bar" role="region" aria-label="Cookies 提示" hidden>
+    <div class="cookie-consent-bar__inner">
+      <p class="cookie-consent-bar__text">
+        我们使用 Cookies 与本地存储来改善浏览体验，并在您同意后启用站点访问统计。继续使用本站前，您可以先接受本设置。
+        <a href="/pages/about/policy.html">查看隐私政策</a>
+      </p>
+      <div class="cookie-consent-bar__actions">
+        <button type="button" class="cookie-consent-bar__btn" id="cookieConsentAccept">接受 Cookies</button>
+      </div>
+    </div>
+  </div>
+
   
 
   <!-- 新闻预览自动加载器 -->
@@ -1086,6 +1200,79 @@
 
   <!-- 全站搜索 -->
   <script src="assets/js/search.js"></script>
+
+  <script>
+    (function () {
+      const CONSENT_KEY = 'yx_cookie_consent';
+      const CONSENT_ACCEPTED = 'accepted';
+      const bar = document.getElementById('cookieConsentBar');
+      const acceptBtn = document.getElementById('cookieConsentAccept');
+      if (!bar || !acceptBtn) return;
+
+      function readCookie(name) {
+        const prefix = `${name}=`;
+        const parts = document.cookie ? document.cookie.split('; ') : [];
+        for (const part of parts) {
+          if (part.indexOf(prefix) === 0) {
+            return decodeURIComponent(part.slice(prefix.length));
+          }
+        }
+        return '';
+      }
+
+      function readStoredConsent() {
+        try {
+          const localValue = window.localStorage.getItem(CONSENT_KEY);
+          if (localValue) return String(localValue);
+        } catch (_) {
+          // Ignore storage read failures.
+        }
+        return readCookie(CONSENT_KEY);
+      }
+
+      function persistConsent(value) {
+        try {
+          window.localStorage.setItem(CONSENT_KEY, value);
+        } catch (_) {
+          // Ignore storage write failures.
+        }
+        document.cookie = `${CONSENT_KEY}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+
+      function showBar() {
+        if (readStoredConsent() === CONSENT_ACCEPTED) return;
+        bar.hidden = false;
+        document.body.classList.add('cookie-consent-visible');
+        window.requestAnimationFrame(() => {
+          bar.classList.add('is-visible');
+        });
+      }
+
+      function hideBar() {
+        bar.classList.remove('is-visible');
+        document.body.classList.remove('cookie-consent-visible');
+        window.setTimeout(() => {
+          bar.hidden = true;
+        }, 220);
+      }
+
+      acceptBtn.addEventListener('click', () => {
+        persistConsent(CONSENT_ACCEPTED);
+        hideBar();
+        try {
+          window.dispatchEvent(new CustomEvent('yx-cookie-consent-accepted', {
+            detail: { state: CONSENT_ACCEPTED }
+          }));
+        } catch (_) {
+          window.dispatchEvent(new Event('yx-cookie-consent-accepted'));
+        }
+      });
+
+      if (readStoredConsent() !== CONSENT_ACCEPTED) {
+        showBar();
+      }
+    })();
+  </script>
 
   <script>
     (function () {

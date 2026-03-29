@@ -1,4 +1,4 @@
-{
+﻿{
   "items": [
     {
       "name": "氢能源产业链",
@@ -21,8 +21,8 @@
       "url": "/pages/solutions/industry-environment.html"
     },
     {
-      "name": "石油化工业",
-      "url": "https://www.baidu.com"
+      "name": "石油化工",
+      "url": "/pages/gassensing/cases/case-5-chemical-plant.html"
     }
   ]
 }
