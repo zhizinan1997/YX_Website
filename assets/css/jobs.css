@@ -135,3 +135,130 @@ a,a:hover{text-decoration: none;color: #000}
     margin-right: 15px;
     text-align: center;
 }
+
+@media (max-width: 900px) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
+
+    .w1200 {
+        max-width: 100%;
+        padding: 0 14px;
+        box-sizing: border-box;
+    }
+
+    .jobs > .w1200 {
+        margin-bottom: 36px;
+        overflow: visible;
+    }
+
+    .fb_info {
+        margin-top: 20px;
+    }
+
+    .fb_info h2 {
+        height: auto;
+        line-height: 1.4;
+        padding: 10px 0;
+        text-indent: 0;
+        font-size: 22px;
+    }
+
+    .info_title {
+        display: none;
+    }
+
+    .jobs_list li {
+        border: 1px solid #e9edf3;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        overflow: hidden;
+    }
+
+    .jobs_show {
+        padding: 12px 16px 18px;
+        line-height: 1.55;
+        overflow: visible;
+    }
+
+    .jobs_show:after {
+        right: 16px;
+        top: 18px;
+    }
+
+    .jobs_show span {
+        float: none !important;
+        width: 100% !important;
+        display: block;
+        padding: 0 26px 0 0;
+        margin-bottom: 8px;
+        font-size: 14px;
+        line-height: 1.65;
+        word-break: break-word;
+    }
+
+    .jobs_show span:last-child {
+        margin-bottom: 0;
+    }
+
+    .jobs_hide {
+        padding: 16px;
+        font-size: 14px;
+        line-height: 1.75;
+    }
+
+    .jobs_hide dl {
+        margin-bottom: 18px;
+        line-height: 1.75;
+    }
+
+    .jobs_hide dt {
+        font-size: 15px;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+
+    .jobs_hide dd,
+    .jobs_hide p,
+    .jobs_hide span {
+        font-size: 14px;
+        line-height: 1.75;
+        word-break: break-word;
+    }
+
+    .jobsbook_href {
+        height: auto;
+    }
+
+    .jobsbook_href a {
+        float: none;
+        display: inline-block;
+        width: auto;
+        min-width: 96px;
+        padding: 0 16px;
+        margin-right: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    html {
+        font-size: 13px;
+    }
+
+    .w1200 {
+        padding: 0 12px;
+    }
+
+    .jobs_show {
+        padding: 12px 14px 16px;
+    }
+
+    .jobs_show span {
+        font-size: 13px;
+    }
+
+    .jobs_hide {
+        padding: 14px;
+    }
+}

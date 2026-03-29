@@ -1,11 +1,11 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var ROOT_ID = 'mc-nav-root';
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
-    var NAV_ASSET_VERSION = '20260325d';
+    var NAV_ASSET_VERSION = '20260329l';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -25,7 +25,7 @@
             return;
         }
         if (!fallback.innerHTML || !fallback.innerHTML.trim()) {
-            fallback.innerHTML = '<div>导航不可用</div>';
+            fallback.innerHTML = '<div>瀵艰埅涓嶅彲鐢?/div>';
         }
         fallback.setAttribute('data-nav-noscript-profile', profile);
     }
@@ -181,8 +181,8 @@
                 mobileToggle = document.createElement('button');
                 mobileToggle.type = 'button';
                 mobileToggle.className = 'vs-mobile-toggle';
-                mobileToggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i><span>菜单</span>';
-                mobileToggle.setAttribute('aria-label', '打开导航菜单');
+                mobileToggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i><span>鑿滃崟</span>';
+                mobileToggle.setAttribute('aria-label', '鎵撳紑瀵艰埅鑿滃崟');
                 var actions = root.querySelector('.mc-nav-actions');
                 if (actions && actions.parentNode === headerInner) {
                     headerInner.insertBefore(mobileToggle, actions);
@@ -201,7 +201,7 @@
                 var toggleBtn = document.createElement('button');
                 toggleBtn.type = 'button';
                 toggleBtn.className = 'vs-nav__item-toggle';
-                toggleBtn.setAttribute('aria-label', '展开子菜单');
+                toggleBtn.setAttribute('aria-label', '\u5c55\u5f00\u5b50\u83dc\u5355');
                 toggleBtn.setAttribute('aria-expanded', 'false');
                 toggleBtn.innerHTML = '<i class="fas fa-chevron-down" aria-hidden="true"></i>';
                 item.appendChild(toggleBtn);
@@ -337,12 +337,218 @@
 
     function buildRecommendationLink(item) {
         var url = (item && item.url) ? String(item.url) : '#';
-        var name = (item && item.name) ? String(item.name) : '未命名链接';
+        var name = (item && item.name) ? String(item.name) : '\u672a\u547d\u540d\u94fe\u63a5';
         var external = /^https?:\/\//i.test(url);
         var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
-        return '<li><a href="' + url + '"' + target + '>' + name + '</a></li>';
+        return '<li><a href="' + escapeHtmlText(url) + '"' + target + '>' + escapeHtmlText(name) + '</a></li>';
     }
 
+    function normalizeRecommendationLookupKey(url) {
+        var raw = String(url || '').trim();
+        if (!raw) return '';
+        try {
+            var resolved = new URL(raw, window.location.href);
+            var currentOrigin = String(window.location.origin || '').toLowerCase();
+            var origin = String(resolved.origin || '').toLowerCase();
+            var pathWithQuery = String((resolved.pathname || '') + (resolved.search || '')).toLowerCase();
+            return origin === currentOrigin ? pathWithQuery : (origin + pathWithQuery);
+        } catch (e) {
+            return raw.toLowerCase();
+        }
+    }
+
+    function buildRecommendationProductMap(products) {
+        var map = Object.create(null);
+        if (!Array.isArray(products)) return map;
+        products.forEach(function (product) {
+            if (!product || product.hidden) return;
+            var key = normalizeRecommendationLookupKey(buildProductHref(product));
+            if (!key) return;
+            map[key] = {
+                image: normalizeProductCardImage(product),
+                title: normalizeProductCardTitle(product)
+            };
+        });
+        return map;
+    }
+
+    function buildRecommendationCard(item, productMap, ctaText) {
+        var url = (item && item.url) ? String(item.url).trim() : '#';
+        var name = (item && item.name) ? String(item.name).trim() : '\u672a\u547d\u540d\u4ea7\u54c1';
+        var external = /^https?:\/\//i.test(url);
+        var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+        var key = normalizeRecommendationLookupKey(url);
+        var matched = key && productMap ? productMap[key] : null;
+        var image = (item && item.image) ? String(item.image).trim() : '';
+        var actionLabel = (ctaText && String(ctaText).trim()) ? String(ctaText).trim() : '\u4e86\u89e3\u9886\u57df';
+        var isNew = !!(item && item.isNew);
+        var newBadge = isNew ? '<span class="vs-recommend-badge">NEW</span>' : '';
+        if (!image && matched && matched.image) image = matched.image;
+        if (!image) image = '/cdn_assets/images/common/f1dcc87cdcca.png';
+
+        return '' +
+            '<li class="vs-recommend-card">' +
+            '  <a class="vs-recommend-link" href="' + escapeHtmlText(url) + '"' + target + '>' +
+            '    <span class="vs-recommend-thumb">' +
+            '      <img src="' + escapeHtmlText(image) + '" alt="' + escapeHtmlText(name) + '">' +
+            '    </span>' +
+            '    <span class="vs-recommend-body">' +
+            '      <span class="vs-recommend-title-row">' +
+            '        <span class="vs-recommend-title">' + escapeHtmlText(name) + '</span>' +
+                     newBadge +
+            '      </span>' +
+            '      <span class="vs-recommend-cta">' + escapeHtmlText(actionLabel) + ' <i class="fas fa-arrow-right"></i></span>' +
+            '    </span>' +
+            '  </a>' +
+            '</li>';
+    }
+
+    function buildProductMenuCard(product) {
+        return {
+            name: normalizeProductCardTitle(product),
+            url: buildProductHref(product),
+            image: normalizeProductCardImage(product),
+            isNew: !!(product && product.isNew)
+        };
+    }
+
+    function buildSolutionPreviewTab(item, index, active) {
+        var url = (item && item.url) ? String(item.url).trim() : '#';
+        var name = (item && item.name) ? String(item.name).trim() : '\u672a\u547d\u540d\u65b9\u6848';
+        var external = /^https?:\/\//i.test(url);
+        var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+        var cls = 'vs-mega-tab vs-mega-tab-link vs-solution-preview-tab' + (active ? ' active' : '');
+        return '' +
+            '<a class="' + cls + '" href="' + escapeHtmlText(url) + '"' + target + ' data-preview-index="' + index + '">' +
+            '  <span>' + escapeHtmlText(name) + '</span>' +
+            '  <i class="fas fa-chevron-right"></i>' +
+            '</a>';
+    }
+
+    function buildSolutionPreviewCard(item, options) {
+        var url = (item && item.url) ? String(item.url).trim() : '#';
+        var name = (item && item.name) ? String(item.name).trim() : '\u89e3\u51b3\u65b9\u6848';
+        var pageTitle = (item && item.title) ? String(item.title).trim() : '';
+        var defaultEyebrow = (options && options.defaultEyebrow) ? String(options.defaultEyebrow) : '\u89e3\u51b3\u65b9\u6848';
+        var ctaText = (options && options.ctaText) ? String(options.ctaText) : '\u8fdb\u5165\u65b9\u6848';
+        var defaultDesc = (options && options.defaultDesc)
+            ? String(options.defaultDesc)
+            : '\u6d4f\u89c8\u8be5\u9886\u57df\u7684\u5178\u578b\u5e94\u7528\u573a\u666f\u3001\u7cfb\u7edf\u914d\u7f6e\u4e0e\u4ea7\u54c1\u7ec4\u5408\u3002';
+        var eyebrow = pageTitle && pageTitle !== name ? pageTitle : defaultEyebrow;
+        var desc = (item && item.desc) ? String(item.desc).trim() : defaultDesc;
+        var image = (item && item.image) ? String(item.image).trim() : '/cdn_assets/images/common/f1dcc87cdcca.png';
+        var external = /^https?:\/\//i.test(url);
+        var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+
+        return '' +
+            '<a class="vs-nav-preview-card" href="' + escapeHtmlText(url) + '"' + target + '>' +
+            '  <span class="vs-nav-preview-media">' +
+            '    <img src="' + escapeHtmlText(image) + '" alt="' + escapeHtmlText(name) + '">' +
+            '  </span>' +
+            '  <span class="vs-nav-preview-overlay"></span>' +
+            '  <span class="vs-nav-preview-copy">' +
+            '    <span class="vs-nav-preview-eyebrow">' + escapeHtmlText(eyebrow) + '</span>' +
+            '    <span class="vs-nav-preview-title">' + escapeHtmlText(name) + '</span>' +
+            '    <span class="vs-nav-preview-desc">' + escapeHtmlText(desc) + '</span>' +
+            '    <span class="vs-nav-preview-cta">' + escapeHtmlText(ctaText) + ' <i class="fas fa-arrow-right"></i></span>' +
+            '  </span>' +
+            '</a>';
+    }
+
+    function renderSolutionPreviewMenu(listId, contentId, items, options) {
+        var listEl = document.getElementById(listId);
+        var contentEl = document.getElementById(contentId);
+        if (!listEl || !contentEl) return;
+
+        var list = Array.isArray(items) ? items.filter(function (item) {
+            return item && item.name && item.url;
+        }) : [];
+        if (!list.length) return;
+
+        listEl.innerHTML = list.map(function (item, index) {
+            return buildSolutionPreviewTab(item, index, index === 0);
+        }).join('');
+
+        function activate(index) {
+            var safeIndex = Math.max(0, Math.min(index, list.length - 1));
+            Array.prototype.forEach.call(listEl.querySelectorAll('.vs-solution-preview-tab'), function (tab, tabIndex) {
+                tab.classList.toggle('active', tabIndex === safeIndex);
+            });
+            contentEl.innerHTML = buildSolutionPreviewCard(list[safeIndex], options);
+        }
+
+        Array.prototype.forEach.call(listEl.querySelectorAll('.vs-solution-preview-tab'), function (tab) {
+            var index = parseInt(tab.getAttribute('data-preview-index'), 10);
+            if (!Number.isFinite(index)) index = 0;
+            var activateTab = function () { activate(index); };
+            tab.addEventListener('mouseenter', activateTab);
+            tab.addEventListener('focus', activateTab);
+        });
+
+        activate(0);
+    }
+
+    function renderPaginatedNavCards(containerId, items, options) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+
+        var list = Array.isArray(items) ? items.slice() : [];
+        var pageSize = Math.max(1, parseInt(options && options.pageSize, 10) || 6);
+        var ctaText = (options && options.ctaText) ? String(options.ctaText) : '\u4e86\u89e3\u9886\u57df';
+        var emptyLabel = (options && options.emptyLabel) ? String(options.emptyLabel) : '\u6682\u65e0\u6570\u636e';
+        var page = 0;
+        var pageCount = Math.max(1, Math.ceil(list.length / pageSize));
+
+        function renderPage() {
+            if (!list.length) {
+                container.innerHTML =
+                    '<div class="vs-nav-card-shell">' +
+                    '  <p class="vs-nav-card-empty">' + escapeHtmlText(emptyLabel) + '</p>' +
+                    '</div>';
+                return;
+            }
+
+            if (page < 0) page = 0;
+            if (page > pageCount - 1) page = pageCount - 1;
+
+            var start = page * pageSize;
+            var pageItems = list.slice(start, start + pageSize);
+            var cards = pageItems.map(function (item) {
+                var itemCta = (item && item.ctaText) ? String(item.ctaText) : ctaText;
+                return buildRecommendationCard(item, null, itemCta);
+            }).join('');
+
+            var pager = '';
+            if (pageCount > 1) {
+                pager = '' +
+                    '<div class="vs-nav-card-pagination">' +
+                    '  <span class="vs-nav-card-page-label">\u7b2c ' + (page + 1) + ' / ' + pageCount + ' \u9875</span>' +
+                    '  <div class="vs-nav-card-page-controls">' +
+                    '    <button type="button" class="vs-nav-card-page-btn" data-nav-page="prev"' + (page === 0 ? ' disabled' : '') + '>\u4e0a\u4e00\u9875</button>' +
+                    '    <button type="button" class="vs-nav-card-page-btn" data-nav-page="next"' + (page >= pageCount - 1 ? ' disabled' : '') + '>\u4e0b\u4e00\u9875</button>' +
+                    '  </div>' +
+                    '</div>';
+            }
+
+            container.innerHTML =
+                '<div class="vs-nav-card-shell">' +
+                '  <div class="vs-nav-card-grid">' +
+                '    <ul class="vs-mega-list-v2 vs-mega-list-v2--cards">' + cards + '</ul>' +
+                '  </div>' +
+                pager +
+                '</div>';
+
+            Array.prototype.forEach.call(container.querySelectorAll('[data-nav-page]'), function (button) {
+                button.addEventListener('click', function () {
+                    if (button.disabled) return;
+                    page += button.getAttribute('data-nav-page') === 'next' ? 1 : -1;
+                    renderPage();
+                });
+            });
+        }
+
+        renderPage();
+    }
     function buildProductHref(product) {
         var id = String(product.id || '');
         if (!id) return '#';
@@ -386,12 +592,12 @@
         if (!grid || !Array.isArray(items) || !items.length) return;
         var html = items.slice(0, 2).map(function (item) {
             var link = (item && item.link) ? String(item.link) : '#';
-            var title = (item && item.title) ? String(item.title) : '相关新闻';
+            var title = (item && item.title) ? String(item.title) : '鐩稿叧鏂伴椈';
             var image = (item && item.image) ? String(item.image) : '/cdn_assets/images/common/f1dcc87cdcca.png';
             var desc = (item && item.desc) ? String(item.desc) : '';
             return '' +
                 '<a href="' + link + '" class="vs-news-item">' +
-                '  <img src="' + image + '" alt="新闻图片">' +
+                '  <img src="' + image + '" alt="鏂伴椈鍥剧墖">' +
                 '  <div class="vs-news-item__content">' +
                 '    <h4>' + escapeHtmlText(title) + '</h4>' +
                 '    <p>' + escapeHtmlText(desc) + '</p>' +
@@ -428,7 +634,7 @@
 
     function normalizeProductCardTitle(product) {
         return String(
-            (product && (product.cardTitle || product.displayName || product.shortName || product.name)) || '产品'
+            (product && (product.cardTitle || product.displayName || product.shortName || product.name)) || '浜у搧'
         );
     }
 
@@ -441,7 +647,7 @@
         var grid = document.querySelector('.vs-related-products .vs-related-grid');
         if (!grid) return;
         if (!Array.isArray(items) || !items.length) {
-            grid.innerHTML = '<p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">暂无相关产品</p>';
+            grid.innerHTML = '<p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">鏆傛棤鐩稿叧浜у搧</p>';
             return;
         }
 
@@ -495,132 +701,231 @@
 
     function bindGasDynamicData() {
         var jobs = [];
+        var productsForNavPromise = null;
 
         if (document.getElementById('dynamic-product-list')) {
+            productsForNavPromise = fetch('/api/products/with-settings', { credentials: 'same-origin' })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    return (data && Array.isArray(data.products)) ? data.products : [];
+                });
+
             jobs.push(
-                fetch('/api/products/with-settings', { credentials: 'same-origin' })
-                    .then(function (res) { return res.json(); })
-                    .then(function (data) {
-                        var products = (data.products || []).filter(function (p) { return !p.hidden; });
-                        if (!products.length) {
-                            safeSetHtml('dynamic-product-list', '<p style="color:#666;">暂无产品</p>');
-                            return;
-                        }
-                        var half = Math.ceil(products.length / 2);
-                        var render = function (p) {
-                            var displayName = p.displayName || p.shortName || p.name || '';
-                            var badge = p.isNew ? '<span style="background:#ff4444;color:white;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle;">NEW</span>' : '';
-                            return '<li><a href="' + buildProductHref(p) + '">' + displayName + badge + '</a></li>';
-                        };
-                        var left = products.slice(0, half).map(render).join('');
-                        var right = products.slice(half).map(render).join('');
-                        safeSetHtml('dynamic-product-list', '<div><ul class="vs-mega-list-v2">' + left + '</ul></div><div><ul class="vs-mega-list-v2">' + right + '</ul></div>');
+                productsForNavPromise
+                    .then(function (allProducts) {
+                        var products = allProducts.filter(function (p) { return !p.hidden; });
+                        renderPaginatedNavCards(
+                            'dynamic-product-list',
+                            products.map(buildProductMenuCard),
+                            {
+                                pageSize: 6,
+                                ctaText: '\u67e5\u770b\u4ea7\u54c1',
+                                emptyLabel: '\u6682\u65e0\u4ea7\u54c1'
+                            }
+                        );
                     })
                     .catch(function () {
-                        safeSetHtml('dynamic-product-list', '<p style="color:#666;">加载产品列表失败</p>');
+                        safeSetHtml('dynamic-product-list', '<p class="vs-nav-card-empty">\u52a0\u8f7d\u5931\u8d25</p>');
                     })
             );
         }
 
         if (document.getElementById('latestReleasesList') || document.getElementById('applicationAreasList')) {
+            var recommendationProductMapPromise = Promise.resolve(Object.create(null));
+            if (document.getElementById('latestReleasesList')) {
+                if (productsForNavPromise) {
+                    recommendationProductMapPromise = productsForNavPromise
+                        .then(function (allProducts) { return buildRecommendationProductMap(allProducts); })
+                        .catch(function () { return Object.create(null); });
+                } else {
+                    recommendationProductMapPromise = fetch('/api/products/with-settings', { credentials: 'same-origin' })
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) { return buildRecommendationProductMap(data.products || []); })
+                        .catch(function () { return Object.create(null); });
+                }
+            }
+
             jobs.push(
-                fetch('/api/recommendations', { credentials: 'same-origin' })
-                    .then(function (res) { return res.json(); })
-                    .then(function (data) {
-                        if (document.getElementById('latestReleasesList')) {
-                            safeSetHtml('latestReleasesList', (data.latestReleases || []).map(buildRecommendationLink).join('') || '<li><a href="#">暂无数据</a></li>');
+                Promise.all([
+                    fetch('/api/recommendations', { credentials: 'same-origin' })
+                        .then(function (res) { return res.json(); }),
+                    recommendationProductMapPromise
+                ])
+                    .then(function (results) {
+                        var data = results[0] || {};
+                        var recommendationProductMap = results[1] || Object.create(null);
+
+                        var latestListEl = document.getElementById('latestReleasesList');
+                        if (latestListEl) {
+                            latestListEl.classList.add('vs-mega-list-v2--cards');
+                            var latestItems = Array.isArray(data.latestReleases) ? data.latestReleases : [];
+                            safeSetHtml('latestReleasesList', latestItems.map(function (item) {
+                                return buildRecommendationCard(item, recommendationProductMap, '\u67e5\u770b\u65b0\u54c1');
+                            }).join('') || '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
                         }
-                        if (document.getElementById('applicationAreasList')) {
-                            safeSetHtml('applicationAreasList', (data.applicationAreas || []).map(buildRecommendationLink).join('') || '<li><a href="#">暂无数据</a></li>');
+
+                        var appListEl = document.getElementById('applicationAreasList');
+                        if (appListEl) {
+                            appListEl.classList.remove('vs-mega-list-v2--cards');
+                            safeSetHtml('applicationAreasList', (data.applicationAreas || []).map(buildRecommendationLink).join('') || '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
                         }
                     })
                     .catch(function () {
-                        if (document.getElementById('latestReleasesList')) safeSetHtml('latestReleasesList', '<li><a href="#">加载失败</a></li>');
-                        if (document.getElementById('applicationAreasList')) safeSetHtml('applicationAreasList', '<li><a href="#">加载失败</a></li>');
+                        var latestListEl = document.getElementById('latestReleasesList');
+                        if (latestListEl) {
+                            latestListEl.classList.add('vs-mega-list-v2--cards');
+                            safeSetHtml('latestReleasesList', '<li><a href="#">鍔犺浇澶辫触</a></li>');
+                        }
+                        if (document.getElementById('applicationAreasList')) safeSetHtml('applicationAreasList', '<li><a href="#">鍔犺浇澶辫触</a></li>');
                     })
             );
         }
-
-        if (document.getElementById('categoriesLeft') || document.getElementById('categoriesRight')) {
+        if (document.getElementById('solutionPreviewLinks') && document.getElementById('solutionPreviewContent')) {
+            jobs.push(
+                fetch('/api/nav-solution-previews', { credentials: 'same-origin' })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        var items = Array.isArray(data.items) ? data.items : [];
+                        if (items.length) {
+                            renderSolutionPreviewMenu('solutionPreviewLinks', 'solutionPreviewContent', items);
+                        }
+                    })
+                    .catch(function () { })
+            );
+        }
+        if (document.getElementById('researchPreviewLinks') && document.getElementById('researchPreviewContent')) {
+            jobs.push(
+                fetch('/api/nav-research-previews', { credentials: 'same-origin' })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        var items = Array.isArray(data.items) ? data.items : [];
+                        if (items.length) {
+                            renderSolutionPreviewMenu('researchPreviewLinks', 'researchPreviewContent', items, {
+                                defaultEyebrow: '\u79d1\u7814\u670d\u52a1',
+                                ctaText: '\u67e5\u770b\u670d\u52a1',
+                                defaultDesc: '\u4e86\u89e3\u8be5\u670d\u52a1\u677f\u5757\u7684\u80fd\u529b\u8303\u56f4\u3001\u5178\u578b\u573a\u666f\u4e0e\u5408\u4f5c\u65b9\u5f0f\u3002'
+                            });
+                        }
+                    })
+                    .catch(function () { })
+            );
+        }
+        if (document.getElementById('featuredCasesList')) {
+            jobs.push(
+                fetch('/api/nav-featured-cases', { credentials: 'same-origin' })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        var items = Array.isArray(data.items) ? data.items : [];
+                        var listEl = document.getElementById('featuredCasesList');
+                        if (!listEl) return;
+                        listEl.classList.add('vs-mega-list-v2--cards');
+                        safeSetHtml('featuredCasesList', items.map(function (item) {
+                            return buildRecommendationCard(item, null, '\u67e5\u770b\u6848\u4f8b');
+                        }).join('') || '<li><a href="#">\u6682\u65e0\u6570\u636e</a></li>');
+                    })
+                    .catch(function () {
+                        safeSetHtml('featuredCasesList', '<li><a href="#">\u52a0\u8f7d\u5931\u8d25</a></li>');
+                    })
+            );
+        }
+        if (document.getElementById('categoriesPanel')) {
             jobs.push(
                 fetch('/api/products/industry-filters', { credentials: 'same-origin' })
                     .then(function (res) { return res.json(); })
                     .then(function (data) {
                         var categories = Array.isArray(data.categories) ? data.categories : [];
-                        var half = Math.ceil(categories.length / 2);
-                        var left = categories.slice(0, half);
-                        var right = categories.slice(half);
-                        var render = function (cat) {
-                            return '<li><a href="/pages/gassensing/all-products.html?filter=' + encodeURIComponent(cat.key) + '">' + cat.name + '</a></li>';
-                        };
-                        if (document.getElementById('categoriesLeft')) {
-                            safeSetHtml('categoriesLeft', left.length ? left.map(render).join('') : '<li><a href="/pages/gassensing/all-products.html">全部产品</a></li>');
-                        }
-                        if (document.getElementById('categoriesRight')) {
-                            safeSetHtml('categoriesRight', right.length ? right.map(render).join('') : '');
-                        }
+                        var items = categories.map(function (category) {
+                            return {
+                                name: String((category && category.name) || '').trim(),
+                                url: String((category && category.url) || ('/pages/gassensing/all-products.html?filter=' + encodeURIComponent((category && category.key) || ''))).trim(),
+                                image: String((category && category.image) || '').trim()
+                            };
+                        }).filter(function (item) {
+                            return item.name && item.url;
+                        });
+
+                        renderPaginatedNavCards(
+                            'categoriesPanel',
+                            items,
+                            {
+                                pageSize: 6,
+                                ctaText: '\u67e5\u770b\u5206\u7c7b',
+                                emptyLabel: '\u6682\u65e0\u6570\u636e'
+                            }
+                        );
                     })
                     .catch(function () {
-                        if (document.getElementById('categoriesLeft')) safeSetHtml('categoriesLeft', '<li><a href="/pages/gassensing/all-products.html">加载失败</a></li>');
+                        safeSetHtml('categoriesPanel', '<p class="vs-nav-card-empty">\u52a0\u8f7d\u5931\u8d25</p>');
                     })
             );
         }
 
-        if (document.getElementById('measurementTargetsLeft') || document.getElementById('measurementTargetsRight')) {
+        if (document.getElementById('measurementTargetsPanel')) {
             jobs.push(
                 fetch('/api/measurement-targets', { credentials: 'same-origin' })
                     .then(function (res) { return res.json(); })
                     .then(function (data) {
                         var items = Array.isArray(data.items) ? data.items : [];
-                        var half = Math.ceil(items.length / 2);
-                        var left = items.slice(0, half);
-                        var right = items.slice(half);
-                        var render = function (item) {
-                            var url = (item && item.url) ? String(item.url) : '#';
-                            var name = (item && item.name) ? String(item.name) : '未命名';
-                            var external = /^https?:\/\//i.test(url);
-                            var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
-                            return '<li><a href="' + url + '"' + target + '>' + name + '</a></li>';
-                        };
-                        if (document.getElementById('measurementTargetsLeft')) {
-                            safeSetHtml('measurementTargetsLeft', left.length ? left.map(render).join('') : '<li><a href="#">暂无数据</a></li>');
-                        }
-                        if (document.getElementById('measurementTargetsRight')) {
-                            safeSetHtml('measurementTargetsRight', right.length ? right.map(render).join('') : '<li><a href="#">暂无数据</a></li>');
-                        }
+                        renderPaginatedNavCards(
+                            'measurementTargetsPanel',
+                            items,
+                            {
+                                pageSize: 6,
+                                ctaText: '\u66f4\u591a\u8be6\u60c5',
+                                emptyLabel: '\u6682\u65e0\u6570\u636e'
+                            }
+                        );
                     })
                     .catch(function () {
-                        if (document.getElementById('measurementTargetsLeft')) safeSetHtml('measurementTargetsLeft', '<li><a href="#">加载失败</a></li>');
-                        if (document.getElementById('measurementTargetsRight')) safeSetHtml('measurementTargetsRight', '');
+                        safeSetHtml('measurementTargetsPanel', '<p class="vs-nav-card-empty">\u52a0\u8f7d\u5931\u8d25</p>');
                     })
             );
         }
 
-        if (document.getElementById('gasIndustryLeft') || document.getElementById('gasIndustryRight')) {
+        if (document.getElementById('gasIndustryList') || document.getElementById('gasIndustryLeft') || document.getElementById('gasIndustryRight')) {
             jobs.push(
                 fetch('/api/nav-industry-categories', { credentials: 'same-origin' })
                     .then(function (res) { return res.json(); })
                     .then(function (data) {
                         var items = Array.isArray(data.items) ? data.items : [];
+                        var primaryListId = document.getElementById('gasIndustryList') ? 'gasIndustryList' : 'gasIndustryLeft';
+                        var leftEl = document.getElementById(primaryListId);
+                        var rightEl = document.getElementById('gasIndustryRight');
                         var half = Math.ceil(items.length / 2);
                         var left = items.slice(0, half);
                         var right = items.slice(half);
                         var render = function (item) {
                             var url = (item && item.url) ? String(item.url) : '#';
-                            var name = (item && item.name) ? String(item.name) : '未命名';
+                            var name = (item && item.name) ? String(item.name) : '\u672a\u547d\u540d';
                             var external = /^https?:\/\//i.test(url);
                             var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
                             return '<li><a href="' + url + '"' + target + '>' + name + '</a></li>';
                         };
+                        render = function (item) {
+                            return buildRecommendationCard(item, null);
+                        };
+                        if (leftEl) {
+                            leftEl.classList.add('vs-mega-list-v2--cards', 'vs-mega-list-v2--single-column');
+                            if (leftEl.id === 'gasIndustryList' && !rightEl) {
+                                safeSetHtml('gasIndustryList', items.length ? items.map(render).join('') : '<li><a href="#">\u6682\u65e0\u6570\u636e</a></li>');
+                                return;
+                            }
+                            if (leftEl.id === 'gasIndustryList') {
+                                safeSetHtml('gasIndustryList', left.length ? left.map(render).join('') : '<li><a href="#">\u6682\u65e0\u6570\u636e</a></li>');
+                            }
+                        }
+                        if (rightEl) {
+                            rightEl.classList.add('vs-mega-list-v2--cards', 'vs-mega-list-v2--single-column');
+                        }
                         if (document.getElementById('gasIndustryLeft')) {
-                            safeSetHtml('gasIndustryLeft', left.length ? left.map(render).join('') : '<li><a href="#">暂无数据</a></li>');
+                            safeSetHtml('gasIndustryLeft', left.length ? left.map(render).join('') : '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
                         }
                         if (document.getElementById('gasIndustryRight')) {
-                            safeSetHtml('gasIndustryRight', right.length ? right.map(render).join('') : '<li><a href="#">暂无数据</a></li>');
+                            safeSetHtml('gasIndustryRight', right.length ? right.map(render).join('') : '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
                         }
                     })
                     .catch(function () {
-                        if (document.getElementById('gasIndustryLeft')) safeSetHtml('gasIndustryLeft', '<li><a href="#">加载失败</a></li>');
+                        if (document.getElementById('gasIndustryLeft')) safeSetHtml('gasIndustryLeft', '<li><a href="#">鍔犺浇澶辫触</a></li>');
                         if (document.getElementById('gasIndustryRight')) safeSetHtml('gasIndustryRight', '');
                     })
             );
@@ -640,7 +945,7 @@
     }
 
     function bindBioDynamicData() {
-        // 保持现状等价：生物导航仅保留交互绑定，不强行注入 admin 领域分类逻辑。
+        // 淇濇寔鐜扮姸绛変环锛氱敓鐗╁鑸粎淇濈暀浜や簰缁戝畾锛屼笉寮鸿娉ㄥ叆 admin 棰嗗煙鍒嗙被閫昏緫銆?
         return Promise.resolve();
     }
 
@@ -677,3 +982,4 @@
         boot();
     }
 })();
+

@@ -30,6 +30,7 @@ except Exception:
 
 ADMIN_PERMISSION_CATALOG = [
     {'key': 'messages', 'label': '仪表盘'},
+    {'key': 'site-reports', 'label': '网站报表'},
     {'key': 'home', 'label': '首页设置'},
     {'key': 'h2-home', 'label': '氢气首页'},
     {'key': 'products', 'label': '氢气产品'},
@@ -147,6 +148,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'settings'
     if p.startswith('/api/admin/security/turnstile') or p.startswith('/api/cdn/'):
         return 'site-settings'
+    if p.startswith('/api/admin/site-reports'):
+        return 'site-reports'
     if p.startswith('/api/admin/changelog'):
         return 'changelog'
     if p.startswith('/api/backup/'):

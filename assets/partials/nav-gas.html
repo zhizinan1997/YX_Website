@@ -40,12 +40,6 @@
                                             <li><a href="#">加载中...</a></li>
                                         </ul>
                                     </div>
-                                    <div>
-                                        <span class="vs-mega-sublist-title">应用领域</span>
-                                        <ul class="vs-mega-list-v2" id="applicationAreasList">
-                                            <li><a href="#">加载中...</a></li>
-                                        </ul>
-                                    </div>
                                 </div>
                                 <div class="vs-mega-action">
                                     <a href="#" class="vs-btn-search vs-search-trigger">搜索产品 <i
@@ -58,7 +52,7 @@
                                 <h3>行业分类</h3>
                                 <div class="vs-mega-grid-v2">
                                     <div>
-                                        <ul class="vs-mega-list-v2" id="gasIndustryLeft">
+                                        <ul class="vs-mega-list-v2" id="gasIndustryList">
                                             <li><a href="#">加载中...</a></li>
                                         </ul>
                                     </div>
@@ -73,7 +67,7 @@
                             <!-- Panel: Target -->
                             <div id="panel-target" class="vs-mega-panel">
                                 <h3>测量对象</h3>
-                                <div class="vs-mega-grid-v2">
+                                <div class="vs-mega-grid-v2" id="measurementTargetsPanel">
                                     <div>
                                         <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
                                             <li><a href="#">加载中...</a></li>
@@ -122,37 +116,88 @@
                 </li>
                 <li class="vs-nav__item vs-nav__item--has-mega">
                     <a href="/pages/solutions/solutions-index.html" class="vs-nav__link">解决方案</a>
-                    <div class="vs-mega-menu vs-mega-menu--links">
-                        <div class="vs-mega-sidebar">
-                            <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
-                                href="/pages/solutions/industry-hydrogen.html">氢能源产业链</a>
-                            <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                href="/pages/solutions/industry-power-safety.html">智慧电力安全</a>
-                            <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                href="/pages/solutions/industry-leak-detection.html">工业检漏监测</a>
-                            <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                href="/pages/solutions/industry-energy-storage.html">绿色能源存储</a>
-                            <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                href="/pages/solutions/industry-environment.html">大气环境监测</a>
+                    <div class="vs-mega-menu vs-mega-menu--solution-preview">
+                        <div class="vs-mega-sidebar vs-mega-sidebar--solution-preview">
+                            <div class="vs-solution-preview-list" id="solutionPreviewLinks">
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab active"
+                                    onmouseover="activateLinkTab(this)" href="/pages/solutions/industry-hydrogen.html">
+                                    <span>氢能源产业链</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab"
+                                    onmouseover="activateLinkTab(this)" href="/pages/solutions/industry-power-safety.html">
+                                    <span>智慧电力安全</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab"
+                                    onmouseover="activateLinkTab(this)" href="/pages/solutions/industry-leak-detection.html">
+                                    <span>工业检漏监测</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab"
+                                    onmouseover="activateLinkTab(this)" href="/pages/solutions/industry-energy-storage.html">
+                                    <span>绿色能源存储</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab"
+                                    onmouseover="activateLinkTab(this)" href="/pages/solutions/industry-environment.html">
+                                    <span>大气环境监测</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                            </div>
+                            <a class="vs-solution-preview-all" href="/pages/solutions/solutions-index.html">
+                                <span>查看所有方案</span><i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                        <div class="vs-mega-content vs-mega-content--solution-preview" id="solutionPreviewContent">
+                            <a class="vs-nav-preview-card" href="/pages/solutions/industry-hydrogen.html">
+                                <span class="vs-nav-preview-media">
+                                    <img src="/cdn_assets/images/common/81cab4116fe4.png" alt="氢能源产业链">
+                                </span>
+                                <span class="vs-nav-preview-overlay"></span>
+                                <span class="vs-nav-preview-copy">
+                                    <span class="vs-nav-preview-eyebrow">解决方案</span>
+                                    <span class="vs-nav-preview-title">氢能源产业链</span>
+                                    <span class="vs-nav-preview-desc">元芯传感氢能安全解决方案</span>
+                                    <span class="vs-nav-preview-cta">查看方案 <i class="fas fa-arrow-right"></i></span>
+                                </span>
+                            </a>
                         </div>
                     </div>
                 </li>
                 <li class="vs-nav__item vs-nav__item--has-mega">
                     <a href="/pages/research/index.html" class="vs-nav__link">科研服务</a>
-                    <div class="vs-mega-menu vs-mega-menu--links">
-                        <div class="vs-mega-sidebar">
-                            <a class="vs-mega-tab vs-mega-tab-link active" onmouseover="activateLinkTab(this)"
-                                href="/pages/research/micro-nano.html">传感器微纳加工</a>
-                            <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                href="/pages/research/development.html">传感器开发、测试与应用</a>
-                            <a class="vs-mega-tab vs-mega-tab-link" onmouseover="activateLinkTab(this)"
-                                href="/pages/research/cooperation.html">产学研深度合作</a>
+                    <div class="vs-mega-menu vs-mega-menu--solution-preview">
+                        <div class="vs-mega-sidebar vs-mega-sidebar--solution-preview">
+                            <div class="vs-solution-preview-list" id="researchPreviewLinks">
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab active"
+                                    onmouseover="activateLinkTab(this)" href="/pages/research/micro-nano.html">
+                                    <span>传感器微纳加工</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab"
+                                    onmouseover="activateLinkTab(this)" href="/pages/research/development.html">
+                                    <span>传感器开发、测试与应用</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                                <a class="vs-mega-tab vs-mega-tab-link vs-solution-preview-tab"
+                                    onmouseover="activateLinkTab(this)" href="/pages/research/cooperation.html">
+                                    <span>产学研深度合作</span><i class="fas fa-chevron-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="vs-mega-content vs-mega-content--solution-preview" id="researchPreviewContent">
+                            <a class="vs-nav-preview-card" href="/pages/research/micro-nano.html">
+                                <span class="vs-nav-preview-media">
+                                    <img src="/cdn_assets/images/common/19dcf7b13b11.jpg" alt="传感器微纳加工">
+                                </span>
+                                <span class="vs-nav-preview-overlay"></span>
+                                <span class="vs-nav-preview-copy">
+                                    <span class="vs-nav-preview-eyebrow">科研服务</span>
+                                    <span class="vs-nav-preview-title">传感器微纳加工</span>
+                                    <span class="vs-nav-preview-desc">高灵活性、高精度的“共享超净间”服务</span>
+                                    <span class="vs-nav-preview-cta">查看服务 <i class="fas fa-arrow-right"></i></span>
+                                </span>
+                            </a>
                         </div>
                     </div>
                 </li>
                 <li class="vs-nav__item vs-nav__item--has-mega">
                     <a href="/pages/gassensing/service-cases.html" class="vs-nav__link">服务案例</a>
-                    <div class="vs-mega-menu vs-mega-menu--contact">
+                    <div class="vs-mega-menu vs-mega-menu--contact vs-mega-menu--cases">
                         <div class="vs-mega-sidebar">
                             <div class="vs-mega-tab active" onmouseover="showPanelCases('featured', this)">
                                 精选案例 <i class="fas fa-chevron-right"></i>
@@ -165,15 +210,9 @@
                             <!-- Panel: Featured -->
                             <div id="panel-cases-featured" class="vs-mega-panel active">
                                 <h3>精选案例</h3>
-                                <div class="vs-mega-grid-v2">
-                                    <ul class="vs-mega-list-v2">
-                                        <li><a href="/pages/gassensing/cases/case-1-truck.html">氢能重卡氢气检测</a></li>
-                                        <li><a href="/pages/gassensing/cases/case-6-train.html">氢能源列车检测</a></li>
-                                        <li><a href="/pages/gassensing/cases/case-4-pipeline-safety.html">输氢管道人员安全</a>
-                                        </li>
-                                        <li><a href="/pages/gassensing/cases/case-12-gas-system.html">科研实验室配气</a></li>
-                                        <li><a href="/pages/gassensing/cases/case-13-diesel-engine.html">柴油机真空检漏</a>
-                                        </li>
+                                <div class="vs-mega-grid-v2" id="featuredCasesPanel">
+                                    <ul class="vs-mega-list-v2" id="featuredCasesList">
+                                        <li><a href="#">加载中...</a></li>
                                     </ul>
                                 </div>
                             </div>

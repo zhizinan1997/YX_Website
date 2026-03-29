@@ -394,6 +394,7 @@
             font-size: 14px;
             margin: 0 0 16px;
             word-break: break-word;
+            white-space: pre-line;
         }
 
         .login-fail-actions {
@@ -447,6 +448,17 @@
             flex-direction: column;
             flex-shrink: 0;
             transition: width 0.2s ease;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.42);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 1200;
         }
 
         .sidebar-header {
@@ -531,6 +543,37 @@
             position: sticky;
             top: 0;
             z-index: 10;
+        }
+
+        .top-bar-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #d4dbe6;
+            background: #fff;
+            color: #1f3655;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+        }
+
+        .mobile-menu-btn:hover {
+            border-color: #9fb3d1;
+            background: #f5f9ff;
+        }
+
+        .mobile-menu-btn:focus-visible {
+            outline: 2px solid rgba(15, 47, 95, 0.35);
+            outline-offset: 2px;
         }
 
         .top-bar-actions {
@@ -694,15 +737,100 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--text-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                position: relative;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: min(82vw, 320px);
+                max-width: 320px;
+                height: 100vh;
+                z-index: 1300;
+                transform: translateX(-110%);
+                transition: transform 0.24s ease, box-shadow 0.24s ease;
+                box-shadow: none;
+            }
+
+            body.mobile-sidebar-open .sidebar {
+                transform: translateX(0);
+                box-shadow: 0 20px 44px rgba(2, 6, 23, 0.36);
+            }
+
+            body.mobile-sidebar-open .sidebar-overlay {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+            }
+
+            .main-content {
+                width: 100%;
+            }
+
+            .sidebar-footer {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: inline-flex;
+            }
+
+            body.sidebar-collapsed .sidebar {
+                width: min(82vw, 320px);
+            }
+
+            body.sidebar-collapsed .sidebar-header {
+                justify-content: flex-start;
+                padding: 0 20px;
+            }
+
+            body.sidebar-collapsed .sidebar-header .sidebar-title-text {
+                display: inline;
+            }
+
+            body.sidebar-collapsed .menu-item {
+                justify-content: flex-start;
+                padding: 15px 25px;
+                gap: 15px;
+                font-size: 14px;
+            }
+
+            body.sidebar-collapsed .menu-item i {
+                width: 20px;
+                font-size: 16px;
+            }
         }
 
         @media (max-width: 768px) {
             .top-bar {
-                padding: 0 16px;
-                gap: 10px;
+                height: auto;
+                min-height: 62px;
+                padding: 10px 12px;
+                gap: 8px;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+
+            .top-bar-main {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+
+            .page-title {
+                font-size: 16px;
             }
 
             .top-bar-actions {
+                margin-left: auto;
                 gap: 8px;
             }
 
@@ -714,6 +842,312 @@
             .account-menu-trigger {
                 padding: 7px 10px;
                 font-size: 13px;
+            }
+
+            #topbarUsername {
+                display: none;
+            }
+
+            .content-area {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .stat-card {
+                padding: 14px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+
+            .table-container {
+                -webkit-overflow-scrolling: touch;
+            }
+
+            th,
+            td {
+                padding: 11px 12px;
+            }
+
+            .table-container:not(.products-manage-scroll) {
+                overflow-x: visible;
+            }
+
+            .table-container table:not(.products-manage-table) {
+                width: 100%;
+                min-width: 0;
+                border-collapse: separate;
+                border-spacing: 0 10px;
+            }
+
+            table[data-mobile-card="1"] {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100%;
+                border-collapse: separate !important;
+                border-spacing: 0 10px !important;
+                table-layout: auto !important;
+            }
+
+            .table-container table:not(.products-manage-table) thead {
+                display: none;
+            }
+
+            table[data-mobile-card="1"] thead {
+                display: none !important;
+            }
+
+            .table-container table:not(.products-manage-table) tbody,
+            .table-container table:not(.products-manage-table) tr,
+            .table-container table:not(.products-manage-table) td {
+                display: block;
+                width: 100%;
+            }
+
+            table[data-mobile-card="1"] tbody,
+            table[data-mobile-card="1"] tr,
+            table[data-mobile-card="1"] td {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .table-container table:not(.products-manage-table) tr {
+                background: #fff;
+                border: 1px solid #e5e7eb;
+                border-radius: 10px;
+                padding: 8px 10px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                margin-bottom: 10px;
+            }
+
+            table[data-mobile-card="1"] tr {
+                background: #fff !important;
+                border: 1px solid #e5e7eb !important;
+                border-radius: 10px !important;
+                padding: 8px 10px !important;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                margin-bottom: 10px;
+            }
+
+            .table-container table:not(.products-manage-table) td {
+                border: 0;
+                padding: 7px 0;
+                font-size: 13px;
+                display: flex;
+                gap: 12px;
+                align-items: flex-start;
+                justify-content: space-between;
+                text-align: right;
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            table[data-mobile-card="1"] td {
+                border: 0 !important;
+                padding: 7px 0 !important;
+                font-size: 13px;
+                display: flex !important;
+                gap: 12px;
+                align-items: flex-start;
+                justify-content: space-between;
+                text-align: right !important;
+                white-space: normal !important;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+
+            .table-container table:not(.products-manage-table) td::before {
+                content: attr(data-label);
+                color: #64748b;
+                font-size: 12px;
+                font-weight: 600;
+                text-align: left;
+                flex: 0 0 84px;
+                max-width: 40%;
+            }
+
+            table[data-mobile-card="1"] td::before {
+                content: attr(data-label);
+                color: #64748b;
+                font-size: 12px;
+                font-weight: 600;
+                text-align: left;
+                flex: 0 0 84px;
+                max-width: 40%;
+            }
+
+            .table-container table:not(.products-manage-table) td.no-data {
+                display: block;
+                text-align: center;
+                padding: 14px 6px;
+            }
+
+            table[data-mobile-card="1"] td.no-data {
+                display: block !important;
+                text-align: center !important;
+                padding: 14px 6px !important;
+            }
+
+            .table-container table:not(.products-manage-table) td.no-data::before {
+                content: '';
+                display: none;
+            }
+
+            table[data-mobile-card="1"] td.no-data::before {
+                content: '';
+                display: none !important;
+            }
+
+            .table-container table:not(.products-manage-table) td .btn-sm {
+                width: auto;
+                white-space: normal;
+            }
+
+            table[data-mobile-card="1"] td .btn-sm {
+                width: auto;
+                white-space: normal;
+            }
+
+            .content-area [style*="grid-template-columns: repeat("],
+            .content-area [style*="grid-template-columns:repeat("] {
+                grid-template-columns: 1fr !important;
+            }
+
+            .content-area [style*="display:flex"][style*="justify-content: space-between"],
+            .content-area [style*="display:flex"][style*="justify-content:space-between"],
+            .content-area [style*="display: flex"][style*="justify-content: space-between"],
+            .content-area [style*="display: flex"][style*="justify-content:space-between"],
+            .content-area [style*="display:flex"][style*="gap:"],
+            .content-area [style*="display: flex"][style*="gap:"] {
+                flex-wrap: wrap !important;
+            }
+
+            .content-area [style*="min-width: 1180px"],
+            .content-area [style*="min-width:1180px"],
+            .content-area [style*="min-width: 320px"],
+            .content-area [style*="min-width:320px"],
+            .content-area [style*="min-width: 300px"],
+            .content-area [style*="min-width:300px"],
+            .content-area [style*="min-width: 280px"],
+            .content-area [style*="min-width:280px"],
+            .content-area [style*="min-width: 240px"],
+            .content-area [style*="min-width:240px"],
+            .content-area [style*="min-width: 220px"],
+            .content-area [style*="min-width:220px"],
+            .content-area [style*="min-width: 200px"],
+            .content-area [style*="min-width:200px"] {
+                min-width: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .tabs,
+            .msg-tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
+                padding-bottom: 4px;
+            }
+
+            .tab-btn,
+            .msg-tab-btn {
+                flex: 0 0 auto;
+            }
+
+            .file-item {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 10px;
+                align-items: start;
+            }
+
+            .file-item .file-info {
+                min-width: 0;
+            }
+
+            .file-item .file-meta {
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+
+            .hero-item {
+                display: grid;
+                grid-template-columns: 24px minmax(0, 1fr);
+                grid-template-areas:
+                    "handle preview"
+                    "handle meta"
+                    "handle action";
+                gap: 8px 10px;
+                align-items: start;
+                padding: 10px;
+            }
+
+            .hero-item .drag-handle {
+                grid-area: handle;
+                align-self: center;
+                padding: 4px 2px;
+            }
+
+            .hero-item .hero-preview {
+                grid-area: preview;
+                width: 100%;
+                max-width: none;
+                height: 92px;
+            }
+
+            .hero-item .hero-meta {
+                grid-area: meta;
+                min-width: 0;
+            }
+
+            .hero-item .hero-url {
+                margin-top: 3px;
+                line-height: 1.45;
+            }
+
+            .hero-item .btn-sm {
+                grid-area: action;
+                justify-self: start;
+            }
+
+            .msg-detail-modal {
+                padding: 12px;
+            }
+
+            .msg-detail-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .msg-detail-label {
+                padding-top: 0;
+            }
+
+            .news-editor-surface,
+            .news-editor-source {
+                min-height: 260px !important;
+                max-height: 420px;
+            }
+
+            #newsCreateForm,
+            #jobForm {
+                grid-template-columns: 1fr !important;
+                gap: 16px !important;
+            }
+
+            [style*="grid-template-columns: 1fr 1fr"],
+            [style*="grid-template-columns:1fr 1fr"],
+            [style*="grid-template-columns: 1fr 2fr"],
+            [style*="grid-template-columns:1fr 2fr"],
+            [style*="grid-template-columns: 1fr 1fr 1fr"],
+            [style*="grid-template-columns:1fr 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
             }
         }
 
@@ -1074,7 +1508,9 @@
         .hero-url {
             font-size: 12px;
             color: #666;
-            word-break: break-all;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.5;
             margin-top: 4px;
         }
 
@@ -1596,6 +2032,224 @@
             font-size: 14px;
         }
 
+        .site-report-card {
+            padding: 22px;
+        }
+
+        .metric-with-help {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .metric-help-btn {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1px solid #bfd2ef;
+            background: #f4f8ff;
+            color: #0f2f5f;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .metric-help-btn:hover {
+            background: #e7f0ff;
+        }
+
+        .site-report-toolbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .site-report-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .site-report-label {
+            font-size: 13px;
+            color: #4b5563;
+            font-weight: 600;
+        }
+
+        .site-report-range-select {
+            width: 140px;
+            min-width: 120px;
+            padding: 9px 10px;
+        }
+
+        .site-report-refresh-btn {
+            width: auto;
+            padding: 10px 18px;
+            white-space: nowrap;
+        }
+
+        .site-report-meta {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 12px;
+        }
+
+        .site-report-trend {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+            padding: 12px;
+        }
+
+        .site-report-line-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .site-report-line-svg {
+            width: 100%;
+            height: 260px;
+            display: block;
+        }
+
+        .site-report-line-grid {
+            stroke: #dce5f2;
+            stroke-width: 1;
+        }
+
+        .site-report-line-axis {
+            stroke: #94a3b8;
+            stroke-width: 1.2;
+        }
+
+        .site-report-line-pv {
+            fill: none;
+            stroke: #2563eb;
+            stroke-width: 2.2;
+        }
+
+        .site-report-line-uv {
+            fill: none;
+            stroke: #0f766e;
+            stroke-width: 2;
+        }
+
+        .site-report-line-point-pv {
+            fill: #2563eb;
+        }
+
+        .site-report-line-point-uv {
+            fill: #0f766e;
+        }
+
+        .site-report-line-label {
+            font-size: 10.5px;
+            fill: #64748b;
+        }
+
+        .site-report-line-y-label {
+            font-size: 10px;
+            fill: #64748b;
+        }
+
+        .site-report-line-legend {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #334155;
+        }
+
+        .site-report-line-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .site-report-line-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            display: inline-block;
+        }
+
+        .site-report-line-legend-dot.pv {
+            background: #2563eb;
+        }
+
+        .site-report-line-legend-dot.uv {
+            background: #0f766e;
+        }
+
+        .site-report-line-summary {
+            margin-top: 8px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        .site-report-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .site-report-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 10px;
+        }
+
+        .site-report-page-info {
+            font-size: 12px;
+            color: #64748b;
+            min-width: 76px;
+            text-align: center;
+        }
+
+        .site-report-page-btn {
+            width: auto;
+            padding: 5px 10px;
+            border: 1px solid #bfd2ef;
+            border-radius: 6px;
+            background: #f4f8ff;
+            color: #0f2f5f;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .site-report-page-btn:hover {
+            background: #e7f0ff;
+        }
+
+        .site-report-page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f8fafc;
+        }
+
+        @media (max-width: 900px) {
+            .site-report-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media (max-width: 768px) {
             .changelog-hero {
                 flex-direction: column;
@@ -1629,6 +2283,34 @@
                 width: 26px;
                 height: 26px;
                 font-size: 11px;
+            }
+
+            .site-report-card {
+                padding: 16px;
+            }
+
+            .site-report-actions {
+                width: 100%;
+            }
+
+            .site-report-range-select {
+                width: 100%;
+            }
+
+            .site-report-refresh-btn {
+                width: 100%;
+            }
+
+            .site-report-trend {
+                padding: 10px;
+            }
+
+            .site-report-line-svg {
+                height: 220px;
+            }
+
+            .site-report-pagination {
+                justify-content: space-between;
             }
         }
 
@@ -1933,6 +2615,9 @@
                 <div class="menu-item active" data-view="messages" onclick="switchView('messages')">
                     <i class="fas fa-envelope"></i> 仪表盘
                 </div>
+                <div class="menu-item" data-view="site-reports" onclick="switchView('site-reports')">
+                    <i class="fas fa-chart-line"></i> 网站报表
+                </div>
                 <div class="menu-item" data-view="home" onclick="switchView('home')">
                     <i class="fas fa-home"></i> 首页设置
                 </div>
@@ -1978,10 +2663,17 @@
                 </button>
             </div>
         </div>
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()" aria-hidden="true"></div>
 
         <div class="main-content">
             <div class="top-bar">
-                <div class="page-title" id="pageTitle">仪表盘</div>
+                <div class="top-bar-main">
+                    <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()"
+                        aria-label="Toggle menu" aria-expanded="false">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="page-title" id="pageTitle">仪表盘</div>
+                </div>
                 <div class="top-bar-actions">
                     <a class="top-home-btn" href="/" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-external-link-alt"></i>
@@ -2908,40 +3600,33 @@
                                 <code>../gassensing/ld_h2_detector.html</code>。
                             </p>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                                <div>
-                                    <h4 style="margin-bottom: 15px; color: #333;">最新发布</h4>
-                                    <div class="form-group">
-                                        <label>第一个链接</label>
-                                        <input type="text" id="latest1Name" class="form-control" placeholder="名称">
-                                        <input type="text" id="latest1Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>第二个链接</label>
-                                        <input type="text" id="latest2Name" class="form-control" placeholder="名称">
-                                        <input type="text" id="latest2Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                    </div>
+                            <div>
+                                <h4 style="margin-bottom: 15px; color: #333;">最新发布（4项）</h4>
+                                <div class="form-group">
+                                    <label>第一个链接</label>
+                                    <input type="text" id="latest1Name" class="form-control" placeholder="名称">
+                                    <input type="text" id="latest1Url" class="form-control"
+                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
                                 </div>
-
-                                <div>
-                                    <h4 style="margin-bottom: 15px; color: #333;">应用领域</h4>
-                                    <div class="form-group">
-                                        <label>第一个链接</label>
-                                        <input type="text" id="app1Name" class="form-control" placeholder="名称">
-                                        <input type="text" id="app1Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>第二个链接</label>
-                                        <input type="text" id="app2Name" class="form-control" placeholder="名称">
-                                        <input type="text" id="app2Url" class="form-control"
-                                            placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                    </div>
+                                <div class="form-group">
+                                    <label>第二个链接</label>
+                                    <input type="text" id="latest2Name" class="form-control" placeholder="名称">
+                                    <input type="text" id="latest2Url" class="form-control"
+                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
+                                </div>
+                                <div class="form-group">
+                                    <label>第三个链接</label>
+                                    <input type="text" id="latest3Name" class="form-control" placeholder="名称">
+                                    <input type="text" id="latest3Url" class="form-control"
+                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
+                                </div>
+                                <div class="form-group">
+                                    <label>第四个链接</label>
+                                    <input type="text" id="latest4Name" class="form-control" placeholder="名称">
+                                    <input type="text" id="latest4Url" class="form-control"
+                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
                                 </div>
                             </div>
-
                             <button onclick="saveRecommendations()" class="btn-primary"
                                 style="width: auto; padding: 12px 30px; margin-top: 20px;">保存设置</button>
                             <div id="recommendationsMsg" style="margin-top: 10px; color: #28a745;"></div>
@@ -3676,7 +4361,7 @@
 
                         <div id="subAccountsManageArea" style="display:none;">
                             <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                                权限与侧边栏一一对应：<code>仪表盘、首页设置、氢气首页、氢气产品、氢气方案、添加资讯、招聘信息、智能客服、站点设置、账号设置、备份恢复、更新日志</code>。
+                                权限与侧边栏一一对应：<code>仪表盘、网站报表、首页设置、氢气首页、氢气产品、氢气方案、添加资讯、招聘信息、智能客服、站点设置、账号设置、备份恢复、更新日志</code>。
                             </div>
 
                             <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
@@ -3863,6 +4548,213 @@
                     </div>
                 </div>
 
+                <!-- Site Reports View -->
+                <div id="view-site-reports" class="view-section">
+                    <div class="card site-report-card">
+                        <div class="site-report-toolbar">
+                            <div>
+                                <h3 class="section-header" style="margin-bottom: 0;">网站统计报表</h3>
+                                <div class="form-hint">基础分析 + 完整分析：PV/UV、来源、设备、会话、跳出率、转化与事件趋势</div>
+                            </div>
+                            <div class="site-report-actions">
+                                <label for="siteReportRangeDays" class="site-report-label">时间范围</label>
+                                <select id="siteReportRangeDays" class="form-control site-report-range-select"
+                                    onchange="loadSiteReports(true)">
+                                    <option value="24h">最近24小时</option>
+                                    <option value="7">最近 7 天</option>
+                                    <option value="30" selected>最近 30 天</option>
+                                    <option value="90">最近 90 天</option>
+                                    <option value="180">最近 180 天</option>
+                                </select>
+                                <button type="button" class="btn-primary site-report-refresh-btn" id="siteReportRefreshBtn"
+                                    onclick="loadSiteReports(true)">
+                                    <i class="fas fa-sync-alt"></i> 刷新报表
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid" id="siteReportKpiGrid">
+                            <div class="stat-card">
+                                <div class="stat-label metric-with-help">页面浏览量 (PV)<button type="button" class="metric-help-btn"
+                                        onclick="showSiteMetricHelp('pv')" aria-label="页面浏览量说明">?</button></div>
+                                <div class="stat-value" id="siteReportPv">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label metric-with-help">独立访客 (UV)<button type="button" class="metric-help-btn"
+                                        onclick="showSiteMetricHelp('uv')" aria-label="独立访客说明">?</button></div>
+                                <div class="stat-value" id="siteReportUv">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label metric-with-help">会话数<button type="button" class="metric-help-btn"
+                                        onclick="showSiteMetricHelp('sessions')" aria-label="会话数说明">?</button></div>
+                                <div class="stat-value" id="siteReportSessions">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label metric-with-help">平均会话时长<button type="button" class="metric-help-btn"
+                                        onclick="showSiteMetricHelp('avg_session_duration')" aria-label="平均会话时长说明">?</button></div>
+                                <div class="stat-value" id="siteReportAvgSession">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label metric-with-help">跳出率<button type="button" class="metric-help-btn"
+                                        onclick="showSiteMetricHelp('bounce_rate')" aria-label="跳出率说明">?</button></div>
+                                <div class="stat-value" id="siteReportBounceRate">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label metric-with-help">转化事件<button type="button" class="metric-help-btn"
+                                        onclick="showSiteMetricHelp('conversion_events')" aria-label="转化事件说明">?</button></div>
+                                <div class="stat-value" id="siteReportConversions">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label metric-with-help">转化率<button type="button" class="metric-help-btn"
+                                        onclick="showSiteMetricHelp('conversion_rate')" aria-label="转化率说明">?</button></div>
+                                <div class="stat-value" id="siteReportConversionRate">-</div>
+                            </div>
+                        </div>
+
+                        <div id="siteReportLastUpdated" class="site-report-meta">-</div>
+                        <div id="siteReportMsg" class="error-message" style="color:#28a745;"></div>
+                    </div>
+
+                    <div class="card site-report-card" style="margin-top: 18px;">
+                        <h3 class="section-header metric-with-help">每日趋势<button type="button" class="metric-help-btn"
+                                onclick="showSiteMetricHelp('trend')" aria-label="每日趋势说明">?</button></h3>
+                        <div id="siteReportTrend" class="site-report-trend"></div>
+                    </div>
+
+                    <div class="site-report-grid">
+                        <div class="card site-report-card">
+                            <h3 class="section-header">来源分布</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th><span class="metric-with-help">来源<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('source')" aria-label="来源说明">?</button></span></th>
+                                            <th><span class="metric-with-help">会话数<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('source_sessions')" aria-label="来源会话数说明">?</button></span></th>
+                                            <th><span class="metric-with-help">占比<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('source_ratio')" aria-label="来源占比说明">?</button></span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="siteReportSourceBody">
+                                        <tr>
+                                            <td colspan="3" class="no-data">暂无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card site-report-card">
+                            <h3 class="section-header">设备分布</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th><span class="metric-with-help">设备<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('device')" aria-label="设备说明">?</button></span></th>
+                                            <th><span class="metric-with-help">会话数<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('device_sessions')" aria-label="设备会话数说明">?</button></span></th>
+                                            <th><span class="metric-with-help">占比<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('device_ratio')" aria-label="设备占比说明">?</button></span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="siteReportDeviceBody">
+                                        <tr>
+                                            <td colspan="3" class="no-data">暂无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card site-report-card" style="margin-top: 18px;">
+                        <h3 class="section-header">热门页面</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th><span class="metric-with-help">页面<button type="button" class="metric-help-btn"
+                                                    onclick="showSiteMetricHelp('page_name')" aria-label="页面说明">?</button></span></th>
+                                        <th><span class="metric-with-help">PV<button type="button" class="metric-help-btn"
+                                                    onclick="showSiteMetricHelp('page_pv')" aria-label="页面PV说明">?</button></span></th>
+                                        <th><span class="metric-with-help">UV<button type="button" class="metric-help-btn"
+                                                    onclick="showSiteMetricHelp('page_uv')" aria-label="页面UV说明">?</button></span></th>
+                                        <th><span class="metric-with-help">会话<button type="button" class="metric-help-btn"
+                                                    onclick="showSiteMetricHelp('page_sessions')" aria-label="页面会话说明">?</button></span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="siteReportPagesBody">
+                                    <tr>
+                                        <td colspan="4" class="no-data">暂无数据</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="site-report-grid">
+                        <div class="card site-report-card">
+                            <h3 class="section-header">热门事件</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th><span class="metric-with-help">事件名<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('event_name')" aria-label="事件名说明">?</button></span></th>
+                                            <th><span class="metric-with-help">次数<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('event_count')" aria-label="事件次数说明">?</button></span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="siteReportEventsBody">
+                                        <tr>
+                                            <td colspan="2" class="no-data">暂无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="site-report-pagination">
+                                <button type="button" class="site-report-page-btn" id="siteReportEventsPrevBtn"
+                                    onclick="changeSiteReportEventPage(-1)">上一页</button>
+                                <span class="site-report-page-info" id="siteReportEventsPageInfo">第 0 / 0 页</span>
+                                <button type="button" class="site-report-page-btn" id="siteReportEventsNextBtn"
+                                    onclick="changeSiteReportEventPage(1)">下一页</button>
+                            </div>
+                        </div>
+
+                        <div class="card site-report-card">
+                            <h3 class="section-header">最近事件</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th><span class="metric-with-help">时间<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('recent_time')" aria-label="最近事件时间说明">?</button></span></th>
+                                            <th><span class="metric-with-help">事件<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('recent_event')" aria-label="最近事件说明">?</button></span></th>
+                                            <th><span class="metric-with-help">页面<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('recent_path')" aria-label="最近事件页面说明">?</button></span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="siteReportRecentBody">
+                                        <tr>
+                                            <td colspan="3" class="no-data">暂无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="site-report-pagination">
+                                <button type="button" class="site-report-page-btn" id="siteReportRecentPrevBtn"
+                                    onclick="changeSiteReportRecentPage(-1)">上一页</button>
+                                <span class="site-report-page-info" id="siteReportRecentPageInfo">第 0 / 0 页</span>
+                                <button type="button" class="site-report-page-btn" id="siteReportRecentNextBtn"
+                                    onclick="changeSiteReportRecentPage(1)">下一页</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Backup View -->
                 <div id="view-backup" class="view-section">
                     <div class="card" style="padding: 30px;">
@@ -3970,6 +4862,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script>
         const SIDEBAR_COLLAPSE_KEY = 'yx_admin_sidebar_collapsed';
         const ADMIN_LAST_VIEW_KEY = 'yx_admin_last_view';
+        const MOBILE_NAV_BREAKPOINT = 1024;
         const CHANGELOG_FALLBACK = {
             version: 'v1.0.0',
             build_time: document.lastModified || '',
@@ -3988,6 +4881,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let globalActionResolver = null;
         const DEFAULT_PERMISSION_CATALOG = [
             { key: 'messages', label: '仪表盘' },
+            { key: 'site-reports', label: '网站报表' },
             { key: 'home', label: '首页设置' },
             { key: 'h2-home', label: '氢气首页' },
             { key: 'products', label: '氢气产品' },
@@ -4006,6 +4900,13 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             is_super_admin: false,
             permissions: []
         };
+        let siteReportsRangeKey = '30';
+        let siteReportsLoading = false;
+        const SITE_REPORT_EVENT_PAGE_SIZE = 8;
+        let siteReportEventRowsAll = [];
+        let siteReportRecentRowsAll = [];
+        let siteReportEventPage = 1;
+        let siteReportRecentPage = 1;
 
         function updateTopbarAccountDisplay() {
             const usernameEl = document.getElementById('topbarUsername');
@@ -4391,8 +5292,95 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeAccountMenu();
+                closeMobileSidebar();
             }
         });
+        window.addEventListener('resize', () => {
+            syncSidebarModeForViewport();
+        }, { passive: true });
+        let responsiveTableLabelObserver = null;
+        let responsiveTableLabelQueued = false;
+
+        function isMobileAdminViewport() {
+            return window.matchMedia(`(max-width: ${MOBILE_NAV_BREAKPOINT}px)`).matches;
+        }
+
+        function applyResponsiveTableLabels(scope = document) {
+            const root = scope && scope.querySelectorAll ? scope : document;
+            const tables = root.querySelectorAll('table');
+            tables.forEach((table) => {
+                const isProductsManageTable = table.classList.contains('products-manage-table');
+                const headers = Array.from(table.querySelectorAll('thead th'))
+                    .map((th) => String((th.textContent || '')).trim());
+                const hasBody = !!table.querySelector('tbody');
+                const isDataTable = !isProductsManageTable && hasBody && headers.length > 0;
+                if (isDataTable) {
+                    table.setAttribute('data-mobile-card', '1');
+                } else {
+                    table.removeAttribute('data-mobile-card');
+                }
+                if (!isDataTable) return;
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach((row) => {
+                    const cells = Array.from(row.children).filter((el) => el.tagName === 'TD');
+                    if (!cells.length) return;
+                    if (cells.length === 1 && Number(cells[0].colSpan || 1) > 1) {
+                        cells[0].setAttribute('data-label', '');
+                        return;
+                    }
+                    cells.forEach((cell, idx) => {
+                        const label = headers[idx] || '';
+                        if (label) {
+                            cell.setAttribute('data-label', label);
+                        } else {
+                            cell.removeAttribute('data-label');
+                        }
+                    });
+                });
+            });
+        }
+
+        function queueResponsiveTableLabels() {
+            if (responsiveTableLabelQueued) return;
+            responsiveTableLabelQueued = true;
+            requestAnimationFrame(() => {
+                responsiveTableLabelQueued = false;
+                applyResponsiveTableLabels(document);
+            });
+        }
+
+        function initResponsiveTableLabels() {
+            if (responsiveTableLabelObserver) return;
+            const dashboard = document.getElementById('dashboard');
+            if (!dashboard) return;
+            queueResponsiveTableLabels();
+            responsiveTableLabelObserver = new MutationObserver(() => {
+                queueResponsiveTableLabels();
+            });
+            responsiveTableLabelObserver.observe(dashboard, { childList: true, subtree: true });
+        }
+
+        function setMobileMenuExpanded(expanded) {
+            const btnEl = document.getElementById('mobileMenuBtn');
+            if (btnEl) {
+                btnEl.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            }
+        }
+
+        function setMobileSidebarOpen(open) {
+            if (!isMobileAdminViewport()) {
+                document.body.classList.remove('mobile-sidebar-open');
+                setMobileMenuExpanded(false);
+                return;
+            }
+            const willOpen = !!open;
+            document.body.classList.toggle('mobile-sidebar-open', willOpen);
+            setMobileMenuExpanded(willOpen);
+        }
+
+        function closeMobileSidebar() {
+            setMobileSidebarOpen(false);
+        }
 
         function updateSidebarToggleButton() {
             const textEl = document.getElementById('sidebarToggleText');
@@ -4412,7 +5400,24 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        function syncSidebarModeForViewport() {
+            if (isMobileAdminViewport()) {
+                setSidebarCollapsed(false, false);
+                setMobileSidebarOpen(false);
+                return;
+            }
+            document.body.classList.remove('mobile-sidebar-open');
+            setMobileMenuExpanded(false);
+            const collapsed = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
+            setSidebarCollapsed(collapsed, false);
+        }
+
         function toggleSidebar() {
+            if (isMobileAdminViewport()) {
+                const opened = document.body.classList.contains('mobile-sidebar-open');
+                setMobileSidebarOpen(!opened);
+                return;
+            }
             const collapsed = document.body.classList.contains('sidebar-collapsed');
             setSidebarCollapsed(!collapsed, true);
         }
@@ -4729,8 +5734,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         function showDashboard() {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('dashboard').style.display = 'flex';
-            const collapsed = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
-            setSidebarCollapsed(collapsed, false);
+            syncSidebarModeForViewport();
+            initResponsiveTableLabels();
+            queueResponsiveTableLabels();
             applySidebarPermissions();
             syncSubAccountManageVisibility();
             startAdminSessionWatcher();
@@ -4742,6 +5748,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'product-tab-add': '设置说明：本页为“产品列表”管理，可在下方设置卡片标题/图片/摘要与显示状态。',
             'product-tab-ai': '设置说明：先填写资料并点击“AI 生成完整HTML”，确认源码后点击“保存为产品页面文件”。',
             'view-hydrogen-solutions': '设置说明：为氢能产业链、智慧电力安全、工业检漏监测方案分别设置 1-4 个“相关产品”，保存后对应前台方案页会按方案展示。',
+            'view-site-reports': '设置说明：本页展示网站基础统计和完整分析报表；可切换时间范围查看趋势、来源、设备、页面与行为事件。',
             'home-tab-hero': '设置说明：用于管理官网首页轮播，支持上传和 CDN；调整顺序后保存即可生效。',
             'home-tab-partners': '设置说明：用于管理合作伙伴 Logo，支持上传与链接，拖拽可调整展示顺序。',
             'home-tab-news': '设置说明：选择首页展示的 3 条资讯，保存后首页资讯区会同步更新。',
@@ -4897,6 +5904,549 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        function formatSiteReportNumber(value) {
+            const num = Number(value || 0);
+            if (!Number.isFinite(num)) return '0';
+            return num.toLocaleString('zh-CN');
+        }
+
+        function formatSiteReportPercent(value) {
+            const num = Number(value || 0);
+            if (!Number.isFinite(num)) return '0%';
+            return `${num.toFixed(2)}%`;
+        }
+
+        function formatSiteReportDuration(seconds) {
+            const sec = Math.max(0, Math.round(Number(seconds || 0)));
+            if (!sec) return '0秒';
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            if (h > 0) return `${h}小时 ${m}分钟`;
+            if (m > 0) return `${m}分钟 ${s}秒`;
+            return `${s}秒`;
+        }
+
+        const SITE_REPORT_METRIC_HELP = {
+            pv: {
+                title: '页面浏览量 (PV)',
+                meaning: '统计范围内，页面被浏览的总次数；同一访客重复浏览会重复计数。',
+                formula: 'PV = pageview 事件总数（按时间范围过滤）'
+            },
+            uv: {
+                title: '独立访客 (UV)',
+                meaning: '统计范围内，去重后的访客数量（按 visitor_id 去重）。',
+                formula: 'UV = 去重(visitor_id) 计数'
+            },
+            sessions: {
+                title: '会话数',
+                meaning: '统计范围内，至少产生 1 次页面浏览的会话数量。',
+                formula: '会话数 = 去重(session_id 且 pageview>=1) 计数'
+            },
+            avg_session_duration: {
+                title: '平均会话时长',
+                meaning: '每个会话的停留时长平均值，反映访问深度。',
+                formula: '平均会话时长 = 所有会话时长之和 / 会话数；单会话时长取 max(最后事件时间-首次事件时间, session_end 上报时长)'
+            },
+            bounce_rate: {
+                title: '跳出率',
+                meaning: '只看了 1 个页面就离开的会话占比。',
+                formula: '跳出率 = (pageview<=1 的会话数 / 会话总数) × 100%'
+            },
+            conversion_events: {
+                title: '转化事件',
+                meaning: '统计范围内记录到的转化总次数。',
+                formula: '转化事件 = 转化类事件次数 + 转化页面命中次数（会话累计）'
+            },
+            conversion_rate: {
+                title: '转化率',
+                meaning: '发生过至少 1 次转化的会话占总会话的比例。',
+                formula: '转化率 = (发生转化的会话数 / 会话总数) × 100%'
+            },
+            trend: {
+                title: '每日趋势',
+                meaning: '趋势图用于观察流量变化；最近24小时按小时聚合，其余范围按天聚合。',
+                formula: '24h：每小时聚合 PV/UV；7/30/90/180天：按天聚合 PV/UV'
+            },
+            source: {
+                title: '来源',
+                meaning: '会话来源分类（直接、搜索、社交、外部引荐、投放等）。',
+                formula: '依据 UTM 参数与 referrer 域名规则归类'
+            },
+            source_sessions: {
+                title: '来源-会话数',
+                meaning: '每个来源分类对应的会话数量。',
+                formula: '会话数 = 该来源分类下去重(session_id) 计数'
+            },
+            source_ratio: {
+                title: '来源-占比',
+                meaning: '每个来源在总会话中的比例。',
+                formula: '占比 = 来源会话数 / 总会话数 × 100%'
+            },
+            device: {
+                title: '设备',
+                meaning: '终端设备类型分类（桌面、移动、平板）。',
+                formula: '根据 User-Agent 关键词规则分类'
+            },
+            device_sessions: {
+                title: '设备-会话数',
+                meaning: '每类设备对应的会话数量。',
+                formula: '会话数 = 该设备分类下去重(session_id) 计数'
+            },
+            device_ratio: {
+                title: '设备-占比',
+                meaning: '每类设备在总会话中的比例。',
+                formula: '占比 = 设备会话数 / 总会话数 × 100%'
+            },
+            page_name: {
+                title: 'Top 页面-页面',
+                meaning: '被访问最多的页面路径（优先显示页面标题）。',
+                formula: '按页面 pageview 数降序排序取 Top N'
+            },
+            page_pv: {
+                title: 'Top 页面-PV',
+                meaning: '该页面在统计范围内的浏览总次数。',
+                formula: 'PV = 该 page_path 对应 pageview 事件数'
+            },
+            page_uv: {
+                title: 'Top 页面-UV',
+                meaning: '访问该页面的独立访客数量。',
+                formula: 'UV = 该 page_path 下去重(visitor_id) 计数'
+            },
+            page_sessions: {
+                title: 'Top 页面-会话',
+                meaning: '访问该页面的会话数量。',
+                formula: '会话 = 该 page_path 下去重(session_id) 计数'
+            },
+            event_name: {
+                title: 'Top 事件-事件名',
+                meaning: '行为事件名称（已做中文映射，保留自定义事件）。',
+                formula: '来自 event 事件的 event_name 字段'
+            },
+            event_count: {
+                title: 'Top 事件-次数',
+                meaning: '该事件在统计范围内的触发总次数。',
+                formula: '次数 = event_name 匹配的事件记录数量'
+            },
+            recent_time: {
+                title: '最近事件-时间',
+                meaning: '事件发生时间（北京时间）。',
+                formula: '由事件时间戳转换为北京时间'
+            },
+            recent_event: {
+                title: '最近事件-事件',
+                meaning: '最近触发的事件名称（中文化展示）。',
+                formula: '优先使用 event_name；无名称时按事件类型显示'
+            },
+            recent_path: {
+                title: '最近事件-页面',
+                meaning: '事件发生时所在的页面路径。',
+                formula: '取事件记录中的 page_path 字段'
+            }
+        };
+
+        function showSiteMetricHelp(metricKey) {
+            const key = String(metricKey || '').trim();
+            const item = SITE_REPORT_METRIC_HELP[key] || {
+                title: '指标说明',
+                meaning: '该指标用于辅助理解报表。',
+                formula: '按当前报表数据源进行聚合计算'
+            };
+            const text = `含义：${item.meaning}\n计算方法：${item.formula}`;
+            showGlobalAlert(text, `${item.title} · 说明`);
+        }
+
+        function formatSiteReportEventName(rawName, rawType = '') {
+            const name = String(rawName || '').trim().toLowerCase();
+            const type = String(rawType || '').trim().toLowerCase();
+            const map = {
+                page_view: '页面浏览',
+                scroll_depth: '滚动深度',
+                engaged_15s: '停留 15 秒',
+                click_link: '点击链接',
+                click_button: '点击按钮',
+                contact_submit: '提交联系表单',
+                job_apply: '提交招聘申请',
+                form_submit: '提交表单',
+                phone_click: '点击电话',
+                email_click: '点击邮箱',
+                quote_request: '提交询价',
+                request_demo: '提交演示申请',
+                download_brochure: '下载资料',
+                session_end: '会话结束'
+            };
+
+            if (name && map[name]) return map[name];
+            if (name.startsWith('conversion_')) {
+                const tail = name.slice('conversion_'.length);
+                const tailText = map[tail] || `自定义转化(${tail})`;
+                return `转化：${tailText}`;
+            }
+            if (!name) {
+                if (type === 'pageview') return '页面浏览';
+                if (type === 'session_end') return '会话结束';
+                return '行为事件';
+            }
+            return `自定义事件(${name})`;
+        }
+
+        function setSiteReportsLoading(isLoading) {
+            siteReportsLoading = !!isLoading;
+            const btn = document.getElementById('siteReportRefreshBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-sync-alt fa-spin"></i> 加载中...'
+                : '<i class="fas fa-sync-alt"></i> 刷新报表';
+        }
+
+        function renderSiteReportKpis(summary) {
+            const safe = summary && typeof summary === 'object' ? summary : {};
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+            setText('siteReportPv', formatSiteReportNumber(safe.pageviews));
+            setText('siteReportUv', formatSiteReportNumber(safe.unique_visitors));
+            setText('siteReportSessions', formatSiteReportNumber(safe.sessions));
+            setText('siteReportAvgSession', formatSiteReportDuration(safe.avg_session_duration_sec));
+            setText('siteReportBounceRate', formatSiteReportPercent(safe.bounce_rate));
+            setText('siteReportConversions', formatSiteReportNumber(safe.conversion_events));
+            setText('siteReportConversionRate', formatSiteReportPercent(safe.conversion_rate));
+        }
+
+        function renderSiteReportTrend(rows) {
+            const wrap = document.getElementById('siteReportTrend');
+            if (!wrap) return;
+            const items = Array.isArray(rows) ? rows : [];
+            if (!items.length) {
+                wrap.innerHTML = '<div class="no-data">暂无趋势数据</div>';
+                return;
+            }
+            const prepared = items.map((item) => ({
+                date: String(item?.date || ''),
+                pv: Math.max(0, Number(item?.pageviews || 0)),
+                uv: Math.max(0, Number(item?.unique_visitors || 0)),
+            }));
+            const maxValue = Math.max(1, ...prepared.map(item => Math.max(item.pv, item.uv)));
+
+            const width = Math.max(920, prepared.length * 34);
+            const height = 240;
+            const padding = { left: 48, right: 18, top: 16, bottom: 34 };
+            const plotWidth = Math.max(1, width - padding.left - padding.right);
+            const plotHeight = Math.max(1, height - padding.top - padding.bottom);
+
+            const toX = (idx) => {
+                if (prepared.length <= 1) return padding.left + plotWidth / 2;
+                return padding.left + (idx / (prepared.length - 1)) * plotWidth;
+            };
+            const toY = (value) => padding.top + ((maxValue - value) / maxValue) * plotHeight;
+
+            const pvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.pv).toFixed(2)}`).join(' ');
+            const uvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.uv).toFixed(2)}`).join(' ');
+
+            const gridLines = [];
+            for (let i = 0; i <= 4; i += 1) {
+                const ratio = i / 4;
+                const y = padding.top + ratio * plotHeight;
+                const val = Math.round(maxValue * (1 - ratio));
+                gridLines.push(`<line class="site-report-line-grid" x1="${padding.left}" y1="${y.toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${y.toFixed(2)}"></line>`);
+                gridLines.push(`<text class="site-report-line-y-label" x="${(padding.left - 6).toFixed(2)}" y="${(y + 3).toFixed(2)}" text-anchor="end">${escapeHtml(formatSiteReportNumber(val))}</text>`);
+            }
+
+            const labelStep = Math.max(1, Math.ceil(prepared.length / 10));
+            const xLabels = prepared.map((item, idx) => {
+                const isLast = idx === prepared.length - 1;
+                const isFirst = idx === 0;
+                const shouldShow = isFirst || isLast || (idx % labelStep === 0);
+                if (!shouldShow) return '';
+                const x = toX(idx);
+                const label = item.date.length >= 5 ? item.date.slice(5) : item.date;
+                return `<text class="site-report-line-label" x="${x.toFixed(2)}" y="${(height - 10).toFixed(2)}" text-anchor="middle">${escapeHtml(label)}</text>`;
+            }).join('');
+
+            const drawPoints = prepared.length <= 60;
+            const pvDots = drawPoints
+                ? prepared.map((item, idx) => `<circle class="site-report-line-point-pv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.pv).toFixed(2)}" r="2.4"></circle>`).join('')
+                : '';
+            const uvDots = drawPoints
+                ? prepared.map((item, idx) => `<circle class="site-report-line-point-uv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.uv).toFixed(2)}" r="2.2"></circle>`).join('')
+                : '';
+
+            const lastItem = prepared[prepared.length - 1] || { date: '-', pv: 0, uv: 0 };
+            const lastLabel = lastItem.date.length >= 5 ? lastItem.date.slice(5) : lastItem.date;
+            const summary = `最近一天(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
+
+            wrap.innerHTML = `
+                <div class="site-report-line-wrap">
+                    <svg class="site-report-line-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="每日趋势折线图">
+                        ${gridLines.join('')}
+                        <line class="site-report-line-axis" x1="${padding.left}" y1="${(padding.top + plotHeight).toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${(padding.top + plotHeight).toFixed(2)}"></line>
+                        <polyline class="site-report-line-pv" points="${pvPoints}"></polyline>
+                        <polyline class="site-report-line-uv" points="${uvPoints}"></polyline>
+                        ${pvDots}
+                        ${uvDots}
+                        ${xLabels}
+                    </svg>
+                </div>
+                <div class="site-report-line-legend">
+                    <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot pv"></i>PV</span>
+                    <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot uv"></i>UV</span>
+                </div>
+                <div class="site-report-line-summary">${escapeHtml(summary)}</div>
+            `;
+        }
+
+        function renderSiteReportRows() {
+            const sourceBody = document.getElementById('siteReportSourceBody');
+            const deviceBody = document.getElementById('siteReportDeviceBody');
+            const pagesBody = document.getElementById('siteReportPagesBody');
+            if (sourceBody) sourceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
+            if (deviceBody) deviceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
+            if (pagesBody) pagesBody.innerHTML = '<tr><td colspan="4" class="no-data">暂无数据</td></tr>';
+            siteReportEventRowsAll = [];
+            siteReportRecentRowsAll = [];
+            siteReportEventPage = 1;
+            siteReportRecentPage = 1;
+            renderSiteReportEventTablePage();
+            renderSiteReportRecentTablePage();
+        }
+
+        function updateSiteReportPager(totalRows, pageSize, currentPage, infoEl, prevBtn, nextBtn) {
+            const totalPages = totalRows > 0 ? Math.ceil(totalRows / pageSize) : 0;
+            const safePage = totalPages > 0 ? Math.min(Math.max(1, currentPage), totalPages) : 0;
+            if (infoEl) infoEl.textContent = `第 ${safePage} / ${totalPages} 页`;
+            if (prevBtn) prevBtn.disabled = totalPages <= 1 || safePage <= 1;
+            if (nextBtn) nextBtn.disabled = totalPages <= 1 || safePage >= totalPages;
+            return { totalPages, page: safePage };
+        }
+
+        function renderSiteReportEventTablePage() {
+            const tbody = document.getElementById('siteReportEventsBody');
+            const infoEl = document.getElementById('siteReportEventsPageInfo');
+            const prevBtn = document.getElementById('siteReportEventsPrevBtn');
+            const nextBtn = document.getElementById('siteReportEventsNextBtn');
+            if (!tbody) return;
+
+            const allRows = Array.isArray(siteReportEventRowsAll) ? siteReportEventRowsAll : [];
+            const pager = updateSiteReportPager(allRows.length, SITE_REPORT_EVENT_PAGE_SIZE, siteReportEventPage, infoEl, prevBtn, nextBtn);
+            if (!pager.totalPages) {
+                tbody.innerHTML = '<tr><td colspan="2" class="no-data">暂无事件数据</td></tr>';
+                siteReportEventPage = 1;
+                return;
+            }
+
+            siteReportEventPage = pager.page;
+            const start = (siteReportEventPage - 1) * SITE_REPORT_EVENT_PAGE_SIZE;
+            const pageRows = allRows.slice(start, start + SITE_REPORT_EVENT_PAGE_SIZE);
+            tbody.innerHTML = pageRows.map((item) => {
+                const eventName = formatSiteReportEventName(item?.name || '', 'event');
+                return `
+                    <tr>
+                        <td>${escapeHtml(eventName)}</td>
+                        <td>${formatSiteReportNumber(item?.count)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderSiteReportRecentTablePage() {
+            const tbody = document.getElementById('siteReportRecentBody');
+            const infoEl = document.getElementById('siteReportRecentPageInfo');
+            const prevBtn = document.getElementById('siteReportRecentPrevBtn');
+            const nextBtn = document.getElementById('siteReportRecentNextBtn');
+            if (!tbody) return;
+
+            const allRows = Array.isArray(siteReportRecentRowsAll) ? siteReportRecentRowsAll : [];
+            const pager = updateSiteReportPager(allRows.length, SITE_REPORT_EVENT_PAGE_SIZE, siteReportRecentPage, infoEl, prevBtn, nextBtn);
+            if (!pager.totalPages) {
+                tbody.innerHTML = '<tr><td colspan="3" class="no-data">暂无最近事件</td></tr>';
+                siteReportRecentPage = 1;
+                return;
+            }
+
+            siteReportRecentPage = pager.page;
+            const start = (siteReportRecentPage - 1) * SITE_REPORT_EVENT_PAGE_SIZE;
+            const pageRows = allRows.slice(start, start + SITE_REPORT_EVENT_PAGE_SIZE);
+            tbody.innerHTML = pageRows.map((item) => {
+                const eventName = formatSiteReportEventName(item?.name || '', item?.type || '');
+                const path = String(item?.path || '-');
+                return `
+                    <tr>
+                        <td>${escapeHtml(String(item?.timestamp || '-'))}</td>
+                        <td>${escapeHtml(eventName)}</td>
+                        <td title="${escapeHtml(path)}">${escapeHtml(path)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function changeSiteReportEventPage(delta) {
+            const move = Number(delta || 0);
+            if (!move) return;
+            siteReportEventPage += move;
+            renderSiteReportEventTablePage();
+            queueResponsiveTableLabels();
+        }
+
+        function changeSiteReportRecentPage(delta) {
+            const move = Number(delta || 0);
+            if (!move) return;
+            siteReportRecentPage += move;
+            renderSiteReportRecentTablePage();
+            queueResponsiveTableLabels();
+        }
+
+        function renderSiteReports(payload) {
+            const data = payload && typeof payload === 'object' ? payload : {};
+            const sourceLabels = {
+                direct: '直接访问',
+                internal: '站内跳转',
+                referral: '外部引荐',
+                search: '搜索引擎',
+                social: '社交媒体',
+                paid: '广告投放',
+                email: '邮件营销',
+                affiliate: '联盟推广',
+                display: '展示广告',
+                campaign: '活动投放'
+            };
+            const deviceLabels = {
+                desktop: '桌面端',
+                mobile: '移动端',
+                tablet: '平板',
+                unknown: '未知'
+            };
+
+            renderSiteReportKpis(data.summary || {});
+            renderSiteReportTrend(data.trend || []);
+
+            const sourceBody = document.getElementById('siteReportSourceBody');
+            const sourceRows = Array.isArray(data.source_breakdown) ? data.source_breakdown : [];
+            if (sourceBody) {
+                if (!sourceRows.length) {
+                    sourceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无来源数据</td></tr>';
+                } else {
+                    sourceBody.innerHTML = sourceRows.map((item) => {
+                        const sourceKey = String(item?.source || '').toLowerCase();
+                        const sourceText = sourceLabels[sourceKey] || sourceKey || '未知';
+                        return `
+                            <tr>
+                                <td>${escapeHtml(sourceText)}</td>
+                                <td>${formatSiteReportNumber(item?.sessions)}</td>
+                                <td>${formatSiteReportPercent(item?.ratio)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const deviceBody = document.getElementById('siteReportDeviceBody');
+            const deviceRows = Array.isArray(data.device_breakdown) ? data.device_breakdown : [];
+            if (deviceBody) {
+                if (!deviceRows.length) {
+                    deviceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无设备数据</td></tr>';
+                } else {
+                    deviceBody.innerHTML = deviceRows.map((item) => {
+                        const deviceKey = String(item?.device || '').toLowerCase();
+                        const deviceText = deviceLabels[deviceKey] || deviceKey || '未知';
+                        return `
+                            <tr>
+                                <td>${escapeHtml(deviceText)}</td>
+                                <td>${formatSiteReportNumber(item?.sessions)}</td>
+                                <td>${formatSiteReportPercent(item?.ratio)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const pagesBody = document.getElementById('siteReportPagesBody');
+            const pageRows = Array.isArray(data.top_pages) ? data.top_pages : [];
+            if (pagesBody) {
+                if (!pageRows.length) {
+                    pagesBody.innerHTML = '<tr><td colspan="4" class="no-data">暂无页面数据</td></tr>';
+                } else {
+                    pagesBody.innerHTML = pageRows.map((item) => {
+                        const path = String(item?.path || '/');
+                        const title = String(item?.title || '');
+                        const pageLabel = title ? `${title} (${path})` : path;
+                        return `
+                            <tr>
+                                <td title="${escapeHtml(pageLabel)}">${escapeHtml(pageLabel)}</td>
+                                <td>${formatSiteReportNumber(item?.pageviews)}</td>
+                                <td>${formatSiteReportNumber(item?.unique_visitors)}</td>
+                                <td>${formatSiteReportNumber(item?.sessions)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const eventRows = Array.isArray(data.top_events) ? data.top_events : [];
+            const recentRows = Array.isArray(data.recent_events) ? data.recent_events : [];
+            siteReportEventRowsAll = eventRows;
+            siteReportRecentRowsAll = recentRows;
+            siteReportEventPage = 1;
+            siteReportRecentPage = 1;
+            renderSiteReportEventTablePage();
+            renderSiteReportRecentTablePage();
+
+            const updatedEl = document.getElementById('siteReportLastUpdated');
+            if (updatedEl) {
+                const rawRangeKey = String(data.range_key || siteReportsRangeKey || '30').trim();
+                const rangeLabel = String(data.range_label || '').trim()
+                    || (rawRangeKey === '24h'
+                        ? '最近24小时'
+                        : `最近 ${Number(data.range_days || rawRangeKey || 30)} 天`);
+                const generatedAt = formatChangelogTime(data.generated_at) || String(data.generated_at || '-');
+                updatedEl.textContent = `统计范围：${rangeLabel} · 数据更新时间：${generatedAt}`;
+            }
+        }
+
+        async function loadSiteReports(manual = false) {
+            if (siteReportsLoading) return;
+            const rangeEl = document.getElementById('siteReportRangeDays');
+            if (rangeEl) {
+                const value = String(rangeEl.value || '').trim();
+                siteReportsRangeKey = value || '30';
+            }
+
+            const msgEl = document.getElementById('siteReportMsg');
+            if (msgEl) {
+                msgEl.style.color = '#28a745';
+                msgEl.textContent = '';
+            }
+
+            setSiteReportsLoading(true);
+            try {
+                const res = await fetch(`/api/admin/site-reports?range_days=${encodeURIComponent(siteReportsRangeKey)}`, { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `加载报表失败（HTTP ${res.status || '-'}）`));
+                }
+                renderSiteReports(data);
+                if (msgEl && manual) {
+                    msgEl.style.color = '#28a745';
+                    msgEl.textContent = '报表已刷新';
+                }
+            } catch (err) {
+                console.error('Load site reports failed:', err);
+                renderSiteReportRows();
+                const message = String(err?.message || '加载报表失败');
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = message;
+                }
+                if (manual) {
+                    showGlobalAlert(message);
+                }
+            } finally {
+                setSiteReportsLoading(false);
+                queueResponsiveTableLabels();
+            }
+        }
+
         // --- Navigation ---
         function switchView(viewName, options = {}) {
             const persist = options && options.persist !== false;
@@ -4929,6 +6479,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'jobs': '招聘信息',
                 'chatbot': '智能客服',
                 'site-settings': '站点设置',
+                'site-reports': '网站报表',
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'changelog': '更新日志'
@@ -4954,10 +6505,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 loadCdnSettings();
                 loadTurnstileAdminConfig();
             }
+            if (viewName === 'site-reports') loadSiteReports();
             if (viewName === 'settings') loadSubAccounts();
             if (viewName === 'changelog') loadChangelog();
 
             renderGuidesForView(viewName);
+            if (isMobileAdminViewport()) {
+                closeMobileSidebar();
+            }
+            queueResponsiveTableLabels();
         }
 
         // --- Products Logic ---
@@ -5682,7 +7238,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             list.innerHTML = aiUploadedImageUrls.map((url, index) => `
                 <div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#fff;">
                     <img src="${url}" alt="product-image-${index + 1}" style="width:100%; height:90px; object-fit:cover; border-radius:6px; background:#f8fafc;">
-                    <div style="margin-top:6px; font-size:11px; color:#475569; word-break:break-all;">${escapeHtml(url)}</div>
+                    <div style="margin-top:6px; font-size:11px; color:#475569; overflow-wrap:anywhere; word-break:break-word;">${escapeHtml(url)}</div>
                 </div>
             `).join('');
         }
@@ -7131,22 +8687,13 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             try {
                 const res = await fetch('/api/recommendations');
                 const data = await res.json();
+                const latest = Array.isArray(data.latestReleases) ? data.latestReleases : [];
 
-                // 填充最新发布
-                if (data.latestReleases && data.latestReleases.length >= 2) {
-                    document.getElementById('latest1Name').value = data.latestReleases[0].name || '';
-                    document.getElementById('latest1Url').value = data.latestReleases[0].url || '';
-                    document.getElementById('latest2Name').value = data.latestReleases[1].name || '';
-                    document.getElementById('latest2Url').value = data.latestReleases[1].url || '';
-                }
-
-                // 填充应用领域
-                if (data.applicationAreas && data.applicationAreas.length >= 2) {
-                    document.getElementById('app1Name').value = data.applicationAreas[0].name || '';
-                    document.getElementById('app1Url').value = data.applicationAreas[0].url || '';
-                    document.getElementById('app2Name').value = data.applicationAreas[1].name || '';
-                    document.getElementById('app2Url').value = data.applicationAreas[1].url || '';
-                }
+                [1, 2, 3, 4].forEach((idx) => {
+                    const item = latest[idx - 1] || {};
+                    document.getElementById(`latest${idx}Name`).value = item.name || '';
+                    document.getElementById(`latest${idx}Url`).value = item.url || '';
+                });
             } catch (e) {
                 console.error('Load recommendations error:', e);
             }
@@ -7162,22 +8709,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 return false;
             };
 
-            const data = {
-                latestReleases: [
-                    { name: document.getElementById('latest1Name').value.trim(), url: document.getElementById('latest1Url').value.trim() },
-                    { name: document.getElementById('latest2Name').value.trim(), url: document.getElementById('latest2Url').value.trim() }
-                ],
-                applicationAreas: [
-                    { name: document.getElementById('app1Name').value.trim(), url: document.getElementById('app1Url').value.trim() },
-                    { name: document.getElementById('app2Name').value.trim(), url: document.getElementById('app2Url').value.trim() }
-                ]
-            };
+            const latestReleases = [1, 2, 3, 4].map((idx) => ({
+                name: document.getElementById(`latest${idx}Name`).value.trim(),
+                url: document.getElementById(`latest${idx}Url`).value.trim()
+            }));
 
-            const allItems = [...data.latestReleases, ...data.applicationAreas];
-            const invalid = allItems.find(item => !item.name || !isValidRecommendationUrl(item.url));
+            const invalid = latestReleases.find(item => !item.name || !isValidRecommendationUrl(item.url));
             if (invalid) {
                 document.getElementById('recommendationsMsg').style.color = '#dc3545';
-                document.getElementById('recommendationsMsg').textContent = '请填写名称，并使用相对路径或 https 链接';
+                document.getElementById('recommendationsMsg').textContent = '请填写 4 个产品名称，并使用相对路径或 https 链接';
                 return;
             }
 
@@ -7185,7 +8725,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 const res = await fetch('/api/recommendations', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ latestReleases })
                 });
                 const result = await res.json();
                 if (result.success) {
@@ -11755,3 +13295,4 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 </body>
 
 </html>
+

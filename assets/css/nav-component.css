@@ -214,6 +214,31 @@ body.mc-nav-mobile-open {
   display: block;
 }
 
+#panel-list {
+  position: relative;
+}
+
+#panel-list > div:last-child {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-top: 0 !important;
+}
+
+#panel-list .vs-mega-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#panel-list .vs-mega-view-all i {
+  margin-left: 0 !important;
+  font-size: 12px;
+}
+
 @keyframes mcNavFadeIn {
   from {
     opacity: 0;
@@ -270,6 +295,210 @@ body.mc-nav-mobile-open {
   padding-left: 5px;
 }
 
+.vs-mega-grid-v2#recommendationsPanel {
+  grid-template-columns: 1fr;
+}
+
+.vs-mega-list-v2--cards {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vs-mega-list-v2--single-column {
+  grid-template-columns: 1fr;
+}
+
+.vs-nav-card-grid {
+  width: 100%;
+}
+
+.vs-nav-card-shell {
+  grid-column: 1 / -1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-nav-card-grid .vs-mega-list-v2--cards {
+  margin: 0;
+}
+
+.vs-nav-card-empty {
+  margin: 24px 0 0;
+  color: #64748b;
+  text-align: center;
+  font-size: 14px;
+}
+
+.vs-nav-card-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #dce9f8;
+}
+
+.vs-nav-card-page-label {
+  font-size: 12px;
+  color: #5c7594;
+  letter-spacing: 0.04em;
+}
+
+.vs-nav-card-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.vs-nav-card-page-btn {
+  min-width: 76px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #cfe0f3;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff 0%, #f4f8fc 100%);
+  color: #1f4d7f;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.vs-nav-card-page-btn:hover:not(:disabled) {
+  border-color: #8eb4dd;
+  box-shadow: 0 8px 18px rgba(15, 69, 123, 0.12);
+  transform: translateY(-1px);
+}
+
+.vs-nav-card-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+@media (max-width: 767px) {
+  #panel-list > div:last-child {
+    position: static;
+    margin-top: 12px !important;
+  }
+
+  .vs-nav-card-pagination {
+    flex-wrap: wrap;
+  }
+
+  .vs-nav-card-page-controls {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .vs-nav-card-page-btn {
+    flex: 1 1 0;
+  }
+}
+
+.vs-mega-list-v2--cards li {
+  margin: 0;
+}
+
+.vs-mega-list-v2--cards .vs-recommend-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 80px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: color 0.18s ease;
+}
+
+.vs-mega-list-v2--cards .vs-recommend-link:hover {
+  color: #0f457b;
+  padding-left: 6px;
+  box-shadow: none;
+  transform: none;
+}
+
+.vs-recommend-thumb {
+  width: 72px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex: 0 0 72px;
+  border: 0;
+  background: transparent;
+}
+
+.vs-recommend-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.vs-recommend-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vs-recommend-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+}
+
+.vs-recommend-title {
+    font-size: 14px;
+    color: #1f3a56;
+    font-weight: 600;
+    line-height: 1.35;
+    min-width: 0;
+    flex: 1 1 auto;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.vs-recommend-badge {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ff6b5f 0%, #e3362c 100%);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    line-height: 1.5;
+}
+
+.vs-recommend-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #476f9b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .vs-mega-action {
   margin-top: 30px;
   padding-top: 25px;
@@ -300,11 +529,24 @@ body.mc-nav-mobile-open {
   min-height: 280px;
 }
 
+.vs-mega-menu--cases {
+  width: min(760px, calc(100vw - 48px));
+  min-height: 360px;
+}
+
 .vs-mega-menu--contact .vs-mega-sidebar {
   width: 180px;
 }
 
 .vs-mega-menu--contact .vs-mega-grid-v2 {
+  grid-template-columns: 1fr;
+}
+
+.vs-mega-menu--cases .vs-mega-content {
+  padding: 32px 34px;
+}
+
+#featuredCasesPanel {
   grid-template-columns: 1fr;
 }
 
@@ -326,6 +568,194 @@ body.mc-nav-mobile-open {
 .vs-mega-tab-link {
   text-decoration: none;
   color: #444;
+}
+
+.vs-mega-menu--solution-preview {
+  width: min(900px, calc(100vw - 48px));
+  min-width: 780px;
+  min-height: 370px;
+}
+
+.vs-mega-menu--solution-preview .vs-mega-sidebar--solution-preview {
+  width: 250px;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f5f7fa 0%, #eef3f9 100%);
+  border-right: 1px solid #e3ebf5;
+}
+
+.vs-solution-preview-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-mega-menu--solution-preview .vs-mega-content--solution-preview {
+  display: flex;
+  align-items: stretch;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(40, 122, 198, 0.08), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+}
+
+.vs-solution-preview-tab {
+  text-decoration: none;
+  color: #394b5f;
+  gap: 12px;
+}
+
+.vs-solution-preview-tab span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vs-solution-preview-tab i {
+  opacity: 0.45;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.vs-solution-preview-tab:hover i,
+.vs-solution-preview-tab.active i {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.vs-solution-preview-all {
+  margin: auto 18px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #21568d;
+  color: #0f457b;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
+  line-height: 1;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.vs-solution-preview-all:hover {
+  padding-left: 18px;
+  transform: none;
+  border-color: #174878;
+  box-shadow: none;
+  background: #f5fafe;
+  color: #0c4e8d;
+}
+
+.vs-solution-preview-all i {
+  font-size: 14px;
+}
+
+.vs-nav-preview-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 320px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #0d2f51;
+  box-shadow: 0 22px 50px rgba(15, 49, 84, 0.16);
+  isolation: isolate;
+}
+
+.vs-nav-preview-card:hover {
+  padding-left: 0;
+  transform: translateY(-2px);
+  box-shadow: 0 28px 60px rgba(15, 49, 84, 0.2);
+  color: inherit;
+}
+
+.vs-nav-preview-media,
+.vs-nav-preview-overlay,
+.vs-nav-preview-copy {
+  position: absolute;
+  inset: 0;
+}
+
+.vs-nav-preview-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vs-nav-preview-overlay {
+  background:
+    linear-gradient(180deg, rgba(10, 31, 53, 0.12) 0%, rgba(10, 31, 53, 0.3) 38%, rgba(8, 25, 43, 0.82) 100%),
+    linear-gradient(135deg, rgba(0, 0, 0, 0) 42%, rgba(12, 60, 102, 0.55) 100%);
+  z-index: 1;
+}
+
+.vs-nav-preview-copy {
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 28px;
+}
+
+.vs-nav-preview-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.vs-nav-preview-title {
+  color: #fff;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 700;
+  max-width: 480px;
+  text-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+}
+
+.vs-nav-preview-desc {
+  max-width: 500px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  line-height: 1.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vs-nav-preview-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+}
+
+.vs-nav-preview-cta i {
+  font-size: 12px;
 }
 
 .mc-nav-noscript {
@@ -491,7 +921,7 @@ body.mc-nav-mobile-open {
     overflow: auto;
   }
 
-  .vs-mega-menu:not(.vs-mega-menu--links) .vs-mega-sidebar {
+  .vs-mega-menu:not(.vs-mega-menu--links):not(.vs-mega-menu--solution-preview) .vs-mega-sidebar {
     display: none;
   }
 
@@ -501,6 +931,28 @@ body.mc-nav-mobile-open {
     border-radius: 0 0 12px 12px;
     padding: 10px;
     background: transparent;
+  }
+
+  .vs-mega-menu--solution-preview {
+    min-width: 0;
+    min-height: auto;
+  }
+
+  .vs-mega-menu--solution-preview .vs-mega-sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: 0;
+    border-radius: 0 0 12px 12px;
+    padding: 10px;
+    background: transparent;
+  }
+
+  .vs-solution-preview-all {
+    margin: 8px 10px 0;
+  }
+
+  .vs-mega-menu--solution-preview .vs-mega-content--solution-preview {
+    display: none;
   }
 
   .vs-mega-content {
@@ -603,6 +1055,31 @@ body.mc-nav-mobile-open {
     background: #eef5ff;
     padding-left: 12px;
     transform: translateX(2px);
+  }
+
+  .vs-mega-list-v2--cards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .vs-mega-list-v2--cards .vs-recommend-link {
+    min-height: 72px;
+    padding: 7px 2px;
+  }
+
+  .vs-mega-list-v2--cards .vs-recommend-link:hover {
+    padding-left: 2px;
+    transform: none;
+  }
+
+  .vs-mega-list-v2--cards .vs-recommend-thumb {
+    width: 64px;
+    height: 52px;
+    flex-basis: 64px;
+  }
+
+  .vs-mega-list-v2--cards .vs-recommend-title {
+    font-size: 13px;
   }
 
   .vs-mega-action {

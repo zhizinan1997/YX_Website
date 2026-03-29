@@ -8,6 +8,7 @@
       "enabled": true,
       "permissions": [
         "messages",
+        "site-reports",
         "home",
         "h2-home",
         "products",
@@ -21,8 +22,8 @@
         "changelog"
       ],
       "created_at": "2026-03-26T07:36:43Z",
-      "updated_at": "2026-03-27T03:59:36Z",
-      "last_login_at": "2026-03-27T03:20:21Z"
+      "updated_at": "2026-03-29T07:18:02Z",
+      "last_login_at": "2026-03-29T05:24:50Z"
     },
     {
       "username": "zhizinan",

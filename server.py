@@ -1,4 +1,4 @@
-"""
+﻿"""
 Flask server for YX Website with feedback form backend and admin panel.
 Supports both local development and Docker deployment.
 Includes AI Chatbot with knowledge base support.
@@ -19,7 +19,7 @@ import ipaddress
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from functools import wraps
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urlparse, unquote
 
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, render_template_string, Response, stream_with_context, send_file
 from werkzeug.utils import secure_filename
@@ -105,6 +105,7 @@ def create_app():
 
 app = create_app()
 CHEM_SUBSCRIPT_SCRIPT_SRC = '/assets/js/chem-subscript.js'
+SITE_ANALYTICS_SCRIPT_SRC = '/assets/js/site-analytics.js'
 
 # Configuration
 DATA_DIR = Path(__file__).parent / 'data'
@@ -143,6 +144,43 @@ ADMIN_IP_LOCATION_LOCK = threading.Lock()
 ADMIN_IP_LOCATION_CACHE_MAX = 2048
 ADMIN_IP_LOCATION_CACHE_TTL_SUCCESS = 7 * 24 * 3600
 ADMIN_IP_LOCATION_CACHE_TTL_UNKNOWN = 15 * 60
+SITE_ANALYTICS_LOG_FILE = DATA_DIR / 'site_analytics_events.jsonl'
+SITE_ANALYTICS_LOCK = threading.Lock()
+SITE_ANALYTICS_MAX_BATCH_SIZE = 25
+SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH = 80
+SITE_ANALYTICS_MAX_TEXT_LENGTH = 300
+SITE_ANALYTICS_MAX_PATH_LENGTH = 260
+SITE_ANALYTICS_ALLOWED_EVENT_TYPES = {'pageview', 'event', 'session_end'}
+SITE_ANALYTICS_CONVERSION_EVENTS = {
+    'contact_submit',
+    'job_apply',
+    'quote_request',
+    'request_demo',
+    'download_brochure',
+    'phone_click',
+    'email_click',
+}
+SITE_ANALYTICS_SEARCH_HOST_KEYWORDS = (
+    'google.',
+    'bing.',
+    'baidu.',
+    'yahoo.',
+    'yandex.',
+    'duckduckgo.',
+    'sogou.',
+    'so.com',
+)
+SITE_ANALYTICS_SOCIAL_HOST_KEYWORDS = (
+    'facebook.',
+    'instagram.',
+    'linkedin.',
+    'reddit.',
+    'twitter.',
+    'x.com',
+    't.co',
+    'weibo.',
+    'zhihu.',
+)
 
 if ZoneInfo is not None:
     try:
@@ -1040,6 +1078,492 @@ def get_client_ip():
     return direct_ip or (request.remote_addr or '127.0.0.1')
 
 
+def _analytics_clean_text(value, max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH):
+    text = str(value or '').strip()
+    if not text:
+        return ''
+    text = re.sub(r'[\r\n\t]+', ' ', text)
+    text = re.sub(r'\s{2,}', ' ', text).strip()
+    return text[:max_length]
+
+
+def _analytics_clean_id(value, max_length=64):
+    text = _analytics_clean_text(value, max_length=max_length)
+    if not text:
+        return ''
+    return re.sub(r'[^a-zA-Z0-9._:-]', '', text)[:max_length]
+
+
+def _analytics_extract_host(raw_url: str) -> str:
+    text = _analytics_clean_text(raw_url, max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+    if not text:
+        return ''
+    try:
+        parsed = urlparse(text)
+    except Exception:
+        return ''
+    host = (parsed.netloc or '').strip().lower()
+    if host.startswith('www.'):
+        host = host[4:]
+    return host
+
+
+def _analytics_normalize_path(raw_value: str) -> str:
+    text = _analytics_clean_text(raw_value, max_length=SITE_ANALYTICS_MAX_PATH_LENGTH)
+    if not text:
+        return '/'
+    try:
+        parsed = urlparse(text)
+        if parsed.scheme and parsed.netloc:
+            text = parsed.path or '/'
+    except Exception:
+        pass
+    if not text.startswith('/'):
+        text = f'/{text.lstrip("./")}'
+    text = re.sub(r'/+', '/', text)
+    return text[:SITE_ANALYTICS_MAX_PATH_LENGTH] or '/'
+
+
+def _analytics_classify_device(user_agent: str) -> str:
+    ua = str(user_agent or '').lower()
+    if not ua:
+        return 'unknown'
+    tablet_keywords = ('ipad', 'tablet', 'kindle', 'playbook', 'sm-t', 'nexus 7', 'nexus 10')
+    mobile_keywords = ('mobile', 'android', 'iphone', 'ipod', 'windows phone', 'blackberry', 'opera mini')
+    if any(keyword in ua for keyword in tablet_keywords):
+        return 'tablet'
+    if any(keyword in ua for keyword in mobile_keywords):
+        return 'mobile'
+    return 'desktop'
+
+
+def _analytics_classify_source(referrer: str, utm_source: str, utm_medium: str, current_host: str) -> str:
+    source = _analytics_clean_text(utm_source, max_length=64).lower()
+    medium = _analytics_clean_text(utm_medium, max_length=64).lower()
+    if source or medium:
+        if 'social' in medium or source in {'facebook', 'instagram', 'linkedin', 'twitter', 'x', 'weibo', 'zhihu'}:
+            return 'social'
+        if medium in {'cpc', 'ppc', 'paid', 'paidsearch', 'sem'}:
+            return 'paid'
+        if medium in {'email', 'newsletter', 'edm'}:
+            return 'email'
+        if medium in {'affiliate'}:
+            return 'affiliate'
+        if medium in {'display', 'banner'}:
+            return 'display'
+        if medium in {'organic', 'seo'}:
+            return 'search'
+        return 'campaign'
+
+    host = _analytics_extract_host(referrer)
+    if not host:
+        return 'direct'
+
+    base_host = str(current_host or '').split(':', 1)[0].strip().lower()
+    if base_host and (host == base_host or host.endswith(f'.{base_host}')):
+        return 'internal'
+    if any(keyword in host for keyword in SITE_ANALYTICS_SEARCH_HOST_KEYWORDS):
+        return 'search'
+    if any(keyword in host for keyword in SITE_ANALYTICS_SOCIAL_HOST_KEYWORDS):
+        return 'social'
+    return 'referral'
+
+
+def _analytics_is_conversion_event(event_name: str) -> bool:
+    name = _analytics_clean_text(event_name, max_length=SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH).lower()
+    if not name:
+        return False
+    if name in SITE_ANALYTICS_CONVERSION_EVENTS:
+        return True
+    if name.startswith('conversion_'):
+        return True
+    return False
+
+
+def _analytics_is_conversion_page(page_path: str) -> bool:
+    path = _analytics_normalize_path(page_path).lower()
+    markers = ('/thank-you', '/thanks', '/success', '/submitted', '/done')
+    return any(marker in path for marker in markers)
+
+
+def _analytics_build_fallback_visitor_id(ip_text: str, user_agent: str) -> str:
+    payload = f'{ip_text}|{user_agent}'.encode('utf-8', errors='ignore')
+    return hashlib.sha256(payload).hexdigest()[:24]
+
+
+def _analytics_to_int(value, default=0):
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _analytics_to_float(value, default=0.0):
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _analytics_day_key(ts: int) -> str:
+    dt = datetime.fromtimestamp(int(ts), tz=timezone.utc).astimezone(BEIJING_TZ)
+    return dt.strftime('%Y-%m-%d')
+
+
+def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, request_ip: str):
+    if not isinstance(raw_event, dict):
+        return None
+
+    event_type = _analytics_clean_text(raw_event.get('event_type') or raw_event.get('type'), max_length=24).lower()
+    if event_type not in SITE_ANALYTICS_ALLOWED_EVENT_TYPES:
+        return None
+
+    page_path = _analytics_normalize_path(raw_event.get('page_path') or raw_event.get('path') or '/')
+    if page_path.startswith('/admin'):
+        return None
+
+    page_title = _analytics_clean_text(raw_event.get('page_title') or raw_event.get('title'), max_length=120)
+    referrer = _analytics_clean_text(raw_event.get('referrer'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+    event_name = _analytics_clean_text(raw_event.get('event_name') or raw_event.get('name'), max_length=SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH).lower()
+    visitor_id = _analytics_clean_id(raw_event.get('visitor_id'), max_length=64)
+    session_id = _analytics_clean_id(raw_event.get('session_id'), max_length=64)
+
+    if not visitor_id:
+        visitor_id = _analytics_build_fallback_visitor_id(request_ip, request_ua)
+    if not session_id:
+        session_id = f's_{visitor_id[:12]}'
+
+    utm = raw_event.get('utm', {})
+    utm_source = ''
+    utm_medium = ''
+    if isinstance(utm, dict):
+        utm_source = _analytics_clean_text(utm.get('source'), max_length=64).lower()
+        utm_medium = _analytics_clean_text(utm.get('medium'), max_length=64).lower()
+
+    source = _analytics_classify_source(referrer, utm_source, utm_medium, request_host)
+    device = _analytics_classify_device(request_ua)
+    session_duration_sec = max(0, _analytics_to_int(raw_event.get('session_duration_sec'), default=0))
+    scroll_depth = max(0, min(100, _analytics_to_int(raw_event.get('scroll_depth'), default=0)))
+    event_value = _analytics_to_float(raw_event.get('event_value'), default=0.0)
+
+    now_ts = int(time.time())
+    return {
+        'ts': now_ts,
+        'day': _analytics_day_key(now_ts),
+        'event_type': event_type,
+        'event_name': event_name,
+        'event_value': event_value,
+        'page_path': page_path,
+        'page_title': page_title,
+        'referrer': referrer,
+        'referrer_host': _analytics_extract_host(referrer),
+        'source': source,
+        'device': device,
+        'visitor_id': visitor_id,
+        'session_id': session_id,
+        'session_duration_sec': session_duration_sec,
+        'scroll_depth': scroll_depth,
+    }
+
+
+def _append_site_analytics_records(records):
+    safe_records = [item for item in (records or []) if isinstance(item, dict)]
+    if not safe_records:
+        return 0
+    SITE_ANALYTICS_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with SITE_ANALYTICS_LOCK:
+        with SITE_ANALYTICS_LOG_FILE.open('a', encoding='utf-8') as fp:
+            for item in safe_records:
+                fp.write(json.dumps(item, ensure_ascii=False, separators=(',', ':')) + '\n')
+    return len(safe_records)
+
+
+def _iter_site_analytics_records():
+    if not SITE_ANALYTICS_LOG_FILE.exists():
+        return []
+    with SITE_ANALYTICS_LOCK:
+        try:
+            lines = SITE_ANALYTICS_LOG_FILE.read_text(encoding='utf-8').splitlines()
+        except Exception:
+            return []
+    output = []
+    for line in lines:
+        row = str(line or '').strip()
+        if not row:
+            continue
+        try:
+            obj = json.loads(row)
+        except Exception:
+            continue
+        if isinstance(obj, dict):
+            output.append(obj)
+    return output
+
+
+def build_site_analytics_report(range_days=30):
+    now_local = datetime.now(BEIJING_TZ)
+    range_raw = str(range_days or '').strip().lower()
+    is_last_24h = range_raw in {'24h', 'last24h', '24hour', '24hours'}
+
+    bucket_keys = []
+    buckets = {}
+    range_days_value = 30
+    range_key = '30d'
+    range_label = '最近 30 天'
+
+    if is_last_24h:
+        range_days_value = 1
+        range_key = '24h'
+        range_label = '最近24小时'
+        current_hour = now_local.replace(minute=0, second=0, microsecond=0)
+        start_hour = current_hour - timedelta(hours=23)
+        since_ts = int(start_hour.astimezone(timezone.utc).timestamp())
+        for idx in range(24):
+            point = start_hour + timedelta(hours=idx)
+            bucket_key = point.strftime('%Y-%m-%d %H:00')
+            bucket_keys.append(bucket_key)
+            buckets[bucket_key] = {
+                'pageviews': 0,
+                'conversions': 0,
+                'events': 0,
+                'visitors': set(),
+                'sessions': set(),
+            }
+
+        def resolve_bucket_key(ts: int) -> str:
+            dt = datetime.fromtimestamp(int(ts), tz=timezone.utc).astimezone(BEIJING_TZ)
+            return dt.strftime('%Y-%m-%d %H:00')
+
+    else:
+        try:
+            days = int(range_days)
+        except Exception:
+            days = 30
+        if days not in (7, 30, 90, 180):
+            days = 30
+        range_days_value = days
+        range_key = f'{days}d'
+        range_label = f'最近 {days} 天'
+
+        start_date = now_local.date() - timedelta(days=days - 1)
+        start_dt_local = datetime.combine(start_date, datetime.min.time(), tzinfo=BEIJING_TZ)
+        since_ts = int(start_dt_local.astimezone(timezone.utc).timestamp())
+        for idx in range(days):
+            d = start_date + timedelta(days=idx)
+            bucket_key = d.strftime('%Y-%m-%d')
+            bucket_keys.append(bucket_key)
+            buckets[bucket_key] = {
+                'pageviews': 0,
+                'conversions': 0,
+                'events': 0,
+                'visitors': set(),
+                'sessions': set(),
+            }
+
+        def resolve_bucket_key(ts: int) -> str:
+            return _analytics_day_key(ts)
+
+    sessions = {}
+    pages = {}
+    event_counter = {}
+    visitor_set = set()
+    recent_events = []
+
+    records = _iter_site_analytics_records()
+    for item in records:
+        ts = _analytics_to_int(item.get('ts'), default=0)
+        if ts < since_ts:
+            continue
+        bucket_key = resolve_bucket_key(ts)
+        if bucket_key not in buckets:
+            continue
+
+        event_type = _analytics_clean_text(item.get('event_type'), max_length=24).lower()
+        event_name = _analytics_clean_text(item.get('event_name'), max_length=SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH).lower()
+        page_path = _analytics_normalize_path(item.get('page_path') or '/')
+        page_title = _analytics_clean_text(item.get('page_title'), max_length=120)
+        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64)
+        session_id = _analytics_clean_id(item.get('session_id'), max_length=64)
+        if not visitor_id:
+            visitor_id = 'anonymous'
+        if not session_id:
+            session_id = f'anon_{visitor_id}_{_analytics_day_key(ts)}'
+
+        visitor_set.add(visitor_id)
+        buckets[bucket_key]['visitors'].add(visitor_id)
+        buckets[bucket_key]['sessions'].add(session_id)
+
+        sess = sessions.get(session_id)
+        if not sess:
+            sess = {
+                'session_id': session_id,
+                'visitor_id': visitor_id,
+                'first_ts': ts,
+                'last_ts': ts,
+                'pageviews': 0,
+                'conversions': 0,
+                'reported_duration_sec': 0,
+                'source': source,
+                'device': device,
+            }
+            sessions[session_id] = sess
+        else:
+            sess['first_ts'] = min(sess['first_ts'], ts)
+            sess['last_ts'] = max(sess['last_ts'], ts)
+            if sess.get('source') in {'', 'direct', 'internal', 'unknown'} and source not in {'', 'unknown'}:
+                sess['source'] = source
+            if sess.get('device') in {'', 'unknown'} and device not in {'', 'unknown'}:
+                sess['device'] = device
+
+        if event_type == 'pageview':
+            sess['pageviews'] += 1
+            buckets[bucket_key]['pageviews'] += 1
+
+            page_stats = pages.get(page_path)
+            if not page_stats:
+                page_stats = {
+                    'path': page_path,
+                    'title': page_title,
+                    'pageviews': 0,
+                    'visitors': set(),
+                    'sessions': set(),
+                }
+                pages[page_path] = page_stats
+            page_stats['pageviews'] += 1
+            page_stats['visitors'].add(visitor_id)
+            page_stats['sessions'].add(session_id)
+            if not page_stats.get('title') and page_title:
+                page_stats['title'] = page_title
+
+            if _analytics_is_conversion_page(page_path):
+                sess['conversions'] += 1
+                buckets[bucket_key]['conversions'] += 1
+
+        elif event_type == 'event':
+            buckets[bucket_key]['events'] += 1
+            if event_name:
+                event_counter[event_name] = event_counter.get(event_name, 0) + 1
+            if _analytics_is_conversion_event(event_name):
+                sess['conversions'] += 1
+                buckets[bucket_key]['conversions'] += 1
+
+        elif event_type == 'session_end':
+            reported_duration = max(0, _analytics_to_int(item.get('session_duration_sec'), default=0))
+            sess['reported_duration_sec'] = max(sess.get('reported_duration_sec', 0), reported_duration)
+
+        event_label = event_name or event_type or 'event'
+        recent_events.append({
+            'timestamp': datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(BEIJING_TZ).strftime('%Y-%m-%d %H:%M:%S'),
+            'type': event_type or 'event',
+            'name': event_label,
+            'path': page_path,
+            'source': source or '-',
+            'device': device or '-',
+        })
+
+    recent_events = recent_events[-25:]
+
+    tracked_sessions = [item for item in sessions.values() if int(item.get('pageviews') or 0) > 0]
+    total_sessions = len(tracked_sessions)
+    total_pageviews = sum(int(item.get('pageviews') or 0) for item in tracked_sessions)
+    total_conversions = sum(int(item.get('conversions') or 0) for item in tracked_sessions)
+    conversion_sessions = sum(1 for item in tracked_sessions if int(item.get('conversions') or 0) > 0)
+    bounce_sessions = sum(1 for item in tracked_sessions if int(item.get('pageviews') or 0) <= 1)
+
+    total_duration = 0
+    for item in tracked_sessions:
+        observed_duration = max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0))
+        reported_duration = max(0, int(item.get('reported_duration_sec') or 0))
+        duration_sec = max(observed_duration, reported_duration)
+        duration_sec = min(duration_sec, 12 * 3600)
+        total_duration += duration_sec
+
+    avg_session_duration_sec = (total_duration / total_sessions) if total_sessions else 0.0
+    bounce_rate = (bounce_sessions * 100.0 / total_sessions) if total_sessions else 0.0
+    conversion_rate = (conversion_sessions * 100.0 / total_sessions) if total_sessions else 0.0
+
+    source_counter = {}
+    device_counter = {}
+    for item in tracked_sessions:
+        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        source_counter[source] = source_counter.get(source, 0) + 1
+        device_counter[device] = device_counter.get(device, 0) + 1
+
+    source_rows = [
+        {
+            'source': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in source_counter.items()
+    ]
+    source_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    device_rows = [
+        {
+            'device': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in device_counter.items()
+    ]
+    device_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    top_pages = []
+    for path_key, stats in pages.items():
+        top_pages.append({
+            'path': path_key,
+            'title': stats.get('title') or '',
+            'pageviews': int(stats.get('pageviews') or 0),
+            'unique_visitors': len(stats.get('visitors', set())),
+            'sessions': len(stats.get('sessions', set())),
+        })
+    top_pages.sort(key=lambda item: item['pageviews'], reverse=True)
+    top_pages = top_pages[:12]
+
+    top_events = [{'name': name, 'count': count} for name, count in event_counter.items()]
+    top_events.sort(key=lambda item: item['count'], reverse=True)
+    top_events = top_events[:12]
+
+    trend = []
+    for bucket_key in bucket_keys:
+        row = buckets.get(bucket_key, {})
+        trend.append({
+            'date': bucket_key,
+            'pageviews': int(row.get('pageviews') or 0),
+            'unique_visitors': len(row.get('visitors', set())),
+            'sessions': len(row.get('sessions', set())),
+            'conversions': int(row.get('conversions') or 0),
+            'events': int(row.get('events') or 0),
+        })
+
+    return {
+        'range_days': range_days_value,
+        'range_key': range_key,
+        'range_label': range_label,
+        'generated_at': datetime.now(BEIJING_TZ).isoformat(timespec='seconds'),
+        'summary': {
+            'pageviews': total_pageviews,
+            'unique_visitors': len(visitor_set),
+            'sessions': total_sessions,
+            'avg_session_duration_sec': round(avg_session_duration_sec, 2),
+            'bounce_rate': round(bounce_rate, 2),
+            'conversion_events': total_conversions,
+            'conversion_sessions': conversion_sessions,
+            'conversion_rate': round(conversion_rate, 2),
+        },
+        'source_breakdown': source_rows,
+        'device_breakdown': device_rows,
+        'top_pages': top_pages,
+        'top_events': top_events,
+        'trend': trend,
+        'recent_events': recent_events,
+    }
+
+
 def load_admin_login_logs():
     """Load admin login logs from file."""
     default_data = {'items': []}
@@ -1526,7 +2050,7 @@ def sitemap_xml():
 
 @app.after_request
 def inject_chem_subscript_script(response):
-    """Inject chemical-formula subscript script into all HTML responses."""
+    """Inject shared frontend scripts into public HTML responses."""
     try:
         path = request.path or ''
         if _is_anti_crawl_strict_private_path(path):
@@ -1546,20 +2070,25 @@ def inject_chem_subscript_script(response):
         if not html_body:
             return response
 
-        script_tag = f'<script src="{CHEM_SUBSCRIPT_SCRIPT_SRC}" defer></script>'
-        if CHEM_SUBSCRIPT_SCRIPT_SRC in html_body:
+        script_tags = []
+        if CHEM_SUBSCRIPT_SCRIPT_SRC not in html_body:
+            script_tags.append(f'<script src="{CHEM_SUBSCRIPT_SCRIPT_SRC}" defer></script>')
+        if SITE_ANALYTICS_SCRIPT_SRC not in html_body:
+            script_tags.append(f'<script src="{SITE_ANALYTICS_SCRIPT_SRC}" defer></script>')
+        if not script_tags:
             return response
+        script_block = '\n'.join(script_tags)
 
         lower_body = html_body.lower()
         body_pos = lower_body.rfind('</body>')
         html_pos = lower_body.rfind('</html>')
 
         if body_pos != -1:
-            html_body = html_body[:body_pos] + script_tag + '\n' + html_body[body_pos:]
+            html_body = html_body[:body_pos] + script_block + '\n' + html_body[body_pos:]
         elif html_pos != -1:
-            html_body = html_body[:html_pos] + script_tag + '\n' + html_body[html_pos:]
+            html_body = html_body[:html_pos] + script_block + '\n' + html_body[html_pos:]
         else:
-            html_body += script_tag
+            html_body += script_block
 
         response.set_data(html_body)
     except Exception:
@@ -5772,6 +6301,202 @@ def normalize_scanned_image_path(image, web_dir_prefix):
     return f"{web_dir_prefix.rstrip('/')}/{clean}"
 
 
+NAV_PREVIEW_PAGE_SECTIONS = (
+    'gassensing',
+    'solutions',
+    'research',
+    'measurement',
+    'customization',
+    'biosensing',
+)
+
+
+def get_web_dir_prefix_for_filepath(filepath):
+    """Build the public web directory prefix for a local HTML file."""
+    site_root = Path(__file__).parent.resolve()
+    try:
+        relative_dir = filepath.resolve().parent.relative_to(site_root).as_posix()
+    except ValueError:
+        return '/'
+    return f'/{relative_dir}' if relative_dir else '/'
+
+
+def resolve_local_nav_target_path(url):
+    """Resolve a nav target URL to a local HTML file when possible."""
+    raw_url = str(url or '').strip()
+    if not raw_url or re.match(r'^https?://', raw_url, re.I):
+        return None
+
+    parsed = urlparse(raw_url)
+    raw_path = unquote((parsed.path or '').strip()).replace('\\', '/')
+    if not raw_path:
+        return None
+
+    if raw_path.startswith('/'):
+        normalized = raw_path.lstrip('/')
+    else:
+        normalized = raw_path
+        while normalized.startswith('./'):
+            normalized = normalized[2:]
+        while normalized.startswith('../'):
+            normalized = normalized[3:]
+        if not normalized.startswith('pages/') and any(
+            normalized.startswith(section + '/') for section in NAV_PREVIEW_PAGE_SECTIONS
+        ):
+            normalized = 'pages/' + normalized
+
+    if not normalized.lower().endswith('.html'):
+        return None
+
+    site_root = Path(__file__).parent.resolve()
+    candidate = (site_root / normalized).resolve()
+    try:
+        candidate.relative_to(site_root)
+    except ValueError:
+        return None
+    if not candidate.exists() or not candidate.is_file():
+        return None
+    return candidate
+
+
+def extract_generic_page_preview_image(filepath):
+    """Extract a best-effort preview image from an HTML page."""
+    try:
+        content = filepath.read_text(encoding='utf-8', errors='ignore')
+    except Exception:
+        return ''
+
+    meta_match = re.search(
+        r'<meta[^>]+(?:property|name)=["\'](?:og:image|twitter:image)["\'][^>]+content=["\']([^"\']+)["\']',
+        content,
+        re.I
+    )
+    if meta_match:
+        return meta_match.group(1).strip()
+
+    hero_match = re.search(
+        r'background-image\s*:\s*(?:linear-gradient\([^;]*?\)\s*,\s*)?url\([\'"]?([^\'")]+)[\'"]?\)',
+        content,
+        re.I | re.S
+    )
+    if hero_match:
+        return hero_match.group(1).strip()
+
+    for match in re.finditer(r'<img[^>]+src=["\']([^"\']+)["\']', content, re.I):
+        src = str(match.group(1) or '').strip()
+        if not src:
+            continue
+        if any(token in src.lower() for token in ['icon', 'logo', 'arrow', 'btn', 'button']):
+            continue
+        return src
+    return ''
+
+
+def normalize_nav_preview_text(text, limit=88):
+    """Normalize preview text for compact nav cards."""
+    raw = re.sub(r'\s+', ' ', html.unescape(str(text or ''))).strip()
+    if not raw:
+        return ''
+    if len(raw) <= limit:
+        return raw
+    return raw[: max(0, limit - 1)].rstrip(' ，。；、,.;') + '…'
+
+
+def extract_generic_page_preview_desc(filepath):
+    """Extract a short best-effort summary from a local HTML page."""
+    try:
+        content = filepath.read_text(encoding='utf-8', errors='ignore')
+    except Exception:
+        return ''
+
+    meta_match = re.search(
+        r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\']',
+        content,
+        re.I
+    )
+    if meta_match:
+        return normalize_nav_preview_text(meta_match.group(1), limit=92)
+
+    p_match = re.search(r'<p\b[^>]*>(.*?)</p>', content, re.I | re.S)
+    if not p_match:
+        return ''
+
+    text = re.sub(r'<[^>]+>', ' ', p_match.group(1))
+    return normalize_nav_preview_text(text, limit=92)
+
+
+def infer_nav_target_preview(url):
+    """Infer title, preview image and short summary for a nav target."""
+    filepath = resolve_local_nav_target_path(url)
+    if not filepath:
+        return {'title': '', 'image': '', 'desc': ''}
+
+    site_root = Path(__file__).parent.resolve()
+    try:
+        relative_path = filepath.resolve().relative_to(site_root).as_posix()
+    except ValueError:
+        relative_path = ''
+
+    preview = None
+    if relative_path.startswith('pages/solutions/'):
+        preview = extract_solution_meta_from_html(filepath)
+    elif relative_path.startswith('pages/gassensing/cases/'):
+        preview = extract_case_meta_from_html(filepath)
+    elif (
+        relative_path.startswith('pages/gassensing/')
+        or relative_path.startswith('pages/customization/')
+        or relative_path.startswith('pages/biosensing/')
+    ):
+        preview = extract_product_meta_from_html(filepath)
+
+    image = ''
+    title = ''
+    desc = ''
+    if isinstance(preview, dict):
+        image = str(preview.get('image') or '').strip()
+        title = str(
+            preview.get('title')
+            or preview.get('name')
+            or preview.get('shortName')
+            or preview.get('displayName')
+            or ''
+        ).strip()
+        desc = str(preview.get('desc') or preview.get('summary') or '').strip()
+    if not image:
+        image = extract_generic_page_preview_image(filepath)
+    if not desc:
+        desc = extract_generic_page_preview_desc(filepath)
+
+    return {
+        'title': normalize_nav_preview_text(title, limit=40),
+        'image': normalize_scanned_image_path(image, get_web_dir_prefix_for_filepath(filepath)),
+        'desc': normalize_nav_preview_text(desc, limit=92)
+    }
+
+
+def infer_nav_target_image(url):
+    """Infer a preview image for a nav link from its target page."""
+    return str(infer_nav_target_preview(url).get('image') or '')
+
+
+def serialize_nav_industry_category_items(items):
+    """Attach preview images to nav industry items when available."""
+    serialized = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('name') or '').strip()
+        url = str(item.get('url') or '').strip()
+        if not name or not url:
+            continue
+        entry = {'name': name, 'url': url}
+        image = infer_nav_target_image(url)
+        if image:
+            entry['image'] = image
+        serialized.append(entry)
+    return serialized
+
+
 @app.route('/api/products')
 def get_products():
     """自动扫描产品目录并返回产品列表"""
@@ -5847,6 +6572,30 @@ def normalize_filter_key(raw_key, fallback_index=0):
     return key
 
 
+def build_industry_filter_preview_map():
+    """Pick the first visible product image for each industry filter."""
+    preview_map = {}
+    try:
+        products = get_products_with_settings_data()
+    except Exception:
+        return preview_map
+
+    for product in products:
+        if not isinstance(product, dict) or product.get('hidden'):
+            continue
+        image = str((product.get('cardImage') or product.get('image') or '')).strip()
+        if not image:
+            continue
+        categories = product.get('industryCategories', [])
+        if not isinstance(categories, list) or not categories:
+            categories = infer_default_industry_categories(product)
+        for raw_key in categories:
+            key = normalize_filter_key(raw_key)
+            if key and key not in preview_map:
+                preview_map[key] = image
+    return preview_map
+
+
 def get_industry_filters():
     """Load industry filters for all-products page."""
     categories = []
@@ -5874,7 +6623,17 @@ def get_industry_filters():
     if not cleaned:
         cleaned = [dict(item) for item in DEFAULT_INDUSTRY_FILTERS]
 
-    return {'categories': cleaned}
+    preview_map = build_industry_filter_preview_map()
+    enriched = []
+    for item in cleaned:
+        entry = dict(item)
+        entry['url'] = f"/pages/gassensing/all-products.html?filter={quote(entry['key'])}"
+        image = preview_map.get(entry['key'], '')
+        if image:
+            entry['image'] = image
+        enriched.append(entry)
+
+    return {'categories': enriched}
 
 
 def save_industry_filters(data):
@@ -6529,6 +7288,101 @@ def normalize_measurement_target_items(items):
     return normalized
 
 
+def serialize_measurement_target_items(items):
+    """Attach preview images to measurement target items when available."""
+    serialized = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('name') or '').strip()
+        url = str(item.get('url') or '').strip()
+        if not name or not url:
+            continue
+        entry = {'name': name, 'url': url}
+        image = infer_nav_target_image(url)
+        if image:
+            entry['image'] = image
+        serialized.append(entry)
+    return serialized
+
+
+def get_default_solution_nav_items():
+    """Default gas nav solution links."""
+    return {
+        'items': [
+            {'name': '氢能源产业链', 'url': '/pages/solutions/industry-hydrogen.html'},
+            {'name': '智慧电力安全', 'url': '/pages/solutions/industry-power-safety.html'},
+            {'name': '工业检漏监测', 'url': '/pages/solutions/industry-leak-detection.html'},
+            {'name': '绿色能源存储', 'url': '/pages/solutions/industry-energy-storage.html'},
+            {'name': '大气环境监测', 'url': '/pages/solutions/industry-environment.html'}
+        ]
+    }
+
+
+def get_default_research_nav_items():
+    """Default gas nav research links."""
+    return {
+        'items': [
+            {'name': '传感器微纳加工', 'url': '/pages/research/micro-nano.html'},
+            {'name': '传感器开发、测试与应用', 'url': '/pages/research/development.html'},
+            {'name': '产学研深度合作', 'url': '/pages/research/cooperation.html'}
+        ]
+    }
+
+
+def serialize_solution_nav_items(items):
+    """Attach preview image and summary to solution nav items."""
+    serialized = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('name') or '').strip()
+        url = str(item.get('url') or '').strip()
+        if not name or not url:
+            continue
+        preview = infer_nav_target_preview(url)
+        entry = {'name': name, 'url': url}
+        title = str(preview.get('title') or '').strip()
+        image = str(preview.get('image') or '').strip()
+        desc = str(preview.get('desc') or '').strip()
+        if title:
+            entry['title'] = title
+        if image:
+            entry['image'] = image
+        if desc:
+            entry['desc'] = desc
+        serialized.append(entry)
+    return serialized
+
+
+def get_solution_nav_items():
+    """Build solution nav preview data."""
+    return {'items': serialize_solution_nav_items(get_default_solution_nav_items().get('items', []))}
+
+
+def get_research_nav_items():
+    """Build research nav preview data."""
+    return {'items': serialize_solution_nav_items(get_default_research_nav_items().get('items', []))}
+
+
+def get_default_featured_case_nav_items():
+    """Default featured case links for gas nav mega menu."""
+    return {
+        'items': [
+            {'name': '氢能重卡氢气检测', 'url': '/pages/gassensing/cases/case-1-truck.html'},
+            {'name': '氢能源列车检测', 'url': '/pages/gassensing/cases/case-6-train.html'},
+            {'name': '输氢管道人员安全', 'url': '/pages/gassensing/cases/case-4-pipeline-safety.html'},
+            {'name': '科研实验室配气', 'url': '/pages/gassensing/cases/case-12-gas-system.html'},
+            {'name': '柴油机真空检漏', 'url': '/pages/gassensing/cases/case-13-diesel-engine.html'}
+        ]
+    }
+
+
+def get_featured_case_nav_items():
+    """Build featured case nav preview data."""
+    return {'items': serialize_solution_nav_items(get_default_featured_case_nav_items().get('items', []))}
+
+
 def get_default_nav_industry_categories():
     """Default industry category links for gas nav mega menu."""
     return {
@@ -6537,7 +7391,8 @@ def get_default_nav_industry_categories():
             {'name': '智慧电力安全', 'url': '/pages/solutions/industry-power-safety.html'},
             {'name': '工业检漏监测', 'url': '/pages/solutions/industry-leak-detection.html'},
             {'name': '绿色能源存储', 'url': '/pages/solutions/industry-energy-storage.html'},
-            {'name': '大气环境监测', 'url': '/pages/solutions/industry-environment.html'}
+            {'name': '大气环境监测', 'url': '/pages/solutions/industry-environment.html'},
+            {'name': '石油化工', 'url': '/pages/gassensing/cases/case-5-chemical-plant.html'}
         ]
     }
 
@@ -6565,10 +7420,10 @@ def get_nav_industry_categories():
             data = json.loads(NAV_INDUSTRY_CATEGORIES_FILE.read_text(encoding='utf-8'))
             items = normalize_nav_industry_category_items(data.get('items', []))
             if items:
-                return {'items': items}
+                return {'items': serialize_nav_industry_category_items(items)}
         except Exception:
             pass
-    return get_default_nav_industry_categories()
+    return {'items': serialize_nav_industry_category_items(get_default_nav_industry_categories().get('items', []))}
 
 
 def save_nav_industry_categories(data):
@@ -6586,10 +7441,10 @@ def get_measurement_targets():
             data = json.loads(MEASUREMENT_TARGETS_FILE.read_text(encoding='utf-8'))
             items = normalize_measurement_target_items(data.get('items', []))
             if items:
-                return {'items': items}
+                return {'items': serialize_measurement_target_items(items)}
         except Exception:
             pass
-    return get_default_measurement_targets()
+    return {'items': serialize_measurement_target_items(get_default_measurement_targets().get('items', []))}
 
 
 def save_measurement_targets(data):
@@ -6603,8 +7458,10 @@ def get_default_recommendations():
     """Default recommendations data."""
     return {
         'latestReleases': [
-            {'name': 'LD-H2-Gen5 第五代氢气传感器', 'url': '../gassensing/ld_h2_detector.html'},
-            {'name': '车载高集成氢气安全监测模组', 'url': '../gassensing/mchp_vehicle_h2.html'}
+            {'name': 'MC-LD-H2 氢气泄漏检测仪', 'url': '../gassensing/mc_ld_h2.html'},
+            {'name': 'MC-HLA-01 固定式氢气报警器', 'url': '../gassensing/mc_hla_01.html'},
+            {'name': 'MC-HHA-01 手持式氢气报警器', 'url': '../gassensing/mc_hha_01.html'},
+            {'name': 'MC-WD-01 可穿戴氢气报警器', 'url': '../gassensing/mc_wd_01.html'}
         ],
         'applicationAreas': [
             {'name': '加氢站安全监测', 'url': '../solutions/industry-hydrogen.html'},
@@ -6661,6 +7518,24 @@ def get_measurement_targets_api():
     return jsonify(get_measurement_targets())
 
 
+@app.route('/api/nav-solution-previews', methods=['GET'])
+def get_solution_nav_items_api():
+    """Get gas nav solution preview items."""
+    return jsonify(get_solution_nav_items())
+
+
+@app.route('/api/nav-research-previews', methods=['GET'])
+def get_research_nav_items_api():
+    """Get gas nav research preview items."""
+    return jsonify(get_research_nav_items())
+
+
+@app.route('/api/nav-featured-cases', methods=['GET'])
+def get_featured_case_nav_items_api():
+    """Get gas nav featured case preview items."""
+    return jsonify(get_featured_case_nav_items())
+
+
 @app.route('/api/measurement-targets', methods=['POST'])
 def update_measurement_targets_api():
     """Update mega menu measurement targets."""
@@ -6671,7 +7546,7 @@ def update_measurement_targets_api():
 
     payload = {'items': items}
     save_measurement_targets(payload)
-    return jsonify({'success': True, 'items': items})
+    return jsonify({'success': True, 'items': serialize_measurement_target_items(items)})
 
 
 @app.route('/api/nav-industry-categories', methods=['GET'])
@@ -6691,7 +7566,7 @@ def update_nav_industry_categories_api():
 
     payload = {'items': items}
     save_nav_industry_categories(payload)
-    return jsonify({'success': True, 'items': items})
+    return jsonify({'success': True, 'items': serialize_nav_industry_category_items(items)})
 
 
 # ============ Hero Carousel API ============
@@ -7633,26 +8508,99 @@ def chatbot_chat():
     
     # Add current message
     messages.append({'role': 'user', 'content': user_message})
+
+    def build_local_fallback_reply(text):
+        q = str(text or '').strip()
+        q_l = q.lower()
+
+        def has_any(*words):
+            return any(w in q_l or w in q for w in words)
+
+        if has_any('报价', '价格', '采购'):
+            return (
+                "您可以通过在线留言提交需求，我们会安排技术与销售跟进："
+                "[在线留言](/pages/contact/feedback.html#feedbackForm)。"
+            )
+        if has_any('联系', '电话', '留言'):
+            return (
+                "您可以通过在线留言提交需求，我们会安排技术与销售跟进："
+                "[在线留言](/pages/contact/feedback.html#feedbackForm)。"
+            )
+        if has_any('介绍', '公司', '元芯'):
+            return (
+                "元芯传感专注于气体传感与检测技术，覆盖传感器、检测模组与行业应用方案。"
+                "如果您告诉我应用场景，我可以继续给出更具体的产品建议。"
+            )
+        if has_any('产品', '传感器', '氢气', '型号'):
+            return (
+                "您可以先查看气体传感产品总览页，按场景筛选型号："
+                "[查看全部产品](/pages/gassensing/all-products.html)。"
+            )
+        if has_any('方案', '行业', '应用', '解决'):
+            return (
+                "行业方案可以从这里进入："
+                "[解决方案中心](/pages/solutions/solutions-index.html)。"
+                "如果您告知工况（温湿度、量程、安装方式），我可以继续细化建议。"
+            )
+        return (
+            "抱歉，智能对话服务当前连接不稳定。"
+            "建议先在“在线留言”提交问题，我们会尽快人工回复："
+            "[在线留言](/pages/contact/feedback.html#feedbackForm)。"
+        )
+
+    fallback_reply = build_local_fallback_reply(user_message)
     
     # Try streaming first
     use_stream = HTTPX_SUPPORT or (REQUESTS_SUPPORT and config.get('use_stream', True))
     
     if use_stream:
         def generate():
+            sent_any_content = False
             try:
                 stream = call_openai_api(messages, stream=True)
                 if isinstance(stream, tuple):
                     _, error = stream
-                    yield f"data: {json.dumps({'error': error or 'API调用失败'})}\n\n"
+                    app.logger.warning("chatbot stream init failed: %s", error)
+                    sync_response, sync_error = call_openai_api(messages, stream=False)
+                    if not sync_error and sync_response:
+                        yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
+                        yield "data: [DONE]\n\n"
+                        return
+                    app.logger.warning("chatbot sync fallback after stream init failed: %s", sync_error)
+                    yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
+                    yield "data: [DONE]\n\n"
                     return
                 for chunk, err in stream:
                     if err:
-                        yield f"data: {json.dumps({'error': err})}\n\n"
+                        app.logger.warning("chatbot stream chunk failed: %s", err)
+                        if not sent_any_content:
+                            sync_response, sync_error = call_openai_api(messages, stream=False)
+                            if not sync_error and sync_response:
+                                yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
+                                yield "data: [DONE]\n\n"
+                                return
+                            app.logger.warning("chatbot sync fallback after stream chunk failed: %s", sync_error)
+                        if sent_any_content:
+                            yield f"data: {json.dumps({'content': '\\n\\n' + fallback_reply}, ensure_ascii=False)}\n\n"
+                        else:
+                            yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
+                        yield "data: [DONE]\n\n"
                         return
-                    yield f"data: {json.dumps({'content': chunk})}\n\n"
+                    sent_any_content = True
+                    yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+                if not sent_any_content:
+                    yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
                 yield "data: [DONE]\n\n"
             except Exception as e:
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                app.logger.exception("chatbot stream exception: %s", e)
+                sync_response, sync_error = call_openai_api(messages, stream=False)
+                if not sync_error and sync_response:
+                    yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+                app.logger.warning("chatbot sync fallback after stream exception failed: %s", sync_error)
+                yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
         
         return Response(
             stream_with_context(generate()),
@@ -7667,10 +8615,11 @@ def chatbot_chat():
         response, error = call_openai_api(messages, stream=False)
         
         if error:
+            app.logger.warning("chatbot non-stream failed: %s", error)
             return jsonify({
-                'success': False,
-                'message': error
-            }), 500
+                'success': True,
+                'response': fallback_reply
+            })
         
         return jsonify({
             'success': True,
@@ -7979,6 +8928,46 @@ def serve_cdn_asset_with_redirect(asset_path):
     return response
 
 
+@app.route('/api/analytics/collect', methods=['POST'])
+def collect_site_analytics():
+    """Collect public website analytics events."""
+    content_len = int(request.content_length or 0)
+    if content_len and content_len > 64 * 1024:
+        return jsonify({'success': False, 'message': 'payload too large'}), 413
+
+    payload = request.get_json(silent=True) or {}
+    raw_events = []
+    if isinstance(payload, dict) and isinstance(payload.get('events'), list):
+        raw_events = payload.get('events') or []
+    elif isinstance(payload, dict):
+        raw_events = [payload]
+
+    if not raw_events:
+        return jsonify({'success': False, 'message': 'no events'}), 400
+
+    request_host = str(request.host or '').split(':', 1)[0].strip().lower()
+    request_ua = str(request.headers.get('User-Agent') or '').strip()
+    request_ip = get_client_ip()
+
+    records = []
+    for raw in raw_events[:SITE_ANALYTICS_MAX_BATCH_SIZE]:
+        item = _analytics_sanitize_event(raw, request_host=request_host, request_ua=request_ua, request_ip=request_ip)
+        if item:
+            records.append(item)
+
+    accepted = _append_site_analytics_records(records)
+    return jsonify({'success': True, 'accepted': accepted})
+
+
+@app.route('/api/admin/site-reports', methods=['GET'])
+@login_required
+def get_site_reports_admin():
+    """Get website analytics report for admin dashboard."""
+    range_days = request.args.get('range_days', 30)
+    report = build_site_analytics_report(range_days=range_days)
+    return jsonify({'success': True, **report})
+
+
 # ============ Admin Routes ============
 
 register_admin_routes(
@@ -8243,3 +9232,4 @@ if __name__ == '__main__':
     print(f"Data:    {MESSAGES_DIR.absolute()}")
     print("=" * 50)
     app.run(host='0.0.0.0', port=8000, debug=True)
+
