@@ -29,5 +29,11 @@ archive/
 htmlcov/
 
 # Runtime generated files
+/data/.flask_secret_key
+/data/config.json
+/data/admin_login_attempts.json
 /data/admin_login_logs.json
 /data/admin_users.json
+/data/messages/
+/data/resumes/
+/data/site_analytics_events.jsonl

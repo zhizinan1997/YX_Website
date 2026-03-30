@@ -96,6 +96,13 @@ docker run -d \
   --restart unless-stopped \
   --network yx-net \
   --network-alias yx-website \
+  -e APP_ENV=production \
+  -e SECRET_KEY='replace-with-a-random-secret-key-at-least-32-chars' \
+  -e PUBLIC_BASE_URL='https://your-domain.example.com' \
+  -e TRUST_PROXY_HEADERS=true \
+  -e SESSION_COOKIE_SECURE=true \
+  -e ADMIN_USERNAME=admin \
+  -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
   -v /root/yxwebsite/data:/app/data \
   ghcr.io/zhizinan1997/yx_website:latest
 
@@ -115,8 +122,11 @@ docker run -d \
 - `2026` 为主站入口，`2027` 为 CDN 专用入口。
 - 域名绑定通过 DNS/反向代理完成（主站域名指向 `2026`，CDN 域名指向 `2027`）。
 - `yx-website` 不映射宿主机端口，仅通过 Docker 网络供 `yx-gateway` 反向代理访问。
-- `yx-website` 默认只挂载 `data`，不要挂载 `/app/pages`，否则会用宿主机旧页面覆盖镜像内新代码。
-- `MAIN_DOMAIN/CDN_DOMAIN` 不再是容器启动必填项。
+- `yx-website` 在生产环境必须提供 `SECRET_KEY` 和 `PUBLIC_BASE_URL`。
+- 首次部署时还必须提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 作为超级管理员初始化凭据；如果 `/app/data/admin_users.json` 中已经存在超级管理员，则后续重启可省略这两个变量。
+- 你的部署拓扑是 `宿主机 Nginx -> gateway -> website`，因此建议固定使用 `TRUST_PROXY_HEADERS=true`。
+- HTTPS 域名场景建议固定设置 `SESSION_COOKIE_SECURE=true`。
+- `MAIN_DOMAIN/CDN_DOMAIN` 不是容器启动必填项。
 - 两个镜像默认内置 `cdn_assets`，全新服务器可直接启动使用。
 - 如需挂载外部 `cdn_assets` 目录，请确保目录已预先同步完整素材；空目录挂载会覆盖镜像内素材并导致 404。
 
@@ -149,19 +159,29 @@ proxy_cache_bypass 1;
 启动：
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-可选环境变量（`.env`）：
+建议在 `.env` 中至少提供这些变量：
 
 ```bash
+SECRET_KEY=replace-with-a-random-secret-key-at-least-32-chars
+PUBLIC_BASE_URL=https://your-domain.example.com
+TRUST_PROXY_HEADERS=true
+SESSION_COOKIE_SECURE=true
+ADMIN_USERNAME=admin
+# 二选一：推荐直接提供哈希；或首次启动时临时提供明文密码
+ADMIN_PASSWORD_HASH=
+ADMIN_PASSWORD=
 MAIN_PORT=8000
 CDN_PORT=8001
 ```
 
 说明：
 
-- 安全相关参数（管理员账号密码、Turnstile 开关与密钥）统一在容器启动后通过 Admin 界面配置。
+- `SECRET_KEY`、`PUBLIC_BASE_URL` 是生产启动必填项。
+- 首次部署时必须提供 `ADMIN_PASSWORD_HASH` 或 `ADMIN_PASSWORD`；已有持久化管理员数据后可移除。
+- Turnstile、CDN 等业务配置仍可在 Admin 界面内调整。
 
 ## 📡 CDN 加速开关
 
@@ -184,10 +204,8 @@ CDN_PORT=8001
 ## ⚙️ 管理后台
 
 - **访问地址**: `http://localhost:2026/admin`
-- **默认账号**: `admin`
-- **默认密码**: `admin123`
-
-_建议首次登录后立即在“账号设置”中修改默认密码。_
+- **初始化方式**: 首次部署没有默认密码，需通过 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 初始化超级管理员。
+- **默认账号名**: 若未显式设置 `ADMIN_USERNAME`，默认仍为 `admin`
 
 ## ✨ 功能特性
 

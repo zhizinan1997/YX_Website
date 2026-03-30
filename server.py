@@ -16,6 +16,7 @@ import uuid
 import html
 import mimetypes
 import ipaddress
+import posixpath
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from functools import wraps
@@ -66,13 +67,67 @@ except ImportError:
     ZoneInfo = None
 
 
+APP_ROOT = Path(__file__).parent.resolve()
+APP_ENV = (os.environ.get('APP_ENV') or os.environ.get('FLASK_ENV') or '').strip().lower()
+DEV_ENV_NAMES = {'dev', 'development', 'local', 'test', 'testing'}
+WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
+WEAK_ADMIN_PASSWORDS = {'admin123', 'admin', '123456', 'password'}
+PLACEHOLDER_SECRET_KEYS = {'your-secret-key-change-in-production'}
+PUBLIC_STATIC_EXACT_FILES = {'index.html', 'robots.txt'}
+PUBLIC_STATIC_ROOT_DIRS = {'pages', 'assets', 'cdn_assets'}
+PRIVATE_STATIC_PREFIXES = (
+    'data',
+    'update_logs',
+    'app',
+    'tools',
+    '.git',
+)
+
+
+def is_development_mode() -> bool:
+    return APP_ENV in DEV_ENV_NAMES or __name__ == '__main__'
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    raw = (os.environ.get(name) or '').strip().lower()
+    if raw in {'1', 'true', 'yes', 'on'}:
+        return True
+    if raw in {'0', 'false', 'no', 'off'}:
+        return False
+    return default
+
+
+def normalize_public_base_url(raw_value: str) -> str:
+    value = (raw_value or '').strip()
+    if not value:
+        return ''
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', value):
+        value = f'https://{value}'
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return ''
+    if parsed.scheme not in {'http', 'https'} or not parsed.netloc:
+        return ''
+    return f'{parsed.scheme.lower()}://{parsed.netloc.lower()}'.rstrip('/')
+
+
+def get_public_base_url() -> str:
+    return normalize_public_base_url(os.environ.get('PUBLIC_BASE_URL', ''))
+
+
 def load_or_create_secret_key() -> str:
     """Load secret key from env or persistent local file."""
     env_secret = (os.environ.get('SECRET_KEY') or '').strip()
     if env_secret:
+        if env_secret in PLACEHOLDER_SECRET_KEYS or len(env_secret) < 32:
+            raise RuntimeError('生产环境 SECRET_KEY 无效，请提供至少 32 位且非占位值的 SECRET_KEY。')
         return env_secret
 
-    secret_file = Path(__file__).parent / 'data' / '.flask_secret_key'
+    if not is_development_mode():
+        raise RuntimeError('生产环境必须通过环境变量提供 SECRET_KEY。')
+
+    secret_file = APP_ROOT / 'data' / '.flask_secret_key'
     try:
         if secret_file.exists():
             existing = (secret_file.read_text(encoding='utf-8') or '').strip()
@@ -94,12 +149,17 @@ def load_or_create_secret_key() -> str:
 
 def create_app():
     """Create Flask app instance."""
-    flask_app = Flask(__name__, static_folder='.', static_url_path='')
+    flask_app = Flask(__name__, static_folder=None)
     flask_app.secret_key = load_or_create_secret_key()
     flask_app.config['SESSION_COOKIE_HTTPONLY'] = True
     flask_app.config['SESSION_COOKIE_SAMESITE'] = (os.environ.get('SESSION_COOKIE_SAMESITE') or 'Lax').strip() or 'Lax'
     secure_cookie_flag = (os.environ.get('SESSION_COOKIE_SECURE') or '').strip().lower()
-    flask_app.config['SESSION_COOKIE_SECURE'] = secure_cookie_flag in ('1', 'true', 'yes', 'on')
+    if secure_cookie_flag in ('1', 'true', 'yes', 'on'):
+        flask_app.config['SESSION_COOKIE_SECURE'] = True
+    elif secure_cookie_flag in ('0', 'false', 'no', 'off'):
+        flask_app.config['SESSION_COOKIE_SECURE'] = False
+    else:
+        flask_app.config['SESSION_COOKIE_SECURE'] = get_public_base_url().startswith('https://')
     return flask_app
 
 
@@ -108,13 +168,13 @@ CHEM_SUBSCRIPT_SCRIPT_SRC = '/assets/js/chem-subscript.js'
 SITE_ANALYTICS_SCRIPT_SRC = '/assets/js/site-analytics.js'
 
 # Configuration
-DATA_DIR = Path(__file__).parent / 'data'
+DATA_DIR = APP_ROOT / 'data'
 MESSAGES_DIR = DATA_DIR / 'messages'
 MESSAGES_META_FILE = DATA_DIR / 'messages_meta.json'
 KNOWLEDGE_DIR = DATA_DIR / 'knowledge'
 RATE_LIMIT_FILE = DATA_DIR / 'rate_limits.json'
 CONFIG_FILE = DATA_DIR / 'config.json'
-CDN_ASSETS_DIR = Path(__file__).parent / 'cdn_assets'
+CDN_ASSETS_DIR = APP_ROOT / 'cdn_assets'
 SITE_FAVICON_RELATIVE_PATH = Path('images/common/site-favicon.png')
 HERO_DIR = DATA_DIR / 'hero'
 HERO_UPLOADS_DIR = HERO_DIR / 'uploads'
@@ -262,6 +322,50 @@ try:
     ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '28800').strip()))
 except Exception:
     ADMIN_SESSION_MAX_AGE_SECONDS = 28800
+
+
+def ensure_required_runtime_config():
+    if is_development_mode():
+        return
+
+    errors = []
+    secret_key = (os.environ.get('SECRET_KEY') or '').strip()
+    public_base_url = get_public_base_url()
+    admin_hash = (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip()
+    admin_password = (os.environ.get('ADMIN_PASSWORD') or '').strip()
+
+    if not secret_key:
+        errors.append('缺少 SECRET_KEY')
+    elif secret_key in PLACEHOLDER_SECRET_KEYS or len(secret_key) < 32:
+        errors.append('SECRET_KEY 必须至少 32 位且不能使用占位值')
+
+    if not public_base_url:
+        errors.append('缺少合法的 PUBLIC_BASE_URL')
+
+    if admin_password and admin_password in WEAK_ADMIN_PASSWORDS:
+        errors.append('ADMIN_PASSWORD 不能使用弱口令')
+
+    has_bootstrapped_admin = False
+    admin_users_file = DATA_DIR / 'admin_users.json'
+    if admin_users_file.exists():
+        try:
+            payload = json.loads(admin_users_file.read_text(encoding='utf-8'))
+            users = payload.get('users', []) if isinstance(payload, dict) else []
+            has_bootstrapped_admin = any(
+                isinstance(item, dict) and str(item.get('role') or '') == 'super_admin' and str(item.get('password_hash') or '').strip()
+                for item in users
+            )
+        except Exception:
+            has_bootstrapped_admin = False
+
+    if not has_bootstrapped_admin and not admin_hash and not admin_password:
+        errors.append('缺少管理员初始化凭据：请提供 ADMIN_PASSWORD_HASH 或一次性 ADMIN_PASSWORD')
+
+    if errors:
+        raise RuntimeError('生产环境安全配置不完整：' + '；'.join(errors))
+
+
+ensure_required_runtime_config()
 
 ANTI_CRAWL_STRICT_PRIVATE_PREFIXES = (
     '/admin',
@@ -451,6 +555,146 @@ def normalize_ai_product_image_extension(filename: str, mime: str, sample: bytes
     if inferred_by_bytes in ALLOWED_AI_PRODUCT_IMAGE_EXTENSIONS:
         return inferred_by_bytes
 
+    return ''
+
+
+def _normalized_ext(value: str) -> str:
+    ext = str(value or '').strip().lower()
+    if ext == '.jpe':
+        return '.jpg'
+    return ext
+
+
+def peek_upload_bytes(file_storage, max_bytes: int = 8192) -> bytes:
+    stream = getattr(file_storage, 'stream', None)
+    if stream is None:
+        return b''
+    try:
+        current_pos = stream.tell()
+    except Exception:
+        current_pos = None
+    try:
+        sample = stream.read(max_bytes)
+    except Exception:
+        sample = b''
+    try:
+        if current_pos is not None:
+            stream.seek(current_pos)
+        else:
+            stream.seek(0)
+    except Exception:
+        pass
+    return sample or b''
+
+
+def infer_video_extension_from_bytes(sample: bytes) -> str:
+    sample = sample or b''
+    if len(sample) >= 12 and sample[4:8] == b'ftyp':
+        return '.mp4'
+    if sample.startswith(b'\x1aE\xdf\xa3'):
+        return '.webm'
+    if sample.startswith(b'OggS'):
+        return '.ogv'
+    return ''
+
+
+def validate_uploaded_image_extension(file_storage, *, allowed_extensions: set[str]) -> str:
+    filename = getattr(file_storage, 'filename', '') or ''
+    mime = (getattr(file_storage, 'mimetype', '') or getattr(file_storage, 'content_type', '') or '').lower()
+    sample = peek_upload_bytes(file_storage)
+    detected_ext = _normalized_ext(infer_ai_product_image_extension_from_bytes(sample))
+    if detected_ext in allowed_extensions:
+        return detected_ext
+    named_ext = _normalized_ext(Path(filename).suffix.lower())
+    if named_ext == '.svg':
+        detected_ext = infer_ai_product_image_extension_from_bytes(sample)
+        if _normalized_ext(detected_ext) == '.svg' and named_ext in allowed_extensions:
+            return named_ext
+    if named_ext in allowed_extensions and named_ext in {'.svg'} and _normalized_ext(detected_ext) == named_ext:
+        return named_ext
+    return ''
+
+
+def validate_image_bytes(filename: str, mime: str, content: bytes, *, allowed_extensions: set[str]) -> str:
+    detected_ext = _normalized_ext(infer_ai_product_image_extension_from_bytes(content[:8192]))
+    if detected_ext in allowed_extensions:
+        return detected_ext
+    named_ext = _normalized_ext(Path(filename or '').suffix.lower())
+    mime_ext = _normalized_ext(infer_news_image_extension_from_mime((mime or '').lower()))
+    if named_ext in allowed_extensions and named_ext == detected_ext:
+        return named_ext
+    if mime_ext in allowed_extensions and mime_ext == detected_ext:
+        return mime_ext
+    return ''
+
+
+def validate_uploaded_video_extension(file_storage, *, allowed_extensions: set[str]) -> str:
+    filename = getattr(file_storage, 'filename', '') or ''
+    sample = peek_upload_bytes(file_storage)
+    detected_ext = _normalized_ext(infer_video_extension_from_bytes(sample))
+    if detected_ext in allowed_extensions:
+        return detected_ext
+    named_ext = _normalized_ext(Path(filename).suffix.lower())
+    return named_ext if named_ext in allowed_extensions and named_ext == detected_ext else ''
+
+
+def validate_uploaded_pdf(file_storage) -> bool:
+    sample = peek_upload_bytes(file_storage)
+    return bool(sample.startswith(b'%PDF-'))
+
+
+def validate_uploaded_resume(file_storage) -> bool:
+    ext = _normalized_ext(Path((getattr(file_storage, 'filename', '') or '')).suffix.lower())
+    sample = peek_upload_bytes(file_storage)
+    if ext == '.pdf':
+        return sample.startswith(b'%PDF-')
+    if ext == '.doc':
+        return sample.startswith(b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1')
+    if ext == '.docx':
+        return sample.startswith(b'PK\x03\x04')
+    return False
+
+
+def extract_resume_storage_name(message: dict) -> str:
+    if not isinstance(message, dict):
+        return ''
+    stored_name = str(message.get('resume_stored_filename') or '').strip()
+    if stored_name:
+        safe_name = Path(unquote(stored_name)).name
+        return safe_name if safe_name == unquote(stored_name) else ''
+    resume_url = str(message.get('resume_url') or '').strip()
+    if resume_url.startswith('/media/resumes/'):
+        tail = unquote(resume_url.split('/media/resumes/', 1)[1]).strip()
+        safe_name = Path(tail).name
+        return safe_name if safe_name == tail else ''
+    return ''
+
+
+def build_resume_download_url(message: dict) -> str:
+    message_id = str((message or {}).get('id') or '').strip()
+    if not message_id:
+        return ''
+    if not extract_resume_storage_name(message):
+        return ''
+    return f'/api/messages/{quote(message_id)}/resume'
+
+
+def normalize_public_static_path(raw_path: str) -> str:
+    candidate = posixpath.normpath('/' + str(raw_path or '').replace('\\', '/')).lstrip('/')
+    if not candidate or candidate in {'.', '/'}:
+        return ''
+    parts = [part for part in candidate.split('/') if part]
+    if not parts:
+        return ''
+    if any(part in {'.', '..'} or part.startswith('.') for part in parts):
+        return ''
+    root = parts[0]
+    if candidate in PUBLIC_STATIC_EXACT_FILES:
+        return candidate
+    if root in PUBLIC_STATIC_ROOT_DIRS:
+        return candidate
+    if any(candidate == prefix or candidate.startswith(prefix + '/') for prefix in PRIVATE_STATIC_PREFIXES):
+        return ''
     return ''
 
 def get_hero_config():
@@ -867,21 +1111,13 @@ def save_partners_config(new_config):
 
 def get_config():
     """Load config from file or defaults."""
-    def _env_bool(name: str, default: bool = False) -> bool:
-        raw = (os.environ.get(name) or '').strip().lower()
-        if raw in {'1', 'true', 'yes', 'on'}:
-            return True
-        if raw in {'0', 'false', 'no', 'off'}:
-            return False
-        return default
-
     default_config = {
         'admin_username': os.environ.get('ADMIN_USERNAME', 'admin'),
         'admin_password_hash': (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip(),
-        'admin_password': os.environ.get('ADMIN_PASSWORD', 'admin123'),
-        'cdn_enabled': _env_bool('CDN_ENABLED', False),
+        'admin_password': (os.environ.get('ADMIN_PASSWORD') or ('admin123' if is_development_mode() else '')).strip(),
+        'cdn_enabled': env_bool('CDN_ENABLED', False),
         'cdn_domain': (os.environ.get('CDN_DOMAIN') or os.environ.get('CDN_ASSET_BASE_URL') or '').strip(),
-        'turnstile_enabled': _env_bool('TURNSTILE_ENABLED', False),
+        'turnstile_enabled': env_bool('TURNSTILE_ENABLED', False),
         'turnstile_site_key': (os.environ.get('TURNSTILE_SITE_KEY') or '').strip(),
         'turnstile_secret_key': (os.environ.get('TURNSTILE_SECRET_KEY') or '').strip(),
     }
@@ -889,7 +1125,13 @@ def get_config():
     if CONFIG_FILE.exists():
         try:
             config = json.loads(CONFIG_FILE.read_text(encoding='utf-8'))
-            return {**default_config, **config}
+            merged = {**default_config, **config}
+            for key in ('admin_username', 'admin_password_hash', 'admin_password'):
+                env_value = str(default_config.get(key, '') or '').strip()
+                file_value = str(config.get(key, '') or '').strip() if isinstance(config, dict) else ''
+                if env_value and not file_value:
+                    merged[key] = env_value
+            return merged
         except:
             pass
             
@@ -983,33 +1225,18 @@ def _is_private_proxy_source(ip_text: str) -> bool:
 
 def _should_trust_proxy_headers(req) -> bool:
     """Decide whether proxy headers should be trusted for this request."""
-    raw = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip().lower()
-    if raw in {'1', 'true', 'yes', 'on'}:
-        return True
-    if raw in {'0', 'false', 'no', 'off'}:
-        return False
-
-    remote_ip = _normalize_ip_text(getattr(req, 'remote_addr', '') or '')
-    if not _is_private_proxy_source(remote_ip):
-        return False
-
-    # Auto-trust only when common proxy headers are present.
-    return bool(
-        str(req.headers.get('CF-Connecting-IP') or '').strip()
-        or str(req.headers.get('X-Forwarded-For') or '').strip()
-        or str(req.headers.get('X-Real-IP') or '').strip()
-        or str(req.headers.get('X-Forwarded-Host') or '').strip()
-    )
+    return env_bool('TRUST_PROXY_HEADERS', False)
 
 
-def is_same_origin_request(req) -> bool:
-    """Basic CSRF guard for admin write actions."""
+def _collect_allowed_origins(req) -> list[str]:
     allowed_origins = []
 
     def add_allowed(raw_origin: str):
         normalized = _normalize_origin(raw_origin)
         if normalized and normalized not in allowed_origins:
             allowed_origins.append(normalized)
+
+    add_allowed(get_public_base_url())
 
     host_url = str(getattr(req, 'host_url', '') or '').strip()
     add_allowed(host_url)
@@ -1031,6 +1258,12 @@ def is_same_origin_request(req) -> bool:
             add_allowed(f'{proto}://{xf_host}')
             add_allowed(f'{"https" if proto == "http" else "http"}://{xf_host}')
 
+    return allowed_origins
+
+
+def is_same_origin_request(req) -> bool:
+    """Basic CSRF guard for admin write actions."""
+    allowed_origins = _collect_allowed_origins(req)
     if not allowed_origins:
         return False
 
@@ -1042,8 +1275,7 @@ def is_same_origin_request(req) -> bool:
     if referer:
         return any(hmac.compare_digest(referer, item) for item in allowed_origins)
 
-    # Allow non-browser clients with no Origin/Referer.
-    return True
+    return False
 
 
 def get_cdn_settings() -> dict:
@@ -1825,7 +2057,10 @@ def login_required(f):
     """Decorator to require admin login."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        is_api = (request.path or '').startswith('/api/')
         if not session.get('admin_logged_in'):
+            if is_api:
+                return jsonify({'success': False, 'message': '登录已过期，请重新登录'}), 401
             return redirect('/admin')
         now_ts = int(time.time())
         try:
@@ -1840,12 +2075,19 @@ def login_required(f):
             ttl = ADMIN_SESSION_MAX_AGE_SECONDS
         if login_at <= 0 or now_ts - login_at > ttl:
             session.clear()
+            if is_api:
+                return jsonify({'success': False, 'message': '登录已过期，请重新登录'}), 401
             return redirect('/admin')
 
         # Backward compatibility for old sessions created before RBAC fields exist.
         if 'admin_is_super_admin' not in session and 'admin_permissions' not in session:
             session['admin_is_super_admin'] = True
             session['admin_permissions'] = list(ADMIN_PERMISSION_KEYS)
+
+        if (request.method or 'GET').upper() in WRITE_METHODS and not is_same_origin_request(request):
+            if is_api:
+                return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+            return redirect('/admin')
 
         is_super_admin = bool(session.get('admin_is_super_admin', False))
         if is_super_admin:
@@ -1866,7 +2108,7 @@ def login_required(f):
             or (required_permission and required_permission not in permissions)
         )
         if denied:
-            if (request.path or '').startswith('/api/'):
+            if is_api:
                 return jsonify({'success': False, 'message': '当前账号无权限访问该功能'}), 403
             return redirect('/admin')
         return f(*args, **kwargs)
@@ -1933,6 +2175,11 @@ def strict_anti_crawl_guard():
 
 def _current_public_base_url() -> tuple[str, str]:
     """Build public base URL from forwarded headers when present."""
+    explicit = get_public_base_url()
+    if explicit:
+        parsed = urlparse(explicit)
+        return explicit, (parsed.hostname or '').strip().lower()
+
     forwarded_host = _first_forwarded_value(request.headers.get('X-Forwarded-Host', ''))
     host = (forwarded_host or request.host or '').strip()
     forwarded_proto = _first_forwarded_value(request.headers.get('X-Forwarded-Proto', '')).lower()
@@ -3359,17 +3606,9 @@ def upload_h2_home_video():
     if not file or not file.filename:
         return jsonify({'success': False, 'message': '文件名为空'}), 400
 
-    original_name = file.filename
-    filename = secure_filename(original_name)
-    ext = Path(filename).suffix.lower()
-    mime = (file.mimetype or '').lower()
-
-    if ext not in ALLOWED_H2_HOME_VIDEO_EXTENSIONS:
-        inferred_ext = infer_h2_home_video_extension_from_mime(mime)
-        if inferred_ext:
-            ext = inferred_ext
-        else:
-            return jsonify({'success': False, 'message': '只支持 MP4/WEBM/OGG 视频文件'}), 400
+    ext = validate_uploaded_video_extension(file, allowed_extensions=ALLOWED_H2_HOME_VIDEO_EXTENSIONS)
+    if not ext:
+        return jsonify({'success': False, 'message': '只支持 MP4/WEBM/OGG 视频文件'}), 400
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     save_path = H2_HOME_VIDEO_UPLOADS_DIR / saved_name
@@ -6761,6 +7000,7 @@ def get_product_settings_api():
 
 
 @app.route('/api/products/settings', methods=['POST'])
+@login_required
 def update_product_settings_api():
     """Update product menu settings."""
     data = request.json or {}
@@ -6811,6 +7051,7 @@ def update_product_settings_api():
 
 
 @app.route('/api/products/settings/sort', methods=['POST'])
+@login_required
 def update_product_sort_order():
     """Batch update product sort order."""
     data = request.json or {}
@@ -7490,6 +7731,7 @@ def get_recommendations_api():
 
 
 @app.route('/api/recommendations', methods=['POST'])
+@login_required
 def update_recommendations_api():
     """Update mega menu recommendations."""
     data = request.json or {}
@@ -7537,6 +7779,7 @@ def get_featured_case_nav_items_api():
 
 
 @app.route('/api/measurement-targets', methods=['POST'])
+@login_required
 def update_measurement_targets_api():
     """Update mega menu measurement targets."""
     data = request.json or {}
@@ -7603,17 +7846,11 @@ def upload_hero_media():
     if not file or not file.filename:
         return jsonify({'success': False, 'message': '文件名为空'}), 400
 
-    original_name = file.filename
-    filename = secure_filename(original_name)
-    ext = Path(filename).suffix.lower()
-    mime = (file.mimetype or '').lower()
-
-    if ext not in ALLOWED_HERO_EXTENSIONS:
-        inferred_ext = infer_extension_from_mime(mime)
-        if inferred_ext:
-            ext = inferred_ext
-        else:
-            return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/MP4 文件'}), 400
+    ext = validate_uploaded_video_extension(file, allowed_extensions={'.mp4'})
+    if not ext:
+        ext = validate_uploaded_image_extension(file, allowed_extensions={'.png', '.jpg', '.jpeg'})
+    if not ext:
+        return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/MP4 文件'}), 400
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     save_path = HERO_UPLOADS_DIR / saved_name
@@ -7731,17 +7968,9 @@ def upload_partner_logo():
     if not file or not file.filename:
         return jsonify({'success': False, 'message': '文件名为空'}), 400
 
-    original_name = file.filename
-    filename = secure_filename(original_name)
-    ext = Path(filename).suffix.lower()
-    mime = (file.mimetype or '').lower()
-
-    if ext not in ALLOWED_PARTNER_EXTENSIONS:
-        inferred_ext = infer_partner_extension_from_mime(mime)
-        if inferred_ext:
-            ext = inferred_ext
-        else:
-            return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/SVG/WEBP 文件'}), 400
+    ext = validate_uploaded_image_extension(file, allowed_extensions=ALLOWED_PARTNER_EXTENSIONS)
+    if not ext:
+        return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/SVG/WEBP 文件'}), 400
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     save_path = PARTNERS_UPLOADS_DIR / saved_name
@@ -7820,6 +8049,7 @@ def update_home_section_visibility():
 
 
 @app.route('/api/products/card-image/upload', methods=['POST'])
+@login_required
 def upload_product_card_image():
     """Upload image file for product card and return accessible URL."""
     if 'file' not in request.files:
@@ -7829,19 +8059,9 @@ def upload_product_card_image():
     if not file or not file.filename:
         return jsonify({'success': False, 'message': '文件名为空'}), 400
 
-    filename = secure_filename(file.filename)
-    ext = Path(filename).suffix.lower()
-    content_type = (file.content_type or '').lower()
-
-    if ext not in ALLOWED_PRODUCT_CARD_EXTENSIONS:
-        inferred = infer_product_card_extension_from_mime(content_type)
-        if inferred:
-            ext = inferred
-        else:
-            return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP 图片'}), 400
-
-    if content_type and content_type not in ALLOWED_PRODUCT_CARD_MIME_TYPES:
-        return jsonify({'success': False, 'message': '文件类型不支持'}), 400
+    ext = validate_uploaded_image_extension(file, allowed_extensions=ALLOWED_PRODUCT_CARD_EXTENSIONS)
+    if not ext:
+        return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP 图片'}), 400
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     save_path = PRODUCT_CARD_UPLOADS_DIR / saved_name
@@ -7895,16 +8115,9 @@ def import_news_image_from_url():
     if len(content) > 15 * 1024 * 1024:
         return jsonify({'success': False, 'message': '图片过大（最大15MB）'}), 400
 
+    ext = validate_image_bytes(str(parsed.path or ''), content_type, content, allowed_extensions=ALLOWED_NEWS_IMAGE_EXTENSIONS)
     if ext not in ALLOWED_NEWS_IMAGE_EXTENSIONS:
-        if content_type in ALLOWED_NEWS_IMAGE_MIME_TYPES:
-            ext = infer_news_image_extension_from_mime(content_type)
-        else:
-            guessed = mimetypes.guess_extension(content_type) if content_type else ''
-            ext = (guessed or '').lower()
-            if ext == '.jpe':
-                ext = '.jpg'
-            if ext not in ALLOWED_NEWS_IMAGE_EXTENSIONS:
-                return jsonify({'success': False, 'message': '链接内容不是受支持的图片格式'}), 400
+        return jsonify({'success': False, 'message': '链接内容不是受支持的图片格式'}), 400
 
     filename = f"{uuid.uuid4().hex}{ext}"
     file_path = NEWS_UPLOADS_DIR / filename
@@ -7922,22 +8135,9 @@ def upload_news_image_file():
     if not file or not file.filename:
         return jsonify({'success': False, 'message': '文件名为空'}), 400
 
-    original_name = file.filename
-    filename = secure_filename(original_name)
-    ext = Path(filename).suffix.lower()
-    mime = (file.mimetype or '').lower()
-
-    if ext not in ALLOWED_NEWS_IMAGE_EXTENSIONS:
-        inferred = infer_news_image_extension_from_mime(mime)
-        if inferred:
-            ext = inferred
-        else:
-            return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF/SVG'}), 400
-
-    if mime and mime not in ALLOWED_NEWS_IMAGE_MIME_TYPES:
-        inferred = infer_news_image_extension_from_mime(mime)
-        if not inferred:
-            return jsonify({'success': False, 'message': '文件类型不受支持'}), 400
+    ext = validate_uploaded_image_extension(file, allowed_extensions=ALLOWED_NEWS_IMAGE_EXTENSIONS)
+    if not ext:
+        return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF/SVG'}), 400
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     save_path = NEWS_UPLOADS_DIR / saved_name
@@ -7981,6 +8181,7 @@ def get_industry_filters_api():
 
 
 @app.route('/api/products/industry-filters', methods=['POST'])
+@login_required
 def save_industry_filters_api():
     """Update all-products industry filters."""
     data = request.json or {}
@@ -8052,6 +8253,9 @@ def get_messages():
     for filepath in sorted(MESSAGES_DIR.glob('*.json'), reverse=True):
         try:
             msg = json.loads(filepath.read_text(encoding='utf-8'))
+            resume_download_url = build_resume_download_url(msg)
+            if resume_download_url:
+                msg['resume_url'] = resume_download_url
             messages.append(msg)
             if str(msg.get('timestamp', '')).split('T')[0] == today:
                 today_count += 1
@@ -8084,9 +8288,8 @@ def delete_message(message_id):
     if filepath.exists():
         try:
             msg = json.loads(filepath.read_text(encoding='utf-8'))
-            resume_url = (msg.get('resume_url') or '').strip()
-            if resume_url.startswith('/media/resumes/'):
-                resume_name = resume_url.split('/media/resumes/', 1)[1]
+            resume_name = extract_resume_storage_name(msg)
+            if resume_name:
                 resume_path = RESUME_UPLOADS_DIR / resume_name
                 if resume_path.exists():
                     resume_path.unlink()
@@ -8114,6 +8317,40 @@ def mark_message_read(message_id):
         return jsonify({'success': True})
     except Exception:
         return jsonify({'success': False, 'message': '更新失败'}), 500
+
+
+@app.route('/api/messages/<message_id>/resume', methods=['GET'])
+@login_required
+def download_message_resume(message_id):
+    """Download one applicant resume via authenticated admin endpoint."""
+    filepath = MESSAGES_DIR / f"{message_id}.json"
+    if not filepath.exists():
+        return jsonify({'success': False, 'message': '留言不存在'}), 404
+    try:
+        msg = json.loads(filepath.read_text(encoding='utf-8'))
+    except Exception:
+        return jsonify({'success': False, 'message': '留言数据损坏'}), 500
+
+    resume_name = extract_resume_storage_name(msg)
+    if not resume_name:
+        return jsonify({'success': False, 'message': '未找到简历文件'}), 404
+
+    resume_path = RESUME_UPLOADS_DIR / resume_name
+    if not resume_path.exists() or not resume_path.is_file():
+        return jsonify({'success': False, 'message': '简历文件不存在'}), 404
+
+    download_name = secure_filename(str(msg.get('resume_filename') or '')) or resume_name
+    response = send_file(
+        resume_path,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype=mimetypes.guess_type(download_name)[0] or 'application/octet-stream',
+        conditional=False,
+    )
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/api/job-application', methods=['POST'])
@@ -8164,6 +8401,8 @@ def submit_job_application():
     ext = Path(resume_file.filename).suffix.lower()
     if ext not in ALLOWED_RESUME_EXTENSIONS:
         return jsonify({'success': False, 'message': '简历格式仅支持 PDF/DOC/DOCX'}), 400
+    if not validate_uploaded_resume(resume_file):
+        return jsonify({'success': False, 'message': '简历文件格式与扩展名不匹配'}), 400
 
     # 10MB limit
     resume_file.stream.seek(0, os.SEEK_END)
@@ -8197,7 +8436,8 @@ def submit_job_application():
         'project_experience': cleaned['project_experience'],
         'self_statement': cleaned['self_statement'],
         'resume_filename': safe_name,
-        'resume_url': f'/media/resumes/{saved_name}',
+        'resume_stored_filename': saved_name,
+        'resume_url': f'/api/messages/{message_id}/resume',
         'is_read': False,
         'timestamp': now.isoformat(),
         'ip': ip
@@ -8210,13 +8450,6 @@ def submit_job_application():
         'success': True,
         'message': '应聘信息提交成功，我们会尽快联系您。'
     })
-
-
-@app.route('/media/resumes/<path:filename>')
-def serve_resume_media(filename):
-    """Serve uploaded resumes."""
-    return send_from_directory(RESUME_UPLOADS_DIR, filename)
-
 
 register_backup_routes(
     app,
@@ -8658,6 +8891,8 @@ def upload_knowledge_file():
     
     if not file.filename.lower().endswith('.pdf'):
         return jsonify({'success': False, 'message': '只支持PDF文件'}), 400
+    if not validate_uploaded_pdf(file):
+        return jsonify({'success': False, 'message': 'PDF 文件格式无效'}), 400
     
     # Sanitize filename
     filename = re.sub(r'[^\w\u4e00-\u9fff\-_.]', '_', file.filename)
@@ -9205,22 +9440,30 @@ def site_favicon():
 @app.route('/')
 def index():
     """Serve main page."""
-    return send_from_directory('.', 'index.html')
+    return send_from_directory(str(APP_ROOT), 'index.html')
 
 
 @app.route('/<path:path>')
 def serve_static(path):
     """Serve static files."""
-    # Try exact path first
-    if os.path.isfile(path):
-        return send_from_directory('.', path)
-    # Try with .html extension
-    if os.path.isfile(path + '.html'):
-        return send_from_directory('.', path + '.html')
-    # Try as directory with index.html
-    if os.path.isdir(path) and os.path.isfile(os.path.join(path, 'index.html')):
-        return send_from_directory(path, 'index.html')
-    return send_from_directory('.', path)
+    normalized = normalize_public_static_path(path)
+    if not normalized:
+        return Response(status=404)
+
+    exact_path = APP_ROOT / normalized
+    if exact_path.is_file():
+        return send_from_directory(str(APP_ROOT), normalized)
+
+    html_path = APP_ROOT / f'{normalized}.html'
+    if html_path.is_file():
+        return send_from_directory(str(APP_ROOT), f'{normalized}.html')
+
+    if exact_path.is_dir():
+        index_path = exact_path / 'index.html'
+        if index_path.is_file():
+            return send_from_directory(str(exact_path), 'index.html')
+
+    return Response(status=404)
 
 
 if __name__ == '__main__':
@@ -9232,4 +9475,3 @@ if __name__ == '__main__':
     print(f"Data:    {MESSAGES_DIR.absolute()}")
     print("=" * 50)
     app.run(host='0.0.0.0', port=8000, debug=True)
-
