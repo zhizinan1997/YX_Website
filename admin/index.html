@@ -5278,6 +5278,34 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             start();
         }
 
+        let adminAuthRedirectPending = false;
+
+        function handleAdminApiUnauthorized() {
+            if (adminAuthRedirectPending) return;
+            adminAuthRedirectPending = true;
+            if (adminSessionCheckTimer) {
+                clearInterval(adminSessionCheckTimer);
+                adminSessionCheckTimer = null;
+            }
+            const dashboard = document.getElementById('dashboard');
+            const loginPage = document.getElementById('loginPage');
+            const loginError = document.getElementById('loginError');
+            if (dashboard) dashboard.style.display = 'none';
+            if (loginPage) loginPage.style.display = 'flex';
+            if (loginError) loginError.textContent = '登录已过期，请重新登录。';
+            resetLoginTurnstile();
+        }
+
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = async function (input, init) {
+            const response = await nativeFetch(input, init);
+            const url = typeof input === 'string' ? input : String((input && input.url) || '');
+            if (response.status === 401 && url.startsWith('/api/')) {
+                handleAdminApiUnauthorized();
+            }
+            return response;
+        };
+
         // --- Init ---
         initLoginBackground();
         initLoginSecurity();
@@ -13295,4 +13323,3 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 </body>
 
 </html>
-

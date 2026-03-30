@@ -45,6 +45,8 @@ ADMIN_PERMISSION_CATALOG = [
 ]
 ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
 USERNAME_RULE = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
+APP_ENV = (os.environ.get('APP_ENV') or os.environ.get('FLASK_ENV') or '').strip().lower()
+DEV_ENV_NAMES = {'dev', 'development', 'local', 'test', 'testing'}
 
 try:
     import certifi
@@ -56,6 +58,34 @@ except Exception:
 
 def _normalize_username(raw_value: str) -> str:
     return str(raw_value or '').strip()
+
+
+def _is_development_mode() -> bool:
+    return APP_ENV in DEV_ENV_NAMES
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = (os.environ.get(name) or '').strip().lower()
+    if raw in {'1', 'true', 'yes', 'on'}:
+        return True
+    if raw in {'0', 'false', 'no', 'off'}:
+        return False
+    return default
+
+
+def _normalize_public_base_url(raw_value: str) -> str:
+    value = (raw_value or '').strip()
+    if not value:
+        return ''
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', value):
+        value = f'https://{value}'
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return ''
+    if parsed.scheme not in {'http', 'https'} or not parsed.netloc:
+        return ''
+    return f'{parsed.scheme.lower()}://{parsed.netloc.lower()}'.rstrip('/')
 
 
 def _normalize_permissions(raw_permissions, is_super_admin: bool = False):
@@ -154,6 +184,10 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'changelog'
     if p.startswith('/api/backup/'):
         return 'backup'
+    if p.startswith('/api/recommendations'):
+        return 'products'
+    if p.startswith('/api/measurement-targets'):
+        return 'products'
     if p.startswith('/api/messages'):
         return 'messages'
     if p.startswith('/api/jobs'):
@@ -244,7 +278,9 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
         config = get_config() or {}
         config_admin_username = _normalize_username(config.get('admin_username', '')) or 'admin'
         config_admin_hash = str(config.get('admin_password_hash', '') or '').strip()
-        config_admin_plain = str(config.get('admin_password', '') or '')
+        config_admin_plain = str(config.get('admin_password', '') or '').strip()
+        if not config_admin_plain and _is_development_mode():
+            config_admin_plain = 'admin123'
 
         now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
 
@@ -256,7 +292,9 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
 
         changed_users = False
         if super_idx < 0:
-            initial_hash = config_admin_hash or _hash_password(config_admin_plain or 'admin123')
+            initial_hash = config_admin_hash or (_hash_password(config_admin_plain) if config_admin_plain else '')
+            if not initial_hash:
+                raise RuntimeError('缺少管理员初始化凭据，无法创建超级管理员账号。')
             super_user = _sanitize_user_record({
                 'username': config_admin_username,
                 'password_hash': initial_hash,
@@ -272,7 +310,12 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
             if not super_user['username']:
                 super_user['username'] = config_admin_username
             if not super_user['password_hash']:
-                super_user['password_hash'] = config_admin_hash or _hash_password(config_admin_plain or 'admin123')
+                if config_admin_hash:
+                    super_user['password_hash'] = config_admin_hash
+                elif config_admin_plain:
+                    super_user['password_hash'] = _hash_password(config_admin_plain)
+                else:
+                    raise RuntimeError('缺少管理员初始化凭据，无法修复超级管理员账号。')
             super_user['updated_at'] = now_iso
             users[super_idx] = super_user
             changed_users = True
@@ -289,7 +332,12 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
                 continue
             if not item['password_hash']:
                 if is_super:
-                    item['password_hash'] = config_admin_hash or _hash_password(config_admin_plain or 'admin123')
+                    if config_admin_hash:
+                        item['password_hash'] = config_admin_hash
+                    elif config_admin_plain:
+                        item['password_hash'] = _hash_password(config_admin_plain)
+                    else:
+                        continue
                 else:
                     # Skip invalid sub-account without password hash.
                     continue
@@ -598,22 +646,7 @@ def _is_private_proxy_source(ip_text: str) -> bool:
 
 
 def _should_trust_proxy_headers(req) -> bool:
-    raw = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip().lower()
-    if raw in {'1', 'true', 'yes', 'on'}:
-        return True
-    if raw in {'0', 'false', 'no', 'off'}:
-        return False
-
-    remote_ip = _normalize_ip_text(getattr(req, 'remote_addr', '') or '')
-    if not _is_private_proxy_source(remote_ip):
-        return False
-
-    return bool(
-        str(req.headers.get('CF-Connecting-IP') or '').strip()
-        or str(req.headers.get('X-Forwarded-For') or '').strip()
-        or str(req.headers.get('X-Real-IP') or '').strip()
-        or str(req.headers.get('X-Forwarded-Host') or '').strip()
-    )
+    return _env_bool('TRUST_PROXY_HEADERS', False)
 
 
 def _is_same_origin_request(req) -> bool:
@@ -624,6 +657,8 @@ def _is_same_origin_request(req) -> bool:
         normalized = _normalize_origin(raw_origin)
         if normalized and normalized not in allowed_origins:
             allowed_origins.append(normalized)
+
+    add_allowed(_normalize_public_base_url(os.environ.get('PUBLIC_BASE_URL', '')))
 
     host_url = str(getattr(req, 'host_url', '') or '').strip()
     add_allowed(host_url)
@@ -656,8 +691,7 @@ def _is_same_origin_request(req) -> bool:
     if referer:
         return any(hmac.compare_digest(referer, item) for item in allowed_origins)
 
-    # Allow non-browser clients with no Origin/Referer.
-    return True
+    return False
 
 
 def _to_display_time(dt_value):

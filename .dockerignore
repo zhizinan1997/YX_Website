@@ -29,6 +29,18 @@ Thumbs.db
 *.log
 .tmp_*
 
+# Sensitive runtime data (mounted from host, never baked into image)
+data/.flask_secret_key
+data/config.json
+data/admin_users.json
+data/admin_login_attempts.json
+data/admin_login_logs.json
+data/messages
+data/messages/**
+data/resumes
+data/resumes/**
+data/site_analytics_events.jsonl
+
 # Project specific - NOT NEEDED IN PRODUCTION
 archive/
 tools/
