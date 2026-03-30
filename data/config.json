@@ -1,6 +1,6 @@
 {
   "admin_username": "admin",
-  "admin_password_hash": "",
+  "admin_password_hash": "scrypt:32768:8:1$wDrnW9oVh64tbO0W$4f5fd7b714bf6c3a0eedc17bb0e68a7e55bfa57c84b85a1a8bba587915b49ed315e973c0fccd0e94aa34d68438e7f80bb9c6967a3c3199b5b6ffe2d39890a88d",
   "admin_password": "",
   "cdn_enabled": false,
   "cdn_domain": "",

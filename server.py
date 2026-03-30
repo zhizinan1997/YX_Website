@@ -342,9 +342,6 @@ def ensure_required_runtime_config():
     if not public_base_url:
         errors.append('缺少合法的 PUBLIC_BASE_URL')
 
-    if admin_password and admin_password in WEAK_ADMIN_PASSWORDS:
-        errors.append('ADMIN_PASSWORD 不能使用弱口令')
-
     has_bootstrapped_admin = False
     admin_users_file = DATA_DIR / 'admin_users.json'
     if admin_users_file.exists():
@@ -357,6 +354,9 @@ def ensure_required_runtime_config():
             )
         except Exception:
             has_bootstrapped_admin = False
+
+    if admin_password and admin_password in WEAK_ADMIN_PASSWORDS and not has_bootstrapped_admin and not admin_hash:
+        errors.append('ADMIN_PASSWORD 不能使用弱口令')
 
     if not has_bootstrapped_admin and not admin_hash and not admin_password:
         errors.append('缺少管理员初始化凭据：请提供 ADMIN_PASSWORD_HASH 或一次性 ADMIN_PASSWORD')
@@ -8814,9 +8814,10 @@ def chatbot_chat():
                                 return
                             app.logger.warning("chatbot sync fallback after stream chunk failed: %s", sync_error)
                         if sent_any_content:
-                            yield f"data: {json.dumps({'content': '\\n\\n' + fallback_reply}, ensure_ascii=False)}\n\n"
+                            fallback_content = '\n\n' + fallback_reply
                         else:
-                            yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
+                            fallback_content = fallback_reply
+                        yield f"data: {json.dumps({'content': fallback_content}, ensure_ascii=False)}\n\n"
                         yield "data: [DONE]\n\n"
                         return
                     sent_any_content = True
