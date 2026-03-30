@@ -976,18 +976,22 @@
             background-size: cover;
             background-position: center 15%;
             background-repeat: no-repeat;
-            padding: clamp(56px, 6vw, 96px) 0 clamp(62px, 6.5vw, 112px);
+            padding: clamp(72px, 7.8vw, 128px) 0 clamp(78px, 8.2vw, 144px);
         }
 
         .h2-contact-cta__card {
-            max-width: 960px;
+            max-width: 1160px;
             margin: 0 auto;
-            padding: clamp(40px, 4.2vw, 60px) clamp(24px, 3.2vw, 56px);
-            min-height: clamp(240px, 24vw, 300px);
+            padding: clamp(72px, 7vw, 100px) clamp(40px, 4.6vw, 88px);
+            min-height: clamp(440px, 42vw, 560px);
             border: 1px solid #e6edf7;
             border-radius: 18px;
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(248, 251, 255, 0.86) 100%);
             box-shadow: 0 14px 40px rgba(17, 54, 96, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
         }
 
@@ -1001,8 +1005,8 @@
         }
 
         .h2-contact-cta__desc {
-            margin: 0 auto 24px;
-            max-width: 680px;
+            margin: 0 auto 40px;
+            max-width: 780px;
             font-size: 18px;
             line-height: 1.8;
             color: #4e6786;
@@ -1032,17 +1036,17 @@
 
         @media (max-width: 768px) {
             .h2-contact-cta {
-                padding: 54px 0 64px;
+                padding: 64px 0 76px;
             }
 
             .h2-contact-cta__card {
                 min-height: 0;
-                padding: 34px 22px;
+                padding: 56px 24px;
             }
 
             .h2-contact-cta__desc {
                 font-size: 16px;
-                margin-bottom: 20px;
+                margin-bottom: 30px;
             }
         }
     </style>

@@ -11,6 +11,7 @@ import hmac
 import threading
 import secrets
 import base64
+import socket
 import re
 import uuid
 import html
@@ -298,18 +299,18 @@ BACKUP_EXCLUDED_SUFFIXES = (
     '.tmp',
     '.temp'
 )
-ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.svg', '.webp'}
-ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'}
+ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
+ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp'}
 ALLOWED_PRODUCT_CARD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_PRODUCT_CARD_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp'}
-ALLOWED_NEWS_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'}
-ALLOWED_NEWS_IMAGE_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'}
+ALLOWED_NEWS_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+ALLOWED_NEWS_IMAGE_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp', 'image/gif'}
 ALLOWED_AI_PRODUCT_IMAGE_EXTENSIONS = {
-    '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif', '.svg',
+    '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif',
     '.tif', '.tiff', '.avif', '.heic', '.heif'
 }
 ALLOWED_AI_PRODUCT_IMAGE_MIME_TYPES = {
-    'image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif', 'image/svg+xml',
+    'image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif',
     'image/tiff', 'image/avif', 'image/heic', 'image/heif'
 }
 MEDIA_IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
@@ -427,6 +428,31 @@ SEARCH_ENGINE_BOT_UA_KEYWORDS = (
     'petalbot',
 )
 STRICT_ANTI_CRAWL_HEADERS = 'noindex, nofollow, noarchive, nosnippet, noimageindex'
+PUBLIC_HTML_CONTENT_SECURITY_POLICY = "base-uri 'self'; frame-ancestors 'self'; object-src 'none'"
+PUBLIC_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+NEWS_SAFE_HTML_TAGS = {
+    'p', 'br', 'div', 'span',
+    'strong', 'b', 'em', 'i', 'u', 's', 'sup', 'sub',
+    'ul', 'ol', 'li',
+    'dl', 'dt', 'dd',
+    'blockquote', 'hr',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'a', 'img', 'video', 'source',
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th',
+    'code', 'pre',
+}
+NEWS_DROPPED_HTML_TAGS = {
+    'script', 'style', 'iframe', 'object', 'embed',
+    'form', 'input', 'button', 'textarea', 'select', 'option',
+    'svg', 'math', 'meta', 'link',
+}
+NEWS_VOID_HTML_TAGS = {'br', 'hr', 'img', 'source'}
+REMOTE_FETCH_BLOCKED_HOSTS = {
+    'localhost',
+    'localhost.localdomain',
+    '127.0.0.1',
+    '::1',
+}
 
 def infer_extension_from_mime(mime: str) -> str:
     if mime == 'image/png':
@@ -442,8 +468,6 @@ def infer_partner_extension_from_mime(mime: str) -> str:
         return '.png'
     if mime == 'image/jpeg':
         return '.jpg'
-    if mime == 'image/svg+xml':
-        return '.svg'
     if mime == 'image/webp':
         return '.webp'
     return ''
@@ -492,8 +516,6 @@ def infer_ai_product_image_extension_from_mime(mime: str) -> str:
         return '.bmp'
     if mime == 'image/gif':
         return '.gif'
-    if mime == 'image/svg+xml':
-        return '.svg'
     if mime == 'image/tiff':
         return '.tif'
     if mime == 'image/avif':
@@ -711,7 +733,22 @@ def get_hero_config():
             items = merged.get('items', [])
             if not isinstance(items, list):
                 items = []
-            merged['items'] = [item for item in items if isinstance(item, dict)]
+            merged['items'] = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                item_type = str(item.get('type') or 'image').lower()
+                if item_type not in {'image', 'video'}:
+                    continue
+                url = sanitize_public_media_url(item.get('url', ''), enforce_remote_public=False)
+                if not url:
+                    continue
+                merged['items'].append({
+                    'id': str(item.get('id') or uuid.uuid4().hex),
+                    'type': item_type,
+                    'url': url,
+                    'source': 'upload' if str(item.get('source') or '').lower() == 'upload' else 'url'
+                })
             return merged
         except Exception:
             pass
@@ -770,7 +807,10 @@ def save_hero_config(new_config):
             item_type = (item.get('type') or 'image').lower()
             if item_type not in {'image', 'video'}:
                 continue
-            url = (item.get('url') or '').strip()
+            url = sanitize_public_media_url(
+                item.get('url', ''),
+                enforce_remote_public=True
+            )
             if not url:
                 continue
             source = (item.get('source') or 'url').lower()
@@ -1075,7 +1115,7 @@ def get_partners_config():
             items = merged.get('items', [])
             if not isinstance(items, list):
                 items = []
-            merged['items'] = [item for item in items if isinstance(item, dict)]
+            merged['items'] = sanitize_public_partner_items(items)
             return merged
         except Exception:
             pass
@@ -1087,21 +1127,7 @@ def save_partners_config(new_config):
     """Validate and save partners config."""
     config = get_partners_config()
     items = new_config.get('items', config.get('items', []))
-    normalized_items = []
-    if isinstance(items, list):
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            item_id = str(item.get('id') or uuid.uuid4().hex)
-            url = (item.get('url') or '').strip()
-            if not url:
-                continue
-            source = (item.get('source') or 'url').lower()
-            normalized_items.append({
-                'id': item_id,
-                'url': url,
-                'source': source
-            })
+    normalized_items = sanitize_public_partner_items(items if isinstance(items, list) else [])
 
     saved = {
         'items': normalized_items
@@ -1228,6 +1254,97 @@ def _should_trust_proxy_headers(req) -> bool:
     return env_bool('TRUST_PROXY_HEADERS', False)
 
 
+def _parse_forwarded_ip_chain(raw_value: str) -> list[str]:
+    chain = []
+    for part in str(raw_value or '').split(','):
+        ip_text = _normalize_ip_text(part)
+        if ip_text and ip_text not in chain:
+            chain.append(ip_text)
+    return chain
+
+
+def _extract_client_ip_from_proxy_headers(req, direct_ip: str = '', x_real_ip: str = '') -> str:
+    chain = _parse_forwarded_ip_chain(req.headers.get('X-Forwarded-For', ''))
+    if chain:
+        # Read right-to-left and skip proxy/internal hops first so a spoofed
+        # client-supplied left-most XFF value cannot win over the real client IP.
+        for ip_text in reversed(chain):
+            if not _is_private_proxy_source(ip_text):
+                return ip_text
+
+        proxy_hints = {ip for ip in {direct_ip, x_real_ip} if ip}
+        for ip_text in reversed(chain):
+            if ip_text not in proxy_hints:
+                return ip_text
+        return chain[0]
+    return ''
+
+
+def _ip_is_publicly_routable(ip_text: str) -> bool:
+    normalized = _normalize_ip_text(ip_text)
+    if not normalized:
+        return False
+    try:
+        ip_obj = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return not (
+        ip_obj.is_private
+        or ip_obj.is_loopback
+        or ip_obj.is_link_local
+        or ip_obj.is_multicast
+        or ip_obj.is_reserved
+        or ip_obj.is_unspecified
+    )
+
+
+def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
+    normalized = normalize_remote_video_url(raw_url)
+    if not normalized:
+        return False, '仅支持合法的 http/https 地址', ''
+
+    try:
+        parsed = urlparse(normalized)
+    except Exception:
+        return False, '链接格式不合法', ''
+
+    hostname = (parsed.hostname or '').strip().lower()
+    if not hostname:
+        return False, '链接缺少主机名', ''
+    if parsed.username or parsed.password:
+        return False, '链接中不允许包含账号信息', ''
+    if hostname in REMOTE_FETCH_BLOCKED_HOSTS:
+        return False, '禁止访问本机或保留地址', ''
+
+    literal_ip = _normalize_ip_text(hostname)
+    if literal_ip:
+        if not _ip_is_publicly_routable(literal_ip):
+            return False, '禁止访问内网或保留地址', ''
+        return True, '', normalized
+
+    try:
+        records = socket.getaddrinfo(hostname, parsed.port or (443 if parsed.scheme == 'https' else 80), type=socket.SOCK_STREAM)
+    except socket.gaierror:
+        return False, '域名解析失败', ''
+    except Exception:
+        return False, '域名解析异常', ''
+
+    resolved_ips = []
+    for item in records:
+        sockaddr = item[4] if len(item) >= 5 else ()
+        if not sockaddr:
+            continue
+        ip_text = _normalize_ip_text(sockaddr[0])
+        if ip_text and ip_text not in resolved_ips:
+            resolved_ips.append(ip_text)
+
+    if not resolved_ips:
+        return False, '域名解析结果为空', ''
+    if any(not _ip_is_publicly_routable(ip_text) for ip_text in resolved_ips):
+        return False, '禁止访问内网或保留地址', ''
+    return True, '', normalized
+
+
 def _collect_allowed_origins(req) -> list[str]:
     allowed_origins = []
 
@@ -1291,19 +1408,17 @@ def get_cdn_settings() -> dict:
 def get_client_ip():
     """Get client IP address, considering proxy headers."""
     if _should_trust_proxy_headers(request):
+        direct_ip = _normalize_ip_text(request.remote_addr or '')
         cf_ip = _normalize_ip_text(request.headers.get('CF-Connecting-IP', ''))
-        if cf_ip:
+        if cf_ip and _ip_is_publicly_routable(cf_ip):
             return cf_ip
 
-        xff = (request.headers.get('X-Forwarded-For') or '').strip()
-        if xff:
-            for part in xff.split(','):
-                ip_text = _normalize_ip_text(part)
-                if ip_text:
-                    return ip_text
-
         x_real_ip = _normalize_ip_text(request.headers.get('X-Real-IP', ''))
-        if x_real_ip:
+        proxied_ip = _extract_client_ip_from_proxy_headers(request, direct_ip=direct_ip, x_real_ip=x_real_ip)
+        if proxied_ip:
+            return proxied_ip
+
+        if x_real_ip and x_real_ip != direct_ip:
             return x_real_ip
 
     direct_ip = _normalize_ip_text(request.remote_addr or '')
@@ -2115,6 +2230,16 @@ def login_required(f):
     return decorated_function
 
 
+def _current_admin_is_super_admin() -> bool:
+    return bool(session.get('admin_logged_in')) and bool(session.get('admin_is_super_admin', False))
+
+
+def require_super_admin_api():
+    if _current_admin_is_super_admin():
+        return None
+    return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+
+
 def _path_matches_prefix(path_value: str, prefix: str) -> bool:
     path_text = str(path_value or '').strip() or '/'
     normalized = str(prefix or '').strip()
@@ -2300,17 +2425,23 @@ def inject_chem_subscript_script(response):
     """Inject shared frontend scripts into public HTML responses."""
     try:
         path = request.path or ''
+        response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+        response.headers.setdefault('Referrer-Policy', PUBLIC_REFERRER_POLICY)
+        response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
         if _is_anti_crawl_strict_private_path(path):
             response.headers['X-Robots-Tag'] = STRICT_ANTI_CRAWL_HEADERS
 
         # Never inject into admin pages; admin has large inline scripts that may
         # contain literal "</body>" inside JS strings.
         if path.startswith('/admin'):
+            response.headers.setdefault('Content-Security-Policy', PUBLIC_HTML_CONTENT_SECURITY_POLICY)
             return response
 
         content_type = (response.headers.get('Content-Type') or '').lower()
         if 'text/html' not in content_type:
             return response
+
+        response.headers.setdefault('Content-Security-Policy', PUBLIC_HTML_CONTENT_SECURITY_POLICY)
 
         response.direct_passthrough = False
         html_body = response.get_data(as_text=True)
@@ -2346,6 +2477,342 @@ def inject_chem_subscript_script(response):
 
 
 # ============ News API ============
+
+def normalize_news_plain_text(value: str, *, max_length: int = 0) -> str:
+    text = html.unescape(str(value or '')).replace('\u00a0', ' ')
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r'[\r\n\t]+', ' ', text)
+    text = re.sub(r'\s{2,}', ' ', text).strip()
+    if max_length > 0:
+        text = text[:max_length].strip()
+    return text
+
+
+def sanitize_news_link_url(raw_url: str) -> str:
+    value = str(raw_url or '').strip()
+    if not value:
+        return ''
+    decoded = html.unescape(value).strip()
+    lower = decoded.lower()
+    if any(lower.startswith(prefix) for prefix in ('javascript:', 'data:', 'vbscript:', 'file:')):
+        return ''
+
+    try:
+        parsed = urlparse(decoded)
+    except Exception:
+        return ''
+
+    if parsed.scheme:
+        if parsed.scheme.lower() not in {'http', 'https', 'mailto', 'tel'}:
+            return ''
+        if parsed.scheme.lower() in {'http', 'https'} and not parsed.netloc:
+            return ''
+        if parsed.username or parsed.password:
+            return ''
+        return parsed._replace(fragment='').geturl()
+
+    if decoded.startswith('//') or decoded.startswith('\\\\'):
+        return ''
+    return decoded
+
+
+def sanitize_news_image_url(raw_url: str) -> str:
+    value = str(raw_url or '').strip()
+    if not value:
+        return ''
+    safe_url = sanitize_news_link_url(value)
+    if not safe_url:
+        return ''
+    lower = safe_url.lower()
+    if lower.startswith(('mailto:', 'tel:')):
+        return ''
+    return safe_url
+
+
+def sanitize_public_text(value: str, *, max_length: int = 0) -> str:
+    return normalize_news_plain_text(value, max_length=max_length)
+
+
+def sanitize_public_date_text(value: str, *, max_length: int = 32) -> str:
+    return normalize_news_plain_text(value, max_length=max_length)
+
+
+def sanitize_public_link_url(raw_url: str, *, enforce_remote_public: bool = False, default: str = '') -> str:
+    safe_url = sanitize_news_link_url(raw_url)
+    if not safe_url:
+        return default
+    if enforce_remote_public and re.match(r'^https?://', safe_url, re.I):
+        ok, _, normalized = validate_safe_remote_fetch_url(safe_url)
+        if not ok:
+            return default
+        return normalized
+    return safe_url
+
+
+def sanitize_public_media_url(raw_url: str, *, enforce_remote_public: bool = False, default: str = '') -> str:
+    safe_url = sanitize_news_image_url(raw_url)
+    if not safe_url:
+        return default
+    if enforce_remote_public and re.match(r'^https?://', safe_url, re.I):
+        ok, _, normalized = validate_safe_remote_fetch_url(safe_url)
+        if not ok:
+            return default
+        return normalized
+    return safe_url
+
+
+def sanitize_public_product_settings(settings):
+    raw = settings if isinstance(settings, dict) else {}
+    cleaned = {}
+    for product_id, cfg in raw.items():
+        pid = str(product_id or '').strip()
+        if not pid or not isinstance(cfg, dict):
+            continue
+        item = {}
+        if 'displayName' in cfg:
+            item['displayName'] = sanitize_public_text(cfg.get('displayName', ''), max_length=120)
+        if 'isNew' in cfg:
+            item['isNew'] = bool(cfg.get('isNew', False))
+        if 'hidden' in cfg:
+            item['hidden'] = bool(cfg.get('hidden', False))
+        if 'sortOrder' in cfg:
+            try:
+                item['sortOrder'] = int(cfg.get('sortOrder', 999))
+            except Exception:
+                item['sortOrder'] = 999
+        if 'cardTitle' in cfg:
+            item['cardTitle'] = sanitize_public_text(cfg.get('cardTitle', ''), max_length=120)
+        if 'cardImage' in cfg:
+            item['cardImage'] = sanitize_public_media_url(
+                cfg.get('cardImage', ''),
+                enforce_remote_public=False
+            )
+        if 'cardSummary' in cfg:
+            item['cardSummary'] = sanitize_public_text(cfg.get('cardSummary', ''), max_length=220)
+        if 'categories' in cfg:
+            values = cfg.get('categories', [])
+            if not isinstance(values, list):
+                values = [values]
+            item['categories'] = [str(v or '').strip() for v in values if str(v or '').strip()]
+        if 'industryCategories' in cfg:
+            values = cfg.get('industryCategories', [])
+            if not isinstance(values, list):
+                values = [values]
+            item['industryCategories'] = [str(v or '').strip() for v in values if str(v or '').strip()]
+        if 'relatedNews' in cfg:
+            item['relatedNews'] = _normalize_related_news_links(cfg.get('relatedNews', []))
+        cleaned[pid] = item
+    return cleaned
+
+
+def sanitize_public_partner_items(items):
+    cleaned = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        url = sanitize_public_media_url(item.get('url', ''), enforce_remote_public=False)
+        if not url:
+            continue
+        cleaned.append({
+            'id': str(item.get('id') or uuid.uuid4().hex),
+            'url': url,
+            'source': 'upload' if str(item.get('source') or '').lower() == 'upload' else 'url'
+        })
+    return cleaned
+
+
+def sanitize_news_html_fragment(fragment: str) -> str:
+    from html.parser import HTMLParser
+
+    class SafeNewsHTMLParser(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=False)
+            self.parts = []
+            self.drop_depth = 0
+
+        def _append_start(self, tag: str, attrs: list[tuple[str, str]]):
+            if attrs:
+                attr_text = ''.join(f' {name}="{html.escape(value, quote=True)}"' for name, value in attrs)
+            else:
+                attr_text = ''
+            if tag in NEWS_VOID_HTML_TAGS:
+                self.parts.append(f'<{tag}{attr_text}>')
+            else:
+                self.parts.append(f'<{tag}{attr_text}>')
+
+        def handle_starttag(self, tag, attrs):
+            tag_name = str(tag or '').lower()
+            if tag_name in NEWS_DROPPED_HTML_TAGS:
+                self.drop_depth += 1
+                return
+            if self.drop_depth > 0 or tag_name not in NEWS_SAFE_HTML_TAGS:
+                return
+
+            cleaned_attrs = []
+            if tag_name == 'a':
+                href = ''
+                rel_tokens = set()
+                target_value = ''
+                for name, raw_value in attrs:
+                    attr_name = str(name or '').lower()
+                    if attr_name.startswith('on') or attr_name in {'style', 'srcset'}:
+                        continue
+                    attr_value = str(raw_value or '')
+                    if attr_name == 'href':
+                        href = sanitize_news_link_url(attr_value)
+                    elif attr_name == 'title':
+                        cleaned_attrs.append(('title', normalize_news_plain_text(attr_value, max_length=300)))
+                    elif attr_name == 'target':
+                        if attr_value in {'_blank', '_self'}:
+                            target_value = attr_value
+                    elif attr_name == 'rel':
+                        rel_tokens.update(
+                            token for token in re.split(r'\s+', attr_value.strip().lower())
+                            if token in {'noopener', 'noreferrer', 'nofollow'}
+                        )
+                if href:
+                    cleaned_attrs.append(('href', href))
+                if target_value:
+                    cleaned_attrs.append(('target', target_value))
+                    if target_value == '_blank':
+                        rel_tokens.update({'noopener', 'noreferrer'})
+                if rel_tokens:
+                    cleaned_attrs.append(('rel', ' '.join(sorted(rel_tokens))))
+            elif tag_name == 'img':
+                for name, raw_value in attrs:
+                    attr_name = str(name or '').lower()
+                    if attr_name.startswith('on') or attr_name in {'style', 'srcset'}:
+                        continue
+                    attr_value = str(raw_value or '')
+                    if attr_name == 'src':
+                        safe_src = sanitize_news_image_url(attr_value)
+                        if safe_src:
+                            cleaned_attrs.append(('src', safe_src))
+                    elif attr_name in {'alt', 'title'}:
+                        cleaned_attrs.append((attr_name, normalize_news_plain_text(attr_value, max_length=300)))
+                    elif attr_name in {'width', 'height'}:
+                        digits = re.sub(r'[^0-9]', '', attr_value)
+                        if digits:
+                            cleaned_attrs.append((attr_name, digits[:4]))
+                    elif attr_name == 'loading' and attr_value in {'lazy', 'eager'}:
+                        cleaned_attrs.append((attr_name, attr_value))
+                if not any(name == 'src' for name, _ in cleaned_attrs):
+                    return
+            elif tag_name == 'video':
+                bool_attrs = set()
+                for name, raw_value in attrs:
+                    attr_name = str(name or '').lower()
+                    if attr_name.startswith('on') or attr_name in {'style', 'srcset', 'class'}:
+                        continue
+                    attr_value = str(raw_value or '')
+                    if attr_name == 'src':
+                        safe_src = sanitize_news_image_url(attr_value)
+                        if safe_src:
+                            cleaned_attrs.append(('src', safe_src))
+                    elif attr_name == 'poster':
+                        safe_poster = sanitize_news_image_url(attr_value)
+                        if safe_poster:
+                            cleaned_attrs.append(('poster', safe_poster))
+                    elif attr_name == 'preload' and attr_value in {'none', 'metadata', 'auto'}:
+                        cleaned_attrs.append(('preload', attr_value))
+                    elif attr_name in {'controls', 'muted', 'playsinline', 'loop', 'autoplay'}:
+                        bool_attrs.add(attr_name)
+                for attr_name in ('controls', 'muted', 'playsinline', 'loop', 'autoplay'):
+                    if attr_name in bool_attrs:
+                        cleaned_attrs.append((attr_name, attr_name))
+            elif tag_name == 'source':
+                src_value = ''
+                type_value = ''
+                for name, raw_value in attrs:
+                    attr_name = str(name or '').lower()
+                    if attr_name.startswith('on') or attr_name in {'style', 'srcset', 'class'}:
+                        continue
+                    attr_value = str(raw_value or '')
+                    if attr_name == 'src':
+                        src_value = sanitize_news_image_url(attr_value)
+                    elif attr_name == 'type':
+                        type_value = normalize_news_plain_text(attr_value, max_length=100).lower()
+                if not src_value:
+                    return
+                cleaned_attrs.append(('src', src_value))
+                if type_value and type_value.startswith(('video/', 'audio/')):
+                    cleaned_attrs.append(('type', type_value))
+            elif tag_name in {'td', 'th'}:
+                for name, raw_value in attrs:
+                    attr_name = str(name or '').lower()
+                    if attr_name in {'colspan', 'rowspan'}:
+                        digits = re.sub(r'[^0-9]', '', str(raw_value or ''))
+                        if digits:
+                            cleaned_attrs.append((attr_name, digits[:2]))
+
+            self._append_start(tag_name, cleaned_attrs)
+
+        def handle_startendtag(self, tag, attrs):
+            tag_name = str(tag or '').lower()
+            if tag_name in NEWS_DROPPED_HTML_TAGS or self.drop_depth > 0 or tag_name not in NEWS_SAFE_HTML_TAGS:
+                return
+            self.handle_starttag(tag, attrs)
+
+        def handle_endtag(self, tag):
+            tag_name = str(tag or '').lower()
+            if tag_name in NEWS_DROPPED_HTML_TAGS:
+                if self.drop_depth > 0:
+                    self.drop_depth -= 1
+                return
+            if self.drop_depth > 0 or tag_name not in NEWS_SAFE_HTML_TAGS or tag_name in NEWS_VOID_HTML_TAGS:
+                return
+            self.parts.append(f'</{tag_name}>')
+
+        def handle_data(self, data):
+            if self.drop_depth > 0 or not data:
+                return
+            self.parts.append(html.escape(data))
+
+        def handle_entityref(self, name):
+            if self.drop_depth > 0 or not name:
+                return
+            self.parts.append(f'&{name};')
+
+        def handle_charref(self, name):
+            if self.drop_depth > 0 or not name:
+                return
+            self.parts.append(f'&#{name};')
+
+        def handle_comment(self, data):
+            return
+
+    parser = SafeNewsHTMLParser()
+    try:
+        parser.feed(fragment or '')
+        parser.close()
+    except Exception:
+        return html.escape(fragment or '')
+    sanitized = ''.join(parser.parts)
+    return sanitized.strip()
+
+
+def build_news_card_html(filename: str, category: str, division: str, image_url: str, date: str, title: str, summary: str, *, hidden: bool = False) -> str:
+    safe_filename = Path(filename).name
+    safe_category = category if category in {'enterprise', 'industry', 'science'} else 'enterprise'
+    safe_division = html.escape(normalize_news_plain_text(division, max_length=80), quote=True)
+    safe_image_url = html.escape(sanitize_news_image_url(image_url) or '/assets/images/logo.png', quote=True)
+    safe_date = html.escape(normalize_news_plain_text(date, max_length=80), quote=False)
+    safe_title = html.escape(normalize_news_plain_text(title, max_length=200), quote=False)
+    safe_summary = html.escape(normalize_news_plain_text(summary, max_length=220), quote=False)
+    hidden_attr = 'true' if hidden else 'false'
+    return f"""
+                    <a href="../../pages/news/{safe_filename}" class="vs-card" data-category="{safe_category}" data-division="{safe_division}" data-hidden="{hidden_attr}">
+                        <div class="vs-card__img-wrapper">
+                            <img src="{safe_image_url}" alt="News Image">
+                        </div>
+                        <div class="vs-card__content">
+                            <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> {safe_date}</div>
+                            <h3 class="vs-card__title">{safe_title}</h3>
+                            <p class="vs-card__desc">{safe_summary}</p>
+                            <span class="vs-link-arrow">查看详情</span>
+                        </div>
+                    </a>
+"""
 
 def parse_news_from_html():
     """Parse news data from news.html file."""
@@ -2461,8 +2928,12 @@ def get_next_news_id():
 
 def build_news_article_html(title, date, image_url, content_html):
     """Render a news article HTML with consistent style."""
-    safe_title = title.replace('"', '&quot;')
-    hero_title = safe_title
+    safe_title_text = normalize_news_plain_text(title, max_length=200)
+    safe_title = html.escape(safe_title_text, quote=True)
+    hero_title = html.escape(safe_title_text, quote=False)
+    safe_date = html.escape(normalize_news_plain_text(date, max_length=80), quote=False)
+    safe_image_url = html.escape(sanitize_news_image_url(image_url) or '/assets/images/logo.png', quote=True)
+    safe_content_html = sanitize_news_html_fragment(content_html)
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -2619,13 +3090,13 @@ def build_news_article_html(title, date, image_url, content_html):
 
     <section class="article-hero">
         <h1 class="article-hero__title">{hero_title}</h1>
-        <div class="article-hero__meta">{date}</div>
+        <div class="article-hero__meta">{safe_date}</div>
     </section>
 
     <div class="article-container">
         <div class="article-content">
-            <img src="{image_url}" alt="News">
-            {content_html}
+            <img src="{safe_image_url}" alt="News">
+            {safe_content_html}
         </div>
 
         <div style="margin-top: 40px;">
@@ -3063,7 +3534,22 @@ def get_featured_news():
             if len(featured) >= 3:
                 break
 
-    return jsonify({'items': featured[:3]})
+    output = []
+    for item in featured[:3]:
+        if not item:
+            continue
+        output.append({
+            'link': sanitize_public_link_url(item.get('link', ''), default='#'),
+            'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False),
+            'date': sanitize_public_date_text(item.get('date', '')),
+            'title': sanitize_public_text(item.get('title', ''), max_length=200),
+            'desc': sanitize_public_text(item.get('desc', ''), max_length=220),
+            'summary': sanitize_public_text(item.get('summary', ''), max_length=220),
+            'category': sanitize_public_text(item.get('category', ''), max_length=32),
+            'division': sanitize_public_text(item.get('division', ''), max_length=64),
+        })
+
+    return jsonify({'items': output})
 
 
 @app.route('/api/news/featured', methods=['POST'])
@@ -3121,7 +3607,7 @@ def get_all_solution_items():
                 continue
             item = extract_solution_meta_from_html(filepath)
             if item:
-                item['link'] = build_solution_link(item)
+                item['link'] = sanitize_public_link_url(build_solution_link(item), default='#')
                 items.append(item)
     return items
 
@@ -3208,7 +3694,7 @@ def normalize_job_record(item):
         'department': clean_job_text(item.get('department') or ''),
         'location': clean_job_text(item.get('location') or ''),
         'date': normalize_job_date(item.get('date') or ''),
-        'content_html': (item.get('content_html') or '').strip(),
+        'content_html': sanitize_news_html_fragment(item.get('content_html') or ''),
         'visible': bool(item.get('visible', True))
     }
 
@@ -3245,7 +3731,12 @@ def load_jobs_data():
 
 
 def save_jobs_data(data):
-    JOBS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    jobs = []
+    for raw in (data or {}).get('jobs', []):
+        normalized = normalize_job_record(raw)
+        if normalized:
+            jobs.append(normalized)
+    JOBS_FILE.write_text(json.dumps({'jobs': jobs}, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
 def get_h2_home_config():
@@ -3255,7 +3746,22 @@ def get_h2_home_config():
         try:
             config = json.loads(H2_HOME_FILE.read_text(encoding='utf-8'))
             if isinstance(config, dict) and isinstance(config.get('items', []), list):
-                return config
+                items = []
+                for item in config.get('items', []):
+                    if not isinstance(item, dict):
+                        continue
+                    url = sanitize_public_media_url(item.get('url', ''), enforce_remote_public=False)
+                    if not url:
+                        continue
+                    items.append({
+                        'id': item.get('id') or str(uuid.uuid4()),
+                        'url': url
+                    })
+                return {
+                    'items': items,
+                    'products': config.get('products', []) if isinstance(config.get('products', []), list) else [],
+                    'cases': config.get('cases', []) if isinstance(config.get('cases', []), list) else []
+                }
         except Exception:
             pass
     H2_HOME_FILE.write_text(json.dumps(default_config, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -3270,7 +3776,10 @@ def save_h2_home_config(config):
     for item in items:
         if not isinstance(item, dict):
             continue
-        url = (item.get('url') or '').strip()
+        url = sanitize_public_media_url(
+            item.get('url', ''),
+            enforce_remote_public=True
+        )
         if not url:
             continue
         cleaned.append({
@@ -3331,8 +3840,8 @@ def save_h2_home_cases(items):
         seen.add(cid)
         cleaned.append({
             'id': cid,
-            'customSubtitle': item.get('customSubtitle', ''),
-            'customTitle': item.get('customTitle', '')
+            'customSubtitle': sanitize_public_text(item.get('customSubtitle', ''), max_length=40),
+            'customTitle': sanitize_public_text(item.get('customTitle', ''), max_length=120)
         })
     existing = get_h2_home_config()
     saved = {
@@ -3368,9 +3877,9 @@ def get_featured_products():
         title = item.get('displayName') or item.get('shortName') or item.get('name') or item.get('id', '')
         items.append({
             'id': item.get('id'),
-            'title': title,
-            'image': item.get('image', ''),
-            'desc': item.get('description', ''),
+            'title': sanitize_public_text(title, max_length=120),
+            'image': sanitize_public_media_url(item.get('cardImage') or item.get('image', ''), enforce_remote_public=False),
+            'desc': sanitize_public_text(item.get('cardSummary') or item.get('description', ''), max_length=220),
             'link': build_product_link(item)
         })
 
@@ -3469,10 +3978,10 @@ def get_featured_solutions():
             continue
         output.append({
             'id': item.get('id'),
-            'title': item.get('title', ''),
-            'image': item.get('image', ''),
-            'desc': item.get('desc', ''),
-            'link': item.get('link', build_solution_link(item))
+            'title': sanitize_public_text(item.get('title', ''), max_length=120),
+            'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False),
+            'desc': sanitize_public_text(item.get('desc', ''), max_length=220),
+            'link': sanitize_public_link_url(item.get('link', build_solution_link(item)), default='#')
         })
 
     return jsonify({'items': output})
@@ -3504,7 +4013,7 @@ def save_job_admin():
     department = clean_job_text(data.get('department') or '')
     location = clean_job_text(data.get('location') or '')
     date = normalize_job_date(data.get('date') or '')
-    content_html = (data.get('content_html') or '').strip()
+    content_html = sanitize_news_html_fragment(data.get('content_html') or '')
     visible = bool(data.get('visible', True))
     job_id = clean_job_text(data.get('id') or '')
 
@@ -3646,7 +4155,10 @@ def _collect_remote_urls_from_items(items) -> set:
         if not isinstance(item, dict):
             continue
         url = normalize_remote_video_url(item.get('url', ''))
+        ok = False
         if url:
+            ok, _, url = validate_safe_remote_fetch_url(url)
+        if url and ok:
             allowed.add(url)
     return allowed
 
@@ -3672,6 +4184,9 @@ def proxy_video():
     allowed_urls = get_allowed_remote_media_urls()
     if target_url not in allowed_urls:
         return jsonify({'success': False, 'message': '该视频地址未授权代理'}), 403
+    ok, reason, safe_target_url = validate_safe_remote_fetch_url(target_url)
+    if not ok:
+        return jsonify({'success': False, 'message': reason or '媒体地址不安全'}), 400
 
     if not REQUESTS_SUPPORT:
         return jsonify({'success': False, 'message': '服务器缺少 requests 依赖，无法代理媒体'}), 500
@@ -3682,7 +4197,13 @@ def proxy_video():
         upstream_headers['Range'] = range_header
 
     try:
-        upstream = requests.get(target_url, headers=upstream_headers, stream=True, timeout=(8, 120))
+        upstream = requests.get(
+            safe_target_url,
+            headers=upstream_headers,
+            stream=True,
+            timeout=(8, 120),
+            allow_redirects=False
+        )
     except Exception as e:
         return jsonify({'success': False, 'message': f'代理媒体失败: {e}'}), 502
 
@@ -3739,10 +4260,10 @@ def get_h2_home_products():
         title = item.get('displayName') or item.get('shortName') or item.get('name') or item.get('id', '')
         items.append({
             'id': item.get('id'),
-            'title': title,
-            'image': item.get('image', ''),
-            'desc': item.get('description', ''),
-            'link': build_product_link(item)
+            'title': sanitize_public_text(title, max_length=120),
+            'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False),
+            'desc': sanitize_public_text(item.get('description', ''), max_length=220),
+            'link': sanitize_public_link_url(build_product_link(item), default='#')
         })
     return jsonify({'items': items})
 
@@ -3771,8 +4292,8 @@ def get_h2_home_cases():
         # Support both new format (dict) and legacy format (string)
         if isinstance(case_cfg, dict):
             cid = case_cfg.get('id')
-            custom_subtitle = case_cfg.get('customSubtitle', '')
-            custom_title = case_cfg.get('customTitle', '')
+            custom_subtitle = sanitize_public_text(case_cfg.get('customSubtitle', ''), max_length=40)
+            custom_title = sanitize_public_text(case_cfg.get('customTitle', ''), max_length=120)
         elif isinstance(case_cfg, str):
             cid = case_cfg
             custom_subtitle = ''
@@ -3786,10 +4307,10 @@ def get_h2_home_cases():
         used_ids.add(cid)
         output.append({
             'id': item.get('id'),
-            'title': item.get('title', ''),
-            'image': item.get('image', ''),
-            'desc': item.get('desc', ''),
-            'link': item.get('link', ''),
+            'title': sanitize_public_text(item.get('title', ''), max_length=120),
+            'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False),
+            'desc': sanitize_public_text(item.get('desc', ''), max_length=220),
+            'link': sanitize_public_link_url(item.get('link', ''), default='#'),
             'customSubtitle': custom_subtitle,
             'customTitle': custom_title
         })
@@ -3801,10 +4322,10 @@ def get_h2_home_cases():
                 continue
             output.append({
                 'id': item.get('id'),
-                'title': item.get('title', ''),
-                'image': item.get('image', ''),
-                'desc': item.get('desc', ''),
-                'link': item.get('link', ''),
+                'title': sanitize_public_text(item.get('title', ''), max_length=120),
+                'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False),
+                'desc': sanitize_public_text(item.get('desc', ''), max_length=220),
+                'link': sanitize_public_link_url(item.get('link', ''), default='#'),
                 'customSubtitle': '',
                 'customTitle': ''
             })
@@ -3861,11 +4382,11 @@ def get_product_related_news():
         if not normalized_link:
             continue
         normalized_items.append({
-            'link': normalized_link,
-            'title': item.get('title', ''),
-            'image': item.get('image', '') or '/assets/images/logo.png',
-            'desc': item.get('summary') or item.get('desc') or '',
-            '_date': item.get('date', '')
+            'link': sanitize_public_link_url(normalized_link, default='#'),
+            'title': sanitize_public_text(item.get('title', ''), max_length=200),
+            'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False) or '/assets/images/logo.png',
+            'desc': sanitize_public_text(item.get('summary') or item.get('desc') or '', max_length=220),
+            '_date': sanitize_public_date_text(item.get('date', ''))
         })
 
     item_map = {item['link']: item for item in normalized_items}
@@ -3967,8 +4488,15 @@ def get_all_news_items():
                     link = self.current_item.get('link', '')
                     if link.startswith('../../pages/news/'):
                         link = '/pages/news/' + link.replace('../../pages/news/', '')
-                    self.current_item['link'] = link
-                    self.current_item['summary'] = self.current_item.get('desc', '')
+                    desc_text = sanitize_public_text(self.current_item.get('desc', ''), max_length=220)
+                    self.current_item['link'] = sanitize_public_link_url(link, default='')
+                    self.current_item['image'] = sanitize_public_media_url(self.current_item.get('image', ''), enforce_remote_public=False)
+                    self.current_item['date'] = sanitize_public_date_text(self.current_item.get('date', ''))
+                    self.current_item['title'] = sanitize_public_text(self.current_item.get('title', ''), max_length=200)
+                    self.current_item['desc'] = desc_text
+                    self.current_item['summary'] = desc_text
+                    self.current_item['category'] = sanitize_public_text(self.current_item.get('category', ''), max_length=32)
+                    self.current_item['division'] = sanitize_public_text(self.current_item.get('division', ''), max_length=64)
                     self.items.append(self.current_item)
                 self.current_item = None
                 self.current_category = ''
@@ -4024,9 +4552,9 @@ def save_h2_home_news(items):
         seen.add(link)
         cleaned.append({
             'link': link,
-            'customTag': item.get('customTag', ''),
-            'customTitle': item.get('customTitle', ''),
-            'customDesc': item.get('customDesc', '')
+            'customTag': sanitize_public_text(item.get('customTag', ''), max_length=24),
+            'customTitle': sanitize_public_text(item.get('customTitle', ''), max_length=120),
+            'customDesc': sanitize_public_text(item.get('customDesc', ''), max_length=220)
         })
     existing = get_h2_home_config()
     saved = {
@@ -4052,9 +4580,9 @@ def get_h2_home_news():
     for news_cfg in news_configs:
         if isinstance(news_cfg, dict):
             link = news_cfg.get('link')
-            custom_tag = news_cfg.get('customTag', '')
-            custom_title = news_cfg.get('customTitle', '')
-            custom_desc = news_cfg.get('customDesc', '')
+            custom_tag = sanitize_public_text(news_cfg.get('customTag', ''), max_length=24)
+            custom_title = sanitize_public_text(news_cfg.get('customTitle', ''), max_length=120)
+            custom_desc = sanitize_public_text(news_cfg.get('customDesc', ''), max_length=220)
         else:
             continue
             
@@ -4063,11 +4591,11 @@ def get_h2_home_news():
             continue
         used_links.add(link)
         output.append({
-            'link': item.get('link'),
-            'title': item.get('title', ''),
-            'image': item.get('image', ''),
-            'date': item.get('date', ''),
-            'summary': item.get('summary', ''),
+            'link': sanitize_public_link_url(item.get('link', ''), default='#'),
+            'title': sanitize_public_text(item.get('title', ''), max_length=200),
+            'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False),
+            'date': sanitize_public_date_text(item.get('date', '')),
+            'summary': sanitize_public_text(item.get('summary', ''), max_length=220),
             'customTag': custom_tag,
             'customTitle': custom_title,
             'customDesc': custom_desc
@@ -4079,11 +4607,11 @@ def get_h2_home_news():
             if item.get('link') in used_links:
                 continue
             output.append({
-                'link': item.get('link'),
-                'title': item.get('title', ''),
-                'image': item.get('image', ''),
-                'date': item.get('date', ''),
-                'summary': item.get('summary', ''),
+                'link': sanitize_public_link_url(item.get('link', ''), default='#'),
+                'title': sanitize_public_text(item.get('title', ''), max_length=200),
+                'image': sanitize_public_media_url(item.get('image', ''), enforce_remote_public=False),
+                'date': sanitize_public_date_text(item.get('date', '')),
+                'summary': sanitize_public_text(item.get('summary', ''), max_length=220),
                 'customTag': '',
                 'customTitle': '',
                 'customDesc': ''
@@ -4108,12 +4636,12 @@ def update_h2_home_news():
 def create_news():
     """Create a news article and add to news list."""
     data = request.json or {}
-    title = (data.get('title') or '').strip()
-    date = (data.get('date') or '').strip()
+    title = normalize_news_plain_text(data.get('title', ''), max_length=200)
+    date = normalize_news_plain_text(data.get('date', ''), max_length=80)
     category = (data.get('category') or '').strip()
-    division = (data.get('division') or '').strip()
-    image_url = (data.get('image_url') or '').strip()
-    summary = (data.get('summary') or '').strip()
+    division = normalize_news_plain_text(data.get('division', ''), max_length=80)
+    image_url = sanitize_news_image_url(data.get('image_url', ''))
+    summary = normalize_news_plain_text(data.get('summary', ''), max_length=220)
     content = (data.get('content') or '').strip()
     content_is_html = bool(data.get('content_is_html', False))
 
@@ -4128,8 +4656,11 @@ def create_news():
         content_html = content
     else:
         content_html = render_markdown(content)
+    content_html = sanitize_news_html_fragment(content_html)
 
     image_url, summary = derive_news_cover_and_summary(content_html, image_url, summary)
+    image_url = sanitize_news_image_url(image_url) or '/assets/images/logo.png'
+    summary = normalize_news_plain_text(summary, max_length=220)
 
     # Create news file
     news_dir = Path(__file__).parent / 'pages' / 'news'
@@ -4141,19 +4672,7 @@ def create_news():
     filepath.write_text(article_html, encoding='utf-8')
 
     # Insert card into news list
-    card_html = f"""
-                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-division="{html.escape(division, quote=True)}" data-hidden="false">
-                        <div class="vs-card__img-wrapper">
-                            <img src="{image_url}" alt="News Image">
-                        </div>
-                        <div class="vs-card__content">
-                            <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> {date}</div>
-                            <h3 class="vs-card__title">{title}</h3>
-                            <p class="vs-card__desc">{summary}</p>
-                            <span class="vs-link-arrow">查看详情</span>
-                        </div>
-                    </a>
-"""
+    card_html = build_news_card_html(filename, category, division, image_url, date, title, summary, hidden=False)
     news_index = news_dir / 'news.html'
     inserted = insert_news_card(news_index, card_html)
     if not inserted:
@@ -4294,12 +4813,12 @@ def update_news():
     """Update an existing news article and card."""
     data = request.json or {}
     link = (data.get('link') or '').strip()
-    title = (data.get('title') or '').strip()
-    date = (data.get('date') or '').strip()
+    title = normalize_news_plain_text(data.get('title', ''), max_length=200)
+    date = normalize_news_plain_text(data.get('date', ''), max_length=80)
     category = (data.get('category') or '').strip()
-    division = (data.get('division') or '').strip()
-    image_url = (data.get('image_url') or '').strip()
-    summary = (data.get('summary') or '').strip()
+    division = normalize_news_plain_text(data.get('division', ''), max_length=80)
+    image_url = sanitize_news_image_url(data.get('image_url', ''))
+    summary = normalize_news_plain_text(data.get('summary', ''), max_length=220)
     content = (data.get('content') or '').strip()
     content_is_html = bool(data.get('content_is_html', False))
 
@@ -4314,8 +4833,11 @@ def update_news():
         content_html = content
     else:
         content_html = render_markdown(content)
+    content_html = sanitize_news_html_fragment(content_html)
 
     image_url, summary = derive_news_cover_and_summary(content_html, image_url, summary)
+    image_url = sanitize_news_image_url(image_url) or '/assets/images/logo.png'
+    summary = normalize_news_plain_text(summary, max_length=220)
 
     filename = Path(link).name
     news_dir = Path(__file__).parent / 'pages' / 'news'
@@ -4330,19 +4852,7 @@ def update_news():
     news_index = news_dir / 'news.html'
     if news_index.exists():
         content_text = news_index.read_text(encoding='utf-8')
-        card_html = f"""
-                    <a href="../../pages/news/{filename}" class="vs-card" data-category="{category}" data-division="{html.escape(division, quote=True)}" data-hidden="false">
-                        <div class="vs-card__img-wrapper">
-                            <img src="{image_url}" alt="News Image">
-                        </div>
-                        <div class="vs-card__content">
-                            <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> {date}</div>
-                            <h3 class="vs-card__title">{title}</h3>
-                            <p class="vs-card__desc">{summary}</p>
-                            <span class="vs-link-arrow">查看详情</span>
-                        </div>
-                    </a>
-"""
+        card_html = build_news_card_html(filename, category, division, image_url, date, title, summary, hidden=False)
         pattern = build_news_card_regex(filename)
         content_text, count = pattern.subn(card_html, content_text, count=1)
         if count:
@@ -4381,20 +4891,21 @@ def preview_news_content():
         html = content
     else:
         html = render_markdown(content)
-    return jsonify({'success': True, 'html': html})
+    return jsonify({'success': True, 'html': sanitize_news_html_fragment(html)})
 
 @app.route('/api/news/preview-page', methods=['POST'])
 @login_required
 def preview_news_page():
     """Render full news page HTML for 1:1 admin preview."""
     data = request.json or {}
-    title = (data.get('title') or '').strip() or '标题预览'
-    date = (data.get('date') or '').strip() or datetime.now().strftime('%Y-%m-%d')
-    image_url = (data.get('image_url') or '').strip() or '/assets/images/logo.png'
+    title = normalize_news_plain_text(data.get('title', ''), max_length=200) or '标题预览'
+    date = normalize_news_plain_text(data.get('date', ''), max_length=80) or datetime.now().strftime('%Y-%m-%d')
+    image_url = sanitize_news_image_url(data.get('image_url', '')) or '/assets/images/logo.png'
     content = (data.get('content') or '').strip()
     is_html = bool(data.get('content_is_html', False))
 
     content_html = content if is_html else render_markdown(content)
+    content_html = sanitize_news_html_fragment(content_html)
     page_html = build_news_article_html(title, date, image_url, content_html)
     resize_bridge = """
 <style>
@@ -4550,6 +5061,8 @@ def ai_polish_news():
         return jsonify({'success': False, 'message': error}), 500
 
     response = sanitize_ai_typeset_output(response or '', content_is_html)
+    if content_is_html:
+        response = sanitize_news_html_fragment(response or '')
 
     before_norm = extract_visible_text(content, content_is_html, collapse_whitespace=True)
     after_norm = extract_visible_text(response or '', content_is_html, collapse_whitespace=True)
@@ -5656,7 +6169,7 @@ def ai_upload_product_images():
                 'success': False,
                 'message': (
                     f'不支持的图片格式: {display_ext}。'
-                    '支持 PNG/JPG/JPEG/WEBP/BMP/GIF/SVG/TIF/TIFF/HEIC/HEIF/AVIF'
+                    '支持 PNG/JPG/JPEG/WEBP/BMP/GIF/TIF/TIFF/HEIC/HEIF/AVIF'
                 )
             }), 400
 
@@ -5961,6 +6474,9 @@ def ai_revise_product_html():
 @login_required
 def ai_create_product_from_html():
     """Save AI-generated full HTML as a product page file."""
+    super_admin_denied = require_super_admin_api()
+    if super_admin_denied:
+        return super_admin_denied
     data = request.json or {}
     title = (data.get('title') or '').strip()
     short_name = (data.get('short_name') or '').strip()
@@ -6515,13 +7031,13 @@ def extract_solution_meta_from_html(filepath):
             return None
 
         desc = parser.first_p[:200] if parser.first_p else ''
-        image = parser.first_img
+        image = sanitize_public_media_url(parser.first_img, enforce_remote_public=False)
 
         return {
             'id': item_id,
-            'title': title,
+            'title': sanitize_public_text(title, max_length=120),
             'image': image,
-            'desc': desc
+            'desc': sanitize_public_text(desc, max_length=220)
         }
 
     except Exception as e:
@@ -6953,14 +7469,16 @@ def get_product_settings():
     """Load product settings (custom names, new badges)."""
     if PRODUCT_SETTINGS_FILE.exists():
         try:
-            return json.loads(PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
+            raw = json.loads(PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
+            return sanitize_public_product_settings(raw)
         except:
             pass
     return {}
 
 def save_product_settings(settings):
     """Save product settings."""
-    PRODUCT_SETTINGS_FILE.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding='utf-8')
+    cleaned = sanitize_public_product_settings(settings)
+    PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
 def _normalize_related_news_links(value):
@@ -6975,7 +7493,7 @@ def _normalize_related_news_links(value):
     cleaned = []
     seen = set()
     for item in raw_list:
-        link = str(item or '').strip()
+        link = sanitize_public_link_url(item or '')
         if not link:
             continue
         if link.startswith('../../'):
@@ -7015,7 +7533,7 @@ def update_product_settings_api():
         settings[product_id] = {}
     
     if 'displayName' in data:
-        settings[product_id]['displayName'] = data['displayName']
+        settings[product_id]['displayName'] = sanitize_public_text(data['displayName'], max_length=120)
     
     if 'isNew' in data:
         settings[product_id]['isNew'] = bool(data['isNew'])
@@ -7027,13 +7545,16 @@ def update_product_settings_api():
         settings[product_id]['sortOrder'] = int(data['sortOrder'])
 
     if 'cardTitle' in data:
-        settings[product_id]['cardTitle'] = str(data['cardTitle'] or '').strip()
+        settings[product_id]['cardTitle'] = sanitize_public_text(data['cardTitle'], max_length=120)
 
     if 'cardImage' in data:
-        settings[product_id]['cardImage'] = str(data['cardImage'] or '').strip()
+        settings[product_id]['cardImage'] = sanitize_public_media_url(
+            data['cardImage'],
+            enforce_remote_public=False
+        )
 
     if 'cardSummary' in data:
-        settings[product_id]['cardSummary'] = str(data['cardSummary'] or '').strip()
+        settings[product_id]['cardSummary'] = sanitize_public_text(data['cardSummary'], max_length=220)
 
     if 'categories' in data:
         # 支持多分类数组
@@ -7091,6 +7612,9 @@ def download_product_code():
 @login_required
 def upload_product_code():
     """Upload and overwrite product html source by product id."""
+    super_admin_denied = require_super_admin_api()
+    if super_admin_denied:
+        return super_admin_denied
     product_id = (request.form.get('id') or '').strip()
     upload_file = request.files.get('file')
     filepath, _ = resolve_product_html_path_by_id(product_id)
@@ -7167,6 +7691,11 @@ def get_products_with_settings_data():
     settings = get_product_settings()
     for product in products:
         pid = product['id']
+        product['name'] = sanitize_public_text(product.get('name', ''), max_length=120)
+        product['shortName'] = sanitize_public_text(product.get('shortName', ''), max_length=120)
+        product['description'] = sanitize_public_text(product.get('description', ''), max_length=220)
+        product['image'] = sanitize_public_media_url(product.get('image', ''), enforce_remote_public=False)
+        product['category'] = str(product.get('category', 'module') or 'module').strip() or 'module'
         if pid in settings:
             product['displayName'] = settings[pid].get('displayName', '')
             product['isNew'] = settings[pid].get('isNew', False)
@@ -7197,6 +7726,11 @@ def get_products_with_settings_data():
             product['industryCategories'] = settings[pid].get('industryCategories', [])
         else:
             product['industryCategories'] = infer_default_industry_categories(product)
+
+        product['displayName'] = sanitize_public_text(product.get('displayName', ''), max_length=120)
+        product['cardTitle'] = sanitize_public_text(product.get('cardTitle', ''), max_length=120)
+        product['cardSummary'] = sanitize_public_text(product.get('cardSummary', ''), max_length=220)
+        product['cardImage'] = sanitize_public_media_url(product.get('cardImage', ''), enforce_remote_public=False)
 
     # Sort by custom sortOrder first, then by name
     products.sort(key=lambda p: (p.get('sortOrder', 999), p.get('name', '')))
@@ -7346,10 +7880,10 @@ def to_solution_product_card(product):
     link = '/' + build_product_link(product).lstrip('/')
     return {
         'id': product.get('id', ''),
-        'title': title,
-        'image': image,
-        'summary': summary,
-        'link': link
+        'title': sanitize_public_text(title, max_length=120),
+        'image': sanitize_public_media_url(image, enforce_remote_public=False),
+        'summary': sanitize_public_text(summary, max_length=220),
+        'link': sanitize_public_link_url(link, default='#')
     }
 
 
@@ -7436,9 +7970,9 @@ def extract_case_meta_from_html(filepath):
 
     return {
         'id': filepath.name,
-        'title': title or filepath.stem,
-        'image': image,
-        'desc': desc
+        'title': sanitize_public_text(title or filepath.stem, max_length=120),
+        'image': sanitize_public_media_url(image, enforce_remote_public=False),
+        'desc': sanitize_public_text(desc, max_length=220)
     }
 
 
@@ -7449,7 +7983,7 @@ def get_all_case_items():
         for filepath in sorted(cases_dir.glob('case-*.html')):
             item = extract_case_meta_from_html(filepath)
             if item:
-                item['link'] = f"pages/gassensing/cases/{filepath.name}"
+                item['link'] = sanitize_public_link_url(f"pages/gassensing/cases/{filepath.name}", default='#')
                 items.append(item)
     return items
 
@@ -7970,7 +8504,7 @@ def upload_partner_logo():
 
     ext = validate_uploaded_image_extension(file, allowed_extensions=ALLOWED_PARTNER_EXTENSIONS)
     if not ext:
-        return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/SVG/WEBP 文件'}), 400
+        return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/WEBP 文件'}), 400
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     save_path = PARTNERS_UPLOADS_DIR / saved_name
@@ -8086,22 +8620,26 @@ def import_news_image_from_url():
     source_url = (data.get('url') or '').strip()
     if not source_url:
         return jsonify({'success': False, 'message': '缺少图片链接'}), 400
-    if not (source_url.startswith('http://') or source_url.startswith('https://')):
-        return jsonify({'success': False, 'message': '仅支持 http/https 图片链接'}), 400
+    ok, reason, safe_source_url = validate_safe_remote_fetch_url(source_url)
+    if not ok:
+        return jsonify({'success': False, 'message': reason}), 400
 
-    parsed = urlparse(source_url)
-    ext = Path(parsed.path).suffix.lower()
+    parsed = urlparse(safe_source_url)
     content_type = ''
     content = b''
 
     try:
         if REQUESTS_SUPPORT:
-            resp = requests.get(source_url, timeout=20)
+            resp = requests.get(safe_source_url, timeout=20, allow_redirects=False)
+            if 300 <= resp.status_code < 400:
+                return jsonify({'success': False, 'message': '图片链接不支持重定向，请使用最终地址'}), 400
             resp.raise_for_status()
             content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
             content = resp.content or b''
         elif HTTPX_SUPPORT:
-            resp = httpx.get(source_url, timeout=20.0, follow_redirects=True)
+            resp = httpx.get(safe_source_url, timeout=20.0, follow_redirects=False)
+            if 300 <= resp.status_code < 400:
+                return jsonify({'success': False, 'message': '图片链接不支持重定向，请使用最终地址'}), 400
             resp.raise_for_status()
             content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
             content = resp.content or b''
@@ -8137,7 +8675,7 @@ def upload_news_image_file():
 
     ext = validate_uploaded_image_extension(file, allowed_extensions=ALLOWED_NEWS_IMAGE_EXTENSIONS)
     if not ext:
-        return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF/SVG'}), 400
+        return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF'}), 400
 
     saved_name = f"{uuid.uuid4().hex}{ext}"
     save_path = NEWS_UPLOADS_DIR / saved_name
@@ -8155,7 +8693,9 @@ def upload_news_image_file():
 @app.route('/media/news/<path:filename>')
 def serve_news_media(filename):
     """Serve imported news images."""
-    return send_from_directory(NEWS_UPLOADS_DIR, filename)
+    response = send_from_directory(NEWS_UPLOADS_DIR, filename)
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 @app.route('/api/categories')
@@ -8955,15 +9495,21 @@ def get_chatbot_config_api():
 @login_required
 def update_chatbot_config():
     """Update chatbot configuration."""
+    super_admin_denied = require_super_admin_api()
+    if super_admin_denied:
+        return super_admin_denied
     data = request.json or {}
     
     updates = {}
     
     if 'api_key' in data and data['api_key'] and not data['api_key'].startswith('***'):
-        updates['chatbot_api_key'] = data['api_key']
+        updates['chatbot_api_key'] = str(data['api_key']).strip()
     
     if 'api_base' in data:
-        updates['chatbot_api_base'] = data['api_base']
+        safe_api_base = sanitize_public_link_url(data['api_base'], enforce_remote_public=True)
+        if not safe_api_base:
+            return jsonify({'success': False, 'message': 'API Base 必须是有效的公网 http/https 地址'}), 400
+        updates['chatbot_api_base'] = safe_api_base
     
     if 'model' in data:
         updates['chatbot_model'] = data['model']
@@ -8991,13 +9537,19 @@ def get_product_ai_config_api():
 @login_required
 def update_product_ai_config():
     """Update product-page coding AI configuration."""
+    super_admin_denied = require_super_admin_api()
+    if super_admin_denied:
+        return super_admin_denied
     data = request.json or {}
     updates = {}
 
     if 'api_key' in data and data['api_key'] and not str(data['api_key']).startswith('***'):
         updates['product_ai_api_key'] = str(data['api_key']).strip()
     if 'api_base' in data:
-        updates['product_ai_api_base'] = str(data['api_base']).strip()
+        safe_api_base = sanitize_public_link_url(data['api_base'], enforce_remote_public=True)
+        if not safe_api_base:
+            return jsonify({'success': False, 'message': 'API Base 必须是有效的公网 http/https 地址'}), 400
+        updates['product_ai_api_base'] = safe_api_base
     if 'model' in data:
         updates['product_ai_model'] = str(data['model']).strip()
     if 'enabled' in data:
@@ -9029,6 +9581,10 @@ def update_cdn_settings_api():
 
     if enabled and not domain:
         return jsonify({'success': False, 'message': '启用加速时必须填写有效 CDN 域名'}), 400
+    if domain:
+        ok, reason, _ = validate_safe_remote_fetch_url(f'{domain}/')
+        if not ok:
+            return jsonify({'success': False, 'message': reason or 'CDN 域名不安全'}), 400
 
     updates = {
         'cdn_enabled': enabled,
@@ -9058,8 +9614,11 @@ def test_cdn_settings_api():
         return jsonify({'success': False, 'message': '请先填写有效 CDN 域名'}), 400
 
     url = f"{domain}{asset_path}"
+    ok, reason, safe_url = validate_safe_remote_fetch_url(url)
+    if not ok:
+        return jsonify({'success': False, 'message': reason or 'CDN 检测地址不安全'}), 400
     result = {
-        'url': url,
+        'url': safe_url,
         'head_status': None,
         'get_status': None,
         'reachable': False,
@@ -9069,7 +9628,7 @@ def test_cdn_settings_api():
     try:
         if REQUESTS_SUPPORT:
             try:
-                head_res = requests.head(url, allow_redirects=True, timeout=(4, 8))
+                head_res = requests.head(safe_url, allow_redirects=False, timeout=(4, 8))
                 result['head_status'] = int(head_res.status_code)
                 if 200 <= head_res.status_code < 400:
                     result['reachable'] = True
@@ -9077,7 +9636,13 @@ def test_cdn_settings_api():
                 pass
 
             try:
-                get_res = requests.get(url, headers={'Range': 'bytes=0-2047'}, stream=True, timeout=(4, 10))
+                get_res = requests.get(
+                    safe_url,
+                    headers={'Range': 'bytes=0-2047'},
+                    stream=True,
+                    timeout=(4, 10),
+                    allow_redirects=False
+                )
                 result['get_status'] = int(get_res.status_code)
                 if get_res.status_code in (200, 206):
                     result['reachable'] = True
@@ -9086,7 +9651,7 @@ def test_cdn_settings_api():
                     result['error'] = str(e)
         elif HTTPX_SUPPORT:
             try:
-                head_res = httpx.head(url, follow_redirects=True, timeout=8.0)
+                head_res = httpx.head(safe_url, follow_redirects=False, timeout=8.0)
                 result['head_status'] = int(head_res.status_code)
                 if 200 <= head_res.status_code < 400:
                     result['reachable'] = True
@@ -9094,7 +9659,12 @@ def test_cdn_settings_api():
                 pass
 
             try:
-                get_res = httpx.get(url, headers={'Range': 'bytes=0-2047'}, follow_redirects=True, timeout=10.0)
+                get_res = httpx.get(
+                    safe_url,
+                    headers={'Range': 'bytes=0-2047'},
+                    follow_redirects=False,
+                    timeout=10.0
+                )
                 result['get_status'] = int(get_res.status_code)
                 if get_res.status_code in (200, 206):
                     result['reachable'] = True
