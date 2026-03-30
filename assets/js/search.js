@@ -116,12 +116,7 @@
           <div class="vs-search-hero-copy">
             <span class="vs-search-badge">\u5168\u7ad9\u641c\u7d22</span>
             <h2 class="vs-search-hero-title">\u5feb\u901f\u627e\u5230\u4ea7\u54c1\u3001\u65b9\u6848\u4e0e\u6848\u4f8b</h2>
-            <p class="vs-search-hero-desc">\u8f93\u5165\u5173\u952e\u8bcd\uff0c\u53ef\u4ece\u4ea7\u54c1\u3001\u89e3\u51b3\u65b9\u6848\u3001\u79d1\u7814\u670d\u52a1\u548c\u670d\u52a1\u6848\u4f8b\u4e2d\u5feb\u901f\u5b9a\u4f4d\u76ee\u6807\u5185\u5bb9\u3002</p>
-          </div>
-          <div class="vs-search-shortcut-pill" aria-hidden="true">
-            <kbd>Ctrl</kbd>
-            <span>+</span>
-            <kbd>K</kbd>
+            <p class="vs-search-hero-desc">\u8f93\u5165\u5173\u952e\u8bcd\uff0c\u5feb\u901f\u5b9a\u4f4d\u7ad9\u5185\u4ea7\u54c1\u3001\u65b9\u6848\u4e0e\u76f8\u5173\u5185\u5bb9\u3002</p>
           </div>
         </div>
 
@@ -136,18 +131,6 @@
 
         <div class="vs-search-body">
           <div class="vs-search-results"></div>
-        </div>
-
-        <div class="vs-search-footer">
-          <div class="vs-search-footer-brand">
-            <span class="vs-search-footer-dot"></span>
-            <span>Metachip Search</span>
-          </div>
-          <div class="vs-shortcuts">
-            <div class="vs-key-group"><kbd>\u2191</kbd><kbd>\u2193</kbd><span>\u5207\u6362</span></div>
-            <div class="vs-key-group"><kbd>Enter</kbd><span>\u6253\u5f00</span></div>
-            <div class="vs-key-group"><kbd>Esc</kbd><span>\u5173\u95ed</span></div>
-          </div>
         </div>
       </div>
     `;
@@ -260,28 +243,12 @@
     searchResults.innerHTML = `
       <div class="vs-search-intro">
         <div class="vs-search-intro-head">
-          <span class="vs-search-intro-kicker">\u5feb\u901f\u5165\u53e3</span>
-          <div class="vs-state-title">\u8bd5\u8bd5\u8fd9\u4e9b\u70ed\u95e8\u5173\u952e\u8bcd</div>
-          <div class="vs-state-desc">\u70b9\u51fb\u5173\u952e\u8bcd\u5373\u53ef\u5feb\u901f\u641c\u7d22\u7ad9\u5185\u5185\u5bb9</div>
+          <div class="vs-state-title">\u70ed\u95e8\u641c\u7d22</div>
         </div>
         <div class="vs-tags-cloud">
           ${POPULAR_KEYWORDS.map(function (keyword) {
             return '<button class="vs-tag-btn" data-keyword="' + escapeHtml(keyword) + '">' + escapeHtml(keyword) + '</button>';
           }).join('')}
-        </div>
-        <div class="vs-search-feature-grid">
-          <div class="vs-search-feature-card">
-            <span class="vs-search-feature-label">\u4ea7\u54c1</span>
-            <strong>\u6c14\u4f53\u4f20\u611f\u3001\u68c0\u6d4b\u4eea\u3001\u62a5\u8b66\u5668</strong>
-          </div>
-          <div class="vs-search-feature-card">
-            <span class="vs-search-feature-label">\u89e3\u51b3\u65b9\u6848</span>
-            <strong>\u6c22\u80fd\u3001\u50a8\u80fd\u3001\u5de5\u4e1a\u76d1\u6d4b\u4e0e\u73af\u5883\u5b89\u5168</strong>
-          </div>
-          <div class="vs-search-feature-card">
-            <span class="vs-search-feature-label">\u670d\u52a1</span>
-            <strong>\u79d1\u7814\u670d\u52a1\u3001\u6848\u4f8b\u5e94\u7528\u548c\u7ad9\u5185\u8d44\u8baf</strong>
-          </div>
         </div>
       </div>
     `;
@@ -326,8 +293,8 @@
 
     let html = '' +
       '<div class="vs-search-group-title">' +
-      '  <span>\u627e\u5230 ' + results.length + ' \u4e2a\u7ed3\u679c</span>' +
-      '  <span class="vs-search-result-count">\u53ef\u7528\u65b9\u5411\u952e\u5207\u6362</span>' +
+      '  <span>\u641c\u7d22\u7ed3\u679c</span>' +
+      '  <span class="vs-search-result-count">\u5171 ' + results.length + ' \u6761</span>' +
       '</div>';
 
     html += results.map(function (item, idx) {

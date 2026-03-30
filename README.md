@@ -83,12 +83,18 @@ python3 server.py
 
 ```bash
 # 1) 准备目录与网络
-mkdir -p /root/yxwebsite/data
+mkdir -p /root/yxwebsite/data /root/yxwebsite/cdn_assets
 docker network create yx-net || true
 
 # 2) 拉取镜像
 docker pull ghcr.io/zhizinan1997/yx_website:latest
 docker pull ghcr.io/zhizinan1997/yx-gateway:latest
+
+# 2.1) 首次改造成宿主机共享素材目录时，可先把镜像内素材导出到宿主机
+# 仅在 /root/yxwebsite/cdn_assets 为空时执行一次即可
+# docker create --name yx-website-assets ghcr.io/zhizinan1997/yx_website:latest
+# docker cp yx-website-assets:/app/cdn_assets/. /root/yxwebsite/cdn_assets/
+# docker rm -f yx-website-assets
 
 # 3) 启动网站应用容器（仅容器内 8000，不对宿主机开放）
 docker run -d \
@@ -104,6 +110,7 @@ docker run -d \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
   -v /root/yxwebsite/data:/app/data \
+  -v /root/yxwebsite/cdn_assets:/app/cdn_assets \
   ghcr.io/zhizinan1997/yx_website:latest
 
 # 4) 启动网关容器（对外暴露双端口）
@@ -113,6 +120,7 @@ docker run -d \
   --network yx-net \
   -p 127.0.0.1:2026:80 \
   -p 127.0.0.1:2027:81 \
+  -v /root/yxwebsite/cdn_assets:/app/cdn_assets:ro \
   ghcr.io/zhizinan1997/yx-gateway:latest
 
 ```
@@ -126,9 +134,11 @@ docker run -d \
 - 首次部署时还必须提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 作为超级管理员初始化凭据；如果 `/app/data/admin_users.json` 中已经存在超级管理员，则后续重启可省略这两个变量。
 - 你的部署拓扑是 `宿主机 Nginx -> gateway -> website`，因此建议固定使用 `TRUST_PROXY_HEADERS=true`。
 - HTTPS 域名场景建议固定设置 `SESSION_COOKIE_SECURE=true`。
+- 推荐将 `cdn_assets` 挂载到宿主机共享目录，并同时挂给 `website` 与 `gateway`：这样主站入口与 CDN 专用入口始终读取同一份素材，后续更新不会出现两个容器内容分叉。
+- `website` 建议以读写方式挂载 `/root/yxwebsite/cdn_assets:/app/cdn_assets`；`gateway` 建议以只读方式挂载 `/root/yxwebsite/cdn_assets:/app/cdn_assets:ro`。
 - `MAIN_DOMAIN/CDN_DOMAIN` 不是容器启动必填项。
-- 两个镜像默认内置 `cdn_assets`，全新服务器可直接启动使用。
-- 如需挂载外部 `cdn_assets` 目录，请确保目录已预先同步完整素材；空目录挂载会覆盖镜像内素材并导致 404。
+- `website` 镜像仍可作为初始化素材来源；`gateway` 镜像不再内置 `cdn_assets`，以减少镜像体积并统一依赖宿主机共享挂载。
+- 空目录挂载会覆盖镜像内素材并导致 404，因此首次切换前请先把素材同步到宿主机目录。
 
 ### 宝塔 Nginx 反代（适配双域名）
 

@@ -413,19 +413,17 @@ def _save_login_attempts(file_path: Path, state):
 
 def _get_request_ip(req):
     if _should_trust_proxy_headers(req):
+        direct_ip = _normalize_ip_text(req.remote_addr or '')
         cf_ip = _normalize_ip_text(req.headers.get('CF-Connecting-IP', ''))
-        if cf_ip:
+        if cf_ip and _ip_is_publicly_routable(cf_ip):
             return cf_ip
 
-        xff = (req.headers.get('X-Forwarded-For') or '').strip()
-        if xff:
-            for part in xff.split(','):
-                ip_text = _normalize_ip_text(part)
-                if ip_text:
-                    return ip_text
-
         x_real_ip = _normalize_ip_text(req.headers.get('X-Real-IP', ''))
-        if x_real_ip:
+        proxied_ip = _extract_client_ip_from_proxy_headers(req, direct_ip=direct_ip, x_real_ip=x_real_ip)
+        if proxied_ip:
+            return proxied_ip
+
+        if x_real_ip and x_real_ip != direct_ip:
             return x_real_ip
 
     direct_ip = _normalize_ip_text(req.remote_addr or '')
@@ -647,6 +645,48 @@ def _is_private_proxy_source(ip_text: str) -> bool:
 
 def _should_trust_proxy_headers(req) -> bool:
     return _env_bool('TRUST_PROXY_HEADERS', False)
+
+
+def _parse_forwarded_ip_chain(raw_value: str) -> list[str]:
+    chain = []
+    for part in str(raw_value or '').split(','):
+        ip_text = _normalize_ip_text(part)
+        if ip_text and ip_text not in chain:
+            chain.append(ip_text)
+    return chain
+
+
+def _ip_is_publicly_routable(ip_text: str) -> bool:
+    normalized = _normalize_ip_text(ip_text)
+    if not normalized:
+        return False
+    try:
+        ip_obj = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return not (
+        ip_obj.is_private
+        or ip_obj.is_loopback
+        or ip_obj.is_link_local
+        or ip_obj.is_multicast
+        or ip_obj.is_reserved
+        or ip_obj.is_unspecified
+    )
+
+
+def _extract_client_ip_from_proxy_headers(req, direct_ip: str = '', x_real_ip: str = '') -> str:
+    chain = _parse_forwarded_ip_chain(req.headers.get('X-Forwarded-For', ''))
+    if chain:
+        for ip_text in reversed(chain):
+            if not _is_private_proxy_source(ip_text):
+                return ip_text
+
+        proxy_hints = {ip for ip in {direct_ip, x_real_ip} if ip}
+        for ip_text in reversed(chain):
+            if ip_text not in proxy_hints:
+                return ip_text
+        return chain[0]
+    return ''
 
 
 def _is_same_origin_request(req) -> bool:
