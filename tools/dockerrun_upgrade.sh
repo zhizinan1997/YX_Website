@@ -4,7 +4,8 @@ set -Eeuo pipefail
 # One-click upgrade for docker-run deployment:
 # 1) pull new images
 # 2) sync latest /app/cdn_assets from website image to host (with --delete)
-# 3) recreate yx-website and yx-gateway containers
+# 3) sync latest /app/update_logs from website image to host (merge)
+# 4) recreate yx-website and yx-gateway containers
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -37,6 +38,7 @@ MAIN_PORT="${MAIN_PORT:-2026}"
 CDN_PORT="${CDN_PORT:-2027}"
 SKIP_PULL="${SKIP_PULL:-false}"
 SYNC_PAGES="${SYNC_PAGES:-false}"
+SYNC_UPDATE_LOGS="${SYNC_UPDATE_LOGS:-true}"
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   cat <<'USAGE'
@@ -54,6 +56,7 @@ Optional environment variables:
   CDN_PORT=2027
   SKIP_PULL=false
   SYNC_PAGES=false
+  SYNC_UPDATE_LOGS=true
 
 Runtime envs for website container (auto-reuse from old container if present):
   APP_ENV, SECRET_KEY, PUBLIC_BASE_URL, TRUST_PROXY_HEADERS, SESSION_COOKIE_SECURE,
@@ -76,6 +79,7 @@ CDN_DIR="$YX_ROOT/cdn_assets"
 UPDATE_LOGS_DIR="$YX_ROOT/update_logs"
 TMP_CDN_DIR="$YX_ROOT/.tmp-cdn-assets"
 TMP_PAGES_DIR="$YX_ROOT/.tmp-pages"
+TMP_UPDATE_LOGS_DIR="$YX_ROOT/.tmp-update-logs"
 TMP_CONTAINER="${TMP_CONTAINER:-yx-website-assets-sync-$(date +%s)-$$}"
 
 EXISTING_ENV_LINES=""
@@ -130,7 +134,7 @@ fi
 
 cleanup() {
   docker rm -f "$TMP_CONTAINER" >/dev/null 2>&1 || true
-  rm -rf "$TMP_CDN_DIR" "$TMP_PAGES_DIR"
+  rm -rf "$TMP_CDN_DIR" "$TMP_PAGES_DIR" "$TMP_UPDATE_LOGS_DIR"
 }
 trap cleanup EXIT
 
@@ -161,6 +165,17 @@ if bool_true "$SYNC_PAGES"; then
   mkdir -p "$TMP_PAGES_DIR"
   docker cp "$TMP_CONTAINER:/app/pages/." "$TMP_PAGES_DIR/"
   rsync -a "$TMP_PAGES_DIR/" "$PAGES_DIR/"
+fi
+
+if bool_true "$SYNC_UPDATE_LOGS"; then
+  log "SYNC_UPDATE_LOGS enabled: merge update_logs from image into host update_logs directory"
+  rm -rf "$TMP_UPDATE_LOGS_DIR"
+  mkdir -p "$TMP_UPDATE_LOGS_DIR"
+  if docker cp "$TMP_CONTAINER:/app/update_logs/." "$TMP_UPDATE_LOGS_DIR/" >/dev/null 2>&1; then
+    rsync -a "$TMP_UPDATE_LOGS_DIR/" "$UPDATE_LOGS_DIR/"
+  else
+    log "WARN: no /app/update_logs found in image, skip update_logs sync"
+  fi
 fi
 
 log "recreate containers"
