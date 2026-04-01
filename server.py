@@ -1191,90 +1191,80 @@ def _analytics_classify_os(user_agent: str) -> str:
     return 'unknown'
 
 
+_ANALYTICS_CHINA_PROVINCE_ALIASES = (
+    ('北京市', ('北京', '北京市', 'beijing', 'peking')),
+    ('上海市', ('上海', '上海市', 'shanghai')),
+    ('天津市', ('天津', '天津市', 'tianjin')),
+    ('重庆市', ('重庆', '重庆市', 'chongqing')),
+    ('河北省', ('河北', '河北省', 'hebei')),
+    ('山西省', ('山西', '山西省', 'shanxi')),
+    ('辽宁省', ('辽宁', '辽宁省', 'liaoning')),
+    ('吉林省', ('吉林', '吉林省', 'jilin')),
+    ('黑龙江省', ('黑龙江', '黑龙江省', 'heilongjiang')),
+    ('江苏省', ('江苏', '江苏省', 'jiangsu')),
+    ('浙江省', ('浙江', '浙江省', 'zhejiang')),
+    ('安徽省', ('安徽', '安徽省', 'anhui')),
+    ('福建省', ('福建', '福建省', 'fujian')),
+    ('江西省', ('江西', '江西省', 'jiangxi')),
+    ('山东省', ('山东', '山东省', 'shandong')),
+    ('河南省', ('河南', '河南省', 'henan')),
+    ('湖北省', ('湖北', '湖北省', 'hubei')),
+    ('湖南省', ('湖南', '湖南省', 'hunan')),
+    ('广东省', ('广东', '广东省', 'guangdong')),
+    ('海南省', ('海南', '海南省', 'hainan')),
+    ('四川省', ('四川', '四川省', 'sichuan')),
+    ('贵州省', ('贵州', '贵州省', 'guizhou')),
+    ('云南省', ('云南', '云南省', 'yunnan')),
+    ('陕西省', ('陕西', '陕西省', 'shaanxi')),
+    ('甘肃省', ('甘肃', '甘肃省', 'gansu')),
+    ('青海省', ('青海', '青海省', 'qinghai')),
+    ('台湾省', ('台湾', '台湾省', 'taiwan')),
+    ('内蒙古自治区', ('内蒙古', '内蒙古自治区', 'inner mongolia', 'nei mongol')),
+    ('广西壮族自治区', ('广西', '广西壮族自治区', 'guangxi', 'guangxi zhuang autonomous region')),
+    ('西藏自治区', ('西藏', '西藏自治区', 'tibet', 'xizang', 'tibet autonomous region')),
+    ('宁夏回族自治区', ('宁夏', '宁夏回族自治区', 'ningxia', 'ningxia hui autonomous region')),
+    ('新疆维吾尔自治区', ('新疆', '新疆维吾尔自治区', 'xinjiang', 'xinjiang uygur autonomous region')),
+    ('香港特别行政区', ('香港', '香港特别行政区', 'hong kong', 'hong kong sar', 'hong kong special administrative region', 'hongkong')),
+    ('澳门特别行政区', ('澳门', '澳门特别行政区', 'macau', 'macao', 'macao sar', 'macao special administrative region')),
+)
+
+
+def _analytics_normalize_ascii_words(text: str) -> str:
+    compact = re.sub(r'[^a-z]+', ' ', str(text or '').lower())
+    compact = re.sub(r'\s+', ' ', compact).strip()
+    return f' {compact} ' if compact else ''
+
+
 def _analytics_extract_china_province(location_text: str) -> str:
     text = str(location_text or '').strip()
     if not text:
         return ''
     normalized = re.sub(r'\s+', '', text)
-    if not normalized:
-        return ''
-    if not any(keyword in normalized for keyword in ('中国', '省', '市', '自治区', '特别行政区')):
+    ascii_words = _analytics_normalize_ascii_words(text)
+    if not normalized and not ascii_words:
         return ''
 
-    direct_map = {
-        '北京': '北京市',
-        '北京市': '北京市',
-        '上海': '上海市',
-        '上海市': '上海市',
-        '天津': '天津市',
-        '天津市': '天津市',
-        '重庆': '重庆市',
-        '重庆市': '重庆市',
-        '河北': '河北省',
-        '河北省': '河北省',
-        '山西': '山西省',
-        '山西省': '山西省',
-        '辽宁': '辽宁省',
-        '辽宁省': '辽宁省',
-        '吉林': '吉林省',
-        '吉林省': '吉林省',
-        '黑龙江': '黑龙江省',
-        '黑龙江省': '黑龙江省',
-        '江苏': '江苏省',
-        '江苏省': '江苏省',
-        '浙江': '浙江省',
-        '浙江省': '浙江省',
-        '安徽': '安徽省',
-        '安徽省': '安徽省',
-        '福建': '福建省',
-        '福建省': '福建省',
-        '江西': '江西省',
-        '江西省': '江西省',
-        '山东': '山东省',
-        '山东省': '山东省',
-        '河南': '河南省',
-        '河南省': '河南省',
-        '湖北': '湖北省',
-        '湖北省': '湖北省',
-        '湖南': '湖南省',
-        '湖南省': '湖南省',
-        '广东': '广东省',
-        '广东省': '广东省',
-        '海南': '海南省',
-        '海南省': '海南省',
-        '四川': '四川省',
-        '四川省': '四川省',
-        '贵州': '贵州省',
-        '贵州省': '贵州省',
-        '云南': '云南省',
-        '云南省': '云南省',
-        '陕西': '陕西省',
-        '陕西省': '陕西省',
-        '甘肃': '甘肃省',
-        '甘肃省': '甘肃省',
-        '青海': '青海省',
-        '青海省': '青海省',
-        '台湾': '台湾省',
-        '台湾省': '台湾省',
-        '内蒙古': '内蒙古自治区',
-        '内蒙古自治区': '内蒙古自治区',
-        '广西': '广西壮族自治区',
-        '广西壮族自治区': '广西壮族自治区',
-        '西藏': '西藏自治区',
-        '西藏自治区': '西藏自治区',
-        '宁夏': '宁夏回族自治区',
-        '宁夏回族自治区': '宁夏回族自治区',
-        '新疆': '新疆维吾尔自治区',
-        '新疆维吾尔自治区': '新疆维吾尔自治区',
-        '香港': '香港特别行政区',
-        '香港特别行政区': '香港特别行政区',
-        '澳门': '澳门特别行政区',
-        '澳门特别行政区': '澳门特别行政区',
-    }
-    for key, value in direct_map.items():
-        if key in normalized:
-            return value
+    for province_name, aliases in _ANALYTICS_CHINA_PROVINCE_ALIASES:
+        for alias in aliases:
+            alias_text = str(alias or '').strip()
+            if not alias_text:
+                continue
+            if re.search(r'[A-Za-z]', alias_text):
+                alias_words = _analytics_normalize_ascii_words(alias_text)
+                if alias_words and alias_words in ascii_words:
+                    return province_name
+            elif alias_text in normalized:
+                return province_name
     return ''
+
+
+def _analytics_extract_record_province(item) -> str:
+    province = _analytics_clean_text(item.get('province'), max_length=32)
+    if province:
+        return province
+    location = _analytics_clean_text(item.get('location'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+    derived = _analytics_extract_china_province(location)
+    return _analytics_clean_text(derived, max_length=32)
 
 
 def _analytics_resolve_visit_geo(ip_text: str):
@@ -1555,7 +1545,7 @@ def build_site_analytics_report(range_days=30):
         source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
         os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
-        province = _analytics_clean_text(item.get('province'), max_length=32)
+        province = _analytics_extract_record_province(item)
         ip_addr = _analytics_clean_text(item.get('ip'), max_length=45)
         visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64)
         session_id = _analytics_clean_id(item.get('session_id'), max_length=64)
