@@ -4654,8 +4654,9 @@ def serve_cdn_asset_with_redirect(asset_path):
     settings = get_cdn_settings()
     cdn_domain = str(settings.get('cdn_domain') or '').strip()
     cdn_enabled = bool(settings.get('cdn_enabled', False)) and bool(cdn_domain)
+    cdn_entry_request = str(request.headers.get('X-YX-CDN-Entry') or '').strip() == '1'
 
-    if cdn_enabled:
+    if cdn_enabled and not cdn_entry_request:
         forwarded_host = _first_forwarded_value(request.headers.get('X-Forwarded-Host', ''))
         current_host = (forwarded_host or request.host or '').strip().lower()
         cdn_host = (urlparse(cdn_domain).netloc or '').strip().lower()

@@ -3,10 +3,9 @@ set -Eeuo pipefail
 
 # One-click upgrade for docker-run deployment:
 # 1) pull new images
-# 2) sync latest /app/cdn_assets from website image to host (with --delete)
-# 3) sync latest /app/update_logs from website image to host (merge)
-# 4) recreate yx-website and yx-gateway containers
-# 5) prune dangling old images
+# 2) smart-sync /app/pages from image into host bind mount
+# 3) recreate yx-website and yx-gateway containers
+# 4) prune dangling old images
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -28,6 +27,136 @@ bool_true() {
   esac
 }
 
+normalize_sync_pages_mode() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON|smart|SMART|merge|MERGE)
+      printf 'smart'
+      ;;
+    add|ADD|additive|ADDITIVE|missing-only|MISSING-ONLY)
+      printf 'additive'
+      ;;
+    0|false|FALSE|no|NO|off|OFF|skip|SKIP|'')
+      printf 'skip'
+      ;;
+    *)
+      die "unsupported SYNC_PAGES value: '${1:-}' (allowed: smart|additive|false)"
+      ;;
+  esac
+}
+
+has_regular_files() {
+  local dir="$1"
+  [[ -d "$dir" ]] || return 1
+  find "$dir" -type f -print -quit 2>/dev/null | grep -q .
+}
+
+copy_with_parents() {
+  local src="$1"
+  local dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  cp -f "$src" "$dst"
+}
+
+save_conflict_copy() {
+  local src="$1"
+  local rel="$2"
+  local conflicts_dir="$3"
+  local dst="$conflicts_dir/$rel"
+  mkdir -p "$(dirname "$dst")"
+  cp -f "$src" "$dst"
+}
+
+export_image_tree() {
+  local image_ref="$1"
+  local container_name="$2"
+  local source_path="$3"
+  local target_dir="$4"
+
+  docker create --name "$container_name" "$image_ref" >/dev/null
+  rm -rf "$target_dir"
+  mkdir -p "$target_dir"
+  docker cp "$container_name:${source_path}/." "$target_dir/" >/dev/null 2>&1
+}
+
+smart_merge_pages() {
+  local base_dir="$1"
+  local new_dir="$2"
+  local host_dir="$3"
+  local conflicts_dir="$4"
+  local added=0
+  local updated=0
+  local kept_local=0
+  local identical=0
+  local conflicts=0
+  local upstream_removed=0
+
+  rm -rf "$conflicts_dir"
+  mkdir -p "$conflicts_dir"
+
+  while IFS= read -r -d '' new_file; do
+    local rel="${new_file#$new_dir/}"
+    local host_file="$host_dir/$rel"
+    local base_file="$base_dir/$rel"
+
+    if [[ ! -e "$host_file" ]]; then
+      copy_with_parents "$new_file" "$host_file"
+      added=$((added + 1))
+      continue
+    fi
+
+    if [[ ! -e "$base_file" ]]; then
+      if cmp -s "$host_file" "$new_file"; then
+        identical=$((identical + 1))
+      else
+        save_conflict_copy "$new_file" "$rel" "$conflicts_dir"
+        conflicts=$((conflicts + 1))
+        kept_local=$((kept_local + 1))
+      fi
+      continue
+    fi
+
+    if cmp -s "$host_file" "$base_file"; then
+      if cmp -s "$base_file" "$new_file"; then
+        identical=$((identical + 1))
+      else
+        copy_with_parents "$new_file" "$host_file"
+        updated=$((updated + 1))
+      fi
+      continue
+    fi
+
+    if cmp -s "$base_file" "$new_file" || cmp -s "$host_file" "$new_file"; then
+      kept_local=$((kept_local + 1))
+      continue
+    fi
+
+    save_conflict_copy "$new_file" "$rel" "$conflicts_dir"
+    conflicts=$((conflicts + 1))
+    kept_local=$((kept_local + 1))
+  done < <(find "$new_dir" -type f -print0)
+
+  while IFS= read -r -d '' base_file; do
+    local rel="${base_file#$base_dir/}"
+    local new_file="$new_dir/$rel"
+    local host_file="$host_dir/$rel"
+
+    [[ -e "$new_file" ]] && continue
+    [[ -e "$host_file" ]] || continue
+
+    if cmp -s "$host_file" "$base_file"; then
+      upstream_removed=$((upstream_removed + 1))
+    fi
+  done < <(find "$base_dir" -type f -print0)
+
+  log "pages sync summary: added=$added updated=$updated kept_local=$kept_local identical=$identical conflicts=$conflicts upstream_removed_kept=$upstream_removed"
+  if (( conflicts > 0 )); then
+    log "WARN: conflicting new image pages were saved to $conflicts_dir"
+  fi
+  if (( upstream_removed > 0 )); then
+    log "WARN: some pages were removed from the new image but kept on host because local bind mount owns final data"
+  fi
+}
+
 # Defaults (can be overridden by environment variables)
 YX_ROOT="${YX_ROOT:-/root/yxwebsite}"
 NETWORK_NAME="${NETWORK_NAME:-yx-net}"
@@ -38,8 +167,7 @@ GATEWAY_IMAGE="${GATEWAY_IMAGE:-ghcr.io/zhizinan1997/yx-gateway:latest}"
 MAIN_PORT="${MAIN_PORT:-2026}"
 CDN_PORT="${CDN_PORT:-2027}"
 SKIP_PULL="${SKIP_PULL:-false}"
-SYNC_PAGES="${SYNC_PAGES:-false}"
-SYNC_UPDATE_LOGS="${SYNC_UPDATE_LOGS:-true}"
+SYNC_PAGES="${SYNC_PAGES:-smart}"
 CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -57,9 +185,13 @@ Optional environment variables:
   MAIN_PORT=2026
   CDN_PORT=2027
   SKIP_PULL=false
-  SYNC_PAGES=false
-  SYNC_UPDATE_LOGS=true
+  SYNC_PAGES=smart
   CLEAN_OLD_IMAGES=true
+
+SYNC_PAGES modes:
+  smart      3-way merge using previous image pages as merge base (recommended)
+  additive   only add files missing on host, never update existing host files
+  false      skip pages sync entirely
 
 Runtime envs for website container (auto-reuse from old container if present):
   APP_ENV, SECRET_KEY, PUBLIC_BASE_URL, TRUST_PROXY_HEADERS, SESSION_COOKIE_SECURE,
@@ -76,18 +208,22 @@ if [[ -z "$YX_ROOT" || "$YX_ROOT" == "/" ]]; then
   die "YX_ROOT is invalid: '$YX_ROOT'"
 fi
 
+SYNC_PAGES_MODE="$(normalize_sync_pages_mode "$SYNC_PAGES")"
+
 DATA_DIR="$YX_ROOT/data"
 PAGES_DIR="$YX_ROOT/pages"
-CDN_DIR="$YX_ROOT/cdn_assets"
-UPDATE_LOGS_DIR="$YX_ROOT/update_logs"
-TMP_CDN_DIR="$YX_ROOT/.tmp-cdn-assets"
+PAGES_BASELINE_DIR="${PAGES_BASELINE_DIR:-$YX_ROOT/.pages-image-baseline}"
+PAGES_CONFLICTS_DIR="${PAGES_CONFLICTS_DIR:-$YX_ROOT/.pages-merge-conflicts}"
 TMP_PAGES_DIR="$YX_ROOT/.tmp-pages"
-TMP_UPDATE_LOGS_DIR="$YX_ROOT/.tmp-update-logs"
-TMP_CONTAINER="${TMP_CONTAINER:-yx-website-assets-sync-$(date +%s)-$$}"
+TMP_OLD_PAGES_DIR="$YX_ROOT/.tmp-pages-old"
+TMP_NEW_CONTAINER="${TMP_NEW_CONTAINER:-yx-website-pages-new-$(date +%s)-$$}"
+TMP_OLD_CONTAINER="${TMP_OLD_CONTAINER:-yx-website-pages-old-$(date +%s)-$$}"
 
 EXISTING_ENV_LINES=""
+EXISTING_IMAGE_REF=""
 if docker container inspect "$WEBSITE_CONTAINER" >/dev/null 2>&1; then
   EXISTING_ENV_LINES="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$WEBSITE_CONTAINER" || true)"
+  EXISTING_IMAGE_REF="$(docker inspect -f '{{.Image}}' "$WEBSITE_CONTAINER" || true)"
 fi
 
 get_existing_env() {
@@ -136,13 +272,13 @@ if [[ -z "$ADMIN_PASSWORD_HASH_VAL" && -z "$ADMIN_PASSWORD_VAL" && ! -s "$DATA_D
 fi
 
 cleanup() {
-  docker rm -f "$TMP_CONTAINER" >/dev/null 2>&1 || true
-  rm -rf "$TMP_CDN_DIR" "$TMP_PAGES_DIR" "$TMP_UPDATE_LOGS_DIR"
+  docker rm -f "$TMP_NEW_CONTAINER" "$TMP_OLD_CONTAINER" >/dev/null 2>&1 || true
+  rm -rf "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR"
 }
 trap cleanup EXIT
 
 log "prepare directories and network"
-mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_DIR" "$UPDATE_LOGS_DIR"
+mkdir -p "$DATA_DIR" "$PAGES_DIR"
 docker network create "$NETWORK_NAME" >/dev/null 2>&1 || true
 
 if ! bool_true "$SKIP_PULL"; then
@@ -153,32 +289,40 @@ else
   log "skip image pull (SKIP_PULL=$SKIP_PULL)"
 fi
 
-log "export latest cdn_assets from website image"
-docker create --name "$TMP_CONTAINER" "$WEBSITE_IMAGE" >/dev/null
-rm -rf "$TMP_CDN_DIR"
-mkdir -p "$TMP_CDN_DIR"
-docker cp "$TMP_CONTAINER:/app/cdn_assets/." "$TMP_CDN_DIR/"
+if [[ "$SYNC_PAGES_MODE" != "skip" ]]; then
+  log "export latest pages from website image"
+  export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER" "/app/pages" "$TMP_PAGES_DIR" || die "failed to export /app/pages from $WEBSITE_IMAGE"
 
-log "sync cdn_assets to host (rsync --delete)"
-rsync -a --delete "$TMP_CDN_DIR/" "$CDN_DIR/"
-
-if bool_true "$SYNC_PAGES"; then
-  log "SYNC_PAGES enabled: merge pages from image into host pages directory"
-  rm -rf "$TMP_PAGES_DIR"
-  mkdir -p "$TMP_PAGES_DIR"
-  docker cp "$TMP_CONTAINER:/app/pages/." "$TMP_PAGES_DIR/"
-  rsync -a "$TMP_PAGES_DIR/" "$PAGES_DIR/"
-fi
-
-if bool_true "$SYNC_UPDATE_LOGS"; then
-  log "SYNC_UPDATE_LOGS enabled: merge update_logs from image into host update_logs directory"
-  rm -rf "$TMP_UPDATE_LOGS_DIR"
-  mkdir -p "$TMP_UPDATE_LOGS_DIR"
-  if docker cp "$TMP_CONTAINER:/app/update_logs/." "$TMP_UPDATE_LOGS_DIR/" >/dev/null 2>&1; then
-    rsync -a "$TMP_UPDATE_LOGS_DIR/" "$UPDATE_LOGS_DIR/"
-  else
-    log "WARN: no /app/update_logs found in image, skip update_logs sync"
+  BASE_PAGES_SOURCE=""
+  if [[ -n "$EXISTING_IMAGE_REF" ]]; then
+    log "export previous image pages as merge base"
+    if export_image_tree "$EXISTING_IMAGE_REF" "$TMP_OLD_CONTAINER" "/app/pages" "$TMP_OLD_PAGES_DIR"; then
+      BASE_PAGES_SOURCE="$TMP_OLD_PAGES_DIR"
+    else
+      log "WARN: failed to export previous image pages from $EXISTING_IMAGE_REF"
+    fi
   fi
+
+  if [[ -z "$BASE_PAGES_SOURCE" ]] && has_regular_files "$PAGES_BASELINE_DIR"; then
+    log "use stored pages baseline from $PAGES_BASELINE_DIR"
+    BASE_PAGES_SOURCE="$PAGES_BASELINE_DIR"
+  fi
+
+  if [[ "$SYNC_PAGES_MODE" == "additive" ]]; then
+    log "SYNC_PAGES=additive: only copy files missing on host"
+    rsync -a --ignore-existing "$TMP_PAGES_DIR/" "$PAGES_DIR/"
+  elif [[ -n "$BASE_PAGES_SOURCE" ]]; then
+    log "SYNC_PAGES=smart: 3-way merge pages into host bind mount"
+    smart_merge_pages "$BASE_PAGES_SOURCE" "$TMP_PAGES_DIR" "$PAGES_DIR" "$PAGES_CONFLICTS_DIR"
+  else
+    log "WARN: no merge base available; fallback to additive pages sync for this run"
+    rsync -a --ignore-existing "$TMP_PAGES_DIR/" "$PAGES_DIR/"
+  fi
+
+  log "refresh stored pages baseline"
+  rm -rf "$PAGES_BASELINE_DIR"
+  mkdir -p "$PAGES_BASELINE_DIR"
+  rsync -a --delete "$TMP_PAGES_DIR/" "$PAGES_BASELINE_DIR/"
 fi
 
 log "recreate containers"
@@ -200,8 +344,6 @@ website_cmd=(
   -e "TURNSTILE_ENABLED=$TURNSTILE_ENABLED_VAL"
   -v "$DATA_DIR:/app/data"
   -v "$PAGES_DIR:/app/pages"
-  -v "$CDN_DIR:/app/cdn_assets"
-  -v "$UPDATE_LOGS_DIR:/app/update_logs"
 )
 
 if [[ -n "$ADMIN_PASSWORD_HASH_VAL" ]]; then
@@ -230,7 +372,6 @@ gateway_cmd=(
   --network "$NETWORK_NAME"
   -p "127.0.0.1:${MAIN_PORT}:80"
   -p "127.0.0.1:${CDN_PORT}:81"
-  -v "$CDN_DIR:/app/cdn_assets:ro"
   "$GATEWAY_IMAGE"
 )
 "${gateway_cmd[@]}" >/dev/null

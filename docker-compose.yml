@@ -8,10 +8,6 @@ services:
       - ./data:/app/data
       # Admin 新闻/产品页会直接写入 pages 目录；不挂载会在重建容器后丢失
       - ./pages:/app/pages
-      # CDN 素材目录（统一素材源）
-      - ./cdn_assets:/app/cdn_assets
-      # 版本更新日志（可选，但建议持久化）
-      - ./update_logs:/app/update_logs
     environment:
       - APP_ENV=production
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
@@ -41,6 +37,4 @@ services:
       - "${MAIN_PORT:-8000}:80"
       # CDN 专用入口（仅放行 /cdn_assets/*）
       - "${CDN_PORT:-8001}:81"
-    volumes:
-      - ./cdn_assets:/app/cdn_assets:ro
     restart: unless-stopped

@@ -83,29 +83,18 @@ python3 server.py
 
 ```bash
 # 1) 准备目录与网络
-mkdir -p /root/yxwebsite/data /root/yxwebsite/pages /root/yxwebsite/update_logs /root/yxwebsite/cdn_assets
+mkdir -p /root/yxwebsite/data /root/yxwebsite/pages
 docker network create yx-net || true
 
 # 2) 拉取镜像
 docker pull ghcr.io/zhizinan1997/yx_website:latest
 docker pull ghcr.io/zhizinan1997/yx-gateway:latest
 
-# 2.1) 首次部署时，先把网站镜像内的 pages 与 cdn_assets 导出到宿主机
+# 2.1) 首次部署时，先把网站镜像内的 pages 导出到宿主机
 # 仅在宿主机目录为空时执行一次即可
-# docker create --name yx-website-assets ghcr.io/zhizinan1997/yx_website:latest
-# docker cp yx-website-assets:/app/pages/. /root/yxwebsite/pages/
-# docker cp yx-website-assets:/app/cdn_assets/. /root/yxwebsite/cdn_assets/
-# docker rm -f yx-website-assets
-
-# 2.2) 升级部署时（镜像已更新），同步镜像内最新 cdn_assets 到宿主机共享目录
-# 注意：由于挂载了 /root/yxwebsite/cdn_assets:/app/cdn_assets，重建容器不会自动覆盖宿主机旧文件
-# docker create --name yx-website-assets-new ghcr.io/zhizinan1997/yx_website:latest
-# mkdir -p /root/yxwebsite/.tmp-cdn-assets
-# rm -rf /root/yxwebsite/.tmp-cdn-assets/*
-# docker cp yx-website-assets-new:/app/cdn_assets/. /root/yxwebsite/.tmp-cdn-assets/
-# rsync -a --delete /root/yxwebsite/.tmp-cdn-assets/ /root/yxwebsite/cdn_assets/
-# docker rm -f yx-website-assets-new
-# rm -rf /root/yxwebsite/.tmp-cdn-assets
+# docker create --name yx-website-pages ghcr.io/zhizinan1997/yx_website:latest
+# docker cp yx-website-pages:/app/pages/. /root/yxwebsite/pages/
+# docker rm -f yx-website-pages
 
 # 3) 启动网站应用容器（仅容器内 8000，不对宿主机开放）
 docker run -d \
@@ -122,8 +111,6 @@ docker run -d \
   -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
   -v /root/yxwebsite/data:/app/data \
   -v /root/yxwebsite/pages:/app/pages \
-  -v /root/yxwebsite/cdn_assets:/app/cdn_assets \
-  -v /root/yxwebsite/update_logs:/app/update_logs \
   ghcr.io/zhizinan1997/yx_website:latest
 
 # 4) 启动网关容器（对外暴露双端口）
@@ -133,12 +120,11 @@ docker run -d \
   --network yx-net \
   -p 127.0.0.1:2026:80 \
   -p 127.0.0.1:2027:81 \
-  -v /root/yxwebsite/cdn_assets:/app/cdn_assets:ro \
   ghcr.io/zhizinan1997/yx-gateway:latest
 
 ```
 
-一键升级脚本（从 GitHub 下载，自动拉镜像、同步 `cdn_assets` 与 `update_logs`、重建容器，并清理旧版悬空镜像）：
+一键升级脚本（从 GitHub 下载，自动拉镜像、智能同步 `pages`、重建容器，并清理旧版悬空镜像）：
 
 ```bash
 curl -fsSL -o /root/yxwebsite/dockerrun_upgrade.sh https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh && chmod +x /root/yxwebsite/dockerrun_upgrade.sh && bash /root/yxwebsite/dockerrun_upgrade.sh
@@ -150,6 +136,10 @@ bash /root/yxwebsite/dockerrun_upgrade.sh --help
 - 推荐每次升级前都重新下载一次脚本，确保拿到最新同步逻辑。
 - 脚本会优先复用现有 `yx-website` 容器中的环境变量；`SECRET_KEY` 与 `PUBLIC_BASE_URL` 会自动沿用旧容器中的值，无需每次升级手动重填。
 - `ADMIN_PASSWORD` 仅在首次部署初始化超级管理员时需要；如果 `/app/data/admin_users.json` 中已经存在管理员账号，后续升级可不再提供该变量。
+- 脚本默认 `SYNC_PAGES=smart`：会把“上一版镜像 pages”作为合并基线，自动导入新镜像新增页面，并只覆盖那些宿主机未改动的旧页面。
+- 如果镜像和宿主机都改了同一个页面，脚本会保留宿主机版本，并把镜像新版本另存到 `/root/yxwebsite/.pages-merge-conflicts/` 里，方便你人工比对。
+- 如需更保守，可用 `SYNC_PAGES=additive bash /root/yxwebsite/dockerrun_upgrade.sh`，只补充宿主机缺失的页面文件。
+- 如需完全跳过页面同步，可用 `SYNC_PAGES=false bash /root/yxwebsite/dockerrun_upgrade.sh`。
 - 脚本默认会在重建完成后执行 `docker image prune -f`，自动清理升级过程中遗留的旧版悬空镜像；如需跳过，可用 `CLEAN_OLD_IMAGES=false bash /root/yxwebsite/dockerrun_upgrade.sh`。
 - 如果当前机器上没有旧容器，请先通过环境变量提供至少 `SECRET_KEY` 与 `PUBLIC_BASE_URL`；首次部署还需额外提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD`。
 
@@ -162,15 +152,13 @@ bash /root/yxwebsite/dockerrun_upgrade.sh --help
 - 首次部署时还必须提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 作为超级管理员初始化凭据；如果 `/app/data/admin_users.json` 中已经存在超级管理员，则后续重启可省略这两个变量。
 - 你的部署拓扑是 `宿主机 Nginx -> gateway -> website`，因此建议固定使用 `TRUST_PROXY_HEADERS=true`。
 - HTTPS 域名场景建议固定设置 `SESSION_COOKIE_SECURE=true`。
-- `website` 与 `gateway` 必须共享同一份宿主机 `cdn_assets`；否则会出现“主站能引用、CDN/网关入口缺文件”的分叉问题。
-- 推荐将 `cdn_assets` 挂载到宿主机共享目录，并同时挂给 `website` 与 `gateway`：这样主站入口与 CDN 专用入口始终读取同一份素材，后续更新不会出现两个容器内容分叉。
 - `pages` 目录也建议持久化挂载到宿主机；后台创建或编辑新闻、产品页时会直接写入该目录，不挂载会在重建容器后丢失。
-- `website` 建议以读写方式挂载 `/root/yxwebsite/cdn_assets:/app/cdn_assets`；`gateway` 建议以只读方式挂载 `/root/yxwebsite/cdn_assets:/app/cdn_assets:ro`。
-- 推荐同时挂载 `/root/yxwebsite/pages:/app/pages` 与 `/root/yxwebsite/update_logs:/app/update_logs`，以保持页面内容与更新日志持久化。
+- `cdn_assets` 不再需要宿主机挂载：`website` 直接使用镜像内置素材，`gateway` 的主站入口与 CDN 入口都会转发到 `website` 统一处理。
+- `update_logs` 也不再需要宿主机挂载；后台默认读取镜像内自带的更新日志。
 - `MAIN_DOMAIN/CDN_DOMAIN` 不是容器启动必填项。
-- `website` 镜像仍可作为初始化素材来源；`gateway` 镜像不再内置 `cdn_assets`，以减少镜像体积并统一依赖宿主机共享挂载。
-- 空目录挂载会覆盖镜像内文件并导致 `404`/内容缺失，因此首次切换前请先把 `pages` 与 `cdn_assets` 同步到宿主机目录。
-- 升级镜像时，`/root/yxwebsite/cdn_assets` 不会被自动覆盖；请在重建容器前执行上面的 `2.2` 同步步骤（建议每次发版都执行）。
+- `website` 镜像仍然是 `cdn_assets` 与默认 `pages` 的来源；其中 `pages` 因为要给后台写入，所以保留宿主机挂载。
+- 空目录挂载会覆盖镜像内文件并导致 `404`/内容缺失，因此首次切换前请先把 `pages` 从镜像同步到宿主机目录。
+- 升级镜像时，建议始终使用上面的升级脚本；它会自动处理“镜像新增页面”和“宿主机已修改页面”的合并问题。
 
 ### 宝塔 Nginx 反代（适配双域名）
 
@@ -223,6 +211,7 @@ CDN_PORT=8001
 
 - `SECRET_KEY`、`PUBLIC_BASE_URL` 是生产启动必填项。
 - 首次部署时必须提供 `ADMIN_PASSWORD_HASH` 或 `ADMIN_PASSWORD`；已有持久化管理员数据后可移除。
+- `docker-compose.yml` 默认只持久化 `data/` 与 `pages/`；`cdn_assets/` 和 `update_logs/` 会直接使用镜像内内容。
 - Turnstile、CDN 等业务配置仍可在 Admin 界面内调整。
 
 ## 📡 CDN 加速开关

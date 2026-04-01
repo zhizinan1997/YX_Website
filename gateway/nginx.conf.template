@@ -38,9 +38,13 @@ server {
     root /app;
 
     location /cdn_assets/ {
-        try_files $uri =404;
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-        add_header Access-Control-Allow-Origin "*" always;
+        proxy_pass http://website_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-YX-CDN-Entry 1;
     }
 
     location / {
