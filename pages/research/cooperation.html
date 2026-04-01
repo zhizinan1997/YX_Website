@@ -8,196 +8,794 @@
     <link rel="stylesheet" href="../../assets/css/yx-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/search.css">
     <style>
-        .vs-page-hero {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/cdn_assets/images/common/63917dcd7f5a.jpg');
+        :root {
+            --cp-text: #18243f;
+            --cp-heading: #243764;
+            --cp-body: #30405f;
+            --cp-muted: #5d6e8d;
+            --cp-light-bg: #f3f6fd;
+            --cp-light-bg-2: #eef2fb;
+            --cp-line: #365ca8;
+            --cp-card: #ffffff;
+            --cp-border: #dbe4f2;
+            --cp-shadow: 0 20px 45px rgba(16, 36, 82, 0.08);
+            --cp-shadow-hover: 0 26px 60px rgba(16, 36, 82, 0.14);
+            --cp-accent: #6380c1;
+            --cp-dark-overlay: rgba(29, 43, 83, 0.9);
+        }
+
+        .cp-page {
+            background: #ffffff;
+            color: var(--cp-text);
+            padding-top: 90px;
+            overflow: hidden;
+        }
+
+        /* ===== PAGE HERO ===== */
+        .cp-page-hero {
+            background-image:
+                linear-gradient(rgba(11, 37, 78, 0.72), rgba(11, 37, 78, 0.68)),
+                url('/cdn_assets/images/research/cooperation/epc-case-yueyang.png');
             background-size: cover;
             background-position: center;
+            min-height: 520px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #ffffff;
+            position: relative;
         }
 
-        .vs-card-grid {
+        .cp-page-hero__content {
+            max-width: 840px;
+            padding: 120px 0 108px;
+        }
+
+        .cp-page-hero__content h1 {
+            margin: 0;
+            font-size: 58px;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            font-weight: 700;
+        }
+
+        .cp-page-hero__content p {
+            margin: 20px 0 0;
+            font-size: 22px;
+            line-height: 1.8;
+            opacity: 0.92;
+        }
+
+        /* ===== INTRO ===== */
+        .cp-intro-section {
+            padding: 64px 0 76px;
+            background: #ffffff;
+        }
+
+        .cp-intro-section h2 {
+            margin: 0;
+            color: var(--cp-text);
+            font-size: clamp(36px, 3vw, 50px);
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            font-weight: 700;
+        }
+
+        .cp-intro__sub {
+            margin-top: 18px;
+            color: var(--cp-accent);
+            font-size: clamp(20px, 1.8vw, 24px);
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .cp-intro__line {
+            width: 160px;
+            height: 4px;
+            background: var(--cp-line);
+            border-radius: 999px;
+            margin: 24px 0 22px;
+        }
+
+        .cp-intro__tagline {
+            color: var(--cp-body);
+            font-size: 18px;
+            line-height: 1.8;
+            font-weight: 700;
+            max-width: 1080px;
+        }
+
+        /* ===== SECTION TITLES ===== */
+        .cp-section-title {
+            text-align: center;
+            margin-bottom: 46px;
+        }
+
+        .cp-section-title h2 {
+            display: inline-block;
+            margin: 0;
+            font-size: clamp(36px, 3vw, 50px);
+            line-height: 1.15;
+            font-weight: 700;
+            color: var(--cp-text);
+        }
+
+        .cp-section-title .cp-title-line {
+            width: 160px;
+            height: 4px;
+            background: var(--cp-line);
+            margin: 16px auto 0;
+            border-radius: 999px;
+        }
+
+        .cp-section-title p {
+            max-width: 1080px;
+            margin: 22px auto 0;
+            font-size: 17px;
+            line-height: 1.9;
+            color: var(--cp-body);
+            font-weight: 500;
+        }
+
+        .cp-section-title--light h2 {
+            color: #ffffff;
+        }
+
+        .cp-section-title--light .cp-title-line {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .cp-section-title--light p {
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        /* ===== PHILOSOPHY / COOPERATION MODES ===== */
+        .cp-philosophy-section {
+            padding: 92px 0;
+            background:
+                linear-gradient(var(--cp-dark-overlay), var(--cp-dark-overlay)),
+                url('/cdn_assets/images/common/63917dcd7f5a.jpg') center/cover no-repeat;
+            position: relative;
+        }
+
+        .cp-philosophy-section .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cp-philosophy-card {
+            background: var(--cp-card);
+            border-radius: 24px;
+            box-shadow: var(--cp-shadow);
+            padding: 44px 48px 40px;
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        .cp-card-heading {
+            margin: 0 0 6px;
+            font-family: "Inter", var(--font-stack), sans-serif;
+            font-size: clamp(30px, 2.8vw, 40px);
+            line-height: 1.2;
+            text-align: center;
+            font-weight: 700;
+            color: var(--cp-heading);
+        }
+
+        .cp-card-heading-line {
+            width: 120px;
+            height: 3px;
+            background: var(--cp-line);
+            margin: 14px auto 0;
+            border-radius: 999px;
+        }
+
+        .cp-quote {
+            margin-top: 24px;
+            color: var(--cp-body);
+            font-size: 17px;
+            line-height: 1.9;
+            font-weight: 500;
+            background: var(--cp-light-bg);
+            border-left: 4px solid var(--cp-line);
+            border-radius: 0 16px 16px 0;
+            padding: 24px 28px;
+        }
+
+        /* Modes grid */
+        .cp-modes-section {
+            margin-top: 36px;
+        }
+
+        .cp-modes {
+            margin-top: 28px;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 28px;
         }
 
-        .vs-coop-card {
-            background: white;
-            border-radius: 8px;
+        .cp-mode {
+            display: flex;
+            flex-direction: column;
+            background: var(--cp-card);
+            border: 1px solid var(--cp-border);
+            border-radius: 22px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s;
+            box-shadow: 0 12px 30px rgba(16, 36, 82, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .vs-coop-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        .cp-mode:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--cp-shadow-hover);
         }
 
-        .vs-coop-img {
-            height: 200px;
-            background: #eee;
+        .cp-mode__image {
+            width: 100%;
+            aspect-ratio: 1.58 / 1;
             overflow: hidden;
         }
 
-        .vs-coop-img img {
+        .cp-mode__image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.5s ease;
         }
 
-        .vs-coop-content {
-            padding: 25px;
+        .cp-mode:hover .cp-mode__image img {
+            transform: scale(1.05);
+        }
+
+        .cp-mode__body {
+            padding: 22px 24px 28px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cp-mode h4 {
+            margin: 0 0 12px;
+            color: var(--cp-heading);
+            font-size: clamp(20px, 1.8vw, 24px);
+            line-height: 1.35;
+            font-weight: 700;
+        }
+
+        .cp-mode p {
+            color: var(--cp-body);
+            font-size: 16px;
+            line-height: 1.85;
+            font-weight: 500;
+            margin: 0;
+            flex: 1;
+        }
+
+        /* ===== CASE STUDY ===== */
+        .cp-case-section {
+            padding: 92px 0;
+            background: linear-gradient(180deg, var(--cp-light-bg) 0%, var(--cp-light-bg-2) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cp-case-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(120deg, rgba(60, 87, 145, 0.05) 0 8%, transparent 8% 100%),
+                radial-gradient(circle at 16% 22%, rgba(59, 92, 170, 0.06) 0 18px, transparent 18px),
+                radial-gradient(circle at 82% 18%, rgba(59, 92, 170, 0.06) 0 22px, transparent 22px);
+            pointer-events: none;
+        }
+
+        .cp-case-section .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cp-case-card {
+            background: var(--cp-card);
+            border-radius: 24px;
+            box-shadow: var(--cp-shadow);
+            padding: 38px 40px 44px;
+            max-width: 1240px;
+            margin: 0 auto;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .cp-case-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--cp-shadow-hover);
+        }
+
+        .cp-case__title {
+            margin: 0;
+            color: var(--cp-heading);
+            text-align: center;
+            font-size: clamp(26px, 2.5vw, 36px);
+            line-height: 1.3;
+            font-weight: 700;
+        }
+
+        .cp-case__image {
+            margin-top: 28px;
+            overflow: hidden;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(16, 36, 82, 0.1);
+        }
+
+        .cp-case__image img {
+            width: 100%;
+            display: block;
+        }
+
+        .cp-case__text {
+            margin-top: 28px;
+            color: var(--cp-body);
+            font-size: 17px;
+            line-height: 1.9;
+            font-weight: 500;
+        }
+
+        .cp-case__text p + p {
+            margin-top: 12px;
+        }
+
+        /* ===== CONTACT ===== */
+        .cp-contact-section {
+            padding: 92px 0;
+            background: #ffffff;
+        }
+
+        .cp-contact-intro {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .cp-contact-intro__lead {
+            margin-top: 8px;
+            color: var(--cp-heading);
+            font-size: clamp(22px, 2vw, 28px);
+            line-height: 1.4;
+            font-weight: 600;
+        }
+
+        .cp-contact-intro__desc {
+            margin-top: 16px;
+            color: var(--cp-body);
+            font-size: 17px;
+            line-height: 1.9;
+            font-weight: 500;
+            max-width: 1080px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cp-contact-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.82fr);
+            gap: 26px;
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        .cp-contact-card,
+        .cp-contact-qr {
+            background: var(--cp-card);
+            border: 1px solid var(--cp-border);
+            border-radius: 24px;
+            box-shadow: var(--cp-shadow);
+            padding: 38px 40px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .cp-contact-card:hover,
+        .cp-contact-qr:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--cp-shadow-hover);
+        }
+
+        .cp-contact-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .cp-contact-card p,
+        .cp-contact-card a {
+            color: var(--cp-body);
+            font-size: 17px;
+            line-height: 1.8;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .cp-contact-card .cp-contact__phones {
+            font-size: 19px;
+            font-weight: 600;
+            color: var(--cp-heading);
+        }
+
+        .cp-contact-card a {
+            color: #0c46dd;
+            text-decoration: underline;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 4px;
+            word-break: break-all;
+        }
+
+        .cp-contact-qr {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .cp-contact-qr h4 {
+            margin: 0 0 18px;
+            color: var(--cp-heading);
+            font-size: clamp(20px, 1.8vw, 24px);
+            line-height: 1.45;
+            font-weight: 600;
+        }
+
+        .cp-contact-qr img {
+            width: min(100%, 280px);
+            background: #fff;
+            padding: 0;
+            border-radius: 16px;
+        }
+
+        /* ===== CTA ===== */
+        .cp-cta {
+            background: linear-gradient(135deg, #0a5a8f 0%, #0a4d7b 100%);
+            color: #ffffff;
+            padding: 80px 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+        }
+
+        .cp-cta h2 {
+            margin: 0 0 20px;
+            font-size: 40px;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .cp-cta p {
+            margin: 0 0 36px;
+            font-size: 18px;
+            line-height: 1.9;
+            opacity: 0.92;
+        }
+
+        .cp-cta .vs-btn {
+            background: #ffffff;
+            color: #0a4d7b;
+            border-color: #ffffff;
+            border-radius: 999px;
+            padding: 14px 40px;
+        }
+
+        .cp-cta .vs-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ===== SCROLL ANIMATIONS ===== */
+        .cp-animate {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .cp-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .cp-animate-delay-1 { transition-delay: 0.1s; }
+        .cp-animate-delay-2 { transition-delay: 0.2s; }
+        .cp-animate-delay-3 { transition-delay: 0.3s; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1199px) {
+            .cp-philosophy-card {
+                padding: 32px 28px;
+            }
+
+            .cp-contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .cp-page-hero {
+                min-height: 360px;
+            }
+
+            .cp-page-hero__content {
+                padding: 92px 0 76px;
+            }
+
+            .cp-page-hero__content h1 {
+                font-size: 42px;
+            }
+
+            .cp-page-hero__content p {
+                font-size: 18px;
+            }
+
+            .cp-intro-section {
+                padding: 56px 0 60px;
+            }
+
+            .cp-philosophy-section,
+            .cp-case-section,
+            .cp-contact-section {
+                padding: 64px 0;
+            }
+
+            .cp-section-title {
+                margin-bottom: 32px;
+            }
+
+            .cp-section-title h2 {
+                font-size: 30px;
+            }
+
+            .cp-philosophy-card {
+                border-radius: 20px;
+                padding: 28px 22px;
+            }
+
+            .cp-modes {
+                grid-template-columns: 1fr;
+            }
+
+            .cp-case-card {
+                padding: 28px 24px 32px;
+                border-radius: 20px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .cp-page-hero {
+                min-height: 320px;
+            }
+
+            .cp-page-hero__content {
+                padding: 86px 0 70px;
+            }
+
+            .cp-page-hero__content h1 {
+                font-size: 34px;
+            }
+
+            .cp-page-hero__content p {
+                font-size: 17px;
+            }
+
+            .cp-quote {
+                padding: 18px 20px;
+                font-size: 16px;
+            }
+
+            .cp-contact-card,
+            .cp-contact-qr {
+                padding: 24px 22px;
+            }
+
+            .cp-cta {
+                padding: 64px 0;
+            }
+
+            .cp-cta h2 {
+                font-size: 28px;
+            }
+
+            .cp-cta p {
+                font-size: 16px;
+                margin-bottom: 28px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div id="mc-nav-root" data-nav-profile="gas"></div>
-<noscript><div class="mc-nav-noscript">
-  <a href="/index.html">首页</a> |
-  <a href="/pages/gassensing/all-products.html">产品</a> |
-  <a href="/pages/solutions/solutions-index.html">解决方案</a> |
-  <a href="/pages/research/index.html">科研服务</a> |
-  <a href="/pages/gassensing/service-cases.html">服务案例</a> |
-  <a href="/pages/about/about.html">公司简介</a> |
-  <a href="/pages/contact/contact.html">联系我们</a>
-</div>
-</noscript>
-<script src="/assets/js/nav-loader.js"></script>
+    <noscript>
+        <div class="mc-nav-noscript">
+            <a href="/index.html">首页</a> |
+            <a href="/pages/gassensing/all-products.html">产品</a> |
+            <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+            <a href="/pages/research/index.html">科研服务</a> |
+            <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+            <a href="/pages/about/about.html">公司简介</a> |
+            <a href="/pages/contact/contact.html">联系我们</a>
+        </div>
+    </noscript>
+    <script src="/assets/js/nav-loader.js"></script>
 
-    <main>
-        <!-- Hero -->
-        <section class="vs-page-hero"
-            style="height: 480px; display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
+    <main class="cp-page">
+        <!-- PAGE HERO -->
+        <section class="cp-page-hero">
             <div class="vs-container">
-                <h1 style="font-size: 56px; font-weight: 700;">产学研深度合作</h1>
-                <p style="font-size: 24px; opacity: 0.9; margin-top: 20px;">共担研发，共创成果 —— 元芯科研合伙人计划</p>
+                <div class="cp-page-hero__content">
+                    <h1>产学研深度合作</h1>
+                    <p>从联合研发到成果转化的长期科研协作伙伴</p>
+                </div>
             </div>
         </section>
 
-        <!-- Breadcrumb -->
-        <div style="background: #f1f5f9; padding: 15px 0;">
+        <!-- INTRO -->
+        <section class="cp-intro-section">
             <div class="vs-container">
-                <a href="../../index.html" style="color: #666; text-decoration: none;">首页</a> <span
-                    style="margin: 0 8px; color: #ccc;">/</span>
-                <a href="index.html" style="color: #666; text-decoration: none;">科研服务</a> <span
-                    style="margin: 0 8px; color: #ccc;">/</span>
-                <span style="color: var(--color-primary);">产学研合作</span>
+                <h2>科研服务-产学研深度合作</h2>
+                <p class="cp-intro__sub">Scientific Research Services</p>
+                <div class="cp-intro__line"></div>
+                <p class="cp-intro__tagline">不仅仅是服务商，更是您创新道路上最可靠的技术伙伴</p>
             </div>
-        </div>
+        </section>
 
-        <!-- Content -->
-        <section style="padding: 100px 0;">
+        <!-- PHILOSOPHY & COOPERATION MODES -->
+        <section class="cp-philosophy-section">
             <div class="vs-container">
-
-                <div style="text-align: center; max-width: 800px; margin: 0 auto 80px;">
-                    <p style="font-size: 20px; line-height: 1.8; color: #555;">
-                        “一项伟大的科研成果诞生于无数次的实验与探索。元芯传感致力于通过我们专业的工程技术能力，为前沿科学研究搭建桥梁，让科学家的智慧结晶能够更快地转化为现实。”
-                    </p>
+                <div class="cp-section-title cp-section-title--light cp-animate">
+                    <h2>共担研发，共创成果——元芯科研合伙人计划</h2>
+                    <div class="cp-title-line"></div>
+                    <p>我们不仅仅是服务商，更是您创新道路上最可靠的技术伙伴。</p>
                 </div>
 
-                <div class="vs-section-header">
-                    <h2 class="vs-section-title">合作模式</h2>
-                    <div class="vs-divider"></div>
+                <div class="cp-philosophy-card cp-animate cp-animate-delay-1">
+                    <section>
+                        <h3 class="cp-card-heading">合作理念</h3>
+                        <div class="cp-card-heading-line"></div>
+                        <div class="cp-quote">
+                            "一项伟大的科研成果诞生于无数次的实验与探索。元芯传感致力于通过我们专业的工程技术能力，为前沿科学研究搭建桥梁，让科学家的智慧结晶能够更快地转化为现实。我们相信，开放合作是推动技术进步的最佳途径。"
+                        </div>
+                    </section>
+
+                    <section class="cp-modes-section">
+                        <h3 class="cp-card-heading">合作模式</h3>
+                        <div class="cp-card-heading-line"></div>
+                        <div class="cp-modes">
+                            <article class="cp-mode">
+                                <div class="cp-mode__image">
+                                    <img src="/cdn_assets/images/research/cooperation/joint-project-development.png" alt="联合项目开发">
+                                </div>
+                                <div class="cp-mode__body">
+                                    <h4>联合项目开发</h4>
+                                    <p>元芯作为技术合作方，与您共同设计方案、撰写标书。成功立项后，我们负责工程化实现，您专注于核心科学问题的研究。</p>
+                                </div>
+                            </article>
+
+                            <article class="cp-mode">
+                                <div class="cp-mode__image">
+                                    <img src="/cdn_assets/images/research/cooperation/collaborative-ip.png" alt="协创知识产权">
+                                </div>
+                                <div class="cp-mode__body">
+                                    <h4>协创知识产权</h4>
+                                    <p>为您的科研项目提供技术支持，协助您攻克工艺难题，并由我们的工程师协助撰写专利申请文件和论文中的"实验方法"部分。</p>
+                                </div>
+                            </article>
+
+                            <article class="cp-mode">
+                                <div class="cp-mode__image">
+                                    <img src="/cdn_assets/images/research/cooperation/laboratory-co-building.png" alt="实验室共建">
+                                </div>
+                                <div class="cp-mode__body">
+                                    <h4>实验室共建</h4>
+                                    <p>对于需要搭建特殊测试平台或中试产线的课题组，元芯可提供从设计、设备采购到系统集成的 EPC 总包服务。</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </section>
+
+        <!-- CASE STUDY -->
+        <section class="cp-case-section">
+            <div class="vs-container">
+                <div class="cp-case-card cp-animate">
+                    <h3 class="cp-case__title">案例：国内首条片式印刷半导体气体传感器产线 EPC（湖南岳阳）</h3>
+                    <div class="cp-case__image">
+                        <img src="/cdn_assets/images/research/cooperation/epc-case-yueyang.png"
+                            alt="国内首条片式印刷半导体气体传感器产线 EPC（湖南岳阳）">
+                    </div>
+                    <div class="cp-case__text">
+                        <p>客户需要一套全球领先的甲烷传感器制造方案与产线设备，多次调研后，最终与元芯达成合作。</p>
+                        <p>元芯传感基于多年的碳基传感技术研究，为客户提供全套的甲烷传感器产线 EPC 服务，推动客户产线、产品与解决方案创新升级。</p>
+                        <p>产线整体在 6 个月完成了建设与验收，成功为客户提供每年 800 万只传感器的生产能力。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT -->
+        <section class="cp-contact-section">
+            <div class="vs-container">
+                <div class="cp-section-title cp-animate">
+                    <h2>让我们聊聊未来的可能</h2>
+                    <div class="cp-title-line"></div>
+                </div>
+                <div class="cp-contact-intro cp-animate">
+                    <p class="cp-contact-intro__lead">产学研合作是一项严肃而长期的承诺。</p>
+                    <p class="cp-contact-intro__desc">如果您对我们的合作模式感兴趣，请直接联系我们的公司进行一对一的深入交流。</p>
                 </div>
 
-                <div class="vs-card-grid">
-                    <!-- United Dev -->
-                    <div class="vs-coop-card">
-                        <div class="vs-coop-img">
-                            <img src="/cdn_assets/images/common/63917dcd7f5a.jpg" alt="联合开发">
-                        </div>
-                        <div class="vs-coop-content">
-                            <h3 style="font-size: 22px; margin-bottom: 15px;">联合项目开发</h3>
-                            <p style="color: #666; line-height: 1.6;">
-                                元芯作为技术合作方，与您共同设计方案、撰写标书。成功立项后，我们负责工程化实现，您专注于核心科学问题的研究。
-                            </p>
-                        </div>
+                <div class="cp-contact-grid cp-animate cp-animate-delay-1">
+                    <div class="cp-contact-card">
+                        <p>欢迎您拨打下方的电话，随时咨询：</p>
+                        <p class="cp-contact__phones">13974993326（张先生）；18807329836（商女士）；</p>
+                        <p>或者您可以将您的需求编辑成邮件发送到：</p>
+                        <p><a href="mailto:hnyxcgkj@139.com">hnyxcgkj@139.com</a></p>
+                        <p>我们的工作人员将在收到消息后第一时间联系您。</p>
                     </div>
 
-                    <!-- IP Coop -->
-                    <div class="vs-coop-card">
-                        <div class="vs-coop-img">
-                            <img src="/cdn_assets/images/common/f4a5dc42cd04.jpg" alt="知识产权">
-                        </div>
-                        <div class="vs-coop-content">
-                            <h3 style="font-size: 22px; margin-bottom: 15px;">协创知识产权</h3>
-                            <p style="color: #666; line-height: 1.6;">
-                                为您的科研项目提供技术支持，协助您攻克工艺难题，并由我们的工程师协助撰写专利申请文件和论文中的“实验方法”部分。
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Lab Building -->
-                    <div class="vs-coop-card">
-                        <div class="vs-coop-img">
-                            <img src="/cdn_assets/images/common/45e87af40187.jpg" alt="实验室共建">
-                        </div>
-                        <div class="vs-coop-content">
-                            <h3 style="font-size: 22px; margin-bottom: 15px;">实验室共建</h3>
-                            <p style="color: #666; line-height: 1.6;">
-                                对于需要搭建特殊测试平台或中试产线的课题组，元芯可提供从设计、设备采购到系统集成的EPC总包服务。
-                            </p>
-                        </div>
+                    <div class="cp-contact-qr">
+                        <h4>扫描下方二维码，立即沟通</h4>
+                        <img src="/cdn_assets/images/research/cooperation/contact-qr-code.png" alt="微信二维码">
                     </div>
                 </div>
-
-                <!-- Case Study -->
-                <div
-                    style="background: #f8fafc; padding: 60px; border-radius: 12px; margin-top: 80px; display: flex; gap: 40px; align-items: center;">
-                    <div style="flex: 1;">
-                        <span style="color: var(--color-primary); font-weight: 700; text-transform: uppercase;">Success
-                            Story</span>
-                        <h3 style="font-size: 28px; margin: 10px 0 20px;">国内首条片式印刷半导体气体传感器产线EPC</h3>
-                        <p style="margin-bottom: 15px;"><strong>地点：</strong>湖南岳阳</p>
-                        <p style="color: #555; line-height: 1.8;">
-                            客户需要一套全球领先的甲烷传感器制造方案与产线设备。元芯传感基于多年的碳基传感技术研究，为客户提供了全套的产线EPC服务。产线整体在6个月内完成了建设与验收，成功为客户提供各类传感器年产能达800万只。
-                        </p>
-                    </div>
-                    <div style="flex: 1;">
-                        <img src="/cdn_assets/images/common/1b32f848b5e5.jpg"
-                            style="width: 100%; border-radius: 8px; box-shadow: var(--shadow-card);" alt="EPC Case">
-                    </div>
-                </div>
-
             </div>
         </section>
 
         <!-- CTA -->
-        <section
-            style="background: linear-gradient(135deg, #0a5a8f 0%, #0a4d7b 100%); color: white; padding: 80px 0; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.28);">
+        <section class="cp-cta">
             <div class="vs-container">
-                <h2 style="margin-bottom: 20px;">让我们聊聊未来的可能</h2>
-                <p
-                    style="font-size: 18px; opacity: 0.9; margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto;">
-                    产学研合作是一项严肃而长期的承诺。如果您对我们的合作模式感兴趣，请直接联系我们进行一对一深入交流。
-                </p>
-                <div style="display: flex; justify-content: center; gap: 20px;">
-                    <a href="../contact/contact.html" class="vs-btn vs-btn--outline"
-                        style="background: white; color: #0a4d7b; border-color: white; border-radius: 9999px; padding: 14px 40px;">联系合作</a>
-                </div>
+                <h2>准备好开始您的合作项目了吗？</h2>
+                <p>我们的团队愿意和您一起把科研设想推进到可执行的工程方案。</p>
+                <a href="../contact/contact.html" class="vs-btn vs-btn--outline">立即咨询</a>
             </div>
         </section>
-
     </main>
 
-    <!-- AI智能客服 -->
     <script src="../../assets/js/chatbot.js"></script>
-    
-<!-- FOOTER_START -->
-  <div id="mc-footer-root"></div>
-  <noscript>
-    <footer class="vs-footer-new">
-      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
-        <a href="/index.html">首页</a> |
-        <a href="/pages/about/policy.html">隐私政策</a> |
-        <a href="/pages/about/terms.html">条款与条件</a>
-      </div>
-    </footer>
-  </noscript>
-  <script src="/assets/js/footer-loader.js"></script>
-  <!-- FOOTER_END -->
+    <script src="../../assets/js/search.js"></script>
+
+    <!-- FOOTER_START -->
+    <div id="mc-footer-root"></div>
+    <noscript>
+        <footer class="vs-footer-new">
+            <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+                <a href="/index.html">首页</a> |
+                <a href="/pages/about/policy.html">隐私政策</a> |
+                <a href="/pages/about/terms.html">条款与条件</a>
+            </div>
+        </footer>
+    </noscript>
+    <script src="/assets/js/footer-loader.js"></script>
+    <!-- FOOTER_END -->
+
+<script>
+(function() {
+    var els = document.querySelectorAll('.cp-animate');
+    if (!els.length) return;
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function(entries) {
+            entries.forEach(function(e) {
+                if (e.isIntersecting) {
+                    e.target.classList.add('is-visible');
+                    io.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.12 });
+        els.forEach(function(el) { io.observe(el); });
+    } else {
+        els.forEach(function(el) { el.classList.add('is-visible'); });
+    }
+})();
+</script>
 </body>
 
 </html>

@@ -1,0 +1,28 @@
+{
+  "categories": [
+    {
+      "key": "sensor",
+      "name": "生物传感产品"
+    },
+    {
+      "key": "chip",
+      "name": "生物芯片"
+    },
+    {
+      "key": "instrument",
+      "name": "检测仪器"
+    },
+    {
+      "key": "platform",
+      "name": "传感平台"
+    },
+    {
+      "key": "device",
+      "name": "器件"
+    },
+    {
+      "key": "service",
+      "name": "定制服务"
+    }
+  ]
+}

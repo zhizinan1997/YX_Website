@@ -306,12 +306,18 @@
         .detail-row-img {
             flex: 1;
             height: 400px;
+            overflow: hidden;
         }
 
         .detail-row-img img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        .detail-row-img.watermark-crop img {
+            transform: scale(1.22);
+            transform-origin: left top;
         }
 
         .detail-row-content {
@@ -357,6 +363,11 @@
                 grid-template-columns: repeat(2, 1fr);
             }
 
+            .advantage-new-item p {
+                font-size: 17px;
+                line-height: 1.7;
+            }
+
             .products-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -369,6 +380,11 @@
         @media (max-width: 576px) {
             .advantages-new-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .advantage-new-item p {
+                font-size: 16px;
+                line-height: 1.65;
             }
 
             .products-grid {
@@ -557,6 +573,28 @@
             gap: 20px;
         }
 
+        .advantage-icon {
+            width: 56px;
+            height: 56px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+        }
+
+        .advantage-icon svg {
+            width: 30px;
+            height: 30px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
         .advantage-new-item h4 {
             font-size: 24px;
             font-weight: 600;
@@ -566,10 +604,10 @@
         }
 
         .advantage-new-item p {
-            font-size: 16px;
-            line-height: 1.8;
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 300;
+            font-size: 18px;
+            line-height: 1.75;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
             margin: 0;
         }
     </style>
@@ -652,7 +690,7 @@
 
                             <!-- Section 3 -->
                             <div class="solution-detail-row">
-                                <div class="detail-row-img">
+                                <div class="detail-row-img watermark-crop">
                                     <img src="/cdn_assets/images/solutions/e8bb885ee788.jpg" alt="智慧平台管理">
                                 </div>
                                 <div class="detail-row-content">
@@ -674,18 +712,50 @@
                 <h2>解决方案设计优势</h2>
                 <div class="advantages-new-grid">
                     <div class="advantage-new-item">
+                        <span class="advantage-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 3l7 4v5c0 5-3.4 8.4-7 9-3.6-.6-7-4-7-9V7l7-4z"></path>
+                                <path d="M9 12l2 2 4-4"></path>
+                            </svg>
+                        </span>
                         <h4>超早期预警</h4>
                         <p>监测热失控早期释放的氢气，抢占宝贵应急时间</p>
                     </div>
                     <div class="advantage-new-item">
+                        <span class="advantage-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 3v6"></path>
+                                <path d="M7.5 6L12 9l4.5-3"></path>
+                                <path d="M4 12h4"></path>
+                                <path d="M16 12h4"></path>
+                                <path d="M6.8 17.2l2.8-2.8"></path>
+                                <path d="M17.2 17.2l-2.8-2.8"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </span>
                         <h4>智能联动</h4>
                         <p>自动触发灭火、断电等措施，快速阻隔热失控蔓延</p>
                     </div>
                     <div class="advantage-new-item">
+                        <span class="advantage-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M4 16l4-4 3 3 5-6 4 4"></path>
+                                <path d="M4 20h16"></path>
+                                <circle cx="8" cy="12" r="1.4"></circle>
+                                <circle cx="11" cy="15" r="1.4"></circle>
+                                <circle cx="16" cy="9" r="1.4"></circle>
+                            </svg>
+                        </span>
                         <h4>高效管理</h4>
                         <p>智慧平台实现远程监控、风险评估与预测性维护</p>
                     </div>
                     <div class="advantage-new-item">
+                        <span class="advantage-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 3l7 4v5c0 5-3.4 8.4-7 9-3.6-.6-7-4-7-9V7l7-4z"></path>
+                                <path d="M8.5 13.2l2.2 2.1 4.8-4.8"></path>
+                            </svg>
+                        </span>
                         <h4>安全可靠</h4>
                         <p>从根本上提升储能系统内安全性，保障人员与财产安全</p>
                     </div>
@@ -698,13 +768,13 @@
             <div class="vs-container">
                 <h2 class="section-title">核心产品</h2>
                 <div class="products-grid">
-                    <a href="../../pages/products/ld_h2_detector.html" class="product-card">
+                    <a href="/pages/gassensing/mc_ld_h2.html" class="product-card">
                         <div class="product-card-img">
                             <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5f991b498c72.png"
-                                alt="LD-H2型氢气检测仪">
+                                alt="MC-LD-H2型手持氢气检测仪">
                         </div>
                         <div class="product-card-body">
-                            <h4>LD-H2型氢气检测仪</h4>
+                            <h4>MC-LD-H2型手持氢气检测仪</h4>
                             <div class="product-features">
                                 <p>◆ 高灵敏氢气传感芯片 1秒内探出氢气</p>
                                 <p>◆ 自动零点校准 防水防尘防爆</p>
@@ -713,13 +783,13 @@
                             </div>
                         </div>
                     </a>
-                    <a href="../../pages/products/mc_wd_wearable_alarm.html" class="product-card">
+                    <a href="/pages/gassensing/mc_wd_01.html" class="product-card">
                         <div class="product-card-img">
                             <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/192166e04cc6.png"
-                                alt="MC-WD穿戴式氢气报警器">
+                                alt="MC-WD-01型穿戴式氢气检测模块">
                         </div>
                         <div class="product-card-body">
-                            <h4>MC-WD穿戴式氢气报警器</h4>
+                            <h4>MC-WD-01型穿戴式氢气检测模块</h4>
                             <div class="product-features">
                                 <p>◆ 体积小、重量轻，可方便夹戴</p>
                                 <p>◆ ⼀键使用，方便快捷</p>
@@ -728,13 +798,13 @@
                             </div>
                         </div>
                     </a>
-                    <a href="../../pages/products/mchp_vehicle_h2.html" class="product-card">
+                    <a href="/pages/gassensing/mc_hp_1_0.html" class="product-card">
                         <div class="product-card-img">
                             <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/2cc4d91cdb44.png"
-                                alt="MCHP-1.0型车载氢气传感模块">
+                                alt="MC-HP-1.0型车载氢气检测模块">
                         </div>
                         <div class="product-card-body">
-                            <h4>MCHP-1.0型车载氢气传感模块</h4>
+                            <h4>MC-HP-1.0型车载氢气检测模块</h4>
                             <div class="product-features">
                                 <p>◆ 可定制量程</p>
                                 <p>◆ 采用车规级元器件与电路设计</p>
@@ -743,13 +813,13 @@
                             </div>
                         </div>
                     </a>
-                    <a href="../../pages/products/mc_hla_fixed_alarm.html" class="product-card">
+                    <a href="/pages/gassensing/mc_hla_01.html" class="product-card">
                         <div class="product-card-img">
                             <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/f6b3c15e28b4.png"
-                                alt="MC-HLA-01固定式氢气报警器">
+                                alt="MC-HLA-01型固定式氢气报警器">
                         </div>
                         <div class="product-card-body">
-                            <h4>MC-HLA-01固定式氢气报警器</h4>
+                            <h4>MC-HLA-01型固定式氢气报警器</h4>
                             <div class="product-features">
                                 <p>◆ 碳基传感芯片，响应快，抗干扰</p>
                                 <p>◆ 自动零点校准，免开盖，易维护</p>

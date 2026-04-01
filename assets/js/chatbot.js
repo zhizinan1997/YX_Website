@@ -99,7 +99,7 @@
         const triggerHTML = `
             <button class="chatbot-trigger" id="chatbotTrigger" aria-label="打开智能客服">
                 <i class="fas fa-comment-dots chatbot-trigger__icon"></i>
-                <span class="chatbot-trigger__text">有疑问？随时呼叫元芯AI</span>
+                <span class="chatbot-trigger__text">有问题？与元芯 AI 沟通</span>
             </button>
         `;
 
@@ -190,6 +190,7 @@
         chatbotTrigger.addEventListener('click', toggleChatWindow);
         document.getElementById('chatbotClose').addEventListener('click', closeChatWindow);
         chatbotWindow.addEventListener('wheel', handleChatWindowWheel, { passive: false });
+        window.addEventListener('resize', positionChatWindow);
 
         // Send message
         sendButton.addEventListener('click', sendMessage);
@@ -254,6 +255,7 @@
     function openChatWindow() {
         lockPageScroll();
         chatbotWindow.style.display = 'flex';
+        positionChatWindow();
         // Force reflow
         chatbotWindow.offsetHeight;
         chatbotWindow.classList.add('open');
@@ -290,6 +292,23 @@
         // Always keep wheel scroll inside chatbot window to avoid page scroll bleed-through.
         messagesContainer.scrollTop += e.deltaY;
         e.preventDefault();
+    }
+
+    function positionChatWindow() {
+        if (!chatbotWindow || !chatbotTrigger) return;
+
+        const triggerRect = chatbotTrigger.getBoundingClientRect();
+        const gap = window.innerWidth <= 480 ? 12 : 14;
+        const viewportPadding = window.innerWidth <= 480 ? 10 : 16;
+        const right = Math.max(viewportPadding, window.innerWidth - triggerRect.right);
+        const bottom = Math.max(viewportPadding, window.innerHeight - triggerRect.top + gap);
+        const availableHeight = Math.max(320, triggerRect.top - gap - viewportPadding);
+
+        chatbotWindow.style.left = 'auto';
+        chatbotWindow.style.top = 'auto';
+        chatbotWindow.style.right = `${right}px`;
+        chatbotWindow.style.bottom = `${bottom}px`;
+        chatbotWindow.style.maxHeight = `${availableHeight}px`;
     }
 
     function clearChatHistory() {

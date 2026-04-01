@@ -273,123 +273,80 @@
 
         /* Solutions Carousel */
         .solutions-carousel-section {
-            background: #ffffff;
+            background: #f8f9fa;
             padding: 88px 0 80px;
         }
 
-        .carousel-title-bar {
-            position: relative;
-            margin-bottom: 48px;
-            padding: 0 80px;
-            /* reserve space for absolutely positioned arrows */
+        .solutions-carousel-layout {
+            display: flex;
+            align-items: flex-start;
+            background: var(--color-white);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            min-height: 600px;
         }
 
-        .carousel-arrow {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            border: none;
-            background: #0d3560;
-            color: #ffffff;
-            font-size: 22px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
+        .carousel-nav {
+            width: 320px;
             flex-shrink: 0;
-            z-index: 3;
-            box-shadow: 0 6px 20px rgba(13, 53, 96, 0.45), 0 2px 6px rgba(0, 0, 0, 0.2);
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        #carousel-prev {
-            left: 0;
-        }
-
-        #carousel-next {
-            right: 0;
-        }
-
-        .carousel-arrow:hover {
-            background: #0f4b83;
-            box-shadow: 0 10px 28px rgba(15, 75, 131, 0.55), 0 2px 8px rgba(0, 0, 0, 0.18);
-            transform: translateY(-50%) scale(1.08);
-        }
-
-        /* Title track with 3 visible titles */
-        .carousel-title-track {
-            flex: 1;
-            overflow: visible;
-            position: relative;
-            margin: 0 16px;
-            /* Fade mask: transparent at edges, opaque in center */
-            -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.3) 15%, black 30%, black 70%, rgba(0, 0, 0, 0.3) 85%, transparent 100%);
-            mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.3) 15%, black 30%, black 70%, rgba(0, 0, 0, 0.3) 85%, transparent 100%);
-        }
-
-        .carousel-title-slider {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: transform;
+            flex-direction: column;
+            gap: 0;
+            background: var(--color-primary);
+            color: var(--color-white);
         }
 
-        .carousel-title-item {
-            flex: 0 0 33.333%;
-            text-align: center;
-            font-size: 30px;
-            font-weight: 700;
-            color: var(--color-primary, #003764);
-            line-height: 1.3;
-            padding: 12px 20px;
-            white-space: nowrap;
-            overflow: visible;
-            text-overflow: clip;
-            cursor: pointer;
-            transition: opacity 0.3s ease;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        .carousel-title-item.side {
-            opacity: 0.35;
-            font-size: 24px;
-            font-weight: 500;
-        }
-
-        .carousel-title-item.center {
-            opacity: 1;
-            font-size: 40px;
-            white-space: nowrap;
-            overflow: visible;
-            text-overflow: clip;
-        }
-
-        .carousel-indicators {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 40px;
-        }
-
-        .carousel-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #d6e3f0;
+        .carousel-nav-button {
+            width: 100%;
             border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid transparent;
+            border-radius: 0;
+            background: transparent;
+            color: var(--color-white);
+            padding: 24px 30px;
+            text-align: left;
             cursor: pointer;
             transition: all 0.3s ease;
-            padding: 0;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            opacity: 0.7;
         }
 
-        .carousel-dot.active {
-            background: #0f4b83;
-            transform: scale(1.3);
+        .carousel-nav-button:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .carousel-nav-button.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-white);
+            border-left-color: var(--color-accent-orange);
+        }
+
+        .carousel-nav-label {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .carousel-content {
+            flex: 1;
+            min-width: 0;
+            padding: 60px;
+        }
+
+        .carousel-content-title {
+            font-size: 34px;
+            line-height: 1.3;
+            font-weight: 700;
+            color: #0d3560;
+            margin-bottom: 28px;
+            text-align: center;
         }
 
         .carousel-panels-wrapper {
@@ -413,7 +370,7 @@
         .panel-desc-wrapper {
             text-align: left;
             width: 100%;
-            padding-top: 48px;
+            padding-top: 0;
         }
 
         .panel-desc-text {
@@ -422,7 +379,7 @@
             color: #555;
             text-align: justify;
             text-indent: 2em;
-            margin-bottom: 48px;
+            margin-bottom: 16px;
         }
 
         @keyframes carouselFadeIn {
@@ -437,24 +394,46 @@
             }
         }
 
+        @media (max-width: 1200px) {
+            .carousel-nav {
+                width: 280px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .solutions-carousel-layout {
+                flex-direction: column;
+            }
+
+            .carousel-nav {
+                width: 100%;
+            }
+
+            .carousel-content {
+                padding: 44px 32px;
+            }
+        }
+
         @media (max-width: 768px) {
-            .carousel-title-item {
-                font-size: 22px;
-                padding: 8px 10px;
+            .solutions-carousel-section {
+                padding: 72px 0 64px;
             }
 
-            .carousel-title-item.side {
-                font-size: 16px;
+            .carousel-nav-button {
+                padding: 18px 20px;
             }
 
-            .carousel-arrow {
-                width: 40px;
-                height: 40px;
-                font-size: 18px;
+            .carousel-nav-label {
+                font-size: 15px;
             }
 
-            .carousel-title-bar {
-                margin-bottom: 32px;
+            .carousel-content-title {
+                font-size: 26px;
+                margin-bottom: 22px;
+            }
+
+            .carousel-content {
+                padding: 32px 22px;
             }
         }
 
@@ -799,20 +778,13 @@
         .related-products-panel {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(180deg, #ffffff 0%, #f6f9fd 100%);
-            border: 1px solid #d3e2f1;
-            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+            background: #ffffff;
+            border: 1px solid #d9e5f2;
+            box-shadow: none;
         }
 
         .related-products-panel::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 4% 8%, rgba(88, 160, 222, 0.12), transparent 30%),
-                radial-gradient(circle at 96% 12%, rgba(243, 138, 47, 0.12), transparent 28%);
-            opacity: 1;
-            pointer-events: none;
+            content: none;
         }
 
         .related-products-head {
@@ -848,6 +820,7 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 24px;
+            align-items: stretch;
         }
 
         .product-item {
@@ -855,83 +828,65 @@
             display: flex;
             align-items: stretch;
             gap: 0;
-            min-height: 260px;
+            min-height: 308px;
+            height: 100%;
             background: #ffffff;
             border: 1px solid #d8e4f0;
-            border-radius: 16px;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            box-shadow: none;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
             text-decoration: none;
             color: inherit;
         }
 
         .product-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 5px;
-            background: linear-gradient(180deg, #0f4b83 0%, #62a6de 100%);
-            opacity: 0.95;
-            pointer-events: none;
+            content: none;
         }
 
         .product-item:hover {
-            border-color: #bfd5ea;
-            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.11);
-            transform: translateY(-5px);
+            border-color: #b8cde3;
+            background: #fbfdff;
         }
 
         .product-img-box {
             position: relative;
-            flex: 0 0 238px;
-            background: linear-gradient(180deg, #eff5fb 0%, #e2ecf7 100%);
+            flex: 0 0 248px;
+            width: 248px;
+            background: #f6f9fc;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 18px;
             align-self: stretch;
-            min-height: 260px;
+            min-height: 100%;
             border-right: 1px solid #d8e4f0;
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         .product-img-box::before {
-            content: '';
-            position: absolute;
-            inset: 12px;
-            border-radius: 10px;
-            border: 1px dashed rgba(15, 75, 131, 0.24);
-            pointer-events: none;
+            content: none;
         }
 
         .product-img-box::after {
-            content: '';
-            position: absolute;
-            right: -42px;
-            bottom: -42px;
-            width: 122px;
-            height: 122px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(243, 138, 47, 0.22) 0%, rgba(243, 138, 47, 0) 70%);
+            content: none;
         }
 
         .product-img-box img {
             position: relative;
             z-index: 1;
             width: 100%;
-            height: 100%;
-            max-width: none;
-            max-height: none;
+            height: 188px;
+            max-width: 100%;
+            max-height: 188px;
             object-fit: contain;
-            filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.2));
-            transition: transform 0.35s ease;
+            filter: none;
+            transition: opacity 0.2s ease;
         }
 
         .product-item:hover .product-img-box img {
-            transform: scale(1.06);
+            opacity: 0.96;
         }
 
         .product-info {
@@ -940,35 +895,24 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            gap: 16px;
-            padding: 28px 30px 26px;
+            gap: 14px;
+            padding: 24px 26px 22px;
             flex: 1;
+            min-width: 0;
+            height: 100%;
+            box-sizing: border-box;
         }
 
-        .product-meta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #5f7388;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            margin-bottom: 12px;
-        }
-
-        .product-meta::before {
-            content: '';
-            width: 22px;
-            height: 2px;
-            background: linear-gradient(90deg, #1c7dc4 0%, rgba(28, 125, 196, 0.2) 100%);
+        .product-body {
+            min-height: 0;
         }
 
         .product-info h4 {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 700;
-            color: #0f4b83;
+            color: #17324d;
             margin-bottom: 0;
-            line-height: 1.35;
+            line-height: 1.5;
         }
 
         .product-list {
@@ -976,64 +920,59 @@
             padding: 0;
             margin: 0;
             display: grid;
-            gap: 8px;
+            gap: 6px;
         }
 
         .product-list li {
             position: relative;
-            padding: 10px 12px 10px 34px;
+            padding: 0 0 0 16px;
             font-size: 14px;
-            color: #405263;
-            line-height: 1.65;
+            color: #526579;
+            line-height: 1.7;
             margin-bottom: 0;
-            border-radius: 10px;
-            background: #f7fafe;
-            border: 1px solid #e1eaf4;
+            border-radius: 0;
+            background: transparent;
+            border: none;
         }
 
         .product-list li::before {
             content: '';
             position: absolute;
-            left: 14px;
-            top: 50%;
-            width: 9px;
-            height: 9px;
+            left: 0;
+            top: 10px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            transform: translateY(-50%);
-            background: #f38a2f;
-            box-shadow: 0 0 0 3px rgba(243, 138, 47, 0.15);
+            transform: none;
+            background: #90a9c2;
+            box-shadow: none;
         }
 
         .product-footer {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end;
             gap: 16px;
-            padding-top: 2px;
-        }
-
-        .product-footer-note {
-            font-size: 13px;
-            color: #617486;
-            line-height: 1.6;
+            padding-top: 4px;
+            border-top: none;
         }
 
         .product-cta {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            color: #0f4b83;
+            gap: 6px;
+            color: #17324d;
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 600;
             white-space: nowrap;
-            background: rgba(15, 75, 131, 0.08);
-            padding: 8px 14px;
-            border-radius: 999px;
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
         }
 
         .product-cta::after {
             content: '›';
-            font-size: 20px;
+            font-size: 18px;
             transition: transform 0.3s ease;
         }
 
@@ -1232,7 +1171,7 @@
         .solution-sub-grid {
             width: 100%;
             max-width: none;
-            margin: 180px 0 0;
+            margin: 56px 0 0;
             display: flex;
             flex-direction: column;
             gap: 180px;
@@ -1243,8 +1182,8 @@
             position: relative;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            align-items: center;
-            min-height: 820px;
+            align-items: start;
+            min-height: 680px;
             border-radius: 14px;
             overflow: visible;
             background: transparent;
@@ -1289,7 +1228,7 @@
             width: 100%;
             aspect-ratio: 4 / 3;
             height: auto;
-            margin: 60px 0;
+            margin: 36px 0;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
@@ -1302,14 +1241,24 @@
             transition: transform 0.55s ease;
         }
 
+        .sub-card-img--crop-watermark img {
+            transform: scale(1.18);
+            transform-origin: center center;
+            object-position: 46% 42%;
+        }
+
         .solution-sub-card:hover .sub-card-img img {
             transform: scale(1.06);
+        }
+
+        .solution-sub-card:hover .sub-card-img--crop-watermark img {
+            transform: scale(1.22);
         }
 
         .sub-card-content {
             position: relative;
             z-index: 2;
-            padding: 98px 70px 98px 112px;
+            padding: 64px 56px 64px 88px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -1322,12 +1271,12 @@
         .solution-sub-card:nth-child(even) .sub-card-img {
             order: 2;
             justify-self: end;
-            margin: 80px 0;
+            margin: 36px 0;
         }
 
         .solution-sub-card:nth-child(even) .sub-card-content {
             order: 1;
-            padding: 98px 112px 98px 70px;
+            padding: 64px 88px 64px 56px;
         }
 
         .sub-card-content h4 {
@@ -1659,6 +1608,11 @@
                 border-bottom: 1px solid #d8e4f0;
             }
 
+            .product-img-box img {
+                height: 168px;
+                max-height: 168px;
+            }
+
             .unified-panel {
                 padding: 40px 30px;
             }
@@ -1772,39 +1726,25 @@
         <!-- Solutions Carousel -->
         <section class="solutions-carousel-section" id="solutions-carousel">
             <div class="vs-container">
-                <!-- Title Bar with Arrows -->
-                <div class="carousel-title-bar">
-                    <button class="carousel-arrow" id="carousel-prev" onclick="switchCarousel(-1)" title="上一个">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6" />
-                        </svg>
-                    </button>
-                    <div class="carousel-title-track">
-                        <div class="carousel-title-slider" id="carousel-slider">
-                            <div class="carousel-title-item side" onclick="goToCarousel(3)">变压器油中氢浓度检测解决方案</div>
-                            <div class="carousel-title-item center" onclick="goToCarousel(0)">氢冷发电机氢气纯度分析与泄漏监测解决方案</div>
-                            <div class="carousel-title-item side" onclick="goToCarousel(1)">发电机组定冷水氢检测解决方案</div>
-                        </div>
+                <div class="solutions-carousel-layout">
+                    <div class="carousel-nav" role="tablist" aria-label="电力安全方案切换">
+                        <button class="carousel-nav-button active" type="button" onclick="goToCarousel(0)" aria-selected="true">
+                            <span class="carousel-nav-label">氢冷发电机氢气纯度分析与泄漏监测解决方案</span>
+                        </button>
+                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(1)" aria-selected="false">
+                            <span class="carousel-nav-label">发电机组定冷水氢检测解决方案</span>
+                        </button>
+                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(2)" aria-selected="false">
+                            <span class="carousel-nav-label">核电站水中溶解氢监测解决方案</span>
+                        </button>
+                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(3)" aria-selected="false">
+                            <span class="carousel-nav-label">变压器油中氢浓度检测解决方案</span>
+                        </button>
                     </div>
-                    <button class="carousel-arrow" id="carousel-next" onclick="switchCarousel(1)" title="下一个">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6" />
-                        </svg>
-                    </button>
-                </div>
 
-                <!-- Indicator Dots -->
-                <div class="carousel-indicators" id="carousel-dots">
-                    <button class="carousel-dot active" title="方案1" onclick="goToCarousel(0)"></button>
-                    <button class="carousel-dot" title="方案2" onclick="goToCarousel(1)"></button>
-                    <button class="carousel-dot" title="方案3" onclick="goToCarousel(2)"></button>
-                    <button class="carousel-dot" title="方案4" onclick="goToCarousel(3)"></button>
-                </div>
-
-                <!-- Panels Wrapper -->
-                <div class="carousel-panels-wrapper">
+                    <div class="carousel-content">
+                        <h2 class="carousel-content-title" id="solution-current-title">氢冷发电机氢气纯度分析与泄漏监测解决方案</h2>
+                        <div class="carousel-panels-wrapper">
                     <div class="solution-panel active">
                         <div class="panel-desc-wrapper">
                             <p class="panel-desc-text">
@@ -1859,7 +1799,7 @@
                                 </div>
                             </div>
                             <div class="solution-sub-card">
-                                <div class="sub-card-img">
+                                <div class="sub-card-img sub-card-img--crop-watermark">
                                     <img src="/cdn_assets/images/solutions/506b8b7a2d0f.jpg" alt="单位时间泄漏量计算">
                                 </div>
                                 <div class="sub-card-content">
@@ -1952,7 +1892,9 @@
                             </div>
                         </div>
                     </div>
-                </div> <!-- /.carousel-panels-wrapper -->
+                        </div> <!-- /.carousel-panels-wrapper -->
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -2044,7 +1986,6 @@
         let solutionRelatedProductsMap = {};
         let currentCarousel = 0;
         const total = carouselTitles.length;
-        let isAnimating = false;
 
         function escapeHtml(str) {
             return String(str || '')
@@ -2090,7 +2031,7 @@
             if (!grid) return;
             const scenarioTitle = carouselTitles[getWrappedIndex(index)] || carouselTitles[0];
             if (subtitle) {
-                subtitle.textContent = `围绕「${scenarioTitle}」推荐可直接组合部署的核心检测、报警与在线监测产品，兼顾现场适配性与整体方案一致性。`;
+                subtitle.textContent = `围绕「${scenarioTitle}」推荐可直接配套的核心产品。`;
             }
             const key = getSolutionKeyByIndex(index);
             const list = (solutionRelatedProductsMap[key] && solutionRelatedProductsMap[key].length)
@@ -2105,8 +2046,8 @@
             grid.innerHTML = list.slice(0, 4).map((item) => {
                 const bullets = extractSummaryBullets(item.summary || item.desc || item.description || '');
                 const bulletHtml = bullets.length
-                    ? bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')
-                    : '<li>高可靠产品方案，支持复杂工况监测部署。</li>';
+                    ? bullets.slice(0, 1).map(b => `<li>${escapeHtml(b)}</li>`).join('')
+                    : '<li>适配当前方案部署。</li>';
                 const title = item.title || item.name || item.id || '相关产品';
                 const link = item.link || '#';
                 const image = item.image || '/cdn_assets/images/common/f1dcc87cdcca.png';
@@ -2117,13 +2058,11 @@
                         </div>
                         <div class="product-info">
                             <div class="product-body">
-                                <div class="product-meta">方案适配产品</div>
                                 <h4>${escapeHtml(title)}</h4>
                             </div>
                             <ul class="product-list">${bulletHtml}</ul>
                             <div class="product-footer">
-                                <span class="product-footer-note">适配当前方案场景，可用于巡检、固定监测或系统联动部署。</span>
-                                <span class="product-cta">查看产品详情</span>
+                                <span class="product-cta">查看详情</span>
                             </div>
                         </div>
                     </a>
@@ -2148,74 +2087,34 @@
             renderSolutionRelatedProducts(currentCarousel);
         }
 
-        function updateTitleTrack() {
-            const slider = document.getElementById('carousel-slider');
-            const items = slider.querySelectorAll('.carousel-title-item');
-            const prevIdx = getWrappedIndex(currentCarousel - 1);
-            const nextIdx = getWrappedIndex(currentCarousel + 1);
-
-            items[0].textContent = carouselTitles[prevIdx];
-            items[0].onclick = function () { goToCarousel(prevIdx, -1); };
-            items[0].className = 'carousel-title-item side';
-
-            items[1].textContent = carouselTitles[currentCarousel];
-            items[1].onclick = null;
-            items[1].className = 'carousel-title-item center';
-
-            items[2].textContent = carouselTitles[nextIdx];
-            items[2].onclick = function () { goToCarousel(nextIdx, 1); };
-            items[2].className = 'carousel-title-item side';
+        function updateCarouselNavigation() {
+            const panels = document.querySelectorAll('.carousel-panels-wrapper > .solution-panel');
+            const buttons = document.querySelectorAll('.carousel-nav-button');
+            const title = document.getElementById('solution-current-title');
+            panels.forEach((panel, idx) => {
+                panel.classList.toggle('active', idx === currentCarousel);
+            });
+            buttons.forEach((button, idx) => {
+                const isActive = idx === currentCarousel;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+            if (title) {
+                title.textContent = carouselTitles[currentCarousel] || '';
+            }
         }
 
-        function goToCarousel(index, direction) {
-            if (isAnimating) return;
-            if (index === currentCarousel) return;
-
+        function goToCarousel(index) {
             const panels = document.querySelectorAll('.carousel-panels-wrapper > .solution-panel');
-            const dots = document.querySelectorAll('.carousel-dot');
-            if (index < 0 || index >= panels.length) return;
+            if (index < 0 || index >= panels.length || index === currentCarousel) return;
 
-            isAnimating = true;
-            if (direction === undefined) {
-                let diff = index - currentCarousel;
-                if (Math.abs(diff) > total / 2) diff = diff > 0 ? diff - total : diff + total;
-                direction = diff > 0 ? 1 : -1;
-            }
-
-            const slider = document.getElementById('carousel-slider');
-            const itemWidth = slider.querySelector('.carousel-title-item').offsetWidth;
-            const translatePx = -direction * itemWidth;
-
-            slider.style.transition = 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
-            slider.style.transform = `translateX(${translatePx}px)`;
-
-            panels[currentCarousel].classList.remove('active');
-            dots[currentCarousel].classList.remove('active');
             currentCarousel = index;
-            panels[currentCarousel].classList.add('active');
-            dots[currentCarousel].classList.add('active');
+            updateCarouselNavigation();
             renderSolutionAdvantages(currentCarousel);
             renderSolutionRelatedProducts(currentCarousel);
-
-            setTimeout(() => {
-                slider.style.transition = 'none';
-                slider.style.transform = 'translateX(0)';
-                updateTitleTrack();
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        slider.style.transition = 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
-                        isAnimating = false;
-                    });
-                });
-            }, 460);
         }
 
-        function switchCarousel(direction) {
-            let next = getWrappedIndex(currentCarousel + direction);
-            goToCarousel(next, direction);
-        }
-
-        updateTitleTrack();
+        updateCarouselNavigation();
         renderSolutionAdvantages(currentCarousel);
         renderSolutionRelatedProducts(currentCarousel);
         loadHydrogenSolutionConfig();

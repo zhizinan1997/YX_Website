@@ -8,12 +8,13 @@
     <link rel="stylesheet" href="../../assets/css/yx-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/search.css">
     <style>
         .vs-research-hero {
-            background-image: linear-gradient(rgba(0, 55, 100, 0.7), rgba(0, 55, 100, 0.7)), url('/cdn_assets/images/common/80833eb56e9a.jpg');
+            background-image: linear-gradient(rgba(11, 37, 78, 0.72), rgba(11, 37, 78, 0.68)), url('/cdn_assets/images/common/80833eb56e9a.jpg');
             background-size: cover;
             background-position: center;
-            height: 480px;
+            min-height: 520px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -22,94 +23,642 @@
             position: relative;
         }
 
-        .vs-service-card {
-            background: white;
-            border-radius: 8px;
+        .vs-research-hero__content {
+            max-width: 840px;
+            padding: 120px 0 108px;
+        }
+
+        .vs-research-hero__content h1 {
+            font-size: 58px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -0.03em;
+        }
+
+        .vs-research-hero__content p {
+            font-size: 22px;
+            line-height: 1.8;
+            opacity: 0.92;
+        }
+
+        .research-intro-banner {
+            padding: 40px 0 12px;
+            background: #ffffff;
+        }
+
+        .vs-services-banner {
+            margin: 0 auto;
+            border-radius: 24px;
             overflow: hidden;
-            box-shadow: var(--shadow-card);
-            transition: all 0.3s ease;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+            box-shadow: 0 22px 50px rgba(10, 77, 123, 0.16);
+            background: #f4f8fc;
         }
 
-        .vs-service-card:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--shadow-hover);
+        .vs-services-banner img {
+            display: block;
+            width: 100%;
+            height: auto;
         }
 
-        .vs-service-img {
-            height: 240px;
+        .research-section {
+            padding: 92px 0;
+        }
+
+        .research-heading {
+            text-align: center;
+            margin-bottom: 54px;
+        }
+
+        .research-heading h2 {
+            display: inline-block;
+            font-size: 50px;
+            line-height: 1.15;
+            font-weight: 700;
+            color: #18243f;
+            margin: 0;
+            position: relative;
+        }
+
+        .research-heading h2::after {
+            content: '';
+            display: block;
+            width: 160px;
+            height: 4px;
+            background: #365ca8;
+            margin: 16px auto 0;
+            border-radius: 999px;
+        }
+
+        .research-heading p {
+            max-width: 1080px;
+            margin: 22px auto 0;
+            font-size: 17px;
+            line-height: 1.9;
+            color: #30405f;
+        }
+
+        .research-heading--compact h2 {
+            font-size: 44px;
+        }
+
+        .research-heading--light h2,
+        .research-heading--light p {
+            color: #ffffff;
+        }
+
+        .research-heading--light h2::after {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .research-section--services {
+            padding-top: 72px;
+        }
+
+        .research-services-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 26px;
+        }
+
+        .research-service-card {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            background: #ffffff;
+            box-shadow: 0 20px 45px rgba(16, 36, 82, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .research-service-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 26px 60px rgba(16, 36, 82, 0.14);
+        }
+
+        .research-service-card__media {
+            position: relative;
+            min-height: 585px;
             overflow: hidden;
         }
 
-        .vs-service-img img {
+        .research-service-card__media::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(32, 50, 95, 0.26) 0%, rgba(32, 50, 95, 0.3) 45%, rgba(32, 50, 95, 0.6) 100%);
+            z-index: 1;
+        }
+
+        .research-service-card__media img {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s ease;
+            transition: transform 0.45s ease;
+            z-index: 0;
         }
 
-        .vs-service-card:hover .vs-service-img img {
-            transform: scale(1.05);
+        .research-service-card:hover .research-service-card__media img {
+            transform: scale(1.04);
         }
 
-        .vs-service-content {
-            padding: 30px;
-            flex-grow: 1;
+        .research-service-card__overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+            padding: 28px 28px 24px;
         }
 
-        .vs-service-title {
-            font-size: 24px;
+        .research-service-card__overlay h3 {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1.35;
             font-weight: 700;
-            margin-bottom: 15px;
-            color: var(--color-text-heading);
+            color: #ffffff;
         }
 
-        .vs-service-desc {
-            color: #666;
-            margin-bottom: 20px;
-            flex-grow: 1;
-            line-height: 1.6;
-        }
-
-        .vs-service-link {
-            color: var(--color-primary);
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .vs-service-link i {
-            margin-left: 8px;
-            transition: margin 0.3s;
-        }
-
-        .vs-service-link:hover i {
-            margin-left: 12px;
-        }
-
-        /* Flow Section */
-        .vs-flow-step {
+        .research-service-card__overlay p {
+            margin: 0;
             text-align: center;
-            position: relative;
-            padding: 20px;
+            color: #2d5ab0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-shadow: 0 0 16px rgba(255, 255, 255, 0.22);
         }
 
-        .vs-flow-icon {
-            width: 80px;
-            height: 80px;
-            background: #f0f7ff;
+        .research-service-card__body {
+            background: #f7f8fd;
+            padding: 28px 30px 36px;
+        }
+
+        .research-service-card__body p {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.9;
+            color: #243457;
+            font-weight: 500;
+        }
+
+        .research-section--cases {
+            background: linear-gradient(180deg, #f3f6fd 0%, #eef2fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .research-section--cases::before,
+        .research-section--quality::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(120deg, rgba(60, 87, 145, 0.05) 0 8%, transparent 8% 100%),
+                radial-gradient(circle at 16% 22%, rgba(59, 92, 170, 0.08) 0 18px, transparent 18px),
+                radial-gradient(circle at 82% 18%, rgba(59, 92, 170, 0.08) 0 22px, transparent 22px),
+                radial-gradient(circle at 20% 82%, rgba(59, 92, 170, 0.08) 0 22px, transparent 22px),
+                radial-gradient(circle at 74% 82%, rgba(59, 92, 170, 0.08) 0 22px, transparent 22px);
+            pointer-events: none;
+        }
+
+        .research-section--cases .vs-container,
+        .research-section--quality .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .research-subheading {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .research-subheading h3 {
+            display: inline-block;
+            margin: 0;
+            font-size: 34px;
+            font-weight: 700;
+            color: #243764;
+            position: relative;
+        }
+
+        .research-subheading h3::after {
+            content: '';
+            display: block;
+            width: 230px;
+            height: 3px;
+            margin: 14px auto 0;
+            background: #3c5ea5;
+            border-radius: 999px;
+        }
+
+        .research-subheading p {
+            margin: 24px auto 0;
+            max-width: 1180px;
+            font-size: 17px;
+            line-height: 1.9;
+            color: #2e4065;
+        }
+
+        .research-case-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 36px;
+        }
+
+        .research-case-card {
+            text-align: center;
+        }
+
+        .research-case-card h4 {
+            margin: 0 0 18px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2f55;
+        }
+
+        .research-case-card__image {
+            width: min(100%, 340px);
+            aspect-ratio: 1 / 1;
+            margin: 0 auto 28px;
+            box-shadow: 0 18px 36px rgba(24, 36, 63, 0.18);
+            overflow: hidden;
+        }
+
+        .research-case-card__image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .research-case-card p {
+            margin: 0 auto;
+            max-width: 340px;
+            text-align: left;
+            font-size: 17px;
+            line-height: 1.9;
+            color: #1e2431;
+            font-weight: 500;
+        }
+
+        .research-section--response {
+            background:
+                linear-gradient(rgba(29, 43, 83, 0.9), rgba(29, 43, 83, 0.9)),
+                url('/cdn_assets/images/common/80833eb56e9a.jpg') center/cover no-repeat;
+        }
+
+        .response-showcase {
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 24px 58px rgba(8, 14, 32, 0.28);
+        }
+
+        .response-showcase__media {
+            position: relative;
+            min-height: 470px;
+        }
+
+        .response-showcase__media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .response-showcase__media::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(18, 28, 52, 0.08) 0%, rgba(18, 28, 52, 0.02) 44%, rgba(255, 255, 255, 0.1) 100%);
+        }
+
+        .response-showcase__points {
+            position: absolute;
+            top: 50%;
+            right: 56px;
+            transform: translateY(-50%);
+            display: grid;
+            gap: 24px;
+            z-index: 1;
+        }
+
+        .response-showcase__point {
+            min-width: 270px;
+            padding: 18px 24px 18px 28px;
+            color: #20345f;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(244, 248, 255, 0.72));
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 18px 32px rgba(18, 27, 55, 0.16);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .response-showcase__point::before {
+            content: '';
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 6px;
+            background: linear-gradient(180deg, #6ea3ff 0%, #315aa6 100%);
+        }
+
+        .response-showcase__point::after {
+            content: '';
+            position: absolute;
+            top: -32px;
+            right: -28px;
+            width: 110px;
+            height: 110px;
             border-radius: 50%;
+            background: radial-gradient(circle, rgba(119, 162, 255, 0.24) 0%, rgba(119, 162, 255, 0) 72%);
+            pointer-events: none;
+        }
+
+        .response-showcase__point:nth-child(2) {
+            margin-left: 22px;
+        }
+
+        .response-showcase__point:nth-child(3) {
+            margin-left: 44px;
+        }
+
+        .response-showcase__point strong {
+            display: block;
+            font-size: 25px;
+            font-weight: 700;
+            line-height: 1.25;
+            letter-spacing: 0.01em;
+        }
+
+        .response-showcase__point small {
+            display: block;
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(32, 52, 95, 0.58);
+        }
+
+        .research-section--quality {
+            background: linear-gradient(180deg, #f5f7fd 0%, #eef2fa 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quality-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 2.4fr) minmax(300px, 0.7fr);
+            gap: 36px;
+            align-items: start;
+        }
+
+        .quality-layout img {
+            width: 100%;
+            display: block;
+            box-shadow: 0 18px 38px rgba(21, 31, 61, 0.16);
+        }
+
+        .quality-main {
+            overflow: hidden;
+        }
+
+        .quality-main img {
+            height: 490px;
+            object-fit: cover;
+            object-position: left center;
+            transform: scale(1.18);
+            transform-origin: left center;
+        }
+
+        .quality-certificate img {
+            height: 490px;
+            object-fit: contain;
+            background: #ffffff;
+            padding: 14px;
+        }
+
+        .research-section--trust {
+            background:
+                linear-gradient(rgba(23, 36, 73, 0.9), rgba(23, 36, 73, 0.9)),
+                url('/cdn_assets/images/common/80833eb56e9a.jpg') center/cover no-repeat;
+        }
+
+        .research-trust-grid {
+            max-width: 1080px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 26px;
+        }
+
+        .research-trust-card {
+            background: #ffffff;
+            border-radius: 22px;
+            min-height: 128px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
-            color: var(--color-primary);
-            font-size: 32px;
+            padding: 20px 24px;
+            box-shadow: 0 18px 30px rgba(8, 14, 32, 0.16);
+        }
+
+        .research-trust-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        @media (max-width: 1200px) {
+            .research-services-grid,
+            .research-case-grid,
+            .research-trust-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .response-showcase__points {
+                right: 30px;
+            }
+
+            .response-showcase__point {
+                min-width: 220px;
+            }
+
+            .response-showcase__point strong {
+                font-size: 23px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .vs-research-hero {
+                min-height: 460px;
+            }
+
+            .vs-research-hero__content {
+                padding: 110px 0 92px;
+            }
+
+            .vs-research-hero__content h1 {
+                font-size: 46px;
+            }
+
+            .vs-research-hero__content p {
+                font-size: 18px;
+            }
+
+            .research-heading h2 {
+                font-size: 38px;
+            }
+
+            .research-subheading h3 {
+                font-size: 30px;
+            }
+
+            .research-service-card__media {
+                min-height: 460px;
+            }
+
+            .quality-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .quality-main img,
+            .quality-certificate img {
+                height: auto;
+            }
+
+            .response-showcase {
+                display: grid;
+                gap: 0;
+            }
+
+            .response-showcase__points {
+                position: static;
+                transform: none;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0;
+            }
+
+            .response-showcase__point,
+            .response-showcase__point:nth-child(2),
+            .response-showcase__point:nth-child(3) {
+                min-width: 0;
+                margin-left: 0;
+                border-radius: 0;
+                border: none;
+                border-top: 1px solid rgba(36, 55, 100, 0.12);
+                background: rgba(255, 255, 255, 0.88);
+                box-shadow: none;
+            }
+
+            .response-showcase__point::after {
+                display: none;
+            }
+
+            .response-showcase__point strong {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-services-banner {
+                border-radius: 14px;
+            }
+
+            .research-intro-banner {
+                padding: 28px 0 0;
+            }
+
+            .research-section {
+                padding: 72px 0;
+            }
+
+            .research-heading {
+                margin-bottom: 38px;
+            }
+
+            .research-heading h2 {
+                font-size: 32px;
+            }
+
+            .research-heading h2::after {
+                width: 120px;
+            }
+
+            .research-heading p,
+            .research-subheading p,
+            .research-case-card p,
+            .research-service-card__body p {
+                font-size: 16px;
+            }
+
+            .research-services-grid,
+            .research-case-grid,
+            .research-trust-grid,
+            .response-showcase__points {
+                grid-template-columns: 1fr;
+            }
+
+            .research-service-card__media {
+                min-height: 360px;
+            }
+
+            .research-service-card__overlay {
+                padding: 22px;
+            }
+
+            .research-service-card__overlay h3 {
+                font-size: 24px;
+            }
+
+            .research-service-card__overlay p {
+                font-size: 22px;
+            }
+
+            .research-subheading h3 {
+                font-size: 26px;
+            }
+
+            .research-subheading h3::after {
+                width: 160px;
+            }
+
+            .research-case-card h4 {
+                font-size: 24px;
+            }
+
+            .response-showcase__media {
+                min-height: 300px;
+            }
+
+            .response-showcase__point,
+            .response-showcase__point:nth-child(2),
+            .response-showcase__point:nth-child(3) {
+                min-width: 0;
+                margin-left: 0;
+            }
+
+            .response-showcase__point {
+                padding: 16px 18px 16px 22px;
+                border-radius: 16px;
+            }
+
+            .response-showcase__point strong {
+                font-size: 22px;
+            }
+
+            .response-showcase__point small {
+                margin-top: 6px;
+                font-size: 11px;
+            }
+
+            .research-trust-card {
+                min-height: 110px;
+                border-radius: 18px;
+            }
         }
     </style>
 </head>
@@ -126,115 +675,185 @@
   <a href="/pages/contact/contact.html">联系我们</a>
 </div>
 </noscript>
-<script src="/assets/js/nav-loader.js"></script>
+<script src="/assets/js/nav-loader.js?v=20260401a"></script>
 
     <main>
-        <!-- Hero -->
         <section class="vs-research-hero">
             <div class="vs-container">
-                <h1 style="font-size: 56px; font-weight: 700; margin-bottom: 20px;">科研服务</h1>
-                <p style="font-size: 24px; opacity: 0.9;">从想法到产品，为您提供一站式传感技术工程解决方案</p>
+                <div class="vs-research-hero__content">
+                    <h1>科研服务</h1>
+                    <p>从想法到产品，为您提供一站式传感技术工程解决方案</p>
+                </div>
             </div>
         </section>
 
-        <!-- Main Services Grid -->
-        <section style="padding: 100px 0;">
+        <section class="research-intro-banner">
             <div class="vs-container">
-                <div class="vs-section-header" style="text-align: center; margin-bottom: 60px;">
-                    <span class="vs-section-tag">Our Services</span>
-                    <h2 class="vs-section-title">核心服务领域</h2>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px;">
-                    <!-- Micro-Nano -->
-                    <div class="vs-service-card">
-                        <div class="vs-service-img">
-                            <img src="/cdn_assets/images/common/19dcf7b13b11.jpg" alt="传感器微纳加工">
-                        </div>
-                        <div class="vs-service-content">
-                            <h3 class="vs-service-title">传感器微纳加工</h3>
-                            <p class="vs-service-desc">1片起订，灵活快速。提供光刻、刻蚀、镀膜等全流程或单步工艺代工，是您可信赖的“共享超净间”。</p>
-                            <a href="micro-nano.html" class="vs-service-link">了解更多 <i
-                                    class="fas fa-arrow-right"></i></a>
-                        </div>
-                    </div>
-
-                    <!-- Sensor Development -->
-                    <div class="vs-service-card">
-                        <div class="vs-service-img">
-                            <img src="/cdn_assets/images/common/15fd06dc7b59.jpg" alt="传感器开发">
-                        </div>
-                        <div class="vs-service-content">
-                            <h3 class="vs-service-title">传感器开发、测试与应用</h3>
-                            <p class="vs-service-desc">从概念到成品，我们全权负责。提供设计、制备、封装、测试到应用的全流程服务，让您专注于创新本身。</p>
-                            <a href="development.html" class="vs-service-link">了解更多 <i
-                                    class="fas fa-arrow-right"></i></a>
-                        </div>
-                    </div>
-
-                    <!-- Cooperation -->
-                    <div class="vs-service-card">
-                        <div class="vs-service-img">
-                            <img src="/cdn_assets/images/common/63917dcd7f5a.jpg" alt="产学研合作">
-                        </div>
-                        <div class="vs-service-content">
-                            <h3 class="vs-service-title">产学研深度合作</h3>
-                            <p class="vs-service-desc">共担研发，共创成果。我们寻求与顶尖课题组建立长期合作关系，助您发表论文、申请专利、转化成果。</p>
-                            <a href="cooperation.html" class="vs-service-link">了解更多 <i
-                                    class="fas fa-arrow-right"></i></a>
-                        </div>
-                    </div>
+                <div class="vs-services-banner">
+                    <img src="/cdn_assets/images/services/202508261410148591.jpg" alt="元芯传感科研服务核心方案展示">
                 </div>
             </div>
         </section>
 
-        <!-- Why Choose Us -->
-        <section style="background: #f8fafc; padding: 100px 0;">
+        <section class="research-section research-section--services">
             <div class="vs-container">
-                <div class="vs-section-header" style="text-align: center; margin-bottom: 60px;">
-                    <h2 class="vs-section-title">为何选择元芯？</h2>
-                    <p style="color: #666; max-width: 600px; margin: 0 auto;">我们深耕传感领域多年，致力于为科研工作者解决工程化难题。</p>
+                <div class="research-heading research-heading--compact">
+                    <h2>服务列表</h2>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px;">
-                    <div
-                        style="background: white; padding: 40px; border-radius: 12px; border-top: 4px solid var(--color-primary);">
-                        <h3 style="font-size: 20px; margin-bottom: 15px;">丰富的案例经验</h3>
-                        <p style="color: #666;">在传感器的原型打造与测试方案、传感器应用的硬件与软件开发方面有丰富的沉淀，覆盖生物、化学、仪器仪表等领域。</p>
+                <div class="research-services-grid">
+                    <a class="research-service-card" href="micro-nano.html">
+                        <div class="research-service-card__media">
+                            <img src="/cdn_assets/images/common/19dcf7b13b11.jpg" alt="传感器微纳加工服务">
+                            <div class="research-service-card__overlay">
+                                <h3>传感器微纳加工服务</h3>
+                                <p>【查看工艺列表】</p>
+                            </div>
+                        </div>
+                        <div class="research-service-card__body">
+                            <p>1片起订，灵活快速。提供光刻、刻蚀、镀膜等全流程或单步工艺代工，是您可信赖的“共享超净间”。</p>
+                        </div>
+                    </a>
+
+                    <a class="research-service-card" href="development.html">
+                        <div class="research-service-card__media">
+                            <img src="/cdn_assets/images/common/15fd06dc7b59.jpg" alt="定制化传感器开发、测试与应用">
+                            <div class="research-service-card__overlay">
+                                <h3>定制化传感器开发、测试与应用</h3>
+                                <p>【了解详情】</p>
+                            </div>
+                        </div>
+                        <div class="research-service-card__body">
+                            <p>从概念到成品，我们全权负责。提供设计、制备、封装、测试到应用的全流程服务，让您专注于创新本身。</p>
+                        </div>
+                    </a>
+
+                    <a class="research-service-card" href="cooperation.html">
+                        <div class="research-service-card__media">
+                            <img src="/cdn_assets/images/common/63917dcd7f5a.jpg" alt="产学研深度合作">
+                            <div class="research-service-card__overlay">
+                                <h3>产学研深度合作</h3>
+                                <p>【探索合作模式】</p>
+                            </div>
+                        </div>
+                        <div class="research-service-card__body">
+                            <p>共担研发，共创成果。我们寻求与顶尖课题组建立长期合作关系，助您发表论文、申请专利、转化成果。</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="research-section research-section--cases">
+            <div class="vs-container">
+                <div class="research-heading">
+                    <h2>为什么顶尖科研团队选择元芯？</h2>
+                </div>
+
+                <div class="research-subheading">
+                    <h3>丰富的案例经验</h3>
+                    <p>在传感器的原型打造与测试方案、传感器应用的硬件与软件开发方面有丰富的案例经验</p>
+                </div>
+
+                <div class="research-case-grid">
+                    <div class="research-case-card">
+                        <h4>生物传感器</h4>
+                        <div class="research-case-card__image">
+                            <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/672b21f0abbc.jpg" alt="生物传感器">
+                        </div>
+                        <p>拥有丰富的生物传感技术与应用经验，成功为体外诊断、食品安全、生命科学等领域的客户交付多种高灵敏度传感芯片与检测方案。</p>
                     </div>
-                    <div
-                        style="background: white; padding: 40px; border-radius: 12px; border-top: 4px solid var(--color-primary);">
-                        <h3 style="font-size: 20px; margin-bottom: 15px;">极致灵活响应</h3>
-                        <p style="color: #666;">支持非标定制，满足传感器开发与应用各阶段的需求。专人对接，全程保密，承诺24小时内技术响应。</p>
+
+                    <div class="research-case-card">
+                        <h4>化学传感器</h4>
+                        <div class="research-case-card__image">
+                            <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/a60c0356cb6f.png" alt="化学传感器">
+                        </div>
+                        <p>拥有丰富的离子、气体、湿度等化学传感器研发与制造经验，为新能源安全、工业过程控制等领域的客户提供高度定制化传感器与应用方案。</p>
                     </div>
-                    <div
-                        style="background: white; padding: 40px; border-radius: 12px; border-top: 4px solid var(--color-primary);">
-                        <h3 style="font-size: 20px; margin-bottom: 15px;">全流程质量控制</h3>
-                        <p style="color: #666;">严格遵循ISO9001标准，确保每一件产品都可追溯。我们拥有完备的测试表征设备，确保交付质量。</p>
+
+                    <div class="research-case-card">
+                        <h4>仪器仪表</h4>
+                        <div class="research-case-card__image">
+                            <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/031c3e1f01fb.jpg" alt="仪器仪表">
+                        </div>
+                        <p>拥有丰富的软硬件开发经验和ODM/OEM开发能力，为汽车电子、科研设备、环境监测等领域的客户提供了多套专用仪器仪表及自动化检测系统。</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Clients Logo Grid (Placeholder) -->
-        <section style="padding: 80px 0;">
-            <div class="vs-container" style="text-align: center;">
-                <p
-                    style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #999; margin-bottom: 40px;">
-                    Trusted by Top Research Institutes</p>
-                <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; opacity: 0.6;">
-                    <!-- Using temporary placeholders or list existing ones if paths known. Using generic grayscale effect -->
-                    <img src="/cdn_assets/images/common/f1dcc87cdcca.png" style="height: 40px; margin: auto; filter: grayscale(1);">
-                    <img src="/cdn_assets/images/common/f1dcc87cdcca.png" style="height: 40px; margin: auto; filter: grayscale(1);">
-                    <img src="/cdn_assets/images/common/f1dcc87cdcca.png" style="height: 40px; margin: auto; filter: grayscale(1);">
-                    <img src="/cdn_assets/images/common/f1dcc87cdcca.png" style="height: 40px; margin: auto; filter: grayscale(1);">
-                    <img src="/cdn_assets/images/common/f1dcc87cdcca.png" style="height: 40px; margin: auto; filter: grayscale(1);">
-                    <img src="/cdn_assets/images/common/f1dcc87cdcca.png" style="height: 40px; margin: auto; filter: grayscale(1);">
+        <section class="research-section research-section--response">
+            <div class="vs-container">
+                <div class="research-heading research-heading--light research-heading--compact">
+                    <h2>极致灵活响应</h2>
+                    <p>支持非标定制，满足传感器开发与应用各阶段的需求，承诺24小时内技术响应</p>
+                </div>
+
+                <div class="response-showcase">
+                    <div class="response-showcase__media">
+                        <img src="/cdn_assets/images/common/1b32f848b5e5.jpg" alt="灵活响应服务">
+                    </div>
+                    <div class="response-showcase__points">
+                        <div class="response-showcase__point">
+                            <strong>专人对接</strong>
+                            <small>Dedicated Support</small>
+                        </div>
+                        <div class="response-showcase__point">
+                            <strong>全程保密</strong>
+                            <small>Secure Workflow</small>
+                        </div>
+                        <div class="response-showcase__point">
+                            <strong>极速发货</strong>
+                            <small>Fast Delivery</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- CTA -->
+        <section class="research-section research-section--quality">
+            <div class="vs-container">
+                <div class="research-heading research-heading--compact">
+                    <h2>全流程质量控制</h2>
+                    <p>严格遵循 ISO 9001 标准，确保每一件产品都可追溯。</p>
+                </div>
+
+                <div class="quality-layout">
+                    <div class="quality-main">
+                        <img src="/cdn_assets/images/common/f4a5dc42cd04.jpg" alt="质量控制生产现场">
+                    </div>
+                    <div class="quality-certificate">
+                        <img src="/cdn_assets/images/about/3bb913ebacef.jpg" alt="ISO 9001 质量体系认证">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="research-section research-section--trust">
+            <div class="vs-container">
+                <div class="research-heading research-heading--light research-heading--compact">
+                    <h2>他们信赖我们</h2>
+                    <p>质量得认可，朋友圈不断扩大</p>
+                </div>
+
+                <div class="research-trust-grid">
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/8e1bf87b86cf.jpg" alt="北京大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/9ef238e4ab00.jpg" alt="清华大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/7dece97d2ce9.jpg" alt="中国科学院"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5de0723936b1.jpg" alt="北京交通大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ed3334045814.jpg" alt="香港理工大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ba98e4a15f59.jpg" alt="湖南大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/75cb12d06a91.jpg" alt="北京理工大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/1db55bcdba09.jpg" alt="南京大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/54173cc745f9.jpg" alt="上海交通大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5c6ec4a575c8.jpg" alt="华中科技大学"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/3cdc7ad4b5c7.jpg" alt="中国中车"></div>
+                    <div class="research-trust-card"><img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/f819428a3b94.jpg" alt="中船重工"></div>
+                </div>
+            </div>
+        </section>
+
         <section
             style="background: linear-gradient(135deg, #0a5a8f 0%, #0a4d7b 100%); color: white; padding: 80px 0; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.28);">
             <div class="vs-container">
@@ -249,6 +868,7 @@
 
     <!-- AI智能客服 -->
     <script src="../../assets/js/chatbot.js"></script>
+    <script src="../../assets/js/search.js"></script>
     
 <!-- FOOTER_START -->
   <div id="mc-footer-root"></div>
