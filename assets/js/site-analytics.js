@@ -9,6 +9,7 @@
 
   var ENDPOINT = '/api/analytics/collect';
   var CONSENT_KEY = 'yx_cookie_consent';
+  var CONSENT_REJECTED = 'rejected';
   var VISITOR_KEY = 'yx_analytics_vid';
   var SESSION_KEY = 'yx_analytics_sid';
   var SESSION_START_KEY = 'yx_analytics_session_start';
@@ -20,9 +21,11 @@
 
   var queue = [];
   var flushTimer = null;
+  var engagedTimer = null;
   var autoEventCount = 0;
   var didSendSessionEnd = false;
   var analyticsStarted = false;
+  var analyticsDisabled = false;
 
   function nowMs() {
     return Date.now();
@@ -39,6 +42,14 @@
   function setStorageItem(store, key, value) {
     try {
       store.setItem(key, value);
+    } catch (_) {
+      // ignore storage failures
+    }
+  }
+
+  function removeStorageItem(store, key) {
+    try {
+      store.removeItem(key);
     } catch (_) {
       // ignore storage failures
     }
@@ -61,8 +72,30 @@
     return String(readCookieValue(CONSENT_KEY) || '').trim().toLowerCase();
   }
 
+  function clearAnalyticsStorage() {
+    removeStorageItem(window.localStorage, VISITOR_KEY);
+    removeStorageItem(window.sessionStorage, SESSION_KEY);
+    removeStorageItem(window.sessionStorage, SESSION_START_KEY);
+    removeStorageItem(window.sessionStorage, SESSION_TOUCH_KEY);
+  }
+
+  function disableAnalytics() {
+    analyticsDisabled = true;
+    queue = [];
+    if (flushTimer) {
+      window.clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    if (engagedTimer) {
+      window.clearTimeout(engagedTimer);
+      engagedTimer = null;
+    }
+    didSendSessionEnd = true;
+    clearAnalyticsStorage();
+  }
+
   function startAnalytics() {
-    if (analyticsStarted) return;
+    if (analyticsStarted || analyticsDisabled) return;
     analyticsStarted = true;
 
     function makeId(prefix) {
@@ -99,6 +132,7 @@
     }
 
     function getVisitorId() {
+      if (analyticsDisabled) return '';
       var visitorId = getStorageItem(window.localStorage, VISITOR_KEY);
       if (!visitorId) {
         visitorId = makeId('v');
@@ -108,6 +142,12 @@
     }
 
     function ensureSession() {
+      if (analyticsDisabled) {
+        return {
+          sessionId: '',
+          sessionStart: nowMs()
+        };
+      }
       var now = nowMs();
       var sessionId = getStorageItem(window.sessionStorage, SESSION_KEY);
       var sessionStart = Number(getStorageItem(window.sessionStorage, SESSION_START_KEY) || '0');
@@ -129,7 +169,7 @@
     }
 
     function postEvents(events, useBeacon) {
-      if (!events || !events.length) return;
+      if (analyticsDisabled || !events || !events.length) return;
       var payload = JSON.stringify({ events: events.slice(0, MAX_BATCH_SIZE) });
 
       if (useBeacon && navigator.sendBeacon) {
@@ -152,7 +192,7 @@
     }
 
     function scheduleFlush() {
-      if (flushTimer) return;
+      if (analyticsDisabled || flushTimer) return;
       flushTimer = window.setTimeout(function () {
         flushTimer = null;
         flush(false);
@@ -160,7 +200,7 @@
     }
 
     function flush(useBeacon) {
-      if (!queue.length) return;
+      if (analyticsDisabled || !queue.length) return;
       var batch = queue.splice(0, MAX_BATCH_SIZE);
       postEvents(batch, !!useBeacon);
       if (queue.length) scheduleFlush();
@@ -179,6 +219,7 @@
     }
 
     function pushEvent(event) {
+      if (analyticsDisabled) return;
       var item = Object.assign({}, buildBaseEvent(), event || {});
       if (!item.event_type) item.event_type = 'event';
       if (item.event_name) item.event_name = String(item.event_name).trim().toLowerCase().slice(0, 80);
@@ -192,6 +233,7 @@
     }
 
     function pushAutoEvent(eventName, extra) {
+      if (analyticsDisabled) return;
       if (autoEventCount >= MAX_AUTO_EVENTS_PER_PAGE) return;
       autoEventCount += 1;
       var payload = Object.assign({ event_type: 'event', event_name: eventName }, extra || {});
@@ -215,6 +257,10 @@
       var ticking = false;
 
       function measure() {
+        if (analyticsDisabled) {
+          ticking = false;
+          return;
+        }
         ticking = false;
         var doc = document.documentElement;
         var body = document.body;
@@ -238,6 +284,7 @@
       }
 
       window.addEventListener('scroll', function () {
+        if (analyticsDisabled) return;
         if (ticking) return;
         ticking = true;
         window.requestAnimationFrame(measure);
@@ -245,7 +292,7 @@
     }
 
     function sendSessionEnd() {
-      if (didSendSessionEnd) return;
+      if (analyticsDisabled || didSendSessionEnd) return;
       didSendSessionEnd = true;
 
       var sess = ensureSession();
@@ -265,11 +312,13 @@
     pushEvent({ event_type: 'pageview', event_name: 'page_view' });
 
     // Basic engagement signal
-    window.setTimeout(function () {
+    engagedTimer = window.setTimeout(function () {
+      if (analyticsDisabled) return;
       pushAutoEvent('engaged_15s');
     }, 15000);
 
     document.addEventListener('click', function (evt) {
+      if (analyticsDisabled) return;
       var target = evt.target && evt.target.closest
         ? evt.target.closest('[data-analytics-event], [data-analytics-conversion], a, button')
         : null;
@@ -308,6 +357,7 @@
     }, true);
 
     document.addEventListener('submit', function (evt) {
+      if (analyticsDisabled) return;
       var form = evt.target;
       if (!form || String(form.tagName || '').toLowerCase() !== 'form') return;
       pushAutoEvent(detectFormEventName(form));
@@ -316,6 +366,7 @@
     handleScrollDepth();
 
     document.addEventListener('visibilitychange', function () {
+      if (analyticsDisabled) return;
       if (document.visibilityState === 'hidden') {
         flush(true);
       } else {
@@ -327,9 +378,9 @@
     window.addEventListener('beforeunload', sendSessionEnd, { capture: true });
   }
 
-  if (readConsentState() === 'accepted') {
+  window.addEventListener('yx-cookie-consent-rejected', disableAnalytics);
+
+  if (readConsentState() !== CONSENT_REJECTED) {
     startAnalytics();
-  } else {
-    window.addEventListener('yx-cookie-consent-accepted', startAnalytics, { once: true });
   }
 })();

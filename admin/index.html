@@ -2300,6 +2300,11 @@
             height: auto;
         }
 
+        .china-map-svg.is-outline {
+            display: block;
+            max-height: 640px;
+        }
+
         .china-map-svg [data-province] {
             stroke: #94a3b8;
             stroke-width: 0.6;
@@ -5263,6 +5268,44 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             linux: { label: 'Linux', icon: 'fab fa-linux' },
             unknown: { label: '未知', icon: 'fas fa-question-circle' }
         };
+        const CHINA_PROVINCE_SVG_URL = '/assets/vendor/svg-maps/china.svg';
+        const CHINA_PROVINCE_SVG_IDS = {
+            '安徽省': 'anhui',
+            '北京市': 'beijing',
+            '重庆市': 'chongqing',
+            '福建省': 'fujian',
+            '甘肃省': 'gansu',
+            '广东省': 'guangdong',
+            '广西壮族自治区': 'guangxi-zhuang',
+            '贵州省': 'guizhou',
+            '海南省': 'hainan',
+            '河北省': 'hebei',
+            '黑龙江省': 'heilongjiang',
+            '河南省': 'henan',
+            '香港特别行政区': 'hong-kong',
+            '湖北省': 'hubei',
+            '湖南省': 'hunan',
+            '江苏省': 'jiangsu',
+            '江西省': 'jiangxi',
+            '吉林省': 'jilin',
+            '辽宁省': 'liaoning',
+            '澳门特别行政区': 'macau',
+            '内蒙古自治区': 'nei-mongol',
+            '宁夏回族自治区': 'ningxia-hui',
+            '青海省': 'quinghai',
+            '陕西省': 'shaanxi',
+            '山东省': 'shandong',
+            '上海市': 'shanghai',
+            '山西省': 'shanxi',
+            '四川省': 'sichuan',
+            '天津市': 'tianjin',
+            '新疆维吾尔自治区': 'xinjiang-uygur',
+            '西藏自治区': 'xizang',
+            '云南省': 'yunnan',
+            '浙江省': 'zhejiang'
+        };
+        let chinaProvinceSvgPromise = null;
+        let chinaProvinceMapRenderToken = 0;
         const CHINA_PROVINCE_TILES = [
             { name: '新疆维吾尔自治区', short: '新疆', x: 0, y: 1, w: 2 },
             { name: '西藏自治区', short: '西藏', x: 1, y: 5, w: 2 },
@@ -6503,21 +6546,60 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return '#2563eb';
         }
 
-        function renderChinaProvinceHeatMap(rawRows) {
+        function loadChinaProvinceSvgMarkup() {
+            if (!chinaProvinceSvgPromise) {
+                chinaProvinceSvgPromise = fetch(CHINA_PROVINCE_SVG_URL, { cache: 'force-cache' })
+                    .then((response) => {
+                        if (!response.ok) throw new Error(`china svg http ${response.status}`);
+                        return response.text();
+                    });
+            }
+            return chinaProvinceSvgPromise;
+        }
+
+        function buildChinaProvinceMapLegendHtml() {
+            return `
+                <div class="china-map-legend">
+                    <span class="china-map-legend-label">低</span>
+                    <div class="china-map-legend-bar" aria-hidden="true">
+                        <span style="background:#e5edf7"></span>
+                        <span style="background:#d8e7fb"></span>
+                        <span style="background:#b9d3f7"></span>
+                        <span style="background:#8fb8f1"></span>
+                        <span style="background:#5d95e7"></span>
+                        <span style="background:#2563eb"></span>
+                    </div>
+                    <span class="china-map-legend-label">高</span>
+                </div>
+                <div class="china-map-footnote">按中国省级行政区聚合访问会话数，颜色越深表示热度越高。</div>
+                <div class="china-map-tooltip" id="chinaMapTooltip"></div>
+            `;
+        }
+
+        function bindChinaProvinceMapTooltip(mapWrap) {
+            const tooltip = mapWrap.querySelector('#chinaMapTooltip');
+            if (!tooltip) return;
+            const regions = mapWrap.querySelectorAll('[data-province]');
+            regions.forEach((region) => {
+                const province = String(region.getAttribute('data-province') || '').trim();
+                const sessions = Number(region.getAttribute('data-sessions') || 0);
+                const ratio = Number(region.getAttribute('data-ratio') || 0);
+                region.addEventListener('mousemove', (event) => {
+                    const bounds = mapWrap.getBoundingClientRect();
+                    tooltip.textContent = `${province}: ${formatSiteReportNumber(sessions)} 次会话 (${formatSiteReportPercent(ratio)})`;
+                    tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
+                    tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
+                    tooltip.classList.add('visible');
+                });
+                region.addEventListener('mouseleave', () => {
+                    tooltip.classList.remove('visible');
+                });
+            });
+        }
+
+        function renderChinaProvinceTileHeatMap(normalizedRows) {
             const mapWrap = document.getElementById('chinaMapContainer');
             if (!mapWrap) return;
-            const rows = Array.isArray(rawRows) ? rawRows : [];
-            const normalizedRows = rows.map((item) => ({
-                name: normalizeProvinceName(item?.province || item?.name || ''),
-                sessions: Math.max(0, Number(item?.sessions || item?.value || 0)),
-                ratio: Number(item?.ratio || 0)
-            })).filter(item => item.name);
-
-            if (!normalizedRows.length) {
-                mapWrap.innerHTML = '<div class="china-map-no-data">暂无地理分布数据</div>';
-                return;
-            }
-
             const provinceMap = {};
             normalizedRows.forEach((item) => {
                 provinceMap[item.name] = item;
@@ -6552,40 +6634,76 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 <svg class="china-map-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="中国省份访问热度图">
                     ${tilesHtml}
                 </svg>
-                <div class="china-map-legend">
-                    <span class="china-map-legend-label">低</span>
-                    <div class="china-map-legend-bar" aria-hidden="true">
-                        <span style="background:#e5edf7"></span>
-                        <span style="background:#d8e7fb"></span>
-                        <span style="background:#b9d3f7"></span>
-                        <span style="background:#8fb8f1"></span>
-                        <span style="background:#5d95e7"></span>
-                        <span style="background:#2563eb"></span>
-                    </div>
-                    <span class="china-map-legend-label">高</span>
-                </div>
-                <div class="china-map-footnote">按中国省级行政区聚合访问会话数，颜色越深表示热度越高。</div>
-                <div class="china-map-tooltip" id="chinaMapTooltip"></div>
+                ${buildChinaProvinceMapLegendHtml()}
             `;
 
-            const tooltip = document.getElementById('chinaMapTooltip');
-            if (!tooltip) return;
-            const regions = mapWrap.querySelectorAll('.china-map-province');
-            regions.forEach((region) => {
-                const province = String(region.getAttribute('data-province') || '').trim();
-                const sessions = Number(region.getAttribute('data-sessions') || 0);
-                const ratio = Number(region.getAttribute('data-ratio') || 0);
-                region.addEventListener('mousemove', (event) => {
-                    const bounds = mapWrap.getBoundingClientRect();
-                    tooltip.textContent = `${province}: ${formatSiteReportNumber(sessions)} 次会话 (${formatSiteReportPercent(ratio)})`;
-                    tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
-                    tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
-                    tooltip.classList.add('visible');
-                });
-                region.addEventListener('mouseleave', () => {
-                    tooltip.classList.remove('visible');
-                });
+            bindChinaProvinceMapTooltip(mapWrap);
+        }
+
+        function renderChinaProvinceHeatMap(rawRows) {
+            const mapWrap = document.getElementById('chinaMapContainer');
+            if (!mapWrap) return;
+            const rows = Array.isArray(rawRows) ? rawRows : [];
+            const normalizedRows = rows.map((item) => ({
+                name: normalizeProvinceName(item?.province || item?.name || ''),
+                sessions: Math.max(0, Number(item?.sessions || item?.value || 0)),
+                ratio: Number(item?.ratio || 0)
+            })).filter(item => item.name);
+
+            if (!normalizedRows.length) {
+                mapWrap.innerHTML = '<div class="china-map-no-data">暂无地理分布数据</div>';
+                return;
+            }
+
+            const provinceMap = {};
+            normalizedRows.forEach((item) => {
+                provinceMap[item.name] = item;
             });
+            const maxValue = Math.max(1, ...normalizedRows.map(item => item.sessions));
+            const renderToken = ++chinaProvinceMapRenderToken;
+
+            mapWrap.innerHTML = '<div class="china-map-no-data">中国地图加载中...</div>';
+
+            loadChinaProvinceSvgMarkup()
+                .then((svgMarkup) => {
+                    if (renderToken !== chinaProvinceMapRenderToken) return;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(svgMarkup, 'image/svg+xml');
+                    const svgEl = doc.documentElement;
+                    if (!svgEl || String(svgEl.nodeName || '').toLowerCase() !== 'svg') {
+                        throw new Error('invalid china svg');
+                    }
+                    svgEl.classList.add('china-map-svg', 'is-outline');
+                    svgEl.setAttribute('role', 'img');
+                    svgEl.setAttribute('aria-label', '中国省份访问热度图');
+
+                    let matchedCount = 0;
+                    Object.entries(CHINA_PROVINCE_SVG_IDS).forEach(([provinceName, pathId]) => {
+                        const pathEl = svgEl.querySelector(`[id="${pathId}"]`);
+                        if (!pathEl) return;
+                        matchedCount += 1;
+                        const item = provinceMap[provinceName] || { sessions: 0, ratio: 0 };
+                        pathEl.setAttribute('fill', getSiteReportMapColor(item.sessions, maxValue));
+                        pathEl.setAttribute('data-province', provinceName);
+                        pathEl.setAttribute('data-sessions', String(item.sessions));
+                        pathEl.setAttribute('data-ratio', Number(item.ratio || 0).toFixed(2));
+                        pathEl.setAttribute('vector-effect', 'non-scaling-stroke');
+                    });
+
+                    if (!matchedCount) {
+                        throw new Error('no province paths matched');
+                    }
+
+                    mapWrap.innerHTML = '';
+                    mapWrap.appendChild(svgEl);
+                    mapWrap.insertAdjacentHTML('beforeend', buildChinaProvinceMapLegendHtml());
+                    bindChinaProvinceMapTooltip(mapWrap);
+                })
+                .catch((error) => {
+                    console.warn('Render china svg map failed, fallback to tile map:', error);
+                    if (renderToken !== chinaProvinceMapRenderToken) return;
+                    renderChinaProvinceTileHeatMap(normalizedRows);
+                });
         }
 
         const SITE_REPORT_METRIC_HELP = {

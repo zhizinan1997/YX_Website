@@ -295,16 +295,31 @@
       border-radius: 999px;
       min-width: 92px;
       padding: 10px 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       background: linear-gradient(135deg, #125fc9 0%, #1f76e6 100%);
       color: #fff;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       box-shadow: 0 8px 18px rgba(18, 95, 201, 0.32);
+      text-decoration: none;
     }
 
     .cookie-consent-bar__btn:hover {
       filter: brightness(1.05);
+    }
+
+    .cookie-consent-bar__btn--secondary {
+      background: rgba(255, 255, 255, 0.78);
+      color: #16304d;
+      border: 1px solid rgba(18, 95, 201, 0.16);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    .cookie-consent-bar__btn--secondary:hover {
+      filter: brightness(1.02);
     }
 
     @media (max-width: 768px) {
@@ -1185,11 +1200,11 @@
   <div id="cookieConsentBar" class="cookie-consent-bar" role="region" aria-label="Cookies 提示" hidden>
     <div class="cookie-consent-bar__inner">
       <p class="cookie-consent-bar__text">
-        我们使用 Cookies 与本地存储来改善浏览体验，并在您同意后启用站点访问统计。继续使用本站前，您可以先接受本设置。
-        <a href="/pages/about/policy.html">查看隐私政策</a>
+        我们默认使用 Cookies 与本地存储来改善浏览体验并启用站点访问统计；如果您不希望继续使用，可随时选择拒绝 Cookies。
       </p>
       <div class="cookie-consent-bar__actions">
-        <button type="button" class="cookie-consent-bar__btn" id="cookieConsentAccept">接受 Cookies</button>
+        <a href="/pages/about/policy.html" class="cookie-consent-bar__btn cookie-consent-bar__btn--secondary" id="cookieConsentPolicy">隐私条款</a>
+        <button type="button" class="cookie-consent-bar__btn" id="cookieConsentReject">拒绝 Cookies</button>
       </div>
     </div>
   </div>
@@ -1209,9 +1224,10 @@
     (function () {
       const CONSENT_KEY = 'yx_cookie_consent';
       const CONSENT_ACCEPTED = 'accepted';
+      const CONSENT_REJECTED = 'rejected';
       const bar = document.getElementById('cookieConsentBar');
-      const acceptBtn = document.getElementById('cookieConsentAccept');
-      if (!bar || !acceptBtn) return;
+      const rejectBtn = document.getElementById('cookieConsentReject');
+      if (!bar || !rejectBtn) return;
 
       function readCookie(name) {
         const prefix = `${name}=`;
@@ -1244,7 +1260,7 @@
       }
 
       function showBar() {
-        if (readStoredConsent() === CONSENT_ACCEPTED) return;
+        if (readStoredConsent() === CONSENT_REJECTED) return;
         bar.hidden = false;
         document.body.classList.add('cookie-consent-visible');
         window.requestAnimationFrame(() => {
@@ -1260,19 +1276,24 @@
         }, 220);
       }
 
-      acceptBtn.addEventListener('click', () => {
-        persistConsent(CONSENT_ACCEPTED);
+      rejectBtn.addEventListener('click', () => {
+        persistConsent(CONSENT_REJECTED);
         hideBar();
         try {
-          window.dispatchEvent(new CustomEvent('yx-cookie-consent-accepted', {
-            detail: { state: CONSENT_ACCEPTED }
+          window.dispatchEvent(new CustomEvent('yx-cookie-consent-rejected', {
+            detail: { state: CONSENT_REJECTED }
           }));
         } catch (_) {
-          window.dispatchEvent(new Event('yx-cookie-consent-accepted'));
+          window.dispatchEvent(new Event('yx-cookie-consent-rejected'));
         }
       });
 
-      if (readStoredConsent() !== CONSENT_ACCEPTED) {
+      const currentState = readStoredConsent();
+      if (!currentState) {
+        persistConsent(CONSENT_ACCEPTED);
+        showBar();
+      } else if (currentState !== CONSENT_ACCEPTED && currentState !== CONSENT_REJECTED) {
+        persistConsent(CONSENT_ACCEPTED);
         showBar();
       }
     })();
