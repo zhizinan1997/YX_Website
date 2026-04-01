@@ -8,47 +8,726 @@
     <link rel="stylesheet" href="../../assets/css/yx-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/search.css">
     <style>
-        .vs-page-hero {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/cdn_assets/images/common/19dcf7b13b11.jpg');
-            background-size: cover;
-            background-position: center;
+        :root {
+            --mn-text: #18243f;
+            --mn-heading: #243764;
+            --mn-body: #30405f;
+            --mn-muted: #5d6e8d;
+            --mn-light-bg: #f3f6fd;
+            --mn-light-bg-2: #eef2fb;
+            --mn-line: #365ca8;
+            --mn-card: #ffffff;
+            --mn-border: #dbe4f2;
+            --mn-shadow: 0 20px 45px rgba(16, 36, 82, 0.08);
+            --mn-shadow-hover: 0 26px 60px rgba(16, 36, 82, 0.14);
+            --mn-accent: #6380c1;
+            --mn-dark-overlay: rgba(29, 43, 83, 0.9);
         }
 
-        .vs-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0 40px;
-            background: white;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            border-radius: 8px;
+        .mn-page {
+            background: #ffffff;
+            color: var(--mn-text);
+            padding-top: 90px;
+        }
+
+        /* ===== PAGE HERO ===== */
+        .mn-page-hero {
+            background-image:
+                linear-gradient(rgba(11, 37, 78, 0.72), rgba(11, 37, 78, 0.68)),
+                url('/cdn_assets/images/research/micro-nano/lithography-01.png');
+            background-size: cover;
+            background-position: center;
+            min-height: 520px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #ffffff;
+            position: relative;
+        }
+
+        .mn-page-hero__content {
+            max-width: 840px;
+            padding: 120px 0 108px;
+        }
+
+        .mn-page-hero__content h1 {
+            margin: 0;
+            font-size: 58px;
+            line-height: 1.15;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .mn-page-hero__content p {
+            margin: 20px 0 0;
+            font-size: 22px;
+            line-height: 1.8;
+            opacity: 0.92;
+        }
+
+        /* ===== INTRO SECTION ===== */
+        .mn-intro {
+            background: #ffffff;
+            padding: 64px 0 76px;
+        }
+
+        .mn-intro h2 {
+            margin: 0;
+            font-size: clamp(36px, 3vw, 50px);
+            line-height: 1.15;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--mn-text);
+        }
+
+        .mn-intro__subtitle {
+            margin: 18px 0 0;
+            font-size: clamp(20px, 1.8vw, 24px);
+            color: var(--mn-accent);
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .mn-intro__line {
+            width: 160px;
+            height: 4px;
+            background: var(--mn-line);
+            border-radius: 999px;
+            margin: 24px 0 22px;
+        }
+
+        .mn-intro__desc {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.9;
+            color: var(--mn-body);
+            font-weight: 700;
+            max-width: 1080px;
+        }
+
+        /* ===== SECTION TITLES ===== */
+        .mn-section-title {
+            text-align: center;
+            margin-bottom: 46px;
+        }
+
+        .mn-section-title h2 {
+            display: inline-block;
+            margin: 0;
+            font-size: clamp(36px, 3vw, 50px);
+            line-height: 1.15;
+            font-weight: 700;
+            color: var(--mn-text);
+        }
+
+        .mn-section-title .mn-title-line {
+            width: 160px;
+            height: 4px;
+            background: var(--mn-line);
+            margin: 16px auto 0;
+            border-radius: 999px;
+        }
+
+        .mn-section-title--light h2 {
+            color: #ffffff;
+        }
+
+        .mn-section-title--light .mn-title-line {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .mn-section-title--light p {
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .mn-section-title p {
+            max-width: 1080px;
+            margin: 22px auto 0;
+            font-size: 17px;
+            line-height: 1.9;
+            color: var(--mn-body);
+            font-weight: 500;
+        }
+
+        /* ===== SERVICE SECTIONS ===== */
+        .mn-service-section {
+            padding: 92px 0;
+            position: relative;
             overflow: hidden;
         }
 
-        .vs-table th,
-        .vs-table td {
-            padding: 15px 20px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
+        .mn-service-section--light {
+            background: linear-gradient(180deg, var(--mn-light-bg) 0%, var(--mn-light-bg-2) 100%);
         }
 
-        .vs-table th {
-            background-color: #f8fafc;
-            color: var(--color-primary);
+        .mn-service-section--light::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(120deg, rgba(60, 87, 145, 0.05) 0 8%, transparent 8% 100%),
+                radial-gradient(circle at 16% 22%, rgba(59, 92, 170, 0.06) 0 18px, transparent 18px),
+                radial-gradient(circle at 82% 18%, rgba(59, 92, 170, 0.06) 0 22px, transparent 22px);
+            pointer-events: none;
+        }
+
+        .mn-service-section--dark {
+            background:
+                linear-gradient(var(--mn-dark-overlay), var(--mn-dark-overlay)),
+                url('/cdn_assets/images/research/micro-nano/lithography-02.png') center/cover no-repeat;
+        }
+
+        .mn-service-section .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== SERVICE CARD ===== */
+        .mn-service-card {
+            background: var(--mn-card);
+            border-radius: 24px;
+            box-shadow: var(--mn-shadow);
+            max-width: 1240px;
+            margin: 0 auto;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .mn-service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--mn-shadow-hover);
+        }
+
+        /* Gallery */
+        .mn-gallery {
+            display: grid;
+            gap: 3px;
+            background: var(--mn-border);
+        }
+
+        .mn-gallery--four {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .mn-gallery--three {
+            grid-template-columns: 1fr 1.25fr 1.4fr;
+        }
+
+        .mn-gallery__item {
+            min-height: 260px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .mn-gallery__item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+
+        .mn-service-card:hover .mn-gallery__item img {
+            transform: scale(1.04);
+        }
+
+        /* Card body */
+        .mn-service-body {
+            padding: 32px 36px 36px;
+        }
+
+        .mn-service-desc {
+            margin: 0 0 24px;
+            font-size: 17px;
+            line-height: 1.9;
+            color: var(--mn-body);
+            font-weight: 500;
+        }
+
+        /* ===== TABLES ===== */
+        .mn-table-wrap {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid var(--mn-border);
+        }
+
+        .mn-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        .mn-table th,
+        .mn-table td {
+            padding: 16px 18px;
+            text-align: center;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--mn-border);
+        }
+
+        .mn-table th {
+            background: var(--mn-heading);
+            color: #ffffff;
+            font-size: 15px;
+            line-height: 1.4;
             font-weight: 600;
-            text-transform: uppercase;
-            font-size: 14px;
-            letter-spacing: 0.5px;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
         }
 
-        .vs-table tr:last-child td {
+        .mn-table th:first-child {
+            border-radius: 15px 0 0 0;
+        }
+
+        .mn-table th:last-child {
+            border-radius: 0 15px 0 0;
+        }
+
+        .mn-table td {
+            background: #ffffff;
+            color: var(--mn-text);
+            font-size: 15px;
+            line-height: 1.6;
+            font-weight: 500;
+            border-right: 1px solid var(--mn-border);
+        }
+
+        .mn-table td:last-child {
+            border-right: none;
+        }
+
+        .mn-table td:first-child {
+            font-weight: 700;
+            font-size: 17px;
+            white-space: nowrap;
+            color: var(--mn-heading);
+            background: var(--mn-light-bg);
+        }
+
+        .mn-table tbody tr:last-child td {
             border-bottom: none;
+        }
+
+        .mn-table tbody tr:hover td {
+            background: #f8faff;
+        }
+
+        .mn-table tbody tr:hover td:first-child {
+            background: #edf2fc;
+        }
+
+        /* ===== PROCESS FLOW ===== */
+        .mn-flow-section {
+            padding: 92px 0;
+            background: #ffffff;
+            position: relative;
+        }
+
+        .mn-process {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .mn-process__step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            padding: 0 8px;
+        }
+
+        .mn-process__step-num {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--mn-line) 0%, #4a72c4 100%);
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+            box-shadow: 0 8px 24px rgba(54, 92, 168, 0.3);
+            position: relative;
+            z-index: 2;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .mn-process__step:hover .mn-process__step-num {
+            transform: scale(1.12);
+            box-shadow: 0 12px 32px rgba(54, 92, 168, 0.45);
+        }
+
+        .mn-process__step-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--mn-heading);
+            line-height: 1.4;
+        }
+
+        /* Connector line between steps */
+        .mn-process__step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 28px;
+            left: calc(50% + 32px);
+            width: calc(100% - 64px);
+            height: 3px;
+            background: linear-gradient(90deg, var(--mn-line), rgba(54, 92, 168, 0.3));
+            z-index: 1;
+        }
+
+        /* ===== FAQ SECTION ===== */
+        .mn-faq-section {
+            padding: 92px 0;
+            background: linear-gradient(180deg, var(--mn-light-bg) 0%, var(--mn-light-bg-2) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mn-faq-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 82%, rgba(59, 92, 170, 0.06) 0 22px, transparent 22px),
+                radial-gradient(circle at 74% 82%, rgba(59, 92, 170, 0.06) 0 22px, transparent 22px);
+            pointer-events: none;
+        }
+
+        .mn-faq-section .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .mn-faq-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.75fr);
+            gap: 36px;
+            align-items: start;
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        .mn-faq-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .mn-faq-pair {
+            background: var(--mn-card);
+            border-radius: 18px;
+            border: 1px solid var(--mn-border);
+            padding: 24px 28px;
+            box-shadow: 0 6px 20px rgba(16, 36, 82, 0.05);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .mn-faq-pair:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(16, 36, 82, 0.1);
+        }
+
+        .mn-faq-q {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--mn-heading);
+            line-height: 1.6;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .mn-faq-q .mn-faq-icon {
+            flex: 0 0 28px;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--mn-line) 0%, #4a72c4 100%);
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+        }
+
+        .mn-faq-a {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--mn-body);
+            line-height: 1.8;
+            padding-left: 38px;
+        }
+
+        .mn-faq-visual {
+            background: var(--mn-card);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--mn-border);
+            box-shadow: var(--mn-shadow);
+        }
+
+        .mn-faq-visual img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px;
+        }
+
+        /* ===== CTA ===== */
+        .mn-cta {
+            background: linear-gradient(135deg, #0a5a8f 0%, #0a4d7b 100%);
+            color: #ffffff;
+            padding: 80px 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+        }
+
+        .mn-cta h2 {
+            margin: 0 0 20px;
+            font-size: 40px;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .mn-cta p {
+            margin: 0 0 36px;
+            font-size: 18px;
+            line-height: 1.9;
+            opacity: 0.92;
+        }
+
+        .mn-cta .vs-btn {
+            background: #ffffff;
+            color: #0a4d7b;
+            border-color: #ffffff;
+            border-radius: 999px;
+            padding: 14px 40px;
+        }
+
+        .mn-cta .vs-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ===== SCROLL ANIMATIONS ===== */
+        .mn-animate {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .mn-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .mn-animate-delay-1 { transition-delay: 0.1s; }
+        .mn-animate-delay-2 { transition-delay: 0.2s; }
+        .mn-animate-delay-3 { transition-delay: 0.3s; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1200px) {
+            .mn-page-hero__content h1 {
+                font-size: 46px;
+            }
+
+            .mn-gallery--four {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .mn-gallery--three {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .mn-gallery__item {
+                min-height: 220px;
+            }
+
+            .mn-faq-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .mn-faq-visual {
+                max-width: 420px;
+                margin: 0 auto;
+            }
+
+            .mn-process__step-label {
+                font-size: 14px;
+            }
+
+            .mn-process__step-num {
+                width: 48px;
+                height: 48px;
+                font-size: 18px;
+            }
+
+            .mn-process__step:not(:last-child)::after {
+                top: 24px;
+                left: calc(50% + 28px);
+                width: calc(100% - 56px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .mn-page-hero {
+                min-height: 320px;
+            }
+
+            .mn-page-hero__content {
+                padding: 86px 0 70px;
+            }
+
+            .mn-page-hero__content h1 {
+                font-size: 34px;
+            }
+
+            .mn-page-hero__content p {
+                font-size: 17px;
+            }
+
+            .mn-intro {
+                padding: 52px 0 56px;
+            }
+
+            .mn-service-section {
+                padding: 64px 0;
+            }
+
+            .mn-section-title {
+                margin-bottom: 32px;
+            }
+
+            .mn-section-title h2 {
+                font-size: 30px;
+            }
+
+            .mn-section-title .mn-title-line {
+                width: 120px;
+            }
+
+            .mn-section-title p {
+                font-size: 16px;
+            }
+
+            .mn-service-card {
+                border-radius: 18px;
+            }
+
+            .mn-gallery--four,
+            .mn-gallery--three {
+                grid-template-columns: 1fr;
+            }
+
+            .mn-gallery__item {
+                min-height: 200px;
+            }
+
+            .mn-service-body {
+                padding: 24px 20px 28px;
+            }
+
+            .mn-service-desc {
+                font-size: 16px;
+                line-height: 1.8;
+            }
+
+            .mn-table {
+                min-width: 700px;
+            }
+
+            .mn-table th,
+            .mn-table td {
+                padding: 12px 10px;
+                font-size: 13px;
+            }
+
+            .mn-table td:first-child {
+                font-size: 15px;
+            }
+
+            .mn-flow-section,
+            .mn-faq-section {
+                padding: 64px 0;
+            }
+
+            .mn-process {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .mn-process__step {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 12px 0;
+                text-align: left;
+            }
+
+            .mn-process__step-num {
+                margin: 0;
+                width: 44px;
+                height: 44px;
+                font-size: 18px;
+                flex-shrink: 0;
+            }
+
+            .mn-process__step-label {
+                font-size: 16px;
+            }
+
+            .mn-process__step:not(:last-child)::after {
+                top: auto;
+                bottom: -2px;
+                left: 21px;
+                width: 3px;
+                height: 24px;
+                background: linear-gradient(180deg, var(--mn-line), rgba(54, 92, 168, 0.2));
+            }
+
+            .mn-faq-q {
+                font-size: 16px;
+            }
+
+            .mn-faq-a {
+                font-size: 15px;
+                padding-left: 38px;
+            }
+
+            .mn-faq-pair {
+                padding: 20px 20px;
+            }
+
+            .mn-cta {
+                padding: 64px 0;
+            }
+
+            .mn-cta h2 {
+                font-size: 28px;
+            }
+
+            .mn-cta p {
+                font-size: 16px;
+                margin-bottom: 28px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <!-- Header (Same as Index) -->
     <div id="mc-nav-root" data-nav-profile="gas"></div>
 <noscript><div class="mc-nav-noscript">
   <a href="/index.html">首页</a> |
@@ -60,205 +739,397 @@
   <a href="/pages/contact/contact.html">联系我们</a>
 </div>
 </noscript>
-<script src="/assets/js/nav-loader.js"></script>
+<script src="/assets/js/nav-loader.js?v=20260401a"></script>
 
-    <main>
-        <!-- Hero -->
-        <section class="vs-page-hero"
-            style="height: 400px; display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
+    <main class="mn-page">
+        <!-- PAGE HERO -->
+        <section class="mn-page-hero">
             <div class="vs-container">
-                <h1 style="font-size: 48px; font-weight: 700;">传感器微纳加工</h1>
-                <p style="font-size: 20px; opacity: 0.9; margin-top: 10px;">高灵活性、高精度的“共享超净间”服务</p>
+                <div class="mn-page-hero__content">
+                    <h1>传感器微纳加工</h1>
+                    <p>高灵活性、高精度的"共享超净间"服务</p>
+                </div>
             </div>
         </section>
 
-        <!-- Breadcrumb -->
-        <div style="background: #f1f5f9; padding: 15px 0;">
+        <!-- INTRO -->
+        <section class="mn-intro">
             <div class="vs-container">
-                <a href="../../index.html" style="color: #666; text-decoration: none;">首页</a> <span
-                    style="margin: 0 8px; color: #ccc;">/</span>
-                <a href="index.html" style="color: #666; text-decoration: none;">科研服务</a> <span
-                    style="margin: 0 8px; color: #ccc;">/</span>
-                <span style="color: var(--color-primary);">微纳加工</span>
+                <h2>科研服务-传感器微纳加工</h2>
+                <p class="mn-intro__subtitle">Scientific Research Services</p>
+                <div class="mn-intro__line"></div>
+                <p class="mn-intro__desc">提供灵敏的传感器微纳加工服务</p>
             </div>
-        </div>
+        </section>
 
-        <!-- Content -->
-        <section style="padding: 80px 0;">
+        <!-- SERVICE 1: 光刻 -->
+        <section class="mn-service-section mn-service-section--light">
             <div class="vs-container">
+                <div class="mn-section-title mn-animate">
+                    <h2>高灵活性微纳加工服务</h2>
+                    <div class="mn-title-line"></div>
+                    <p>1片起订，按需定制，是您身边最便捷的"共享超净间"</p>
+                </div>
 
-                <!-- Lithography -->
-                <div style="margin-bottom: 80px;">
-                    <div class="vs-section-header">
-                        <h2 class="vs-section-title">光刻服务 (Lithography)</h2>
-                        <div class="vs-divider"></div>
+                <div class="mn-service-card mn-animate mn-animate-delay-1">
+                    <div class="mn-gallery mn-gallery--four">
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/lithography-01.png" alt="光刻设备 1"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/lithography-02.png" alt="光刻设备 2"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/lithography-03.png" alt="光刻设备 3"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/lithography-04.png" alt="光刻设备 4"></div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px; align-items: center;">
-                        <div>
-                            <p style="font-size: 16px; line-height: 1.8; color: #444; margin-bottom: 20px;">
-                                我们拥有高精度的光刻工艺线，能够将您设计的微纳图形从掩膜版精确转移至晶圆表面。无论是基础的微电极阵列，还是复杂的MEMS结构，我们都能提供从匀胶、前烘、对准曝光到显影的全套解决方案。
-                            </p>
-                            <table class="vs-table">
+                    <div class="mn-service-body">
+                        <p class="mn-service-desc">我们拥有高精度的光刻工艺线，能够将您设计的微纳图形从掩膜版精确转移至晶圆表面。无论是基础的微电极阵列，还是复杂的MEMS结构，我们都能提供从匀胶、前烘、对准曝光到显影（设计到成品）的全套解决方案。</p>
+                        <div class="mn-table-wrap">
+                            <table class="mn-table">
                                 <thead>
                                     <tr>
+                                        <th>服务项目</th>
                                         <th>设备名称</th>
+                                        <th>设备型号</th>
                                         <th>关键参数</th>
                                         <th>可加工材料</th>
+                                        <th>典型应用</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
+                                        <td rowspan="2">光刻</td>
                                         <td>自动匀胶显影机</td>
-                                        <td>尺寸：4英寸<br>均匀性：5%</td>
-                                        <td>S1813, SU8, LOR, RZJ-5513等</td>
+                                        <td>KS-S100-1C1D</td>
+                                        <td>尺寸：4英寸、均匀性：5%</td>
+                                        <td>LOR、S1813、SU8、LR812-050、LR812-030、RZJ-5513、IP100-2.5等</td>
+                                        <td>保护层、图形化层制备</td>
                                     </tr>
                                     <tr>
-                                        <td>EVG620 紫外光刻机</td>
-                                        <td>精度：1um<br>对位误差：0.5um</td>
-                                        <td>各类图形化层制备</td>
+                                        <td>紫外光刻机</td>
+                                        <td>EVG620</td>
+                                        <td>尺寸：8英寸、4英寸、4寸光强均匀性：优于3%、8寸光强均匀性：优于5%、</td>
+                                        <td>曝光精度1um、对位误差0.5um</td>
+                                        <td>图形化</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        <div>
-                            <img src="/cdn_assets/images/common/19dcf7b13b11.jpg"
-                                style="width: 100%; border-radius: 8px; box-shadow: var(--shadow-card);"
-                                alt="Lithography">
-                        </div>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <!-- Etching -->
-                <div style="margin-bottom: 80px;">
-                    <div class="vs-section-header">
-                        <h2 class="vs-section-title">刻蚀服务 (Etching)</h2>
-                        <div class="vs-divider"></div>
+        <!-- SERVICE 2: 刻蚀 -->
+        <section class="mn-service-section mn-service-section--dark">
+            <div class="vs-container">
+                <div class="mn-section-title mn-section-title--light mn-animate">
+                    <h2>高灵活性微纳加工服务</h2>
+                    <div class="mn-title-line"></div>
+                    <p>1片起订，按需定制，是您身边最便捷的"共享超净间"</p>
+                </div>
+
+                <div class="mn-service-card mn-animate mn-animate-delay-1">
+                    <div class="mn-gallery mn-gallery--four">
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/etching-01.png" alt="刻蚀设备 1"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/etching-02.png" alt="刻蚀设备 2"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/etching-03.png" alt="刻蚀设备 3"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/etching-04.png" alt="刻蚀设备 4"></div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 40px; align-items: center;">
-                        <div>
-                            <img src="/cdn_assets/images/common/f4a5dc42cd04.jpg"
-                                style="width: 100%; border-radius: 8px; box-shadow: var(--shadow-card);" alt="Etching">
-                        </div>
-                        <div>
-                            <p style="font-size: 16px; line-height: 1.8; color: #444; margin-bottom: 20px;">
-                                提供干法与湿法两种刻蚀技术，可对金属、半导体、介质薄膜等多种材料进行选择性去除。无论您需要的是各向同性的快速腐蚀，还是高深宽比的垂直刻蚀，我们都能提供支持。
-                            </p>
-                            <table class="vs-table">
+                    <div class="mn-service-body">
+                        <p class="mn-service-desc">提供干法与湿法两种刻蚀技术，可对金属、半导体、介质薄膜等多种材料进行选择性去除，实现从简单的图形转移到复杂三维结构的构建。无论您需要的是各向同性的快速腐蚀，还是高深宽比的垂直刻蚀，我们都能提供稳定可靠的工艺支持。</p>
+                        <div class="mn-table-wrap">
+                            <table class="mn-table">
                                 <thead>
                                     <tr>
+                                        <th>服务项目</th>
                                         <th>设备名称</th>
+                                        <th>设备型号</th>
                                         <th>关键参数</th>
-                                        <th>应用</th>
+                                        <th>可加工材料</th>
+                                        <th>典型应用</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>ICP刻蚀机 (NE-550EXz)</td>
-                                        <td>尺寸：4英寸<br>均匀性：3%</td>
+                                        <td rowspan="2">刻蚀</td>
+                                        <td>ICP刻蚀机</td>
+                                        <td>NE-550EXz</td>
+                                        <td>尺寸：4英寸、均匀性：3%</td>
+                                        <td>工艺气体：SF6、CF4、CHF3、O2、Ar、He</td>
                                         <td>介质层、钝化层刻蚀</td>
                                     </tr>
                                     <tr>
                                         <td>湿法台</td>
-                                        <td>尺寸：4英寸</td>
-                                        <td>HfO2, Al2O3, Y2O3, IGZO等湿法去除</td>
+                                        <td>LF-TO4-SJW-07B</td>
+                                        <td>尺寸：4英寸、均匀性：5%</td>
+                                        <td>HfO2、Al2O3、Y2O3、IGZO等</td>
+                                        <td>介质层、钝化层刻蚀</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <!-- Thin Film Deposition -->
-                <div style="margin-bottom: 80px;">
-                    <div class="vs-section-header">
-                        <h2 class="vs-section-title">薄膜沉积 (Thin Film Deposition)</h2>
-                        <div class="vs-divider"></div>
-                    </div>
-                    <p style="font-size: 16px; line-height: 1.8; color: #444; margin-bottom: 20px;">
-                        我们提供多种先进的薄膜沉积技术，可实现金属、介质、半导体等多种材料在不同基底上的高精度沉积。
-                    </p>
-                    <table class="vs-table">
-                        <thead>
-                            <tr>
-                                <th>技术</th>
-                                <th>设备型号</th>
-                                <th>材料能力</th>
-                                <th>典型应用</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>ALD (原子层沉积)</td>
-                                <td>Picosun P300B</td>
-                                <td>HfO2, Al2O3 (可低温)</td>
-                                <td>致密介质层生长</td>
-                            </tr>
-                            <tr>
-                                <td>电子束镀膜</td>
-                                <td>EI-501Z</td>
-                                <td>Au, Ag, Pd, Al, Ti等</td>
-                                <td>电极与金属层制备</td>
-                            </tr>
-                            <tr>
-                                <td>磁控溅射</td>
-                                <td>DE500</td>
-                                <td>Pt, Cr, SiO2, IGZO等</td>
-                                <td>各类薄膜制备</td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <!-- SERVICE 3: 薄膜沉积 -->
+        <section class="mn-service-section mn-service-section--light">
+            <div class="vs-container">
+                <div class="mn-section-title mn-animate">
+                    <h2>高灵活性微纳加工服务</h2>
+                    <div class="mn-title-line"></div>
+                    <p>1片起订，按需定制，是您身边最便捷的"共享超净间"</p>
                 </div>
 
-                <!-- Characterization -->
-                <div>
-                    <div class="vs-section-header">
-                        <h2 class="vs-section-title">表征测试 (Characterization)</h2>
-                        <div class="vs-divider"></div>
+                <div class="mn-service-card mn-animate mn-animate-delay-1">
+                    <div class="mn-gallery mn-gallery--four">
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/deposition-01.png" alt="薄膜沉积设备 1"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/deposition-02.png" alt="薄膜沉积设备 2"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/deposition-03.png" alt="薄膜沉积设备 3"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/deposition-04.png" alt="薄膜沉积设备 4"></div>
                     </div>
-                    <p style="font-size: 16px; line-height: 1.8; color: #444; margin-bottom: 20px;">
-                        眼见为实，我们提供强大的微观形貌与结构表征服务，帮助您直观地验证工艺结果。
-                    </p>
-                    <table class="vs-table">
-                        <thead>
-                            <tr>
-                                <th>项目</th>
-                                <th>设备</th>
-                                <th>能力</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>SEM (扫描电镜)</td>
-                                <td>Sigma 300</td>
-                                <td>表面形貌、截面分析 (4英寸兼容)</td>
-                            </tr>
-                            <tr>
-                                <td>AFM (原子力显微镜)</td>
-                                <td>Dimension XR</td>
-                                <td>台阶高度、粗糙度测量</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="mn-service-body">
+                        <p class="mn-service-desc">我们提供多种先进的薄膜沉积技术，可实现金属、介质、半导体等多种材料在不同基底上的高精度沉积，满足您在电极制备、绝缘层、敏感层、阻挡层等方面的多样化需求。从纳米级到微米级，我们都能为您精准控制薄膜的厚度、成分。</p>
+                        <div class="mn-table-wrap">
+                            <table class="mn-table">
+                                <thead>
+                                    <tr>
+                                        <th>服务项目</th>
+                                        <th>设备名称</th>
+                                        <th>设备型号</th>
+                                        <th>关键参数</th>
+                                        <th>可加工材料</th>
+                                        <th>典型应用</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td rowspan="3">薄膜沉积</td>
+                                        <td>ALD</td>
+                                        <td>picosun p300b</td>
+                                        <td>尺寸：4英寸、均匀性：5%、可低温生长</td>
+                                        <td>HfO2、Al2O3</td>
+                                        <td>介质层生长</td>
+                                    </tr>
+                                    <tr>
+                                        <td>电子束镀膜仪</td>
+                                        <td>ei-501z</td>
+                                        <td>尺寸：4英寸、均匀性：5%、真空度小于5e-8</td>
+                                        <td>Au、Ag、Pd、Al、Y、Ti等</td>
+                                        <td>电极制备</td>
+                                    </tr>
+                                    <tr>
+                                        <td>磁控溅射</td>
+                                        <td>DE500</td>
+                                        <td>尺寸：4英寸、均匀性：5%、直流电源+射频电源</td>
+                                        <td>Pd、Ta、Mg、IGZO、Cr、Pt、SiO2等</td>
+                                        <td>电极制备</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SERVICE 4: 表征 -->
+        <section class="mn-service-section mn-service-section--dark">
+            <div class="vs-container">
+                <div class="mn-section-title mn-section-title--light mn-animate">
+                    <h2>高灵活性微纳加工服务</h2>
+                    <div class="mn-title-line"></div>
+                    <p>1片起订，按需定制，是您身边最便捷的"共享超净间"</p>
                 </div>
 
+                <div class="mn-service-card mn-animate mn-animate-delay-1">
+                    <div class="mn-gallery mn-gallery--four">
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/characterization-01.png" alt="表征设备 1"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/characterization-02.png" alt="表征设备 2"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/characterization-03.png" alt="表征设备 3"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/characterization-04.png" alt="表征设备 4"></div>
+                    </div>
+                    <div class="mn-service-body">
+                        <p class="mn-service-desc">眼见为实，我们提供强大的微观形貌与结构表征服务，帮助您直观地验证工艺结果、分析器件失效原因、表征材料微观结构。从纳米级的表面粗糙度到微米级的器件形貌，我们为您提供清晰、高分辨率的"眼睛"，让您的每一步工艺优化都有据可依。</p>
+                        <div class="mn-table-wrap">
+                            <table class="mn-table">
+                                <thead>
+                                    <tr>
+                                        <th>服务项目</th>
+                                        <th>设备名称</th>
+                                        <th>设备型号</th>
+                                        <th>关键参数</th>
+                                        <th>可加工材料</th>
+                                        <th>典型应用</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td rowspan="2">表征</td>
+                                        <td>SEM</td>
+                                        <td>Sigma300</td>
+                                        <td>尺寸：4英寸（向下兼容）</td>
+                                        <td>支持表面形貌表征、截面表征</td>
+                                        <td>材料形貌表征</td>
+                                    </tr>
+                                    <tr>
+                                        <td>AFM</td>
+                                        <td>Dimension XR</td>
+                                        <td>尺寸：4英寸（向下兼容）</td>
+                                        <td>支持表面形貌表征、台阶及粗糙度测量</td>
+                                        <td>材料形貌表征</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SERVICE 5: 封装 -->
+        <section class="mn-service-section mn-service-section--light">
+            <div class="vs-container">
+                <div class="mn-section-title mn-animate">
+                    <h2>高灵活性微纳加工服务</h2>
+                    <div class="mn-title-line"></div>
+                    <p>1片起订，按需定制，是您身边最便捷的"共享超净间"</p>
+                </div>
+
+                <div class="mn-service-card mn-animate mn-animate-delay-1">
+                    <div class="mn-gallery mn-gallery--three">
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/packaging-01.png" alt="封装设备 1"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/packaging-02.png" alt="封装设备 2"></div>
+                        <div class="mn-gallery__item"><img src="/cdn_assets/images/research/micro-nano/packaging-03.png" alt="封装设备 3"></div>
+                    </div>
+                    <div class="mn-service-body">
+                        <p class="mn-service-desc">我们提供多样化的器件封装解决方案，从芯片级键合到板级集成，可有效保护您的精密器件免受环境影响，并实现可靠的电气连接，满足您在原型验证、产品定型及小批量生产等环节的需求</p>
+                        <div class="mn-table-wrap">
+                            <table class="mn-table">
+                                <thead>
+                                    <tr>
+                                        <th>服务项目</th>
+                                        <th>设备名称</th>
+                                        <th>设备型号</th>
+                                        <th>关键参数</th>
+                                        <th>可加工材料</th>
+                                        <th>典型应用</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>封装</td>
+                                        <td>划片机</td>
+                                        <td>DS623</td>
+                                        <td>最大加工尺寸：100mm@圆片、0-70mm@方片（向下兼容）<br>机械切割</td>
+                                        <td>/</td>
+                                        <td>裁片</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROCESS FLOW -->
+        <section class="mn-flow-section">
+            <div class="vs-container">
+                <div class="mn-section-title mn-animate">
+                    <h2>服务流程图</h2>
+                    <div class="mn-title-line"></div>
+                </div>
+                <div class="mn-process mn-animate mn-animate-delay-1">
+                    <div class="mn-process__step">
+                        <div class="mn-process__step-num">1</div>
+                        <span class="mn-process__step-label">咨询沟通</span>
+                    </div>
+                    <div class="mn-process__step">
+                        <div class="mn-process__step-num">2</div>
+                        <span class="mn-process__step-label">方案确认</span>
+                    </div>
+                    <div class="mn-process__step">
+                        <div class="mn-process__step-num">3</div>
+                        <span class="mn-process__step-label">客户寄样/<br>提供设计</span>
+                    </div>
+                    <div class="mn-process__step">
+                        <div class="mn-process__step-num">4</div>
+                        <span class="mn-process__step-label">加工制备</span>
+                    </div>
+                    <div class="mn-process__step">
+                        <div class="mn-process__step-num">5</div>
+                        <span class="mn-process__step-label">过程质检</span>
+                    </div>
+                    <div class="mn-process__step">
+                        <div class="mn-process__step-num">6</div>
+                        <span class="mn-process__step-label">交付样品/<br>报告</span>
+                    </div>
+                    <div class="mn-process__step">
+                        <div class="mn-process__step-num">7</div>
+                        <span class="mn-process__step-label">售后支持</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="mn-faq-section">
+            <div class="vs-container">
+                <div class="mn-section-title mn-animate">
+                    <h2>常见问题解答</h2>
+                    <div class="mn-title-line"></div>
+                </div>
+
+                <div class="mn-faq-layout mn-animate mn-animate-delay-1">
+                    <div class="mn-faq-list">
+                        <div class="mn-faq-pair">
+                            <div class="mn-faq-q">
+                                <span class="mn-faq-icon">Q</span>
+                                <span>我没有设计文件(GDSII)，只有手绘图可以吗？</span>
+                            </div>
+                            <div class="mn-faq-a">可以，我们的工程师可以辅助您完成CAD设计。</div>
+                        </div>
+                        <div class="mn-faq-pair">
+                            <div class="mn-faq-q">
+                                <span class="mn-faq-icon">Q</span>
+                                <span>最快多久可以交付？</span>
+                            </div>
+                            <div class="mn-faq-a">标准单步工艺最快可在3个工作日内交付，具体取决于工艺复杂度和设备排期。</div>
+                        </div>
+                        <div class="mn-faq-pair">
+                            <div class="mn-faq-q">
+                                <span class="mn-faq-icon">Q</span>
+                                <span>如何保证我的设计和数据安全？</span>
+                            </div>
+                            <div class="mn-faq-a">我们可签署保密协议，所有客户数据都将严格保密。</div>
+                        </div>
+                        <div class="mn-faq-pair">
+                            <div class="mn-faq-q">
+                                <span class="mn-faq-icon">Q</span>
+                                <span>支持哪些基底材料和尺寸？</span>
+                            </div>
+                            <div class="mn-faq-a">我们常规支持2/4/6英寸硅片、玻璃、石英等，也支持异形或碎片样品，请与工程师确认。</div>
+                        </div>
+                    </div>
+                    <div class="mn-faq-visual">
+                        <img src="/cdn_assets/images/research/micro-nano/faq-illustration.png" alt="常见问题解答">
+                    </div>
+                </div>
             </div>
         </section>
 
         <!-- CTA -->
-        <section style="background: #f8fafc; padding: 60px 0; text-align: center;">
+        <section class="mn-cta">
             <div class="vs-container">
-                <h3 style="margin-bottom: 20px;">有特殊的工艺需求？</h3>
-                <p style="margin-bottom: 30px;">我们的工程师支持非标工艺开发，欢迎联系咨询。</p>
-                <a href="../contact/contact.html" class="vs-btn vs-btn--primary"
-                    style="border-radius: 9999px; padding: 14px 40px;">联系工程师</a>
+                <h2>准备好开始您的项目了吗？</h2>
+                <p>我们的工程师随时准备为您提供专业建议。</p>
+                <a href="../contact/contact.html" class="vs-btn vs-btn--outline">立即咨询</a>
             </div>
         </section>
-
     </main>
 
-    <!-- AI智能客服 -->
     <script src="../../assets/js/chatbot.js"></script>
-    
+    <script src="../../assets/js/search.js"></script>
+
 <!-- FOOTER_START -->
   <div id="mc-footer-root"></div>
   <noscript>
@@ -272,6 +1143,27 @@
   </noscript>
   <script src="/assets/js/footer-loader.js"></script>
   <!-- FOOTER_END -->
+
+<script>
+/* Scroll-triggered animations */
+(function() {
+    var els = document.querySelectorAll('.mn-animate');
+    if (!els.length) return;
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function(entries) {
+            entries.forEach(function(e) {
+                if (e.isIntersecting) {
+                    e.target.classList.add('is-visible');
+                    io.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.15 });
+        els.forEach(function(el) { io.observe(el); });
+    } else {
+        els.forEach(function(el) { el.classList.add('is-visible'); });
+    }
+})();
+</script>
 </body>
 
 </html>

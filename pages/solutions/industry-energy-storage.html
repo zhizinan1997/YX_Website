@@ -152,14 +152,122 @@
             padding-left: 5px;
         }
 
-        /* YX-style Interactive Layout */
-        .vs-industry-tabs-section {
-            background: #f8f9fa;
-            padding: 80px 0;
+        /* Aero Hero Banner */
+        .aero-hero {
+            background-color: #1a1631;
+            position: relative;
+            min-height: 600px;
+            overflow: hidden;
+            color: #ffffff;
         }
 
-        .vs-industry-container {
+        .aero-hero>.vs-container {
+            position: relative;
+            z-index: 5;
             display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 600px;
+        }
+
+        .aero-hero-content {
+            width: 50%;
+            max-width: 600px;
+            padding: 96px 0;
+        }
+
+        .aero-breadcrumb {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+            padding-top: 24px;
+            margin-bottom: auto;
+        }
+
+        .aero-breadcrumb a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .aero-breadcrumb a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .aero-hero-content h1 {
+            font-size: 44px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            line-height: 1.15;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .aero-subtitle {
+            font-size: 22px;
+            font-weight: 400;
+            color: #93a5be;
+            margin-bottom: 30px;
+        }
+
+        .aero-desc {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1.8;
+        }
+
+        .aero-hero-image-wrapper {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 55%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .aero-hero-image {
+            width: 100%;
+            height: 100%;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 1200px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .aero-hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        @media (max-width: 992px) {
+            .aero-hero>.vs-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .aero-hero-content {
+                width: 100%;
+                max-width: 100%;
+                padding: 60px 0;
+            }
+
+            .aero-hero-image-wrapper {
+                display: none;
+            }
+        }
+
+        /* Solutions Carousel */
+        .solutions-carousel-section {
+            background: #f8f9fa;
+            padding: 88px 0 80px;
+        }
+
+        .solutions-carousel-layout {
+            display: flex;
+            align-items: flex-start;
             background: var(--color-white);
             border-radius: 12px;
             overflow: hidden;
@@ -167,85 +275,168 @@
             min-height: 600px;
         }
 
-        .vs-industry-sidebar {
+        .carousel-nav {
             width: 320px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
             background: var(--color-primary);
             color: var(--color-white);
         }
 
-        .vs-industry-tab {
-            padding: 24px 30px;
+        .carousel-nav-button {
+            width: 100%;
+            border: none;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid transparent;
+            border-radius: 0;
+            background: transparent;
+            color: var(--color-white);
+            padding: 24px 30px;
+            text-align: left;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-weight: 500;
-            font-size: 16px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
             opacity: 0.7;
         }
 
-        .vs-industry-tab:hover,
-        .vs-industry-tab.active {
+        .carousel-nav-button:hover {
             opacity: 1;
             background: rgba(255, 255, 255, 0.05);
-            border-left: 4px solid var(--color-accent-orange);
         }
 
-        .vs-industry-content {
+        .carousel-nav-button.active {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-white);
+            border-left-color: var(--color-accent-orange);
+        }
+
+        .carousel-nav-label {
             flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .carousel-content {
+            flex: 1;
+            min-width: 0;
             padding: 60px;
+        }
+
+        .carousel-content-title {
+            font-size: 34px;
+            line-height: 1.3;
+            font-weight: 700;
+            color: #0d3560;
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .carousel-panels-wrapper {
             position: relative;
+            min-height: 400px;
+            overflow: hidden;
         }
 
-        .vs-industry-panel {
+        .solution-panel {
             display: none;
-            animation: fadeIn 0.4s ease forwards;
+            flex-direction: column;
+            gap: 22px;
+            animation: carouselFadeIn 0.5s ease;
         }
 
-        .vs-industry-panel.active {
-            display: block;
+        .solution-panel.active {
+            display: flex;
         }
 
-        .vs-industry-panel h2 {
-            font-size: 32px;
-            color: var(--color-primary);
-            margin-bottom: 30px;
+        .solution-panel-img {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
         }
 
-        .vs-industry-panel img {
+        .solution-panel-img img {
             width: 100%;
             height: 350px;
             object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 30px;
+            display: block;
         }
 
-        .vs-industry-panel p {
+        .solution-panel-text h3 {
+            font-size: 28px;
+            color: var(--color-primary);
+            margin-bottom: 18px;
+            font-weight: 600;
+        }
+
+        .panel-desc-text {
             font-size: 18px;
-            line-height: 1.8;
+            line-height: 1.95;
             color: #555;
+            text-align: justify;
+            text-indent: 2em;
+            margin: 0;
         }
 
-        /* Hero Enlargement */
-        .vs-hero-v2 {
-            height: 75vh;
-            min-height: 600px;
+        @keyframes carouselFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .vs-hero-v2__bg::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(0, 31, 63, 0) 0%, rgba(0, 31, 63, 0.2) 100%);
-            z-index: 2;
+        @media (max-width: 1200px) {
+            .carousel-nav {
+                width: 280px;
+            }
         }
 
-        .vs-hero-v2__title {
-            font-size: 56px;
-            font-weight: 700;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        @media (max-width: 992px) {
+            .solutions-carousel-layout {
+                flex-direction: column;
+            }
+
+            .carousel-nav {
+                width: 100%;
+            }
+
+            .carousel-content {
+                padding: 44px 32px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .solutions-carousel-section {
+                padding: 72px 0 64px;
+            }
+
+            .carousel-nav-button {
+                padding: 18px 20px;
+            }
+
+            .carousel-nav-label {
+                font-size: 15px;
+            }
+
+            .carousel-content-title {
+                font-size: 26px;
+                margin-bottom: 22px;
+            }
+
+            .carousel-content {
+                padding: 32px 22px;
+            }
         }
     </style>
     <!-- Site Search -->
@@ -270,72 +461,147 @@
     
 
     <main style="padding-top: 90px;">
-        <section class="vs-hero-v2">
-            <div class="vs-hero-v2__bg">
-                <img src="/cdn_assets/images/common/e9c62f1228b8.jpeg" alt="Energy Storage">
+        <section class="aero-hero">
+            <div class="vs-container">
+                <div class="aero-breadcrumb">
+                    <a href="../../index.html">首页</a> &gt; <a href="solutions-index.html">行业解决方案</a> &gt;
+                    <span>绿色能源存储</span>
+                </div>
+                <div class="aero-hero-content">
+                    <h1>守护储能本质安全</h1>
+                    <p class="aero-subtitle">元芯传感绿色能源存储解决方案</p>
+                    <p class="aero-desc">
+                        面向集中式储能电站与工商业储能柜，元芯传感以电芯级气体感知、舱级环境监测和联动消防控制为核心，帮助客户把热失控风险前移识别，把储能安全从被动处置升级为主动预警。
+                    </p>
+                </div>
             </div>
-            <div class="vs-hero-v2__breadcrumbs">
-                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>绿色能源存储</span>
-            </div>
-            <div class="vs-hero-v2__content">
-                <h1 class="vs-hero-v2__title">绿色能源存储</h1>
-                <p class="vs-hero-v2__subtitle">聚焦储能电站本质安全，提供电芯级热失控预警与全维度环控应用。</p>
+            <div class="aero-hero-image-wrapper">
+                <div class="aero-hero-image">
+                    <img src="/cdn_assets/images/common/e9c62f1228b8.jpeg" alt="绿色能源存储解决方案">
+                </div>
             </div>
         </section>
 
-        <section class="vs-industry-tabs-section">
+        <section class="solutions-carousel-section" id="solutions-carousel">
             <div class="vs-container">
-                <div class="vs-industry-container">
-                    <div class="vs-industry-sidebar">
-                        <div class="vs-industry-tab active" onclick="switchIndustryTab(0, this)">电芯级热失控预警</div>
-                        <div class="vs-industry-tab" onclick="switchIndustryTab(1, this)">储能站环境综合监测</div>
-                        <div class="vs-industry-tab" onclick="switchIndustryTab(2, this)">电解液泄漏极早侦测</div>
-                        <div class="vs-industry-tab" onclick="switchIndustryTab(3, this)">智慧储能消防联动</div>
+                <div class="solutions-carousel-layout">
+                    <div class="carousel-nav" role="tablist" aria-label="绿色能源存储方案切换">
+                        <button class="carousel-nav-button active" type="button" onclick="goToCarousel(0)" aria-selected="true">
+                            <span class="carousel-nav-label">电芯级热失控预警</span>
+                        </button>
+                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(1)" aria-selected="false">
+                            <span class="carousel-nav-label">储能站环境综合监测</span>
+                        </button>
+                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(2)" aria-selected="false">
+                            <span class="carousel-nav-label">电解液泄漏极早侦测</span>
+                        </button>
+                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(3)" aria-selected="false">
+                            <span class="carousel-nav-label">智慧储能消防联动</span>
+                        </button>
                     </div>
-                    <div class="vs-industry-content">
-                        <div class="vs-industry-panel active">
-                            <h2>毫秒级电芯热失控预警</h2>
-                            <img src="https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=1200"
-                                alt="Battery Cell Monitoring">
-                            <p>
-                                电池热失控是储能电站最大的安全隐患。元芯开发的嵌入式 MEMS 传感器，能够实时监测电池包内部特征气体（如 CO, H2,
-                                VOC）的异常涌动。由于传感器距离热源更近且响应速度极快，可在电池发生可见烟雾前 5-10 分钟发出警报，为系统切断电流和启动消防赢得宝贵时间。
-                            </p>
+
+                    <div class="carousel-content">
+                        <h2 class="carousel-content-title" id="solution-current-title">电芯级热失控预警</h2>
+                        <div class="carousel-panels-wrapper">
+                        <div class="solution-panel active">
+                            <div class="solution-panel-img">
+                                <img src="https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=1200"
+                                    alt="Battery Cell Monitoring">
+                            </div>
+                            <div class="solution-panel-text">
+                                <h3>毫秒级电芯热失控预警</h3>
+                                <p class="panel-desc-text">
+                                    电池热失控是储能电站最大的安全隐患。元芯开发的嵌入式 MEMS 传感器，能够实时监测电池包内部特征气体（如 CO, H2,
+                                    VOC）的异常涌动。由于传感器距离热源更近且响应速度极快，可在电池发生可见烟雾前 5-10 分钟发出警报，为系统切断电流和启动消防赢得宝贵时间。
+                                </p>
+                            </div>
                         </div>
-                        <div class="vs-industry-panel">
-                            <h2>大规模储能站环境综合管控</h2>
-                            <img src="/cdn_assets/images/common/e4aa2f7635c9.png" alt="Storage Station">
-                            <p>
-                                面向兆瓦级集装箱储能站与工商业储能柜，元芯传感打造了全空间环境感知网。方案核心部署 <strong>MC-H2-Pro
-                                    复合气体探测器</strong>（集成H2/CO/VOCs检测），精准安装于<strong>电池簇顶部易积聚区</strong>及<strong>通风死角</strong>，配合安装于<strong>舱顶</strong>的
-                                <strong>MC-THS 智能温湿度传感终端</strong>。
-                                <br><br>
-                                该系统基于元芯独有的碳基芯片技术，具备抗硅中毒与长寿命优势，能在热失控早期的不可见烟阶段（Off-gas Release）主要特征气体析出时即刻报警。通过与 EMS
-                                本地控制器的毫秒级联动，自动触发一级排风与二级消防抑制，将事故风险“扼杀于摇篮”，为大规模储能资产构建一道不可逾越的安全防火墙。
-                            </p>
+
+                        <div class="solution-panel">
+                            <div class="solution-panel-img">
+                                <img src="/cdn_assets/images/common/e4aa2f7635c9.png" alt="Storage Station">
+                            </div>
+                            <div class="solution-panel-text">
+                                <h3>大规模储能站环境综合管控</h3>
+                                <p class="panel-desc-text">
+                                    面向兆瓦级集装箱储能站与工商业储能柜，元芯传感打造了全空间环境感知网。方案核心部署 <strong>MC-H2-Pro
+                                        复合气体探测器</strong>（集成H2/CO/VOCs检测），精准安装于<strong>电池簇顶部易积聚区</strong>及<strong>通风死角</strong>，配合安装于<strong>舱顶</strong>的
+                                    <strong>MC-THS 智能温湿度传感终端</strong>。
+                                    <br><br>
+                                    该系统基于元芯独有的碳基芯片技术，具备抗硅中毒与长寿命优势，能在热失控早期的不可见烟阶段（Off-gas Release）主要特征气体析出时即刻报警。通过与 EMS
+                                    本地控制器的毫秒级联动，自动触发一级排风与二级消防抑制，将事故风险“扼杀于摇篮”，为大规模储能资产构建一道不可逾越的安全防火墙。
+                                </p>
+                            </div>
                         </div>
-                        <div class="vs-industry-panel">
-                            <h2>电解液泄漏监测与防范</h2>
-                            <img src="https://images.unsplash.com/photo-1588713868194-32d5bd75d980?auto=format&fit=crop&w=1200"
-                                alt="Electrolyte Leak">
-                            <p>
-                                电解液泄漏不仅会导致电池性能下降，更是火灾的前兆。元芯的高灵敏 VOC
-                                传感器可对电解液挥发出的特定酯类化合物进行极低浓度的监测。这种专一性的检测能力，能有效区分环境杂质干扰，实现泄漏的极早期识别。
-                            </p>
+
+                        <div class="solution-panel">
+                            <div class="solution-panel-img">
+                                <img src="https://images.unsplash.com/photo-1588713868194-32d5bd75d980?auto=format&fit=crop&w=1200"
+                                    alt="Electrolyte Leak">
+                            </div>
+                            <div class="solution-panel-text">
+                                <h3>电解液泄漏监测与防范</h3>
+                                <p class="panel-desc-text">
+                                    电解液泄漏不仅会导致电池性能下降，更是火灾的前兆。元芯的高灵敏 VOC
+                                    传感器可对电解液挥发出的特定酯类化合物进行极低浓度的监测。这种专一性的检测能力，能有效区分环境杂质干扰，实现泄漏的极早期识别。
+                                </p>
+                            </div>
                         </div>
-                        <div class="vs-industry-panel">
-                            <h2>智慧消防与应急联动升级</h2>
-                            <img src="https://images.unsplash.com/photo-1516216628859-9bccecab13ca?auto=format&fit=crop&w=1200"
-                                alt="Fire Safety">
-                            <p>
-                                我们将传感数据与消防自动喷淋、全氟己酮抑爆系统深度集成。通过精准的定位告警，消防系统可以实现“点对点”精准喷淋，最大限度减少事故对邻近电池簇的影响，将损失降到最低，实现本质安全化的储能运营。
-                            </p>
+
+                        <div class="solution-panel">
+                            <div class="solution-panel-img">
+                                <img src="https://images.unsplash.com/photo-1516216628859-9bccecab13ca?auto=format&fit=crop&w=1200"
+                                    alt="Fire Safety">
+                            </div>
+                            <div class="solution-panel-text">
+                                <h3>智慧消防与应急联动升级</h3>
+                                <p class="panel-desc-text">
+                                    我们将传感数据与消防自动喷淋、全氟己酮抑爆系统深度集成。通过精准的定位告警，消防系统可以实现“点对点”精准喷淋，最大限度减少事故对邻近电池簇的影响，将损失降到最低，实现本质安全化的储能运营。
+                                </p>
+                            </div>
+                        </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
     </main>
+
+    <script>
+        const carouselTitles = [
+            '电芯级热失控预警',
+            '储能站环境综合监测',
+            '电解液泄漏极早侦测',
+            '智慧储能消防联动'
+        ];
+        let currentCarousel = 0;
+
+        function updateCarouselNavigation() {
+            const panels = document.querySelectorAll('.carousel-panels-wrapper > .solution-panel');
+            const buttons = document.querySelectorAll('.carousel-nav-button');
+            const title = document.getElementById('solution-current-title');
+            panels.forEach((panel, idx) => {
+                panel.classList.toggle('active', idx === currentCarousel);
+            });
+            buttons.forEach((button, idx) => {
+                const isActive = idx === currentCarousel;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+            if (title) {
+                title.textContent = carouselTitles[currentCarousel] || '';
+            }
+        }
+
+        function goToCarousel(index) {
+            const panels = document.querySelectorAll('.carousel-panels-wrapper > .solution-panel');
+            if (index < 0 || index >= panels.length || index === currentCarousel) return;
+            currentCarousel = index;
+            updateCarouselNavigation();
+        }
+
+        updateCarouselNavigation();
+    </script>
 
 <!-- 全站搜索 -->
     <script src="../../assets/js/search.js"></script>

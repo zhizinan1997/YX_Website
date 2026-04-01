@@ -5,7 +5,7 @@
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
-    var NAV_ASSET_VERSION = '20260329l';
+    var NAV_ASSET_VERSION = '20260401c';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -945,8 +945,27 @@
     }
 
     function bindBioDynamicData() {
-        // 淇濇寔鐜扮姸绛変环锛氱敓鐗╁鑸粎淇濈暀浜や簰缁戝畾锛屼笉寮鸿娉ㄥ叆 admin 棰嗗煙鍒嗙被閫昏緫銆?
-        return Promise.resolve();
+        var jobs = [];
+
+        if (document.getElementById('researchPreviewLinks') && document.getElementById('researchPreviewContent')) {
+            jobs.push(
+                fetch('/api/nav-research-previews', { credentials: 'same-origin' })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        var items = Array.isArray(data.items) ? data.items : [];
+                        if (items.length) {
+                            renderSolutionPreviewMenu('researchPreviewLinks', 'researchPreviewContent', items, {
+                                defaultEyebrow: '\u79d1\u7814\u670d\u52a1',
+                                ctaText: '\u67e5\u770b\u670d\u52a1',
+                                defaultDesc: '\u4e86\u89e3\u8be5\u670d\u52a1\u677f\u5757\u7684\u80fd\u529b\u8303\u56f4\u3001\u5178\u578b\u573a\u666f\u4e0e\u5408\u4f5c\u65b9\u5f0f\u3002'
+                            });
+                        }
+                    })
+                    .catch(function () { })
+            );
+        }
+
+        return Promise.all(jobs);
     }
 
     function boot() {
@@ -982,4 +1001,3 @@
         boot();
     }
 })();
-

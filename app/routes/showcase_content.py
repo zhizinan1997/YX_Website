@@ -3,12 +3,26 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from pathlib import Path
 
 from flask import jsonify, request, session
 
 _DEPS = {}
+MEASUREMENT_PRODUCT_LIMIT = 4
+MEASUREMENT_PAGE_ORDER = [
+    'measurement-environment-hydrogen',
+    'measurement-hydrogen',
+    'measurement-dissolved-hydrogen',
+    'measurement-oil-water',
+    'measurement-hydrogen-tracking',
+    'measurement-humidity',
+    'measurement-hydrogen-warning',
+    'measurement-combustible-gas',
+    'measurement-dewpoint',
+    'measurement-pressure',
+]
 
 
 def configure_showcase_content(
@@ -141,6 +155,98 @@ def build_solution_link(solution):
     return f"pages/solutions/{solution.get('id', '')}.html"
 
 
+def _measurement_pages_dir() -> Path:
+    return _dep('pages_dir') / 'measurement'
+
+
+def _extract_measurement_page_title(filepath: Path) -> str:
+    try:
+        content = filepath.read_text(encoding='utf-8', errors='ignore')
+    except Exception:
+        return filepath.stem
+
+    breadcrumb_match = re.search(
+        r'<p[^>]*class="[^"]*jjfa-breadcrumb[^"]*"[^>]*>.*?<span>(.*?)</span>',
+        content,
+        re.I | re.S,
+    )
+    if breadcrumb_match:
+        crumb_title = re.sub(r'<[^>]+>', ' ', breadcrumb_match.group(1))
+        crumb_title = re.sub(r'\s+', ' ', crumb_title).strip()
+        if crumb_title:
+            return _dep('sanitize_public_text')(crumb_title, max_length=120)
+
+    match = re.search(r'<title[^>]*>(.*?)</title>', content, re.I | re.S)
+    raw_title = match.group(1).strip() if match else filepath.stem
+    title = re.sub(r'\s*-\s*元芯传感\s*$', '', raw_title)
+    title = re.sub(r'\s+', ' ', title).strip()
+    return _dep('sanitize_public_text')(title or filepath.stem, max_length=160)
+
+
+def get_measurement_page_items():
+    pages = []
+    measurement_dir = _measurement_pages_dir()
+    if not measurement_dir.exists():
+        return pages
+
+    order_map = {page_id: idx for idx, page_id in enumerate(MEASUREMENT_PAGE_ORDER)}
+    for filepath in sorted(measurement_dir.glob('*.html')):
+        page_id = filepath.stem
+        pages.append({
+            'id': page_id,
+            'filename': filepath.name,
+            'title': _extract_measurement_page_title(filepath),
+            'path': f'pages/measurement/{filepath.name}',
+            '_order': order_map.get(page_id, len(order_map) + len(pages)),
+        })
+
+    pages.sort(key=lambda item: (item.get('_order', 999), item.get('title', ''), item.get('filename', '')))
+    for item in pages:
+        item.pop('_order', None)
+    return pages
+
+
+def _normalize_measurement_products_map(raw_map):
+    mapping = raw_map if isinstance(raw_map, dict) else {}
+    valid_page_ids = {item.get('id') for item in get_measurement_page_items() if item.get('id')}
+    valid_product_ids = {
+        product.get('id')
+        for product in _dep('get_gassensing_products_with_settings')()
+        if product.get('id') and not product.get('hidden')
+    }
+    cleaned = {}
+    for page_id, product_ids in mapping.items():
+        if not isinstance(page_id, str) or page_id not in valid_page_ids:
+            continue
+        ids = product_ids if isinstance(product_ids, list) else []
+        seen = set()
+        normalized = []
+        for product_id in ids:
+            if not isinstance(product_id, str) or product_id not in valid_product_ids or product_id in seen:
+                continue
+            seen.add(product_id)
+            normalized.append(product_id)
+            if len(normalized) >= MEASUREMENT_PRODUCT_LIMIT:
+                break
+        cleaned[page_id] = normalized
+    return cleaned
+
+
+def _serialize_public_product_item(item):
+    if not item:
+        return None
+    title = item.get('cardTitle') or item.get('displayName') or item.get('shortName') or item.get('name') or item.get('id', '')
+    desc = item.get('cardSummary') or item.get('description', '')
+    return {
+        'id': item.get('id'),
+        'title': _dep('sanitize_public_text')(title, max_length=120),
+        'image': _dep('sanitize_public_media_url')(item.get('cardImage') or item.get('image', ''), enforce_remote_public=False),
+        'desc': _dep('sanitize_public_text')(desc, max_length=220),
+        'link': _dep('sanitize_public_link_url')(build_product_link(item), default='#'),
+        'category': _dep('sanitize_public_text')(item.get('category', ''), max_length=40),
+    }
+
+
 def get_all_solution_items():
     """Get all solution items from pages/solutions."""
     solutions_dir = _dep('pages_dir') / 'solutions'
@@ -158,7 +264,7 @@ def get_all_solution_items():
 
 def get_h2_home_config():
     """Load hydrogen homepage config."""
-    default_config = {'items': [], 'products': [], 'cases': [], 'news': []}
+    default_config = {'items': [], 'products': [], 'cases': [], 'news': [], 'measurementProducts': {}}
     h2_home_file = _dep('h2_home_file')
     if h2_home_file.exists():
         try:
@@ -180,6 +286,7 @@ def get_h2_home_config():
                     'products': config.get('products', []) if isinstance(config.get('products', []), list) else [],
                     'cases': config.get('cases', []) if isinstance(config.get('cases', []), list) else [],
                     'news': config.get('news', []) if isinstance(config.get('news', []), list) else [],
+                    'measurementProducts': _normalize_measurement_products_map(config.get('measurementProducts', {})),
                 }
         except Exception:
             pass
@@ -208,6 +315,7 @@ def save_h2_home_config(config):
         'products': existing.get('products', []),
         'cases': existing.get('cases', []),
         'news': existing.get('news', []),
+        'measurementProducts': existing.get('measurementProducts', {}),
     }
     _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
     return saved
@@ -231,6 +339,7 @@ def save_h2_home_products(product_ids):
         'products': cleaned[:3],
         'cases': existing.get('cases', []),
         'news': existing.get('news', []),
+        'measurementProducts': existing.get('measurementProducts', {}),
     }
     _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
     return saved
@@ -266,6 +375,32 @@ def save_h2_home_cases(items):
         'products': existing.get('products', []),
         'cases': cleaned[:6],
         'news': existing.get('news', []),
+        'measurementProducts': existing.get('measurementProducts', {}),
+    }
+    _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    return saved
+
+
+def save_h2_home_measurement_products(items):
+    mapping = {}
+    source = items if isinstance(items, list) else []
+    for item in source:
+        if not isinstance(item, dict):
+            continue
+        page_id = item.get('id')
+        if not isinstance(page_id, str) or not page_id.strip():
+            continue
+        product_ids = item.get('productIds', [])
+        mapping[page_id.strip()] = product_ids if isinstance(product_ids, list) else []
+
+    cleaned = _normalize_measurement_products_map(mapping)
+    existing = get_h2_home_config()
+    saved = {
+        'items': existing.get('items', []),
+        'products': existing.get('products', []),
+        'cases': existing.get('cases', []),
+        'news': existing.get('news', []),
+        'measurementProducts': cleaned,
     }
     _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
     return saved
@@ -464,14 +599,9 @@ def register_showcase_content_routes(
         for item in featured[:3]:
             if not item:
                 continue
-            title = item.get('displayName') or item.get('shortName') or item.get('name') or item.get('id', '')
-            items.append({
-                'id': item.get('id'),
-                'title': _dep('sanitize_public_text')(title, max_length=120),
-                'image': _dep('sanitize_public_media_url')(item.get('image', ''), enforce_remote_public=False),
-                'desc': _dep('sanitize_public_text')(item.get('description', ''), max_length=220),
-                'link': _dep('sanitize_public_link_url')(build_product_link(item), default='#'),
-            })
+            serialized = _serialize_public_product_item(item)
+            if serialized:
+                items.append(serialized)
         return jsonify({'items': items})
 
     @app.route('/api/h2-home/products', methods=['POST'])
@@ -533,6 +663,54 @@ def register_showcase_content_routes(
                 if len(output) >= 6:
                     break
         return jsonify({'items': output[:6]})
+
+    @app.route('/api/h2-home/measurement-products', methods=['GET'])
+    def get_h2_home_measurement_products():
+        slug = str(request.args.get('slug') or '').strip()
+        config = get_h2_home_config()
+        measurement_map = config.get('measurementProducts', {})
+        pages = get_measurement_page_items()
+
+        if slug:
+            page = next((item for item in pages if item.get('id') == slug), None)
+            product_ids = measurement_map.get(slug, [])
+            products = [product for product in _dep('get_gassensing_products_with_settings')() if not product.get('hidden')]
+            product_map = {product.get('id'): product for product in products if product.get('id')}
+            items = []
+            for product_id in product_ids:
+                serialized = _serialize_public_product_item(product_map.get(product_id))
+                if serialized:
+                    items.append(serialized)
+            payload = {
+                'slug': slug,
+                'title': page.get('title', '') if page else '',
+                'items': items,
+            }
+        else:
+            payload = {
+                'pages': [
+                    {
+                        **page,
+                        'selectedIds': measurement_map.get(page.get('id'), []),
+                    }
+                    for page in pages
+                ],
+                'count': len(pages),
+            }
+
+        if session.get('admin_logged_in'):
+            response = jsonify(payload)
+            response.headers['Cache-Control'] = 'no-store'
+            return response
+        return _dep('cached_json_response')(payload)
+
+    @app.route('/api/h2-home/measurement-products', methods=['POST'])
+    @login_required
+    def update_h2_home_measurement_products():
+        data = request.json or {}
+        items = data.get('items', [])
+        config = save_h2_home_measurement_products(items)
+        return jsonify({'success': True, 'config': config})
 
     @app.route('/api/h2-home/cases', methods=['POST'])
     @login_required

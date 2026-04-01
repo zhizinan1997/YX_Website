@@ -511,6 +511,54 @@
             gap: 8px;
         }
 
+        .sidebar-menu-group {
+            display: block;
+        }
+
+        .sidebar-menu-group-toggle {
+            width: 100%;
+            border: none;
+            background: transparent;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            text-align: left;
+            font: inherit;
+        }
+
+        .sidebar-menu-group-toggle:hover,
+        .sidebar-menu-group.is-open .sidebar-menu-group-toggle,
+        .sidebar-menu-group.has-active-child .sidebar-menu-group-toggle {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .sidebar-menu-group-toggle>i:first-child {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-menu-group-caret {
+            margin-left: auto;
+            width: auto !important;
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-menu-group.is-open .sidebar-menu-group-caret {
+            transform: rotate(180deg);
+        }
+
+        .sidebar-menu-group-items .menu-item {
+            padding-left: 52px;
+        }
+
         .beta-badge {
             display: inline-flex;
             align-items: center;
@@ -729,6 +777,22 @@
             font-size: 16px;
         }
 
+        body.sidebar-collapsed .sidebar-menu-group-toggle {
+            justify-content: center;
+            padding: 15px 0;
+            gap: 0;
+            font-size: 0;
+        }
+
+        body.sidebar-collapsed .sidebar-menu-group-toggle>i:first-child {
+            width: auto;
+            font-size: 16px;
+        }
+
+        body.sidebar-collapsed .sidebar-menu-group-caret {
+            display: none;
+        }
+
         body.sidebar-collapsed .sidebar-toggle-btn span {
             display: none;
         }
@@ -807,6 +871,22 @@
             body.sidebar-collapsed .menu-item i {
                 width: 20px;
                 font-size: 16px;
+            }
+
+            body.sidebar-collapsed .sidebar-menu-group-toggle {
+                justify-content: flex-start;
+                padding: 15px 25px;
+                gap: 15px;
+                font-size: 14px;
+            }
+
+            body.sidebar-collapsed .sidebar-menu-group-toggle>i:first-child {
+                width: 20px;
+                font-size: 16px;
+            }
+
+            body.sidebar-collapsed .sidebar-menu-group-caret {
+                display: inline-block;
             }
         }
 
@@ -2207,6 +2287,119 @@
             margin-top: 18px;
         }
 
+        .china-map-container {
+            position: relative;
+            width: 100%;
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 12px 0;
+        }
+
+        .china-map-svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .china-map-svg [data-province] {
+            stroke: #94a3b8;
+            stroke-width: 0.6;
+            cursor: pointer;
+            transition: fill 0.2s ease, stroke 0.2s ease, transform 0.2s ease;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .china-map-svg [data-province]:hover {
+            stroke: #1e40af;
+            stroke-width: 1.2;
+            filter: brightness(0.92);
+            transform: translateY(-1px);
+        }
+
+        .china-map-svg text {
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .china-map-tile-label {
+            font-size: 10px;
+            font-weight: 700;
+            fill: #0f172a;
+        }
+
+        .china-map-footnote {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .china-map-tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(15, 23, 42, 0.92);
+            color: #f1f5f9;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
+        .china-map-tooltip.visible {
+            opacity: 1;
+        }
+
+        .china-map-legend {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .china-map-legend-bar {
+            display: flex;
+            height: 12px;
+            border-radius: 3px;
+            overflow: hidden;
+            width: 200px;
+        }
+
+        .china-map-legend-bar span {
+            flex: 1;
+        }
+
+        .china-map-legend-label {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .china-map-no-data {
+            text-align: center;
+            color: #94a3b8;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+
+        .os-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .os-icon i {
+            width: 16px;
+            text-align: center;
+            font-size: 14px;
+        }
+
         .site-report-pagination {
             display: flex;
             align-items: center;
@@ -2621,14 +2814,27 @@
                 <div class="menu-item" data-view="home" onclick="switchView('home')">
                     <i class="fas fa-home"></i> 首页设置
                 </div>
-                <div class="menu-item" data-view="h2-home" onclick="switchView('h2-home')">
-                    <i class="fas fa-bolt"></i> 氢气首页
-                </div>
-                <div class="menu-item" data-view="products" onclick="switchView('products')">
-                    <i class="fas fa-box"></i> 氢气产品
-                </div>
-                <div class="menu-item" data-view="hydrogen-solutions" onclick="switchView('hydrogen-solutions')">
-                    <i class="fas fa-project-diagram"></i> 氢气方案
+                <div class="sidebar-menu-group" data-menu-group="gas-related">
+                    <button type="button" class="sidebar-menu-group-toggle" onclick="toggleSidebarMenuGroup('gas-related')"
+                        aria-expanded="false" aria-controls="sidebarGroupGasRelatedItems">
+                        <i class="fas fa-filter"></i>
+                        <span>气体相关</span>
+                        <i class="fas fa-chevron-down sidebar-menu-group-caret"></i>
+                    </button>
+                    <div class="sidebar-menu-group-items" id="sidebarGroupGasRelatedItems" hidden>
+                        <div class="menu-item" data-view="h2-home" onclick="switchView('h2-home')">
+                            <i class="fas fa-bolt"></i> 氢气首页
+                        </div>
+                        <div class="menu-item" data-view="products" onclick="switchView('products')">
+                            <i class="fas fa-box"></i> 氢气产品
+                        </div>
+                        <div class="menu-item" data-view="bio-products" onclick="switchView('bio-products')">
+                            <i class="fas fa-dna"></i> 生物产品
+                        </div>
+                        <div class="menu-item" data-view="hydrogen-solutions" onclick="switchView('hydrogen-solutions')">
+                            <i class="fas fa-project-diagram"></i> 氢气方案
+                        </div>
+                    </div>
                 </div>
                 <div class="menu-item" data-view="news-create" onclick="switchView('news-create')">
                     <i class="fas fa-pen-nib"></i>
@@ -2960,6 +3166,70 @@
 
                 </div>
 
+                <!-- Bio Products View -->
+                <div id="view-bio-products" class="view-section">
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="switchBioProductTab('add', this)">生物传感产品管理</button>
+                        <button class="tab-btn" onclick="switchBioProductTab('industries', this)">领域分类</button>
+                    </div>
+
+                    <div id="bio-product-tab-add" class="tab-content active">
+                        <div class="card">
+                            <div class="table-container products-manage-scroll">
+                                <table class="products-manage-table">
+                                    <colgroup>
+                                        <col style="width: 100px;">
+                                        <col style="width: 240px;">
+                                        <col style="width: 110px;">
+                                        <col style="width: 280px;">
+                                        <col style="width: 360px;">
+                                        <col style="width: 360px;">
+                                        <col style="width: 220px;">
+                                        <col style="width: 320px;">
+                                        <col style="width: 280px;">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>图片</th>
+                                            <th>产品名称</th>
+                                            <th>显示</th>
+                                            <th>卡片标题（产品页）</th>
+                                            <th>卡片图片（产品页）</th>
+                                            <th>卡片摘要（产品页）</th>
+                                            <th>文件ID</th>
+                                            <th>相关新闻</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bioProductsTableBody">
+                                        <tr>
+                                            <td colspan="9" style="text-align:center; padding: 20px;">加载中...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div
+                            style="margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 8px; font-size: 13px; color: #666;">
+                            <i class="fas fa-info-circle" style="color: #007bff;"></i>
+                            <strong>提示：</strong>产品列表从 <code>pages/biosensing/</code> 目录自动扫描。<br>
+                            不填写“卡片标题/卡片图片/卡片摘要”时，页面将默认使用产品原始名称、原始图片和原始描述。<br>
+                            卡片图片支持两种方式：粘贴 HTTPS CDN 链接，或点击“本地上传”上传 PNG/JPG/JPEG/WEBP。
+                        </div>
+                    </div>
+
+                    <div id="bio-product-tab-industries" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">领域分类设置（生物传感产品页选项卡）</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置生物传感产品页的筛选分类（例如：生物传感产品、生物芯片、检测仪器等），并为每个产品勾选所属领域。
+                            </p>
+                            <div id="bioIndustryFilterEditor"></div>
+                            <div id="bioIndustryAssignEditor" style="margin-top: 20px;"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Hydrogen Solutions View -->
                 <div id="view-hydrogen-solutions" class="view-section">
                     <div class="card" style="padding: 30px;">
@@ -3240,6 +3510,7 @@
                     <div class="tabs">
                         <button class="tab-btn active" onclick="switchH2HomeTab('video', this)">视频设置</button>
                         <button class="tab-btn" onclick="switchH2HomeTab('products', this)">默认产品</button>
+                        <button class="tab-btn" onclick="switchH2HomeTab('measurement-objects', this)">氢气测量对象</button>
                         <button class="tab-btn" onclick="switchH2HomeTab('cases', this)">应用案例</button>
                         <button class="tab-btn" onclick="switchH2HomeTab('news', this)">最近动态</button>
                         <button class="tab-btn" onclick="switchH2HomeTab('navbar', this)">导航栏设置</button>
@@ -3320,6 +3591,24 @@
                                     <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
                                     <div id="h2HomeProductsPreview" class="file-list"></div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="h2-home-tab-measurement-objects" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <h3 class="section-header">氢气测量对象推荐产品</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置 <code>/pages/measurement</code> 下每个测量页面底部显示的推荐产品。<br>
+                                产品列表来自气体产品文件夹，保存后对应页面会按配置展示。
+                            </p>
+                            <div id="h2MeasurementProductsEditor" style="display: flex; flex-direction: column; gap: 20px;">
+                                <div style="color:#888;">加载中...</div>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center; margin-top: 20px;">
+                                <button class="btn-primary" style="width:auto; padding: 10px 24px;"
+                                    onclick="saveH2MeasurementProducts()">保存设置</button>
+                                <div id="h2MeasurementProductsMsg" style="color:#28a745;"></div>
                             </div>
                         </div>
                     </div>
@@ -4361,7 +4650,7 @@
 
                         <div id="subAccountsManageArea" style="display:none;">
                             <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                                权限与侧边栏一一对应：<code>仪表盘、网站报表、首页设置、氢气首页、氢气产品、氢气方案、添加资讯、招聘信息、智能客服、站点设置、账号设置、备份恢复、更新日志</code>。
+                                权限与侧边栏一一对应：<code>仪表盘、网站报表、首页设置、氢气首页、氢气产品、生物产品、氢气方案、添加资讯、招聘信息、智能客服、站点设置、账号设置、备份恢复、更新日志</code>。
                             </div>
 
                             <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
@@ -4669,6 +4958,61 @@
                         </div>
                     </div>
 
+                    <div class="site-report-grid">
+                        <div class="card site-report-card">
+                            <h3 class="section-header">操作系统分布</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th><span class="metric-with-help">操作系统<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('os')" aria-label="操作系统说明">?</button></span></th>
+                                            <th><span class="metric-with-help">会话数<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('os_sessions')" aria-label="系统会话数说明">?</button></span></th>
+                                            <th><span class="metric-with-help">占比<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('os_ratio')" aria-label="系统占比说明">?</button></span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="siteReportOsBody">
+                                        <tr>
+                                            <td colspan="3" class="no-data">暂无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card site-report-card">
+                            <h3 class="section-header">省份分布</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th><span class="metric-with-help">省份<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('province')" aria-label="省份说明">?</button></span></th>
+                                            <th><span class="metric-with-help">会话数<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('province_sessions')" aria-label="省份会话数说明">?</button></span></th>
+                                            <th><span class="metric-with-help">占比<button type="button" class="metric-help-btn"
+                                                        onclick="showSiteMetricHelp('province_ratio')" aria-label="省份占比说明">?</button></span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="siteReportProvinceBody">
+                                        <tr>
+                                            <td colspan="3" class="no-data">暂无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card site-report-card" style="margin-top: 18px;">
+                        <h3 class="section-header"><i class="fas fa-map-marked-alt" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源地图（中国省份热度）</h3>
+                        <div class="china-map-container" id="chinaMapContainer">
+                            <div class="china-map-no-data">暂无地理分布数据</div>
+                        </div>
+                    </div>
+
                     <div class="card site-report-card" style="margin-top: 18px;">
                         <h3 class="section-header">热门页面</h3>
                         <div class="table-container">
@@ -4869,6 +5213,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             updates: ['新增后台「更新日志」入口，可查看版本号、构建时间与更新内容。']
         };
         const ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE = 20;
+        const GAS_RELATED_GROUP_KEY = 'gas-related';
+        const GAS_RELATED_VIEW_KEYS = ['h2-home', 'products', 'hydrogen-solutions'];
         let adminLoginLogsPage = 1;
         let adminLoginLogsTotalPages = 1;
         let adminLoginLogsPageSize = ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE;
@@ -4885,6 +5231,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             { key: 'home', label: '首页设置' },
             { key: 'h2-home', label: '氢气首页' },
             { key: 'products', label: '氢气产品' },
+            { key: 'bio-products', label: '生物产品' },
             { key: 'hydrogen-solutions', label: '氢气方案' },
             { key: 'news-create', label: '添加资讯' },
             { key: 'jobs', label: '招聘信息' },
@@ -4907,6 +5254,51 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let siteReportRecentRowsAll = [];
         let siteReportEventPage = 1;
         let siteReportRecentPage = 1;
+        const SITE_REPORT_OS_META = {
+            windows: { label: 'Windows', icon: 'fab fa-windows' },
+            macos: { label: 'macOS', icon: 'fab fa-apple' },
+            ios: { label: 'iOS', icon: 'fas fa-mobile-alt' },
+            android: { label: 'Android', icon: 'fab fa-android' },
+            harmonyos: { label: '鸿蒙', icon: 'fas fa-microchip' },
+            linux: { label: 'Linux', icon: 'fab fa-linux' },
+            unknown: { label: '未知', icon: 'fas fa-question-circle' }
+        };
+        const CHINA_PROVINCE_TILES = [
+            { name: '新疆维吾尔自治区', short: '新疆', x: 0, y: 1, w: 2 },
+            { name: '西藏自治区', short: '西藏', x: 1, y: 5, w: 2 },
+            { name: '青海省', short: '青海', x: 3, y: 4 },
+            { name: '甘肃省', short: '甘肃', x: 4, y: 3 },
+            { name: '宁夏回族自治区', short: '宁夏', x: 5, y: 3 },
+            { name: '内蒙古自治区', short: '内蒙古', x: 5, y: 1, w: 2 },
+            { name: '黑龙江省', short: '黑龙江', x: 10, y: 0, w: 2 },
+            { name: '吉林省', short: '吉林', x: 10, y: 1 },
+            { name: '辽宁省', short: '辽宁', x: 9, y: 2 },
+            { name: '北京市', short: '北京', x: 8, y: 3 },
+            { name: '天津市', short: '天津', x: 9, y: 3 },
+            { name: '河北省', short: '河北', x: 8, y: 4 },
+            { name: '山西省', short: '山西', x: 7, y: 4 },
+            { name: '陕西省', short: '陕西', x: 5, y: 4 },
+            { name: '山东省', short: '山东', x: 10, y: 4 },
+            { name: '河南省', short: '河南', x: 7, y: 5 },
+            { name: '江苏省', short: '江苏', x: 10, y: 5 },
+            { name: '上海市', short: '上海', x: 11, y: 6 },
+            { name: '安徽省', short: '安徽', x: 9, y: 6 },
+            { name: '湖北省', short: '湖北', x: 7, y: 6 },
+            { name: '浙江省', short: '浙江', x: 10, y: 7 },
+            { name: '福建省', short: '福建', x: 10, y: 8 },
+            { name: '江西省', short: '江西', x: 8, y: 7 },
+            { name: '湖南省', short: '湖南', x: 7, y: 7 },
+            { name: '重庆市', short: '重庆', x: 5, y: 6 },
+            { name: '四川省', short: '四川', x: 4, y: 6 },
+            { name: '贵州省', short: '贵州', x: 5, y: 7 },
+            { name: '云南省', short: '云南', x: 3, y: 8 },
+            { name: '广西壮族自治区', short: '广西', x: 6, y: 9 },
+            { name: '广东省', short: '广东', x: 8, y: 9 },
+            { name: '海南省', short: '海南', x: 8, y: 11 },
+            { name: '台湾省', short: '台湾', x: 11, y: 9 },
+            { name: '香港特别行政区', short: '香港', x: 9, y: 10 },
+            { name: '澳门特别行政区', short: '澳门', x: 8, y: 10 }
+        ];
 
         function updateTopbarAccountDisplay() {
             const usernameEl = document.getElementById('topbarUsername');
@@ -5479,6 +5871,59 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return currentAdminAuth.permissions.includes(String(viewName || '').trim());
         }
 
+        function getSidebarMenuGroup(groupKey) {
+            const key = String(groupKey || '').trim();
+            if (!key) return null;
+            return document.querySelector(`.sidebar-menu-group[data-menu-group="${key}"]`);
+        }
+
+        function setSidebarMenuGroupOpen(groupKey, open) {
+            const group = getSidebarMenuGroup(groupKey);
+            if (!group) return;
+            const willOpen = !!open;
+            group.classList.toggle('is-open', willOpen);
+            const itemsWrap = group.querySelector('.sidebar-menu-group-items');
+            if (itemsWrap) {
+                itemsWrap.hidden = !willOpen;
+            }
+            const toggleBtn = group.querySelector('.sidebar-menu-group-toggle');
+            if (toggleBtn) {
+                toggleBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            }
+        }
+
+        function toggleSidebarMenuGroup(groupKey) {
+            const group = getSidebarMenuGroup(groupKey);
+            if (!group || group.style.display === 'none') return;
+            const opened = group.classList.contains('is-open');
+            setSidebarMenuGroupOpen(groupKey, !opened);
+        }
+
+        function syncGasRelatedMenuGroup(activeView = '') {
+            const group = getSidebarMenuGroup(GAS_RELATED_GROUP_KEY);
+            if (!group) return;
+            const view = String(activeView || '').trim();
+            const hasActiveChild = GAS_RELATED_VIEW_KEYS.includes(view);
+            group.classList.toggle('has-active-child', hasActiveChild);
+            if (hasActiveChild) {
+                setSidebarMenuGroupOpen(GAS_RELATED_GROUP_KEY, true);
+            }
+        }
+
+        function syncGasRelatedMenuGroupVisibility() {
+            const group = getSidebarMenuGroup(GAS_RELATED_GROUP_KEY);
+            if (!group) return;
+            const hasVisibleChildren = GAS_RELATED_VIEW_KEYS.some((viewKey) => {
+                const item = document.querySelector(`.menu-item[data-view="${viewKey}"]`);
+                return !!item && item.style.display !== 'none';
+            });
+            group.style.display = hasVisibleChildren ? '' : 'none';
+            if (!hasVisibleChildren) {
+                group.classList.remove('has-active-child');
+                setSidebarMenuGroupOpen(GAS_RELATED_GROUP_KEY, false);
+            }
+        }
+
         function getFirstAllowedView() {
             const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
             for (const el of menuItems) {
@@ -5523,6 +5968,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     activeVisible = true;
                 }
             }
+            syncGasRelatedMenuGroupVisibility();
+            const activeMenuItem = document.querySelector('.menu-item.active[data-view]');
+            syncGasRelatedMenuGroup(activeMenuItem ? activeMenuItem.dataset.view : '');
             if (!activeVisible) {
                 const firstView = getFirstAllowedView();
                 switchView(firstView);
@@ -5775,6 +6223,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'product-tab-industries': '设置说明：先定义领域分类名称，再勾选每个产品所属领域；分类与勾选都会自动保存。',
             'product-tab-add': '设置说明：本页为“产品列表”管理，可在下方设置卡片标题/图片/摘要与显示状态。',
             'product-tab-ai': '设置说明：先填写资料并点击“AI 生成完整HTML”，确认源码后点击“保存为产品页面文件”。',
+            'bio-product-tab-add': '设置说明：本页为“生物传感产品列表”管理，可设置卡片标题/图片/摘要与显示状态。',
+            'bio-product-tab-industries': '设置说明：先定义生物产品领域分类，再勾选每个产品所属领域；分类与勾选都会自动保存。',
+            'view-bio-products': '设置说明：管理生物传感产品展示与筛选分类，前台 /pages/biosensing/?filter=xxx 会按本页配置展示。',
             'view-hydrogen-solutions': '设置说明：为氢能产业链、智慧电力安全、工业检漏监测方案分别设置 1-4 个“相关产品”，保存后对应前台方案页会按方案展示。',
             'view-site-reports': '设置说明：本页展示网站基础统计和完整分析报表；可切换时间范围查看趋势、来源、设备、页面与行为事件。',
             'home-tab-hero': '设置说明：用于管理官网首页轮播，支持上传和 CDN；调整顺序后保存即可生效。',
@@ -5784,6 +6235,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'home-tab-solutions': '设置说明：选择首页解决方案展示位，支持替换为你指定的方案卡片。',
             'h2-home-tab-video': '设置说明：配置氢气首页首屏视频链接与顺序，保存后用于页面轮播播放。',
             'h2-home-tab-products': '设置说明：设置氢气首页默认展示产品（未选择分类时显示）。',
+            'h2-home-tab-measurement-objects': '设置说明：为测量对象页面分别指定推荐产品，保存后 /pages/measurement 下对应页面底部同步更新。',
             'h2-home-tab-cases': '设置说明：设置氢气首页案例位，支持为每个案例自定义主副标题。',
             'h2-home-tab-news': '设置说明：设置氢气首页最近动态，支持自定义标签、标题和摘要。',
             'h2-home-tab-navbar': '设置说明：集中管理导航栏巨幕菜单（产品列表预览、新品推荐、测量对象）；链接支持 http(s) 和相对路径。',
@@ -5955,6 +6407,187 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return `${s}秒`;
         }
 
+        function getSiteReportOsMeta(rawKey) {
+            const key = String(rawKey || '').trim().toLowerCase();
+            return SITE_REPORT_OS_META[key] || {
+                label: key || '未知',
+                icon: 'fas fa-laptop'
+            };
+        }
+
+        function normalizeProvinceName(rawValue) {
+            const value = String(rawValue || '').trim();
+            if (!value) return '';
+            const provinceMap = {
+                北京: '北京市',
+                北京市: '北京市',
+                上海: '上海市',
+                上海市: '上海市',
+                天津: '天津市',
+                天津市: '天津市',
+                重庆: '重庆市',
+                重庆市: '重庆市',
+                河北: '河北省',
+                河北省: '河北省',
+                山西: '山西省',
+                山西省: '山西省',
+                辽宁: '辽宁省',
+                辽宁省: '辽宁省',
+                吉林: '吉林省',
+                吉林省: '吉林省',
+                黑龙江: '黑龙江省',
+                黑龙江省: '黑龙江省',
+                江苏: '江苏省',
+                江苏省: '江苏省',
+                浙江: '浙江省',
+                浙江省: '浙江省',
+                安徽: '安徽省',
+                安徽省: '安徽省',
+                福建: '福建省',
+                福建省: '福建省',
+                江西: '江西省',
+                江西省: '江西省',
+                山东: '山东省',
+                山东省: '山东省',
+                河南: '河南省',
+                河南省: '河南省',
+                湖北: '湖北省',
+                湖北省: '湖北省',
+                湖南: '湖南省',
+                湖南省: '湖南省',
+                广东: '广东省',
+                广东省: '广东省',
+                海南: '海南省',
+                海南省: '海南省',
+                四川: '四川省',
+                四川省: '四川省',
+                贵州: '贵州省',
+                贵州省: '贵州省',
+                云南: '云南省',
+                云南省: '云南省',
+                陕西: '陕西省',
+                陕西省: '陕西省',
+                甘肃: '甘肃省',
+                甘肃省: '甘肃省',
+                青海: '青海省',
+                青海省: '青海省',
+                台湾: '台湾省',
+                台湾省: '台湾省',
+                内蒙古: '内蒙古自治区',
+                内蒙古自治区: '内蒙古自治区',
+                广西: '广西壮族自治区',
+                广西壮族自治区: '广西壮族自治区',
+                西藏: '西藏自治区',
+                西藏自治区: '西藏自治区',
+                宁夏: '宁夏回族自治区',
+                宁夏回族自治区: '宁夏回族自治区',
+                新疆: '新疆维吾尔自治区',
+                新疆维吾尔自治区: '新疆维吾尔自治区',
+                香港: '香港特别行政区',
+                香港特别行政区: '香港特别行政区',
+                澳门: '澳门特别行政区',
+                澳门特别行政区: '澳门特别行政区'
+            };
+            return provinceMap[value] || value;
+        }
+
+        function getSiteReportMapColor(value, maxValue) {
+            const current = Math.max(0, Number(value || 0));
+            const max = Math.max(1, Number(maxValue || 0));
+            if (!current) return '#e5edf7';
+            const ratio = Math.min(1, current / max);
+            if (ratio < 0.2) return '#d8e7fb';
+            if (ratio < 0.4) return '#b9d3f7';
+            if (ratio < 0.6) return '#8fb8f1';
+            if (ratio < 0.8) return '#5d95e7';
+            return '#2563eb';
+        }
+
+        function renderChinaProvinceHeatMap(rawRows) {
+            const mapWrap = document.getElementById('chinaMapContainer');
+            if (!mapWrap) return;
+            const rows = Array.isArray(rawRows) ? rawRows : [];
+            const normalizedRows = rows.map((item) => ({
+                name: normalizeProvinceName(item?.province || item?.name || ''),
+                sessions: Math.max(0, Number(item?.sessions || item?.value || 0)),
+                ratio: Number(item?.ratio || 0)
+            })).filter(item => item.name);
+
+            if (!normalizedRows.length) {
+                mapWrap.innerHTML = '<div class="china-map-no-data">暂无地理分布数据</div>';
+                return;
+            }
+
+            const provinceMap = {};
+            normalizedRows.forEach((item) => {
+                provinceMap[item.name] = item;
+            });
+
+            const maxValue = Math.max(1, ...normalizedRows.map(item => item.sessions));
+            const tileWidth = 54;
+            const tileHeight = 34;
+            const gap = 8;
+            const cols = 13;
+            const rowsCount = 12;
+            const width = cols * tileWidth + (cols - 1) * gap + 24;
+            const height = rowsCount * tileHeight + (rowsCount - 1) * gap + 24;
+
+            const tilesHtml = CHINA_PROVINCE_TILES.map((tile) => {
+                const item = provinceMap[tile.name] || { sessions: 0, ratio: 0 };
+                const tileX = 12 + tile.x * (tileWidth + gap);
+                const tileY = 12 + tile.y * (tileHeight + gap);
+                const tileW = (tile.w || 1) * tileWidth + Math.max(0, (tile.w || 1) - 1) * gap;
+                const fill = getSiteReportMapColor(item.sessions, maxValue);
+                const title = `${tile.name}：${formatSiteReportNumber(item.sessions)} 次会话，占比 ${formatSiteReportPercent(item.ratio)}`;
+                return `
+                    <g class="china-map-province" data-province="${escapeHtml(tile.name)}" data-sessions="${item.sessions}" data-ratio="${Number(item.ratio || 0).toFixed(2)}">
+                        <title>${escapeHtml(title)}</title>
+                        <rect x="${tileX}" y="${tileY}" width="${tileW}" height="${tileHeight}" rx="10" ry="10" fill="${fill}" data-province="${escapeHtml(tile.name)}"></rect>
+                        <text class="china-map-tile-label" x="${(tileX + tileW / 2).toFixed(2)}" y="${(tileY + tileHeight / 2 + 3).toFixed(2)}" text-anchor="middle">${escapeHtml(tile.short)}</text>
+                    </g>
+                `;
+            }).join('');
+
+            mapWrap.innerHTML = `
+                <svg class="china-map-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="中国省份访问热度图">
+                    ${tilesHtml}
+                </svg>
+                <div class="china-map-legend">
+                    <span class="china-map-legend-label">低</span>
+                    <div class="china-map-legend-bar" aria-hidden="true">
+                        <span style="background:#e5edf7"></span>
+                        <span style="background:#d8e7fb"></span>
+                        <span style="background:#b9d3f7"></span>
+                        <span style="background:#8fb8f1"></span>
+                        <span style="background:#5d95e7"></span>
+                        <span style="background:#2563eb"></span>
+                    </div>
+                    <span class="china-map-legend-label">高</span>
+                </div>
+                <div class="china-map-footnote">按中国省级行政区聚合访问会话数，颜色越深表示热度越高。</div>
+                <div class="china-map-tooltip" id="chinaMapTooltip"></div>
+            `;
+
+            const tooltip = document.getElementById('chinaMapTooltip');
+            if (!tooltip) return;
+            const regions = mapWrap.querySelectorAll('.china-map-province');
+            regions.forEach((region) => {
+                const province = String(region.getAttribute('data-province') || '').trim();
+                const sessions = Number(region.getAttribute('data-sessions') || 0);
+                const ratio = Number(region.getAttribute('data-ratio') || 0);
+                region.addEventListener('mousemove', (event) => {
+                    const bounds = mapWrap.getBoundingClientRect();
+                    tooltip.textContent = `${province}: ${formatSiteReportNumber(sessions)} 次会话 (${formatSiteReportPercent(ratio)})`;
+                    tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
+                    tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
+                    tooltip.classList.add('visible');
+                });
+                region.addEventListener('mouseleave', () => {
+                    tooltip.classList.remove('visible');
+                });
+            });
+        }
+
         const SITE_REPORT_METRIC_HELP = {
             pv: {
                 title: '页面浏览量 (PV)',
@@ -6025,6 +6658,36 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 title: '设备-占比',
                 meaning: '每类设备在总会话中的比例。',
                 formula: '占比 = 设备会话数 / 总会话数 × 100%'
+            },
+            os: {
+                title: '操作系统',
+                meaning: '按访客终端操作系统聚合，例如 Windows、macOS、iOS、Android、鸿蒙。',
+                formula: '根据 User-Agent 关键词规则分类后，按会话聚合'
+            },
+            os_sessions: {
+                title: '系统-会话数',
+                meaning: '每类操作系统对应的会话数量。',
+                formula: '会话数 = 该系统下去重(session_id) 计数'
+            },
+            os_ratio: {
+                title: '系统-占比',
+                meaning: '每类操作系统在总会话中的比例。',
+                formula: '占比 = 系统会话数 / 总会话数 × 100%'
+            },
+            province: {
+                title: '省份',
+                meaning: '按访问 IP 解析出的中国省级行政区分布。',
+                formula: '根据访客公网 IP 地理位置解析结果聚合到省份'
+            },
+            province_sessions: {
+                title: '省份-会话数',
+                meaning: '各省份对应的访问会话数量。',
+                formula: '会话数 = 该省份下去重(session_id) 计数'
+            },
+            province_ratio: {
+                title: '省份-占比',
+                meaning: '各省份在总会话中的比例。',
+                formula: '占比 = 省份会话数 / 总会话数 × 100%'
             },
             page_name: {
                 title: 'Top 页面-页面',
@@ -6228,10 +6891,16 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         function renderSiteReportRows() {
             const sourceBody = document.getElementById('siteReportSourceBody');
             const deviceBody = document.getElementById('siteReportDeviceBody');
+            const osBody = document.getElementById('siteReportOsBody');
+            const provinceBody = document.getElementById('siteReportProvinceBody');
             const pagesBody = document.getElementById('siteReportPagesBody');
             if (sourceBody) sourceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
             if (deviceBody) deviceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
+            if (osBody) osBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
+            if (provinceBody) provinceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
             if (pagesBody) pagesBody.innerHTML = '<tr><td colspan="4" class="no-data">暂无数据</td></tr>';
+            const mapWrap = document.getElementById('chinaMapContainer');
+            if (mapWrap) mapWrap.innerHTML = '<div class="china-map-no-data">暂无地理分布数据</div>';
             siteReportEventRowsAll = [];
             siteReportRecentRowsAll = [];
             siteReportEventPage = 1;
@@ -6389,6 +7058,52 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 }
             }
 
+            const osBody = document.getElementById('siteReportOsBody');
+            const osRows = Array.isArray(data.os_breakdown) ? data.os_breakdown : [];
+            if (osBody) {
+                if (!osRows.length) {
+                    osBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无系统数据</td></tr>';
+                } else {
+                    osBody.innerHTML = osRows.map((item) => {
+                        const osKey = String(item?.os || '').toLowerCase();
+                        const meta = getSiteReportOsMeta(osKey);
+                        return `
+                            <tr>
+                                <td>
+                                    <span class="os-icon">
+                                        <i class="${escapeHtml(meta.icon)}" aria-hidden="true"></i>
+                                        <span>${escapeHtml(meta.label)}</span>
+                                    </span>
+                                </td>
+                                <td>${formatSiteReportNumber(item?.sessions)}</td>
+                                <td>${formatSiteReportPercent(item?.ratio)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const provinceBody = document.getElementById('siteReportProvinceBody');
+            const provinceRows = Array.isArray(data.province_breakdown) ? data.province_breakdown : [];
+            if (provinceBody) {
+                if (!provinceRows.length) {
+                    provinceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无省份数据</td></tr>';
+                } else {
+                    provinceBody.innerHTML = provinceRows.map((item) => {
+                        const provinceName = normalizeProvinceName(item?.province || '');
+                        return `
+                            <tr>
+                                <td>${escapeHtml(provinceName || '未知')}</td>
+                                <td>${formatSiteReportNumber(item?.sessions)}</td>
+                                <td>${formatSiteReportPercent(item?.ratio)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            renderChinaProvinceHeatMap(provinceRows);
+
             const pagesBody = document.getElementById('siteReportPagesBody');
             const pageRows = Array.isArray(data.top_pages) ? data.top_pages : [];
             if (pagesBody) {
@@ -6490,6 +7205,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             const activeMenu = document.querySelector(`.menu-item[data-view="${viewName}"]`);
             if (activeMenu) activeMenu.classList.add('active');
+            syncGasRelatedMenuGroup(viewName);
 
             // Update View
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
@@ -6500,6 +7216,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const titles = {
                 'messages': '仪表盘',
                 'products': '氢气产品',
+                'bio-products': '生物产品',
                 'hydrogen-solutions': '氢气方案',
                 'home': '首页设置',
                 'h2-home': '氢气首页设置',
@@ -6519,6 +7236,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (viewName === 'products') {
                 bindProductCreateEvents();
                 loadProducts();
+            }
+            if (viewName === 'bio-products') {
+                loadBioProducts();
             }
             if (viewName === 'hydrogen-solutions') loadHydrogenSolutionsConfig();
             if (viewName === 'home') {
@@ -6547,6 +7267,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         // --- Products Logic ---
         let productsData = [];
         let industryFiltersData = [];
+        let bioProductsData = [];
+        let bioIndustryFiltersData = [];
+        let industryFiltersSaveToken = 0;
+        let bioIndustryFiltersSaveToken = 0;
         let productEditorMode = 'visual';
         let editingProductSlug = '';
         let productPreviewTimer = null;
@@ -7954,16 +8678,22 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return base + options;
         }
 
-        function triggerProductCodeDownload(productId) {
+        function triggerProductCodeDownload(productId, endpoint = '/api/products/code/download') {
             if (!productId) return;
-            const url = `/api/products/code/download?id=${encodeURIComponent(productId)}`;
+            const url = `${endpoint}?id=${encodeURIComponent(productId)}`;
             window.open(url, '_blank');
         }
 
-        async function uploadProductCodeFile(productId, file) {
-            const tbody = document.getElementById('productsTableBody');
+        async function uploadProductCodeFile(
+            productId,
+            file,
+            endpoint = '/api/products/code/upload',
+            messageSelector = '.product-code-action-msg',
+            tableBodyId = 'productsTableBody'
+        ) {
+            const tbody = document.getElementById(tableBodyId);
             const msgEl = tbody
-                ? Array.from(tbody.querySelectorAll('.product-code-action-msg')).find(el => String(el.dataset.id) === String(productId))
+                ? Array.from(tbody.querySelectorAll(messageSelector)).find(el => String(el.dataset.id) === String(productId))
                 : null;
             if (!file) return;
             if (!/\.html?$/i.test(file.name || '')) {
@@ -7981,7 +8711,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 const formData = new FormData();
                 formData.append('id', productId);
                 formData.append('file', file);
-                const res = await fetch('/api/products/code/upload', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     body: formData
                 });
@@ -8172,6 +8902,449 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             } catch (e) {
                 console.error('Load products error:', e);
                 tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
+            }
+        }
+
+        async function loadBioProducts() {
+            const tbody = document.getElementById('bioProductsTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+
+            try {
+                const res = await fetch('/api/bio-products/with-settings');
+                const data = await res.json();
+                const rawProducts = Array.isArray(data.products) ? data.products : [];
+                bioProductsData = rawProducts.filter(p => String(p?.id || '').startsWith('../biosensing/'));
+
+                let newsItems = [];
+                try {
+                    const newsRes = await fetch('/api/news/list');
+                    if (newsRes.ok) {
+                        const newsData = await newsRes.json();
+                        newsItems = (newsData.items || []).filter(item => !item.hidden);
+                    }
+                } catch (_) {
+                    newsItems = [];
+                }
+
+                if (bioProductsData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无生物产品数据</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = bioProductsData.map(p => {
+                    const relatedNews = normalizeRelatedNewsLinks(p.relatedNews || []);
+                    const news1 = relatedNews[0] || '';
+                    const news2 = relatedNews[1] || '';
+                    const pidEsc = escapeHtml(p.id);
+                    return `
+                    <tr style="${p.hidden ? 'opacity: 0.5;' : ''}">
+                        <td class="cell-image">
+                            <img src="${p.image}" alt="${p.name}" 
+                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 40%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/><text x=%2230%22 y=%2225%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%228%22>无图</text></svg>'">
+                        </td>
+                        <td class="cell-name"><strong>${p.name}</strong></td>
+                        <td class="cell-visible">
+                            <label class="toggle-switch" style="margin: 0;">
+                                <input type="checkbox" class="bio-product-list-visible" data-id="${pidEsc}" ${!p.hidden ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </td>
+                        <td class="cell-title">
+                            <input type="text" class="form-control bio-product-card-title" data-id="${pidEsc}"
+                                value="${escapeHtml(p.cardTitle || '')}"
+                                placeholder="${escapeHtml(p.name || '')}">
+                        </td>
+                        <td class="cell-image-config">
+                            <input type="text" class="form-control bio-product-card-image" data-id="${pidEsc}"
+                                value="${escapeHtml(p.cardImage || '')}"
+                                placeholder="${escapeHtml(p.image || '')}">
+                            <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+                                <button type="button" class="btn-sm bio-product-card-image-upload-btn" data-id="${pidEsc}">本地上传</button>
+                                <input type="file" class="bio-product-card-image-file" data-id="${pidEsc}" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                                <span class="bio-product-card-image-msg" data-id="${pidEsc}" style="font-size:11px; color:#666;"></span>
+                            </div>
+                        </td>
+                        <td class="cell-summary">
+                            <textarea class="form-control bio-product-card-summary" data-id="${pidEsc}" rows="2"
+                                placeholder="${escapeHtml(p.description || '')}">${escapeHtml(p.cardSummary || '')}</textarea>
+                        </td>
+                        <td class="cell-fileid"><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">${p.id}</code></td>
+                        <td class="cell-news">
+                            <select class="form-control bio-product-related-news-select" data-id="${pidEsc}" data-slot="1" style="margin-bottom:6px;">
+                                ${buildNewsOptionsHtml(newsItems, news1)}
+                            </select>
+                            <select class="form-control bio-product-related-news-select" data-id="${pidEsc}" data-slot="2">
+                                ${buildNewsOptionsHtml(newsItems, news2)}
+                            </select>
+                        </td>
+                        <td class="cell-actions">
+                            <div class="action-wrap">
+                                <button type="button" class="btn-sm bio-product-download-code-btn" data-id="${pidEsc}">下载代码</button>
+                                <button type="button" class="btn-sm bio-product-upload-code-btn" data-id="${pidEsc}">上传覆盖代码</button>
+                                <input type="file" class="bio-product-upload-code-file" data-id="${pidEsc}" accept=".html,text/html" style="display:none;">
+                            </div>
+                            <div class="bio-product-code-action-msg" data-id="${pidEsc}" style="font-size:11px; color:#666; margin-top:6px;"></div>
+                        </td>
+                    </tr>
+                `;
+                }).join('');
+
+                tbody.querySelectorAll('.bio-product-card-title').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        saveBioProductSetting(e.target.dataset.id, 'cardTitle', e.target.value);
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-card-image').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        saveBioProductSetting(e.target.dataset.id, 'cardImage', e.target.value);
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-card-summary').forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        saveBioProductSetting(e.target.dataset.id, 'cardSummary', e.target.value);
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-list-visible').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const hidden = !e.target.checked;
+                        const row = e.target.closest('tr');
+                        if (row) row.style.opacity = hidden ? '0.5' : '1';
+                        const product = bioProductsData.find(p => String(p.id) === String(e.target.dataset.id));
+                        if (product) product.hidden = hidden;
+                        saveBioProductSetting(e.target.dataset.id, 'hidden', hidden);
+                        renderBioIndustrySettings();
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-card-image-upload-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const pid = btn.dataset.id;
+                        const fileInput = tbody.querySelector(`.bio-product-card-image-file[data-id="${pid}"]`);
+                        if (fileInput) fileInput.click();
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-card-image-file').forEach(input => {
+                    input.addEventListener('change', async (e) => {
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        await uploadBioProductCardImage(e.target.dataset.id, file);
+                        e.target.value = '';
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-related-news-select').forEach(select => {
+                    select.addEventListener('change', async (e) => {
+                        const pid = e.target.dataset.id;
+                        const row = e.target.closest('tr');
+                        if (!pid || !row) return;
+                        const values = Array.from(row.querySelectorAll('.bio-product-related-news-select'))
+                            .map(el => String(el.value || '').trim())
+                            .filter(Boolean);
+                        const deduped = values.filter((v, idx) => values.indexOf(v) === idx).slice(0, 2);
+                        await saveBioProductSetting(pid, 'relatedNews', deduped);
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-download-code-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        triggerProductCodeDownload(btn.dataset.id, '/api/bio-products/code/download');
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-upload-code-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const pid = btn.dataset.id;
+                        const fileInput = Array.from(tbody.querySelectorAll('.bio-product-upload-code-file'))
+                            .find(el => String(el.dataset.id) === String(pid));
+                        if (fileInput) fileInput.click();
+                    });
+                });
+                tbody.querySelectorAll('.bio-product-upload-code-file').forEach(input => {
+                    input.addEventListener('change', async (e) => {
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        const pid = e.target.dataset.id;
+                        await uploadProductCodeFile(pid, file, '/api/bio-products/code/upload', '.bio-product-code-action-msg', 'bioProductsTableBody');
+                        e.target.value = '';
+                    });
+                });
+                await loadBioIndustryFilters();
+            } catch (e) {
+                console.error('Load bio products error:', e);
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
+            }
+        }
+
+        async function saveBioProductSetting(productId, field, value) {
+            try {
+                const res = await fetch('/api/bio-products/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: productId,
+                        [field]: value
+                    })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    console.error('Save bio product setting failed:', result.message);
+                    return;
+                }
+                const target = bioProductsData.find(p => String(p.id) === String(productId));
+                if (target) target[field] = value;
+            } catch (e) {
+                console.error('Save bio product setting error:', e);
+            }
+        }
+
+        async function uploadBioProductCardImage(productId, file) {
+            const tbody = document.getElementById('bioProductsTableBody');
+            const msgEl = tbody ? tbody.querySelector(`.bio-product-card-image-msg[data-id="${productId}"]`) : null;
+            const imageInput = tbody ? tbody.querySelector(`.bio-product-card-image[data-id="${productId}"]`) : null;
+            if (msgEl) {
+                msgEl.style.color = '#666';
+                msgEl.textContent = '上传中...';
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch('/api/bio-products/card-image/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                if (!result.success || !result.url) {
+                    throw new Error(result.message || '上传失败');
+                }
+
+                if (imageInput) {
+                    imageInput.value = result.url;
+                }
+                await saveBioProductSetting(productId, 'cardImage', result.url);
+
+                if (msgEl) {
+                    msgEl.style.color = '#2e7d32';
+                    msgEl.textContent = '✓ 上传并保存成功';
+                }
+            } catch (e) {
+                console.error('Upload bio product card image error:', e);
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = '上传失败';
+                }
+            }
+        }
+
+        async function loadBioIndustryFilters() {
+            try {
+                const res = await fetch('/api/bio-products/industry-filters');
+                const data = await res.json();
+                bioIndustryFiltersData = Array.isArray(data.categories) ? data.categories : [];
+                renderBioIndustrySettings();
+            } catch (e) {
+                console.error('Load bio industry filters error:', e);
+                const editor = document.getElementById('bioIndustryFilterEditor');
+                if (editor) {
+                    editor.innerHTML = '<div style="color:#dc3545;">加载领域分类失败，请刷新重试</div>';
+                }
+            }
+        }
+
+        function renderBioIndustrySettings() {
+            const filterEditor = document.getElementById('bioIndustryFilterEditor');
+            const assignEditor = document.getElementById('bioIndustryAssignEditor');
+            if (!filterEditor || !assignEditor) return;
+            const visibleProducts = bioProductsData.filter(p => !p.hidden);
+
+            const rowsHtml = bioIndustryFiltersData.map((item, idx) => `
+                <tr data-index="${idx}" style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 8px;"><code>${escapeIndustryHtml(item.key)}</code></td>
+                    <td style="padding: 8px;">
+                        <input type="text" class="form-control bio-industry-name-input" data-index="${idx}" value="${escapeIndustryHtml(item.name)}">
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                        <button class="btn-sm btn-danger" onclick="removeBioIndustryFilter(${idx})" ${bioIndustryFiltersData.length <= 1 ? 'disabled' : ''}>删除</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            filterEditor.innerHTML = `
+                <h4 style="margin-bottom: 12px; color: #333;">1) 定义筛选分类</h4>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="padding: 10px; text-align: left; width: 220px; border-bottom: 2px solid #ddd;">分类键值</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">分类名称</th>
+                            <th style="padding: 10px; text-align: center; width: 90px; border-bottom: 2px solid #ddd;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="text" id="newBioIndustryName" class="form-control" placeholder="新分类名称（例如：生物传感产品）" style="max-width: 320px;">
+                    <button class="btn-primary" style="width:auto; padding:10px 20px;" onclick="addBioIndustryFilter()">添加分类（自动保存）</button>
+                    <button class="btn-primary" style="width:auto; padding:10px 20px;" onclick="saveBioIndustryFilters()">保存分类定义</button>
+                </div>
+                <div id="bioIndustrySaveMsg" style="margin-top: 10px; font-size: 13px;"></div>
+            `;
+
+            assignEditor.innerHTML = `
+                <h4 style="margin-bottom: 12px; color: #333;">2) 勾选产品所属领域</h4>
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background:#f5f5f5;">
+                            <th style="padding: 12px; text-align:left; border-bottom:2px solid #ddd; width: 220px;">产品</th>
+                            ${bioIndustryFiltersData.map(c => `
+                                <th style="padding: 8px 4px; text-align:center; border-bottom:2px solid #ddd; font-size: 12px;">${escapeIndustryHtml(c.name)}</th>
+                            `).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${visibleProducts.length === 0 ? `
+                            <tr>
+                                <td colspan="${bioIndustryFiltersData.length + 1}" style="padding:14px; text-align:center; color:#999;">
+                                    当前没有可显示的产品（隐藏产品不会出现在此处）
+                                </td>
+                            </tr>
+                        ` : visibleProducts.map(p => {
+                const selected = Array.isArray(p.industryCategories) ? p.industryCategories : [];
+                return `
+                            <tr style="border-bottom:1px solid #eee;">
+                                <td style="padding:10px;">
+                                    <div style="font-weight:500; color:#333;">${escapeIndustryHtml(p.name)}</div>
+                                    <div style="font-size:11px; color:#999;">${escapeIndustryHtml(p.id)}</div>
+                                </td>
+                                ${bioIndustryFiltersData.map(c => `
+                                    <td style="padding:8px 4px; text-align:center;">
+                                        <input type="checkbox"
+                                            class="bio-industry-checkbox"
+                                            data-id="${escapeIndustryHtml(p.id)}"
+                                            data-industry="${escapeIndustryHtml(c.key)}"
+                                            ${selected.includes(c.key) ? 'checked' : ''}
+                                            style="width: 18px; height: 18px; cursor: pointer;">
+                                    </td>
+                                `).join('')}
+                            </tr>
+                        `;
+            }).join('')}
+                    </tbody>
+                </table>
+                <div style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-radius: 6px; font-size: 13px; color: #2e7d32;">
+                    <i class="fas fa-check-circle"></i> 勾选和分类名称变更都会自动保存，刷新产品页即可看到新选项卡。
+                </div>
+            `;
+
+            assignEditor.querySelectorAll('.bio-industry-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    updateBioProductIndustryCategories(e.target.dataset.id);
+                });
+            });
+
+            filterEditor.querySelectorAll('.bio-industry-name-input').forEach(input => {
+                input.addEventListener('change', async (e) => {
+                    const idx = parseInt(e.target.dataset.index, 10);
+                    if (!Number.isNaN(idx) && bioIndustryFiltersData[idx]) {
+                        bioIndustryFiltersData[idx].name = e.target.value.trim() || bioIndustryFiltersData[idx].name;
+                        await persistBioIndustryFilters('✓ 分类名称已自动保存');
+                    }
+                });
+            });
+
+            const newIndustryInput = document.getElementById('newBioIndustryName');
+            if (newIndustryInput) {
+                newIndustryInput.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        await addBioIndustryFilter();
+                    }
+                });
+            }
+        }
+
+        async function addBioIndustryFilter() {
+            const input = document.getElementById('newBioIndustryName');
+            const name = (input?.value || '').trim();
+            if (!name) return;
+
+            const existingKeys = new Set(bioIndustryFiltersData.map(i => i.key));
+            let key = normalizeIndustryKey(name, bioIndustryFiltersData.length);
+            let suffix = 2;
+            while (existingKeys.has(key)) {
+                key = normalizeIndustryKey(`${name}-${suffix}`, bioIndustryFiltersData.length + suffix);
+                suffix += 1;
+            }
+
+            bioIndustryFiltersData.push({ key, name });
+            input.value = '';
+            await persistBioIndustryFilters('✓ 已添加并自动保存');
+        }
+
+        async function removeBioIndustryFilter(index) {
+            if (bioIndustryFiltersData.length <= 1) return;
+            syncIndustryNamesFromInputs(bioIndustryFiltersData, '.bio-industry-name-input');
+            bioIndustryFiltersData.splice(index, 1);
+            await persistBioIndustryFilters('✓ 已删除并自动保存');
+        }
+
+        async function persistBioIndustryFilters(successText = '✓ 分类定义已保存') {
+            const msg = document.getElementById('bioIndustrySaveMsg');
+            const token = ++bioIndustryFiltersSaveToken;
+            syncIndustryNamesFromInputs(bioIndustryFiltersData, '.bio-industry-name-input');
+
+            const payload = {
+                categories: bioIndustryFiltersData.map((item, idx) => ({
+                    key: normalizeIndustryKey(item.key || item.name, idx),
+                    name: (item.name || '').trim()
+                })).filter(item => item.name)
+            };
+
+            try {
+                const res = await fetch('/api/bio-products/industry-filters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (token !== bioIndustryFiltersSaveToken) {
+                    return;
+                }
+                if (!result.success) {
+                    throw new Error(result.message || '保存失败');
+                }
+                bioIndustryFiltersData = Array.isArray(result.categories) ? result.categories : payload.categories;
+                if (msg) {
+                    msg.style.color = '#2e7d32';
+                    msg.textContent = successText;
+                }
+                renderBioIndustrySettings();
+            } catch (e) {
+                if (token !== bioIndustryFiltersSaveToken) {
+                    return;
+                }
+                console.error('Save bio industry filters error:', e);
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '保存失败，请重试';
+                }
+            }
+        }
+
+        async function saveBioIndustryFilters() {
+            await persistBioIndustryFilters('✓ 分类定义已保存');
+        }
+
+        function updateBioProductIndustryCategories(productId) {
+            const all = document.querySelectorAll('.bio-industry-checkbox');
+            const checkboxes = Array.from(all).filter(cb => cb.dataset.id === productId);
+            const industryCategories = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    industryCategories.push(cb.dataset.industry);
+                }
+            });
+
+            saveBioProductSetting(productId, 'industryCategories', industryCategories);
+            const product = bioProductsData.find(p => p.id === productId);
+            if (product) {
+                product.industryCategories = industryCategories;
             }
         }
 
@@ -8487,6 +9660,17 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return key;
         }
 
+        function syncIndustryNamesFromInputs(filters, selector) {
+            const rows = Array.from(document.querySelectorAll(selector));
+            if (!Array.isArray(filters) || rows.length !== filters.length) return;
+            rows.forEach(input => {
+                const idx = parseInt(input.dataset.index, 10);
+                if (!Number.isNaN(idx) && filters[idx]) {
+                    filters[idx].name = input.value.trim() || filters[idx].name;
+                }
+            });
+        }
+
         function escapeIndustryHtml(str) {
             return String(str || '')
                 .replace(/&/g, '&amp;')
@@ -8642,20 +9826,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         async function removeIndustryFilter(index) {
             if (industryFiltersData.length <= 1) return;
+            syncIndustryNamesFromInputs(industryFiltersData, '.industry-name-input');
             industryFiltersData.splice(index, 1);
             await persistIndustryFilters('✓ 已删除并自动保存');
         }
 
         async function persistIndustryFilters(successText = '✓ 分类定义已保存') {
             const msg = document.getElementById('industrySaveMsg');
-            const names = Array.from(document.querySelectorAll('.industry-name-input'));
-
-            names.forEach(input => {
-                const idx = parseInt(input.dataset.index, 10);
-                if (!Number.isNaN(idx) && industryFiltersData[idx]) {
-                    industryFiltersData[idx].name = input.value.trim() || industryFiltersData[idx].name;
-                }
-            });
+            const token = ++industryFiltersSaveToken;
+            syncIndustryNamesFromInputs(industryFiltersData, '.industry-name-input');
 
             const payload = {
                 categories: industryFiltersData.map((item, idx) => ({
@@ -8671,6 +9850,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     body: JSON.stringify(payload)
                 });
                 const result = await res.json();
+                if (token !== industryFiltersSaveToken) {
+                    return;
+                }
                 if (!result.success) {
                     throw new Error(result.message || '保存失败');
                 }
@@ -8681,6 +9863,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 }
                 renderIndustrySettings();
             } catch (e) {
+                if (token !== industryFiltersSaveToken) {
+                    return;
+                }
                 console.error('Save industry filters error:', e);
                 if (msg) {
                     msg.style.color = '#dc3545';
@@ -9153,6 +10338,21 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 renderTabGuide(tab);
                 if (tabName === 'add') bindProductCreateEvents();
                 if (tabName === 'ai') bindAiProductEvents();
+            }
+        }
+
+        function switchBioProductTab(tabName, btn) {
+            document.querySelectorAll('#view-bio-products .tab-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            document.querySelectorAll('#view-bio-products .tab-content').forEach(c => c.classList.remove('active'));
+            const tab = document.getElementById(`bio-product-tab-${tabName}`);
+            if (tab) {
+                tab.classList.add('active');
+                renderTabGuide(tab);
+            }
+            if (tabName === 'industries' && !bioIndustryFiltersData.length) {
+                loadBioIndustryFilters();
             }
         }
 
@@ -10208,6 +11408,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
             if (tabName === 'video') loadH2HomeConfig();
             if (tabName === 'products') loadH2HomeProducts();
+            if (tabName === 'measurement-objects') loadH2MeasurementProducts();
             if (tabName === 'cases') loadH2HomeCases();
             if (tabName === 'news') loadH2HomeNews();
             if (tabName === 'navbar') {
@@ -10313,6 +11514,199 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     msg.textContent = data.message || '保存失败';
                 }
             } catch (e) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '网络错误';
+                }
+            }
+        }
+
+        let h2MeasurementProductsAll = [];
+        let h2MeasurementProductsPages = [];
+        const H2_MEASUREMENT_PRODUCT_SLOTS = 4;
+
+        function getH2MeasurementProductLabel(item) {
+            return item.displayName || item.cardTitle || item.shortName || item.name || item.id || '';
+        }
+
+        function getH2MeasurementProductOptionsHtml() {
+            return ['<option value="">请选择产品</option>']
+                .concat(h2MeasurementProductsAll.map(item => `
+                    <option value="${item.id}">${escapeHtml(getH2MeasurementProductLabel(item))}</option>
+                `))
+                .join('');
+        }
+
+        function getH2MeasurementPageById(pageId) {
+            return h2MeasurementProductsPages.find(item => item.id === pageId) || null;
+        }
+
+        function renderH2MeasurementProductsPreview(pageId) {
+            const preview = document.getElementById(`h2MeasurementPreview-${pageId}`);
+            if (!preview) return;
+            const page = getH2MeasurementPageById(pageId);
+            const selectedIds = Array.isArray(page?.selectedIds) ? page.selectedIds : [];
+            const items = selectedIds
+                .map(id => h2MeasurementProductsAll.find(product => product.id === id))
+                .filter(Boolean);
+
+            if (!items.length) {
+                preview.innerHTML = '<div style="color:#888;">未选择产品，前台将保留页面原有内容</div>';
+                return;
+            }
+
+            preview.innerHTML = items.map(item => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <img src="${item.cardImage || item.image || ''}" alt="product"
+                            style="width:64px; height:40px; object-fit:contain; border-radius:6px; background:#f7f8fa;">
+                        <div>
+                            <div style="font-weight:500;">${escapeHtml(getH2MeasurementProductLabel(item))}</div>
+                            <div class="file-meta">${escapeHtml(item.category || '')}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function syncH2MeasurementProductsPage(pageId) {
+            const page = getH2MeasurementPageById(pageId);
+            if (!page) return;
+            const selects = Array.from(document.querySelectorAll(`.h2-measurement-product-select[data-page-id="${pageId}"]`));
+            const seen = new Set();
+            const selectedIds = [];
+
+            selects.forEach(sel => {
+                const value = (sel.value || '').trim();
+                if (!value || seen.has(value)) {
+                    if (value && seen.has(value)) sel.value = '';
+                    return;
+                }
+                seen.add(value);
+                selectedIds.push(value);
+            });
+
+            page.selectedIds = selectedIds.slice(0, H2_MEASUREMENT_PRODUCT_SLOTS);
+            renderH2MeasurementProductsPreview(pageId);
+        }
+
+        function renderH2MeasurementProductsEditor() {
+            const container = document.getElementById('h2MeasurementProductsEditor');
+            if (!container) return;
+
+            if (!h2MeasurementProductsPages.length) {
+                container.innerHTML = '<div style="color:#888;">未找到测量页面</div>';
+                return;
+            }
+
+            const optionsHtml = getH2MeasurementProductOptionsHtml();
+            container.innerHTML = h2MeasurementProductsPages.map(page => {
+                const selectedIds = Array.isArray(page.selectedIds) ? page.selectedIds : [];
+                const selectsHtml = Array.from({ length: H2_MEASUREMENT_PRODUCT_SLOTS }, (_, idx) => `
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>产品 ${idx + 1}</label>
+                        <select class="form-control h2-measurement-product-select"
+                            data-page-id="${page.id}" data-slot="${idx}">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="card" style="padding:20px;">
+                        <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center;">
+                            <div>
+                                <div style="font-weight:600; color:#333;">${escapeHtml(page.title || page.filename || page.id)}</div>
+                                <div class="file-meta"><code>/pages/measurement/${escapeHtml(page.filename || `${page.id}.html`)}</code></div>
+                            </div>
+                            <div style="color:#888; font-size:13px;">最多选择 ${H2_MEASUREMENT_PRODUCT_SLOTS} 个产品</div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-top:16px;">
+                            ${selectsHtml}
+                        </div>
+                        <div id="h2MeasurementPreview-${page.id}" class="file-list" style="margin-top:16px;"></div>
+                    </div>
+                `;
+            }).join('');
+
+            h2MeasurementProductsPages.forEach(page => {
+                const selectedIds = Array.isArray(page.selectedIds) ? page.selectedIds : [];
+                const selects = Array.from(document.querySelectorAll(`.h2-measurement-product-select[data-page-id="${page.id}"]`));
+                selects.forEach((sel, idx) => {
+                    sel.value = selectedIds[idx] || '';
+                    sel.addEventListener('change', function () {
+                        syncH2MeasurementProductsPage(page.id);
+                    });
+                });
+                renderH2MeasurementProductsPreview(page.id);
+            });
+        }
+
+        async function loadH2MeasurementProducts() {
+            const container = document.getElementById('h2MeasurementProductsEditor');
+            if (container) {
+                container.innerHTML = '<div style="color:#888;">加载中...</div>';
+            }
+            try {
+                const [productsRes, pagesRes] = await Promise.all([
+                    fetch('/api/products/gassensing'),
+                    fetch('/api/h2-home/measurement-products')
+                ]);
+                const productsData = await productsRes.json();
+                const pagesData = await pagesRes.json();
+
+                h2MeasurementProductsAll = (productsData.products || []).filter(item => !item.hidden);
+                h2MeasurementProductsPages = (pagesData.pages || []).map(page => ({
+                    ...page,
+                    selectedIds: Array.isArray(page.selectedIds) ? page.selectedIds : []
+                }));
+                renderH2MeasurementProductsEditor();
+            } catch (e) {
+                console.error('Load h2 measurement products error:', e);
+                if (container) {
+                    container.innerHTML = '<div style="color:#dc3545;">加载失败，请刷新后重试</div>';
+                }
+            }
+        }
+
+        async function saveH2MeasurementProducts() {
+            const msg = document.getElementById('h2MeasurementProductsMsg');
+            if (msg) msg.textContent = '';
+
+            h2MeasurementProductsPages.forEach(page => syncH2MeasurementProductsPage(page.id));
+            const items = h2MeasurementProductsPages.map(page => ({
+                id: page.id,
+                productIds: Array.isArray(page.selectedIds) ? page.selectedIds : []
+            }));
+
+            try {
+                const res = await fetch('/api/h2-home/measurement-products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功';
+                        setTimeout(() => { msg.textContent = ''; }, 3000);
+                    }
+                    if (data.config?.measurementProducts) {
+                        h2MeasurementProductsPages = h2MeasurementProductsPages.map(page => ({
+                            ...page,
+                            selectedIds: Array.isArray(data.config.measurementProducts[page.id])
+                                ? data.config.measurementProducts[page.id]
+                                : []
+                        }));
+                        renderH2MeasurementProductsEditor();
+                    }
+                } else if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = data.message || '保存失败';
+                }
+            } catch (e) {
+                console.error('Save h2 measurement products error:', e);
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = '网络错误';

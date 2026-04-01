@@ -53,5 +53,28 @@
       "customSubtitle": "测试副标题",
       "customTitle": ""
     }
-  ]
+  ],
+  "news": [],
+  "measurementProducts": {
+    "measurement-environment-hydrogen": [
+      "mc_hha_01",
+      "mc_pa_h1",
+      "mc_ld_nh2",
+      "mc_wd_01"
+    ],
+    "measurement-hydrogen": [
+      "mc_gd_01",
+      "mc_ba_h1",
+      "mc_hla_01",
+      "mc_ol_h1"
+    ],
+    "measurement-dissolved-hydrogen": [],
+    "measurement-oil-water": [],
+    "measurement-hydrogen-tracking": [],
+    "measurement-humidity": [],
+    "measurement-hydrogen-warning": [],
+    "measurement-combustible-gas": [],
+    "measurement-dewpoint": [],
+    "measurement-pressure": []
+  }
 }

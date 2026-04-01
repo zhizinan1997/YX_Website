@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线上店铺 - 元芯传感</title>
+    <meta name="description" content="元芯传感线上店铺与官方渠道入口，包含淘宝、喀斯玛、京东与微信公众号。">
+    <link rel="stylesheet" href="../../assets/css/yx-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../../assets/css/search.css">
+    <style>
+        :root {
+            --os-text: #18243f;
+            --os-heading: #243764;
+            --os-body: #30405f;
+            --os-light-bg: #f3f6fd;
+            --os-light-bg-2: #eef2fb;
+            --os-line: #365ca8;
+            --os-card: #ffffff;
+            --os-border: #dbe4f2;
+            --os-shadow: 0 20px 45px rgba(16, 36, 82, 0.08);
+            --os-shadow-hover: 0 26px 60px rgba(16, 36, 82, 0.14);
+            --os-accent: #6380c1;
+            --taobao-color: linear-gradient(135deg, #ff6a3d 0%, #ff4400 100%);
+            --casmart-color: linear-gradient(135deg, #0f9d84 0%, #146b88 100%);
+            --jd-color: linear-gradient(135deg, #d7000f 0%, #ff4242 100%);
+            --wechat-color: linear-gradient(135deg, #1f9d55 0%, #44c46f 100%);
+        }
+
+        .os-page {
+            padding-top: 90px;
+            background: #ffffff;
+        }
+
+        /* ===== HERO ===== */
+        .os-hero {
+            background-image:
+                linear-gradient(rgba(11, 37, 78, 0.25), rgba(11, 37, 78, 0.20)),
+                url('/cdn_assets/images/gassensing/online-store/online-store-hero-bg.png');
+            background-size: cover;
+            background-position: center;
+            min-height: 480px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .os-hero::before,
+        .os-hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .os-hero::before {
+            top: -160px;
+            right: -120px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 72%);
+        }
+
+        .os-hero::after {
+            bottom: -180px;
+            left: -90px;
+            width: 360px;
+            height: 360px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 72%);
+        }
+
+        .os-hero__content {
+            position: relative;
+            z-index: 1;
+            max-width: 840px;
+            padding: 120px 0 108px;
+        }
+
+        .os-hero__content h1 {
+            margin: 0;
+            font-size: clamp(42px, 6vw, 64px);
+            line-height: 1.12;
+            letter-spacing: -0.03em;
+            font-weight: 700;
+        }
+
+        .os-hero__content p {
+            margin: 20px auto 0;
+            max-width: 640px;
+            font-size: 20px;
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        .os-hero__stats {
+            margin-top: 34px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .os-hero__stat {
+            min-width: 150px;
+            padding: 14px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 18px;
+            background: rgba(3, 20, 35, 0.2);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .os-hero__stat-label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .os-hero__stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* ===== INTRO ===== */
+        .os-intro {
+            background: #ffffff;
+            padding: 64px 0 20px;
+        }
+
+        .os-intro h2 {
+            margin: 0;
+            font-size: clamp(36px, 3vw, 50px);
+            line-height: 1.15;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--os-text);
+        }
+
+        .os-intro__sub {
+            margin: 18px 0 0;
+            font-size: clamp(18px, 1.5vw, 22px);
+            color: var(--os-accent);
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .os-intro__line {
+            width: 160px;
+            height: 4px;
+            background: var(--os-line);
+            border-radius: 999px;
+            margin: 24px 0 22px;
+        }
+
+        .os-intro__desc {
+            margin: 0;
+            font-size: 17px;
+            line-height: 1.9;
+            color: var(--os-body);
+            font-weight: 500;
+            max-width: 900px;
+        }
+
+        /* ===== STORE CARDS ===== */
+        .os-cards-section {
+            padding: 48px 0 92px;
+        }
+
+        .os-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 28px;
+        }
+
+        .os-card {
+            position: relative;
+            display: flex;
+            color: #fff;
+            border-radius: 24px;
+            overflow: hidden;
+            text-decoration: none;
+            box-shadow: var(--os-shadow);
+            transform: translateY(0);
+            transition: transform 0.32s ease, box-shadow 0.32s ease;
+        }
+
+        .os-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--os-shadow-hover);
+            color: #fff;
+        }
+
+        .os-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0.08) 100%);
+            pointer-events: none;
+        }
+
+        .os-card__inner {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 170px;
+            gap: 22px;
+            width: 100%;
+            padding: 32px;
+        }
+
+        .os-card__tag {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            margin-bottom: 14px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.18);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .os-card__title {
+            font-size: 30px;
+            line-height: 1.2;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .os-card__name {
+            display: block;
+            margin-bottom: 14px;
+            font-size: 15px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .os-card__desc {
+            font-size: 15px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        .os-card__meta {
+            margin-top: 22px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .os-card__badge,
+        .os-card__cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .os-card__badge {
+            background: rgba(255, 255, 255, 0.16);
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .os-card__cta {
+            background: rgba(255, 255, 255, 0.95);
+            color: #0b2d4f;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .os-card:hover .os-card__cta {
+            background: #ffffff;
+            transform: translateX(3px);
+        }
+
+        .os-card__qr {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
+        }
+
+        .os-card__qr img {
+            width: 100%;
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .os-card--taobao {
+            background: var(--taobao-color);
+        }
+
+        .os-card--casmart {
+            background: var(--casmart-color);
+        }
+
+        .os-card--jd {
+            background: var(--jd-color);
+        }
+
+        .os-card--wechat {
+            background: var(--wechat-color);
+        }
+
+        /* ===== CTA ===== */
+        .os-cta {
+            background: linear-gradient(135deg, #06294d 0%, #0b4f82 50%, #0a6daf 100%);
+            color: #ffffff;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .os-cta::before,
+        .os-cta::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .os-cta::before {
+            top: -80px;
+            right: 8%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(0, 161, 223, 0.2) 0%, transparent 70%);
+        }
+
+        .os-cta::after {
+            bottom: -100px;
+            left: 12%;
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(243, 112, 33, 0.15) 0%, transparent 70%);
+        }
+
+        .os-cta .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .os-cta__card {
+            max-width: 780px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 28px;
+            padding: 52px 48px;
+        }
+
+        .os-cta__icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 22px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: #ffffff;
+        }
+
+        .os-cta h2 {
+            margin: 0 0 16px;
+            font-size: clamp(30px, 3.5vw, 42px);
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .os-cta p {
+            margin: 0 0 32px;
+            font-size: 18px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.85);
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .os-cta__actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .os-cta__btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 36px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .os-cta__btn--primary {
+            background: #ffffff;
+            color: #0a4d7b;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .os-cta__btn--primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.25);
+            background: #f0f7ff;
+            color: #0a4d7b;
+        }
+
+        .os-cta__btn--outline {
+            background: transparent;
+            color: #ffffff;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+        }
+
+        .os-cta__btn--outline:hover {
+            border-color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-3px);
+            color: #ffffff;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        .os-animate {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .os-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .os-animate-delay-1 {
+            transition-delay: 0.1s;
+        }
+
+        .os-animate-delay-2 {
+            transition-delay: 0.2s;
+        }
+
+        .os-animate-delay-3 {
+            transition-delay: 0.3s;
+        }
+
+        .os-animate-delay-4 {
+            transition-delay: 0.4s;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .os-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .os-hero {
+                min-height: 360px;
+            }
+
+            .os-hero__content {
+                padding: 86px 0 76px;
+            }
+
+            .os-hero__content h1 {
+                font-size: 36px;
+            }
+
+            .os-hero__content p {
+                font-size: 17px;
+            }
+
+            .os-hero__stat {
+                min-width: calc(50% - 7px);
+            }
+
+            .os-intro {
+                padding: 52px 0 16px;
+            }
+
+            .os-cards-section {
+                padding: 32px 0 64px;
+            }
+
+            .os-card__inner {
+                grid-template-columns: 1fr;
+            }
+
+            .os-card__qr {
+                max-width: 170px;
+            }
+
+            .os-cta {
+                padding: 64px 0;
+            }
+
+            .os-cta h2 {
+                font-size: 28px;
+            }
+
+            .os-cta p {
+                font-size: 16px;
+                margin-bottom: 28px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .os-hero__stat {
+                min-width: 100%;
+            }
+
+            .os-card__title {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="mc-nav-root" data-nav-profile="gas"></div>
+    <noscript>
+        <div class="mc-nav-noscript">
+            <a href="/index.html">首页</a> |
+            <a href="/pages/gassensing/all-products.html">产品</a> |
+            <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+            <a href="/pages/research/index.html">科研服务</a> |
+            <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+            <a href="/pages/gassensing/online-store.html">线上店铺</a> |
+            <a href="/pages/contact/contact.html">联系我们</a>
+        </div>
+    </noscript>
+    <script src="/assets/js/nav-loader.js"></script>
+
+    <main class="os-page">
+        <!-- HERO -->
+        <section class="os-hero">
+            <div class="vs-container">
+                <div class="os-hero__content">
+                    <h1>线上店铺与官方渠道</h1>
+                    <p>元芯传感官方线上购买与品牌触达入口，支持多平台直达，方便快捷</p>
+                    <div class="os-hero__stats">
+                        <div class="os-hero__stat">
+                            <span class="os-hero__stat-label">官方渠道</span>
+                            <span class="os-hero__stat-value">4 个</span>
+                        </div>
+                        <div class="os-hero__stat">
+                            <span class="os-hero__stat-label">覆盖平台</span>
+                            <span class="os-hero__stat-value">电商 + 内容</span>
+                        </div>
+                        <div class="os-hero__stat">
+                            <span class="os-hero__stat-label">进入方式</span>
+                            <span class="os-hero__stat-value">点击或扫码</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- INTRO -->
+        <section class="os-intro">
+            <div class="vs-container">
+                <h2>线上店铺</h2>
+                <p class="os-intro__sub">官方购买渠道</p>
+                <div class="os-intro__line"></div>
+                <p class="os-intro__desc">点击下方任一渠道卡片即可跳转至对应平台，页面同时保留二维码，方便在电脑端浏览时直接扫码进入。</p>
+            </div>
+        </section>
+
+        <!-- STORE CARDS -->
+        <section class="os-cards-section">
+            <div class="vs-container">
+                <div class="os-grid">
+                    <a class="os-card os-card--taobao os-animate" href="http://shop176972283.m.taobao.com"
+                        target="_blank" rel="noopener noreferrer" aria-label="进入淘宝店铺 元芯传感工厂店">
+                        <div class="os-card__inner">
+                            <div>
+                                <span class="os-card__tag">淘宝</span>
+                                <h2 class="os-card__title">淘宝店铺</h2>
+                                <span class="os-card__name">元芯传感工厂店</span>
+                                <p class="os-card__desc">面向线上采购与产品浏览场景，支持直接进入官方店铺查看产品、详情和上架信息。</p>
+                                <div class="os-card__meta">
+                                    <span class="os-card__badge"><i class="fas fa-qrcode"></i> 支持扫码直达</span>
+                                    <span class="os-card__cta">进入店铺 <i class="fas fa-arrow-right"></i></span>
+                                </div>
+                            </div>
+                            <div class="os-card__qr">
+                                <img src="/cdn_assets/images/gassensing/online-store/taobao-store-qr.png"
+                                    alt="淘宝店铺 元芯传感工厂店 二维码">
+                            </div>
+                        </div>
+                    </a>
+
+                    <a class="os-card os-card--casmart os-animate os-animate-delay-1"
+                        href="https://a300088450.casmart.com.cn/" target="_blank" rel="noopener noreferrer"
+                        aria-label="进入喀斯玛平台">
+                        <div class="os-card__inner">
+                            <div>
+                                <span class="os-card__tag">喀斯玛</span>
+                                <h2 class="os-card__title">喀斯玛平台</h2>
+                                <span class="os-card__name">科研采购与平台合作通道</span>
+                                <p class="os-card__desc">适用于科研机构、高校和企事业单位线上选型与采购，可直接跳转到元芯传感对应平台页面。</p>
+                                <div class="os-card__meta">
+                                    <span class="os-card__badge"><i class="fas fa-link"></i> 平台直达链接</span>
+                                    <span class="os-card__cta">进入平台 <i class="fas fa-arrow-right"></i></span>
+                                </div>
+                            </div>
+                            <div class="os-card__qr">
+                                <img src="/cdn_assets/images/gassensing/online-store/casmart-platform-qr.png"
+                                    alt="喀斯玛平台 二维码">
+                            </div>
+                        </div>
+                    </a>
+
+                    <a class="os-card os-card--jd os-animate os-animate-delay-2"
+                        href="https://mall.jd.com/index-122834103.html?cid=0" target="_blank" rel="noopener noreferrer"
+                        aria-label="进入京东店铺">
+                        <div class="os-card__inner">
+                            <div>
+                                <span class="os-card__tag">京东</span>
+                                <h2 class="os-card__title">京东平台</h2>
+                                <span class="os-card__name">官方线上销售通道</span>
+                                <p class="os-card__desc">支持通过京东平台进入元芯传感官方页面，方便面向不同采购习惯的客户进行线上触达。</p>
+                                <div class="os-card__meta">
+                                    <span class="os-card__badge"><i class="fas fa-shopping-bag"></i> 官方平台入口</span>
+                                    <span class="os-card__cta">进入京东 <i class="fas fa-arrow-right"></i></span>
+                                </div>
+                            </div>
+                            <div class="os-card__qr">
+                                <img src="/cdn_assets/images/gassensing/online-store/jd-store-qr.png" alt="京东平台 二维码">
+                            </div>
+                        </div>
+                    </a>
+
+                    <a class="os-card os-card--wechat os-animate os-animate-delay-3"
+                        href="http://weixin.qq.com/r/xR1kfLHEYewerfUf90jX" target="_blank" rel="noopener noreferrer"
+                        aria-label="进入微信公众号 湖南元芯传感科技有限责任公司">
+                        <div class="os-card__inner">
+                            <div>
+                                <span class="os-card__tag">微信</span>
+                                <h2 class="os-card__title">微信公众号</h2>
+                                <span class="os-card__name">湖南元芯传感科技有限责任公司</span>
+                                <p class="os-card__desc">用于关注企业动态、获取产品更新与品牌信息。电脑端可直接扫码，移动端可尝试跳转微信入口。</p>
+                                <div class="os-card__meta">
+                                    <span class="os-card__badge"><i class="fab fa-weixin"></i> 扫码关注更方便</span>
+                                    <span class="os-card__cta">打开公众号入口 <i class="fas fa-arrow-right"></i></span>
+                                </div>
+                            </div>
+                            <div class="os-card__qr">
+                                <img src="/cdn_assets/images/gassensing/online-store/wechat-official-account-qr.jpg"
+                                    alt="微信公众号 湖南元芯传感科技有限责任公司 二维码">
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="os-cta">
+            <div class="vs-container">
+                <div class="os-cta__card">
+                    <div class="os-cta__icon"><i class="fas fa-headset"></i></div>
+                    <h2>需要更多帮助？</h2>
+                    <p>如有采购咨询或合作需求，欢迎随时联系我们的销售团队，我们将第一时间为您服务。</p>
+                    <div class="os-cta__actions">
+                        <a href="../contact/contact.html" class="os-cta__btn os-cta__btn--primary"><i class="fas fa-envelope"></i> 联系我们</a>
+                        <a href="tel:13974993326" class="os-cta__btn os-cta__btn--outline"><i class="fas fa-phone"></i> 拨打电话</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="../../assets/js/chatbot.js"></script>
+    <script src="../../assets/js/search.js"></script>
+
+    <!-- FOOTER_START -->
+    <div id="mc-footer-root"></div>
+    <noscript>
+        <footer class="vs-footer-new">
+            <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+                <a href="/index.html">首页</a> |
+                <a href="/pages/about/policy.html">隐私政策</a> |
+                <a href="/pages/about/terms.html">条款与条件</a>
+            </div>
+        </footer>
+    </noscript>
+    <script src="/assets/js/footer-loader.js"></script>
+    <!-- FOOTER_END -->
+
+    <script>
+        (function () {
+            var els = document.querySelectorAll('.os-animate');
+            if (!els.length) return;
+            if ('IntersectionObserver' in window) {
+                var io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (e) {
+                        if (e.isIntersecting) {
+                            e.target.classList.add('is-visible');
+                            io.unobserve(e.target);
+                        }
+                    });
+                }, { threshold: 0.12 });
+                els.forEach(function (el) { io.observe(el); });
+            } else {
+                els.forEach(function (el) { el.classList.add('is-visible'); });
+            }
+        })();
+    </script>
+</body>
+
+</html>

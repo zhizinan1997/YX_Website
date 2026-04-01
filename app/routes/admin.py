@@ -34,6 +34,7 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'home', 'label': '首页设置'},
     {'key': 'h2-home', 'label': '氢气首页'},
     {'key': 'products', 'label': '氢气产品'},
+    {'key': 'bio-products', 'label': '生物产品'},
     {'key': 'hydrogen-solutions', 'label': '氢气方案'},
     {'key': 'news-create', 'label': '添加资讯'},
     {'key': 'jobs', 'label': '招聘信息'},
@@ -210,6 +211,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'news-create'
     if p.startswith('/api/products/featured'):
         return 'home'
+    if p.startswith('/api/bio-products'):
+        return 'bio-products'
     if p.startswith('/api/products') or p.startswith('/api/cases/gassensing'):
         return 'products'
     if p.startswith('/api/home/section-visibility') or p.startswith('/api/hero') or p.startswith('/api/partners'):

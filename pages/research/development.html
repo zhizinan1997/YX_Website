@@ -4,183 +4,1330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>传感器开发与测试 - 科研服务</title>
+    <title>科研服务-传感器开发、测试与应用</title>
     <link rel="stylesheet" href="../../assets/css/yx-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/search.css">
     <style>
-        .vs-page-hero {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/cdn_assets/images/common/15fd06dc7b59.jpg');
+        :root {
+            --rd-text: #18243f;
+            --rd-heading: #243764;
+            --rd-body: #30405f;
+            --rd-muted: #5d6e8d;
+            --rd-light-bg: #f3f6fd;
+            --rd-light-bg-2: #eef2fb;
+            --rd-line: #365ca8;
+            --rd-card: #ffffff;
+            --rd-border: #dbe4f2;
+            --rd-shadow: 0 20px 45px rgba(16, 36, 82, 0.08);
+            --rd-shadow-hover: 0 26px 60px rgba(16, 36, 82, 0.14);
+            --rd-accent: #6380c1;
+            --rd-dark-overlay: rgba(29, 43, 83, 0.9);
+        }
+
+        .rd-page {
+            background: #ffffff;
+            color: var(--rd-text);
+            padding-top: 90px;
+        }
+
+        /* ===== PAGE HERO ===== */
+        .rd-page-hero {
+            background-image:
+                linear-gradient(rgba(11, 37, 78, 0.72), rgba(11, 37, 78, 0.68)),
+                url('/cdn_assets/images/research/development/process-lab-bg.jpg');
             background-size: cover;
             background-position: center;
-        }
-
-        .vs-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            margin-top: 40px;
-        }
-
-        .vs-feature-box {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            border: 1px solid #eee;
+            min-height: 520px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-            transition: all 0.3s;
+            color: #ffffff;
+            position: relative;
         }
 
-        .vs-feature-box:hover {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        .rd-page-hero__content {
+            max-width: 840px;
+            padding: 120px 0 108px;
+        }
+
+        .rd-page-hero__content h1 {
+            margin: 0;
+            font-size: 58px;
+            line-height: 1.15;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .rd-page-hero__content p {
+            margin: 20px 0 0;
+            font-size: 22px;
+            line-height: 1.8;
+            opacity: 0.92;
+        }
+
+        /* ===== INTRO ===== */
+        .rd-intro {
+            background: #ffffff;
+            padding: 64px 0 76px;
+        }
+
+        .rd-intro h2 {
+            margin: 0;
+            font-size: clamp(36px, 3vw, 50px);
+            line-height: 1.15;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--rd-text);
+        }
+
+        .rd-intro__sub {
+            margin: 18px 0 0;
+            font-size: clamp(20px, 1.8vw, 24px);
+            color: var(--rd-accent);
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .rd-intro__line {
+            width: 160px;
+            height: 4px;
+            background: var(--rd-line);
+            border-radius: 999px;
+            margin: 24px 0 22px;
+        }
+
+        .rd-intro__desc {
+            margin: 0;
+            max-width: 1080px;
+            font-size: 18px;
+            line-height: 1.9;
+            color: var(--rd-body);
+            font-weight: 700;
+        }
+
+        /* ===== SECTION TITLES ===== */
+        .rd-section-title {
+            text-align: center;
+            margin-bottom: 46px;
+        }
+
+        .rd-section-title h2 {
+            display: inline-block;
+            margin: 0;
+            font-size: clamp(36px, 3vw, 50px);
+            line-height: 1.15;
+            font-weight: 700;
+            color: var(--rd-text);
+        }
+
+        .rd-section-title .rd-title-line {
+            width: 160px;
+            height: 4px;
+            background: var(--rd-line);
+            margin: 16px auto 0;
+            border-radius: 999px;
+        }
+
+        .rd-section-title--light h2 {
+            color: #ffffff;
+        }
+
+        .rd-section-title--light .rd-title-line {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* ===== BANNER ===== */
+        .rd-capability {
+            padding: 20px 0 44px;
+        }
+
+        .rd-banner {
+            background:
+                linear-gradient(135deg, rgba(29, 43, 83, 0.92), rgba(36, 55, 100, 0.88)),
+                url('/cdn_assets/images/research/development/process-lab-bg.jpg') center/cover no-repeat;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 22px 50px rgba(10, 77, 123, 0.16);
+            padding: 48px 52px 40px;
+            color: #fff;
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        .rd-banner h2 {
+            margin: 0;
+            text-align: center;
+            font-size: clamp(32px, 2.8vw, 50px);
+            line-height: 1.18;
+            font-weight: 700;
+        }
+
+        .rd-banner-line {
+            width: 180px;
+            height: 4px;
+            margin: 16px auto 24px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .rd-banner ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .rd-banner li {
+            margin: 0 0 8px;
+            font-size: clamp(16px, 1.2vw, 20px);
+            font-weight: 600;
+            line-height: 1.9;
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .rd-banner li::before {
+            content: "■";
+            margin-right: 14px;
+            font-size: 0.8em;
+            margin-top: 0.2em;
+        }
+
+        /* ===== CAPABILITY GRID ===== */
+        .rd-group {
+            padding: 38px 0 0;
+        }
+
+        .rd-group:last-child {
+            padding-bottom: 0;
+        }
+
+        .rd-group h3 {
+            margin: 0 0 22px;
+            font-size: clamp(24px, 2vw, 34px);
+            font-weight: 700;
+            color: var(--rd-heading);
+        }
+
+        .rd-grid {
+            display: grid;
+            gap: 22px;
+        }
+
+        .rd-grid--five {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .rd-grid--four {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .rd-item {
+            text-align: center;
+        }
+
+        .rd-item-media {
+            background: #ffffff;
+            border: 1px solid var(--rd-border);
+            border-radius: 22px;
+            box-shadow: 0 14px 30px rgba(26, 54, 108, 0.08);
+            height: clamp(140px, 13.5vw, 210px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .rd-item-media:hover {
             transform: translateY(-5px);
+            box-shadow: var(--rd-shadow-hover);
         }
 
-        .vs-feature-icon {
-            font-size: 36px;
-            color: var(--color-primary);
-            margin-bottom: 20px;
+        .rd-item-media img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .rd-item h4 {
+            margin: 14px 0 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rd-heading);
+        }
+
+        /* ===== PROJECTS ===== */
+        .rd-project {
+            padding: 92px 0;
+            background: linear-gradient(180deg, var(--rd-light-bg) 0%, var(--rd-light-bg-2) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rd-project::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(120deg, rgba(60, 87, 145, 0.05) 0 8%, transparent 8% 100%),
+                radial-gradient(circle at 16% 22%, rgba(59, 92, 170, 0.06) 0 18px, transparent 18px),
+                radial-gradient(circle at 82% 18%, rgba(59, 92, 170, 0.06) 0 22px, transparent 22px);
+            pointer-events: none;
+        }
+
+        .rd-project .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .rd-project-card {
+            margin-top: 36px;
+            background: var(--rd-card);
+            border-radius: 24px;
+            box-shadow: var(--rd-shadow);
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+            overflow: hidden;
+        }
+
+        .rd-project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--rd-shadow-hover);
+        }
+
+        .rd-project-card + .rd-project-card {
+            margin-top: 36px;
+        }
+
+        /* Card top accent bar */
+        .rd-project-card::before {
+            content: '';
+            display: block;
+            height: 5px;
+            background: linear-gradient(90deg, var(--rd-line) 0%, var(--rd-accent) 50%, rgba(99, 128, 193, 0.3) 100%);
+        }
+
+        .rd-project-card__inner {
+            padding: 36px 40px 36px;
+        }
+
+        .rd-project-card h3 {
+            margin: 0 0 22px;
+            font-size: clamp(24px, 2.3vw, 36px);
+            line-height: 1.35;
+            font-weight: 700;
+            color: var(--rd-heading);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .rd-project-card h3::before {
+            content: '';
+            flex: 0 0 5px;
+            width: 5px;
+            height: 1.1em;
+            background: linear-gradient(180deg, var(--rd-line), var(--rd-accent));
+            border-radius: 4px;
+        }
+
+        .rd-project-body {
+            display: grid;
+            grid-template-columns: minmax(360px, 40%) 1fr;
+            gap: 36px;
+            align-items: start;
+        }
+
+        .rd-project-main {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(16, 36, 82, 0.12);
+            border: 1px solid var(--rd-border);
+            transition: transform 0.4s ease;
+            position: sticky;
+            top: 120px;
+        }
+
+        .rd-project-card:hover .rd-project-main {
+            transform: scale(1.015);
+        }
+
+        .rd-project-content {
+            color: var(--rd-body);
+            font-size: 16px;
+            line-height: 1.85;
+        }
+
+        /* Tags */
+        .rd-tag {
+            margin: 0 0 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .rd-tag strong {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--rd-heading);
+            margin-right: 4px;
+        }
+
+        .rd-tag .rd-tag__pill {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(54, 92, 168, 0.1), rgba(99, 128, 193, 0.12));
+            color: var(--rd-line);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(54, 92, 168, 0.15);
+            letter-spacing: 0.02em;
+        }
+
+        /* Content blocks */
+        .rd-block {
+            background: var(--rd-light-bg);
+            border-radius: 14px;
+            padding: 20px 22px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--rd-line);
+        }
+
+        .rd-block--solution {
+            background: linear-gradient(135deg, rgba(54, 92, 168, 0.06), rgba(99, 128, 193, 0.04));
+            border-left-color: var(--rd-accent);
+        }
+
+        .rd-block--highlight {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--rd-border);
+            border-left: 4px solid #4a72c4;
+        }
+
+        .rd-block__title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 10px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--rd-heading);
+        }
+
+        .rd-block__title-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, var(--rd-line), var(--rd-accent));
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .rd-block p {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.85;
+            color: var(--rd-body);
+        }
+
+        /* Legacy point style - backward compat */
+        .rd-point {
+            margin: 0;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .rd-point::before {
+            content: none;
+        }
+
+        .rd-point strong {
+            font-weight: 700;
+            color: var(--rd-heading);
+        }
+
+        .rd-sublist {
+            margin: 6px 0 0 18px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .rd-sublist li {
+            margin-bottom: 8px;
+            padding-left: 16px;
+            position: relative;
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        .rd-sublist li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--rd-accent);
+        }
+
+        /* Results */
+        .rd-result {
+            margin-top: 8px;
+            border: 1px solid var(--rd-border);
+            border-radius: 16px;
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+            background: linear-gradient(135deg, #f8faff 0%, #f4f6fb 100%);
+        }
+
+        .rd-result--four {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .rd-result--five {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .rd-result img {
+            width: 100%;
+            height: 140px;
+            object-fit: contain;
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid var(--rd-border);
+            padding: 6px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .rd-result img:hover {
+            transform: scale(1.06);
+            box-shadow: 0 8px 20px rgba(16, 36, 82, 0.12);
+        }
+
+        /* ===== FOCUS ===== */
+        .rd-focus {
+            padding: 92px 0;
+        }
+
+        .rd-focus-grid {
+            margin-top: 32px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 30px;
+            max-width: 1240px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .rd-focus-item {
+            text-align: center;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: var(--rd-shadow);
+            padding: 28px 24px 32px;
+            border: 1px solid var(--rd-border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .rd-focus-item:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--rd-shadow-hover);
+        }
+
+        .rd-focus-item h3 {
+            margin: 0;
+            font-size: clamp(26px, 2vw, 34px);
+            font-weight: 700;
+            color: var(--rd-heading);
+        }
+
+        .rd-focus-item h4 {
+            margin: 10px 0 14px;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--rd-body);
+        }
+
+        .rd-focus-item img {
+            width: 100%;
+            height: clamp(240px, 23vw, 320px);
+            object-fit: cover;
+            border-radius: 20px;
+        }
+
+        .rd-focus-item p {
+            margin: 16px 0 0;
+            text-align: left;
+            font-size: 17px;
+            line-height: 1.9;
+            color: var(--rd-body);
+        }
+
+        /* ===== CASES ===== */
+        .rd-cases {
+            padding: 92px 0;
+            background: linear-gradient(180deg, var(--rd-light-bg) 0%, var(--rd-light-bg-2) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rd-cases::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 82%, rgba(59, 92, 170, 0.06) 0 22px, transparent 22px),
+                radial-gradient(circle at 74% 82%, rgba(59, 92, 170, 0.06) 0 22px, transparent 22px);
+            pointer-events: none;
+        }
+
+        .rd-cases .vs-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .rd-case-grid {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 28px;
+            max-width: 1240px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .rd-case-item {
+            text-align: center;
+            color: var(--rd-body);
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: var(--rd-shadow);
+            padding: 20px 20px 24px;
+            border: 1px solid var(--rd-border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .rd-case-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--rd-shadow-hover);
+        }
+
+        .rd-case-item img {
+            width: 100%;
+            height: clamp(185px, 19vw, 280px);
+            object-fit: cover;
+            background: #f0f1f6;
+            border-radius: 18px;
+        }
+
+        .rd-case-item h4 {
+            margin: 14px 0 6px;
+            font-size: 18px;
+            line-height: 1.45;
+            font-weight: 600;
+            color: var(--rd-heading);
+        }
+
+        .rd-case-item p {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.7;
+            font-weight: 500;
+        }
+
+        /* ===== CONTACT ===== */
+        .rd-contact {
+            padding: 92px 0;
+        }
+
+        .rd-contact-wrap {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1.35fr 0.9fr;
+            gap: 26px;
+            max-width: 1240px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .rd-contact-left,
+        .rd-contact-right {
+            background: #ffffff;
+            border: 1px solid var(--rd-border);
+            border-radius: 24px;
+            box-shadow: var(--rd-shadow);
+            padding: 34px 36px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .rd-contact-left:hover,
+        .rd-contact-right:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--rd-shadow-hover);
+        }
+
+        .rd-contact-left {
+            color: var(--rd-body);
+            font-size: 17px;
+            line-height: 1.9;
+            font-weight: 500;
+        }
+
+        .rd-contact-left p {
+            margin: 0 0 16px;
+        }
+
+        .rd-contact-left a {
+            color: #0c46dd;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        .rd-contact-right {
+            text-align: center;
+        }
+
+        .rd-contact-right h3 {
+            margin: 0 0 14px;
+            font-size: clamp(22px, 1.7vw, 30px);
+            line-height: 1.4;
+            font-weight: 600;
+            color: var(--rd-heading);
+        }
+
+        .rd-contact-right img {
+            width: min(100%, 280px);
+            display: block;
+            margin: 0 auto;
+            border-radius: 16px;
+        }
+
+        /* ===== CTA ===== */
+        .rd-cta {
+            background: linear-gradient(135deg, #0a5a8f 0%, #0a4d7b 100%);
+            color: #ffffff;
+            padding: 80px 0;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+        }
+
+        .rd-cta h2 {
+            margin: 0 0 20px;
+            font-size: 40px;
+            line-height: 1.2;
+            font-weight: 700;
+        }
+
+        .rd-cta p {
+            margin: 0 0 36px;
+            font-size: 18px;
+            line-height: 1.9;
+            opacity: 0.92;
+        }
+
+        .rd-cta .vs-btn {
+            background: #ffffff;
+            color: #0a4d7b;
+            border-color: #ffffff;
+            border-radius: 999px;
+            padding: 14px 40px;
+        }
+
+        .rd-cta .vs-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ===== SCROLL ANIMATIONS ===== */
+        .rd-animate {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .rd-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .rd-animate-delay-1 { transition-delay: 0.1s; }
+        .rd-animate-delay-2 { transition-delay: 0.2s; }
+        .rd-animate-delay-3 { transition-delay: 0.3s; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1360px) {
+            .rd-project-card {
+                padding: 28px 28px 24px;
+            }
+
+            .rd-project-body {
+                gap: 24px;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .rd-page-hero__content h1 {
+                font-size: 46px;
+            }
+
+            .rd-grid--five {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .rd-grid--four {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .rd-project-body {
+                grid-template-columns: 1fr;
+            }
+
+            .rd-result img {
+                height: 100px;
+            }
+
+            .rd-focus-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .rd-case-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .rd-contact-wrap {
+                grid-template-columns: 1fr;
+            }
+
+            .rd-contact-left,
+            .rd-contact-right {
+                padding: 24px;
+            }
+
+            .rd-cta h2 {
+                font-size: 34px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .rd-page-hero {
+                min-height: 320px;
+            }
+
+            .rd-page-hero__content {
+                padding: 86px 0 70px;
+            }
+
+            .rd-page-hero__content h1 {
+                font-size: 34px;
+            }
+
+            .rd-page-hero__content p {
+                font-size: 17px;
+            }
+
+            .rd-intro {
+                padding: 56px 0 32px;
+            }
+
+            .rd-banner {
+                padding: 28px 20px 24px;
+            }
+
+            .rd-banner li {
+                margin-bottom: 6px;
+            }
+
+            .rd-grid--five,
+            .rd-grid--four,
+            .rd-result--four,
+            .rd-result--five,
+            .rd-case-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .rd-group {
+                padding-bottom: 14px;
+            }
+
+            .rd-item-media {
+                height: 188px;
+            }
+
+            .rd-project-card {
+                margin-top: 16px;
+            }
+
+            .rd-result img {
+                height: 160px;
+            }
+
+            .rd-contact,
+            .rd-focus,
+            .rd-cases,
+            .rd-project {
+                padding: 64px 0;
+            }
+
+            .rd-cta {
+                padding: 64px 0;
+            }
+
+            .rd-cta h2 {
+                font-size: 28px;
+            }
+
+            .rd-section-title {
+                margin-bottom: 32px;
+            }
+
+            .rd-section-title h2 {
+                font-size: 30px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div id="mc-nav-root" data-nav-profile="gas"></div>
-<noscript><div class="mc-nav-noscript">
-  <a href="/index.html">首页</a> |
-  <a href="/pages/gassensing/all-products.html">产品</a> |
-  <a href="/pages/solutions/solutions-index.html">解决方案</a> |
-  <a href="/pages/research/index.html">科研服务</a> |
-  <a href="/pages/gassensing/service-cases.html">服务案例</a> |
-  <a href="/pages/about/about.html">公司简介</a> |
-  <a href="/pages/contact/contact.html">联系我们</a>
-</div>
-</noscript>
-<script src="/assets/js/nav-loader.js"></script>
-
-    <main>
-        <!-- Hero -->
-        <section class="vs-page-hero"
-            style="height: 400px; display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
-            <div class="vs-container">
-                <h1 style="font-size: 48px; font-weight: 700;">传感器开发、测试与应用</h1>
-                <p style="font-size: 20px; opacity: 0.9; margin-top: 10px;">从概念验证到成品落地的一站式工程服务</p>
-            </div>
-        </section>
-
-        <!-- Breadcrumb -->
-        <div style="background: #f1f5f9; padding: 15px 0;">
-            <div class="vs-container">
-                <a href="../../index.html" style="color: #666; text-decoration: none;">首页</a> <span
-                    style="margin: 0 8px; color: #ccc;">/</span>
-                <a href="index.html" style="color: #666; text-decoration: none;">科研服务</a> <span
-                    style="margin: 0 8px; color: #ccc;">/</span>
-                <span style="color: var(--color-primary);">开发与测试</span>
-            </div>
+    <noscript>
+        <div class="mc-nav-noscript">
+            <a href="/index.html">首页</a> |
+            <a href="/pages/gassensing/all-products.html">产品</a> |
+            <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+            <a href="/pages/research/index.html">科研服务</a> |
+            <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+            <a href="/pages/about/about.html">公司简介</a> |
+            <a href="/pages/contact/contact.html">联系我们</a>
         </div>
+    </noscript>
+    <script src="/assets/js/nav-loader.js?v=20260401a"></script>
 
-        <!-- Content -->
-        <section style="padding: 100px 0;">
+    <main class="rd-page">
+        <section class="rd-page-hero">
             <div class="vs-container">
-
-                <!-- Section 1: Introduction -->
-                <div style="text-align: center; max-width: 800px; margin: 0 auto 80px;">
-                    <h2 class="vs-section-title">全栈式传感技术解决方案</h2>
-                    <p style="font-size: 18px; line-height: 1.6; color: #666;">
-                        我们提供从设计、制备到验证的一站式工程实现（从一个想法到可靠原型），以及从硬件集成、数据算法到物联网服务的深度定制（从一颗芯片到完整应用）。
-                    </p>
+                <div class="rd-page-hero__content">
+                    <h1>传感器开发、测试与应用</h1>
+                    <p>从科学构想到可交付原型的一站式科研工程服务</p>
                 </div>
-
-                <!-- Section 2: Development Areas -->
-                <div style="margin-bottom: 80px;">
-                    <h3 style="border-left: 4px solid var(--color-primary); padding-left: 15px; margin-bottom: 30px;">
-                        核心能力</h3>
-
-                    <div class="vs-grid-3">
-                        <div class="vs-feature-box">
-                            <div class="vs-feature-icon"><i class="fas fa-microchip"></i></div>
-                            <h4>开发制造</h4>
-                            <p style="font-size: 14px; color: #666; margin-top: 10px;">光刻、刻蚀、薄膜沉积、封装、耗材供应</p>
-                        </div>
-                        <div class="vs-feature-box">
-                            <div class="vs-feature-icon"><i class="fas fa-vial"></i></div>
-                            <h4>测试验证</h4>
-                            <p style="font-size: 14px; color: #666; margin-top: 10px;">芯片测试、动态配气、检测模块、环境腔体</p>
-                        </div>
-                        <div class="vs-feature-box">
-                            <div class="vs-feature-icon"><i class="fas fa-mobile-alt"></i></div>
-                            <h4>应用集成</h4>
-                            <p style="font-size: 14px; color: #666; margin-top: 10px;">外壳设计、界面开发、硬件电路、系统标定</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 3: Project Examples -->
-                <div style="background: #f8fafc; padding: 60px; border-radius: 12px;">
-                    <h3 style="text-align: center; margin-bottom: 40px;">精选项目案例</h3>
-
-                    <div
-                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 60px; align-items: start;">
-                        <img src="/cdn_assets/images/common/1b32f848b5e5.jpg" style="width: 100%; border-radius: 8px;"
-                            alt="Custom Project">
-                        <div>
-                            <h4 style="font-size: 24px; margin-bottom: 15px;">器件定制开发项目</h4>
-                            <p style="color: var(--color-primary); font-weight: 500; margin-bottom: 15px;">#微纳加工 #通过率优化
-                                #顶栅器件</p>
-                            <p style="color: #444; line-height: 1.8;">
-                                <strong>背景：</strong> 国内某顶尖微电子研究机构需要定制高性能顶栅场效应晶体管。<br>
-                                <strong>挑战：</strong> 严苛的沟道长度控制（3-5um）与高开关比（>10⁵）。<br>
-                                <strong>方案：</strong> 我们采用ALD技术生长高质量HfO2栅介质，结合干湿法复合剥离工艺，实现了微米级图形的完美保型，良率大幅提升。
-                            </p>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
-                        <div>
-                            <h4 style="font-size: 24px; margin-bottom: 15px;">柔性薄膜拉力传感器</h4>
-                            <p style="color: var(--color-primary); font-weight: 500; margin-bottom: 15px;">#柔性电子 #无损剥离
-                                #精密构图</p>
-                            <p style="color: #444; line-height: 1.8;">
-                                <strong>背景：</strong> 某高校材料团队开发穿戴式传感器，面临柔性基底微纳加工瓶颈。<br>
-                                <strong>方案：</strong> 采用超快激光"冷加工"技术避免热损伤，配合梯度蒸镀增强电极附着力，最终通过TMAH湿法剥离技术无损转移器件。
-                            </p>
-                        </div>
-                        <img src="/cdn_assets/images/common/b9f2e172d4fa.jpg" style="width: 100%; border-radius: 8px;"
-                            alt="Flexible Sensor">
-                    </div>
-                </div>
-
             </div>
         </section>
 
-        <!-- CTA -->
-        <section style="background: white; padding: 60px 0; border-top: 1px solid #eee; text-align: center;">
+        <section class="rd-intro">
             <div class="vs-container">
-                <h3>有想法但缺乏制造能力？</h3>
-                <p style="margin: 20px 0;">我们的工程团队可以填补这一空白，助您快速实现从0到1。</p>
-                <a href="../contact/contact.html" class="vs-btn vs-btn--primary"
-                    style="border-radius: 9999px; padding: 14px 40px;">咨询开发服务</a>
+                <h2>科研服务-传感器开发、测试与应用</h2>
+                <p class="rd-intro__sub">Scientific Research Services</p>
+                <div class="rd-intro__line"></div>
+                <p class="rd-intro__desc">提供从想法实现、验证、测试到应用的一站式传感技术解决方案</p>
             </div>
         </section>
 
+        <section class="rd-capability">
+            <div class="vs-container">
+                <div class="rd-banner rd-animate">
+                    <h2>一站式传感器开发、测试与应用</h2>
+                    <div class="rd-banner-line"></div>
+                    <ul>
+                        <li>从一个想法到可靠原型：我们提供从设计、制备到验证的一站式工程实现，将您的科学构想转化为性能可靠的实体器件。</li>
+                        <li>从一颗芯片到完整应用：我们提供从硬件集成、数据算法到物联网服务的深度定制，将原型打造成精准、易用的解决方案。</li>
+                    </ul>
+                </div>
+
+                <div class="rd-group rd-animate rd-animate-delay-1">
+                    <h3>➤ 传感器开发</h3>
+                    <div class="rd-grid rd-grid--five">
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/dev-lithography.png" alt="光刻"></div>
+                            <h4>光刻</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/dev-etching.png" alt="刻蚀"></div>
+                            <h4>刻蚀</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/dev-film-deposition.png" alt="薄膜沉积"></div>
+                            <h4>薄膜沉积</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/dev-packaging.png" alt="封装"></div>
+                            <h4>封装</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/dev-consumables.png" alt="耗材"></div>
+                            <h4>耗材</h4>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="rd-group rd-animate rd-animate-delay-2">
+                    <h3>➤ 传感器测试</h3>
+                    <div class="rd-grid rd-grid--four">
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/test-gas-distributor.png" alt="动态配气仪"></div>
+                            <h4>动态配气仪</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/test-module.png" alt="检测模块"></div>
+                            <h4>检测模块</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/test-chamber.png" alt="测试腔体"></div>
+                            <h4>测试腔体</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/test-hmi.png" alt="人机交互"></div>
+                            <h4>人机交互</h4>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="rd-group rd-animate rd-animate-delay-3">
+                    <h3>➤ 传感器应用</h3>
+                    <div class="rd-grid rd-grid--five">
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/app-shell-design.png" alt="外壳设计"></div>
+                            <h4>外壳设计</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/app-ui-design.png" alt="界面设计"></div>
+                            <h4>界面设计</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/app-hardware-design.png" alt="硬件电路设计"></div>
+                            <h4>硬件电路设计</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/app-calibration.png" alt="标定测试"></div>
+                            <h4>标定测试</h4>
+                        </article>
+                        <article class="rd-item">
+                            <div class="rd-item-media"><img src="/cdn_assets/images/research/development/app-demo.png" alt="应用展示"></div>
+                            <h4>应用展示</h4>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="rd-project">
+            <div class="vs-container">
+                <div class="rd-section-title rd-animate">
+                    <h2>项目介绍</h2>
+                    <div class="rd-title-line"></div>
+                </div>
+
+                <article class="rd-project-card rd-animate rd-animate-delay-1">
+                    <div class="rd-project-card__inner">
+                    <h3>器件定制开发项目：低维材料器件性能研究</h3>
+                    <div class="rd-tag">
+                        <strong>技术标签：</strong>
+                        <span class="rd-tag__pill">#微纳加工工艺</span>
+                        <span class="rd-tag__pill">#定制化加工</span>
+                        <span class="rd-tag__pill">#顶栅器件</span>
+                    </div>
+                    <div class="rd-project-body">
+                        <img class="rd-project-main" src="/cdn_assets/images/research/development/project-material-main.png" alt="器件定制开发项目">
+                        <div class="rd-project-content">
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">背</span> 项目背景</div>
+                                <p>国内某顶尖的微电子研究机构，为开展前沿的晶体管型传感器研究，需要一个稳定可靠的器件制造平台。其核心需求是定制一批高性能的顶栅场效应晶体管，并提出了严苛的性能指标：沟道长度需精确控制在3-5微米，器件的开关比必须高于10<sup>5</sup>，同时亚阈值摆幅需低于150mV/dec。尤为关键的是，为确保科研数据的统计有效性，客户要求片上器件的开态电流均一性波动必须控制在±30%以内。</p>
+                            </div>
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">挑</span> 技术挑战</div>
+                                <ul class="rd-sublist">
+                                    <li>栅介质性能；密集金属剥离；一次性与成本控制；</li>
+                                </ul>
+                            </div>
+                            <div class="rd-block rd-block--solution">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">解</span> 元芯解决方案</div>
+                                <p>深刻理解客户对高性能与高均一性的双重诉求后，我们提供了一套超越传统工艺的定制化解决方案，通过在关键材料和核心工艺上的创新，成功满足了客户的严苛指标。</p>
+                            </div>
+                            <div class="rd-block rd-block--highlight">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">★</span> 核心亮点</div>
+                                <ul class="rd-sublist">
+                                    <li>设计优化与可制造性：与客户协同优化了器件版图，在不影响核心性能的前提下，调整了电极PAD与结区的设计。</li>
+                                    <li>原子层沉积高K栅介质：针对开关比和SS的核心要求，创新性地采用ALD技术在低温下生长了厚度精确控制在10nm的氧化铪薄膜。</li>
+                                    <li>干湿法复合金属剥离工艺：通过干法工艺的精准塑形与湿法工艺的温和去除相结合，实现了对微米级金属图形的完美保型，确保了器件高良率。</li>
+                                </ul>
+                            </div>
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">果</span> 项目成果</div>
+                                <div class="rd-result rd-result--four">
+                                    <img src="/cdn_assets/images/research/development/project-material-result-1.png" alt="项目成果1">
+                                    <img src="/cdn_assets/images/research/development/project-material-result-2.png" alt="项目成果2">
+                                    <img src="/cdn_assets/images/research/development/project-material-result-3.png" alt="项目成果3">
+                                    <img src="/cdn_assets/images/research/development/project-material-result-4.png" alt="项目成果4">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </article>
+
+                <article class="rd-project-card rd-animate rd-animate-delay-1">
+                    <div class="rd-project-card__inner">
+                    <h3>传感器定制开发项目：柔性薄膜拉力传感器</h3>
+                    <div class="rd-tag">
+                        <strong>技术标签：</strong>
+                        <span class="rd-tag__pill">#柔性材料</span>
+                        <span class="rd-tag__pill">#真空蒸镀</span>
+                        <span class="rd-tag__pill">#精密切割</span>
+                        <span class="rd-tag__pill">#拉力传感器</span>
+                        <span class="rd-tag__pill">#OEM合作</span>
+                    </div>
+                    <div class="rd-project-body">
+                        <img class="rd-project-main" src="/cdn_assets/images/research/development/project-flex-main.png" alt="柔性薄膜拉力传感器">
+                        <div class="rd-project-content">
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">背</span> 项目背景</div>
+                                <p>某顶尖高校的材料科学团队在开发用于穿戴式生理监测的新一代柔性拉力传感器时，面临着关键的微纳加工瓶颈。其核心的超薄、低熔点功能薄膜对加工方式极为敏感，需要实现无热损伤的微米级精密构图。同时，项目要求在柔性基底上制备出具有高导电性和强附着力的亚微米级金属电极，并确保其在反复拉伸形变下的电学稳定性。</p>
+                            </div>
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">挑</span> 技术挑战</div>
+                                <ul class="rd-sublist">
+                                    <li>低温激光精密切割；高均匀性真空蒸镀；硅基柔性材料湿法剥离；</li>
+                                </ul>
+                            </div>
+                            <div class="rd-block rd-block--solution">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">解</span> 元芯解决方案</div>
+                                <p>针对客户在柔性薄膜加工与电极制备上的双重挑战，我们提供了一套集"冷加工"、"精细沉积"与"无损剥离"于一体的系统化解决方案，确保了最终器件的高精度与高可靠性。</p>
+                            </div>
+                            <div class="rd-block rd-block--highlight">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">★</span> 核心亮点</div>
+                                <ul class="rd-sublist">
+                                    <li>无热损伤微结构加工：采用超快激光进行"冷加工"，通过极短脉冲时间，在材料宏观热传导前即完成去除，实现"非热熔性"的微米级切割与构图。</li>
+                                    <li>高附着力柔性电极：高精度掩膜版与优化的真空蒸镀工艺相结合，在柔性基底上直接沉积金属电极。</li>
+                                    <li>无损器件转移：在关键的器件剥离环节采用可控的TMAH湿法化学剥离技术，完全避免了撕裂、褶皱等物理损伤。</li>
+                                </ul>
+                            </div>
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">果</span> 项目成果</div>
+                                <div class="rd-result rd-result--five">
+                                    <img src="/cdn_assets/images/research/development/project-flex-result-1.png" alt="项目成果1">
+                                    <img src="/cdn_assets/images/research/development/project-flex-result-2.png" alt="项目成果2">
+                                    <img src="/cdn_assets/images/research/development/project-flex-result-3.png" alt="项目成果3">
+                                    <img src="/cdn_assets/images/research/development/project-flex-result-4.png" alt="项目成果4">
+                                    <img src="/cdn_assets/images/research/development/project-flex-result-5.png" alt="项目成果5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </article>
+
+                <article class="rd-project-card rd-animate rd-animate-delay-1">
+                    <div class="rd-project-card__inner">
+                    <h3>仪表定制开发项目：石墨烯气体传感应用方案</h3>
+                    <div class="rd-tag">
+                        <strong>技术标签：</strong>
+                        <span class="rd-tag__pill">#气体传感</span>
+                        <span class="rd-tag__pill">#极端环境</span>
+                        <span class="rd-tag__pill">#精密测量</span>
+                        <span class="rd-tag__pill">#算法定制</span>
+                        <span class="rd-tag__pill">#OEM合作</span>
+                    </div>
+                    <div class="rd-project-body">
+                        <img class="rd-project-main" src="/cdn_assets/images/research/development/project-device-main.png" alt="石墨烯气体传感应用方案">
+                        <div class="rd-project-content">
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">背</span> 项目背景</div>
+                                <p>某知名高校材料学院在研发一款高温(&gt;300℃)二氧化氮检测芯片时，面临两大挑战：一是常规封装失效且高温下信号严重抖动；二是团队缺乏将芯片转化为实用仪器的工程能力。因此，他们委托我们解决从芯片封装、测试到应用的全流程难题。</p>
+                            </div>
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">挑</span> 技术挑战</div>
+                                <ul class="rd-sublist">
+                                    <li>超高温环境适应性；高温数据传输稳定性；高温芯片封装技术；</li>
+                                </ul>
+                            </div>
+                            <div class="rd-block rd-block--solution">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">解</span> 元芯解决方案</div>
+                                <p>我们为客户提供了从核心传感芯片到成品仪器的端到端解决方案，通过精密的硬件设计与智能算法，成功攻克了高温环境下的技术难题。</p>
+                            </div>
+                            <div class="rd-block rd-block--highlight">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">★</span> 核心亮点</div>
+                                <ul class="rd-sublist">
+                                    <li>耐高温探头设计：针对超300℃的严苛环境，创新性采用特种陶瓷基板承载芯片，结合镍丝点焊工艺与耐高温硅胶灌封，从根本上解决封装难题。</li>
+                                    <li>智能信号处理与恒温控制：配套仪表以高性能MCU为核心，通过多级硬件滤波与智能降噪算法，有效抑制高温下的信号抖动。</li>
+                                </ul>
+                            </div>
+                            <div class="rd-block">
+                                <div class="rd-block__title"><span class="rd-block__title-icon">果</span> 项目成果</div>
+                                <div class="rd-result rd-result--five">
+                                    <img src="/cdn_assets/images/research/development/project-device-result-1.png" alt="项目成果1">
+                                    <img src="/cdn_assets/images/research/development/project-device-result-2.png" alt="项目成果2">
+                                    <img src="/cdn_assets/images/research/development/project-device-result-3.png" alt="项目成果3">
+                                    <img src="/cdn_assets/images/research/development/project-device-result-4.png" alt="项目成果4">
+                                    <img src="/cdn_assets/images/research/development/project-device-result-5.png" alt="项目成果5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="rd-focus">
+            <div class="vs-container">
+                <div class="rd-section-title rd-animate">
+                    <h2>聚焦领域</h2>
+                    <div class="rd-title-line"></div>
+                </div>
+                <div class="rd-focus-grid">
+                    <article class="rd-focus-item rd-animate rd-animate-delay-1">
+                        <h3>生物传感器</h3>
+                        <h4>赋能生命科学前沿探索</h4>
+                        <img src="/cdn_assets/images/research/development/focus-bio.png" alt="生物传感器">
+                        <p>将生物学构想转化为经过验证的传感原型，我们提供从微流控设计、生物功能化到信号分析的全链条工程支持，加速您的科研进程。</p>
+                    </article>
+                    <article class="rd-focus-item rd-animate rd-animate-delay-2">
+                        <h3>气体传感器</h3>
+                        <h4>攻坚化学传感核心难题</h4>
+                        <img src="/cdn_assets/images/research/development/focus-gas.png" alt="气体传感器">
+                        <p>聚焦科研热点与产业难点，提供从核心敏感材料到完整传感器件的定制方案，助您攻克选择性、灵敏度等关键技术瓶颈。</p>
+                    </article>
+                    <article class="rd-focus-item rd-animate rd-animate-delay-3">
+                        <h3>仪器仪表定制</h3>
+                        <h4>定义精准测量与智能应用</h4>
+                        <img src="/cdn_assets/images/research/development/focus-instrument.png" alt="仪器仪表定制">
+                        <p>将传感核心打造成精准、智能的解决方案，提供硬件集成、数据算法及应用软件的深度定制，实现从一颗芯片到完整应用的跨越。</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="rd-cases">
+            <div class="vs-container">
+                <div class="rd-section-title rd-animate">
+                    <h2>案例分享</h2>
+                    <div class="rd-title-line"></div>
+                </div>
+                <div class="rd-case-grid">
+                    <article class="rd-case-item rd-animate rd-animate-delay-1">
+                        <img src="/cdn_assets/images/research/development/case-1.png" alt="案例1">
+                        <h4>某能源研究所氢安全技术部</h4>
+                        <p>定制品：防爆式氢气检测探头</p>
+                    </article>
+                    <article class="rd-case-item rd-animate rd-animate-delay-1">
+                        <img src="/cdn_assets/images/research/development/case-2.png" alt="案例2">
+                        <h4>某燃气集团湖南研究院</h4>
+                        <p>定制品：可燃气体传感器封装</p>
+                    </article>
+                    <article class="rd-case-item rd-animate rd-animate-delay-2">
+                        <img src="/cdn_assets/images/research/development/case-3.png" alt="案例3">
+                        <h4>某大学食品安全快检课题组</h4>
+                        <p>定制品：碳基生物传感芯片</p>
+                    </article>
+                    <article class="rd-case-item rd-animate rd-animate-delay-2">
+                        <img src="/cdn_assets/images/research/development/case-4.png" alt="案例4">
+                        <h4>某燃料电池测试设备集成商</h4>
+                        <p>定制品：氢气检测探头</p>
+                    </article>
+                    <article class="rd-case-item rd-animate rd-animate-delay-1">
+                        <img src="/cdn_assets/images/research/development/case-5.png" alt="案例5">
+                        <h4>某大学新能源技术研究院</h4>
+                        <p>定制品：氢气传感器</p>
+                    </article>
+                    <article class="rd-case-item rd-animate rd-animate-delay-1">
+                        <img src="/cdn_assets/images/research/development/case-6.png" alt="案例6">
+                        <h4>某智能家居解决方案提供商</h4>
+                        <p>定制品：甲烷检测模组</p>
+                    </article>
+                    <article class="rd-case-item rd-animate rd-animate-delay-2">
+                        <img src="/cdn_assets/images/research/development/case-7.png" alt="案例7">
+                        <h4>某电池企业前瞻技术研发部</h4>
+                        <p>定制品：氢气传感元件</p>
+                    </article>
+                    <article class="rd-case-item rd-animate rd-animate-delay-2">
+                        <img src="/cdn_assets/images/research/development/case-8.png" alt="案例8">
+                        <h4>某大学传感器研究中心</h4>
+                        <p>定制品：动态配气仪与测试腔体</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="rd-contact">
+            <div class="vs-container">
+                <div class="rd-section-title rd-animate">
+                    <h2>马上咨询</h2>
+                    <div class="rd-title-line"></div>
+                </div>
+                <div class="rd-contact-wrap rd-animate rd-animate-delay-1">
+                    <div class="rd-contact-left">
+                        <p>欢迎您拨打下方的电话，随时咨询：</p>
+                        <p>13974993326（张先生）；18807329836（商女士）；</p>
+                        <p>或者您可以将您的需求编辑成邮件发送到：</p>
+                        <p><a href="mailto:hnyxcgkj@139.com">hnyxcgkj@139.com</a></p>
+                        <p>我们的工作人员将在收到消息后第一时间联系您。</p>
+                    </div>
+                    <div class="rd-contact-right">
+                        <h3>扫描下方二维码，立即沟通</h3>
+                        <img src="/cdn_assets/images/research/development/contact-qr.png" alt="咨询二维码">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="rd-cta">
+            <div class="vs-container">
+                <h2>准备好开始您的项目了吗？</h2>
+                <p>我们的工程师随时准备为您提供专业建议。</p>
+                <a href="../contact/contact.html" class="vs-btn vs-btn--outline">立即咨询</a>
+            </div>
+        </section>
     </main>
 
-    <!-- AI智能客服 -->
     <script src="../../assets/js/chatbot.js"></script>
-    
-<!-- FOOTER_START -->
-  <div id="mc-footer-root"></div>
-  <noscript>
-    <footer class="vs-footer-new">
-      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
-        <a href="/index.html">首页</a> |
-        <a href="/pages/about/policy.html">隐私政策</a> |
-        <a href="/pages/about/terms.html">条款与条件</a>
-      </div>
-    </footer>
-  </noscript>
-  <script src="/assets/js/footer-loader.js"></script>
-  <!-- FOOTER_END -->
+    <script src="../../assets/js/search.js"></script>
+
+    <!-- FOOTER_START -->
+    <div id="mc-footer-root"></div>
+    <noscript>
+        <footer class="vs-footer-new">
+            <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+                <a href="/index.html">首页</a> |
+                <a href="/pages/about/policy.html">隐私政策</a> |
+                <a href="/pages/about/terms.html">条款与条件</a>
+            </div>
+        </footer>
+    </noscript>
+    <script src="/assets/js/footer-loader.js"></script>
+    <!-- FOOTER_END -->
+
+<script>
+(function() {
+    var els = document.querySelectorAll('.rd-animate');
+    if (!els.length) return;
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function(entries) {
+            entries.forEach(function(e) {
+                if (e.isIntersecting) {
+                    e.target.classList.add('is-visible');
+                    io.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.12 });
+        els.forEach(function(el) { io.observe(el); });
+    } else {
+        els.forEach(function(el) { el.classList.add('is-visible'); });
+    }
+})();
+</script>
 </body>
 
 </html>

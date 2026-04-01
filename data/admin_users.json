@@ -12,6 +12,7 @@
         "home",
         "h2-home",
         "products",
+        "bio-products",
         "hydrogen-solutions",
         "news-create",
         "jobs",
@@ -22,8 +23,8 @@
         "changelog"
       ],
       "created_at": "2026-03-30T03:35:48Z",
-      "updated_at": "2026-03-30T09:04:57Z",
-      "last_login_at": "2026-03-30T05:45:56Z"
+      "updated_at": "2026-04-01T06:27:49Z",
+      "last_login_at": "2026-04-01T01:48:56Z"
     }
   ]
 }

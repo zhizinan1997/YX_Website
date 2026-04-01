@@ -1,4 +1,4 @@
-﻿"""
+"""
 Flask server for YX Website with feedback form backend and admin panel.
 Supports both local development and Docker deployment.
 Includes AI Chatbot with knowledge base support.
@@ -84,6 +84,8 @@ try:
     PIL_SUPPORT = True
 except ImportError:
     PIL_SUPPORT = False
+    Image = None
+    ImageOps = None
     PIL_FEATURES = None
 
 try:
@@ -1170,6 +1172,134 @@ def _analytics_classify_device(user_agent: str) -> str:
     return 'desktop'
 
 
+def _analytics_classify_os(user_agent: str) -> str:
+    ua = str(user_agent or '').lower()
+    if not ua:
+        return 'unknown'
+    if 'harmonyos' in ua or 'hongmeng' in ua or 'hmos' in ua:
+        return 'harmonyos'
+    if 'windows nt' in ua or 'win64' in ua or 'wow64' in ua:
+        return 'windows'
+    if 'android' in ua:
+        return 'android'
+    if 'iphone' in ua or 'ipad' in ua or 'ipod' in ua or 'cpu iphone os' in ua or 'cpu os' in ua:
+        return 'ios'
+    if 'mac os x' in ua or 'macintosh' in ua:
+        return 'macos'
+    if 'linux' in ua:
+        return 'linux'
+    return 'unknown'
+
+
+def _analytics_extract_china_province(location_text: str) -> str:
+    text = str(location_text or '').strip()
+    if not text:
+        return ''
+    normalized = re.sub(r'\s+', '', text)
+    if not normalized:
+        return ''
+    if not any(keyword in normalized for keyword in ('中国', '省', '市', '自治区', '特别行政区')):
+        return ''
+
+    direct_map = {
+        '北京': '北京市',
+        '北京市': '北京市',
+        '上海': '上海市',
+        '上海市': '上海市',
+        '天津': '天津市',
+        '天津市': '天津市',
+        '重庆': '重庆市',
+        '重庆市': '重庆市',
+        '河北': '河北省',
+        '河北省': '河北省',
+        '山西': '山西省',
+        '山西省': '山西省',
+        '辽宁': '辽宁省',
+        '辽宁省': '辽宁省',
+        '吉林': '吉林省',
+        '吉林省': '吉林省',
+        '黑龙江': '黑龙江省',
+        '黑龙江省': '黑龙江省',
+        '江苏': '江苏省',
+        '江苏省': '江苏省',
+        '浙江': '浙江省',
+        '浙江省': '浙江省',
+        '安徽': '安徽省',
+        '安徽省': '安徽省',
+        '福建': '福建省',
+        '福建省': '福建省',
+        '江西': '江西省',
+        '江西省': '江西省',
+        '山东': '山东省',
+        '山东省': '山东省',
+        '河南': '河南省',
+        '河南省': '河南省',
+        '湖北': '湖北省',
+        '湖北省': '湖北省',
+        '湖南': '湖南省',
+        '湖南省': '湖南省',
+        '广东': '广东省',
+        '广东省': '广东省',
+        '海南': '海南省',
+        '海南省': '海南省',
+        '四川': '四川省',
+        '四川省': '四川省',
+        '贵州': '贵州省',
+        '贵州省': '贵州省',
+        '云南': '云南省',
+        '云南省': '云南省',
+        '陕西': '陕西省',
+        '陕西省': '陕西省',
+        '甘肃': '甘肃省',
+        '甘肃省': '甘肃省',
+        '青海': '青海省',
+        '青海省': '青海省',
+        '台湾': '台湾省',
+        '台湾省': '台湾省',
+        '内蒙古': '内蒙古自治区',
+        '内蒙古自治区': '内蒙古自治区',
+        '广西': '广西壮族自治区',
+        '广西壮族自治区': '广西壮族自治区',
+        '西藏': '西藏自治区',
+        '西藏自治区': '西藏自治区',
+        '宁夏': '宁夏回族自治区',
+        '宁夏回族自治区': '宁夏回族自治区',
+        '新疆': '新疆维吾尔自治区',
+        '新疆维吾尔自治区': '新疆维吾尔自治区',
+        '香港': '香港特别行政区',
+        '香港特别行政区': '香港特别行政区',
+        '澳门': '澳门特别行政区',
+        '澳门特别行政区': '澳门特别行政区',
+    }
+    for key, value in direct_map.items():
+        if key in normalized:
+            return value
+    return ''
+
+
+def _analytics_resolve_visit_geo(ip_text: str):
+    ip_value = str(ip_text or '').strip()
+    if not ip_value:
+        return {
+            'ip': '',
+            'location': '未知',
+            'province': '',
+            'country': '',
+            'is_china': False,
+        }
+    location = resolve_ip_location(ip_value)
+    province = _analytics_extract_china_province(location)
+    is_china = bool(province)
+    country = '中国' if is_china else ''
+    return {
+        'ip': ip_value,
+        'location': location or '未知',
+        'province': province,
+        'country': country,
+        'is_china': is_china,
+    }
+
+
 def _analytics_classify_source(referrer: str, utm_source: str, utm_medium: str, current_host: str) -> str:
     source = _analytics_clean_text(utm_source, max_length=64).lower()
     medium = _analytics_clean_text(utm_medium, max_length=64).lower()
@@ -1275,6 +1405,8 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
 
     source = _analytics_classify_source(referrer, utm_source, utm_medium, request_host)
     device = _analytics_classify_device(request_ua)
+    os_name = _analytics_classify_os(request_ua)
+    geo = _analytics_resolve_visit_geo(request_ip)
     session_duration_sec = max(0, _analytics_to_int(raw_event.get('session_duration_sec'), default=0))
     scroll_depth = max(0, min(100, _analytics_to_int(raw_event.get('scroll_depth'), default=0)))
     event_value = _analytics_to_float(raw_event.get('event_value'), default=0.0)
@@ -1292,6 +1424,11 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
         'referrer_host': _analytics_extract_host(referrer),
         'source': source,
         'device': device,
+        'os': os_name,
+        'ip': geo.get('ip') or '',
+        'location': geo.get('location') or '未知',
+        'province': geo.get('province') or '',
+        'country': geo.get('country') or '',
         'visitor_id': visitor_id,
         'session_id': session_id,
         'session_duration_sec': session_duration_sec,
@@ -1417,6 +1554,9 @@ def build_site_analytics_report(range_days=30):
         page_title = _analytics_clean_text(item.get('page_title'), max_length=120)
         source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
+        province = _analytics_clean_text(item.get('province'), max_length=32)
+        ip_addr = _analytics_clean_text(item.get('ip'), max_length=45)
         visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64)
         session_id = _analytics_clean_id(item.get('session_id'), max_length=64)
         if not visitor_id:
@@ -1440,6 +1580,9 @@ def build_site_analytics_report(range_days=30):
                 'reported_duration_sec': 0,
                 'source': source,
                 'device': device,
+                'os': os_name,
+                'province': province,
+                'ip': ip_addr,
             }
             sessions[session_id] = sess
         else:
@@ -1449,6 +1592,12 @@ def build_site_analytics_report(range_days=30):
                 sess['source'] = source
             if sess.get('device') in {'', 'unknown'} and device not in {'', 'unknown'}:
                 sess['device'] = device
+            if sess.get('os') in {'', 'unknown'} and os_name not in {'', 'unknown'}:
+                sess['os'] = os_name
+            if not sess.get('province') and province:
+                sess['province'] = province
+            if not sess.get('ip') and ip_addr:
+                sess['ip'] = ip_addr
 
         if event_type == 'pageview':
             sess['pageviews'] += 1
@@ -1519,11 +1668,18 @@ def build_site_analytics_report(range_days=30):
 
     source_counter = {}
     device_counter = {}
+    os_counter = {}
+    province_counter = {}
     for item in tracked_sessions:
         source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
+        province = _analytics_clean_text(item.get('province'), max_length=32)
         source_counter[source] = source_counter.get(source, 0) + 1
         device_counter[device] = device_counter.get(device, 0) + 1
+        os_counter[os_name] = os_counter.get(os_name, 0) + 1
+        if province:
+            province_counter[province] = province_counter.get(province, 0) + 1
 
     source_rows = [
         {
@@ -1544,6 +1700,34 @@ def build_site_analytics_report(range_days=30):
         for key, value in device_counter.items()
     ]
     device_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    os_rows = [
+        {
+            'os': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in os_counter.items()
+    ]
+    os_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    province_rows = [
+        {
+            'province': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in province_counter.items()
+    ]
+    province_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    china_map_data = [
+        {
+            'name': item['province'],
+            'value': item['sessions'],
+        }
+        for item in province_rows
+    ]
 
     top_pages = []
     for path_key, stats in pages.items():
@@ -1590,6 +1774,9 @@ def build_site_analytics_report(range_days=30):
         },
         'source_breakdown': source_rows,
         'device_breakdown': device_rows,
+        'os_breakdown': os_rows,
+        'province_breakdown': province_rows,
+        'china_map_data': china_map_data,
         'top_pages': top_pages,
         'top_events': top_events,
         'trend': trend,
@@ -2621,6 +2808,8 @@ def get_products():
 
 PRODUCT_SETTINGS_FILE = DATA_DIR / 'product_settings.json'
 PRODUCT_INDUSTRY_FILTERS_FILE = DATA_DIR / 'product_industry_filters.json'
+BIO_PRODUCT_SETTINGS_FILE = DATA_DIR / 'bio_product_settings.json'
+BIO_PRODUCT_INDUSTRY_FILTERS_FILE = DATA_DIR / 'bio_product_industry_filters.json'
 
 DEFAULT_INDUSTRY_FILTERS = [
     {'key': 'hydrogen', 'name': '氢能源产品'},
@@ -2628,6 +2817,15 @@ DEFAULT_INDUSTRY_FILTERS = [
     {'key': 'leak', 'name': '工业检漏产品'},
     {'key': 'research', 'name': '科研服务产品'},
     {'key': 'custom', 'name': '定制类产品'},
+]
+
+DEFAULT_BIO_INDUSTRY_FILTERS = [
+    {'key': 'sensor', 'name': '生物传感产品'},
+    {'key': 'chip', 'name': '生物芯片'},
+    {'key': 'instrument', 'name': '检测仪器'},
+    {'key': 'platform', 'name': '传感平台'},
+    {'key': 'device', 'name': '器件'},
+    {'key': 'service', 'name': '定制服务'},
 ]
 
 
@@ -2789,10 +2987,28 @@ def get_product_settings():
             pass
     return {}
 
+
+def get_bio_product_settings():
+    """Load biosensing product settings (custom names, new badges)."""
+    if BIO_PRODUCT_SETTINGS_FILE.exists():
+        try:
+            raw = json.loads(BIO_PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
+            return sanitize_public_product_settings(raw)
+        except Exception:
+            pass
+    return {}
+
+
 def save_product_settings(settings):
     """Save product settings."""
     cleaned = sanitize_public_product_settings(settings)
     PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def save_bio_product_settings(settings):
+    """Save biosensing product settings."""
+    cleaned = sanitize_public_product_settings(settings)
+    BIO_PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
 def _normalize_related_news_links(value):
@@ -2829,6 +3045,12 @@ def _normalize_related_news_links(value):
 def get_product_settings_api():
     """Get product menu settings."""
     return jsonify(get_product_settings())
+
+
+@app.route('/api/bio-products/settings', methods=['GET'])
+def get_bio_product_settings_api():
+    """Get biosensing product menu settings."""
+    return jsonify(get_bio_product_settings())
 
 
 @app.route('/api/products/settings', methods=['POST'])
@@ -2885,6 +3107,58 @@ def update_product_settings_api():
     return jsonify({'success': True, 'settings': settings})
 
 
+@app.route('/api/bio-products/settings', methods=['POST'])
+@login_required
+def update_bio_product_settings_api():
+    """Update biosensing product settings."""
+    data = request.json or {}
+
+    settings = get_bio_product_settings()
+
+    product_id = data.get('id')
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+
+    if product_id not in settings:
+        settings[product_id] = {}
+
+    if 'displayName' in data:
+        settings[product_id]['displayName'] = sanitize_public_text(data['displayName'], max_length=120)
+
+    if 'isNew' in data:
+        settings[product_id]['isNew'] = bool(data['isNew'])
+
+    if 'hidden' in data:
+        settings[product_id]['hidden'] = bool(data['hidden'])
+
+    if 'sortOrder' in data:
+        settings[product_id]['sortOrder'] = int(data['sortOrder'])
+
+    if 'cardTitle' in data:
+        settings[product_id]['cardTitle'] = sanitize_public_text(data['cardTitle'], max_length=120)
+
+    if 'cardImage' in data:
+        settings[product_id]['cardImage'] = sanitize_public_media_url(
+            data['cardImage'],
+            enforce_remote_public=False
+        )
+
+    if 'cardSummary' in data:
+        settings[product_id]['cardSummary'] = sanitize_public_text(data['cardSummary'], max_length=220)
+
+    if 'categories' in data:
+        settings[product_id]['categories'] = list(data['categories']) if isinstance(data['categories'], list) else [data['categories']]
+
+    if 'industryCategories' in data:
+        settings[product_id]['industryCategories'] = list(data['industryCategories']) if isinstance(data['industryCategories'], list) else [data['industryCategories']]
+
+    if 'relatedNews' in data:
+        settings[product_id]['relatedNews'] = _normalize_related_news_links(data['relatedNews'])
+
+    save_bio_product_settings(settings)
+    return jsonify({'success': True, 'settings': settings})
+
+
 @app.route('/api/products/settings/sort', methods=['POST'])
 @login_required
 def update_product_sort_order():
@@ -2906,7 +3180,29 @@ def update_product_sort_order():
     return jsonify({'success': True, 'message': f'已更新 {len(order)} 个产品的排序'})
 
 
+@app.route('/api/bio-products/settings/sort', methods=['POST'])
+@login_required
+def update_bio_product_sort_order():
+    """Batch update biosensing product sort order."""
+    data = request.json or {}
+    order = data.get('order', [])
+
+    if not order:
+        return jsonify({'success': False, 'message': '缺少排序数据'}), 400
+
+    settings = get_bio_product_settings()
+
+    for idx, product_id in enumerate(order):
+        if product_id not in settings:
+            settings[product_id] = {}
+        settings[product_id]['sortOrder'] = idx
+
+    save_bio_product_settings(settings)
+    return jsonify({'success': True, 'message': f'已更新 {len(order)} 个产品的排序'})
+
+
 @app.route('/api/products/code/download')
+@app.route('/api/bio-products/code/download')
 @login_required
 def download_product_code():
     """Download product html source by product id."""
@@ -2923,6 +3219,7 @@ def download_product_code():
 
 
 @app.route('/api/products/code/upload', methods=['POST'])
+@app.route('/api/bio-products/code/upload', methods=['POST'])
 @login_required
 def upload_product_code():
     """Upload and overwrite product html source by product id."""
@@ -2955,6 +3252,103 @@ def upload_product_code():
 def get_products_with_settings():
     """Get products with merged settings."""
     products = get_products_with_settings_data()
+    return jsonify({'products': products, 'count': len(products)})
+
+
+def infer_default_bio_industry_categories(product):
+    """Infer default biosensing industry categories for products with no custom mapping."""
+    name = str(product.get('name', ''))
+    desc = str(product.get('description', ''))
+    text = f'{name} {desc}'
+    categories = ['sensor']
+
+    if any(token in text for token in ['芯片', 'chip', 'Chip']):
+        categories.append('chip')
+    if any(token in text for token in ['检测仪', '工作站', '手持', '离子']):
+        categories.append('instrument')
+    if '平台' in text:
+        categories.append('platform')
+    if any(token in text for token in ['器件', 'IGZO', 'TFT']):
+        categories.append('device')
+    if any(token in text for token in ['定制', '服务']):
+        categories.append('service')
+
+    deduped = []
+    for key in categories:
+        if key not in deduped:
+            deduped.append(key)
+    return deduped
+
+
+def get_biosensing_products_with_settings_data():
+    """Collect biosensing products merged with biosensing-specific settings."""
+    base_dir = Path(__file__).parent / 'pages'
+    biosensing_dir = base_dir / 'biosensing'
+    products = []
+
+    if biosensing_dir.exists():
+        for filepath in sorted(biosensing_dir.glob('*.html')):
+            if filepath.name in {'index.html', 'index_page_2.html'}:
+                continue
+            product = extract_product_meta_from_html(filepath)
+            if product:
+                product['id'] = '../biosensing/' + product['id']
+                product['image'] = normalize_scanned_image_path(product.get('image', ''), '/pages/biosensing')
+                product['isBiosensing'] = True
+                products.append(product)
+
+    settings = get_bio_product_settings()
+    for product in products:
+        pid = product['id']
+        product['name'] = sanitize_public_text(product.get('name', ''), max_length=120)
+        product['shortName'] = sanitize_public_text(product.get('shortName', ''), max_length=120)
+        product['description'] = sanitize_public_text(product.get('description', ''), max_length=220)
+        product['image'] = sanitize_public_media_url(product.get('image', ''), enforce_remote_public=False)
+        product['category'] = str(product.get('category', 'sensor') or 'sensor').strip() or 'sensor'
+
+        if pid in settings:
+            product['displayName'] = settings[pid].get('displayName', '')
+            product['isNew'] = settings[pid].get('isNew', False)
+            product['hidden'] = settings[pid].get('hidden', False)
+            product['sortOrder'] = settings[pid].get('sortOrder', 999)
+            product['cardTitle'] = settings[pid].get('cardTitle', '')
+            product['cardImage'] = settings[pid].get('cardImage', '')
+            product['cardSummary'] = settings[pid].get('cardSummary', '')
+            product['relatedNews'] = _normalize_related_news_links(settings[pid].get('relatedNews', []))
+            custom_categories = settings[pid].get('categories', [])
+            if custom_categories:
+                product['categories'] = custom_categories
+            else:
+                product['categories'] = [product.get('category', 'sensor')]
+        else:
+            product['displayName'] = ''
+            product['isNew'] = False
+            product['hidden'] = False
+            product['sortOrder'] = 999
+            product['cardTitle'] = ''
+            product['cardImage'] = ''
+            product['cardSummary'] = ''
+            product['relatedNews'] = []
+            product['categories'] = [product.get('category', 'sensor')]
+
+        if pid in settings and isinstance(settings[pid].get('industryCategories'), list):
+            product['industryCategories'] = settings[pid].get('industryCategories', [])
+        else:
+            product['industryCategories'] = infer_default_bio_industry_categories(product)
+
+        product['displayName'] = sanitize_public_text(product.get('displayName', ''), max_length=120)
+        product['cardTitle'] = sanitize_public_text(product.get('cardTitle', ''), max_length=120)
+        product['cardSummary'] = sanitize_public_text(product.get('cardSummary', ''), max_length=220)
+        product['cardImage'] = sanitize_public_media_url(product.get('cardImage', ''), enforce_remote_public=False)
+
+    products.sort(key=lambda p: (p.get('sortOrder', 999), p.get('name', '')))
+    return products
+
+
+@app.route('/api/bio-products/with-settings')
+def get_biosensing_products_with_settings_api():
+    """Get biosensing products with merged biosensing settings."""
+    products = get_biosensing_products_with_settings_data()
     return jsonify({'products': products, 'count': len(products)})
 
 
@@ -3055,6 +3449,118 @@ def get_gassensing_products_with_settings():
     """Only products from gassensing directory."""
     products = [p for p in get_products_with_settings_data() if not str(p.get('id', '')).startswith('../')]
     return products
+
+
+def build_bio_industry_filter_preview_map():
+    """Pick the first visible biosensing product image for each industry filter."""
+    preview_map = {}
+    try:
+        products = get_biosensing_products_with_settings_data()
+    except Exception:
+        return preview_map
+
+    for product in products:
+        if not isinstance(product, dict) or product.get('hidden'):
+            continue
+        image = str((product.get('cardImage') or product.get('image') or '')).strip()
+        if not image:
+            continue
+        categories = product.get('industryCategories', [])
+        if not isinstance(categories, list) or not categories:
+            categories = infer_default_bio_industry_categories(product)
+        for raw_key in categories:
+            key = normalize_filter_key(raw_key)
+            if key and key not in preview_map:
+                preview_map[key] = image
+    return preview_map
+
+
+def get_bio_industry_filters():
+    """Load biosensing industry filters for biosensing index page."""
+    categories = []
+    if BIO_PRODUCT_INDUSTRY_FILTERS_FILE.exists():
+        try:
+            data = json.loads(BIO_PRODUCT_INDUSTRY_FILTERS_FILE.read_text(encoding='utf-8'))
+            categories = data.get('categories', [])
+        except Exception:
+            categories = []
+
+    cleaned = []
+    used = set()
+    for idx, item in enumerate(categories):
+        if not isinstance(item, dict):
+            continue
+        name = (item.get('name') or '').strip()
+        if not name:
+            continue
+        key = normalize_filter_key(item.get('key'), idx)
+        if key in used:
+            key = normalize_filter_key(f'{key}-{idx + 1}', idx)
+        used.add(key)
+        cleaned.append({'key': key, 'name': name})
+
+    if not cleaned:
+        cleaned = [dict(item) for item in DEFAULT_BIO_INDUSTRY_FILTERS]
+    elif not any(item.get('key') == 'sensor' for item in cleaned):
+        cleaned.insert(0, {'key': 'sensor', 'name': '生物传感产品'})
+
+    preview_map = build_bio_industry_filter_preview_map()
+    enriched = []
+    for item in cleaned:
+        entry = dict(item)
+        entry['url'] = f"/pages/biosensing/?filter={quote(entry['key'])}"
+        image = preview_map.get(entry['key'], '')
+        if image:
+            entry['image'] = image
+        enriched.append(entry)
+    return {'categories': enriched}
+
+
+def save_bio_industry_filters(data):
+    """Persist biosensing industry filters and clean stale product mappings."""
+    raw_categories = data.get('categories', []) if isinstance(data, dict) else []
+    cleaned = []
+    used = set()
+    for idx, item in enumerate(raw_categories):
+        if not isinstance(item, dict):
+            continue
+        name = (item.get('name') or '').strip()
+        if not name:
+            continue
+        key = normalize_filter_key(item.get('key'), idx)
+        if key in used:
+            key = normalize_filter_key(f'{key}-{idx + 1}', idx)
+        used.add(key)
+        cleaned.append({'key': key, 'name': name})
+
+    if not cleaned:
+        cleaned = [dict(item) for item in DEFAULT_BIO_INDUSTRY_FILTERS]
+    elif not any(item.get('key') == 'sensor' for item in cleaned):
+        cleaned.insert(0, {'key': 'sensor', 'name': '生物传感产品'})
+
+    saved = {'categories': cleaned}
+    BIO_PRODUCT_INDUSTRY_FILTERS_FILE.write_text(
+        json.dumps(saved, ensure_ascii=False, indent=2),
+        encoding='utf-8'
+    )
+
+    valid_keys = {item['key'] for item in cleaned}
+    settings = get_bio_product_settings()
+    changed = False
+    for _, cfg in settings.items():
+        if not isinstance(cfg, dict):
+            continue
+        original = cfg.get('industryCategories', [])
+        if not isinstance(original, list):
+            continue
+        filtered = [k for k in original if k in valid_keys]
+        if filtered != original:
+            cfg['industryCategories'] = filtered
+            changed = True
+    if changed:
+        save_bio_product_settings(settings)
+
+    return saved
 
 
 HYDROGEN_SOLUTION_DEFINITIONS = [
@@ -3413,7 +3919,7 @@ def get_default_research_nav_items():
     return {
         'items': [
             {'name': '传感器微纳加工', 'url': '/pages/research/micro-nano.html'},
-            {'name': '传感器开发、测试与应用', 'url': '/pages/research/development.html'},
+            {'name': '一站式原型开发', 'url': '/pages/research/development.html'},
             {'name': '产学研深度合作', 'url': '/pages/research/cooperation.html'}
         ]
     }
@@ -3663,6 +4169,7 @@ def update_nav_industry_categories_api():
 # ============ Hero Carousel API ============
 
 @app.route('/api/products/card-image/upload', methods=['POST'])
+@app.route('/api/bio-products/card-image/upload', methods=['POST'])
 @login_required
 def upload_product_card_image():
     """Upload image file for product card and return accessible URL."""
@@ -3713,12 +4220,27 @@ def get_industry_filters_api():
     return jsonify(get_industry_filters())
 
 
+@app.route('/api/bio-products/industry-filters', methods=['GET'])
+def get_bio_industry_filters_api():
+    """Get biosensing industry filters."""
+    return jsonify(get_bio_industry_filters())
+
+
 @app.route('/api/products/industry-filters', methods=['POST'])
 @login_required
 def save_industry_filters_api():
     """Update all-products industry filters."""
     data = request.json or {}
     saved = save_industry_filters(data)
+    return jsonify({'success': True, 'categories': saved.get('categories', [])})
+
+
+@app.route('/api/bio-products/industry-filters', methods=['POST'])
+@login_required
+def save_bio_industry_filters_api():
+    """Update biosensing industry filters."""
+    data = request.json or {}
+    saved = save_bio_industry_filters(data)
     return jsonify({'success': True, 'categories': saved.get('categories', [])})
 
 

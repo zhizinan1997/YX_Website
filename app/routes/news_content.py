@@ -1059,6 +1059,7 @@ def save_h2_home_news(items):
         'products': existing.get('products', []),
         'cases': existing.get('cases', []),
         'news': cleaned[:3],
+        'measurementProducts': existing.get('measurementProducts', {}),
     }
     _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
     return saved
