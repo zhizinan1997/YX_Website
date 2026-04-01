@@ -138,16 +138,28 @@ docker run -d \
 
 ```
 
-一键升级脚本（自动拉镜像、同步 `cdn_assets`、重建容器）：
+一键升级脚本（从 GitHub 下载，自动拉镜像、同步 `cdn_assets` 与 `update_logs`、重建容器）：
 
 ```bash
-# 在仓库目录执行
-bash tools/dockerrun_upgrade.sh
+# 下载到服务器本地
+curl -fsSL -o /root/yxwebsite/dockerrun_upgrade.sh \
+  https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh
+
+# 或使用 wget
+# wget -O /root/yxwebsite/dockerrun_upgrade.sh \
+#   https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh
+
+# 添加执行权限
+chmod +x /root/yxwebsite/dockerrun_upgrade.sh
+
+# 执行升级
+bash /root/yxwebsite/dockerrun_upgrade.sh
 
 # 如需查看可选参数
-bash tools/dockerrun_upgrade.sh --help
+bash /root/yxwebsite/dockerrun_upgrade.sh --help
 ```
 
+- 推荐每次升级前都重新下载一次脚本，确保拿到最新同步逻辑。
 - 脚本会优先复用现有 `yx-website` 容器中的环境变量（如 `SECRET_KEY`、`PUBLIC_BASE_URL`）。
 - 如果当前机器上没有旧容器，请先通过环境变量提供至少 `SECRET_KEY` 与 `PUBLIC_BASE_URL` 后再执行脚本。
 
