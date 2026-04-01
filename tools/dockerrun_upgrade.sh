@@ -11,6 +11,15 @@ log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
 }
 
+phase() {
+  printf '\n'
+  log "==> $*"
+}
+
+info() {
+  log "    $*"
+}
+
 die() {
   log "ERROR: $*"
   exit 1
@@ -48,6 +57,15 @@ has_regular_files() {
   local dir="$1"
   [[ -d "$dir" ]] || return 1
   find "$dir" -type f -print -quit 2>/dev/null | grep -q .
+}
+
+count_regular_files() {
+  local dir="$1"
+  if [[ ! -d "$dir" ]]; then
+    printf '0'
+    return 0
+  fi
+  find "$dir" -type f 2>/dev/null | wc -l | tr -d ' '
 }
 
 copy_with_parents() {
@@ -277,55 +295,90 @@ cleanup() {
 }
 trap cleanup EXIT
 
-log "prepare directories and network"
+phase "Upgrade started"
+info "YX_ROOT=$YX_ROOT"
+info "NETWORK_NAME=$NETWORK_NAME"
+info "SYNC_PAGES_MODE=$SYNC_PAGES_MODE"
+info "WEBSITE_IMAGE=$WEBSITE_IMAGE"
+info "GATEWAY_IMAGE=$GATEWAY_IMAGE"
+if [[ -n "$EXISTING_IMAGE_REF" ]]; then
+  info "existing website image ref: $EXISTING_IMAGE_REF"
+else
+  info "existing website image ref: <none>"
+fi
+
+phase "Prepare directories and network"
 mkdir -p "$DATA_DIR" "$PAGES_DIR"
 docker network create "$NETWORK_NAME" >/dev/null 2>&1 || true
+info "data dir ready: $DATA_DIR"
+info "pages dir ready: $PAGES_DIR"
 
 if ! bool_true "$SKIP_PULL"; then
-  log "pull latest images"
+  phase "Pull latest images"
+  info "pulling website image"
   docker pull "$WEBSITE_IMAGE"
+  info "pulling gateway image"
   docker pull "$GATEWAY_IMAGE"
 else
-  log "skip image pull (SKIP_PULL=$SKIP_PULL)"
+  phase "Skip image pull"
+  info "SKIP_PULL=$SKIP_PULL"
 fi
 
 if [[ "$SYNC_PAGES_MODE" != "skip" ]]; then
-  log "export latest pages from website image"
+  phase "Sync pages from website image"
+  info "export latest pages from new website image"
   export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER" "/app/pages" "$TMP_PAGES_DIR" || die "failed to export /app/pages from $WEBSITE_IMAGE"
+  info "new image pages exported: $(count_regular_files "$TMP_PAGES_DIR") files"
 
   BASE_PAGES_SOURCE=""
+  BASE_PAGES_LABEL=""
   if [[ -n "$EXISTING_IMAGE_REF" ]]; then
-    log "export previous image pages as merge base"
+    info "export previous image pages as merge base"
     if export_image_tree "$EXISTING_IMAGE_REF" "$TMP_OLD_CONTAINER" "/app/pages" "$TMP_OLD_PAGES_DIR"; then
       BASE_PAGES_SOURCE="$TMP_OLD_PAGES_DIR"
+      BASE_PAGES_LABEL="previous-image"
+      info "merge base exported from previous image: $(count_regular_files "$TMP_OLD_PAGES_DIR") files"
     else
       log "WARN: failed to export previous image pages from $EXISTING_IMAGE_REF"
     fi
   fi
 
   if [[ -z "$BASE_PAGES_SOURCE" ]] && has_regular_files "$PAGES_BASELINE_DIR"; then
-    log "use stored pages baseline from $PAGES_BASELINE_DIR"
+    info "use stored pages baseline from $PAGES_BASELINE_DIR"
     BASE_PAGES_SOURCE="$PAGES_BASELINE_DIR"
+    BASE_PAGES_LABEL="stored-baseline"
+    info "stored baseline files: $(count_regular_files "$PAGES_BASELINE_DIR")"
   fi
 
   if [[ "$SYNC_PAGES_MODE" == "additive" ]]; then
-    log "SYNC_PAGES=additive: only copy files missing on host"
+    info "SYNC_PAGES=additive: only copy files missing on host"
     rsync -a --ignore-existing "$TMP_PAGES_DIR/" "$PAGES_DIR/"
   elif [[ -n "$BASE_PAGES_SOURCE" ]]; then
-    log "SYNC_PAGES=smart: 3-way merge pages into host bind mount"
+    info "SYNC_PAGES=smart: 3-way merge pages into host bind mount"
+    info "merge base source: $BASE_PAGES_LABEL"
     smart_merge_pages "$BASE_PAGES_SOURCE" "$TMP_PAGES_DIR" "$PAGES_DIR" "$PAGES_CONFLICTS_DIR"
   else
     log "WARN: no merge base available; fallback to additive pages sync for this run"
     rsync -a --ignore-existing "$TMP_PAGES_DIR/" "$PAGES_DIR/"
   fi
 
-  log "refresh stored pages baseline"
+  info "refresh stored pages baseline"
   rm -rf "$PAGES_BASELINE_DIR"
   mkdir -p "$PAGES_BASELINE_DIR"
   rsync -a --delete "$TMP_PAGES_DIR/" "$PAGES_BASELINE_DIR/"
+  info "stored baseline refreshed: $(count_regular_files "$PAGES_BASELINE_DIR") files"
+  if has_regular_files "$PAGES_CONFLICTS_DIR"; then
+    log "WARN: page merge conflicts saved under $PAGES_CONFLICTS_DIR"
+  else
+    info "no page merge conflicts detected"
+  fi
+else
+  phase "Skip pages sync"
+  info "SYNC_PAGES_MODE=skip"
 fi
 
-log "recreate containers"
+phase "Recreate containers"
+info "remove old containers if present"
 docker rm -f "$GATEWAY_CONTAINER" "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
 
 website_cmd=(
@@ -363,7 +416,9 @@ if [[ -n "$TURNSTILE_SECRET_KEY_VAL" ]]; then
 fi
 
 website_cmd+=( "$WEBSITE_IMAGE" )
-"${website_cmd[@]}" >/dev/null
+info "start website container"
+WEBSITE_CONTAINER_ID="$("${website_cmd[@]}")"
+info "website container id: ${WEBSITE_CONTAINER_ID:0:12}"
 
 gateway_cmd=(
   docker run -d
@@ -374,20 +429,27 @@ gateway_cmd=(
   -p "127.0.0.1:${CDN_PORT}:81"
   "$GATEWAY_IMAGE"
 )
-"${gateway_cmd[@]}" >/dev/null
+info "start gateway container"
+GATEWAY_CONTAINER_ID="$("${gateway_cmd[@]}")"
+info "gateway container id: ${GATEWAY_CONTAINER_ID:0:12}"
 
-log "verify containers"
+phase "Verify containers"
 for c in "$WEBSITE_CONTAINER" "$GATEWAY_CONTAINER"; do
   if ! docker ps --filter "name=^/${c}$" --format '{{.Names}}' | grep -qx "$c"; then
     die "container '$c' is not running"
   fi
+  info "container running: $c"
 done
 
 if bool_true "$CLEAN_OLD_IMAGES"; then
-  log "prune dangling old images"
+  phase "Prune dangling old images"
   docker image prune -f >/dev/null || log "WARN: docker image prune failed"
+  info "dangling images pruned"
+else
+  phase "Skip dangling image prune"
+  info "CLEAN_OLD_IMAGES=$CLEAN_OLD_IMAGES"
 fi
 
-log "upgrade completed"
-log "main site: http://127.0.0.1:${MAIN_PORT}"
-log "cdn site : http://127.0.0.1:${CDN_PORT}"
+phase "Upgrade completed"
+info "main site: http://127.0.0.1:${MAIN_PORT}"
+info "cdn site : http://127.0.0.1:${CDN_PORT}"
