@@ -6,6 +6,7 @@ set -Eeuo pipefail
 # 2) sync latest /app/cdn_assets from website image to host (with --delete)
 # 3) sync latest /app/update_logs from website image to host (merge)
 # 4) recreate yx-website and yx-gateway containers
+# 5) prune dangling old images
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -39,6 +40,7 @@ CDN_PORT="${CDN_PORT:-2027}"
 SKIP_PULL="${SKIP_PULL:-false}"
 SYNC_PAGES="${SYNC_PAGES:-false}"
 SYNC_UPDATE_LOGS="${SYNC_UPDATE_LOGS:-true}"
+CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   cat <<'USAGE'
@@ -57,6 +59,7 @@ Optional environment variables:
   SKIP_PULL=false
   SYNC_PAGES=false
   SYNC_UPDATE_LOGS=true
+  CLEAN_OLD_IMAGES=true
 
 Runtime envs for website container (auto-reuse from old container if present):
   APP_ENV, SECRET_KEY, PUBLIC_BASE_URL, TRUST_PROXY_HEADERS, SESSION_COOKIE_SECURE,
@@ -238,6 +241,11 @@ for c in "$WEBSITE_CONTAINER" "$GATEWAY_CONTAINER"; do
     die "container '$c' is not running"
   fi
 done
+
+if bool_true "$CLEAN_OLD_IMAGES"; then
+  log "prune dangling old images"
+  docker image prune -f >/dev/null || log "WARN: docker image prune failed"
+fi
 
 log "upgrade completed"
 log "main site: http://127.0.0.1:${MAIN_PORT}"
