@@ -5,7 +5,7 @@
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
-    var NAV_ASSET_VERSION = '20260401c';
+    var NAV_ASSET_VERSION = '20260402a';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -25,7 +25,7 @@
             return;
         }
         if (!fallback.innerHTML || !fallback.innerHTML.trim()) {
-            fallback.innerHTML = '<div>瀵艰埅涓嶅彲鐢?/div>';
+            fallback.innerHTML = '<div>导航暂不可用</div>';
         }
         fallback.setAttribute('data-nav-noscript-profile', profile);
     }
@@ -181,8 +181,8 @@
                 mobileToggle = document.createElement('button');
                 mobileToggle.type = 'button';
                 mobileToggle.className = 'vs-mobile-toggle';
-                mobileToggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i><span>鑿滃崟</span>';
-                mobileToggle.setAttribute('aria-label', '鎵撳紑瀵艰埅鑿滃崟');
+                mobileToggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i><span>菜单</span>';
+                mobileToggle.setAttribute('aria-label', '打开导航菜单');
                 var actions = root.querySelector('.mc-nav-actions');
                 if (actions && actions.parentNode === headerInner) {
                     headerInner.insertBefore(mobileToggle, actions);

@@ -253,6 +253,7 @@ DATA_DIR = APP_ROOT / 'data'
 MESSAGES_DIR = DATA_DIR / 'messages'
 MESSAGES_META_FILE = DATA_DIR / 'messages_meta.json'
 KNOWLEDGE_DIR = DATA_DIR / 'knowledge'
+CHATBOT_CONVERSATION_LOG_FILE = DATA_DIR / 'chatbot_conversation_logs.jsonl'
 RATE_LIMIT_FILE = DATA_DIR / 'rate_limits.json'
 CONFIG_FILE = DATA_DIR / 'config.json'
 CDN_ASSETS_DIR = APP_ROOT / 'cdn_assets'
@@ -1235,6 +1236,217 @@ def _analytics_normalize_ascii_words(text: str) -> str:
     return f' {compact} ' if compact else ''
 
 
+def _analytics_build_geo_lookup_key(text: str) -> str:
+    raw = str(text or '').strip().lower()
+    if not raw:
+        return ''
+    if re.search(r'[a-z]', raw):
+        return _analytics_normalize_ascii_words(raw).strip()
+    return re.sub(r'[\s/|,_\-·，、()（）]+', '', raw)
+
+
+_ANALYTICS_NON_GEO_LOCATION_LABELS = {
+    '未知',
+    'unknown',
+    'n/a',
+    '-',
+    '本机回环地址',
+    '内网地址',
+    '未指定地址',
+    '保留地址',
+    '组播地址',
+}
+
+_ANALYTICS_CONTINENT_LABELS = {
+    'asia': '亚洲',
+    'europe': '欧洲',
+    'north-america': '北美洲',
+    'south-america': '南美洲',
+    'africa': '非洲',
+    'oceania': '大洋洲',
+}
+
+_ANALYTICS_COUNTRY_CONTINENT_ALIASES = {
+    'asia': (
+        '中国', 'china',
+        '日本', 'japan',
+        '韩国', '南韩', '大韩民国', 'south korea', 'republic of korea', 'korea',
+        '朝鲜', 'north korea', 'democratic people s republic of korea',
+        '蒙古', 'mongolia',
+        '新加坡', 'singapore',
+        '马来西亚', 'malaysia',
+        '泰国', 'thailand',
+        '越南', 'vietnam',
+        '印度尼西亚', '印尼', 'indonesia',
+        '菲律宾', 'philippines',
+        '印度', 'india',
+        '巴基斯坦', 'pakistan',
+        '孟加拉国', 'bangladesh',
+        '斯里兰卡', 'sri lanka',
+        '尼泊尔', 'nepal',
+        '不丹', 'bhutan',
+        '缅甸', 'myanmar',
+        '老挝', 'laos',
+        '柬埔寨', 'cambodia',
+        '文莱', 'brunei',
+        '东帝汶', 'timor leste',
+        '哈萨克斯坦', 'kazakhstan',
+        '乌兹别克斯坦', 'uzbekistan',
+        '吉尔吉斯斯坦', 'kyrgyzstan',
+        '塔吉克斯坦', 'tajikistan',
+        '土库曼斯坦', 'turkmenistan',
+        '阿富汗', 'afghanistan',
+        '伊朗', 'iran',
+        '伊拉克', 'iraq',
+        '沙特阿拉伯', 'saudi arabia',
+        '阿联酋', '阿拉伯联合酋长国', 'united arab emirates', 'uae',
+        '卡塔尔', 'qatar',
+        '科威特', 'kuwait',
+        '巴林', 'bahrain',
+        '阿曼', 'oman',
+        '也门', 'yemen',
+        '约旦', 'jordan',
+        '黎巴嫩', 'lebanon',
+        '叙利亚', 'syria',
+        '以色列', 'israel',
+        '巴勒斯坦', 'palestine',
+        '土耳其', 'turkey',
+        '格鲁吉亚', 'georgia',
+        '亚美尼亚', 'armenia',
+        '阿塞拜疆', 'azerbaijan',
+        '塞浦路斯', 'cyprus',
+        '马尔代夫', 'maldives',
+    ),
+    'europe': (
+        '英国', '英格兰', '大不列颠', '联合王国', 'united kingdom', 'uk', 'britain', 'great britain', 'england',
+        '爱尔兰', 'ireland',
+        '法国', 'france',
+        '德国', 'germany',
+        '荷兰', '尼德兰', 'netherlands', 'holland',
+        '比利时', 'belgium',
+        '卢森堡', 'luxembourg',
+        '瑞士', 'switzerland',
+        '奥地利', 'austria',
+        '意大利', 'italy',
+        '西班牙', 'spain',
+        '葡萄牙', 'portugal',
+        '丹麦', 'denmark',
+        '挪威', 'norway',
+        '瑞典', 'sweden',
+        '芬兰', 'finland',
+        '冰岛', 'iceland',
+        '波兰', 'poland',
+        '捷克', '捷克共和国', 'czechia', 'czech republic',
+        '斯洛伐克', 'slovakia',
+        '匈牙利', 'hungary',
+        '罗马尼亚', 'romania',
+        '保加利亚', 'bulgaria',
+        '希腊', 'greece',
+        '克罗地亚', 'croatia',
+        '斯洛文尼亚', 'slovenia',
+        '塞尔维亚', 'serbia',
+        '波斯尼亚和黑塞哥维那', '波黑', 'bosnia and herzegovina',
+        '黑山', 'montenegro',
+        '北马其顿', 'north macedonia',
+        '阿尔巴尼亚', 'albania',
+        '摩尔多瓦', 'moldova',
+        '乌克兰', 'ukraine',
+        '白俄罗斯', 'belarus',
+        '立陶宛', 'lithuania',
+        '拉脱维亚', 'latvia',
+        '爱沙尼亚', 'estonia',
+        '俄罗斯', 'russia', 'russian federation',
+    ),
+    'north-america': (
+        '美国', '美利坚合众国', 'united states', 'united states of america', 'usa',
+        '加拿大', 'canada',
+        '墨西哥', 'mexico',
+        '格陵兰', 'greenland',
+        '古巴', 'cuba',
+        '多米尼加共和国', 'dominican republic',
+        '海地', 'haiti',
+        '牙买加', 'jamaica',
+        '危地马拉', 'guatemala',
+        '伯利兹', 'belize',
+        '洪都拉斯', 'honduras',
+        '萨尔瓦多', 'el salvador',
+        '尼加拉瓜', 'nicaragua',
+        '哥斯达黎加', 'costa rica',
+        '巴拿马', 'panama',
+        '巴哈马', 'bahamas',
+        '特立尼达和多巴哥', 'trinidad and tobago',
+        '巴巴多斯', 'barbados',
+        '波多黎各', 'puerto rico',
+    ),
+    'south-america': (
+        '巴西', 'brazil',
+        '阿根廷', 'argentina',
+        '智利', 'chile',
+        '秘鲁', 'peru',
+        '哥伦比亚', 'colombia',
+        '委内瑞拉', 'venezuela',
+        '厄瓜多尔', 'ecuador',
+        '玻利维亚', 'bolivia',
+        '巴拉圭', 'paraguay',
+        '乌拉圭', 'uruguay',
+        '圭亚那', 'guyana',
+        '苏里南', 'suriname',
+        '法属圭亚那', 'french guiana',
+    ),
+    'africa': (
+        '南非', 'south africa',
+        '埃及', 'egypt',
+        '尼日利亚', 'nigeria',
+        '肯尼亚', 'kenya',
+        '埃塞俄比亚', 'ethiopia',
+        '坦桑尼亚', 'tanzania',
+        '阿尔及利亚', 'algeria',
+        '摩洛哥', 'morocco',
+        '突尼斯', 'tunisia',
+        '利比亚', 'libya',
+        '苏丹', 'sudan',
+        '南苏丹', 'south sudan',
+        '加纳', 'ghana',
+        '乌干达', 'uganda',
+        '安哥拉', 'angola',
+        '喀麦隆', 'cameroon',
+        '科特迪瓦', '象牙海岸', 'cote d ivoire', 'ivory coast',
+        '塞内加尔', 'senegal',
+        '津巴布韦', 'zimbabwe',
+        '赞比亚', 'zambia',
+        '博茨瓦纳', 'botswana',
+        '纳米比亚', 'namibia',
+        '莫桑比克', 'mozambique',
+        '马达加斯加', 'madagascar',
+        '毛里求斯', 'mauritius',
+        '卢旺达', 'rwanda',
+        '刚果', 'congo',
+        '刚果民主共和国', '民主刚果', 'democratic republic of the congo', 'dr congo',
+        '加蓬', 'gabon',
+    ),
+    'oceania': (
+        '澳大利亚', 'australia',
+        '新西兰', 'new zealand',
+        '巴布亚新几内亚', 'papua new guinea',
+        '斐济', 'fiji',
+        '萨摩亚', 'samoa',
+        '汤加', 'tonga',
+        '所罗门群岛', 'solomon islands',
+        '瓦努阿图', 'vanuatu',
+        '密克罗尼西亚', 'micronesia',
+        '关岛', 'guam',
+        '新喀里多尼亚', 'new caledonia',
+    ),
+}
+
+_ANALYTICS_COUNTRY_TO_CONTINENT = {}
+for _continent_key, _aliases in _ANALYTICS_COUNTRY_CONTINENT_ALIASES.items():
+    for _alias in _aliases:
+        _lookup_key = _analytics_build_geo_lookup_key(_alias)
+        if _lookup_key:
+            _ANALYTICS_COUNTRY_TO_CONTINENT[_lookup_key] = _continent_key
+
+
 def _analytics_extract_china_province(location_text: str) -> str:
     text = str(location_text or '').strip()
     if not text:
@@ -1267,6 +1479,35 @@ def _analytics_extract_record_province(item) -> str:
     return _analytics_clean_text(derived, max_length=32)
 
 
+def _analytics_extract_country_from_location(location_text: str) -> str:
+    text = str(location_text or '').strip()
+    if not text or text in _ANALYTICS_NON_GEO_LOCATION_LABELS:
+        return ''
+    if _analytics_extract_china_province(text):
+        return '中国'
+    first_segment = str(text.split('/', 1)[0] or '').strip()
+    if not first_segment or first_segment in _ANALYTICS_NON_GEO_LOCATION_LABELS:
+        return ''
+    return first_segment
+
+
+def _analytics_extract_record_country(item) -> str:
+    country = _analytics_clean_text(item.get('country'), max_length=64)
+    if country:
+        if _analytics_extract_china_province(country):
+            return '中国'
+        return country
+    location = _analytics_clean_text(item.get('location'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+    return _analytics_clean_text(_analytics_extract_country_from_location(location), max_length=64)
+
+
+def _analytics_resolve_continent_from_country(country_text: str) -> str:
+    lookup_key = _analytics_build_geo_lookup_key(country_text)
+    if not lookup_key:
+        return ''
+    return _ANALYTICS_COUNTRY_TO_CONTINENT.get(lookup_key, '')
+
+
 def _analytics_resolve_visit_geo(ip_text: str):
     ip_value = str(ip_text or '').strip()
     if not ip_value:
@@ -1280,7 +1521,7 @@ def _analytics_resolve_visit_geo(ip_text: str):
     location = resolve_ip_location(ip_value)
     province = _analytics_extract_china_province(location)
     is_china = bool(province)
-    country = '中国' if is_china else ''
+    country = '中国' if is_china else _analytics_extract_country_from_location(location)
     return {
         'ip': ip_value,
         'location': location or '未知',
@@ -1546,6 +1787,7 @@ def build_site_analytics_report(range_days=30):
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
         os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
         province = _analytics_extract_record_province(item)
+        country = _analytics_extract_record_country(item)
         ip_addr = _analytics_clean_text(item.get('ip'), max_length=45)
         visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64)
         session_id = _analytics_clean_id(item.get('session_id'), max_length=64)
@@ -1572,6 +1814,7 @@ def build_site_analytics_report(range_days=30):
                 'device': device,
                 'os': os_name,
                 'province': province,
+                'country': country,
                 'ip': ip_addr,
             }
             sessions[session_id] = sess
@@ -1586,6 +1829,8 @@ def build_site_analytics_report(range_days=30):
                 sess['os'] = os_name
             if not sess.get('province') and province:
                 sess['province'] = province
+            if not sess.get('country') and country:
+                sess['country'] = country
             if not sess.get('ip') and ip_addr:
                 sess['ip'] = ip_addr
 
@@ -1660,16 +1905,21 @@ def build_site_analytics_report(range_days=30):
     device_counter = {}
     os_counter = {}
     province_counter = {}
+    continent_counter = {}
     for item in tracked_sessions:
         source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
         os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
         province = _analytics_clean_text(item.get('province'), max_length=32)
+        country = _analytics_clean_text(item.get('country'), max_length=64)
         source_counter[source] = source_counter.get(source, 0) + 1
         device_counter[device] = device_counter.get(device, 0) + 1
         os_counter[os_name] = os_counter.get(os_name, 0) + 1
         if province:
             province_counter[province] = province_counter.get(province, 0) + 1
+        continent_key = _analytics_resolve_continent_from_country(country)
+        if country and country != '中国' and continent_key:
+            continent_counter[continent_key] = continent_counter.get(continent_key, 0) + 1
 
     source_rows = [
         {
@@ -1710,6 +1960,18 @@ def build_site_analytics_report(range_days=30):
         for key, value in province_counter.items()
     ]
     province_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    overseas_sessions = sum(continent_counter.values())
+    continent_rows = [
+        {
+            'continent_key': key,
+            'continent': _ANALYTICS_CONTINENT_LABELS.get(key, key),
+            'sessions': value,
+            'ratio': round((value * 100.0 / overseas_sessions), 2) if overseas_sessions else 0.0,
+        }
+        for key, value in continent_counter.items()
+    ]
+    continent_rows.sort(key=lambda item: item['sessions'], reverse=True)
 
     china_map_data = [
         {
@@ -1766,6 +2028,7 @@ def build_site_analytics_report(range_days=30):
         'device_breakdown': device_rows,
         'os_breakdown': os_rows,
         'province_breakdown': province_rows,
+        'continent_breakdown': continent_rows,
         'china_map_data': china_map_data,
         'top_pages': top_pages,
         'top_events': top_events,
@@ -2422,6 +2685,9 @@ def get_product_images():
 # 排除的文件（索引页、分类页等）
 EXCLUDED_PRODUCT_FILES = {
     'index.html',
+    'all-products.html',
+    'online-store.html',
+    'service-cases.html',
     'gas_sensors.html',
     'gas_sensors_page_2.html', 
     'gas_sensors_page_3.html',
@@ -4811,9 +5077,12 @@ register_ai_chatbot_routes(
     get_config=get_config,
     update_config=update_config,
     require_super_admin_api=require_super_admin_api,
+    get_client_ip=get_client_ip,
+    resolve_ip_location=resolve_ip_location,
     sanitize_public_link_url=sanitize_public_link_url,
     validate_uploaded_pdf=validate_uploaded_pdf,
     knowledge_dir=KNOWLEDGE_DIR,
+    conversation_log_file=CHATBOT_CONVERSATION_LOG_FILE,
     pdf_support=PDF_SUPPORT,
     pypdf2_module=PyPDF2 if PDF_SUPPORT else None,
     requests_support=REQUESTS_SUPPORT,

@@ -6,6 +6,10 @@
 (function () {
     'use strict';
 
+    const CHATBOT_MIN_WIDTH = 360;
+    const CHATBOT_DESKTOP_DEFAULT_WIDTH = 460;
+    const CHATBOT_MOBILE_BREAKPOINT = 480;
+
     // 会话ID（每次页面加载时生成新的）
     let sessionId = generateSessionId();
 
@@ -13,8 +17,13 @@
     let conversationHistory = [];
 
     // DOM Elements
-    let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton, suggestionTrack;
+    let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton, suggestionTrack, resizeHandle;
     let bodyOverflowBackup = '';
+    let hideWindowTimer = null;
+    let isResizing = false;
+    let resizeStartX = 0;
+    let resizeStartWidth = 0;
+    let chatbotCustomWidth = null;
 
     // 输入区预设问题（滚动展示，可一键发送）
     const PRESET_QUESTIONS = [
@@ -106,6 +115,9 @@
         // Create chat window
         const windowHTML = `
             <div class="chatbot-window" id="chatbotWindow" style="display: none;">
+                <div class="chatbot-resize-handle" id="chatbotResizeHandle" aria-hidden="true">
+                    <span class="chatbot-resize-grip"></span>
+                </div>
                 <div class="chatbot-header">
                     <div class="chatbot-avatar">
                         <i class="fas fa-robot"></i>
@@ -114,9 +126,14 @@
                         <h4>元芯智能助手</h4>
                         <span>在线服务中</span>
                     </div>
-                    <button class="chatbot-close" id="chatbotClose" aria-label="关闭">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div class="chatbot-header-actions">
+                        <button class="chatbot-window-btn chatbot-minimize" id="chatbotMinimize" aria-label="最小化">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button class="chatbot-window-btn chatbot-close" id="chatbotClose" aria-label="关闭">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="chatbot-messages" id="chatbotMessages">
                     <div class="chat-welcome">
@@ -139,6 +156,7 @@
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
+                    <div class="chatbot-disclaimer">AI 的回答可能会犯错</div>
                 </div>
             </div>
         `;
@@ -154,6 +172,7 @@
         inputField = document.getElementById('chatbotInput');
         sendButton = document.getElementById('chatbotSend');
         suggestionTrack = document.getElementById('chatbotSuggestionTrack');
+        resizeHandle = document.getElementById('chatbotResizeHandle');
     }
 
     function renderPresetQuestions() {
@@ -188,9 +207,16 @@
     function bindEvents() {
         // Toggle chat window
         chatbotTrigger.addEventListener('click', toggleChatWindow);
+        document.getElementById('chatbotMinimize').addEventListener('click', minimizeChatWindow);
         document.getElementById('chatbotClose').addEventListener('click', closeChatWindow);
         chatbotWindow.addEventListener('wheel', handleChatWindowWheel, { passive: false });
         window.addEventListener('resize', positionChatWindow);
+        if (resizeHandle) {
+            resizeHandle.addEventListener('pointerdown', startResizeChatWindow);
+        }
+        window.addEventListener('pointermove', handleResizeChatWindow);
+        window.addEventListener('pointerup', stopResizeChatWindow);
+        window.addEventListener('pointercancel', stopResizeChatWindow);
 
         // Send message
         sendButton.addEventListener('click', sendMessage);
@@ -239,21 +265,26 @@
                 : (chatbotWindow.contains(e.target) || chatbotTrigger.contains(e.target));
 
             if (!clickedInsideChatbot) {
-                closeChatWindow();
+                minimizeChatWindow();
             }
         });
     }
 
     function toggleChatWindow() {
         if (chatbotWindow.classList.contains('open')) {
-            closeChatWindow();
+            minimizeChatWindow();
         } else {
             openChatWindow();
         }
     }
 
     function openChatWindow() {
+        if (hideWindowTimer) {
+            clearTimeout(hideWindowTimer);
+            hideWindowTimer = null;
+        }
         lockPageScroll();
+        syncChatbotWidthForViewport();
         chatbotWindow.style.display = 'flex';
         positionChatWindow();
         // Force reflow
@@ -263,17 +294,24 @@
         inputField.focus();
     }
 
-    function closeChatWindow() {
+    function minimizeChatWindow() {
         unlockPageScroll();
         chatbotWindow.classList.remove('open');
         chatbotTrigger.classList.remove('active');
+        if (hideWindowTimer) {
+            clearTimeout(hideWindowTimer);
+            hideWindowTimer = null;
+        }
 
         // Wait for transition (300ms) then hide
-        setTimeout(() => {
+        hideWindowTimer = setTimeout(() => {
             chatbotWindow.style.display = 'none';
-            // 关闭时清除对话记录
-            clearChatHistory();
+            hideWindowTimer = null;
         }, 300);
+    }
+
+    function closeChatWindow() {
+        minimizeChatWindow();
     }
 
     function lockPageScroll() {
@@ -296,6 +334,7 @@
 
     function positionChatWindow() {
         if (!chatbotWindow || !chatbotTrigger) return;
+        syncChatbotWidthForViewport();
 
         const triggerRect = chatbotTrigger.getBoundingClientRect();
         const gap = window.innerWidth <= 480 ? 12 : 14;
@@ -309,6 +348,81 @@
         chatbotWindow.style.right = `${right}px`;
         chatbotWindow.style.bottom = `${bottom}px`;
         chatbotWindow.style.maxHeight = `${availableHeight}px`;
+    }
+
+    function isMobileViewport() {
+        return window.innerWidth <= CHATBOT_MOBILE_BREAKPOINT;
+    }
+
+    function getChatbotMaxWidth() {
+        const viewportAllowance = Math.max(320, window.innerWidth - 32);
+        return Math.max(CHATBOT_MIN_WIDTH, viewportAllowance);
+    }
+
+    function syncChatbotWidthForViewport() {
+        if (!chatbotWindow) return;
+
+        if (isMobileViewport()) {
+            chatbotWindow.style.width = '';
+            chatbotWindow.style.maxWidth = '';
+            return;
+        }
+
+        const width = Math.min(
+            getChatbotMaxWidth(),
+            Math.max(CHATBOT_MIN_WIDTH, Number(chatbotCustomWidth) || CHATBOT_DESKTOP_DEFAULT_WIDTH)
+        );
+        chatbotWindow.style.width = `${width}px`;
+        chatbotWindow.style.maxWidth = 'calc(100vw - 32px)';
+    }
+
+    function startResizeChatWindow(e) {
+        if (!chatbotWindow || isMobileViewport()) return;
+        if (typeof e.button === 'number' && e.button !== 0) return;
+
+        e.preventDefault();
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartWidth = chatbotWindow.getBoundingClientRect().width;
+        chatbotWindow.classList.add('chatbot-window-resizing');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        if (resizeHandle && typeof resizeHandle.setPointerCapture === 'function') {
+            try {
+                resizeHandle.setPointerCapture(e.pointerId);
+            } catch (_err) {
+                // Ignore pointer capture failures.
+            }
+        }
+    }
+
+    function handleResizeChatWindow(e) {
+        if (!isResizing || !chatbotWindow) return;
+
+        const deltaX = resizeStartX - e.clientX;
+        const nextWidth = Math.min(
+            getChatbotMaxWidth(),
+            Math.max(CHATBOT_MIN_WIDTH, resizeStartWidth + deltaX)
+        );
+        chatbotCustomWidth = nextWidth;
+        chatbotWindow.style.width = `${nextWidth}px`;
+        chatbotWindow.style.maxWidth = 'calc(100vw - 32px)';
+        positionChatWindow();
+    }
+
+    function stopResizeChatWindow(e) {
+        if (!isResizing) return;
+        isResizing = false;
+        chatbotWindow.classList.remove('chatbot-window-resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        if (resizeHandle && typeof resizeHandle.releasePointerCapture === 'function' && e && typeof e.pointerId === 'number') {
+            try {
+                resizeHandle.releasePointerCapture(e.pointerId);
+            } catch (_err) {
+                // Ignore pointer capture failures.
+            }
+        }
     }
 
     function clearChatHistory() {
@@ -370,6 +484,8 @@
                 body: JSON.stringify({
                     message: message,
                     session_id: sessionId,
+                    page_url: window.location.pathname + window.location.search,
+                    page_title: document.title || '',
                     history: conversationHistory.slice(-10) // Send last 10 messages for context
                 }),
                 signal: controller.signal
@@ -646,6 +762,7 @@
     window.MetachipChatbot = {
         open: openChatWindow,
         close: closeChatWindow,
+        minimize: minimizeChatWindow,
         toggle: toggleChatWindow,
         clearHistory: clearChatHistory,
         newSession: function () {

@@ -1127,16 +1127,14 @@
                 max-width: 100% !important;
             }
 
-            .tabs,
-            .msg-tabs {
+            .tabs {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 white-space: nowrap;
                 padding-bottom: 4px;
             }
 
-            .tab-btn,
-            .msg-tab-btn {
+            .tab-btn {
                 flex: 0 0 auto;
             }
 
@@ -1702,35 +1700,14 @@
             line-height: 1.7;
         }
 
-        .msg-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 14px;
+        .message-card-header {
+            padding: 16px 20px 0 20px;
         }
 
-        .msg-tab-btn {
-            border: 1px solid #c8d3e3;
-            background: #fff;
+        .message-card-title {
+            font-size: 15px;
+            font-weight: 700;
             color: #1e2f4d;
-            border-radius: 6px;
-            padding: 8px 14px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .msg-tab-btn.active {
-            border-color: #0f2f5f;
-            background: #0f2f5f;
-            color: #fff;
-        }
-
-        .msg-panel {
-            display: none;
-        }
-
-        .msg-panel.active {
-            display: block;
         }
 
         .audit-card-header {
@@ -1791,6 +1768,152 @@
         .audit-status-fail {
             color: #991b1b;
             background: #fee2e2;
+        }
+
+        .chatbot-history-toolbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .chatbot-api-control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .chatbot-api-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: auto;
+            padding: 8px 14px;
+            border: 1px solid #f4c985;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #fffaf0 0%, #ffefc8 100%);
+            color: #9a5b00;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            box-shadow: 0 8px 18px rgba(244, 201, 133, 0.18);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        .chatbot-api-link:hover {
+            background: linear-gradient(180deg, #fff3d5 0%, #ffe5a8 100%);
+            color: #7a4300;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(244, 201, 133, 0.26);
+        }
+
+        .chatbot-api-link i {
+            font-size: 11px;
+        }
+
+        .chatbot-api-recommend {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 10px 12px;
+            border: 1px solid #f6dfb1;
+            border-radius: 10px;
+            background: #fffaf1;
+            color: #8a5a05;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .chatbot-api-recommend i {
+            margin-top: 2px;
+            color: #d08a00;
+        }
+
+        .chatbot-history-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chatbot-history-session-id {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: 12px;
+            color: #0f172a;
+            word-break: break-all;
+        }
+
+        .chatbot-history-page {
+            font-size: 12px;
+            color: #64748b;
+            word-break: break-all;
+        }
+
+        .chatbot-history-source {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .chatbot-history-source-ai {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .chatbot-history-source-fallback {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .chatbot-history-source-mixed {
+            color: #1d4ed8;
+            background: #dbeafe;
+        }
+
+        .chatbot-history-preview {
+            color: #0f172a;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .chatbot-history-empty {
+            color: #94a3b8;
+        }
+
+        .chatbot-history-details {
+            margin-top: 8px;
+        }
+
+        .chatbot-history-details summary {
+            cursor: pointer;
+            color: #2563eb;
+            font-size: 12px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .chatbot-history-full {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .audit-pagination-bar {
@@ -2393,6 +2516,163 @@
             font-size: 14px;
         }
 
+        .geo-map-layout {
+            display: grid;
+            grid-template-columns: minmax(240px, 1fr) minmax(420px, 1.8fr) minmax(240px, 1fr);
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        .world-map-panel,
+        .china-map-column {
+            min-width: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 14px 14px 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        }
+
+        .world-map-panel {
+            background: linear-gradient(180deg, #fbfdff 0%, #f5f9ff 100%);
+        }
+
+        .map-panel-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .map-panel-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f2f5f;
+            letter-spacing: 0.02em;
+        }
+
+        .map-panel-desc {
+            margin-top: 4px;
+            font-size: 12px;
+            line-height: 1.55;
+            color: #64748b;
+        }
+
+        .china-map-column .china-map-container {
+            max-width: 100%;
+            padding: 8px 0 0;
+        }
+
+        .world-map-container {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto;
+            padding: 8px 0 0;
+        }
+
+        .world-map-svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .world-map-globe-bg {
+            fill: #f8fbff;
+            stroke: #dbeafe;
+            stroke-width: 1.4;
+        }
+
+        .world-map-globe-guide {
+            fill: none;
+            stroke: #dbeafe;
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+        }
+
+        .world-map-svg [data-continent] {
+            stroke: #94a3b8;
+            stroke-width: 1.1;
+            cursor: pointer;
+            transition: fill 0.2s ease, stroke 0.2s ease, transform 0.2s ease;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .world-map-svg [data-continent]:hover {
+            stroke: #1e40af;
+            stroke-width: 1.6;
+            filter: brightness(0.95);
+            transform: translateY(-1px);
+        }
+
+        .world-map-svg text {
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .world-map-label {
+            font-size: 10.5px;
+            font-weight: 800;
+            fill: #0f172a;
+        }
+
+        .world-map-value {
+            font-size: 9.5px;
+            font-weight: 700;
+            fill: #475569;
+        }
+
+        .world-map-summary {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .world-map-summary-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(241, 245, 249, 0.88);
+            border: 1px solid #e2e8f0;
+        }
+
+        .world-map-summary-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f2f5f;
+        }
+
+        .world-map-summary-metrics {
+            text-align: right;
+            line-height: 1.25;
+        }
+
+        .world-map-summary-metrics strong {
+            display: block;
+            font-size: 13px;
+            color: #1e3a8a;
+        }
+
+        .world-map-summary-metrics span {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .world-map-container .china-map-legend {
+            margin-top: 12px;
+        }
+
+        .world-map-container .china-map-legend-bar {
+            width: 128px;
+        }
+
+        .world-map-container .china-map-footnote {
+            font-size: 11px;
+            line-height: 1.5;
+            margin-top: 8px;
+        }
+
         .os-icon {
             display: inline-flex;
             align-items: center;
@@ -2442,9 +2722,23 @@
             background: #f8fafc;
         }
 
+        @media (max-width: 1280px) {
+            .geo-map-layout {
+                grid-template-columns: minmax(220px, 1fr) minmax(360px, 1.45fr) minmax(220px, 1fr);
+            }
+        }
+
         @media (max-width: 900px) {
             .site-report-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .geo-map-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .world-map-container {
+                max-width: 360px;
             }
         }
 
@@ -2807,14 +3101,14 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <i class="fas fa-cube" style="margin-right: 10px;"></i>
-                <span class="sidebar-title-text">元芯管理系统</span>
+                <span class="sidebar-title-text">元芯官网后台</span>
             </div>
             <div class="sidebar-menu">
-                <div class="menu-item active" data-view="messages" onclick="switchView('messages')">
-                    <i class="fas fa-envelope"></i> 仪表盘
+                <div class="menu-item active" data-view="site-reports" onclick="switchView('site-reports')">
+                    <i class="fas fa-chart-line"></i> 网站数据
                 </div>
-                <div class="menu-item" data-view="site-reports" onclick="switchView('site-reports')">
-                    <i class="fas fa-chart-line"></i> 网站报表
+                <div class="menu-item" data-view="messages" onclick="switchView('messages')">
+                    <i class="fas fa-envelope"></i> 留言系统
                 </div>
                 <div class="menu-item" data-view="home" onclick="switchView('home')">
                     <i class="fas fa-home"></i> 首页设置
@@ -2833,11 +3127,21 @@
                         <div class="menu-item" data-view="products" onclick="switchView('products')">
                             <i class="fas fa-box"></i> 氢气产品
                         </div>
-                        <div class="menu-item" data-view="bio-products" onclick="switchView('bio-products')">
-                            <i class="fas fa-dna"></i> 生物产品
-                        </div>
                         <div class="menu-item" data-view="hydrogen-solutions" onclick="switchView('hydrogen-solutions')">
                             <i class="fas fa-project-diagram"></i> 氢气方案
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-menu-group" data-menu-group="bio-related">
+                    <button type="button" class="sidebar-menu-group-toggle" onclick="toggleSidebarMenuGroup('bio-related')"
+                        aria-expanded="false" aria-controls="sidebarGroupBioRelatedItems">
+                        <i class="fas fa-dna"></i>
+                        <span>生物相关</span>
+                        <i class="fas fa-chevron-down sidebar-menu-group-caret"></i>
+                    </button>
+                    <div class="sidebar-menu-group-items" id="sidebarGroupBioRelatedItems" hidden>
+                        <div class="menu-item" data-view="bio-products" onclick="switchView('bio-products')">
+                            <i class="fas fa-dna"></i> 生物产品
                         </div>
                     </div>
                 </div>
@@ -2849,7 +3153,7 @@
                     <i class="fas fa-briefcase"></i> 招聘信息
                 </div>
                 <div class="menu-item" data-view="chatbot" onclick="switchView('chatbot')">
-                    <i class="fas fa-robot"></i> 智能客服
+                    <i class="fas fa-robot"></i> AI 接口
                 </div>
                 <div class="menu-item" data-view="site-settings" onclick="switchView('site-settings')">
                     <i class="fas fa-globe"></i> 站点设置
@@ -2883,7 +3187,7 @@
                         aria-label="Toggle menu" aria-expanded="false">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <div class="page-title" id="pageTitle">仪表盘</div>
+                    <div class="page-title" id="pageTitle">网站数据</div>
                 </div>
                 <div class="top-bar-actions">
                     <a class="top-home-btn" href="/" target="_blank" rel="noopener noreferrer">
@@ -2910,7 +3214,7 @@
             <div class="content-area">
 
                 <!-- Messages View -->
-                <div id="view-messages" class="view-section active">
+                <div id="view-messages" class="view-section">
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-label">总留言数</div>
@@ -2935,99 +3239,50 @@
                     </div>
 
                     <div class="card">
-                        <div style="padding: 16px 20px 0 20px;">
-                            <div class="msg-tabs">
-                                <button type="button" class="msg-tab-btn active" id="msgTabFeedbackBtn"
-                                    onclick="switchMessageDataTab('feedback')">留言信息</button>
-                                <button type="button" class="msg-tab-btn" id="msgTabJobBtn"
-                                    onclick="switchMessageDataTab('job')">应聘信息</button>
-                            </div>
-                        </div>
-                        <div class="table-container">
-                            <div id="messagesPanelFeedback" class="msg-panel active">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>时间</th>
-                                            <th>姓名</th>
-                                            <th>联系电话</th>
-                                            <th>内容摘要</th>
-                                            <th>操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="messagesTableBody">
-                                        <!-- Feedback messages will be loaded here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="messagesPanelJob" class="msg-panel">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>时间</th>
-                                            <th>应聘者</th>
-                                            <th>联系方式</th>
-                                            <th>应聘信息（详细）</th>
-                                            <th>简历</th>
-                                            <th>操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="jobApplicationsTableBody">
-                                        <!-- Job applications will be loaded here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card" style="margin-top: 20px;">
-                        <div class="audit-card-header">
-                            <div class="audit-card-title">历史登录日志</div>
-                            <div class="audit-card-meta">
-                                <span>逐条记录，默认只读，不允许删除</span>
-                                <button type="button" class="audit-refresh-btn" onclick="loadAdminLoginLogs()">刷新</button>
-                            </div>
+                        <div class="message-card-header">
+                            <div class="message-card-title">留言信息</div>
                         </div>
                         <div class="table-container">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>#</th>
-                                        <th>登录 IP</th>
-                                        <th>IP 物理地址</th>
-                                        <th>登录是否成功</th>
-                                        <th>登录时间（北京时间）</th>
-                                        <th>执行操作</th>
+                                        <th>时间</th>
+                                        <th>姓名</th>
+                                        <th>联系电话</th>
+                                        <th>内容摘要</th>
+                                        <th>操作</th>
                                     </tr>
                                 </thead>
-                                <tbody id="adminLoginLogsBody">
-                                    <tr>
-                                        <td colspan="6" class="no-data">加载中...</td>
-                                    </tr>
+                                <tbody id="messagesTableBody">
+                                    <!-- Feedback messages will be loaded here -->
                                 </tbody>
                             </table>
                         </div>
-                        <div class="audit-pagination-bar">
-                            <div id="adminLoginLogsPageInfo" class="audit-page-info">共 0 条</div>
-                            <div class="audit-page-actions">
-                                <button type="button" id="adminLoginLogsPrevBtn" class="audit-page-btn"
-                                    onclick="changeAdminLoginLogsPage(-1)">上一页</button>
-                                <span id="adminLoginLogsPageCurrent" class="audit-page-current">1 / 1</span>
-                                <button type="button" id="adminLoginLogsNextBtn" class="audit-page-btn"
-                                    onclick="changeAdminLoginLogsPage(1)">下一页</button>
-                                <label class="audit-page-size">
-                                    每页
-                                    <select id="adminLoginLogsPageSize" onchange="changeAdminLoginLogsPageSize(this.value)">
-                                        <option value="10">10</option>
-                                        <option value="20" selected>20</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                    </select>
-                                    条
-                                </label>
-                            </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="message-card-header">
+                            <div class="message-card-title">应聘信息</div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>应聘者</th>
+                                        <th>联系方式</th>
+                                        <th>应聘信息（详细）</th>
+                                        <th>简历</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="jobApplicationsTableBody">
+                                    <!-- Job applications will be loaded here -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Products View -->
@@ -4466,9 +4721,10 @@
                 <!-- Chatbot View -->
                 <div id="view-chatbot" class="view-section">
                     <div class="tabs">
-                        <button class="tab-btn active" onclick="switchChatbotTab('config', this)">API 配置</button>
+                        <button class="tab-btn active" onclick="switchChatbotTab('config', this)">智能客服 API</button>
                         <button class="tab-btn" onclick="switchChatbotTab('product-ai', this)">产品页编程 AI</button>
                         <button class="tab-btn" onclick="switchChatbotTab('knowledge', this)">知识库管理</button>
+                        <button class="tab-btn" onclick="switchChatbotTab('history', this)">历史对话</button>
                     </div>
 
                     <!-- API Config Tab -->
@@ -4477,7 +4733,7 @@
                             <div
                                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                                 <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">
-                                    智能客服配置
+                                    智能客服 API
                                 </h3>
                                 <div id="chatbotStatus" class="status-indicator enabled">
                                     <i class="fas fa-circle" style="font-size: 8px;"></i>
@@ -4488,10 +4744,20 @@
                             <form id="chatbotConfigForm">
                                 <div class="form-group">
                                     <label>启用智能客服</label>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="chatbotEnabled" checked>
-                                        <span class="toggle-slider"></span>
-                                    </label>
+                                    <div class="chatbot-api-control-row">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="chatbotEnabled" checked>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <a class="chatbot-api-link" href="https://zhizinan.top" target="_blank" rel="noopener noreferrer">
+                                            <i class="fas fa-star"></i>
+                                            <span>Ryan AI</span>
+                                        </a>
+                                    </div>
+                                    <div class="chatbot-api-recommend">
+                                        <i class="fas fa-lightbulb"></i>
+                                        <span>推荐使用 Ryan AI 获取 OpenAI 兼容接口，拿到 API Key 后可直接填写到下方配置，接入更省心。</span>
+                                    </div>
                                 </div>
 
                                 <div class="form-group">
@@ -4546,10 +4812,20 @@
                             <form id="productAiConfigForm">
                                 <div class="form-group">
                                     <label>启用产品页编程 AI</label>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="productAiEnabled">
-                                        <span class="toggle-slider"></span>
-                                    </label>
+                                    <div class="chatbot-api-control-row">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="productAiEnabled">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <a class="chatbot-api-link" href="https://zhizinan.top" target="_blank" rel="noopener noreferrer">
+                                            <i class="fas fa-star"></i>
+                                            <span>Ryan AI</span>
+                                        </a>
+                                    </div>
+                                    <div class="chatbot-api-recommend">
+                                        <i class="fas fa-lightbulb"></i>
+                                        <span>推荐使用 Ryan AI 作为兼容 API 入口，这套配置同样适用于产品页编程 AI，填写后即可直接调用。</span>
+                                    </div>
                                 </div>
 
                                 <div class="form-group">
@@ -4590,7 +4866,7 @@
                         <div class="card" style="padding: 30px;">
                             <h3 class="section-header">知识库文件管理</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                上传PDF文档作为智能客服的知识库。AI将根据这些文档内容回答用户问题。
+                                上传 PDF 文档作为智能客服的知识库。支持一次选择多个文件，系统会逐个上传并用于回答用户问题。
                             </p>
 
                             <div id="pdfSupportWarning" class="chat-error" style="display: none; margin-bottom: 20px;">
@@ -4601,8 +4877,8 @@
                             <div class="file-upload-zone" id="uploadZone">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放PDF文件到此处</div>
-                                <div style="font-size: 13px; color: #888;">或点击选择文件</div>
-                                <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+                                <div style="font-size: 13px; color: #888;">或点击选择多个 PDF 文件</div>
+                                <input type="file" id="fileInput" accept=".pdf" multiple style="display: none;">
                             </div>
 
                             <div id="uploadProgress" style="display: none; margin-top: 15px;">
@@ -4614,6 +4890,61 @@
 
                             <div class="file-list" id="knowledgeFileList">
                                 <!-- Files will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat History Tab -->
+                    <div id="chatbot-tab-history" class="tab-content">
+                        <div class="card" style="padding: 30px;">
+                            <div class="chatbot-history-toolbar">
+                                <div>
+                                    <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">历史对话记录</h3>
+                                    <p style="margin: 8px 0 0; color: #64748b; font-size: 13px;">按时间倒序展示前台智能客服的逐条问答记录。</p>
+                                </div>
+                                <button type="button" class="audit-refresh-btn" onclick="loadChatbotConversationLogs()">刷新</button>
+                            </div>
+
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 72px;">序号</th>
+                                            <th style="width: 170px;">时间</th>
+                                            <th style="width: 140px;">提问 IP</th>
+                                            <th style="width: 220px;">物理位置</th>
+                                            <th style="width: 220px;">会话信息</th>
+                                            <th>用户提问</th>
+                                            <th>AI 回复</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="chatbotHistoryBody">
+                                        <tr>
+                                            <td colspan="7" class="no-data">加载中...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="audit-pagination-bar">
+                                <div id="chatbotHistoryPageInfo" class="audit-page-info">共 0 条</div>
+                                <div class="audit-page-actions">
+                                    <button type="button" id="chatbotHistoryPrevBtn" class="audit-page-btn"
+                                        onclick="changeChatbotHistoryPage(-1)" disabled>上一页</button>
+                                    <span id="chatbotHistoryPageCurrent" class="audit-page-current">1 / 1</span>
+                                    <button type="button" id="chatbotHistoryNextBtn" class="audit-page-btn"
+                                        onclick="changeChatbotHistoryPage(1)" disabled>下一页</button>
+                                    <label class="audit-page-size">
+                                        每页
+                                        <select id="chatbotHistoryPageSize" onchange="changeChatbotHistoryPageSize(this.value)">
+                                            <option value="10">10</option>
+                                            <option value="20" selected>20</option>
+                                            <option value="50">50</option>
+                                            <option value="100">100</option>
+                                        </select>
+                                        条
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -4655,7 +4986,7 @@
 
                         <div id="subAccountsManageArea" style="display:none;">
                             <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                                权限与侧边栏一一对应：<code>仪表盘、网站报表、首页设置、氢气首页、氢气产品、生物产品、氢气方案、添加资讯、招聘信息、智能客服、站点设置、账号设置、备份恢复、更新日志</code>。
+                                权限与侧边栏一一对应：<code>网站数据、留言系统、首页设置、氢气首页、氢气产品、生物产品、氢气方案、添加资讯、招聘信息、AI 接口、站点设置、账号设置、备份恢复、更新日志</code>。
                             </div>
 
                             <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
@@ -4843,12 +5174,12 @@
                 </div>
 
                 <!-- Site Reports View -->
-                <div id="view-site-reports" class="view-section">
+                <div id="view-site-reports" class="view-section active">
                     <div class="card site-report-card">
                         <div class="site-report-toolbar">
                             <div>
-                                <h3 class="section-header" style="margin-bottom: 0;">网站统计报表</h3>
-                                <div class="form-hint">基础分析 + 完整分析：PV/UV、来源、设备、会话、跳出率、转化与事件趋势</div>
+                                <h3 class="section-header" style="margin-bottom: 0;">网站数据</h3>
+                                <div class="form-hint">基础分析 + 完整分析：PV/UV、来源、设备、会话、跳出率、转化与事件趋势，中国按省/海外按洲地图，并集中查看历史登录日志</div>
                             </div>
                             <div class="site-report-actions">
                                 <label for="siteReportRangeDays" class="site-report-label">时间范围</label>
@@ -4913,6 +5244,39 @@
                         <h3 class="section-header metric-with-help">每日趋势<button type="button" class="metric-help-btn"
                                 onclick="showSiteMetricHelp('trend')" aria-label="每日趋势说明">?</button></h3>
                         <div id="siteReportTrend" class="site-report-trend"></div>
+                    </div>
+
+                    <div class="card site-report-card" style="margin-top: 18px;">
+                        <h3 class="section-header"><i class="fas fa-map-marked-alt" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源地图（中国按省 / 海外按洲）</h3>
+                        <div class="geo-map-layout">
+                            <div class="world-map-panel">
+                                <div class="map-panel-header">
+                                    <div class="map-panel-title">世界分布 · 西半球</div>
+                                    <div class="map-panel-desc">北美洲与南美洲按中国以外会话聚合</div>
+                                </div>
+                                <div class="world-map-container" id="worldMapWestContainer">
+                                    <div class="china-map-no-data">暂无中国以外地理分布数据</div>
+                                </div>
+                            </div>
+                            <div class="china-map-column">
+                                <div class="map-panel-header">
+                                    <div class="map-panel-title">中国分布</div>
+                                    <div class="map-panel-desc">按省级行政区聚合访问会话，颜色越深表示热度越高</div>
+                                </div>
+                                <div class="china-map-container" id="chinaMapContainer">
+                                    <div class="china-map-no-data">暂无地理分布数据</div>
+                                </div>
+                            </div>
+                            <div class="world-map-panel">
+                                <div class="map-panel-header">
+                                    <div class="map-panel-title">世界分布 · 东半球</div>
+                                    <div class="map-panel-desc">欧洲、非洲、亚洲与大洋洲按中国以外会话聚合</div>
+                                </div>
+                                <div class="world-map-container" id="worldMapEastContainer">
+                                    <div class="china-map-no-data">暂无中国以外地理分布数据</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="site-report-grid">
@@ -5008,13 +5372,13 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="card site-report-card" style="margin-top: 18px;">
-                        <h3 class="section-header"><i class="fas fa-map-marked-alt" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源地图（中国省份热度）</h3>
-                        <div class="china-map-container" id="chinaMapContainer">
-                            <div class="china-map-no-data">暂无地理分布数据</div>
+                            <div class="site-report-pagination">
+                                <button type="button" class="site-report-page-btn" id="siteReportProvincePrevBtn"
+                                    onclick="changeSiteReportProvincePage(-1)">上一页</button>
+                                <span class="site-report-page-info" id="siteReportProvincePageInfo">第 0 / 0 页</span>
+                                <button type="button" class="site-report-page-btn" id="siteReportProvinceNextBtn"
+                                    onclick="changeSiteReportProvincePage(1)">下一页</button>
+                            </div>
                         </div>
                     </div>
 
@@ -5099,6 +5463,55 @@
                                 <span class="site-report-page-info" id="siteReportRecentPageInfo">第 0 / 0 页</span>
                                 <button type="button" class="site-report-page-btn" id="siteReportRecentNextBtn"
                                     onclick="changeSiteReportRecentPage(1)">下一页</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 18px;">
+                        <div class="audit-card-header">
+                            <div class="audit-card-title">历史登录日志</div>
+                            <div class="audit-card-meta">
+                                <span>逐条记录，默认只读，不允许删除</span>
+                                <button type="button" class="audit-refresh-btn" onclick="loadAdminLoginLogs()">刷新</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>登录 IP</th>
+                                        <th>IP 物理地址</th>
+                                        <th>登录是否成功</th>
+                                        <th>登录时间（北京时间）</th>
+                                        <th>执行操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminLoginLogsBody">
+                                    <tr>
+                                        <td colspan="6" class="no-data">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="audit-pagination-bar">
+                            <div id="adminLoginLogsPageInfo" class="audit-page-info">共 0 条</div>
+                            <div class="audit-page-actions">
+                                <button type="button" id="adminLoginLogsPrevBtn" class="audit-page-btn"
+                                    onclick="changeAdminLoginLogsPage(-1)">上一页</button>
+                                <span id="adminLoginLogsPageCurrent" class="audit-page-current">1 / 1</span>
+                                <button type="button" id="adminLoginLogsNextBtn" class="audit-page-btn"
+                                    onclick="changeAdminLoginLogsPage(1)">下一页</button>
+                                <label class="audit-page-size">
+                                    每页
+                                    <select id="adminLoginLogsPageSize" onchange="changeAdminLoginLogsPageSize(this.value)">
+                                        <option value="10">10</option>
+                                        <option value="20" selected>20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                    条
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -5218,12 +5631,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             updates: ['新增后台「更新日志」入口，可查看版本号、构建时间与更新内容。']
         };
         const ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE = 20;
-        const GAS_RELATED_GROUP_KEY = 'gas-related';
-        const GAS_RELATED_VIEW_KEYS = ['h2-home', 'products', 'hydrogen-solutions'];
+        const CHATBOT_HISTORY_DEFAULT_PAGE_SIZE = 20;
+        const SIDEBAR_MENU_GROUPS = {
+            'gas-related': ['h2-home', 'products', 'hydrogen-solutions'],
+            'bio-related': ['bio-products']
+        };
         let adminLoginLogsPage = 1;
         let adminLoginLogsTotalPages = 1;
         let adminLoginLogsPageSize = ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE;
         let adminLoginLogsTotal = 0;
+        let chatbotHistoryPage = 1;
+        let chatbotHistoryTotalPages = 1;
+        let chatbotHistoryPageSize = CHATBOT_HISTORY_DEFAULT_PAGE_SIZE;
+        let chatbotHistoryTotal = 0;
         let adminSessionCheckTimer = null;
         let turnstilePublicConfig = { enabled: false, site_key: '' };
         let turnstileWidgetId = null;
@@ -5231,8 +5651,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let turnstileScriptPromise = null;
         let globalActionResolver = null;
         const DEFAULT_PERMISSION_CATALOG = [
-            { key: 'messages', label: '仪表盘' },
-            { key: 'site-reports', label: '网站报表' },
+            { key: 'site-reports', label: '网站数据' },
+            { key: 'messages', label: '留言系统' },
             { key: 'home', label: '首页设置' },
             { key: 'h2-home', label: '氢气首页' },
             { key: 'products', label: '氢气产品' },
@@ -5240,7 +5660,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             { key: 'hydrogen-solutions', label: '氢气方案' },
             { key: 'news-create', label: '添加资讯' },
             { key: 'jobs', label: '招聘信息' },
-            { key: 'chatbot', label: '智能客服' },
+            { key: 'chatbot', label: 'AI 接口' },
             { key: 'site-settings', label: '站点设置' },
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
@@ -5255,9 +5675,12 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let siteReportsRangeKey = '30';
         let siteReportsLoading = false;
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
+        const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
         let siteReportEventRowsAll = [];
+        let siteReportProvinceRowsAll = [];
         let siteReportRecentRowsAll = [];
         let siteReportEventPage = 1;
+        let siteReportProvincePage = 1;
         let siteReportRecentPage = 1;
         const SITE_REPORT_OS_META = {
             windows: { label: 'Windows', icon: 'fab fa-windows' },
@@ -5298,11 +5721,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             '上海市': 'shanghai',
             '山西省': 'shanxi',
             '四川省': 'sichuan',
+            '台湾省': 'taiwan',
             '天津市': 'tianjin',
             '新疆维吾尔自治区': 'xinjiang-uygur',
             '西藏自治区': 'xizang',
             '云南省': 'yunnan',
             '浙江省': 'zhejiang'
+        };
+        const CHINA_PROVINCE_SVG_EXTRA_PATHS = {
+            taiwan: {
+                ariaLabel: 'Taiwan',
+                // SVG source lacks Taiwan; inject a coastline-based outline here.
+                d: 'M 596.57 509.90 L 597.77 511.12 L 598.45 512.98 L 598.55 516.20 L 599.03 517.84 L 600.50 518.50 L 601.69 508.53 L 602.18 506.62 L 603.88 504.76 L 605.96 499.09 L 605.83 498.18 L 608.14 485.62 L 607.99 484.22 L 609.57 480.49 L 610.29 477.53 L 609.90 472.78 L 611.50 470.24 L 610.88 469.76 L 610.59 468.12 L 608.94 467.76 L 607.41 465.50 L 606.08 466.10 L 605.38 467.82 L 602.08 469.68 L 600.82 473.91 L 598.88 476.51 L 594.66 488.28 L 593.99 488.80 L 593.29 490.44 L 593.35 496.00 L 592.50 500.15 L 593.60 501.27 L 594.94 508.07 Z'
+            }
         };
         let chinaProvinceSvgPromise = null;
         let chinaProvinceMapRenderToken = 0;
@@ -5942,29 +6373,33 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             setSidebarMenuGroupOpen(groupKey, !opened);
         }
 
-        function syncGasRelatedMenuGroup(activeView = '') {
-            const group = getSidebarMenuGroup(GAS_RELATED_GROUP_KEY);
-            if (!group) return;
+        function syncSidebarMenuGroups(activeView = '') {
             const view = String(activeView || '').trim();
-            const hasActiveChild = GAS_RELATED_VIEW_KEYS.includes(view);
-            group.classList.toggle('has-active-child', hasActiveChild);
-            if (hasActiveChild) {
-                setSidebarMenuGroupOpen(GAS_RELATED_GROUP_KEY, true);
-            }
+            Object.entries(SIDEBAR_MENU_GROUPS).forEach(([groupKey, viewKeys]) => {
+                const group = getSidebarMenuGroup(groupKey);
+                if (!group) return;
+                const hasActiveChild = viewKeys.includes(view);
+                group.classList.toggle('has-active-child', hasActiveChild);
+                if (hasActiveChild) {
+                    setSidebarMenuGroupOpen(groupKey, true);
+                }
+            });
         }
 
-        function syncGasRelatedMenuGroupVisibility() {
-            const group = getSidebarMenuGroup(GAS_RELATED_GROUP_KEY);
-            if (!group) return;
-            const hasVisibleChildren = GAS_RELATED_VIEW_KEYS.some((viewKey) => {
-                const item = document.querySelector(`.menu-item[data-view="${viewKey}"]`);
-                return !!item && item.style.display !== 'none';
+        function syncSidebarMenuGroupVisibility() {
+            Object.entries(SIDEBAR_MENU_GROUPS).forEach(([groupKey, viewKeys]) => {
+                const group = getSidebarMenuGroup(groupKey);
+                if (!group) return;
+                const hasVisibleChildren = viewKeys.some((viewKey) => {
+                    const item = document.querySelector(`.menu-item[data-view="${viewKey}"]`);
+                    return !!item && item.style.display !== 'none';
+                });
+                group.style.display = hasVisibleChildren ? '' : 'none';
+                if (!hasVisibleChildren) {
+                    group.classList.remove('has-active-child');
+                    setSidebarMenuGroupOpen(groupKey, false);
+                }
             });
-            group.style.display = hasVisibleChildren ? '' : 'none';
-            if (!hasVisibleChildren) {
-                group.classList.remove('has-active-child');
-                setSidebarMenuGroupOpen(GAS_RELATED_GROUP_KEY, false);
-            }
         }
 
         function getFirstAllowedView() {
@@ -6011,9 +6446,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     activeVisible = true;
                 }
             }
-            syncGasRelatedMenuGroupVisibility();
+            syncSidebarMenuGroupVisibility();
             const activeMenuItem = document.querySelector('.menu-item.active[data-view]');
-            syncGasRelatedMenuGroup(activeMenuItem ? activeMenuItem.dataset.view : '');
+            syncSidebarMenuGroups(activeMenuItem ? activeMenuItem.dataset.view : '');
             if (!activeVisible) {
                 const firstView = getFirstAllowedView();
                 switchView(firstView);
@@ -6270,7 +6705,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'bio-product-tab-industries': '设置说明：先定义生物产品领域分类，再勾选每个产品所属领域；分类与勾选都会自动保存。',
             'view-bio-products': '设置说明：管理生物传感产品展示与筛选分类，前台 /pages/biosensing/?filter=xxx 会按本页配置展示。',
             'view-hydrogen-solutions': '设置说明：为氢能产业链、智慧电力安全、工业检漏监测方案分别设置 1-4 个“相关产品”，保存后对应前台方案页会按方案展示。',
-            'view-site-reports': '设置说明：本页展示网站基础统计和完整分析报表；可切换时间范围查看趋势、来源、设备、页面与行为事件。',
+            'view-site-reports': '设置说明：本页展示网站基础统计、完整分析报表、中国按省/海外按洲地图与历史登录日志；可切换时间范围查看趋势、来源、设备、页面与行为事件。',
             'home-tab-hero': '设置说明：用于管理官网首页轮播，支持上传和 CDN；调整顺序后保存即可生效。',
             'home-tab-partners': '设置说明：用于管理合作伙伴 Logo，支持上传与链接，拖拽可调整展示顺序。',
             'home-tab-news': '设置说明：选择首页展示的 3 条资讯，保存后首页资讯区会同步更新。',
@@ -6284,7 +6719,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'h2-home-tab-navbar': '设置说明：集中管理导航栏巨幕菜单（产品列表预览、新品推荐、测量对象）；链接支持 http(s) 和相对路径。',
             'chatbot-tab-config': '设置说明：配置智能客服 API 参数与模型，保存后前台客服将按此配置运行。',
             'chatbot-tab-product-ai': '设置说明：配置“产品页编程 AI”接口参数和系统提示词，供 AI 自动上架流程调用。',
-            'chatbot-tab-knowledge': '设置说明：上传和管理知识库文件，智能客服将优先参考这些资料回答。'
+            'chatbot-tab-knowledge': '设置说明：上传和管理知识库文件，智能客服将优先参考这些资料回答。',
+            'chatbot-tab-history': '设置说明：本页按时间倒序记录前台智能客服的逐条问答，可查看会话、页面、提问与回复全文。'
         };
 
         function getTabGuideElement(tabEl) {
@@ -6546,6 +6982,83 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return '#2563eb';
         }
 
+        const WORLD_CONTINENT_PANELS = {
+            west: {
+                containerId: 'worldMapWestContainer',
+                ariaLabel: '世界地图西半球访问热度图',
+                footnote: '按中国以外访客会话聚合到洲，颜色越深表示热度越高。',
+                continents: [
+                    {
+                        key: 'north-america',
+                        label: '北美洲',
+                        short: '北美',
+                        path: 'M58 66 C73 47 101 41 123 46 C141 51 161 56 172 71 C180 82 178 94 166 102 C157 108 151 120 137 123 C125 126 112 122 100 129 C86 137 67 136 56 124 C46 113 42 96 45 82 C47 75 51 70 58 66 Z',
+                        labelX: 110,
+                        labelY: 92,
+                        valueX: 110,
+                        valueY: 107,
+                    },
+                    {
+                        key: 'south-america',
+                        label: '南美洲',
+                        short: '南美',
+                        path: 'M119 149 C134 147 147 154 154 166 C161 177 159 190 153 200 C148 209 146 221 145 234 C143 248 135 263 124 271 C117 276 110 273 107 264 C102 250 98 236 90 224 C84 214 82 201 86 191 C91 177 103 158 119 149 Z',
+                        labelX: 118,
+                        labelY: 211,
+                        valueX: 118,
+                        valueY: 226,
+                    },
+                ],
+            },
+            east: {
+                containerId: 'worldMapEastContainer',
+                ariaLabel: '世界地图东半球访问热度图',
+                footnote: '按中国以外访客会话聚合到洲，颜色越深表示热度越高。',
+                continents: [
+                    {
+                        key: 'europe',
+                        label: '欧洲',
+                        short: '欧洲',
+                        path: 'M63 70 C70 61 82 57 94 60 C105 63 112 71 112 81 C112 88 104 94 94 94 C84 94 74 90 67 84 C62 80 60 75 63 70 Z',
+                        labelX: 89,
+                        labelY: 79,
+                        valueX: 89,
+                        valueY: 94,
+                    },
+                    {
+                        key: 'africa',
+                        label: '非洲',
+                        short: '非洲',
+                        path: 'M86 114 C99 109 114 113 124 124 C132 133 134 146 130 159 C126 174 124 188 118 201 C111 214 98 223 88 218 C79 214 76 202 74 190 C71 174 63 163 63 149 C63 132 71 120 86 114 Z',
+                        labelX: 97,
+                        labelY: 164,
+                        valueX: 97,
+                        valueY: 179,
+                    },
+                    {
+                        key: 'asia',
+                        label: '亚洲',
+                        short: '亚洲',
+                        path: 'M116 60 C134 45 165 45 190 53 C207 59 218 74 219 92 C221 107 213 121 199 130 C187 138 179 151 166 159 C151 168 132 169 116 161 C102 154 96 140 94 126 C91 110 95 92 101 79 C104 72 109 66 116 60 Z',
+                        labelX: 160,
+                        labelY: 107,
+                        valueX: 160,
+                        valueY: 122,
+                    },
+                    {
+                        key: 'oceania',
+                        label: '大洋洲',
+                        short: '大洋',
+                        path: 'M178 207 C187 201 200 201 208 208 C214 214 214 223 208 228 C201 235 189 238 179 234 C172 231 169 224 171 217 C172 213 174 210 178 207 Z',
+                        labelX: 191,
+                        labelY: 219,
+                        valueX: 191,
+                        valueY: 234,
+                    },
+                ],
+            },
+        };
+
         function loadChinaProvinceSvgMarkup() {
             if (!chinaProvinceSvgPromise) {
                 chinaProvinceSvgPromise = fetch(CHINA_PROVINCE_SVG_URL, { cache: 'force-cache' })
@@ -6557,7 +7070,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return chinaProvinceSvgPromise;
         }
 
-        function buildChinaProvinceMapLegendHtml() {
+        function buildHeatMapLegendHtml(footnoteText, tooltipId = '') {
+            const tooltipAttr = tooltipId ? ` id="${escapeHtml(tooltipId)}"` : '';
             return `
                 <div class="china-map-legend">
                     <span class="china-map-legend-label">低</span>
@@ -6571,9 +7085,32 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     </div>
                     <span class="china-map-legend-label">高</span>
                 </div>
-                <div class="china-map-footnote">按中国省级行政区聚合访问会话数，颜色越深表示热度越高。</div>
-                <div class="china-map-tooltip" id="chinaMapTooltip"></div>
+                <div class="china-map-footnote">${escapeHtml(footnoteText)}</div>
+                <div class="china-map-tooltip"${tooltipAttr}></div>
             `;
+        }
+
+        function buildChinaProvinceMapLegendHtml() {
+            return buildHeatMapLegendHtml('按中国省级行政区聚合访问会话数，颜色越深表示热度越高。', 'chinaMapTooltip');
+        }
+
+        function ensureChinaProvinceSvgExtraPaths(svgEl) {
+            if (!svgEl) return;
+            const svgNs = 'http://www.w3.org/2000/svg';
+            const svgDoc = svgEl.ownerDocument || document;
+            Object.entries(CHINA_PROVINCE_SVG_EXTRA_PATHS).forEach(([pathId, config]) => {
+                if (svgEl.querySelector(`[id="${pathId}"]`)) return;
+                const pathEl = svgDoc.createElementNS(svgNs, 'path');
+                pathEl.setAttribute('id', pathId);
+                pathEl.setAttribute('aria-label', config.ariaLabel || pathId);
+                pathEl.setAttribute('d', config.d);
+                if (config.transform) {
+                    pathEl.setAttribute('transform', config.transform);
+                }
+                pathEl.setAttribute('stroke-linejoin', 'round');
+                pathEl.setAttribute('stroke-linecap', 'round');
+                svgEl.appendChild(pathEl);
+            });
         }
 
         function bindChinaProvinceMapTooltip(mapWrap) {
@@ -6595,6 +7132,109 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     tooltip.classList.remove('visible');
                 });
             });
+        }
+
+        function bindWorldContinentMapTooltip(mapWrap) {
+            const tooltip = mapWrap.querySelector('.china-map-tooltip');
+            if (!tooltip) return;
+            const regions = mapWrap.querySelectorAll('[data-continent]');
+            regions.forEach((region) => {
+                const continent = String(region.getAttribute('data-continent') || '').trim();
+                const sessions = Number(region.getAttribute('data-sessions') || 0);
+                const ratio = Number(region.getAttribute('data-ratio') || 0);
+                region.addEventListener('mousemove', (event) => {
+                    const bounds = mapWrap.getBoundingClientRect();
+                    tooltip.textContent = `${continent}: ${formatSiteReportNumber(sessions)} 次会话 (${formatSiteReportPercent(ratio)})`;
+                    tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
+                    tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
+                    tooltip.classList.add('visible');
+                });
+                region.addEventListener('mouseleave', () => {
+                    tooltip.classList.remove('visible');
+                });
+            });
+        }
+
+        function buildWorldContinentSummaryHtml(continentDefs, continentMap) {
+            return `
+                <div class="world-map-summary">
+                    ${continentDefs.map((continentDef) => {
+                        const item = continentMap[continentDef.key] || { sessions: 0, ratio: 0, continent: continentDef.label };
+                        return `
+                            <div class="world-map-summary-item">
+                                <div class="world-map-summary-name">${escapeHtml(continentDef.label)}</div>
+                                <div class="world-map-summary-metrics">
+                                    <strong>${formatSiteReportNumber(item.sessions)}</strong>
+                                    <span>${formatSiteReportPercent(item.ratio)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderWorldContinentPanel(panelKey, continentMap, maxValue) {
+            const panel = WORLD_CONTINENT_PANELS[panelKey];
+            if (!panel) return;
+            const mapWrap = document.getElementById(panel.containerId);
+            if (!mapWrap) return;
+
+            const shapesHtml = panel.continents.map((continentDef) => {
+                const item = continentMap[continentDef.key] || { sessions: 0, ratio: 0, continent: continentDef.label };
+                const fill = getSiteReportMapColor(item.sessions, maxValue);
+                const title = `${continentDef.label}：${formatSiteReportNumber(item.sessions)} 次会话，占比 ${formatSiteReportPercent(item.ratio)}`;
+                return `
+                    <g class="world-map-continent-group">
+                        <path d="${continentDef.path}" fill="${fill}" data-continent="${escapeHtml(continentDef.label)}" data-sessions="${item.sessions}" data-ratio="${Number(item.ratio || 0).toFixed(2)}">
+                            <title>${escapeHtml(title)}</title>
+                        </path>
+                        <text class="world-map-label" x="${continentDef.labelX}" y="${continentDef.labelY}" text-anchor="middle">${escapeHtml(continentDef.short)}</text>
+                        <text class="world-map-value" x="${continentDef.valueX}" y="${continentDef.valueY}" text-anchor="middle">${escapeHtml(formatSiteReportNumber(item.sessions))}</text>
+                    </g>
+                `;
+            }).join('');
+
+            mapWrap.innerHTML = `
+                <svg class="world-map-svg" viewBox="0 0 260 280" role="img" aria-label="${panel.ariaLabel}">
+                    <ellipse class="world-map-globe-bg" cx="130" cy="140" rx="108" ry="122"></ellipse>
+                    <ellipse class="world-map-globe-guide" cx="130" cy="140" rx="78" ry="122"></ellipse>
+                    <ellipse class="world-map-globe-guide" cx="130" cy="140" rx="46" ry="122"></ellipse>
+                    <line class="world-map-globe-guide" x1="22" y1="140" x2="238" y2="140"></line>
+                    ${shapesHtml}
+                </svg>
+                ${buildWorldContinentSummaryHtml(panel.continents, continentMap)}
+                ${buildHeatMapLegendHtml(panel.footnote)}
+            `;
+            bindWorldContinentMapTooltip(mapWrap);
+        }
+
+        function renderWorldContinentHeatMaps(rawRows) {
+            const westWrap = document.getElementById(WORLD_CONTINENT_PANELS.west.containerId);
+            const eastWrap = document.getElementById(WORLD_CONTINENT_PANELS.east.containerId);
+            if (!westWrap && !eastWrap) return;
+            const rows = Array.isArray(rawRows) ? rawRows : [];
+            const normalizedRows = rows.map((item) => ({
+                key: String(item?.continent_key || '').trim(),
+                continent: String(item?.continent || '').trim(),
+                sessions: Math.max(0, Number(item?.sessions || 0)),
+                ratio: Number(item?.ratio || 0),
+            })).filter(item => item.key);
+
+            if (!normalizedRows.length) {
+                const noDataHtml = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
+                if (westWrap) westWrap.innerHTML = noDataHtml;
+                if (eastWrap) eastWrap.innerHTML = noDataHtml;
+                return;
+            }
+
+            const continentMap = {};
+            normalizedRows.forEach((item) => {
+                continentMap[item.key] = item;
+            });
+            const maxValue = Math.max(1, ...normalizedRows.map(item => item.sessions));
+            renderWorldContinentPanel('west', continentMap, maxValue);
+            renderWorldContinentPanel('east', continentMap, maxValue);
         }
 
         function renderChinaProvinceTileHeatMap(normalizedRows) {
@@ -6676,6 +7316,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     svgEl.classList.add('china-map-svg', 'is-outline');
                     svgEl.setAttribute('role', 'img');
                     svgEl.setAttribute('aria-label', '中国省份访问热度图');
+                    ensureChinaProvinceSvgExtraPaths(svgEl);
 
                     let matchedCount = 0;
                     Object.entries(CHINA_PROVINCE_SVG_IDS).forEach(([provinceName, pathId]) => {
@@ -6734,13 +7375,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             },
             conversion_events: {
                 title: '转化事件',
-                meaning: '统计范围内记录到的转化总次数。',
-                formula: '转化事件 = 转化类事件次数 + 转化页面命中次数（会话累计）'
+                meaning: '统计范围内记录到的转化总次数，按“次数”累计，不按“人数”去重。',
+                formula: '转化事件 = 转化类事件次数 + 转化页面命中次数（按会话累计）',
+                scope: '当前系统会把 contact_submit、quote_request、request_demo、download_brochure，以及所有以 conversion_ 开头的事件计为转化；同时，页面路径包含 /thank-you、/thanks、/success、/submitted、/done 也会额外计为转化页命中。',
+                example: '例如 1 个访客在同一会话里提交表单 1 次、下载资料 1 次，又跳转到 thank-you 页面，那么这次访问可能累计 3 次转化事件。',
+                note: '所以“转化事件”通常会大于或等于“发生过转化的会话数”，它更适合看总转化动作量，而不等于实际成交人数或提交人数。'
             },
             conversion_rate: {
                 title: '转化率',
-                meaning: '发生过至少 1 次转化的会话占总会话的比例。',
-                formula: '转化率 = (发生转化的会话数 / 会话总数) × 100%'
+                meaning: '发生过至少 1 次转化的会话，占总会话的比例；这里按“会话”统计，不按“访客人数”统计。',
+                formula: '转化率 = (发生过 >=1 次转化的会话数 / 会话总数) × 100%',
+                scope: '一个会话里即使发生了多次转化，转化率分子也只记 1 次；只有至少浏览过 1 个页面的会话才会进入总会话统计。',
+                example: '例如共有 100 个会话，其中 8 个会话至少发生过 1 次转化；即使这 8 个会话总共产生了 15 次转化事件，转化率仍然是 8%。',
+                note: '因此转化率不等于“转化事件 ÷ UV”，也不等于“转化事件 ÷ 会话数”。如果你想看每次访问平均产生多少转化，要单独看转化事件总数。'
             },
             trend: {
                 title: '每日趋势',
@@ -6861,7 +7508,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 meaning: '该指标用于辅助理解报表。',
                 formula: '按当前报表数据源进行聚合计算'
             };
-            const text = `含义：${item.meaning}\n计算方法：${item.formula}`;
+            const sections = [
+                `含义：${item.meaning}`,
+                `计算方法：${item.formula}`
+            ];
+            if (item.scope) sections.push(`统计口径：${item.scope}`);
+            if (item.example) sections.push(`示例：${item.example}`);
+            if (item.note) sections.push(`注意：${item.note}`);
+            const text = sections.join('\n\n');
             showGlobalAlert(text, `${item.title} · 说明`);
         }
 
@@ -7012,6 +7666,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const osBody = document.getElementById('siteReportOsBody');
             const provinceBody = document.getElementById('siteReportProvinceBody');
             const pagesBody = document.getElementById('siteReportPagesBody');
+            const worldWestWrap = document.getElementById('worldMapWestContainer');
+            const worldEastWrap = document.getElementById('worldMapEastContainer');
             if (sourceBody) sourceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
             if (deviceBody) deviceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
             if (osBody) osBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
@@ -7019,11 +7675,16 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (pagesBody) pagesBody.innerHTML = '<tr><td colspan="4" class="no-data">暂无数据</td></tr>';
             const mapWrap = document.getElementById('chinaMapContainer');
             if (mapWrap) mapWrap.innerHTML = '<div class="china-map-no-data">暂无地理分布数据</div>';
+            if (worldWestWrap) worldWestWrap.innerHTML = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
+            if (worldEastWrap) worldEastWrap.innerHTML = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
             siteReportEventRowsAll = [];
+            siteReportProvinceRowsAll = [];
             siteReportRecentRowsAll = [];
             siteReportEventPage = 1;
+            siteReportProvincePage = 1;
             siteReportRecentPage = 1;
             renderSiteReportEventTablePage();
+            renderSiteReportProvinceTablePage();
             renderSiteReportRecentTablePage();
         }
 
@@ -7065,6 +7726,36 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }).join('');
         }
 
+        function renderSiteReportProvinceTablePage() {
+            const tbody = document.getElementById('siteReportProvinceBody');
+            const infoEl = document.getElementById('siteReportProvincePageInfo');
+            const prevBtn = document.getElementById('siteReportProvincePrevBtn');
+            const nextBtn = document.getElementById('siteReportProvinceNextBtn');
+            if (!tbody) return;
+
+            const allRows = Array.isArray(siteReportProvinceRowsAll) ? siteReportProvinceRowsAll : [];
+            const pager = updateSiteReportPager(allRows.length, SITE_REPORT_PROVINCE_PAGE_SIZE, siteReportProvincePage, infoEl, prevBtn, nextBtn);
+            if (!pager.totalPages) {
+                tbody.innerHTML = '<tr><td colspan="3" class="no-data">暂无省份数据</td></tr>';
+                siteReportProvincePage = 1;
+                return;
+            }
+
+            siteReportProvincePage = pager.page;
+            const start = (siteReportProvincePage - 1) * SITE_REPORT_PROVINCE_PAGE_SIZE;
+            const pageRows = allRows.slice(start, start + SITE_REPORT_PROVINCE_PAGE_SIZE);
+            tbody.innerHTML = pageRows.map((item) => {
+                const provinceName = normalizeProvinceName(item?.province || '');
+                return `
+                    <tr>
+                        <td>${escapeHtml(provinceName || '未知')}</td>
+                        <td>${formatSiteReportNumber(item?.sessions)}</td>
+                        <td>${formatSiteReportPercent(item?.ratio)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function renderSiteReportRecentTablePage() {
             const tbody = document.getElementById('siteReportRecentBody');
             const infoEl = document.getElementById('siteReportRecentPageInfo');
@@ -7101,6 +7792,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!move) return;
             siteReportEventPage += move;
             renderSiteReportEventTablePage();
+            queueResponsiveTableLabels();
+        }
+
+        function changeSiteReportProvincePage(delta) {
+            const move = Number(delta || 0);
+            if (!move) return;
+            siteReportProvincePage += move;
+            renderSiteReportProvinceTablePage();
             queueResponsiveTableLabels();
         }
 
@@ -7201,26 +7900,13 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 }
             }
 
-            const provinceBody = document.getElementById('siteReportProvinceBody');
             const provinceRows = Array.isArray(data.province_breakdown) ? data.province_breakdown : [];
-            if (provinceBody) {
-                if (!provinceRows.length) {
-                    provinceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无省份数据</td></tr>';
-                } else {
-                    provinceBody.innerHTML = provinceRows.map((item) => {
-                        const provinceName = normalizeProvinceName(item?.province || '');
-                        return `
-                            <tr>
-                                <td>${escapeHtml(provinceName || '未知')}</td>
-                                <td>${formatSiteReportNumber(item?.sessions)}</td>
-                                <td>${formatSiteReportPercent(item?.ratio)}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                }
-            }
+            siteReportProvinceRowsAll = provinceRows;
+            siteReportProvincePage = 1;
+            renderSiteReportProvinceTablePage();
 
             renderChinaProvinceHeatMap(provinceRows);
+            renderWorldContinentHeatMaps(Array.isArray(data.continent_breakdown) ? data.continent_breakdown : []);
 
             const pagesBody = document.getElementById('siteReportPagesBody');
             const pageRows = Array.isArray(data.top_pages) ? data.top_pages : [];
@@ -7323,7 +8009,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             const activeMenu = document.querySelector(`.menu-item[data-view="${viewName}"]`);
             if (activeMenu) activeMenu.classList.add('active');
-            syncGasRelatedMenuGroup(viewName);
+            syncSidebarMenuGroups(viewName);
 
             // Update View
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
@@ -7332,7 +8018,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
             // Update Title
             const titles = {
-                'messages': '仪表盘',
+                'messages': '留言系统',
                 'products': '氢气产品',
                 'bio-products': '生物产品',
                 'hydrogen-solutions': '氢气方案',
@@ -7340,9 +8026,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'h2-home': '氢气首页设置',
                 'news-create': '添加资讯',
                 'jobs': '招聘信息',
-                'chatbot': '智能客服',
+                'chatbot': 'AI 接口',
                 'site-settings': '站点设置',
-                'site-reports': '网站报表',
+                'site-reports': '网站数据',
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'changelog': '更新日志'
@@ -7371,7 +8057,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 loadCdnSettings();
                 loadTurnstileAdminConfig();
             }
-            if (viewName === 'site-reports') loadSiteReports();
+            if (viewName === 'site-reports') {
+                loadSiteReports();
+                loadAdminLoginLogs();
+            }
             if (viewName === 'settings') loadSubAccounts();
             if (viewName === 'changelog') loadChangelog();
 
@@ -13517,24 +14206,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         });
 
-        function switchMessageDataTab(tabName) {
-            const feedbackBtn = document.getElementById('msgTabFeedbackBtn');
-            const jobBtn = document.getElementById('msgTabJobBtn');
-            const feedbackPanel = document.getElementById('messagesPanelFeedback');
-            const jobPanel = document.getElementById('messagesPanelJob');
-            if (tabName === 'job') {
-                feedbackBtn?.classList.remove('active');
-                jobBtn?.classList.add('active');
-                feedbackPanel?.classList.remove('active');
-                jobPanel?.classList.add('active');
-            } else {
-                jobBtn?.classList.remove('active');
-                feedbackBtn?.classList.add('active');
-                jobPanel?.classList.remove('active');
-                feedbackPanel?.classList.add('active');
-            }
-        }
-
         function formatDateInBeijing(dateObj) {
             if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) return '-';
             const formatter = new Intl.DateTimeFormat('zh-CN', {
@@ -13666,6 +14337,146 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 const reason = (e && e.message) ? escapeHtml(String(e.message)) : '加载失败';
                 tbody.innerHTML = `<tr><td colspan="6" class="no-data">${reason}</td></tr>`;
                 updateAdminLoginLogsPagination({ total: adminLoginLogsTotal, page: adminLoginLogsPage, page_size: adminLoginLogsPageSize, total_pages: adminLoginLogsTotalPages }, 0);
+            }
+        }
+
+        function updateChatbotHistoryPagination(payload, visibleCount = 0) {
+            const total = Number(payload?.total ?? 0) || 0;
+            const page = Math.max(1, Number(payload?.page ?? 1) || 1);
+            const pageSize = Math.max(5, Number(payload?.page_size ?? chatbotHistoryPageSize) || chatbotHistoryPageSize);
+            const totalPages = Math.max(1, Number(payload?.total_pages ?? 1) || 1);
+
+            chatbotHistoryTotal = total;
+            chatbotHistoryPage = page;
+            chatbotHistoryPageSize = pageSize;
+            chatbotHistoryTotalPages = totalPages;
+
+            const infoEl = document.getElementById('chatbotHistoryPageInfo');
+            const currentEl = document.getElementById('chatbotHistoryPageCurrent');
+            const prevBtn = document.getElementById('chatbotHistoryPrevBtn');
+            const nextBtn = document.getElementById('chatbotHistoryNextBtn');
+            const pageSizeSelect = document.getElementById('chatbotHistoryPageSize');
+
+            if (pageSizeSelect && pageSizeSelect.value !== String(pageSize)) {
+                pageSizeSelect.value = String(pageSize);
+            }
+
+            const start = total > 0 ? ((page - 1) * pageSize + 1) : 0;
+            const end = total > 0 ? Math.min((page - 1) * pageSize + visibleCount, total) : 0;
+            if (infoEl) {
+                infoEl.textContent = total > 0 ? `第 ${start}-${end} 条，共 ${total} 条` : '共 0 条';
+            }
+            if (currentEl) {
+                currentEl.textContent = `${page} / ${totalPages}`;
+            }
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page >= totalPages;
+        }
+
+        function changeChatbotHistoryPage(delta) {
+            const nextPage = chatbotHistoryPage + Number(delta || 0);
+            if (nextPage < 1 || nextPage > chatbotHistoryTotalPages) return;
+            loadChatbotConversationLogs(nextPage);
+        }
+
+        function changeChatbotHistoryPageSize(rawValue) {
+            const nextSize = Number(rawValue || CHATBOT_HISTORY_DEFAULT_PAGE_SIZE);
+            if (!Number.isFinite(nextSize) || nextSize < 5 || nextSize > 200) return;
+            chatbotHistoryPageSize = nextSize;
+            chatbotHistoryPage = 1;
+            loadChatbotConversationLogs(1);
+        }
+
+        function formatChatbotHistorySource(source) {
+            const value = String(source || '').trim();
+            if (value === 'ai' || value === 'ai_sync_fallback') {
+                return '<span class="chatbot-history-source chatbot-history-source-ai">AI 回复</span>';
+            }
+            if (value === 'local_fallback') {
+                return '<span class="chatbot-history-source chatbot-history-source-fallback">降级回复</span>';
+            }
+            if (value === 'partial_ai_plus_fallback') {
+                return '<span class="chatbot-history-source chatbot-history-source-mixed">混合回复</span>';
+            }
+            return `<span class="chatbot-history-source chatbot-history-source-mixed">${escapeHtml(value || '未知来源')}</span>`;
+        }
+
+        function formatChatbotHistoryText(rawValue) {
+            const text = String(rawValue || '').trim();
+            if (!text) return '<span class="chatbot-history-empty">-</span>';
+
+            const preview = text.length > 120 ? `${text.slice(0, 120)}...` : text;
+            const previewHtml = escapeHtml(preview).replace(/\n/g, '<br>');
+            const fullHtml = escapeHtml(text).replace(/\n/g, '<br>');
+            const needsExpand = text.length > 120 || text.includes('\n');
+
+            if (!needsExpand) {
+                return `<div class="chatbot-history-preview">${fullHtml}</div>`;
+            }
+
+            return `
+                <div class="chatbot-history-preview">${previewHtml}</div>
+                <details class="chatbot-history-details">
+                    <summary>展开全文</summary>
+                    <div class="chatbot-history-full">${fullHtml}</div>
+                </details>
+            `;
+        }
+
+        async function loadChatbotConversationLogs(page = chatbotHistoryPage) {
+            const tbody = document.getElementById('chatbotHistoryBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="7" class="no-data">加载中...</td></tr>';
+
+            try {
+                const targetPage = Math.max(1, Number(page) || 1);
+                const pageSize = Math.max(5, Number(chatbotHistoryPageSize) || CHATBOT_HISTORY_DEFAULT_PAGE_SIZE);
+                const url = `/api/chatbot/history?page=${targetPage}&page_size=${pageSize}`;
+                const res = await fetch(url);
+                const payload = await res.json();
+                if (!res.ok) throw new Error(payload?.message || '加载失败');
+
+                const items = Array.isArray(payload?.items) ? payload.items : [];
+                updateChatbotHistoryPagination(payload, items.length);
+                if (!items.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="no-data">暂无历史对话</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = items.map((item, index) => {
+                    const seq = (chatbotHistoryPage - 1) * chatbotHistoryPageSize + index + 1;
+                    const ip = escapeHtml(item?.ip || '-');
+                    const location = escapeHtml(item?.location || '未知');
+                    const sessionId = escapeHtml(item?.session_id || '-');
+                    const pageTitle = escapeHtml(item?.page_title || '');
+                    const pageUrl = escapeHtml(item?.page_url || '');
+                    const pageText = pageTitle || pageUrl
+                        ? `${pageTitle || pageUrl}${pageTitle && pageUrl ? ` · ${pageUrl}` : ''}`
+                        : '未记录页面信息';
+
+                    return `
+                        <tr>
+                            <td>${seq}</td>
+                            <td>${escapeHtml(formatAuditTimestamp(item?.timestamp))}</td>
+                            <td>${ip}</td>
+                            <td>${location}</td>
+                            <td>
+                                <div class="chatbot-history-meta">
+                                    <div class="chatbot-history-session-id">${sessionId}</div>
+                                    <div class="chatbot-history-page">${pageText}</div>
+                                    ${formatChatbotHistorySource(item?.response_source)}
+                                </div>
+                            </td>
+                            <td>${formatChatbotHistoryText(item?.user_message)}</td>
+                            <td>${formatChatbotHistoryText(item?.assistant_message)}</td>
+                        </tr>
+                    `;
+                }).join('');
+                queueResponsiveTableLabels();
+            } catch (e) {
+                const reason = (e && e.message) ? escapeHtml(String(e.message)) : '加载失败';
+                tbody.innerHTML = `<tr><td colspan="7" class="no-data">${reason}</td></tr>`;
+                updateChatbotHistoryPagination({ total: chatbotHistoryTotal, page: chatbotHistoryPage, page_size: chatbotHistoryPageSize, total_pages: chatbotHistoryTotalPages }, 0);
             }
         }
 
@@ -13804,8 +14615,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 document.getElementById('todayCount').textContent = '0';
                 document.getElementById('readCount').textContent = '0';
                 document.getElementById('deletedCount').textContent = '0';
-            } finally {
-                loadAdminLoginLogs();
             }
         }
 
@@ -14562,6 +15371,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
             if (tabName === 'knowledge') loadKnowledgeFiles();
             if (tabName === 'product-ai') loadProductPageAiConfig();
+            if (tabName === 'history') loadChatbotConversationLogs();
         }
 
         async function loadChatbotConfig() {
@@ -14579,6 +15389,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
                 // Also load knowledge files
                 loadKnowledgeFiles();
+                if (document.getElementById('chatbot-tab-history')?.classList.contains('active')) {
+                    loadChatbotConversationLogs();
+                }
             } catch (e) {
                 console.error('Failed to load chatbot config:', e);
             }
@@ -14735,11 +15548,23 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                 <div class="file-meta">${formatFileSize(file.size)} · ${formatDate(file.modified)}</div>
                             </div>
                         </div>
-                        <button class="btn-sm btn-danger" onclick="deleteKnowledgeFile('${escapeHtml(file.name)}')">
-                            <i class="fas fa-trash"></i> 删除
-                        </button>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn-sm knowledge-download-btn" data-filename="${escapeAttr(file.name)}">
+                                <i class="fas fa-download"></i> 下载
+                            </button>
+                            <button type="button" class="btn-sm btn-danger knowledge-delete-btn" data-filename="${escapeAttr(file.name)}">
+                                <i class="fas fa-trash"></i> 删除
+                            </button>
+                        </div>
                     </div>
                 `).join('');
+
+                listEl.querySelectorAll('.knowledge-download-btn').forEach(btn => {
+                    btn.addEventListener('click', () => downloadKnowledgeFile(btn.dataset.filename || ''));
+                });
+                listEl.querySelectorAll('.knowledge-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', () => deleteKnowledgeFile(btn.dataset.filename || ''));
+                });
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
             }
@@ -14770,6 +15595,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        function downloadKnowledgeFile(filename) {
+            if (!filename) return;
+            window.open(`/api/chatbot/knowledge/${encodeURIComponent(filename)}/download`, '_blank');
+        }
+
         // File upload handling
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
@@ -14789,44 +15619,72 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             e.preventDefault();
             uploadZone.classList.remove('dragover');
             const files = e.dataTransfer.files;
-            if (files.length > 0) uploadFile(files[0]);
+            if (files.length > 0) uploadKnowledgeFiles(files);
         });
 
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
-                uploadFile(fileInput.files[0]);
+                uploadKnowledgeFiles(fileInput.files);
             }
         });
 
-        async function uploadFile(file) {
-            if (!file.name.toLowerCase().endsWith('.pdf')) {
+        async function uploadKnowledgeFiles(fileList) {
+            const files = Array.from(fileList || []);
+            if (!files.length) return;
+
+            const pdfFiles = files.filter(file => file && file.name && file.name.toLowerCase().endsWith('.pdf'));
+            if (!pdfFiles.length) {
                 alert('只支持 PDF 文件');
                 return;
             }
+            if (pdfFiles.length !== files.length) {
+                alert('已自动跳过非 PDF 文件，仅上传 PDF。');
+            }
 
             const progress = document.getElementById('uploadProgress');
+            const progressLabel = progress.querySelector('span');
             progress.style.display = 'block';
 
             try {
-                const formData = new FormData();
-                formData.append('file', file);
+                const failed = [];
 
-                const res = await fetch('/api/chatbot/knowledge/upload', {
-                    method: 'POST',
-                    body: formData
-                });
+                for (let i = 0; i < pdfFiles.length; i++) {
+                    const file = pdfFiles[i];
+                    if (progressLabel) {
+                        progressLabel.textContent = `正在上传 (${i + 1}/${pdfFiles.length})：${file.name}`;
+                    }
 
-                const data = await res.json();
+                    const formData = new FormData();
+                    formData.append('file', file);
 
-                if (data.success) {
-                    loadKnowledgeFiles();
-                } else {
-                    alert(data.message || '上传失败');
+                    const res = await fetch('/api/chatbot/knowledge/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok || !data.success) {
+                        failed.push(`${file.name}：${data.message || '上传失败'}`);
+                    }
+                }
+
+                if (progressLabel) {
+                    progressLabel.textContent = `上传完成，共 ${pdfFiles.length} 个文件`;
+                }
+
+                await loadKnowledgeFiles();
+
+                if (failed.length) {
+                    alert(`部分文件上传失败：\n${failed.join('\n')}`);
                 }
             } catch (e) {
                 alert('上传失败: 网络错误');
             } finally {
                 progress.style.display = 'none';
+                if (progressLabel) {
+                    progressLabel.textContent = '正在上传...';
+                }
                 fileInput.value = '';
             }
         }
