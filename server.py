@@ -2577,7 +2577,7 @@ def resolve_product_html_path_by_id(product_id: str):
     return base_dir / 'gassensing' / f'{pid}.html', pid
 @app.route('/api/solutions/hydrogen/config')
 def get_hydrogen_solutions_public_config():
-    """Public config for hydrogen solution page (per-solution related products)."""
+    """Public config for industry solution pages (per-solution related products)."""
     return jsonify({'solutions': build_hydrogen_solution_public_payload()})
 
 
@@ -3874,6 +3874,8 @@ HYDROGEN_SOLUTION_DEFINITIONS = [
     {'id': 'transformer_oil_h2', 'title': '变压器油中氢浓度检测解决方案'},
     {'id': 'general_pipe_container_leak', 'title': '管道容器通用检漏解决方案'},
     {'id': 'refrigerant_industry_leak', 'title': '冷媒行业检漏解决方案'},
+    {'id': 'energy_storage_thermal_runaway_warning', 'title': '储能锂电池热失控预警解决方案'},
+    {'id': 'environment_gas_monitoring', 'title': '环境气体监测解决方案'},
 ]
 
 DEFAULT_HYDROGEN_SOLUTION_PRODUCTS = {
@@ -3888,6 +3890,8 @@ DEFAULT_HYDROGEN_SOLUTION_PRODUCTS = {
     'transformer_oil_h2': ['mc_pgd_01', 'mc_ld_h2', 'mc_hla_01', 'mc_td_01'],
     'general_pipe_container_leak': ['mc_td_01', 'mc_ld_nh2', 'mc_ld_h2', 'mc_ld_ph2'],
     'refrigerant_industry_leak': ['mc_hla_01', 'mc_wd_01', 'mc_ld_h2', 'mc_td_01'],
+    'energy_storage_thermal_runaway_warning': ['mc_hla_01', 'mc_ld_h2', 'mc_ld_ph2', 'mc_pgd_01'],
+    'environment_gas_monitoring': ['mc_gd_01', 'mc_pgd_01', 'mc_pdr_01', 'mc_tm_01'],
 }
 
 

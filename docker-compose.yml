@@ -8,6 +8,8 @@ services:
       - ./data:/app/data
       # Admin 新闻/产品页会直接写入 pages 目录；不挂载会在重建容器后丢失
       - ./pages:/app/pages
+      # CDN 静态资源挂载到宿主机，便于直接更新图片/视频文件
+      - ./cdn_assets:/app/cdn_assets
     environment:
       - APP_ENV=production
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}

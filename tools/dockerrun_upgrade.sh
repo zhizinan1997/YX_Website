@@ -483,7 +483,7 @@ reset_host_content_from_image() {
     info "本次会先备份旧内容，备份目录：$backup_root"
     backup_dir_if_exists "$DATA_DIR" "$backup_root" "data"
     backup_dir_if_exists "$PAGES_DIR" "$backup_root" "pages"
-    backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn_assets"
+    backup_dir_if_exists "$CDN_ASSETS_DIR" "$backup_root" "cdn_assets"
     backup_dir_if_exists "$LEGACY_UPDATE_LOGS_DIR" "$backup_root" "legacy_update_logs"
   else
     info "当前属于首次部署，无需备份旧内容。"
@@ -492,12 +492,14 @@ reset_host_content_from_image() {
   for path in \
     "$DATA_DIR" \
     "$PAGES_DIR" \
-    "$LEGACY_CDN_DIR" \
+    "$CDN_ASSETS_DIR" \
     "$LEGACY_UPDATE_LOGS_DIR" \
     "$DATA_BASELINE_DIR" \
     "$DATA_CONFLICTS_DIR" \
     "$PAGES_BASELINE_DIR" \
-    "$PAGES_CONFLICTS_DIR"; do
+    "$PAGES_CONFLICTS_DIR" \
+    "$CDN_ASSETS_BASELINE_DIR" \
+    "$CDN_ASSETS_CONFLICTS_DIR"; do
     if [[ -e "$path" ]]; then
       info "正在删除旧目录：$path"
       rm -rf "$path"
@@ -507,18 +509,21 @@ reset_host_content_from_image() {
     fi
   done
 
-  mkdir -p "$DATA_DIR" "$PAGES_DIR"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR"
   info "开始导入新镜像 data 目录到宿主机"
   rsync -a "$TMP_DATA_DIR/" "$DATA_DIR/"
   info "开始导入新镜像 pages 目录到宿主机"
   rsync -a "$TMP_PAGES_DIR/" "$PAGES_DIR/"
+  info "开始导入新镜像 cdn_assets 目录到宿主机"
+  rsync -a "$TMP_CDN_ASSETS_DIR/" "$CDN_ASSETS_DIR/"
 
   refresh_baseline_dir "data 目录" "$TMP_DATA_DIR" "$DATA_BASELINE_DIR"
   refresh_baseline_dir "pages 目录" "$TMP_PAGES_DIR" "$PAGES_BASELINE_DIR"
+  refresh_baseline_dir "cdn_assets 目录" "$TMP_CDN_ASSETS_DIR" "$CDN_ASSETS_BASELINE_DIR"
 
-  info "说明：当前架构不再宿主机挂载 cdn_assets / update_logs，后续将直接使用镜像内文件。"
   log_tree_state "全新部署后的 data 目录状态" "$DATA_DIR"
   log_tree_state "全新部署后的 pages 目录状态" "$PAGES_DIR"
+  log_tree_state "全新部署后的 cdn_assets 目录状态" "$CDN_ASSETS_DIR"
 }
 
 pick_value() {
@@ -728,7 +733,7 @@ determine_deploy_kind_and_strategy() {
 
 prepare_directories_and_network() {
   phase "准备目录和 Docker 网络"
-  mkdir -p "$DATA_DIR" "$PAGES_DIR"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR"
 
   if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
     info "Docker 网络已存在：$NETWORK_NAME"
@@ -740,6 +745,7 @@ prepare_directories_and_network() {
 
   log_tree_state "data 目录初始化状态" "$DATA_DIR"
   log_tree_state "pages 目录初始化状态" "$PAGES_DIR"
+  log_tree_state "cdn_assets 目录初始化状态" "$CDN_ASSETS_DIR"
 }
 
 pull_latest_images() {
@@ -759,8 +765,10 @@ prepare_content_for_fresh_or_reset() {
   phase "准备首次部署 / 全新重置所需的新版本内容"
   export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-data" "/app/data" "$TMP_DATA_DIR" || die "无法从新镜像导出 /app/data"
   export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-pages" "/app/pages" "$TMP_PAGES_DIR" || die "无法从新镜像导出 /app/pages"
+  export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-cdn" "/app/cdn_assets" "$TMP_CDN_ASSETS_DIR" || die "无法从新镜像导出 /app/cdn_assets"
   log_tree_state "新镜像 data 导出结果" "$TMP_DATA_DIR"
   log_tree_state "新镜像 pages 导出结果" "$TMP_PAGES_DIR"
+  log_tree_state "新镜像 cdn_assets 导出结果" "$TMP_CDN_ASSETS_DIR"
 
   local backup_root=""
   if [[ "$DEPLOY_KIND" == "update" && "$DEPLOY_STRATEGY_MODE" == "reset" ]]; then
@@ -773,6 +781,7 @@ prepare_content_for_fresh_or_reset() {
 prepare_content_for_smart_update() {
   sync_image_tree "data 目录" "data" "/app/data" "$DATA_DIR" "$DATA_BASELINE_DIR" "$DATA_CONFLICTS_DIR" "$TMP_DATA_DIR" "$TMP_OLD_DATA_DIR"
   sync_image_tree "pages 目录" "pages" "/app/pages" "$PAGES_DIR" "$PAGES_BASELINE_DIR" "$PAGES_CONFLICTS_DIR" "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR"
+  sync_image_tree "cdn_assets 目录" "cdn" "/app/cdn_assets" "$CDN_ASSETS_DIR" "$CDN_ASSETS_BASELINE_DIR" "$CDN_ASSETS_CONFLICTS_DIR" "$TMP_CDN_ASSETS_DIR" "$TMP_OLD_CDN_ASSETS_DIR"
 }
 
 rollback_containers() {
@@ -834,6 +843,7 @@ recreate_containers() {
     -e "ALLOW_WEAK_ADMIN_PASSWORDS=$ALLOW_WEAK_ADMIN_PASSWORDS_VAL"
     -v "$DATA_DIR:/app/data"
     -v "$PAGES_DIR:/app/pages"
+    -v "$CDN_ASSETS_DIR:/app/cdn_assets"
   )
 
   if [[ -n "$ADMIN_PASSWORD_HASH_VAL" ]]; then
@@ -858,6 +868,7 @@ recreate_containers() {
   info "网站容器网络：${NETWORK_NAME}，网络别名：${WEBSITE_CONTAINER}"
   info "网站容器挂载：$DATA_DIR -> /app/data"
   info "网站容器挂载：$PAGES_DIR -> /app/pages"
+  info "网站容器挂载：$CDN_ASSETS_DIR -> /app/cdn_assets"
 
   set +e
   WEBSITE_CONTAINER_ID="$("${website_cmd[@]}" 2>&1)"
@@ -959,9 +970,11 @@ cleanup() {
   docker rm -f \
     "${TMP_NEW_CONTAINER}-data" \
     "${TMP_NEW_CONTAINER}-pages" \
+    "${TMP_NEW_CONTAINER}-cdn" \
     "${TMP_OLD_CONTAINER}-data" \
-    "${TMP_OLD_CONTAINER}-pages" >/dev/null 2>&1 || true
-  rm -rf "$TMP_DATA_DIR" "$TMP_OLD_DATA_DIR" "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR"
+    "${TMP_OLD_CONTAINER}-pages" \
+    "${TMP_OLD_CONTAINER}-cdn" >/dev/null 2>&1 || true
+  rm -rf "$TMP_DATA_DIR" "$TMP_OLD_DATA_DIR" "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR" "$TMP_CDN_ASSETS_DIR" "$TMP_OLD_CDN_ASSETS_DIR"
 }
 
 show_help() {
@@ -1014,16 +1027,20 @@ CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
 
 DATA_DIR="$YX_ROOT/data"
 PAGES_DIR="$YX_ROOT/pages"
-LEGACY_CDN_DIR="$YX_ROOT/cdn_assets"
+CDN_ASSETS_DIR="$YX_ROOT/cdn_assets"
 LEGACY_UPDATE_LOGS_DIR="$YX_ROOT/update_logs"
 DATA_BASELINE_DIR="$YX_ROOT/.data-image-baseline"
 PAGES_BASELINE_DIR="$YX_ROOT/.pages-image-baseline"
+CDN_ASSETS_BASELINE_DIR="$YX_ROOT/.cdn-assets-image-baseline"
 DATA_CONFLICTS_DIR="$YX_ROOT/.data-merge-conflicts"
 PAGES_CONFLICTS_DIR="$YX_ROOT/.pages-merge-conflicts"
+CDN_ASSETS_CONFLICTS_DIR="$YX_ROOT/.cdn-assets-merge-conflicts"
 TMP_DATA_DIR="$YX_ROOT/.tmp-data"
 TMP_OLD_DATA_DIR="$YX_ROOT/.tmp-data-old"
 TMP_PAGES_DIR="$YX_ROOT/.tmp-pages"
 TMP_OLD_PAGES_DIR="$YX_ROOT/.tmp-pages-old"
+TMP_CDN_ASSETS_DIR="$YX_ROOT/.tmp-cdn-assets"
+TMP_OLD_CDN_ASSETS_DIR="$YX_ROOT/.tmp-cdn-assets-old"
 TMP_NEW_CONTAINER="yx-website-export-new-$(date +%s)-$$"
 TMP_OLD_CONTAINER="yx-website-export-old-$(date +%s)-$$"
 
@@ -1076,7 +1093,7 @@ fi
 resolve_admin_bootstrap_if_needed
 
 phase "修复挂载目录权限"
-chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" 2>/dev/null || true
+chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" 2>/dev/null || true
 info "已确保挂载目录文件可读。"
 
 recreate_containers
@@ -1095,4 +1112,7 @@ if has_regular_files "$DATA_CONFLICTS_DIR"; then
 fi
 if has_regular_files "$PAGES_CONFLICTS_DIR"; then
   warn "检测到 pages 合并冲突，请检查：$PAGES_CONFLICTS_DIR"
+fi
+if has_regular_files "$CDN_ASSETS_CONFLICTS_DIR"; then
+  warn "检测到 cdn_assets 合并冲突，请检查：$CDN_ASSETS_CONFLICTS_DIR"
 fi

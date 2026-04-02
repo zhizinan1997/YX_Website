@@ -3128,7 +3128,7 @@
                             <i class="fas fa-box"></i> 氢气产品
                         </div>
                         <div class="menu-item" data-view="hydrogen-solutions" onclick="switchView('hydrogen-solutions')">
-                            <i class="fas fa-project-diagram"></i> 氢气方案
+                            <i class="fas fa-project-diagram"></i> 行业方案
                         </div>
                     </div>
                 </div>
@@ -3493,16 +3493,16 @@
                 <!-- Hydrogen Solutions View -->
                 <div id="view-hydrogen-solutions" class="view-section">
                     <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">氢气方案 · 相关产品设置</h3>
+                        <h3 class="section-header">行业方案 · 相关产品设置</h3>
                         <p style="margin-bottom: 16px; color: #667085; font-size: 14px;">
-                            为“氢能源产业链 + 智慧电力安全 + 工业检漏监测”页面的各方案设置【相关产品】。每个方案可选择 1-4 个产品，产品来源于【氢气产品】列表。
+                            为“氢能源产业链 + 智慧电力安全 + 工业检漏监测 + 储能锂电池热失控预警 + 环境气体监测”页面的各方案设置【相关产品】。每个方案可选择 1-4 个产品，产品来源于【氢气产品】列表。
                         </p>
                         <div id="hydrogenSolutionsEditor">
                             <div style="color:#888; padding: 8px 0;">加载中...</div>
                         </div>
                         <div style="display:flex; gap:10px; align-items:center; margin-top:14px;">
                             <button class="btn-primary" style="width:auto; padding:10px 20px;"
-                                onclick="saveHydrogenSolutionsConfig()">保存氢气方案配置</button>
+                                onclick="saveHydrogenSolutionsConfig()">保存行业方案配置</button>
                         </div>
                         <div id="hydrogenSolutionsMsg" style="margin-top: 10px; color: #28a745;"></div>
                     </div>
@@ -4986,7 +4986,7 @@
 
                         <div id="subAccountsManageArea" style="display:none;">
                             <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                                权限与侧边栏一一对应：<code>网站数据、留言系统、首页设置、氢气首页、氢气产品、生物产品、氢气方案、添加资讯、招聘信息、AI 接口、站点设置、账号设置、备份恢复、更新日志</code>。
+                                权限与侧边栏一一对应：<code>网站数据、留言系统、首页设置、氢气首页、氢气产品、生物产品、行业方案、添加资讯、招聘信息、AI 接口、站点设置、账号设置、备份恢复、更新日志</code>。
                             </div>
 
                             <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
@@ -5657,7 +5657,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             { key: 'h2-home', label: '氢气首页' },
             { key: 'products', label: '氢气产品' },
             { key: 'bio-products', label: '生物产品' },
-            { key: 'hydrogen-solutions', label: '氢气方案' },
+            { key: 'hydrogen-solutions', label: '行业方案' },
             { key: 'news-create', label: '添加资讯' },
             { key: 'jobs', label: '招聘信息' },
             { key: 'chatbot', label: 'AI 接口' },
@@ -6704,7 +6704,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             'bio-product-tab-add': '设置说明：本页为“生物传感产品列表”管理，可设置卡片标题/图片/摘要与显示状态。',
             'bio-product-tab-industries': '设置说明：先定义生物产品领域分类，再勾选每个产品所属领域；分类与勾选都会自动保存。',
             'view-bio-products': '设置说明：管理生物传感产品展示与筛选分类，前台 /pages/biosensing/?filter=xxx 会按本页配置展示。',
-            'view-hydrogen-solutions': '设置说明：为氢能产业链、智慧电力安全、工业检漏监测方案分别设置 1-4 个“相关产品”，保存后对应前台方案页会按方案展示。',
+            'view-hydrogen-solutions': '设置说明：为氢能源产业链、智慧电力安全、工业检漏监测、储能锂电池热失控预警、环境气体监测等方案分别设置 1-4 个“相关产品”，保存后对应前台方案页会按方案展示。',
             'view-site-reports': '设置说明：本页展示网站基础统计、完整分析报表、中国按省/海外按洲地图与历史登录日志；可切换时间范围查看趋势、来源、设备、页面与行为事件。',
             'home-tab-hero': '设置说明：用于管理官网首页轮播，支持上传和 CDN；调整顺序后保存即可生效。',
             'home-tab-partners': '设置说明：用于管理合作伙伴 Logo，支持上传与链接，拖拽可调整展示顺序。',
@@ -8021,7 +8021,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'messages': '留言系统',
                 'products': '氢气产品',
                 'bio-products': '生物产品',
-                'hydrogen-solutions': '氢气方案',
+                'hydrogen-solutions': '行业方案',
                 'home': '首页设置',
                 'h2-home': '氢气首页设置',
                 'news-create': '添加资讯',

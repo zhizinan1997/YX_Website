@@ -378,6 +378,7 @@
     window.addEventListener('beforeunload', sendSessionEnd, { capture: true });
   }
 
+  window.addEventListener('yx-cookie-consent-accepted', startAnalytics);
   window.addEventListener('yx-cookie-consent-rejected', disableAnalytics);
 
   if (readConsentState() !== CONSENT_REJECTED) {
