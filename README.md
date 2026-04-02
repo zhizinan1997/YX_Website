@@ -79,53 +79,22 @@ python3 server.py
 
 ## 🚀 Docker 部署
 
-### 方式一：Docker Run（双容器手动部署）
+### 首选：一键脚本部署 / 升级
 
-```bash
-# 1) 准备目录与网络
-mkdir -p /root/yxwebsite/data /root/yxwebsite/pages
-docker network create yx-net || true
+这是当前**首要推荐**的 Docker 部署方式。
 
-# 2) 拉取镜像
-docker pull ghcr.io/zhizinan1997/yx_website:latest
-docker pull ghcr.io/zhizinan1997/yx-gateway:latest
+它不是单纯“升级脚本”，而是统一的部署入口：  
+- 首次部署时，脚本会自动识别当前机器没有部署痕迹，然后按“全新初始化”方式导入镜像里的 `data/pages`，并要求你输入缺失的 `SECRET_KEY`、`PUBLIC_BASE_URL`、管理员初始密码。  
+- 更新部署时，脚本会自动识别当前机器已有部署痕迹，并让你选择：
+  - `智能合并更新`
+    说明：尽量保留宿主机上客户已经修改过的 `data/pages`，但遇到冲突仍可能需要人工核对。
+  - `全新部署重置`
+    说明：会先备份宿主机旧内容，然后清空 `data/pages` 以及旧版遗留的 `cdn_assets/update_logs` 宿主机目录，再完整导入新镜像内容。
+- 如果当前机器上还保留着旧的 `yx-website` 容器，脚本会优先复用其中的 `SECRET_KEY`、`PUBLIC_BASE_URL` 等环境变量。
+- 如果这些关键变量不存在，脚本会直接在终端里提示你输入，而不是静默失败。
+- 脚本会输出非常详细的中文日志，包括镜像拉取进度、目录状态、基线来源、每个文件的新增/更新/跳过/冲突处理结果，以及容器删除、启动、验证过程。
 
-# 2.1) 首次部署时，先把网站镜像内的 data 和 pages 导出到宿主机
-# 仅在宿主机目录为空时执行一次即可
-# docker create --name yx-website-seed ghcr.io/zhizinan1997/yx_website:latest
-# docker cp yx-website-seed:/app/data/. /root/yxwebsite/data/
-# docker cp yx-website-seed:/app/pages/. /root/yxwebsite/pages/
-# docker rm -f yx-website-seed
-
-# 3) 启动网站应用容器（仅容器内 8000，不对宿主机开放）
-docker run -d \
-  --name yx-website \
-  --restart unless-stopped \
-  --network yx-net \
-  --network-alias yx-website \
-  -e APP_ENV=production \
-  -e SECRET_KEY='replace-with-a-random-secret-key-at-least-32-chars' \
-  -e PUBLIC_BASE_URL='https://your-domain.example.com' \
-  -e TRUST_PROXY_HEADERS=true \
-  -e SESSION_COOKIE_SECURE=true \
-  -e ADMIN_USERNAME=admin \
-  -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
-  -v /root/yxwebsite/data:/app/data \
-  -v /root/yxwebsite/pages:/app/pages \
-  ghcr.io/zhizinan1997/yx_website:latest
-
-# 4) 启动网关容器（对外暴露双端口）
-docker run -d \
-  --name yx-gateway \
-  --restart unless-stopped \
-  --network yx-net \
-  -p 127.0.0.1:2026:80 \
-  -p 127.0.0.1:2027:81 \
-  ghcr.io/zhizinan1997/yx-gateway:latest
-
-```
-
-一键升级脚本（从 GitHub 下载，自动拉镜像、智能同步 `data` 与 `pages`、重建容器，并清理旧版悬空镜像）：
+推荐执行命令：
 
 ```bash
 echo "【1/4】开始下载最新升级脚本..." && \
@@ -141,17 +110,15 @@ bash /root/yxwebsite/dockerrun_upgrade.sh --help
 ```
 
 - 推荐每次升级前都重新下载一次脚本，确保拿到最新同步逻辑。
-- 脚本运行过程中会实时显示 Docker 原生镜像拉取进度，并用非常详细的中文日志输出目录状态、基线来源、每个文件的新增/更新/跳过/保留本地/冲突保存结果，以及容器删除、启动、验证的执行情况。
-- 脚本会优先复用现有 `yx-website` 容器中的环境变量；`SECRET_KEY` 与 `PUBLIC_BASE_URL` 会自动沿用旧容器中的值，无需每次升级手动重填。
-- `ADMIN_PASSWORD` 仅在首次部署初始化超级管理员时需要；如果 `/app/data/admin_users.json` 中已经存在管理员账号，后续升级可不再提供该变量。升级脚本也不会再自动沿用旧容器里的这类一次性初始化密码。
-- 脚本默认 `SYNC_DATA=smart`：会把“上一版镜像 data”作为合并基线，自动导入新镜像新增的默认数据文件，并只覆盖那些宿主机未改动过的旧文件。
-- 如果镜像和宿主机都改了同一个 `data` 文件，脚本会保留宿主机版本，并把镜像新版本另存到 `/root/yxwebsite/.data-merge-conflicts/` 里，方便你人工比对。
-- 脚本默认 `SYNC_PAGES=smart`：会把“上一版镜像 pages”作为合并基线，自动导入新镜像新增页面，并只覆盖那些宿主机未改动的旧页面。
-- 如果镜像和宿主机都改了同一个页面，脚本会保留宿主机版本，并把镜像新版本另存到 `/root/yxwebsite/.pages-merge-conflicts/` 里，方便你人工比对。
-- 如需更保守，可用 `SYNC_DATA=additive SYNC_PAGES=additive bash /root/yxwebsite/dockerrun_upgrade.sh`，只补充宿主机缺失的文件。
-- 如需完全跳过内容同步，可用 `SYNC_DATA=false SYNC_PAGES=false bash /root/yxwebsite/dockerrun_upgrade.sh`。
+- 更新时如果你选择“智能合并更新”，冲突文件会分别保存到：
+  - `/root/yxwebsite/.data-merge-conflicts/`
+  - `/root/yxwebsite/.pages-merge-conflicts/`
+- 更新时如果你选择“全新部署重置”，脚本会先把旧内容备份到：
+  - `/root/yxwebsite/backups/reset-时间戳/`
 - 脚本默认会在重建完成后执行 `docker image prune -f`，自动清理升级过程中遗留的旧版悬空镜像；如需跳过，可用 `CLEAN_OLD_IMAGES=false bash /root/yxwebsite/dockerrun_upgrade.sh`。
-- 如果当前机器上没有旧容器，请先通过环境变量提供至少 `SECRET_KEY` 与 `PUBLIC_BASE_URL`；首次部署还需额外提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD`。
+- 如果你想跳过交互选择，也可以手动指定：
+  - `DEPLOY_STRATEGY=smart bash /root/yxwebsite/dockerrun_upgrade.sh`
+  - `DEPLOY_STRATEGY=reset bash /root/yxwebsite/dockerrun_upgrade.sh`
 
 说明：
 
@@ -185,7 +152,7 @@ proxy_no_cache 1;
 proxy_cache_bypass 1;
 ```
 
-### 方式二：Docker Compose
+### Docker Compose
 
 项目根目录下已包含 `docker-compose.yml`，默认会启动两个服务：
 
@@ -225,6 +192,53 @@ CDN_PORT=8001
 - `docker-compose.yml` 默认只持久化 `data/` 与 `pages/`；`cdn_assets/` 和 `update_logs/` 会直接使用镜像内内容。
 - 如果你也使用宿主机挂载 `data/`，请注意镜像内默认 `data` 文件同样会被遮蔽；升级时也需要采用和上面相同的同步思路，否则新增默认配置可能不会自动进入宿主机目录。
 - Turnstile、CDN 等业务配置仍可在 Admin 界面内调整。
+
+### 手动 Docker Run（高级用户 / 排障用）
+
+手动 `docker run` 方式仍然保留，但现在不再是首选方案。  
+推荐优先使用上面的脚本，因为脚本会自动处理首次导入、环境变量补齐、更新合并、重置备份等细节。
+
+```bash
+# 1) 准备目录与网络
+mkdir -p /root/yxwebsite/data /root/yxwebsite/pages
+docker network create yx-net || true
+
+# 2) 拉取镜像
+docker pull ghcr.io/zhizinan1997/yx_website:latest
+docker pull ghcr.io/zhizinan1997/yx-gateway:latest
+
+# 3) 首次部署时，先把镜像内的 data/pages 导出到宿主机
+docker create --name yx-website-seed ghcr.io/zhizinan1997/yx_website:latest
+docker cp yx-website-seed:/app/data/. /root/yxwebsite/data/
+docker cp yx-website-seed:/app/pages/. /root/yxwebsite/pages/
+docker rm -f yx-website-seed
+
+# 4) 启动网站容器
+docker run -d \
+  --name yx-website \
+  --restart unless-stopped \
+  --network yx-net \
+  --network-alias yx-website \
+  -e APP_ENV=production \
+  -e SECRET_KEY='replace-with-a-random-secret-key-at-least-32-chars' \
+  -e PUBLIC_BASE_URL='https://your-domain.example.com' \
+  -e TRUST_PROXY_HEADERS=true \
+  -e SESSION_COOKIE_SECURE=true \
+  -e ADMIN_USERNAME=admin \
+  -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
+  -v /root/yxwebsite/data:/app/data \
+  -v /root/yxwebsite/pages:/app/pages \
+  ghcr.io/zhizinan1997/yx_website:latest
+
+# 5) 启动网关容器
+docker run -d \
+  --name yx-gateway \
+  --restart unless-stopped \
+  --network yx-net \
+  -p 127.0.0.1:2026:80 \
+  -p 127.0.0.1:2027:81 \
+  ghcr.io/zhizinan1997/yx-gateway:latest
+```
 
 ## 📡 CDN 加速开关
 

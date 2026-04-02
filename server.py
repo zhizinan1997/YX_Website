@@ -426,7 +426,9 @@ def ensure_required_runtime_config():
 
     has_bootstrapped_admin = False
     admin_users_file = DATA_DIR / 'admin_users.json'
-    if admin_users_file.exists():
+    admin_users_file_exists = admin_users_file.exists()
+    admin_users_read_error = ''
+    if admin_users_file_exists:
         try:
             payload = json.loads(admin_users_file.read_text(encoding='utf-8'))
             users = payload.get('users', []) if isinstance(payload, dict) else []
@@ -434,14 +436,31 @@ def ensure_required_runtime_config():
                 isinstance(item, dict) and str(item.get('role') or '') == 'super_admin' and str(item.get('password_hash') or '').strip()
                 for item in users
             )
-        except Exception:
+        except Exception as exc:
+            admin_users_read_error = str(exc)
             has_bootstrapped_admin = False
 
     if admin_password and admin_password in WEAK_ADMIN_PASSWORDS and not has_bootstrapped_admin and not admin_hash:
-        errors.append('ADMIN_PASSWORD 不能使用弱口令')
+        message = 'ADMIN_PASSWORD 不能使用弱口令'
+        if admin_users_file_exists:
+            if admin_users_read_error:
+                message += f'；且无法读取 {admin_users_file}：{admin_users_read_error}'
+            else:
+                message += f'；且 {admin_users_file} 中未检测到带 password_hash 的 super_admin'
+        else:
+            message += f'；且未找到 {admin_users_file}'
+        errors.append(message)
 
     if not has_bootstrapped_admin and not admin_hash and not admin_password:
-        errors.append('缺少管理员初始化凭据：请提供 ADMIN_PASSWORD_HASH 或一次性 ADMIN_PASSWORD')
+        message = '缺少管理员初始化凭据：请提供 ADMIN_PASSWORD_HASH 或一次性 ADMIN_PASSWORD'
+        if admin_users_file_exists:
+            if admin_users_read_error:
+                message += f'；另外无法读取 {admin_users_file}：{admin_users_read_error}'
+            else:
+                message += f'；并且 {admin_users_file} 中未检测到有效的 super_admin'
+        else:
+            message += f'；并且未找到 {admin_users_file}'
+        errors.append(message)
 
     if errors:
         raise RuntimeError('生产环境安全配置不完整：' + '；'.join(errors))
@@ -511,6 +530,19 @@ SEARCH_ENGINE_BOT_UA_KEYWORDS = (
 STRICT_ANTI_CRAWL_HEADERS = 'noindex, nofollow, noarchive, nosnippet, noimageindex'
 PUBLIC_HTML_CONTENT_SECURITY_POLICY = "base-uri 'self'; frame-ancestors 'self'; object-src 'none'"
 PUBLIC_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+CDN_CONNECTIVITY_CHECK_HEADERS = {
+    # Use a browser-like request profile so CDN/WAF and our own anti-crawl
+    # rules do not misclassify the connectivity probe as a bot request.
+    'User-Agent': (
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/123.0.0.0 Safari/537.36'
+    ),
+    'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+}
 NEWS_SAFE_HTML_TAGS = {
     'p', 'br', 'div', 'span',
     'strong', 'b', 'em', 'i', 'u', 's', 'sup', 'sub',
@@ -2407,6 +2439,10 @@ def strict_anti_crawl_guard():
     - Keep search engines crawlable for public resources used in rendering.
     """
     path = request.path or '/'
+    cdn_entry_request = str(request.headers.get('X-YX-CDN-Entry') or '').strip() == '1'
+    if cdn_entry_request and _path_matches_prefix(path, '/cdn_assets/'):
+        return None
+
     ua = request.headers.get('User-Agent', '')
     if not _looks_like_crawler_ua(ua):
         return None
@@ -4840,7 +4876,12 @@ def test_cdn_settings_api():
     try:
         if REQUESTS_SUPPORT:
             try:
-                head_res = requests.head(safe_url, allow_redirects=False, timeout=(4, 8))
+                head_res = requests.head(
+                    safe_url,
+                    headers=CDN_CONNECTIVITY_CHECK_HEADERS,
+                    allow_redirects=False,
+                    timeout=(4, 8)
+                )
                 result['head_status'] = int(head_res.status_code)
                 if 200 <= head_res.status_code < 400:
                     result['reachable'] = True
@@ -4850,7 +4891,10 @@ def test_cdn_settings_api():
             try:
                 get_res = requests.get(
                     safe_url,
-                    headers={'Range': 'bytes=0-2047'},
+                    headers={
+                        **CDN_CONNECTIVITY_CHECK_HEADERS,
+                        'Range': 'bytes=0-2047',
+                    },
                     stream=True,
                     timeout=(4, 10),
                     allow_redirects=False
@@ -4863,7 +4907,12 @@ def test_cdn_settings_api():
                     result['error'] = str(e)
         elif HTTPX_SUPPORT:
             try:
-                head_res = httpx.head(safe_url, follow_redirects=False, timeout=8.0)
+                head_res = httpx.head(
+                    safe_url,
+                    headers=CDN_CONNECTIVITY_CHECK_HEADERS,
+                    follow_redirects=False,
+                    timeout=8.0
+                )
                 result['head_status'] = int(head_res.status_code)
                 if 200 <= head_res.status_code < 400:
                     result['reachable'] = True
@@ -4873,7 +4922,10 @@ def test_cdn_settings_api():
             try:
                 get_res = httpx.get(
                     safe_url,
-                    headers={'Range': 'bytes=0-2047'},
+                    headers={
+                        **CDN_CONNECTIVITY_CHECK_HEADERS,
+                        'Range': 'bytes=0-2047',
+                    },
                     follow_redirects=False,
                     timeout=10.0
                 )
