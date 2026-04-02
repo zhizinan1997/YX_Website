@@ -517,25 +517,26 @@ reset_host_content_from_image() {
 pick_value() {
   local key="$1"
   local default_value="$2"
+  local out_value_var="$3"
+  local out_source_var="$4"
   local value=""
+  local source=""
 
-  PICKED_VALUE_SOURCE=""
   value="$(trim "${!key-}")"
   if [[ -n "$value" ]]; then
-    PICKED_VALUE_SOURCE="当前 shell 环境变量"
-    printf '%s' "$value"
-    return 0
+    source="当前 shell 环境变量"
+  else
+    value="$(get_existing_env "$key")"
+    if [[ -n "$value" ]]; then
+      source="旧网站容器环境变量"
+    else
+      value="$default_value"
+      source="脚本默认值"
+    fi
   fi
 
-  value="$(get_existing_env "$key")"
-  if [[ -n "$value" ]]; then
-    PICKED_VALUE_SOURCE="旧网站容器环境变量"
-    printf '%s' "$value"
-    return 0
-  fi
-
-  PICKED_VALUE_SOURCE="脚本默认值"
-  printf '%s' "$default_value"
+  printf -v "$out_value_var" '%s' "$value"
+  printf -v "$out_source_var" '%s' "$source"
 }
 
 get_existing_env() {
@@ -549,31 +550,41 @@ get_existing_env() {
 }
 
 resolve_basic_runtime_values() {
-  APP_ENV_VAL="$(pick_value APP_ENV production)"
-  info "APP_ENV=$APP_ENV_VAL（来源：$PICKED_VALUE_SOURCE）"
+  local value_source=""
 
-  ADMIN_USERNAME_VAL="$(pick_value ADMIN_USERNAME admin)"
-  info "ADMIN_USERNAME=$ADMIN_USERNAME_VAL（来源：$PICKED_VALUE_SOURCE）"
+  pick_value APP_ENV production APP_ENV_VAL value_source
+  info "APP_ENV=$APP_ENV_VAL（来源：$value_source）"
 
-  TRUST_PROXY_HEADERS_VAL="$(pick_value TRUST_PROXY_HEADERS true)"
-  info "TRUST_PROXY_HEADERS=$TRUST_PROXY_HEADERS_VAL（来源：$PICKED_VALUE_SOURCE）"
+  pick_value ADMIN_USERNAME admin ADMIN_USERNAME_VAL value_source
+  info "ADMIN_USERNAME=$ADMIN_USERNAME_VAL（来源：$value_source）"
 
-  SESSION_COOKIE_SECURE_VAL="$(pick_value SESSION_COOKIE_SECURE true)"
-  info "SESSION_COOKIE_SECURE=$SESSION_COOKIE_SECURE_VAL（来源：$PICKED_VALUE_SOURCE）"
+  pick_value TRUST_PROXY_HEADERS true TRUST_PROXY_HEADERS_VAL value_source
+  info "TRUST_PROXY_HEADERS=$TRUST_PROXY_HEADERS_VAL（来源：$value_source）"
 
-  CDN_ENABLED_VAL="$(pick_value CDN_ENABLED false)"
-  CDN_DOMAIN_VAL="$(pick_value CDN_DOMAIN "")"
-  TURNSTILE_ENABLED_VAL="$(pick_value TURNSTILE_ENABLED false)"
-  TURNSTILE_SITE_KEY_VAL="$(pick_value TURNSTILE_SITE_KEY "")"
-  TURNSTILE_SECRET_KEY_VAL="$(pick_value TURNSTILE_SECRET_KEY "")"
+  pick_value SESSION_COOKIE_SECURE true SESSION_COOKIE_SECURE_VAL value_source
+  info "SESSION_COOKIE_SECURE=$SESSION_COOKIE_SECURE_VAL（来源：$value_source）"
+
+  pick_value CDN_ENABLED false CDN_ENABLED_VAL value_source
+  info "CDN_ENABLED=$CDN_ENABLED_VAL（来源：$value_source）"
+
+  pick_value CDN_DOMAIN "" CDN_DOMAIN_VAL value_source
+  info "CDN_DOMAIN=${CDN_DOMAIN_VAL:-<未设置>}（来源：$value_source）"
+
+  pick_value TURNSTILE_ENABLED false TURNSTILE_ENABLED_VAL value_source
+  info "TURNSTILE_ENABLED=$TURNSTILE_ENABLED_VAL（来源：$value_source）"
+
+  pick_value TURNSTILE_SITE_KEY "" TURNSTILE_SITE_KEY_VAL value_source
+  info "TURNSTILE_SITE_KEY=$([[ -n "$TURNSTILE_SITE_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：$value_source）"
+
+  pick_value TURNSTILE_SECRET_KEY "" TURNSTILE_SECRET_KEY_VAL value_source
+  info "TURNSTILE_SECRET_KEY=$([[ -n "$TURNSTILE_SECRET_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：$value_source）"
 }
 
 resolve_secret_key() {
   local value=""
   local source=""
 
-  value="$(pick_value SECRET_KEY "")"
-  source="$PICKED_VALUE_SOURCE"
+  pick_value SECRET_KEY "" value source
 
   if [[ -n "$value" && ${#value} -lt 32 ]]; then
     warn "检测到的 SECRET_KEY 长度不足 32 位，将改为交互输入。"
@@ -595,8 +606,7 @@ resolve_public_base_url() {
   local normalized=""
   local source=""
 
-  value="$(pick_value PUBLIC_BASE_URL "")"
-  source="$PICKED_VALUE_SOURCE"
+  pick_value PUBLIC_BASE_URL "" value source
   normalized="$(normalize_public_base_url "$value")"
 
   if [[ -z "$normalized" ]]; then
