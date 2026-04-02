@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
 import threading
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
-from flask import Response, jsonify, request, stream_with_context
+from flask import Response, jsonify, request, send_from_directory, stream_with_context
 
 _DEPS = {}
 _knowledge_cache = {
@@ -17,6 +19,19 @@ _knowledge_cache = {
     'files': [],
 }
 _knowledge_lock = threading.Lock()
+_conversation_log_lock = threading.Lock()
+_LOCAL_API_BASE_BLOCKED_HOSTS = {
+    'localhost',
+    'localhost.localdomain',
+}
+_LOCAL_API_BASE_BLOCKED_SUFFIXES = (
+    '.localhost',
+    '.local',
+    '.localdomain',
+    '.internal',
+    '.lan',
+    '.home',
+)
 
 CHATBOT_SYSTEM_PROMPT = '''你是元芯传感的智能客服助手。你的职责是回答用户关于公司产品、技术和服务的问题。
 
@@ -26,7 +41,15 @@ CHATBOT_SYSTEM_PROMPT = '''你是元芯传感的智能客服助手。你的职�
 - 核心技术：碳基电子传感技术
 - 主要产品：氢气传感器、生物传感器、气体检测模组
 
-请用专业、友好的语气回答问题。如果遇到不确定的问题，请引导用户联系我们的销售团队。'''
+回答规则：
+1. 每次回复都先用简短问候语开头，例如“您好”或“您好，感谢咨询”。
+2. 回复语言要简洁、清晰、专业，但不能因为过于简短而遗漏关键信息。
+3. 单次回复通常控制在 3 到 6 句；如果用户问题较复杂，可适当多补充 1 到 3 个关键点。
+4. 优先直接回答用户问题，并尽量补充用户最关心的核心信息，例如适用场景、产品特点、是否支持定制、报价或联系路径。
+5. 语气要亲切、自然，像真实人工客服，体现耐心和服务感，但不要过度夸张或过分口语化。
+6. 可根据语境加入 1 到 2 个贴切的 emoji 来表达友好、感谢、关心等情绪，例如 🙂、😊、🙏，但不要堆砌，不要影响专业感。
+7. 当用户咨询产品、方案、合作、价格、打样、售后等问题时，尽量给出更完整、可执行的答复，而不是只给一句概括。
+8. 请用专业、友好的语气回答问题。如果遇到不确定的问题，请说明当前无法完全确认的部分，并引导用户联系我们的销售团队。'''
 
 PRODUCT_AI_SYSTEM_PROMPT = '''你是“元芯传感产品页编程助手”，负责根据后台给定的产品资料生成可发布的页面内容。
 
@@ -45,9 +68,12 @@ def configure_ai_chatbot(
     get_config,
     update_config,
     require_super_admin_api,
+    get_client_ip,
+    resolve_ip_location,
     sanitize_public_link_url,
     validate_uploaded_pdf,
     knowledge_dir,
+    conversation_log_file,
     pdf_support,
     pypdf2_module,
     requests_support,
@@ -61,9 +87,12 @@ def configure_ai_chatbot(
         'get_config': get_config,
         'update_config': update_config,
         'require_super_admin_api': require_super_admin_api,
+        'get_client_ip': get_client_ip,
+        'resolve_ip_location': resolve_ip_location,
         'sanitize_public_link_url': sanitize_public_link_url,
         'validate_uploaded_pdf': validate_uploaded_pdf,
         'knowledge_dir': Path(knowledge_dir),
+        'conversation_log_file': Path(conversation_log_file),
         'pdf_support': bool(pdf_support),
         'pypdf2_module': pypdf2_module,
         'requests_support': bool(requests_support),
@@ -80,12 +109,60 @@ def _dep(name):
     return value
 
 
+def reset_knowledge_cache():
+    with _knowledge_lock:
+        _knowledge_cache['content'] = ''
+        _knowledge_cache['last_updated'] = 0
+        _knowledge_cache['files'] = []
+
+
 def get_chatbot_system_prompt():
     return CHATBOT_SYSTEM_PROMPT
 
 
 def get_product_page_ai_system_prompt():
     return PRODUCT_AI_SYSTEM_PROMPT
+
+
+def sanitize_ai_api_base_url(raw_url: str) -> str:
+    """Validate AI API Base without DNS resolution to avoid proxy fake-IP false negatives."""
+    value = str(raw_url or '').strip()
+    if not value:
+        return ''
+
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return ''
+
+    scheme = (parsed.scheme or '').strip().lower()
+    hostname = (parsed.hostname or '').strip().lower()
+    if scheme not in {'http', 'https'} or not parsed.netloc or not hostname:
+        return ''
+    if parsed.username or parsed.password:
+        return ''
+    if hostname in _LOCAL_API_BASE_BLOCKED_HOSTS or hostname.endswith(_LOCAL_API_BASE_BLOCKED_SUFFIXES):
+        return ''
+
+    try:
+        ip_obj = ipaddress.ip_address(hostname)
+    except ValueError:
+        ip_obj = None
+
+    if ip_obj is not None:
+        if (
+            ip_obj.is_private
+            or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
+            or ip_obj.is_reserved
+            or ip_obj.is_unspecified
+        ):
+            return ''
+    elif '.' not in hostname:
+        return ''
+
+    return parsed._replace(fragment='').geturl()
 
 
 def get_chatbot_config():
@@ -152,6 +229,75 @@ def load_knowledge_base():
         _knowledge_cache['last_updated'] = current_mtime
         _knowledge_cache['files'] = current_files
         return _knowledge_cache['content']
+
+
+def load_chatbot_conversation_logs():
+    """Load chatbot conversation logs from newline-delimited JSON file."""
+    log_file = _dep('conversation_log_file')
+    if not log_file.exists():
+        return []
+
+    items = []
+    try:
+        with open(log_file, 'r', encoding='utf-8') as fh:
+            for raw_line in fh:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(item, dict):
+                    items.append(item)
+    except Exception as exc:
+        print(f'Error loading chatbot conversation logs: {exc}')
+        return []
+
+    return items
+
+
+def append_chatbot_conversation_log(
+    *,
+    session_id,
+    user_message,
+    assistant_message,
+    ip='',
+    location='',
+    page_url='',
+    page_title='',
+    response_source='ai',
+    model='',
+):
+    """Append one chatbot conversation record."""
+    user_text = str(user_message or '').strip()
+    assistant_text = str(assistant_message or '').strip()
+    if not user_text or not assistant_text:
+        return
+
+    safe_session_id = re.sub(r'[^a-zA-Z0-9_.-]', '_', str(session_id or '').strip())[:80]
+    if not safe_session_id:
+        safe_session_id = f"session_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+
+    record = {
+        'timestamp': datetime.utcnow().replace(microsecond=0).isoformat() + 'Z',
+        'session_id': safe_session_id,
+        'ip': str(ip or '').strip()[:80],
+        'location': str(location or '').strip()[:300],
+        'page_url': str(page_url or '').strip()[:500],
+        'page_title': str(page_title or '').strip()[:200],
+        'response_source': str(response_source or 'ai').strip()[:40],
+        'model': str(model or '').strip()[:120],
+        'user_message': user_text,
+        'assistant_message': assistant_text,
+    }
+
+    log_file = _dep('conversation_log_file')
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with _conversation_log_lock:
+        with open(log_file, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(record, ensure_ascii=False) + '\n')
 
 
 def call_openai_api(messages, stream=False):
@@ -291,9 +437,12 @@ def register_ai_chatbot_routes(
     get_config,
     update_config,
     require_super_admin_api,
+    get_client_ip,
+    resolve_ip_location,
     sanitize_public_link_url,
     validate_uploaded_pdf,
     knowledge_dir,
+    conversation_log_file,
     pdf_support,
     pypdf2_module,
     requests_support,
@@ -306,9 +455,12 @@ def register_ai_chatbot_routes(
         get_config=get_config,
         update_config=update_config,
         require_super_admin_api=require_super_admin_api,
+        get_client_ip=get_client_ip,
+        resolve_ip_location=resolve_ip_location,
         sanitize_public_link_url=sanitize_public_link_url,
         validate_uploaded_pdf=validate_uploaded_pdf,
         knowledge_dir=knowledge_dir,
+        conversation_log_file=conversation_log_file,
         pdf_support=pdf_support,
         pypdf2_module=pypdf2_module,
         requests_support=requests_support,
@@ -326,6 +478,21 @@ def register_ai_chatbot_routes(
         data = request.json or {}
         user_message = str(data.get('message') or '').strip()
         history = data.get('history', [])
+        if not isinstance(history, list):
+            history = []
+        session_id = str(data.get('session_id') or '').strip()
+        page_url = str(data.get('page_url') or '').strip()
+        page_title = str(data.get('page_title') or '').strip()
+        requester_ip = '未知'
+        requester_location = '未知'
+        try:
+            requester_ip = str(_dep('get_client_ip')() or '').strip() or '未知'
+        except Exception:
+            requester_ip = '未知'
+        try:
+            requester_location = str(_dep('resolve_ip_location')(requester_ip) or '').strip() or '未知'
+        except Exception:
+            requester_location = '未知'
         if not user_message:
             return jsonify({'success': False, 'message': '请输入您的问题'}), 400
 
@@ -335,12 +502,35 @@ def register_ai_chatbot_routes(
             system_prompt += f"\n\n以下是公司知识库的相关内容，请参考这些信息回答用户问题：\n{knowledge[:8000]}"
 
         messages = [{'role': 'system', 'content': system_prompt}]
+        normalized_history = []
         for msg in history[-8:]:
-            role = msg.get('role', 'user')
-            if role == 'assistant':
-                role = 'assistant'
-            messages.append({'role': role, 'content': msg.get('content', '')})
+            if not isinstance(msg, dict):
+                continue
+            role = 'assistant' if str(msg.get('role') or '').strip() == 'assistant' else 'user'
+            content = str(msg.get('content') or '').strip()
+            if not content:
+                continue
+            normalized_history.append({'role': role, 'content': content})
+        if normalized_history and normalized_history[-1]['role'] == 'user' and normalized_history[-1]['content'] == user_message:
+            normalized_history.pop()
+        messages.extend(normalized_history)
         messages.append({'role': 'user', 'content': user_message})
+
+        def record_chatbot_reply(reply_text, source='ai'):
+            try:
+                append_chatbot_conversation_log(
+                    session_id=session_id,
+                    user_message=user_message,
+                    assistant_message=reply_text,
+                    ip=requester_ip,
+                    location=requester_location,
+                    page_url=page_url,
+                    page_title=page_title,
+                    response_source=source,
+                    model=config.get('model', ''),
+                )
+            except Exception as exc:
+                app.logger.warning('failed to record chatbot conversation log: %s', exc)
 
         def build_local_fallback_reply(text):
             q = str(text or '').strip()
@@ -367,6 +557,7 @@ def register_ai_chatbot_routes(
         if use_stream:
             def generate():
                 sent_any_content = False
+                reply_parts = []
                 try:
                     stream = call_openai_api(messages, stream=True)
                     if isinstance(stream, tuple):
@@ -374,10 +565,12 @@ def register_ai_chatbot_routes(
                         app.logger.warning('chatbot stream init failed: %s', error)
                         sync_response, sync_error = call_openai_api(messages, stream=False)
                         if not sync_error and sync_response:
+                            record_chatbot_reply(sync_response, 'ai_sync_fallback')
                             yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
                             yield 'data: [DONE]\n\n'
                             return
                         app.logger.warning('chatbot sync fallback after stream init failed: %s', sync_error)
+                        record_chatbot_reply(fallback_reply, 'local_fallback')
                         yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
                         yield 'data: [DONE]\n\n'
                         return
@@ -387,27 +580,36 @@ def register_ai_chatbot_routes(
                             if not sent_any_content:
                                 sync_response, sync_error = call_openai_api(messages, stream=False)
                                 if not sync_error and sync_response:
+                                    record_chatbot_reply(sync_response, 'ai_sync_fallback')
                                     yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
                                     yield 'data: [DONE]\n\n'
                                     return
                                 app.logger.warning('chatbot sync fallback after stream chunk failed: %s', sync_error)
                             fallback_content = '\n\n' + fallback_reply if sent_any_content else fallback_reply
+                            full_reply = ''.join(reply_parts) + fallback_content
+                            record_chatbot_reply(full_reply, 'partial_ai_plus_fallback' if sent_any_content else 'local_fallback')
                             yield f"data: {json.dumps({'content': fallback_content}, ensure_ascii=False)}\n\n"
                             yield 'data: [DONE]\n\n'
                             return
                         sent_any_content = True
+                        reply_parts.append(chunk)
                         yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
                     if not sent_any_content:
+                        record_chatbot_reply(fallback_reply, 'local_fallback')
                         yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
+                    else:
+                        record_chatbot_reply(''.join(reply_parts), 'ai')
                     yield 'data: [DONE]\n\n'
                 except Exception as exc:
                     app.logger.exception('chatbot stream exception: %s', exc)
                     sync_response, sync_error = call_openai_api(messages, stream=False)
                     if not sync_error and sync_response:
+                        record_chatbot_reply(sync_response, 'ai_sync_fallback')
                         yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
                         yield 'data: [DONE]\n\n'
                         return
                     app.logger.warning('chatbot sync fallback after stream exception failed: %s', sync_error)
+                    record_chatbot_reply(fallback_reply, 'local_fallback')
                     yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
                     yield 'data: [DONE]\n\n'
 
@@ -420,8 +622,54 @@ def register_ai_chatbot_routes(
         response, error = call_openai_api(messages, stream=False)
         if error:
             app.logger.warning('chatbot non-stream failed: %s', error)
+            record_chatbot_reply(fallback_reply, 'local_fallback')
             return jsonify({'success': True, 'response': fallback_reply})
+        record_chatbot_reply(response, 'ai')
         return jsonify({'success': True, 'response': response})
+
+    @app.route('/api/chatbot/history', methods=['GET'])
+    @login_required
+    def chatbot_history():
+        try:
+            page = int(request.args.get('page') or '1')
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = int(request.args.get('page_size') or '20')
+        except (TypeError, ValueError):
+            page_size = 20
+
+        page = max(1, page)
+        page_size = max(5, min(page_size, 200))
+
+        session_filter = re.sub(r'[^a-zA-Z0-9_.-]', '_', str(request.args.get('session_id') or '').strip())[:80]
+
+        with _conversation_log_lock:
+            items = list(reversed(load_chatbot_conversation_logs()))
+
+        if session_filter:
+            items = [item for item in items if str(item.get('session_id') or '') == session_filter]
+
+        total = len(items)
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        if page > total_pages:
+            page = total_pages
+
+        start = (page - 1) * page_size
+        end = start + page_size
+        output = items[start:end]
+
+        return jsonify({
+            'items': output,
+            'count': len(output),
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+            'session_id': session_filter,
+        })
 
     @app.route('/api/chatbot/knowledge', methods=['GET'])
     @login_required
@@ -439,26 +687,84 @@ def register_ai_chatbot_routes(
     @app.route('/api/chatbot/knowledge/upload', methods=['POST'])
     @login_required
     def upload_knowledge_file():
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'message': '没有上传文件'}), 400
-        file = request.files['file']
-        if not file.filename:
-            return jsonify({'success': False, 'message': '文件名为空'}), 400
-        if not file.filename.lower().endswith('.pdf'):
-            return jsonify({'success': False, 'message': '只支持PDF文件'}), 400
-        if not _dep('validate_uploaded_pdf')(file):
-            return jsonify({'success': False, 'message': 'PDF 文件格式无效'}), 400
+        files = []
+        if 'file' in request.files:
+            files.extend(request.files.getlist('file'))
+        if 'files' in request.files:
+            files.extend(request.files.getlist('files'))
 
-        filename = re.sub(r'[^\w\u4e00-\u9fff\-_.]', '_', file.filename)
+        files = [file for file in files if file and file.filename]
+        if not files:
+            return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+        uploaded = []
+        failed = []
+
+        for file in files:
+            if not file.filename:
+                failed.append({'filename': '', 'message': '文件名为空'})
+                continue
+            if not file.filename.lower().endswith('.pdf'):
+                failed.append({'filename': file.filename, 'message': '只支持PDF文件'})
+                continue
+            if not _dep('validate_uploaded_pdf')(file):
+                failed.append({'filename': file.filename, 'message': 'PDF 文件格式无效'})
+                continue
+
+            filename = re.sub(r'[^\w\u4e00-\u9fff\-_.]', '_', file.filename)
+            filepath = _dep('knowledge_dir') / filename
+            try:
+                file.save(str(filepath))
+                uploaded.append(filename)
+            except Exception as exc:
+                failed.append({'filename': file.filename, 'message': f'上传失败: {str(exc)}'})
+
+        if uploaded:
+            reset_knowledge_cache()
+
+        if not uploaded:
+            message = failed[0]['message'] if len(failed) == 1 else '上传失败'
+            return jsonify({
+                'success': False,
+                'message': message,
+                'uploaded': [],
+                'failed': failed,
+            }), 400
+
+        if failed:
+            return jsonify({
+                'success': True,
+                'partial_success': True,
+                'message': f'成功上传 {len(uploaded)} 个文件，失败 {len(failed)} 个',
+                'filename': uploaded[0],
+                'uploaded': uploaded,
+                'failed': failed,
+            })
+
+        if len(uploaded) == 1:
+            return jsonify({
+                'success': True,
+                'message': f'文件 {uploaded[0]} 上传成功',
+                'filename': uploaded[0],
+                'uploaded': uploaded,
+            })
+
+        return jsonify({
+            'success': True,
+            'message': f'成功上传 {len(uploaded)} 个文件',
+            'filename': uploaded[0],
+            'uploaded': uploaded,
+        })
+
+    @app.route('/api/chatbot/knowledge/<filename>/download', methods=['GET'])
+    @login_required
+    def download_knowledge_file(filename):
         filepath = _dep('knowledge_dir') / filename
-        try:
-            file.save(str(filepath))
-            with _knowledge_lock:
-                _knowledge_cache['content'] = ''
-                _knowledge_cache['last_updated'] = 0
-            return jsonify({'success': True, 'message': f'文件 {filename} 上传成功', 'filename': filename})
-        except Exception as exc:
-            return jsonify({'success': False, 'message': f'上传失败: {str(exc)}'}), 500
+        if not filepath.exists() or not filepath.is_file():
+            return jsonify({'success': False, 'message': '文件不存在'}), 404
+        response = send_from_directory(str(_dep('knowledge_dir')), filename, as_attachment=True, download_name=filename)
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        return response
 
     @app.route('/api/chatbot/knowledge/<filename>', methods=['DELETE'])
     @login_required
@@ -468,9 +774,7 @@ def register_ai_chatbot_routes(
             return jsonify({'success': False, 'message': '文件不存在'}), 404
         try:
             filepath.unlink()
-            with _knowledge_lock:
-                _knowledge_cache['content'] = ''
-                _knowledge_cache['last_updated'] = 0
+            reset_knowledge_cache()
             return jsonify({'success': True, 'message': '删除成功'})
         except Exception as exc:
             return jsonify({'success': False, 'message': f'删除失败: {str(exc)}'}), 500
@@ -494,9 +798,9 @@ def register_ai_chatbot_routes(
         if 'api_key' in data and data['api_key'] and not str(data['api_key']).startswith('***'):
             updates['chatbot_api_key'] = str(data['api_key']).strip()
         if 'api_base' in data:
-            safe_api_base = _dep('sanitize_public_link_url')(data['api_base'], enforce_remote_public=True)
+            safe_api_base = sanitize_ai_api_base_url(data['api_base'])
             if not safe_api_base:
-                return jsonify({'success': False, 'message': 'API Base 必须是有效的公网 http/https 地址'}), 400
+                return jsonify({'success': False, 'message': 'API Base 必须是有效的 http/https 地址，且不能使用 localhost 或内网 IP'}), 400
             updates['chatbot_api_base'] = safe_api_base
         if 'model' in data:
             updates['chatbot_model'] = data['model']
@@ -525,9 +829,9 @@ def register_ai_chatbot_routes(
         if 'api_key' in data and data['api_key'] and not str(data['api_key']).startswith('***'):
             updates['product_ai_api_key'] = str(data['api_key']).strip()
         if 'api_base' in data:
-            safe_api_base = _dep('sanitize_public_link_url')(data['api_base'], enforce_remote_public=True)
+            safe_api_base = sanitize_ai_api_base_url(data['api_base'])
             if not safe_api_base:
-                return jsonify({'success': False, 'message': 'API Base 必须是有效的公网 http/https 地址'}), 400
+                return jsonify({'success': False, 'message': 'API Base 必须是有效的 http/https 地址，且不能使用 localhost 或内网 IP'}), 400
             updates['product_ai_api_base'] = safe_api_base
         if 'model' in data:
             updates['product_ai_model'] = str(data['model']).strip()

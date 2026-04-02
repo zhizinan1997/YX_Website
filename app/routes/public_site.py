@@ -728,18 +728,28 @@ def register_public_site_routes(
         normalized = normalize_public_static_path(path)
         if not normalized:
             return Response(status=404)
+        is_admin_html = normalized in {'admin', 'admin/index', 'admin/index.html'} or normalized.startswith('admin/')
 
         exact_path = root / normalized
         if exact_path.is_file():
-            return send_from_directory(str(root), normalized)
+            response = send_from_directory(str(root), normalized)
+            if is_admin_html:
+                response.headers['Cache-Control'] = 'no-store, max-age=0'
+            return response
 
         html_path = root / f'{normalized}.html'
         if html_path.is_file():
-            return send_from_directory(str(root), f'{normalized}.html')
+            response = send_from_directory(str(root), f'{normalized}.html')
+            if is_admin_html:
+                response.headers['Cache-Control'] = 'no-store, max-age=0'
+            return response
 
         if exact_path.is_dir():
             index_path = exact_path / 'index.html'
             if index_path.is_file():
-                return send_from_directory(str(exact_path), 'index.html')
+                response = send_from_directory(str(exact_path), 'index.html')
+                if is_admin_html:
+                    response.headers['Cache-Control'] = 'no-store, max-age=0'
+                return response
 
         return Response(status=404)

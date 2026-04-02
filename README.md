@@ -90,11 +90,12 @@ docker network create yx-net || true
 docker pull ghcr.io/zhizinan1997/yx_website:latest
 docker pull ghcr.io/zhizinan1997/yx-gateway:latest
 
-# 2.1) 首次部署时，先把网站镜像内的 pages 导出到宿主机
+# 2.1) 首次部署时，先把网站镜像内的 data 和 pages 导出到宿主机
 # 仅在宿主机目录为空时执行一次即可
-# docker create --name yx-website-pages ghcr.io/zhizinan1997/yx_website:latest
-# docker cp yx-website-pages:/app/pages/. /root/yxwebsite/pages/
-# docker rm -f yx-website-pages
+# docker create --name yx-website-seed ghcr.io/zhizinan1997/yx_website:latest
+# docker cp yx-website-seed:/app/data/. /root/yxwebsite/data/
+# docker cp yx-website-seed:/app/pages/. /root/yxwebsite/pages/
+# docker rm -f yx-website-seed
 
 # 3) 启动网站应用容器（仅容器内 8000，不对宿主机开放）
 docker run -d \
@@ -124,22 +125,31 @@ docker run -d \
 
 ```
 
-一键升级脚本（从 GitHub 下载，自动拉镜像、智能同步 `pages`、重建容器，并清理旧版悬空镜像）：
+一键升级脚本（从 GitHub 下载，自动拉镜像、智能同步 `data` 与 `pages`、重建容器，并清理旧版悬空镜像）：
 
 ```bash
-curl -fsSL -o /root/yxwebsite/dockerrun_upgrade.sh https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh && chmod +x /root/yxwebsite/dockerrun_upgrade.sh && bash /root/yxwebsite/dockerrun_upgrade.sh
+echo "【1/4】开始下载最新升级脚本..." && \
+curl -fL --progress-bar -o /root/yxwebsite/dockerrun_upgrade.sh https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh && \
+echo "【2/4】升级脚本下载完成，开始赋予执行权限..." && \
+chmod +x /root/yxwebsite/dockerrun_upgrade.sh && \
+echo "【3/4】执行权限已设置，开始运行升级脚本..." && \
+bash /root/yxwebsite/dockerrun_upgrade.sh && \
+echo "【4/4】升级脚本执行结束。"
 
 # 如需查看可选参数
 bash /root/yxwebsite/dockerrun_upgrade.sh --help
 ```
 
 - 推荐每次升级前都重新下载一次脚本，确保拿到最新同步逻辑。
+- 脚本运行过程中会实时显示 Docker 原生镜像拉取进度，并用非常详细的中文日志输出目录状态、基线来源、每个文件的新增/更新/跳过/保留本地/冲突保存结果，以及容器删除、启动、验证的执行情况。
 - 脚本会优先复用现有 `yx-website` 容器中的环境变量；`SECRET_KEY` 与 `PUBLIC_BASE_URL` 会自动沿用旧容器中的值，无需每次升级手动重填。
-- `ADMIN_PASSWORD` 仅在首次部署初始化超级管理员时需要；如果 `/app/data/admin_users.json` 中已经存在管理员账号，后续升级可不再提供该变量。
+- `ADMIN_PASSWORD` 仅在首次部署初始化超级管理员时需要；如果 `/app/data/admin_users.json` 中已经存在管理员账号，后续升级可不再提供该变量。升级脚本也不会再自动沿用旧容器里的这类一次性初始化密码。
+- 脚本默认 `SYNC_DATA=smart`：会把“上一版镜像 data”作为合并基线，自动导入新镜像新增的默认数据文件，并只覆盖那些宿主机未改动过的旧文件。
+- 如果镜像和宿主机都改了同一个 `data` 文件，脚本会保留宿主机版本，并把镜像新版本另存到 `/root/yxwebsite/.data-merge-conflicts/` 里，方便你人工比对。
 - 脚本默认 `SYNC_PAGES=smart`：会把“上一版镜像 pages”作为合并基线，自动导入新镜像新增页面，并只覆盖那些宿主机未改动的旧页面。
 - 如果镜像和宿主机都改了同一个页面，脚本会保留宿主机版本，并把镜像新版本另存到 `/root/yxwebsite/.pages-merge-conflicts/` 里，方便你人工比对。
-- 如需更保守，可用 `SYNC_PAGES=additive bash /root/yxwebsite/dockerrun_upgrade.sh`，只补充宿主机缺失的页面文件。
-- 如需完全跳过页面同步，可用 `SYNC_PAGES=false bash /root/yxwebsite/dockerrun_upgrade.sh`。
+- 如需更保守，可用 `SYNC_DATA=additive SYNC_PAGES=additive bash /root/yxwebsite/dockerrun_upgrade.sh`，只补充宿主机缺失的文件。
+- 如需完全跳过内容同步，可用 `SYNC_DATA=false SYNC_PAGES=false bash /root/yxwebsite/dockerrun_upgrade.sh`。
 - 脚本默认会在重建完成后执行 `docker image prune -f`，自动清理升级过程中遗留的旧版悬空镜像；如需跳过，可用 `CLEAN_OLD_IMAGES=false bash /root/yxwebsite/dockerrun_upgrade.sh`。
 - 如果当前机器上没有旧容器，请先通过环境变量提供至少 `SECRET_KEY` 与 `PUBLIC_BASE_URL`；首次部署还需额外提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD`。
 
@@ -153,12 +163,13 @@ bash /root/yxwebsite/dockerrun_upgrade.sh --help
 - 你的部署拓扑是 `宿主机 Nginx -> gateway -> website`，因此建议固定使用 `TRUST_PROXY_HEADERS=true`。
 - HTTPS 域名场景建议固定设置 `SESSION_COOKIE_SECURE=true`。
 - `pages` 目录也建议持久化挂载到宿主机；后台创建或编辑新闻、产品页时会直接写入该目录，不挂载会在重建容器后丢失。
+- `data` 目录除了客户数据外，也承载后台改过的站点配置、导航配置、首页模块配置等；一旦挂载到宿主机，镜像内默认 `data` 文件会被遮蔽，所以首次部署和每次升级都建议使用上面的升级脚本来同步。
 - `cdn_assets` 不再需要宿主机挂载：`website` 直接使用镜像内置素材，`gateway` 的主站入口与 CDN 入口都会转发到 `website` 统一处理。
 - `update_logs` 也不再需要宿主机挂载；后台默认读取镜像内自带的更新日志。
 - `MAIN_DOMAIN/CDN_DOMAIN` 不是容器启动必填项。
 - `website` 镜像仍然是 `cdn_assets` 与默认 `pages` 的来源；其中 `pages` 因为要给后台写入，所以保留宿主机挂载。
-- 空目录挂载会覆盖镜像内文件并导致 `404`/内容缺失，因此首次切换前请先把 `pages` 从镜像同步到宿主机目录。
-- 升级镜像时，建议始终使用上面的升级脚本；它会自动处理“镜像新增页面”和“宿主机已修改页面”的合并问题。
+- 空目录挂载会覆盖镜像内文件并导致 `404`/内容缺失或默认配置缺失，因此首次切换前请先把 `data` 与 `pages` 从镜像同步到宿主机目录。
+- 升级镜像时，建议始终使用上面的升级脚本；它会自动处理“镜像新增默认 data/pages 文件”和“宿主机已修改内容”的合并问题。
 
 ### 宝塔 Nginx 反代（适配双域名）
 
@@ -212,6 +223,7 @@ CDN_PORT=8001
 - `SECRET_KEY`、`PUBLIC_BASE_URL` 是生产启动必填项。
 - 首次部署时必须提供 `ADMIN_PASSWORD_HASH` 或 `ADMIN_PASSWORD`；已有持久化管理员数据后可移除。
 - `docker-compose.yml` 默认只持久化 `data/` 与 `pages/`；`cdn_assets/` 和 `update_logs/` 会直接使用镜像内内容。
+- 如果你也使用宿主机挂载 `data/`，请注意镜像内默认 `data` 文件同样会被遮蔽；升级时也需要采用和上面相同的同步思路，否则新增默认配置可能不会自动进入宿主机目录。
 - Turnstile、CDN 等业务配置仍可在 Admin 界面内调整。
 
 ## 📡 CDN 加速开关

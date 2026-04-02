@@ -135,10 +135,6 @@
     ],
     "hidden": true
   },
-  "service-cases": {
-    "industryCategories": [],
-    "hidden": true
-  },
   "../biosensing/igzo_device": {
     "hidden": true
   },
@@ -155,9 +151,6 @@
     "hidden": true
   },
   "../biosensing/respiratory_virus_chip": {
-    "hidden": true
-  },
-  "all-products": {
     "hidden": true
   },
   "../biosensing/index_page_2": {
