@@ -79,9 +79,9 @@ log_file_action() {
   local extra="${4:-}"
 
   if [[ -n "$extra" ]]; then
-    info "[$label] $action：$rel -> $extra"
+    info "[${label}] ${action}：${rel} -> ${extra}"
   else
-    info "[$label] $action：$rel"
+    info "[${label}] ${action}：${rel}"
   fi
 }
 
@@ -124,10 +124,11 @@ normalize_deploy_strategy() {
   esac
 }
 
-prompt_line() {
-  local prompt="$1"
-  local default_value="${2:-}"
-  local secret="${3:-false}"
+prompt_line_into() {
+  local out_var="$1"
+  local prompt="$2"
+  local default_value="${3:-}"
+  local secret="${4:-false}"
   local input=""
 
   [[ -r /dev/tty ]] || die "当前脚本需要交互输入，但未检测到可用终端。请直接在服务器终端执行，或通过环境变量预先传入参数。"
@@ -150,29 +151,30 @@ prompt_line() {
     input="$default_value"
   fi
 
-  printf '%s' "$input"
+  printf -v "$out_var" '%s' "$input"
 }
 
-prompt_confirm_secret() {
-  local prompt="$1"
-  local min_len="${2:-1}"
+prompt_confirm_secret_into() {
+  local out_var="$1"
+  local prompt="$2"
+  local min_len="${3:-1}"
   local first=""
   local second=""
 
   while true; do
-    first="$(prompt_line "$prompt" "" true)"
+    prompt_line_into first "$prompt" "" true
     if (( ${#first} < min_len )); then
       warn "输入长度不足，至少需要 $min_len 位。"
       continue
     fi
 
-    second="$(prompt_line "请再次输入以确认" "" true)"
+    prompt_line_into second "请再次输入以确认" "" true
     if [[ "$first" != "$second" ]]; then
       warn "两次输入不一致，请重新输入。"
       continue
     fi
 
-    printf '%s' "$first"
+    printf -v "$out_var" '%s' "$first"
     return 0
   done
 }
@@ -191,7 +193,7 @@ choose_update_strategy() {
   printf '     说明：这种方式会把宿主机现有客户数据和客户改动整体替换掉，只适合确认要“按新版本重来”时使用。\n' >&2
 
   while true; do
-    answer="$(prompt_line "请输入 1 或 2" "1" false)"
+    prompt_line_into answer "请输入 1 或 2" "1" false
     case "$answer" in
       1) printf 'smart'; return 0 ;;
       2) printf 'reset'; return 0 ;;
@@ -212,7 +214,7 @@ confirm_reset_action() {
   printf '  - %s（若存在，仅清理旧部署残留）\n' "$LEGACY_UPDATE_LOGS_DIR" >&2
   printf '这意味着客户后台数据、留言、上传文件、页面手工修改都将被新版本内容替换。\n' >&2
 
-  answer="$(prompt_line "如确认继续，请输入 RESET" "" false)"
+  prompt_line_into answer "如确认继续，请输入 RESET" "" false
   [[ "$answer" == "RESET" ]] || die "未输入 RESET，已取消全新部署重置。"
 }
 
@@ -236,7 +238,7 @@ remove_container_if_exists() {
   local name="$1"
 
   if docker container inspect "$name" >/dev/null 2>&1; then
-    info "检测到已有容器：$name，正在删除"
+    info "检测到已有容器：${name}，正在删除"
     docker rm -f "$name" >/dev/null
     info "旧容器已删除：$name"
   else
@@ -372,7 +374,7 @@ smart_merge_tree() {
 
   log "$label 智能合并结果：新增 $added 个，更新 $updated 个，保留本地 $kept_local 个，相同 $identical 个，冲突 $conflicts 个，上游删除但本地保留 $upstream_removed 个"
   if (( conflicts > 0 )); then
-    warn "$label 存在冲突，新镜像版本已保存到 $conflicts_dir，请上线后人工核对。"
+    warn "${label} 存在冲突，新镜像版本已保存到 ${conflicts_dir}，请上线后人工核对。"
   fi
 }
 
@@ -519,24 +521,24 @@ pick_value() {
   local default_value="$2"
   local out_value_var="$3"
   local out_source_var="$4"
-  local value=""
-  local source=""
+  local picked_value=""
+  local picked_source=""
 
-  value="$(trim "${!key-}")"
-  if [[ -n "$value" ]]; then
-    source="当前 shell 环境变量"
+  picked_value="$(trim "${!key-}")"
+  if [[ -n "$picked_value" ]]; then
+    picked_source="当前 shell 环境变量"
   else
-    value="$(get_existing_env "$key")"
-    if [[ -n "$value" ]]; then
-      source="旧网站容器环境变量"
+    picked_value="$(get_existing_env "$key")"
+    if [[ -n "$picked_value" ]]; then
+      picked_source="旧网站容器环境变量"
     else
-      value="$default_value"
-      source="脚本默认值"
+      picked_value="$default_value"
+      picked_source="脚本默认值"
     fi
   fi
 
-  printf -v "$out_value_var" '%s' "$value"
-  printf -v "$out_source_var" '%s' "$source"
+  printf -v "$out_value_var" '%s' "$picked_value"
+  printf -v "$out_source_var" '%s' "$picked_source"
 }
 
 get_existing_env() {
@@ -553,31 +555,31 @@ resolve_basic_runtime_values() {
   local value_source=""
 
   pick_value APP_ENV production APP_ENV_VAL value_source
-  info "APP_ENV=$APP_ENV_VAL（来源：$value_source）"
+  info "APP_ENV=${APP_ENV_VAL}（来源：${value_source}）"
 
   pick_value ADMIN_USERNAME admin ADMIN_USERNAME_VAL value_source
-  info "ADMIN_USERNAME=$ADMIN_USERNAME_VAL（来源：$value_source）"
+  info "ADMIN_USERNAME=${ADMIN_USERNAME_VAL}（来源：${value_source}）"
 
   pick_value TRUST_PROXY_HEADERS true TRUST_PROXY_HEADERS_VAL value_source
-  info "TRUST_PROXY_HEADERS=$TRUST_PROXY_HEADERS_VAL（来源：$value_source）"
+  info "TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS_VAL}（来源：${value_source}）"
 
   pick_value SESSION_COOKIE_SECURE true SESSION_COOKIE_SECURE_VAL value_source
-  info "SESSION_COOKIE_SECURE=$SESSION_COOKIE_SECURE_VAL（来源：$value_source）"
+  info "SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE_VAL}（来源：${value_source}）"
 
   pick_value CDN_ENABLED false CDN_ENABLED_VAL value_source
-  info "CDN_ENABLED=$CDN_ENABLED_VAL（来源：$value_source）"
+  info "CDN_ENABLED=${CDN_ENABLED_VAL}（来源：${value_source}）"
 
   pick_value CDN_DOMAIN "" CDN_DOMAIN_VAL value_source
-  info "CDN_DOMAIN=${CDN_DOMAIN_VAL:-<未设置>}（来源：$value_source）"
+  info "CDN_DOMAIN=${CDN_DOMAIN_VAL:-<未设置>}（来源：${value_source}）"
 
   pick_value TURNSTILE_ENABLED false TURNSTILE_ENABLED_VAL value_source
-  info "TURNSTILE_ENABLED=$TURNSTILE_ENABLED_VAL（来源：$value_source）"
+  info "TURNSTILE_ENABLED=${TURNSTILE_ENABLED_VAL}（来源：${value_source}）"
 
   pick_value TURNSTILE_SITE_KEY "" TURNSTILE_SITE_KEY_VAL value_source
-  info "TURNSTILE_SITE_KEY=$([[ -n "$TURNSTILE_SITE_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：$value_source）"
+  info "TURNSTILE_SITE_KEY=$([[ -n "$TURNSTILE_SITE_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：${value_source}）"
 
   pick_value TURNSTILE_SECRET_KEY "" TURNSTILE_SECRET_KEY_VAL value_source
-  info "TURNSTILE_SECRET_KEY=$([[ -n "$TURNSTILE_SECRET_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：$value_source）"
+  info "TURNSTILE_SECRET_KEY=$([[ -n "$TURNSTILE_SECRET_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：${value_source}）"
 }
 
 resolve_secret_key() {
@@ -593,12 +595,12 @@ resolve_secret_key() {
   fi
 
   if [[ -z "$value" ]]; then
-    value="$(prompt_confirm_secret "请输入 SECRET_KEY（至少 32 位，生产环境务必固定不变）" 32)"
+    prompt_confirm_secret_into value "请输入 SECRET_KEY（至少 32 位，生产环境务必固定不变）" 32
     source="交互输入"
   fi
 
   SECRET_KEY_VAL="$value"
-  info "SECRET_KEY 已确认（来源：$source，长度：${#SECRET_KEY_VAL}）"
+  info "SECRET_KEY 已确认（来源：${source}，长度：${#SECRET_KEY_VAL}）"
 }
 
 resolve_public_base_url() {
@@ -611,7 +613,7 @@ resolve_public_base_url() {
 
   if [[ -z "$normalized" ]]; then
     while true; do
-      value="$(prompt_line "请输入站点公开访问地址，例如 https://test.hnmetachip.cn" "$value" false)"
+      prompt_line_into value "请输入站点公开访问地址，例如 https://test.hnmetachip.cn" "$value" false
       normalized="$(normalize_public_base_url "$value")"
       if [[ -n "$normalized" ]]; then
         source="交互输入"
@@ -622,7 +624,7 @@ resolve_public_base_url() {
   fi
 
   PUBLIC_BASE_URL_VAL="$normalized"
-  info "PUBLIC_BASE_URL=$PUBLIC_BASE_URL_VAL（来源：$source）"
+  info "PUBLIC_BASE_URL=${PUBLIC_BASE_URL_VAL}（来源：${source}）"
 }
 
 resolve_admin_bootstrap_if_needed() {
@@ -650,7 +652,7 @@ resolve_admin_bootstrap_if_needed() {
     return 0
   fi
 
-  ADMIN_PASSWORD_VAL="$(prompt_confirm_secret "请输入超级管理员初始密码（至少 6 位）" 6)"
+  prompt_confirm_secret_into ADMIN_PASSWORD_VAL "请输入超级管理员初始密码（至少 6 位）" 6
   info "超级管理员初始密码已通过交互输入获取。"
 }
 
@@ -706,7 +708,7 @@ determine_deploy_kind_and_strategy() {
 
   DEPLOY_STRATEGY_MODE="$(normalize_deploy_strategy "${DEPLOY_STRATEGY:-}")"
   if [[ -n "$DEPLOY_STRATEGY_MODE" ]]; then
-    info "检测到外部指定 DEPLOY_STRATEGY=$DEPLOY_STRATEGY_MODE，本次将按指定策略执行。"
+    info "检测到外部指定 DEPLOY_STRATEGY=${DEPLOY_STRATEGY_MODE}，本次将按指定策略执行。"
   else
     DEPLOY_STRATEGY_MODE="$(choose_update_strategy)"
   fi
@@ -808,7 +810,7 @@ recreate_containers() {
   website_cmd+=( "$WEBSITE_IMAGE" )
 
   info "正在启动网站容器：$WEBSITE_CONTAINER"
-  info "网站容器网络：$NETWORK_NAME，网络别名：$WEBSITE_CONTAINER"
+  info "网站容器网络：${NETWORK_NAME}，网络别名：${WEBSITE_CONTAINER}"
   info "网站容器挂载：$DATA_DIR -> /app/data"
   info "网站容器挂载：$PAGES_DIR -> /app/pages"
   WEBSITE_CONTAINER_ID="$("${website_cmd[@]}")"
