@@ -127,6 +127,7 @@ bash /root/yxwebsite/dockerrun_upgrade.sh --help
 - `yx-website` 不映射宿主机端口，仅通过 Docker 网络供 `yx-gateway` 反向代理访问。
 - `yx-website` 在生产环境必须提供 `SECRET_KEY` 和 `PUBLIC_BASE_URL`。
 - 首次部署时还必须提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 作为超级管理员初始化凭据；如果 `/app/data/admin_users.json` 中已经存在超级管理员，则后续重启可省略这两个变量。
+- 如确需允许首次初始化时使用弱密码，可显式传入 `ALLOW_WEAK_ADMIN_PASSWORDS=true`；默认仍为 `false`。
 - 你的部署拓扑是 `宿主机 Nginx -> gateway -> website`，因此建议固定使用 `TRUST_PROXY_HEADERS=true`。
 - HTTPS 域名场景建议固定设置 `SESSION_COOKIE_SECURE=true`。
 - `pages` 目录也建议持久化挂载到宿主机；后台创建或编辑新闻、产品页时会直接写入该目录，不挂载会在重建容器后丢失。
@@ -181,6 +182,7 @@ ADMIN_USERNAME=admin
 # 二选一：推荐直接提供哈希；或首次启动时临时提供明文密码
 ADMIN_PASSWORD_HASH=
 ADMIN_PASSWORD=
+ALLOW_WEAK_ADMIN_PASSWORDS=false
 MAIN_PORT=8000
 CDN_PORT=8001
 ```
@@ -189,6 +191,7 @@ CDN_PORT=8001
 
 - `SECRET_KEY`、`PUBLIC_BASE_URL` 是生产启动必填项。
 - 首次部署时必须提供 `ADMIN_PASSWORD_HASH` 或 `ADMIN_PASSWORD`；已有持久化管理员数据后可移除。
+- 如必须允许 `admin123` 这类弱密码初始化，可额外设置 `ALLOW_WEAK_ADMIN_PASSWORDS=true`。
 - `docker-compose.yml` 默认只持久化 `data/` 与 `pages/`；`cdn_assets/` 和 `update_logs/` 会直接使用镜像内内容。
 - 如果你也使用宿主机挂载 `data/`，请注意镜像内默认 `data` 文件同样会被遮蔽；升级时也需要采用和上面相同的同步思路，否则新增默认配置可能不会自动进入宿主机目录。
 - Turnstile、CDN 等业务配置仍可在 Admin 界面内调整。
@@ -226,6 +229,7 @@ docker run -d \
   -e SESSION_COOKIE_SECURE=true \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
+  -e ALLOW_WEAK_ADMIN_PASSWORDS=false \
   -v /root/yxwebsite/data:/app/data \
   -v /root/yxwebsite/pages:/app/pages \
   ghcr.io/zhizinan1997/yx_website:latest

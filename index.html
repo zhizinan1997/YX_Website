@@ -285,6 +285,7 @@
     .cookie-consent-bar__actions {
       flex: 0 0 auto;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: center;
       gap: 10px;
@@ -337,6 +338,7 @@
 
       .cookie-consent-bar__actions {
         width: 100%;
+        flex-direction: column;
       }
 
       .cookie-consent-bar__btn {
@@ -1204,7 +1206,8 @@
       </p>
       <div class="cookie-consent-bar__actions">
         <a href="/pages/about/policy.html" class="cookie-consent-bar__btn cookie-consent-bar__btn--secondary" id="cookieConsentPolicy">隐私条款</a>
-        <button type="button" class="cookie-consent-bar__btn" id="cookieConsentReject">拒绝 Cookies</button>
+        <button type="button" class="cookie-consent-bar__btn cookie-consent-bar__btn--secondary" id="cookieConsentReject">拒绝 Cookies</button>
+        <button type="button" class="cookie-consent-bar__btn" id="cookieConsentAccept">全部接受</button>
       </div>
     </div>
   </div>
@@ -1226,8 +1229,9 @@
       const CONSENT_ACCEPTED = 'accepted';
       const CONSENT_REJECTED = 'rejected';
       const bar = document.getElementById('cookieConsentBar');
+      const acceptBtn = document.getElementById('cookieConsentAccept');
       const rejectBtn = document.getElementById('cookieConsentReject');
-      if (!bar || !rejectBtn) return;
+      if (!bar || !acceptBtn || !rejectBtn) return;
 
       function readCookie(name) {
         const prefix = `${name}=`;
@@ -1276,16 +1280,26 @@
         }, 220);
       }
 
+      function dispatchConsentEvent(name, state) {
+        try {
+          window.dispatchEvent(new CustomEvent(name, {
+            detail: { state }
+          }));
+        } catch (_) {
+          window.dispatchEvent(new Event(name));
+        }
+      }
+
+      acceptBtn.addEventListener('click', () => {
+        persistConsent(CONSENT_ACCEPTED);
+        hideBar();
+        dispatchConsentEvent('yx-cookie-consent-accepted', CONSENT_ACCEPTED);
+      });
+
       rejectBtn.addEventListener('click', () => {
         persistConsent(CONSENT_REJECTED);
         hideBar();
-        try {
-          window.dispatchEvent(new CustomEvent('yx-cookie-consent-rejected', {
-            detail: { state: CONSENT_REJECTED }
-          }));
-        } catch (_) {
-          window.dispatchEvent(new Event('yx-cookie-consent-rejected'));
-        }
+        dispatchConsentEvent('yx-cookie-consent-rejected', CONSENT_REJECTED);
       });
 
       const currentState = readStoredConsent();

@@ -415,6 +415,7 @@ def ensure_required_runtime_config():
     public_base_url = get_public_base_url()
     admin_hash = (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip()
     admin_password = (os.environ.get('ADMIN_PASSWORD') or '').strip()
+    allow_weak_admin_passwords = env_bool('ALLOW_WEAK_ADMIN_PASSWORDS', False)
 
     if not secret_key:
         errors.append('缺少 SECRET_KEY')
@@ -440,7 +441,13 @@ def ensure_required_runtime_config():
             admin_users_read_error = str(exc)
             has_bootstrapped_admin = False
 
-    if admin_password and admin_password in WEAK_ADMIN_PASSWORDS and not has_bootstrapped_admin and not admin_hash:
+    if (
+        admin_password
+        and admin_password in WEAK_ADMIN_PASSWORDS
+        and not allow_weak_admin_passwords
+        and not has_bootstrapped_admin
+        and not admin_hash
+    ):
         message = 'ADMIN_PASSWORD 不能使用弱口令'
         if admin_users_file_exists:
             if admin_users_read_error:

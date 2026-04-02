@@ -17,6 +17,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - ALLOW_WEAK_ADMIN_PASSWORDS=${ALLOW_WEAK_ADMIN_PASSWORDS:-false}
       # 可选：容器启动时的 CDN 默认值（后台可覆盖）
       - CDN_ENABLED=${CDN_ENABLED:-false}
       - CDN_DOMAIN=${CDN_DOMAIN:-}
