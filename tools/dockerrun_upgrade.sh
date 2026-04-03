@@ -183,28 +183,28 @@ prompt_confirm_secret_into() {
 }
 
 choose_update_strategy() {
-  local answer=””
+  local answer=""
 
   printf '\n' >&2
-  printf '检测到当前机器上已经存在部署痕迹，本次属于”更新部署”。\n' >&2
+  printf '检测到当前机器上已经存在部署痕迹，本次属于"更新部署"。\n' >&2
   printf '请选择更新方式：\n' >&2
   printf '  1) 智能合并更新（默认）\n' >&2
   printf '     保留宿主机已修改的 data/pages 文件；如镜像和宿主机同时改了同一文件，会保留宿主机版本，并把镜像版本存到冲突目录。\n' >&2
   printf '     说明：这种方式最适合保留客户数据和客户改动，但智能合并依然可能遇到误判或需要人工核对的情况。\n' >&2
   printf '  2) 全新部署重置\n' >&2
   printf '     会先备份当前宿主机内容，然后清空 data/pages，以及旧版遗留的 cdn_assets/update_logs 宿主机目录，再把新镜像内容完整导入。\n' >&2
-  printf '     说明：这种方式会把宿主机现有客户数据和客户改动整体替换掉，只适合确认要”按新版本重来”时使用。\n' >&2
+  printf '     说明：这种方式会把宿主机现有客户数据和客户改动整体替换掉，只适合确认要"按新版本重来"时使用。\n' >&2
   printf '  3) 重置界面，保留用户数据\n' >&2
   printf '     会先备份当前宿主机内容，然后清空 pages/cdn_assets 并从新镜像重新导入，但完整保留 data 目录不做任何改动。\n' >&2
   printf '     说明：适合界面代码需要完全刷新、但客户后台数据（留言、配置、管理员账号等）必须保留的场景。\n' >&2
 
   while true; do
-    prompt_line_into answer “请输入 1、2 或 3” “1” false
-    case “$answer” in
+    prompt_line_into answer "请输入 1、2 或 3" "1" false
+    case "$answer" in
       1) printf 'smart'; return 0 ;;
       2) printf 'reset'; return 0 ;;
       3) printf 'reset-keep-data'; return 0 ;;
-      *) warn “输入无效，请输入 1、2 或 3。” ;;
+      *) warn "输入无效，请输入 1、2 或 3。" ;;
     esac
   done
 }
@@ -213,7 +213,7 @@ confirm_reset_action() {
   local answer=""
 
   printf '\n' >&2
-  printf '你选择了“全新部署重置”。这一步属于高风险操作。\n' >&2
+  printf '你选择了"全新部署重置"。这一步属于高风险操作。\n' >&2
   printf '脚本会先备份宿主机当前目录，然后删除以下内容并重新导入新镜像内容：\n' >&2
   printf '  - %s\n' "$DATA_DIR" >&2
   printf '  - %s\n' "$PAGES_DIR" >&2
@@ -472,7 +472,7 @@ sync_image_tree() {
     info "将对 ${label} 执行智能合并，基线来源：$base_label"
     smart_merge_tree "$label" "$base_source" "$tmp_new_dir" "$host_dir" "$conflicts_dir"
   else
-    warn "当前没有可用智能合并基线，${label} 将退化为“只补充缺失文件”模式。"
+    warn "当前没有可用智能合并基线，${label} 将退化为"只补充缺失文件"模式。"
     additive_sync_tree "$label" "$tmp_new_dir" "$host_dir"
   fi
 
@@ -782,15 +782,15 @@ determine_deploy_kind_and_strategy() {
 
   if [[ "$HAS_WEBSITE_CONTAINER" == "true" || "$HAS_GATEWAY_CONTAINER" == "true" || "$HAS_HOST_CONTENT" == "true" ]]; then
     DEPLOY_KIND="update"
-    info "判断结果：当前机器上已存在部署痕迹，本次按“更新部署”处理。"
+    info "判断结果：当前机器上已存在部署痕迹，本次按"更新部署"处理。"
   else
     DEPLOY_KIND="fresh"
-    info "判断结果：当前机器上未发现部署痕迹，本次按“首次部署”处理。"
+    info "判断结果：当前机器上未发现部署痕迹，本次按"首次部署"处理。"
   fi
 
   if [[ "$DEPLOY_KIND" == "fresh" ]]; then
     DEPLOY_STRATEGY_MODE="reset"
-    info "首次部署无需选择更新策略，将自动按“全新初始化导入”执行。"
+    info "首次部署无需选择更新策略，将自动按"全新初始化导入"执行。"
     return 0
   fi
 
@@ -1099,7 +1099,7 @@ show_help() {
 
 推荐用途：
   这是网站 Docker 部署/升级的首选脚本。
-  它会自动识别当前机器是”首次部署”还是”更新部署”，并在更新时让你选择：
+  它会自动识别当前机器是"首次部署"还是"更新部署"，并在更新时让你选择：
   1. 智能合并更新
   2. 全新部署重置
   3. 重置界面，保留用户数据
@@ -1119,15 +1119,15 @@ show_help() {
 
 交互说明：
   - 首次部署：脚本会自动导入新镜像里的 data/pages 内容，并要求输入 SECRET_KEY、PUBLIC_BASE_URL；如果还没有 admin_users.json，也会要求输入管理员初始密码。
-  - 更新部署：脚本会先让你选择”智能合并更新”、”全新部署重置”或”重置界面，保留用户数据”。
+  - 更新部署：脚本会先让你选择"智能合并更新"、"全新部署重置"或"重置界面，保留用户数据"。
   - 如果旧容器仍存在，脚本会优先复用旧容器中的 SECRET_KEY、PUBLIC_BASE_URL 等环境变量。
   - 如果缺少这些环境变量，脚本会直接在终端里提示输入。
   - 如确需允许首次初始化时使用弱密码，可显式传入 ALLOW_WEAK_ADMIN_PASSWORDS=true。
 
 风险说明：
-  - “智能合并更新”会尽量保留宿主机已修改内容，但冲突文件仍可能需要人工核对。
-  - “全新部署重置”会先备份再清空宿主机 data/pages 和旧版残留目录，再导入新镜像内容，客户数据和客户改动都会被替换。
-  - “重置界面，保留用户数据”会先备份再清空 pages/cdn_assets，从新镜像重新导入，但 data 目录完整保留。
+  - "智能合并更新"会尽量保留宿主机已修改内容，但冲突文件仍可能需要人工核对。
+  - "全新部署重置"会先备份再清空宿主机 data/pages 和旧版残留目录，再导入新镜像内容，客户数据和客户改动都会被替换。
+  - "重置界面，保留用户数据"会先备份再清空 pages/cdn_assets，从新镜像重新导入，但 data 目录完整保留。
 USAGE
 }
 
