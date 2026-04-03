@@ -3,89 +3,298 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>隐私政策 - 元芯传感</title>
+  <title>隐私政策 - 湖南元芯传感科技</title>
+
+  <!-- YX Style V2.0 -->
   <link rel="stylesheet" href="/assets/css/yx-style.css" />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
   <style>
-    .policy-page { background: #f5f7fb; min-height: 100vh; padding: 48px 0 72px; }
-    .policy-card { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 12px 32px rgba(10, 45, 80, 0.08); padding: 36px 40px; }
-    .policy-title { font-size: 34px; color: #003b73; margin: 0 0 6px; }
-    .policy-meta { font-size: 13px; color: #6d7f96; margin-bottom: 26px; }
-    .policy-section { margin-bottom: 22px; }
-    .policy-section h2 { font-size: 20px; color: #003b73; margin: 0 0 10px; }
-    .policy-section p, .policy-section li { color: #334155; font-size: 15px; line-height: 1.9; }
-    .policy-section ul { margin: 0; padding-left: 22px; }
-    .policy-back { margin-top: 18px; font-size: 14px; }
+    :root {
+      --primary-color: #0f67d7;
+      --primary-dark: #003b73;
+      --text-main: #16304d;
+      --text-muted: #6d7f96;
+      --bg-light: #f6faff;
+      --surface-white: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.4);
+    }
+    
+    body {
+      background: var(--bg-light);
+      background-image: 
+        radial-gradient(at 0% 0%, hsla(210, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(230, 80%, 91%, 1) 0px, transparent 50%);
+      background-attachment: fixed;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--text-main);
+    }
+
+    /* Page Container */
+    .policy-page {
+      min-height: 100vh;
+      padding: 120px 20px 80px;
+    }
+
+    /* Glassmorphism Card */
+    .policy-card {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--surface-white);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(10, 45, 80, 0.06), 0 1px 3px rgba(0,0,0,0.02);
+      padding: 60px 80px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+    
+    @media(max-width: 768px) {
+      .policy-card { padding: 40px 30px; }
+      .policy-page { padding: 100px 16px 60px; }
+    }
+
+    /* Header styling */
+    .policy-header {
+      text-align: center;
+      margin-bottom: 50px;
+      position: relative;
+    }
+
+    .policy-header::after {
+      content: '';
+      display: block;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+      margin: 24px auto 0;
+      border-radius: 2px;
+    }
+
+    .policy-title {
+      font-size: 42px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0 0 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .policy-meta {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 103, 215, 0.08);
+      padding: 6px 16px;
+      border-radius: 20px;
+    }
+
+    /* Typography & Sections */
+    .policy-section {
+      margin-bottom: 36px;
+      animation: fadeIn 0.8s ease-out forwards;
+      opacity: 0;
+    }
+
+    .policy-section:nth-child(even) { animation-delay: 0.1s; }
+    .policy-section:nth-child(odd) { animation-delay: 0.2s; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .policy-section h2 {
+      font-size: 22px;
+      color: var(--primary-dark);
+      margin: 0 0 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .policy-section h2 i {
+      color: var(--primary-color);
+      font-size: 18px;
+    }
+
+    .policy-section p, .policy-section li {
+      color: #334155;
+      font-size: 16px;
+      line-height: 1.8;
+      margin-bottom: 12px;
+    }
+
+    .policy-section ul {
+      margin: 0 0 16px;
+      padding-left: 24px;
+      list-style-type: none;
+    }
+
+    .policy-section li {
+      position: relative;
+    }
+
+    .policy-section li::before {
+      content: '•';
+      color: var(--primary-color);
+      position: absolute;
+      left: -16px;
+      font-weight: bold;
+      font-size: 20px;
+      line-height: 1.5;
+    }
+
+    /* Highlight box for Cookie policy */
+    .cookie-highlight {
+      background: linear-gradient(145deg, rgba(15, 103, 215, 0.05) 0%, rgba(15, 103, 215, 0.1) 100%);
+      border-left: 4px solid var(--primary-color);
+      padding: 24px;
+      border-radius: 0 12px 12px 0;
+      margin: 24px 0;
+    }
+
+    .policy-back {
+      margin-top: 48px;
+      text-align: center;
+      padding-top: 24px;
+      border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .policy-back a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .policy-back a:hover {
+      background: rgba(15, 103, 215, 0.08);
+      color: var(--primary-dark);
+    }
   </style>
 </head>
 <body>
+  
+  <!-- Navigation Bar -->
+  <div id="mc-nav-root" data-nav-profile="default"></div>
+  <noscript>
+    <div class="mc-nav-noscript">
+      <a href="/index.html">首页</a> |
+      <a href="/pages/gassensing/all-products.html">产品</a> |
+      <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+      <a href="/pages/about/about.html">公司简介</a>
+    </div>
+  </noscript>
+  <script src="/assets/js/nav-loader.js"></script>
+
   <main class="policy-page">
     <article class="policy-card">
-      <h1 class="policy-title">隐私政策</h1>
-      <div class="policy-meta">更新日期：2026年2月6日</div>
+      <header class="policy-header">
+        <h1 class="policy-title">隐私与 Cookie 政策</h1>
+        <div class="policy-meta"><i class="far fa-calendar-alt"></i> 最后更新：2026年4月3日</div>
+      </header>
 
       <section class="policy-section">
-        <h2>1. 适用范围</h2>
-        <p>本政策适用于湖南元芯传感科技有限责任公司（以下简称“我们”）通过官方网站及相关在线服务收集、使用、存储、共享和保护个人信息的行为。</p>
+        <h2><i class="fas fa-shield-alt"></i> 1. 我们对隐私的承诺</h2>
+        <p>湖南元芯传感科技有限责任公司（以下简称“元芯传感”或“我们”）深知隐私对您的重要性，并致力于保护您的个人信息安全。本《隐私与 Cookie 政策》（以下简称“本政策”）详细说明了我们如何通过官方网站收集、使用、存储、披露及保护您的数据。</p>
+        <p>使用我们的网站或服务，即表示您理解并同意本政策所述之数据处理规范。如果您不同意本政策，请停止使用我们的服务。</p>
       </section>
 
       <section class="policy-section">
-        <h2>2. 我们收集的信息</h2>
+        <h2><i class="fas fa-database"></i> 2. 收集的信息范围</h2>
+        <p>为了向您提供优质的先进碳基生物与化学传感技术解决方案服务，我们可能收集以下类型的信息：</p>
         <ul>
-          <li>您主动提交的信息：姓名、电话、邮箱、公司名称、咨询内容等。</li>
-          <li>使用过程信息：访问时间、页面路径、设备信息、浏览器类型、IP 地址、日志信息。</li>
-          <li>在法律允许范围内，为完成服务所必需的其他信息。</li>
+          <li><strong>您主动提供的信息：</strong>当您通过“联系我们”、在线咨询、申请试用或订阅资讯时，提供的姓名、公司名称、职位、联系电话、电子邮箱及具体的需求详情。</li>
+          <li><strong>自动化收集的信息：</strong>当您浏览本网站时，我们自动接收并记录的设备和网络信息，包括但不限于 IP 地址、浏览器类型与版本、操作系统、访问时间、引用的网页等。</li>
+          <li><strong>服务交互数据：</strong>您在访问“线上店铺”或“科研服务”板块时的浏览记录、搜索词条及点击行为。</li>
         </ul>
       </section>
 
       <section class="policy-section">
-        <h2>3. 信息使用目的</h2>
+        <h2><i class="fas fa-cogs"></i> 3. 核心用途与处理准则</h2>
+        <p>我们遵循合法、正当、必要的原则，将收集到的信息用于以下专业用途：</p>
         <ul>
-          <li>响应您的咨询、需求和售前售后服务请求。</li>
-          <li>改进网站体验、产品服务质量与安全保障能力。</li>
-          <li>进行业务沟通、合同履行、客户支持与内部管理。</li>
-          <li>履行法律法规要求及监管义务。</li>
+          <li><strong>客户服务与支持：</strong>响应您的产品咨询，发送相关的技术规格书或解决方案手册，并提供售前售后跟进服务。</li>
+          <li><strong>服务优化：</strong>分析网站流量和用户交互数据，以改善页面布局、提升用户体验并修复潜在的系统故障。</li>
+          <li><strong>业务通信：</strong>在获得您授权的前提下，向您推送元芯传感的最新产品发布、行业洞察文章及参展相关资讯。</li>
+          <li><strong>合规与安全：</strong>维护平台的运营安全，防范欺诈行为，同时履行法定记录保存的合规义务。</li>
         </ul>
       </section>
 
       <section class="policy-section">
-        <h2>4. 信息共享与披露</h2>
-        <p>我们不会向无关第三方出售您的个人信息。仅在以下情形下共享或披露：获得您的明确授权；为履行合同或提供服务所必需；法律法规、司法机关或监管部门要求。</p>
+        <h2><i class="fas fa-cookie-bite"></i> 4. Cookie 与同类技术声明</h2>
+        <div class="cookie-highlight">
+          <p><strong>关于本项目的 Cookie 使用情况：</strong></p>
+          <p>本网站使用了极简且透明的 Cookie 策略，旨在为您提供流畅的访问体验，同时最大程度尊重您的隐私。具体而言，我们部署的 Cookie 包括：</p>
+          <ul>
+            <li><strong>必要性 Cookie：</strong>这是网站核心功能（如导航加载、安全防护及语言设定）运行所必须的配置。这些 Cookie 无法在系统中被禁用。</li>
+            <li><strong>体验与合规 Cookie：</strong>我们通过特定的本地存储（如 <code>cookieConsent</code>）来记录您对隐私协议同意框的点击状态，确保二次访问时不再重复打扰您。</li>
+            <li><strong>分析型 Cookie（若启用）：</strong>我们可能整合匿名化的网站分析工具（如访问量统计），这些数据均经过脱敏处理，绝不涉及您的身份识别与追踪。</li>
+          </ul>
+          <p><strong>管理您的选择：</strong> 您可以随时通过浏览器的设置面板清除已存储的 Cookie，或配置拒绝接受我们的 Cookie（请注意，这可能导致网站部分高级功能无法正常加载）。</p>
+        </div>
       </section>
 
       <section class="policy-section">
-        <h2>5. 信息存储与保护</h2>
-        <p>我们采取合理的管理和技术措施保护个人信息，防止未经授权访问、泄露、篡改或丢失。仅在实现本政策目的所需期限内保留相关信息，法律法规另有规定的除外。</p>
+        <h2><i class="fas fa-handshake"></i> 5. 数据共享与安全保障</h2>
+        <p><strong>严格保密，拒绝滥用。</strong> 我们承诺不会将您的个人信息出售、出租或交易给任何无关第三方。我们的数据共享仅限于以下必要情况：</p>
+        <ul>
+          <li>为促成交易或交付服务，与具有严格保密协议授权的云服务商或物流合作伙伴共享必要信息。</li>
+          <li>根据适用的法律法规规定、法律程序请求或政府监管部门的强制性要求进行披露。</li>
+        </ul>
+        <p><strong>安全防护体系：</strong> 我们采用符合行业标准的网络隔离、数据加密传输（HTTPS）及访问权限控制等技术措施，竭力保护您的信息免受未经授权的访问、篡改、泄露或损坏。</p>
       </section>
 
       <section class="policy-section">
-        <h2>6. Cookie 与同类技术</h2>
-        <p>我们可能使用 Cookie 或本地存储来优化页面展示与交互体验。您可通过浏览器设置管理或清除相关数据；这可能影响部分功能的正常使用。</p>
+        <h2><i class="fas fa-user-check"></i> 6. 您的权利控制方案</h2>
+        <p>作为数据主体，您拥有法定赋予的诸多权利，包括但不限于：</p>
+        <ul>
+          <li>访问并获取您留存信息的副本；</li>
+          <li>请求更正及补充不准确的个人信息；</li>
+          <li>要求删除在特定条件下的个人信息记录；</li>
+          <li>撤回您随时同意的数据处理授权（但不影响撤回前基于同意作出的处理合法性）。</li>
+        </ul>
       </section>
 
       <section class="policy-section">
-        <h2>7. 您的权利</h2>
-        <p>在法律法规允许范围内，您可申请访问、更正、删除个人信息，或撤回授权、注销相关服务。您也可通过下述联系方式提出隐私相关请求。</p>
+        <h2><i class="fas fa-envelope"></i> 7. 联系隐私保护专员</h2>
+        <p>若您对本政策的内容、您的数据权利操作或网站的隐私机制有任何疑虑，欢迎您随时与我们的法务及合规团队联系。我们将在收到请求后的合理时间内响应处理。</p>
+        <p style="margin-top: 10px; font-weight: 500;">
+          <i class="fas fa-phone-alt" style="margin-right: 6px; color: var(--primary-color);"></i> 隐私专线：4001880653<br>
+          <i class="fas fa-at" style="margin-right: 6px; margin-top: 6px; color: var(--primary-color);"></i> 法务邮箱：hnyxcgkj@139.com
+        </p>
       </section>
 
-      <section class="policy-section">
-        <h2>8. 未成年人保护</h2>
-        <p>我们主要面向企业与专业用户提供服务。若您为未成年人，请在监护人指导下使用本网站并提交信息。</p>
-      </section>
-
-      <section class="policy-section">
-        <h2>9. 政策更新</h2>
-        <p>我们可能根据业务变化或法律要求更新本政策。更新后内容将在本页面发布并自发布之日起生效。</p>
-      </section>
-
-      <section class="policy-section">
-        <h2>10. 联系我们</h2>
-        <p>如您对本政策有任何疑问，请通过以下方式联系：电话 4001880653；邮箱 hnyxcgkj@139.com。</p>
-      </section>
-
-      <p class="policy-back"><a href="/index.html">返回首页</a> | <a href="/pages/about/terms.html">查看条款与条件</a></p>
+      <div class="policy-back">
+        <a href="/index.html"><i class="fas fa-home"></i> 返回首页</a>
+        <a href="/pages/about/terms.html"><i class="fas fa-file-contract"></i> 查看条款与条件</a>
+      </div>
     </article>
   </main>
-<!-- FOOTER_START -->
+
+  <!-- FOOTER_START -->
   <div id="mc-footer-root"></div>
   <noscript>
     <footer class="vs-footer-new">
