@@ -27,6 +27,7 @@ try:
     ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '28800').strip()))
 except Exception:
     ADMIN_SESSION_MAX_AGE_SECONDS = 28800
+ADMIN_SESSION_SCHEMA_VERSION = 2
 
 ADMIN_PERMISSION_CATALOG = [
     {'key': 'site-reports', 'label': '网站数据'},
@@ -1218,6 +1219,7 @@ def register_admin_routes(
         session['admin_permissions'] = list(user_permissions)
         session['admin_login_at'] = now_ts
         session['admin_session_ttl'] = ADMIN_SESSION_MAX_AGE_SECONDS
+        session['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
 
         with ADMIN_USERS_LOCK:
             users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
