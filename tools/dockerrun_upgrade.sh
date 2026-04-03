@@ -484,6 +484,7 @@ reset_host_content_from_image() {
     backup_dir_if_exists "$DATA_DIR" "$backup_root" "data"
     backup_dir_if_exists "$PAGES_DIR" "$backup_root" "pages"
     backup_dir_if_exists "$CDN_ASSETS_DIR" "$backup_root" "cdn_assets"
+    backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn"
     backup_dir_if_exists "$LEGACY_UPDATE_LOGS_DIR" "$backup_root" "legacy_update_logs"
   else
     info "当前属于首次部署，无需备份旧内容。"
@@ -493,6 +494,7 @@ reset_host_content_from_image() {
     "$DATA_DIR" \
     "$PAGES_DIR" \
     "$CDN_ASSETS_DIR" \
+    "$LEGACY_CDN_DIR" \
     "$LEGACY_UPDATE_LOGS_DIR" \
     "$DATA_BASELINE_DIR" \
     "$DATA_CONFLICTS_DIR" \
@@ -748,17 +750,23 @@ prepare_directories_and_network() {
   log_tree_state "cdn_assets 目录初始化状态" "$CDN_ASSETS_DIR"
 }
 
+pull_with_timeout() {
+  local image="$1"
+  local label="$2"
+  info "正在拉取${label}镜像：$image"
+  info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${PULL_TIMEOUT:-300}" docker pull "$image" || die "${label}镜像拉取失败或超时（${PULL_TIMEOUT:-300} 秒限制），请检查网络连接和镜像地址。"
+  else
+    docker pull "$image" || die "${label}镜像拉取失败，请检查网络连接和镜像地址。"
+  fi
+  info "${label}镜像拉取完成。"
+}
+
 pull_latest_images() {
   phase "拉取最新镜像"
-  info "正在拉取网站镜像：$WEBSITE_IMAGE"
-  info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
-  docker pull "$WEBSITE_IMAGE"
-  info "网站镜像拉取完成。"
-
-  info "正在拉取网关镜像：$GATEWAY_IMAGE"
-  info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
-  docker pull "$GATEWAY_IMAGE"
-  info "网关镜像拉取完成。"
+  pull_with_timeout "$WEBSITE_IMAGE" "网站"
+  pull_with_timeout "$GATEWAY_IMAGE" "网关"
 }
 
 prepare_content_for_fresh_or_reset() {
@@ -953,6 +961,25 @@ verify_containers() {
     info "容器运行正常：$c"
     info "容器详情摘要：$(docker ps --filter "name=^/${c}$" --format '{{.Names}} | {{.Image}} | {{.Status}}')"
   done
+
+  if command -v curl >/dev/null 2>&1; then
+    info "正在验证 HTTP 服务可用性..."
+    local http_ok=false
+    for _ in $(seq 1 15); do
+      if curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${MAIN_PORT}/"; then
+        http_ok=true
+        break
+      fi
+      sleep 1
+    done
+    if [[ "$http_ok" == "true" ]]; then
+      info "HTTP 服务验证通过：http://127.0.0.1:${MAIN_PORT}/"
+    else
+      warn "HTTP 服务在 15 秒内未就绪，容器进程正在运行但服务可能仍在启动中，请手动验证。"
+    fi
+  else
+    info "未检测到 curl，跳过 HTTP 可用性验证。"
+  fi
 }
 
 cleanup_old_images() {
@@ -1029,6 +1056,7 @@ DATA_DIR="$YX_ROOT/data"
 PAGES_DIR="$YX_ROOT/pages"
 CDN_ASSETS_DIR="$YX_ROOT/cdn_assets"
 LEGACY_UPDATE_LOGS_DIR="$YX_ROOT/update_logs"
+LEGACY_CDN_DIR="$YX_ROOT/cdn"
 DATA_BASELINE_DIR="$YX_ROOT/.data-image-baseline"
 PAGES_BASELINE_DIR="$YX_ROOT/.pages-image-baseline"
 CDN_ASSETS_BASELINE_DIR="$YX_ROOT/.cdn-assets-image-baseline"
@@ -1093,8 +1121,8 @@ fi
 resolve_admin_bootstrap_if_needed
 
 phase "修复挂载目录权限"
-chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" 2>/dev/null || true
-info "已确保挂载目录文件可读。"
+chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
+info "挂载目录权限检查完成。"
 
 recreate_containers
 verify_containers

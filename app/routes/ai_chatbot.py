@@ -769,7 +769,10 @@ def register_ai_chatbot_routes(
     @app.route('/api/chatbot/knowledge/<filename>', methods=['DELETE'])
     @login_required
     def delete_knowledge_file(filename):
-        filepath = _dep('knowledge_dir') / filename
+        safe_name = Path(filename).name
+        if safe_name != filename or '..' in filename:
+            return jsonify({'success': False, 'message': '文件名不合法'}), 400
+        filepath = _dep('knowledge_dir') / safe_name
         if not filepath.exists():
             return jsonify({'success': False, 'message': '文件不存在'}), 404
         try:

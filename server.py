@@ -886,7 +886,7 @@ def get_config():
                 if env_value and not file_value:
                     merged[key] = env_value
             return merged
-        except:
+        except Exception:
             pass
             
     # Save default config if file doesn't exist
@@ -2310,7 +2310,7 @@ def check_rate_limit(ip: str) -> bool:
     if RATE_LIMIT_FILE.exists():
         try:
             rate_limits = json.loads(RATE_LIMIT_FILE.read_text(encoding='utf-8'))
-        except:
+        except Exception:
             rate_limits = {}
     
     # Clean old entries and check current IP
@@ -2683,7 +2683,7 @@ def proxy_video():
             allow_redirects=False
         )
     except Exception as e:
-        return jsonify({'success': False, 'message': f'代理媒体失败: {e}'}), 502
+        return jsonify({'success': False, 'message': '代理媒体失败：无法连接上游服务'}), 502
 
     passthrough_headers = [
         'Content-Type', 'Content-Length', 'Content-Range',
@@ -3282,7 +3282,7 @@ def get_product_settings():
         try:
             raw = json.loads(PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
             return sanitize_public_product_settings(raw)
-        except:
+        except Exception:
             pass
     return {}
 
@@ -3377,7 +3377,10 @@ def update_product_settings_api():
         settings[product_id]['hidden'] = bool(data['hidden'])
     
     if 'sortOrder' in data:
-        settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        try:
+            settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        except (ValueError, TypeError):
+            settings[product_id]['sortOrder'] = 999
 
     if 'cardTitle' in data:
         settings[product_id]['cardTitle'] = sanitize_public_text(data['cardTitle'], max_length=120)
@@ -3431,7 +3434,10 @@ def update_bio_product_settings_api():
         settings[product_id]['hidden'] = bool(data['hidden'])
 
     if 'sortOrder' in data:
-        settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        try:
+            settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        except (ValueError, TypeError):
+            settings[product_id]['sortOrder'] = 999
 
     if 'cardTitle' in data:
         settings[product_id]['cardTitle'] = sanitize_public_text(data['cardTitle'], max_length=120)
@@ -4087,7 +4093,7 @@ def extract_case_meta_from_html(filepath):
         desc = ''
 
     if not image:
-        img_match = re.search(r'<img\\s+[^>]*src=\"([^\"]+)\"', content)
+        img_match = re.search(r'<img\s+[^>]*src="([^"]+)"', content)
         if img_match:
             image = img_match.group(1)
 
@@ -4576,13 +4582,13 @@ def submit_feedback():
     
     # Create message object
     message = {
-        'id': datetime.now().strftime('%Y%m%d%H%M%S%f'),
-        'name': data.get('txtUserName', '').strip() or '匿名',
-        'phone': phone,
-        'email': data.get('txtUserEmail', '').strip(),
-        'qq': data.get('txtUserQQ', '').strip(),
-        'title': data.get('txtTitle', '').strip() or '无标题',
-        'content': content,
+        'id': datetime.now().strftime('%Y%m%d%H%M%S%f') + secrets.token_hex(4),
+        'name': (data.get('txtUserName', '').strip() or '匿名')[:100],
+        'phone': phone[:30],
+        'email': data.get('txtUserEmail', '').strip()[:200],
+        'qq': data.get('txtUserQQ', '').strip()[:20],
+        'title': (data.get('txtTitle', '').strip() or '无标题')[:200],
+        'content': content[:5000],
         'is_read': False,
         'timestamp': datetime.now().isoformat(),
         'ip': ip
@@ -4642,6 +4648,8 @@ def get_messages():
 @login_required
 def delete_message(message_id):
     """Delete a message."""
+    if not re.fullmatch(r'[a-zA-Z0-9_\-]+', message_id):
+        return jsonify({'success': False, 'message': '无效的留言 ID'}), 400
     filepath = MESSAGES_DIR / f"{message_id}.json"
     if filepath.exists():
         try:
@@ -4665,6 +4673,8 @@ def delete_message(message_id):
 @login_required
 def mark_message_read(message_id):
     """Mark one message as read."""
+    if not re.fullmatch(r'[a-zA-Z0-9_\-]+', message_id):
+        return jsonify({'success': False, 'message': '无效的留言 ID'}), 400
     filepath = MESSAGES_DIR / f"{message_id}.json"
     if not filepath.exists():
         return jsonify({'success': False, 'message': '留言不存在'}), 404
@@ -4681,6 +4691,8 @@ def mark_message_read(message_id):
 @login_required
 def download_message_resume(message_id):
     """Download one applicant resume via authenticated admin endpoint."""
+    if not re.fullmatch(r'[a-zA-Z0-9_\-]+', message_id):
+        return jsonify({'success': False, 'message': '无效的留言 ID'}), 400
     filepath = MESSAGES_DIR / f"{message_id}.json"
     if not filepath.exists():
         return jsonify({'success': False, 'message': '留言不存在'}), 404

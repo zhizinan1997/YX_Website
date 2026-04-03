@@ -37,7 +37,7 @@ services:
       - website
     ports:
       # 主站入口
-      - "${MAIN_PORT:-8000}:80"
+      - "${MAIN_PORT:-2026}:80"
       # CDN 专用入口（仅放行 /cdn_assets/*）
-      - "${CDN_PORT:-8001}:81"
+      - "${CDN_PORT:-2027}:81"
     restart: unless-stopped
