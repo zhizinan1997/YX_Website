@@ -115,11 +115,14 @@ normalize_deploy_strategy() {
     reset|RESET|fresh|FRESH|rebuild|REBUILD|2)
       printf 'reset'
       ;;
+    reset-keep-data|RESET-KEEP-DATA|reset_keep_data|3|keep-data|KEEP-DATA|keepdata|KEEPDATA)
+      printf 'reset-keep-data'
+      ;;
     '')
       printf ''
       ;;
     *)
-      die "不支持的 DEPLOY_STRATEGY：'${1:-}'（可选：smart|reset）"
+      die "不支持的 DEPLOY_STRATEGY：'${1:-}'（可选：smart|reset|reset-keep-data）"
       ;;
   esac
 }
@@ -180,24 +183,28 @@ prompt_confirm_secret_into() {
 }
 
 choose_update_strategy() {
-  local answer=""
+  local answer=””
 
   printf '\n' >&2
-  printf '检测到当前机器上已经存在部署痕迹，本次属于“更新部署”。\n' >&2
+  printf '检测到当前机器上已经存在部署痕迹，本次属于”更新部署”。\n' >&2
   printf '请选择更新方式：\n' >&2
   printf '  1) 智能合并更新（默认）\n' >&2
   printf '     保留宿主机已修改的 data/pages 文件；如镜像和宿主机同时改了同一文件，会保留宿主机版本，并把镜像版本存到冲突目录。\n' >&2
   printf '     说明：这种方式最适合保留客户数据和客户改动，但智能合并依然可能遇到误判或需要人工核对的情况。\n' >&2
   printf '  2) 全新部署重置\n' >&2
   printf '     会先备份当前宿主机内容，然后清空 data/pages，以及旧版遗留的 cdn_assets/update_logs 宿主机目录，再把新镜像内容完整导入。\n' >&2
-  printf '     说明：这种方式会把宿主机现有客户数据和客户改动整体替换掉，只适合确认要“按新版本重来”时使用。\n' >&2
+  printf '     说明：这种方式会把宿主机现有客户数据和客户改动整体替换掉，只适合确认要”按新版本重来”时使用。\n' >&2
+  printf '  3) 重置界面，保留用户数据\n' >&2
+  printf '     会先备份当前宿主机内容，然后清空 pages/cdn_assets 并从新镜像重新导入，但完整保留 data 目录不做任何改动。\n' >&2
+  printf '     说明：适合界面代码需要完全刷新、但客户后台数据（留言、配置、管理员账号等）必须保留的场景。\n' >&2
 
   while true; do
-    prompt_line_into answer "请输入 1 或 2" "1" false
-    case "$answer" in
+    prompt_line_into answer “请输入 1、2 或 3” “1” false
+    case “$answer” in
       1) printf 'smart'; return 0 ;;
       2) printf 'reset'; return 0 ;;
-      *) warn "输入无效，请输入 1 或 2。" ;;
+      3) printf 'reset-keep-data'; return 0 ;;
+      *) warn “输入无效，请输入 1、2 或 3。” ;;
     esac
   done
 }
@@ -216,6 +223,24 @@ confirm_reset_action() {
 
   prompt_line_into answer "如确认继续，请输入 RESET" "" false
   [[ "$answer" == "RESET" ]] || die "未输入 RESET，已取消全新部署重置。"
+}
+
+confirm_reset_keep_data_action() {
+  local answer=""
+
+  printf '\n' >&2
+  printf '你选择了"重置界面，保留用户数据"。\n' >&2
+  printf '脚本会先备份以下目录，然后删除并从新镜像重新导入：\n' >&2
+  printf '  - %s（删除后重新导入）\n' "$PAGES_DIR" >&2
+  printf '  - %s（删除后重新导入）\n' "$CDN_ASSETS_DIR" >&2
+  printf '  - %s（若存在，仅清理旧部署残留）\n' "$LEGACY_CDN_DIR" >&2
+  printf '  - %s（若存在，仅清理旧部署残留）\n' "$LEGACY_UPDATE_LOGS_DIR" >&2
+  printf '\n' >&2
+  printf '以下目录将被完整保留，不做任何改动：\n' >&2
+  printf '  - %s（用户数据、配置、留言、管理员账号等）\n' "$DATA_DIR" >&2
+
+  prompt_line_into answer "如确认继续，请输入 YES" "" false
+  [[ "$answer" == "YES" ]] || die "未输入 YES，已取消操作。"
 }
 
 copy_with_parents() {
@@ -528,6 +553,54 @@ reset_host_content_from_image() {
   log_tree_state "全新部署后的 cdn_assets 目录状态" "$CDN_ASSETS_DIR"
 }
 
+reset_host_content_keep_data() {
+  local backup_root="$1"
+
+  phase "执行重置界面（保留用户数据）"
+  if [[ -n "$backup_root" ]]; then
+    info "本次会先备份旧内容，备份目录：$backup_root"
+    backup_dir_if_exists "$PAGES_DIR" "$backup_root" "pages"
+    backup_dir_if_exists "$CDN_ASSETS_DIR" "$backup_root" "cdn_assets"
+    backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn"
+    backup_dir_if_exists "$LEGACY_UPDATE_LOGS_DIR" "$backup_root" "legacy_update_logs"
+  fi
+
+  info "保留 data 目录不做改动：$DATA_DIR"
+  log_tree_state "保留的 data 目录状态" "$DATA_DIR"
+
+  for path in \
+    "$PAGES_DIR" \
+    "$CDN_ASSETS_DIR" \
+    "$LEGACY_CDN_DIR" \
+    "$LEGACY_UPDATE_LOGS_DIR" \
+    "$PAGES_BASELINE_DIR" \
+    "$PAGES_CONFLICTS_DIR" \
+    "$CDN_ASSETS_BASELINE_DIR" \
+    "$CDN_ASSETS_CONFLICTS_DIR"; do
+    if [[ -e "$path" ]]; then
+      info "正在删除旧目录：$path"
+      rm -rf "$path"
+      info "已删除：$path"
+    else
+      info "无需删除：$path 不存在"
+    fi
+  done
+
+  mkdir -p "$PAGES_DIR" "$CDN_ASSETS_DIR"
+  info "开始导入新镜像 pages 目录到宿主机"
+  rsync -a "$TMP_PAGES_DIR/" "$PAGES_DIR/"
+  info "开始导入新镜像 cdn_assets 目录到宿主机"
+  rsync -a "$TMP_CDN_ASSETS_DIR/" "$CDN_ASSETS_DIR/"
+
+  # data 基线也一并刷新（用于下次智能合并时的对比参考）
+  refresh_baseline_dir "data 目录" "$TMP_DATA_DIR" "$DATA_BASELINE_DIR"
+  refresh_baseline_dir "pages 目录" "$TMP_PAGES_DIR" "$PAGES_BASELINE_DIR"
+  refresh_baseline_dir "cdn_assets 目录" "$TMP_CDN_ASSETS_DIR" "$CDN_ASSETS_BASELINE_DIR"
+
+  log_tree_state "重置后的 pages 目录状态" "$PAGES_DIR"
+  log_tree_state "重置后的 cdn_assets 目录状态" "$CDN_ASSETS_DIR"
+}
+
 pick_value() {
   local key="$1"
   local default_value="$2"
@@ -730,6 +803,8 @@ determine_deploy_kind_and_strategy() {
 
   if [[ "$DEPLOY_STRATEGY_MODE" == "reset" ]]; then
     confirm_reset_action
+  elif [[ "$DEPLOY_STRATEGY_MODE" == "reset-keep-data" ]]; then
+    confirm_reset_keep_data_action
   fi
 }
 
@@ -790,6 +865,19 @@ prepare_content_for_smart_update() {
   sync_image_tree "data 目录" "data" "/app/data" "$DATA_DIR" "$DATA_BASELINE_DIR" "$DATA_CONFLICTS_DIR" "$TMP_DATA_DIR" "$TMP_OLD_DATA_DIR"
   sync_image_tree "pages 目录" "pages" "/app/pages" "$PAGES_DIR" "$PAGES_BASELINE_DIR" "$PAGES_CONFLICTS_DIR" "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR"
   sync_image_tree "cdn_assets 目录" "cdn" "/app/cdn_assets" "$CDN_ASSETS_DIR" "$CDN_ASSETS_BASELINE_DIR" "$CDN_ASSETS_CONFLICTS_DIR" "$TMP_CDN_ASSETS_DIR" "$TMP_OLD_CDN_ASSETS_DIR"
+}
+
+prepare_content_for_reset_keep_data() {
+  phase "准备重置界面（保留用户数据）所需的新版本内容"
+  export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-data" "/app/data" "$TMP_DATA_DIR" || die "无法从新镜像导出 /app/data"
+  export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-pages" "/app/pages" "$TMP_PAGES_DIR" || die "无法从新镜像导出 /app/pages"
+  export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-cdn" "/app/cdn_assets" "$TMP_CDN_ASSETS_DIR" || die "无法从新镜像导出 /app/cdn_assets"
+  log_tree_state "新镜像 data 导出结果" "$TMP_DATA_DIR"
+  log_tree_state "新镜像 pages 导出结果" "$TMP_PAGES_DIR"
+  log_tree_state "新镜像 cdn_assets 导出结果" "$TMP_CDN_ASSETS_DIR"
+
+  local backup_root="$YX_ROOT/backups/reset-keep-data-$(date '+%Y%m%d-%H%M%S')"
+  reset_host_content_keep_data "$backup_root"
 }
 
 rollback_containers() {
@@ -1011,9 +1099,10 @@ show_help() {
 
 推荐用途：
   这是网站 Docker 部署/升级的首选脚本。
-  它会自动识别当前机器是“首次部署”还是“更新部署”，并在更新时让你选择：
+  它会自动识别当前机器是”首次部署”还是”更新部署”，并在更新时让你选择：
   1. 智能合并更新
   2. 全新部署重置
+  3. 重置界面，保留用户数据
 
 可选环境变量：
   YX_ROOT=/root/yxwebsite
@@ -1025,12 +1114,12 @@ show_help() {
   MAIN_PORT=2026
   CDN_PORT=2027
   CLEAN_OLD_IMAGES=true
-  DEPLOY_STRATEGY=smart|reset
+  DEPLOY_STRATEGY=smart|reset|reset-keep-data
   ALLOW_WEAK_ADMIN_PASSWORDS=true|false
 
 交互说明：
   - 首次部署：脚本会自动导入新镜像里的 data/pages 内容，并要求输入 SECRET_KEY、PUBLIC_BASE_URL；如果还没有 admin_users.json，也会要求输入管理员初始密码。
-  - 更新部署：脚本会先让你选择“智能合并更新”或“全新部署重置”。
+  - 更新部署：脚本会先让你选择”智能合并更新”、”全新部署重置”或”重置界面，保留用户数据”。
   - 如果旧容器仍存在，脚本会优先复用旧容器中的 SECRET_KEY、PUBLIC_BASE_URL 等环境变量。
   - 如果缺少这些环境变量，脚本会直接在终端里提示输入。
   - 如确需允许首次初始化时使用弱密码，可显式传入 ALLOW_WEAK_ADMIN_PASSWORDS=true。
@@ -1038,6 +1127,7 @@ show_help() {
 风险说明：
   - “智能合并更新”会尽量保留宿主机已修改内容，但冲突文件仍可能需要人工核对。
   - “全新部署重置”会先备份再清空宿主机 data/pages 和旧版残留目录，再导入新镜像内容，客户数据和客户改动都会被替换。
+  - “重置界面，保留用户数据”会先备份再清空 pages/cdn_assets，从新镜像重新导入，但 data 目录完整保留。
 USAGE
 }
 
@@ -1114,6 +1204,8 @@ pull_latest_images
 
 if [[ "$DEPLOY_KIND" == "fresh" || "$DEPLOY_STRATEGY_MODE" == "reset" ]]; then
   prepare_content_for_fresh_or_reset
+elif [[ "$DEPLOY_STRATEGY_MODE" == "reset-keep-data" ]]; then
+  prepare_content_for_reset_keep_data
 else
   prepare_content_for_smart_update
 fi
