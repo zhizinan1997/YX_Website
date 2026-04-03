@@ -184,6 +184,7 @@
         </div>
     </form>
 
+    <script src="../../assets/js/public-turnstile.js"></script>
     <script>
         const form = document.getElementById('feedbackForm');
         const phoneInput = document.getElementById('txtUserTel');
@@ -193,6 +194,14 @@
         const submitBtn = document.getElementById('btnSubmit');
         const successMsg = document.getElementById('successMsg');
         const rateLimitMsg = document.getElementById('rateLimitMsg');
+        const turnstileGuard = window.createPublicTurnstileGuard ? window.createPublicTurnstileGuard({
+            form,
+            mountBefore: document.querySelector('.btn-row')
+        }) : null;
+
+        if (turnstileGuard) {
+            turnstileGuard.ensureReady();
+        }
 
         // Reset button
         document.getElementById('btnReset').addEventListener('click', function() {
@@ -236,6 +245,9 @@
             
             try {
                 const formData = new FormData(form);
+                if (turnstileGuard) {
+                    await turnstileGuard.decoratePayload(formData);
+                }
                 const res = await fetch('/api/feedback', {
                     method: 'POST',
                     body: formData
@@ -258,6 +270,10 @@
                 alert('网络错误，请重试');
                 submitBtn.disabled = false;
                 submitBtn.textContent = '提交留言';
+            } finally {
+                if (turnstileGuard) {
+                    turnstileGuard.reset();
+                }
             }
         });
 

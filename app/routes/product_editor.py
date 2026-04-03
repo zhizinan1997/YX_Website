@@ -1889,7 +1889,421 @@ def register_product_editor_routes(
         return jsonify({'success': True, 'page_html': page_html})
 
 
+def extract_vs_product_sections(page_html: str) -> dict:
+    """Extract all editable sections from a modern vs-* style product page.
+
+    Returns a structured dict with keys:
+      title, description, images (list of src), highlights (list of str),
+      detail (str), advantages (list of {icon, title, desc}),
+      app_intro (str), applications (list of {icon, title, desc, scenario}),
+      specs (list of {key, value}),
+      news (list of {href, img, title, desc}),
+      cta_title, cta_desc
+    """
+    c = page_html or ''
+
+    def strip(fragment):
+        text = re.sub(r'<[^>]+>', '', fragment or '', flags=re.S)
+        return html.unescape(text).strip()
+
+    # --- title ---
+    h1 = re.search(r'<h1[^>]*>(.*?)</h1>', c, re.S | re.I)
+    title = strip(h1.group(1)) if h1 else ''
+
+    # --- hero description ---
+    desc_m = re.search(r'<p[^>]*class="[^"]*vs-product-hero__desc[^"]*"[^>]*>(.*?)</p>', c, re.S | re.I)
+    description = strip(desc_m.group(1)) if desc_m else ''
+
+    # --- images: gallery thumbs ---
+    thumbs_block = re.search(
+        r'<div[^>]*class="[^"]*vs-gallery-thumbs[^"]*"[^>]*>(.*?)</div>\s*</div>',
+        c, re.S | re.I
+    )
+    images = []
+    if thumbs_block:
+        images = re.findall(r'onclick="changeImage\(this,\s*[\'"]([^\'"]+)[\'"]', thumbs_block.group(1), re.I)
+        if not images:
+            images = re.findall(r'<img[^>]*src="([^"]+)"', thumbs_block.group(1), re.I)
+    if not images:
+        main_img = re.search(r'<img[^>]*id="mainImage"[^>]*src="([^"]+)"', c, re.I)
+        if main_img:
+            images = [main_img.group(1)]
+
+    # --- highlights (vs-feature-list) ---
+    feat_ul = re.search(r'<ul[^>]*class="[^"]*vs-feature-list[^"]*"[^>]*>(.*?)</ul>', c, re.S | re.I)
+    highlights = []
+    if feat_ul:
+        items = re.findall(r'<li[^>]*>(.*?)</li>', feat_ul.group(1), re.S | re.I)
+        highlights = [strip(x) for x in items if strip(x)]
+
+    # --- product detail (single long paragraph) ---
+    detail_m = re.search(
+        r'产品详情\s*</h2>\s*<div[^>]*class="[^"]*vs-product-section__content[^"]*"[^>]*>(.*?)</div>',
+        c, re.S | re.I
+    )
+    detail = ''
+    if detail_m:
+        ps = re.findall(r'<p[^>]*>(.*?)</p>', detail_m.group(1), re.S | re.I)
+        parts = [strip(p) for p in ps if strip(p)]
+        detail = '\n\n'.join(parts)
+    if not detail:
+        # fallback: try article body
+        article = re.search(r'<article[^>]*>(.*?)</article>', c, re.S | re.I)
+        if article:
+            detail = strip(article.group(1))
+
+    # --- advantages (vs-advantages-grid) ---
+    adv_section = re.search(
+        r'产品优势\s*</h2>(.*?)</section>',
+        c, re.S | re.I
+    )
+    advantages = []
+    if adv_section:
+        cards = re.findall(
+            r'<div[^>]*class="[^"]*vs-advantage-card[^"]*"[^>]*>(.*?)</div>\s*(?=<div[^>]*class="[^"]*vs-advantage-card|</div>)',
+            adv_section.group(1), re.S | re.I
+        )
+        if not cards:
+            # Try a broader match
+            grid_m = re.search(r'<div[^>]*class="[^"]*vs-advantages-grid[^"]*"[^>]*>(.*)', adv_section.group(1), re.S | re.I)
+            if grid_m:
+                cards = re.findall(r'<div[^>]*class="[^"]*vs-advantage-card[^"]*"[^>]*>(.*?)</div>\s*\n', grid_m.group(1), re.S | re.I)
+        for card in cards:
+            icon_m = re.search(r'<i[^>]*class="([^"]*)"', card, re.I)
+            h4_m = re.search(r'<h4[^>]*>(.*?)</h4>', card, re.S | re.I)
+            p_m = re.search(r'<p[^>]*>(.*?)</p>', card, re.S | re.I)
+            advantages.append({
+                'icon': (icon_m.group(1) if icon_m else ''),
+                'title': strip(h4_m.group(1)) if h4_m else '',
+                'desc': strip(p_m.group(1)) if p_m else '',
+            })
+
+    # Better approach: use direct regex to find all advantage cards
+    if not advantages:
+        all_adv_cards = re.findall(
+            r'<div[^>]*class="[^"]*vs-advantage-card[^"]*"[^>]*>(.*?)</div>(?=\s*(?:<div|</div>))',
+            c, re.S | re.I
+        )
+        for card in all_adv_cards:
+            icon_m = re.search(r'<i[^>]*class="([^"]*)"', card, re.I)
+            h4_m = re.search(r'<h4[^>]*>(.*?)</h4>', card, re.S | re.I)
+            p_m = re.search(r'<p[^>]*>(.*?)</p>', card, re.S | re.I)
+            if h4_m:
+                advantages.append({
+                    'icon': (icon_m.group(1) if icon_m else ''),
+                    'title': strip(h4_m.group(1)),
+                    'desc': strip(p_m.group(1)) if p_m else '',
+                })
+
+    # --- application intro + items (vs-application-highlights) ---
+    app_section_m = re.search(r'主要应用\s*</h2>(.*?)</section>', c, re.S | re.I)
+    app_intro = ''
+    applications = []
+    if app_section_m:
+        app_inner = app_section_m.group(1)
+        intro_m = re.search(r'<div[^>]*class="[^"]*vs-applications-intro[^"]*"[^>]*>(.*?)</div>', app_inner, re.S | re.I)
+        if intro_m:
+            app_intro = strip(intro_m.group(1))
+        art_items = re.findall(r'<article[^>]*class="[^"]*vs-application-highlight[^"]*"[^>]*>(.*?)</article>', app_inner, re.S | re.I)
+        for art in art_items:
+            icon_m = re.search(r'<i[^>]*class="([^"]*)"', art, re.I)
+            h4_m = re.search(r'<h4[^>]*>(.*?)</h4>', art, re.S | re.I)
+            p_m = re.search(r'<p[^>]*>(.*?)</p>', art, re.S | re.I)
+            sc_m = re.search(r'<div[^>]*class="[^"]*vs-application-scenarios[^"]*"[^>]*>(.*?)</div>', art, re.S | re.I)
+            applications.append({
+                'icon': (icon_m.group(1) if icon_m else ''),
+                'title': strip(h4_m.group(1)) if h4_m else '',
+                'desc': strip(p_m.group(1)) if p_m else '',
+                'scenario': strip(sc_m.group(1)) if sc_m else '',
+            })
+
+    # --- specs table (vs-specs-table) ---
+    specs_m = re.search(r'<table[^>]*class="[^"]*vs-specs-table[^"]*"[^>]*>(.*?)</table>', c, re.S | re.I)
+    specs = []
+    if specs_m:
+        rows = re.findall(
+            r'<tr[^>]*>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>\s*</tr>',
+            specs_m.group(1), re.S | re.I
+        )
+        for raw_k, raw_v in rows:
+            k = strip(raw_k)
+            v = strip(raw_v)
+            if k:
+                specs.append({'key': k, 'value': v})
+
+    # --- related news ---
+    news_sec = re.search(r'<section[^>]*class="[^"]*vs-related-news[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
+    news = []
+    if news_sec:
+        for m in re.finditer(r'<a\b([^>]*)>(.*?)</a>', news_sec.group(1), re.S | re.I):
+            attrs = m.group(1) or ''
+            body = m.group(2) or ''
+            cls_m = re.search(r'class="([^"]*)"', attrs, re.I)
+            if not cls_m or 'vs-news-item' not in cls_m.group(1):
+                continue
+            href_m = re.search(r'href="([^"]*)"', attrs, re.I)
+            img_m = re.search(r'<img[^>]*src="([^"]+)"', body, re.I)
+            h4_m = re.search(r'<h4[^>]*>(.*?)</h4>', body, re.S | re.I)
+            p_m = re.search(r'<p[^>]*>(.*?)</p>', body, re.S | re.I)
+            news.append({
+                'href': href_m.group(1) if href_m else '#',
+                'img': img_m.group(1) if img_m else '',
+                'title': strip(h4_m.group(1)) if h4_m else '',
+                'desc': strip(p_m.group(1)) if p_m else '',
+            })
+
+    # --- CTA section ---
+    cta_m = re.search(r'<section[^>]*class="[^"]*vs-cta-section[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
+    cta_title = ''
+    cta_desc = ''
+    if cta_m:
+        ct = re.search(r'<h3[^>]*>(.*?)</h3>', cta_m.group(1), re.S | re.I)
+        cd = re.search(r'<p[^>]*>(.*?)</p>', cta_m.group(1), re.S | re.I)
+        cta_title = strip(ct.group(1)) if ct else ''
+        cta_desc = strip(cd.group(1)) if cd else ''
+
+    return {
+        'title': title,
+        'description': description,
+        'images': images,
+        'highlights': highlights,
+        'detail': detail,
+        'advantages': advantages,
+        'app_intro': app_intro,
+        'applications': applications,
+        'specs': specs,
+        'news': news,
+        'cta_title': cta_title,
+        'cta_desc': cta_desc,
+    }
+
+
+def patch_vs_product_sections(page_html: str, sections: dict) -> str:
+    """Patch a modern vs-* style product page HTML with edited sections.
+
+    Only patches the sections that are present in the `sections` dict.
+    Returns the modified HTML string.
+    """
+    c = page_html or ''
+
+    def esc(text: str) -> str:
+        return html.escape(str(text or '').strip(), quote=True)
+
+    def esc_text(text: str) -> str:
+        """Escape for HTML text content (not attribute)."""
+        return esc(text)
+
+    # --- title ---
+    if 'title' in sections:
+        new_title = esc_text(sections['title'])
+        # H1 inside product hero
+        c = re.sub(
+            r'(<h1[^>]*>)(.*?)(</h1>)',
+            lambda m: m.group(1) + new_title + m.group(3),
+            c, count=1, flags=re.S | re.I
+        )
+        # <title> tag
+        c = re.sub(
+            r'(<title[^>]*>)(.*?)(\s*-\s*元芯传感\s*</title>|</title>)',
+            lambda m: m.group(1) + new_title + (' - 元芯传感' if '元芯传感' in m.group(0) else '') + '</title>',
+            c, count=1, flags=re.S | re.I
+        )
+
+    # --- description ---
+    if 'description' in sections:
+        new_desc = esc_text(sections['description'])
+        c = re.sub(
+            r'(<p[^>]*class="[^"]*vs-product-hero__desc[^"]*"[^>]*>)(.*?)(</p>)',
+            lambda m: m.group(1) + new_desc + m.group(3),
+            c, count=1, flags=re.S | re.I
+        )
+
+    # --- images ---
+    if 'images' in sections:
+        imgs = [str(x or '').strip() for x in sections['images'] if str(x or '').strip()]
+        if imgs:
+            # Patch mainImage src
+            main_src = esc(imgs[0])
+            c = re.sub(
+                r'(<img[^>]*id="mainImage"[^>]*src=")([^"]*)"',
+                lambda m: m.group(1) + main_src + '"',
+                c, count=1, flags=re.I
+            )
+            # Patch gallery thumbs block
+            thumbs_match = re.search(
+                r'(<div[^>]*class="[^"]*vs-gallery-thumbs[^"]*"[^>]*>)(.*?)(</div>\s*</div>)',
+                c, re.S | re.I
+            )
+            if thumbs_match:
+                new_thumbs = ''
+                for i, src in enumerate(imgs):
+                    safe_src = esc(src)
+                    active_cls = ' active' if i == 0 else ''
+                    new_thumbs += (
+                        f'\n                            <div class="vs-gallery-thumb{active_cls}"\n'
+                        f'                                onclick="changeImage(this, \'{safe_src}\')">\n'
+                        f'                                <img src="{safe_src}"\n'
+                        f'                                    alt="产品图{i + 1}">\n'
+                        f'                            </div>'
+                    )
+                c = c[:thumbs_match.start(2)] + new_thumbs + '\n                        ' + c[thumbs_match.start(3):]
+
+    # --- highlights ---
+    if 'highlights' in sections:
+        items = [str(x or '').strip() for x in sections['highlights'] if str(x or '').strip()]
+        feat_match = re.search(
+            r'(<ul[^>]*class="[^"]*vs-feature-list[^"]*"[^>]*>)(.*?)(</ul>)',
+            c, re.S | re.I
+        )
+        if feat_match:
+            new_items = '\n'.join(f'                            <li>{esc_text(x)}</li>' for x in items)
+            c = c[:feat_match.start(2)] + '\n' + new_items + '\n                        ' + c[feat_match.start(3):]
+
+    # --- detail ---
+    if 'detail' in sections:
+        new_detail_text = str(sections['detail'] or '').strip()
+        paragraphs = [p.strip() for p in new_detail_text.split('\n\n') if p.strip()]
+        if not paragraphs:
+            paragraphs = [new_detail_text] if new_detail_text else []
+        new_detail_html = '\n'.join(f'                    <p>{esc_text(p)}</p>' for p in paragraphs)
+        detail_match = re.search(
+            r'(产品详情\s*</h2>\s*<div[^>]*class="[^"]*vs-product-section__content[^"]*"[^>]*>)(.*?)(</div>)',
+            c, re.S | re.I
+        )
+        if detail_match:
+            c = c[:detail_match.start(2)] + '\n' + new_detail_html + '\n                ' + c[detail_match.start(3):]
+
+    # --- advantages ---
+    if 'advantages' in sections:
+        adv_list = sections['advantages']
+        if isinstance(adv_list, list):
+            adv_grid_match = re.search(
+                r'(<div[^>]*class="[^"]*vs-advantages-grid[^"]*"[^>]*>)(.*?)(</div>\s*\n\s*</div>\s*\n\s*</section>)',
+                c, re.S | re.I
+            )
+            if adv_grid_match:
+                new_cards = ''
+                for card in adv_list:
+                    icon = str(card.get('icon') or 'fas fa-check-circle')
+                    title_t = esc_text(str(card.get('title') or ''))
+                    desc_t = esc_text(str(card.get('desc') or ''))
+                    new_cards += (
+                        f'\n                    <div class="vs-advantage-card">\n'
+                        f'                        <i class="{esc(icon)}"></i>\n'
+                        f'                        <h4>{title_t}</h4>\n'
+                        f'                        <p>{desc_t}</p>\n'
+                        f'                    </div>'
+                    )
+                c = c[:adv_grid_match.start(2)] + new_cards + '\n\n                ' + c[adv_grid_match.start(3):]
+
+    # --- application intro ---
+    if 'app_intro' in sections:
+        new_intro = esc_text(sections['app_intro'])
+        c = re.sub(
+            r'(<div[^>]*class="[^"]*vs-applications-intro[^"]*"[^>]*>)(.*?)(</div>)',
+            lambda m: m.group(1) + '\n                    ' + new_intro + '\n                ' + m.group(3),
+            c, count=1, flags=re.S | re.I
+        )
+
+    # --- applications ---
+    if 'applications' in sections:
+        app_list = sections['applications']
+        if isinstance(app_list, list):
+            app_grid_match = re.search(
+                r'(<div[^>]*class="[^"]*vs-application-highlights[^"]*"[^>]*>)(.*?)(</div>\s*\n\s*</div>\s*\n\s*</section>)',
+                c, re.S | re.I
+            )
+            if app_grid_match:
+                new_arts = ''
+                for app in app_list:
+                    icon = str(app.get('icon') or 'fas fa-circle')
+                    title_t = esc_text(str(app.get('title') or ''))
+                    desc_t = esc_text(str(app.get('desc') or ''))
+                    sc_t = esc_text(str(app.get('scenario') or ''))
+                    new_arts += (
+                        f'\n                    <article class="vs-application-highlight">\n'
+                        f'                        <div class="vs-application-content">\n'
+                        f'                            <div class="vs-application-content__head">\n'
+                        f'                                <i class="{esc(icon)}"></i>\n'
+                        f'                                <h4>{title_t}</h4>\n'
+                        f'                            </div>\n'
+                        f'                            <p>{desc_t}</p>\n'
+                        f'                            <div class="vs-application-scenarios">{sc_t}</div>\n'
+                        f'                        </div>\n'
+                        f'                    </article>'
+                    )
+                c = c[:app_grid_match.start(2)] + new_arts + '\n                ' + c[app_grid_match.start(3):]
+
+    # --- specs ---
+    if 'specs' in sections:
+        spec_list = sections['specs']
+        if isinstance(spec_list, list):
+            specs_match = re.search(
+                r'(<table[^>]*class="[^"]*vs-specs-table[^"]*"[^>]*>)(.*?)(</table>)',
+                c, re.S | re.I
+            )
+            if specs_match:
+                new_rows = ''
+                for row in spec_list:
+                    k = esc_text(str(row.get('key') or ''))
+                    v = esc_text(str(row.get('value') or ''))
+                    new_rows += (
+                        f'\n                    <tr>\n'
+                        f'                        <td>{k}</td>\n'
+                        f'                        <td>{v}</td>\n'
+                        f'                    </tr>'
+                    )
+                c = c[:specs_match.start(2)] + new_rows + '\n                ' + c[specs_match.start(3):]
+
+    # --- news ---
+    if 'news' in sections:
+        news_list = sections['news']
+        if isinstance(news_list, list):
+            news_grid_match = re.search(
+                r'(<div[^>]*class="[^"]*vs-news-grid[^"]*"[^>]*>)(.*?)(</div>\s*\n\s*</div>\s*\n\s*</section>)',
+                c, re.S | re.I
+            )
+            if news_grid_match:
+                new_news = ''
+                for item in news_list:
+                    href = esc(str(item.get('href') or '#'))
+                    img = esc(str(item.get('img') or ''))
+                    title_t = esc_text(str(item.get('title') or ''))
+                    desc_t = esc_text(str(item.get('desc') or ''))
+                    new_news += (
+                        f'\n                    <a href="{href}" class="vs-news-item">\n'
+                        f'                        <img src="{img}" alt="新闻图片">\n'
+                        f'                        <div class="vs-news-item__content">\n'
+                        f'                            <h4>{title_t}</h4>\n'
+                        f'                            <p>{desc_t}</p>\n'
+                        f'                        </div>\n'
+                        f'                    </a>'
+                    )
+                c = c[:news_grid_match.start(2)] + new_news + '\n                ' + c[news_grid_match.start(3):]
+
+    # --- CTA ---
+    if 'cta_title' in sections:
+        new_cta_title = esc_text(sections['cta_title'])
+        c = re.sub(
+            r'(<section[^>]*class="[^"]*vs-cta-section[^"]*"[^>]*>.*?<h3[^>]*>)(.*?)(</h3>)',
+            lambda m: m.group(1) + new_cta_title + m.group(3),
+            c, count=1, flags=re.S | re.I
+        )
+    if 'cta_desc' in sections:
+        new_cta_desc = esc_text(sections['cta_desc'])
+        c = re.sub(
+            r'(<section[^>]*class="[^"]*vs-cta-section[^"]*"[^>]*>.*?<p[^>]*>)(.*?)(</p>)',
+            lambda m: m.group(1) + new_cta_desc + m.group(3),
+            c, count=1, flags=re.S | re.I
+        )
+
+    return c
+
+
 __all__ = [
     'extract_product_meta_from_html',
+    'extract_vs_product_sections',
+    'patch_vs_product_sections',
     'register_product_editor_routes',
 ]
+

@@ -43,6 +43,7 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'settings', 'label': '账号设置'},
     {'key': 'backup', 'label': '备份恢复'},
     {'key': 'changelog', 'label': '更新日志'},
+    {'key': 'cdn-assets', 'label': 'CDN 素材'},
 ]
 ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
 USERNAME_RULE = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
@@ -183,6 +184,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'site-reports'
     if p.startswith('/api/admin/changelog'):
         return 'changelog'
+    if p.startswith('/api/cdn/assets'):
+        return 'cdn-assets'
     if p.startswith('/api/backup/'):
         return 'backup'
     if p.startswith('/api/recommendations'):
@@ -575,6 +578,16 @@ def _verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
     if code_text:
         return False, f'验证码校验未通过({code_text})'
     return False, '验证码校验未通过'
+
+
+def get_turnstile_settings(config):
+    """Shared Turnstile config reader for public/admin flows."""
+    return _get_turnstile_settings(config)
+
+
+def verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
+    """Shared Turnstile token verification helper for public/admin flows."""
+    return _verify_turnstile_token(secret_key=secret_key, token=token, remote_ip=remote_ip)
 
 
 def _is_admin_session_expired(sess) -> bool:
@@ -1064,9 +1077,8 @@ def register_admin_routes(
     @login_required
     def admin_turnstile_update():
         """Update Turnstile settings for admin login protection."""
-        guard = require_super_admin_api()
-        if guard:
-            return guard
+        if not _is_super_admin_session(session):
+            return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
         if not _is_same_origin_request(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
         data = request.get_json(silent=True) or {}

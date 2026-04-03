@@ -1,16 +1,16 @@
 {
   "h2_sniffer": {
-    "isNew": true,
     "displayName": "",
+    "isNew": true,
     "sortOrder": 0,
+    "cardTitle": "油中氢【测试】",
+    "cardSummary": "这是摘要内容【测试】",
     "categories": [
       "module"
     ],
     "industryCategories": [
       "hydrogen"
-    ],
-    "cardTitle": "油中氢【测试】",
-    "cardSummary": "这是摘要内容【测试】"
+    ]
   },
   "hum_sniffer": {
     "isNew": true,
@@ -23,9 +23,9 @@
     ]
   },
   "mcs_iot_platform": {
+    "displayName": "物联网平台",
     "isNew": true,
     "sortOrder": 2,
-    "displayName": "物联网平台",
     "categories": [
       "iot"
     ]
@@ -68,45 +68,45 @@
     "sortOrder": 10
   },
   "mchm_h2_sensor": {
-    "sortOrder": 11,
-    "hidden": false
+    "hidden": false,
+    "sortOrder": 11
   },
   "mchp_vehicle_h2": {
-    "sortOrder": 12,
-    "hidden": false
+    "hidden": false,
+    "sortOrder": 12
   },
   "mchs_palladium_h2": {
-    "sortOrder": 13,
     "hidden": false,
+    "sortOrder": 13,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mctcx_thermal_h2": {
-    "sortOrder": 14,
     "hidden": false,
+    "sortOrder": 14,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "portable_gas_test_module": {
-    "sortOrder": 15,
     "hidden": false,
+    "sortOrder": 15,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "h2_detection_probe": {
-    "sortOrder": 16,
     "hidden": false,
+    "sortOrder": 16,
     "categories": [
       "sensor"
     ],
     "industryCategories": []
   },
   "smart_gas_mixing_system": {
-    "sortOrder": 17,
     "hidden": false,
+    "sortOrder": 17,
     "categories": [
       "system"
     ],
@@ -130,10 +130,10 @@
     "industryCategories": []
   },
   "../biosensing/portable_bio_detector": {
+    "hidden": true,
     "industryCategories": [
       "hydrogen"
-    ],
-    "hidden": true
+    ]
   },
   "../biosensing/igzo_device": {
     "hidden": true
@@ -242,23 +242,23 @@
     ]
   },
   "mc_ba_h1": {
+    "isNew": true,
+    "hidden": false,
     "industryCategories": [
       "hydrogen"
-    ],
-    "hidden": false,
-    "isNew": true
+    ]
   },
   "mc_hha_01": {
+    "isNew": true,
     "industryCategories": [
       "hydrogen"
-    ],
-    "isNew": true
+    ]
   },
   "mc_hla_01": {
+    "isNew": true,
     "industryCategories": [
       "hydrogen"
-    ],
-    "isNew": true
+    ]
   },
   "../customization/semiconductor_device_customization": {
     "cardTitle": "半导体器件与微纳工艺定制化服务",
@@ -268,13 +268,13 @@
     ]
   },
   "mc_pgd_01": {
-    "industryCategories": [],
-    "displayName": "MC-PGD-01型手持泵吸式可燃气体检测仪"
+    "displayName": "MC-PGD-01型手持泵吸式可燃气体检测仪",
+    "industryCategories": []
   },
   "mc_ld_r1": {
+    "displayName": "MC-LD-R1型冷媒泄漏检漏仪",
     "cardTitle": "MC-LD-R1型冷媒泄漏检漏仪",
-    "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。",
-    "displayName": "MC-LD-R1型冷媒泄漏检漏仪"
+    "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。"
   },
   "mc_gd_01": {
     "displayName": "MC-GD-01型可燃气体检漏仪",

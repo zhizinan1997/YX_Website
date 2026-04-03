@@ -24,7 +24,13 @@ from urllib.parse import quote, urlparse, unquote
 
 from flask import Flask, request, jsonify, send_from_directory, session, redirect, render_template_string, Response, stream_with_context, send_file
 from werkzeug.utils import secure_filename
-from app.routes.admin import ADMIN_PERMISSION_KEYS, register_admin_routes, resolve_permission_for_path
+from app.routes.admin import (
+    ADMIN_PERMISSION_KEYS,
+    get_turnstile_settings,
+    register_admin_routes,
+    resolve_permission_for_path,
+    verify_turnstile_token,
+)
 from app.routes.ai_chatbot import (
     call_openai_api,
     get_chatbot_config,
@@ -44,7 +50,15 @@ from app.routes.news_content import (
     sanitize_news_image_url,
     sanitize_news_link_url,
 )
-from app.routes.product_editor import extract_product_meta_from_html, register_product_editor_routes
+from app.routes.product_editor import (
+    extract_product_meta_from_html,
+    extract_vs_product_sections,
+    patch_vs_product_sections,
+    register_product_editor_routes,
+    parse_gassensing_product_detail,
+    render_gassensing_product_html,
+)
+from app.routes.cdn_assets import register_cdn_assets_routes
 from app.routes.public_site import register_public_site_routes
 from app.routes.showcase_content import (
     build_product_link,
@@ -2818,6 +2832,28 @@ def extract_solution_meta_from_html(filepath):
                 if self.first_p:
                     self.found_p = True
 
+    def extract_background_image(html_content):
+        """在缺少 <img> 封面时，回退提取英雄区 CSS 背景图。"""
+        hero_patterns = [
+            r'\.jjfa-hero\s*\{.*?url\((["\']?)(.*?)\1\)',
+            r'\.hero[^{]*\{.*?url\((["\']?)(.*?)\1\)',
+            r'class=["\'][^"\']*hero[^"\']*["\'][^>]*style=["\'][^"\']*url\((["\']?)(.*?)\1\)',
+        ]
+        for pattern in hero_patterns:
+            match = re.search(pattern, html_content, re.I | re.S)
+            if not match:
+                continue
+            candidate = (match.group(2) or '').strip()
+            if candidate and not any(x in candidate.lower() for x in ['icon', 'logo', 'arrow', 'btn', 'button']):
+                return candidate
+
+        fallback_matches = re.findall(r'url\((["\']?)(.*?)\1\)', html_content, re.I | re.S)
+        for _, candidate in fallback_matches:
+            candidate = (candidate or '').strip()
+            if candidate and not any(x in candidate.lower() for x in ['icon', 'logo', 'arrow', 'btn', 'button']):
+                return candidate
+        return ''
+
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -2831,7 +2867,8 @@ def extract_solution_meta_from_html(filepath):
             return None
 
         desc = parser.first_p[:200] if parser.first_p else ''
-        image = sanitize_public_media_url(parser.first_img, enforce_remote_public=False)
+        cover_image = parser.first_img or extract_background_image(content)
+        image = sanitize_public_media_url(cover_image, enforce_remote_public=False)
 
         return {
             'id': item_id,
@@ -3551,6 +3588,168 @@ def upload_product_code():
 
     filepath.write_text(content, encoding='utf-8')
     return jsonify({'success': True, 'message': '覆盖上传成功'})
+
+
+def cleanup_deleted_product_references(product_id: str):
+    """Remove deleted product references from admin-managed config files."""
+    settings = get_product_settings()
+    if product_id in settings:
+        settings.pop(product_id, None)
+        save_product_settings(settings)
+
+    if PRODUCT_FEATURED_FILE.exists():
+        try:
+            raw = json.loads(PRODUCT_FEATURED_FILE.read_text(encoding='utf-8'))
+        except Exception:
+            raw = {}
+        if isinstance(raw, dict):
+            ids = raw.get('ids', [])
+            if isinstance(ids, list):
+                filtered_ids = []
+                for item in ids:
+                    current_id = str(item or '').strip()
+                    if not current_id or current_id == product_id or current_id in filtered_ids:
+                        continue
+                    filtered_ids.append(current_id)
+                if filtered_ids != ids:
+                    raw['ids'] = filtered_ids[:3]
+                    PRODUCT_FEATURED_FILE.write_text(
+                        json.dumps(raw, ensure_ascii=False, indent=2),
+                        encoding='utf-8'
+                    )
+
+    if HYDROGEN_SOLUTIONS_CONFIG_FILE.exists():
+        save_hydrogen_solution_products_config(get_hydrogen_solution_products_config())
+
+
+@app.route('/api/products/delete', methods=['POST'])
+@login_required
+def delete_product_item():
+    """Delete one gassensing/customization product page and related admin config."""
+    super_admin_denied = require_super_admin_api()
+    if super_admin_denied:
+        return super_admin_denied
+
+    body = request.get_json(force=True, silent=True) or {}
+    product_id = str(body.get('id') or '').strip()
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+    if product_id.startswith('../biosensing/'):
+        return jsonify({'success': False, 'message': '该接口仅支持删除【氢气产品】列表中的产品'}), 400
+
+    filepath, slug = resolve_product_html_path_by_id(product_id)
+    if not filepath or not filepath.exists():
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    if filepath.name in EXCLUDED_PRODUCT_FILES or filepath.name == 'index.html':
+        return jsonify({'success': False, 'message': '该页面不允许删除'}), 400
+
+    try:
+        filepath.unlink()
+    except Exception as exc:
+        return jsonify({'success': False, 'message': f'删除文件失败: {exc}'}), 500
+
+    cleanup_deleted_product_references(product_id)
+    return jsonify({
+        'success': True,
+        'message': '产品和页面代码已删除',
+        'id': product_id,
+        'slug': slug,
+        'filename': filepath.name,
+    })
+
+
+@app.route('/api/products/page-fields', methods=['GET'])
+@login_required
+def get_product_page_fields():
+    product_id = (request.args.get('id') or '').strip()
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+    filepath, _ = resolve_product_html_path_by_id(product_id)
+    if not filepath or not filepath.exists():
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    parsed = parse_gassensing_product_detail(filepath)
+    if not parsed:
+        return jsonify({'success': False, 'message': '无法解析产品页面'}), 500
+    return jsonify({'success': True, 'productId': product_id, 'fields': parsed.get('template_fields', {})})
+
+
+@app.route('/api/products/page-fields', methods=['POST'])
+@login_required
+def save_product_page_fields():
+    super_admin_denied = require_super_admin_api()
+    if super_admin_denied:
+        return super_admin_denied
+    body = request.get_json(force=True, silent=True) or {}
+    product_id = str(body.get('productId') or '').strip()
+    new_fields = body.get('fields') or {}
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+    if not isinstance(new_fields, dict):
+        return jsonify({'success': False, 'message': '字段格式错误'}), 400
+    filepath, _ = resolve_product_html_path_by_id(product_id)
+    if not filepath or not filepath.exists():
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    parsed = parse_gassensing_product_detail(filepath)
+    if not parsed:
+        return jsonify({'success': False, 'message': '无法解析产品页面'}), 500
+    # Merge new fields into existing template_fields
+    merged_fields = parsed.get('template_fields', {})
+    merged_fields.update(new_fields)
+    page_html, _ = render_gassensing_product_html(
+        title=new_fields.get('【产品名字】') or new_fields.get('【这里是产品名字】') or parsed.get('title', ''),
+        short_name=parsed.get('short_name', ''),
+        category=parsed.get('category', 'module'),
+        image_url=new_fields.get('【主图链接】') or parsed.get('image_url', ''),
+        summary=new_fields.get('【产品描述】') or parsed.get('summary', ''),
+        content_html=parsed.get('content_html', ''),
+        template_fields=merged_fields,
+    )
+    filepath.write_text(page_html, encoding='utf-8')
+    return jsonify({'success': True, 'message': '保存成功'})
+
+
+@app.route('/api/products/page-sections', methods=['GET'])
+@login_required
+def get_product_page_sections():
+    """Extract all editable sections from a modern vs-* product page."""
+    product_id = (request.args.get('id') or '').strip()
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+    filepath, _ = resolve_product_html_path_by_id(product_id)
+    if not filepath or not filepath.exists():
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    try:
+        page_html = filepath.read_text(encoding='utf-8', errors='ignore')
+        sections = extract_vs_product_sections(page_html)
+        return jsonify({'success': True, 'productId': product_id, 'sections': sections})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'解析失败: {e}'}), 500
+
+
+@app.route('/api/products/page-sections', methods=['POST'])
+@login_required
+def save_product_page_sections():
+    """Patch a modern vs-* product page HTML with edited sections."""
+    super_admin_denied = require_super_admin_api()
+    if super_admin_denied:
+        return super_admin_denied
+    body = request.get_json(force=True, silent=True) or {}
+    product_id = str(body.get('productId') or '').strip()
+    sections = body.get('sections') or {}
+    if not product_id:
+        return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+    if not isinstance(sections, dict):
+        return jsonify({'success': False, 'message': '数据格式错误'}), 400
+    filepath, _ = resolve_product_html_path_by_id(product_id)
+    if not filepath or not filepath.exists():
+        return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+    try:
+        page_html = filepath.read_text(encoding='utf-8', errors='ignore')
+        patched = patch_vs_product_sections(page_html, sections)
+        filepath.write_text(patched, encoding='utf-8')
+        return jsonify({'success': True, 'message': '保存成功'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'保存失败: {e}'}), 500
 
 
 @app.route('/api/products/with-settings')
@@ -4556,10 +4755,63 @@ def save_bio_industry_filters_api():
 # ============ API Routes ============
 
 
+def get_public_turnstile_config():
+    return get_turnstile_settings(get_config() or {})
+
+
+def extract_turnstile_token_from_request():
+    form = request.form or {}
+    for key in ('cf_turnstile_response', 'cf-turnstile-response', 'turnstileToken'):
+        value = str(form.get(key, '') or '').strip()
+        if value:
+            return value
+
+    data = request.get_json(silent=True) or {}
+    if isinstance(data, dict):
+        for key in ('cf_turnstile_response', 'cf-turnstile-response', 'turnstileToken'):
+            value = str(data.get(key, '') or '').strip()
+            if value:
+                return value
+    return ''
+
+
+def require_public_turnstile_check(ip: str = ''):
+    settings = get_public_turnstile_config()
+    if not settings.get('enabled'):
+        return None
+
+    token = extract_turnstile_token_from_request()
+    if not token:
+        return jsonify({'success': False, 'message': '请先完成人机验证'}), 400
+
+    ok, detail = verify_turnstile_token(
+        secret_key=settings.get('secret_key', ''),
+        token=token,
+        remote_ip=ip or get_client_ip(),
+    )
+    if ok:
+        return None
+    return jsonify({'success': False, 'message': detail or '验证码校验失败，请重试'}), 400
+
+
+@app.route('/api/turnstile/public', methods=['GET'])
+def get_turnstile_public_api():
+    """Public Turnstile config for site forms."""
+    settings = get_public_turnstile_config()
+    return jsonify({
+        'enabled': bool(settings.get('enabled')),
+        'site_key': settings.get('site_key', ''),
+    })
+
+
 @app.route('/api/feedback', methods=['POST'])
 def submit_feedback():
     """Handle feedback form submission."""
     ip = get_client_ip()
+
+    turnstile_failed = require_public_turnstile_check(ip)
+    if turnstile_failed:
+        return turnstile_failed
     
     # Check rate limit
     if not check_rate_limit(ip):
@@ -4728,6 +4980,10 @@ def submit_job_application():
     """Handle job application form submission."""
     ip = get_client_ip()
 
+    turnstile_failed = require_public_turnstile_check(ip)
+    if turnstile_failed:
+        return turnstile_failed
+
     if not check_rate_limit(ip):
         return jsonify({
             'success': False,
@@ -4831,6 +5087,11 @@ register_backup_routes(
     backup_excluded_suffixes=BACKUP_EXCLUDED_SUFFIXES,
 )
 
+register_cdn_assets_routes(
+    app,
+    cdn_assets_dir=CDN_ASSETS_DIR,
+    site_config_file=Path(__file__).parent / "data" / "site_config.json"
+)
 
 @app.route('/api/cdn/settings', methods=['GET'])
 @login_required

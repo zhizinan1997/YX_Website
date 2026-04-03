@@ -489,6 +489,7 @@
     
 
     <script src="../../assets/js/search.js"></script>
+    <script src="../../assets/js/public-turnstile.js"></script>
 
     <script>
         (function () {
@@ -502,6 +503,10 @@
             const modal = document.getElementById('feedbackResultModal');
             const modalIcon = document.getElementById('feedbackResultIcon');
             const modalText = document.getElementById('feedbackResultText');
+            const turnstileGuard = window.createPublicTurnstileGuard ? window.createPublicTurnstileGuard({
+                form,
+                mountBefore: document.querySelector('.btn-row')
+            }) : null;
             let closeTimer = null;
 
             function openResultModal(ok, text) {
@@ -543,6 +548,10 @@
                 }
             });
 
+            if (turnstileGuard) {
+                turnstileGuard.ensureReady();
+            }
+
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 clearValidationState();
@@ -564,6 +573,9 @@
                 submitBtn.textContent = '提交中...';
                 try {
                     const formData = new FormData(form);
+                    if (turnstileGuard) {
+                        await turnstileGuard.decoratePayload(formData);
+                    }
                     const res = await fetch('/api/feedback', {
                         method: 'POST',
                         body: formData
@@ -579,6 +591,9 @@
                 } catch (err) {
                     openResultModal(false, '网络错误，请稍后重试');
                 } finally {
+                    if (turnstileGuard) {
+                        turnstileGuard.reset();
+                    }
                     submitBtn.disabled = false;
                     submitBtn.textContent = '提交留言';
                 }

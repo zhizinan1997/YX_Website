@@ -1551,6 +1551,8 @@
         })();
     </script>
 
+    <script src="/assets/js/public-turnstile.js"></script>
+
     <script>
         (function () {
             function initFeedbackHub() {
@@ -1567,6 +1569,13 @@
                 const feedbackMsg = document.getElementById('feedbackMsg');
                 const form = document.getElementById('productFeedbackForm');
                 const submitBtn = document.getElementById('feedbackSubmitBtn');
+                const turnstileGuard = window.createPublicTurnstileGuard ? window.createPublicTurnstileGuard({
+                    form: form,
+                    mountBefore: submitBtn,
+                    onError: function (message) {
+                        setMessage(message, true);
+                    }
+                }) : null;
                 const chips = document.querySelectorAll('.vs-feedback-chip');
 
                 if (!form || !feedbackPanel || !feedbackMsg || !submitBtn) return;
@@ -1615,6 +1624,9 @@
                     feedbackContentInput.placeholder = copy.placeholder;
                     feedbackPanel.hidden = false;
                     setMessage('');
+                    if (turnstileGuard) {
+                        turnstileGuard.ensureReady();
+                    }
                     feedbackPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
 
@@ -1680,6 +1692,10 @@
                             txtContent: `反馈选项：${feedbackType}\n页面：MC-WD-01型穿戴式氢气检测模块\n反馈内容：${content}`
                         };
 
+                        if (turnstileGuard) {
+                            await turnstileGuard.decoratePayload(payload);
+                        }
+
                         const response = await fetch('/api/feedback', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1707,6 +1723,9 @@
                     } finally {
                         submitBtn.disabled = false;
                         submitBtn.textContent = '提交反馈';
+                        if (turnstileGuard) {
+                            turnstileGuard.reset();
+                        }
                     }
                 });
             }
