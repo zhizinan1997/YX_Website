@@ -670,15 +670,15 @@ def render_markdown(content: str) -> str:
 
         if line.startswith('### '):
             close_lists()
-            html_lines.append(f'<h3>{line[4:]}</h3>')
+            html_lines.append(f'<h3>{html.escape(line[4:])}</h3>')
             continue
         if line.startswith('## '):
             close_lists()
-            html_lines.append(f'<h2>{line[3:]}</h2>')
+            html_lines.append(f'<h2>{html.escape(line[3:])}</h2>')
             continue
         if line.startswith('# '):
             close_lists()
-            html_lines.append(f'<h1>{line[2:]}</h1>')
+            html_lines.append(f'<h1>{html.escape(line[2:])}</h1>')
             continue
 
         if line.startswith('- ') or line.startswith('* '):
@@ -688,7 +688,7 @@ def render_markdown(content: str) -> str:
             if not in_ul:
                 html_lines.append('<ul>')
                 in_ul = True
-            html_lines.append(f'<li>{line[2:]}</li>')
+            html_lines.append(f'<li>{html.escape(line[2:])}</li>')
             continue
 
         if re.match(r'^\d+\.\s+', line):
@@ -699,15 +699,16 @@ def render_markdown(content: str) -> str:
                 html_lines.append('<ol>')
                 in_ol = True
             item = re.sub(r'^\d+\.\s+', '', line)
-            html_lines.append(f'<li>{item}</li>')
+            html_lines.append(f'<li>{html.escape(item)}</li>')
             continue
 
         close_lists()
-        line = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', line)
-        line = re.sub(r'\*(.+?)\*', r'<em>\1</em>', line)
-        line = re.sub(r'!\[(.*?)\]\((.*?)\)', r'<img src="\2" alt="\1">', line)
-        line = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', line)
-        html_lines.append(f'<p>{line}</p>')
+        escaped = html.escape(line)
+        escaped = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', escaped)
+        escaped = re.sub(r'\*(.+?)\*', r'<em>\1</em>', escaped)
+        escaped = re.sub(r'!\[(.*?)\]\((.*?)\)', r'<img src="\2" alt="\1">', escaped)
+        escaped = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', escaped)
+        html_lines.append(f'<p>{escaped}</p>')
 
     close_lists()
     return '\n'.join(html_lines)

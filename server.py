@@ -415,6 +415,7 @@ def ensure_required_runtime_config():
     public_base_url = get_public_base_url()
     admin_hash = (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip()
     admin_password = (os.environ.get('ADMIN_PASSWORD') or '').strip()
+    allow_weak_admin_passwords = env_bool('ALLOW_WEAK_ADMIN_PASSWORDS', False)
 
     if not secret_key:
         errors.append('缺少 SECRET_KEY')
@@ -440,7 +441,13 @@ def ensure_required_runtime_config():
             admin_users_read_error = str(exc)
             has_bootstrapped_admin = False
 
-    if admin_password and admin_password in WEAK_ADMIN_PASSWORDS and not has_bootstrapped_admin and not admin_hash:
+    if (
+        admin_password
+        and admin_password in WEAK_ADMIN_PASSWORDS
+        and not allow_weak_admin_passwords
+        and not has_bootstrapped_admin
+        and not admin_hash
+    ):
         message = 'ADMIN_PASSWORD 不能使用弱口令'
         if admin_users_file_exists:
             if admin_users_read_error:
@@ -879,7 +886,7 @@ def get_config():
                 if env_value and not file_value:
                     merged[key] = env_value
             return merged
-        except:
+        except Exception:
             pass
             
     # Save default config if file doesn't exist
@@ -2303,7 +2310,7 @@ def check_rate_limit(ip: str) -> bool:
     if RATE_LIMIT_FILE.exists():
         try:
             rate_limits = json.loads(RATE_LIMIT_FILE.read_text(encoding='utf-8'))
-        except:
+        except Exception:
             rate_limits = {}
     
     # Clean old entries and check current IP
@@ -2570,7 +2577,7 @@ def resolve_product_html_path_by_id(product_id: str):
     return base_dir / 'gassensing' / f'{pid}.html', pid
 @app.route('/api/solutions/hydrogen/config')
 def get_hydrogen_solutions_public_config():
-    """Public config for hydrogen solution page (per-solution related products)."""
+    """Public config for industry solution pages (per-solution related products)."""
     return jsonify({'solutions': build_hydrogen_solution_public_payload()})
 
 
@@ -2676,7 +2683,7 @@ def proxy_video():
             allow_redirects=False
         )
     except Exception as e:
-        return jsonify({'success': False, 'message': f'代理媒体失败: {e}'}), 502
+        return jsonify({'success': False, 'message': '代理媒体失败：无法连接上游服务'}), 502
 
     passthrough_headers = [
         'Content-Type', 'Content-Length', 'Content-Range',
@@ -3275,7 +3282,7 @@ def get_product_settings():
         try:
             raw = json.loads(PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
             return sanitize_public_product_settings(raw)
-        except:
+        except Exception:
             pass
     return {}
 
@@ -3370,7 +3377,10 @@ def update_product_settings_api():
         settings[product_id]['hidden'] = bool(data['hidden'])
     
     if 'sortOrder' in data:
-        settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        try:
+            settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        except (ValueError, TypeError):
+            settings[product_id]['sortOrder'] = 999
 
     if 'cardTitle' in data:
         settings[product_id]['cardTitle'] = sanitize_public_text(data['cardTitle'], max_length=120)
@@ -3424,7 +3434,10 @@ def update_bio_product_settings_api():
         settings[product_id]['hidden'] = bool(data['hidden'])
 
     if 'sortOrder' in data:
-        settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        try:
+            settings[product_id]['sortOrder'] = int(data['sortOrder'])
+        except (ValueError, TypeError):
+            settings[product_id]['sortOrder'] = 999
 
     if 'cardTitle' in data:
         settings[product_id]['cardTitle'] = sanitize_public_text(data['cardTitle'], max_length=120)
@@ -3867,6 +3880,8 @@ HYDROGEN_SOLUTION_DEFINITIONS = [
     {'id': 'transformer_oil_h2', 'title': '变压器油中氢浓度检测解决方案'},
     {'id': 'general_pipe_container_leak', 'title': '管道容器通用检漏解决方案'},
     {'id': 'refrigerant_industry_leak', 'title': '冷媒行业检漏解决方案'},
+    {'id': 'energy_storage_thermal_runaway_warning', 'title': '储能锂电池热失控预警解决方案'},
+    {'id': 'environment_gas_monitoring', 'title': '环境气体监测解决方案'},
 ]
 
 DEFAULT_HYDROGEN_SOLUTION_PRODUCTS = {
@@ -3881,6 +3896,8 @@ DEFAULT_HYDROGEN_SOLUTION_PRODUCTS = {
     'transformer_oil_h2': ['mc_pgd_01', 'mc_ld_h2', 'mc_hla_01', 'mc_td_01'],
     'general_pipe_container_leak': ['mc_td_01', 'mc_ld_nh2', 'mc_ld_h2', 'mc_ld_ph2'],
     'refrigerant_industry_leak': ['mc_hla_01', 'mc_wd_01', 'mc_ld_h2', 'mc_td_01'],
+    'energy_storage_thermal_runaway_warning': ['mc_hla_01', 'mc_ld_h2', 'mc_ld_ph2', 'mc_pgd_01'],
+    'environment_gas_monitoring': ['mc_gd_01', 'mc_pgd_01', 'mc_pdr_01', 'mc_tm_01'],
 }
 
 
@@ -4076,7 +4093,7 @@ def extract_case_meta_from_html(filepath):
         desc = ''
 
     if not image:
-        img_match = re.search(r'<img\\s+[^>]*src=\"([^\"]+)\"', content)
+        img_match = re.search(r'<img\s+[^>]*src="([^"]+)"', content)
         if img_match:
             image = img_match.group(1)
 
@@ -4565,13 +4582,13 @@ def submit_feedback():
     
     # Create message object
     message = {
-        'id': datetime.now().strftime('%Y%m%d%H%M%S%f'),
-        'name': data.get('txtUserName', '').strip() or '匿名',
-        'phone': phone,
-        'email': data.get('txtUserEmail', '').strip(),
-        'qq': data.get('txtUserQQ', '').strip(),
-        'title': data.get('txtTitle', '').strip() or '无标题',
-        'content': content,
+        'id': datetime.now().strftime('%Y%m%d%H%M%S%f') + secrets.token_hex(4),
+        'name': (data.get('txtUserName', '').strip() or '匿名')[:100],
+        'phone': phone[:30],
+        'email': data.get('txtUserEmail', '').strip()[:200],
+        'qq': data.get('txtUserQQ', '').strip()[:20],
+        'title': (data.get('txtTitle', '').strip() or '无标题')[:200],
+        'content': content[:5000],
         'is_read': False,
         'timestamp': datetime.now().isoformat(),
         'ip': ip
@@ -4631,6 +4648,8 @@ def get_messages():
 @login_required
 def delete_message(message_id):
     """Delete a message."""
+    if not re.fullmatch(r'[a-zA-Z0-9_\-]+', message_id):
+        return jsonify({'success': False, 'message': '无效的留言 ID'}), 400
     filepath = MESSAGES_DIR / f"{message_id}.json"
     if filepath.exists():
         try:
@@ -4654,6 +4673,8 @@ def delete_message(message_id):
 @login_required
 def mark_message_read(message_id):
     """Mark one message as read."""
+    if not re.fullmatch(r'[a-zA-Z0-9_\-]+', message_id):
+        return jsonify({'success': False, 'message': '无效的留言 ID'}), 400
     filepath = MESSAGES_DIR / f"{message_id}.json"
     if not filepath.exists():
         return jsonify({'success': False, 'message': '留言不存在'}), 404
@@ -4670,6 +4691,8 @@ def mark_message_read(message_id):
 @login_required
 def download_message_resume(message_id):
     """Download one applicant resume via authenticated admin endpoint."""
+    if not re.fullmatch(r'[a-zA-Z0-9_\-]+', message_id):
+        return jsonify({'success': False, 'message': '无效的留言 ID'}), 400
     filepath = MESSAGES_DIR / f"{message_id}.json"
     if not filepath.exists():
         return jsonify({'success': False, 'message': '留言不存在'}), 404

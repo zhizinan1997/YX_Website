@@ -299,14 +299,15 @@ smart_merge_tree() {
   local identical=0
   local conflicts=0
   local upstream_removed=0
+  local rel="" host_file="" base_file="" new_file=""
 
   rm -rf "$conflicts_dir"
   mkdir -p "$conflicts_dir"
 
   while IFS= read -r -d '' new_file; do
-    local rel="${new_file#$new_dir/}"
-    local host_file="$host_dir/$rel"
-    local base_file="$base_dir/$rel"
+    rel="${new_file#$new_dir/}"
+    host_file="$host_dir/$rel"
+    base_file="$base_dir/$rel"
 
     if [[ ! -e "$host_file" ]]; then
       copy_with_parents "$new_file" "$host_file"
@@ -359,20 +360,23 @@ smart_merge_tree() {
   done < <(find "$new_dir" -type f -print0)
 
   while IFS= read -r -d '' base_file; do
-    local rel="${base_file#$base_dir/}"
-    local new_file="$new_dir/$rel"
-    local host_file="$host_dir/$rel"
+    rel="${base_file#$base_dir/}"
+    new_file="$new_dir/$rel"
+    host_file="$host_dir/$rel"
 
     [[ -e "$new_file" ]] && continue
     [[ -e "$host_file" ]] || continue
 
     if cmp -s "$host_file" "$base_file"; then
+      rm -f "$host_file"
       upstream_removed=$((upstream_removed + 1))
-      log_file_action "$label" "新镜像已删除该文件，但宿主机继续保留" "$rel"
+      log_file_action "$label" "新镜像已删除该文件，宿主机版本未修改，同步删除" "$rel"
+    else
+      log_file_action "$label" "新镜像已删除该文件，但宿主机已修改，保留本地版本" "$rel"
     fi
   done < <(find "$base_dir" -type f -print0)
 
-  log "$label 智能合并结果：新增 $added 个，更新 $updated 个，保留本地 $kept_local 个，相同 $identical 个，冲突 $conflicts 个，上游删除但本地保留 $upstream_removed 个"
+  log "$label 智能合并结果：新增 $added 个，更新 $updated 个，保留本地 $kept_local 个，相同 $identical 个，冲突 $conflicts 个，上游删除同步 $upstream_removed 个"
   if (( conflicts > 0 )); then
     warn "${label} 存在冲突，新镜像版本已保存到 ${conflicts_dir}，请上线后人工核对。"
   fi
@@ -384,10 +388,11 @@ additive_sync_tree() {
   local host_dir="$3"
   local added=0
   local skipped=0
+  local rel="" host_file="" new_file=""
 
   while IFS= read -r -d '' new_file; do
-    local rel="${new_file#$new_dir/}"
-    local host_file="$host_dir/$rel"
+    rel="${new_file#$new_dir/}"
+    host_file="$host_dir/$rel"
 
     if [[ ! -e "$host_file" ]]; then
       copy_with_parents "$new_file" "$host_file"
@@ -478,7 +483,8 @@ reset_host_content_from_image() {
     info "本次会先备份旧内容，备份目录：$backup_root"
     backup_dir_if_exists "$DATA_DIR" "$backup_root" "data"
     backup_dir_if_exists "$PAGES_DIR" "$backup_root" "pages"
-    backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn_assets"
+    backup_dir_if_exists "$CDN_ASSETS_DIR" "$backup_root" "cdn_assets"
+    backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn"
     backup_dir_if_exists "$LEGACY_UPDATE_LOGS_DIR" "$backup_root" "legacy_update_logs"
   else
     info "当前属于首次部署，无需备份旧内容。"
@@ -487,12 +493,15 @@ reset_host_content_from_image() {
   for path in \
     "$DATA_DIR" \
     "$PAGES_DIR" \
+    "$CDN_ASSETS_DIR" \
     "$LEGACY_CDN_DIR" \
     "$LEGACY_UPDATE_LOGS_DIR" \
     "$DATA_BASELINE_DIR" \
     "$DATA_CONFLICTS_DIR" \
     "$PAGES_BASELINE_DIR" \
-    "$PAGES_CONFLICTS_DIR"; do
+    "$PAGES_CONFLICTS_DIR" \
+    "$CDN_ASSETS_BASELINE_DIR" \
+    "$CDN_ASSETS_CONFLICTS_DIR"; do
     if [[ -e "$path" ]]; then
       info "正在删除旧目录：$path"
       rm -rf "$path"
@@ -502,18 +511,21 @@ reset_host_content_from_image() {
     fi
   done
 
-  mkdir -p "$DATA_DIR" "$PAGES_DIR"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR"
   info "开始导入新镜像 data 目录到宿主机"
   rsync -a "$TMP_DATA_DIR/" "$DATA_DIR/"
   info "开始导入新镜像 pages 目录到宿主机"
   rsync -a "$TMP_PAGES_DIR/" "$PAGES_DIR/"
+  info "开始导入新镜像 cdn_assets 目录到宿主机"
+  rsync -a "$TMP_CDN_ASSETS_DIR/" "$CDN_ASSETS_DIR/"
 
   refresh_baseline_dir "data 目录" "$TMP_DATA_DIR" "$DATA_BASELINE_DIR"
   refresh_baseline_dir "pages 目录" "$TMP_PAGES_DIR" "$PAGES_BASELINE_DIR"
+  refresh_baseline_dir "cdn_assets 目录" "$TMP_CDN_ASSETS_DIR" "$CDN_ASSETS_BASELINE_DIR"
 
-  info "说明：当前架构不再宿主机挂载 cdn_assets / update_logs，后续将直接使用镜像内文件。"
   log_tree_state "全新部署后的 data 目录状态" "$DATA_DIR"
   log_tree_state "全新部署后的 pages 目录状态" "$PAGES_DIR"
+  log_tree_state "全新部署后的 cdn_assets 目录状态" "$CDN_ASSETS_DIR"
 }
 
 pick_value() {
@@ -574,6 +586,9 @@ resolve_basic_runtime_values() {
 
   pick_value TURNSTILE_ENABLED false TURNSTILE_ENABLED_VAL value_source
   info "TURNSTILE_ENABLED=${TURNSTILE_ENABLED_VAL}（来源：${value_source}）"
+
+  pick_value ALLOW_WEAK_ADMIN_PASSWORDS false ALLOW_WEAK_ADMIN_PASSWORDS_VAL value_source
+  info "ALLOW_WEAK_ADMIN_PASSWORDS=${ALLOW_WEAK_ADMIN_PASSWORDS_VAL}（来源：${value_source}）"
 
   pick_value TURNSTILE_SITE_KEY "" TURNSTILE_SITE_KEY_VAL value_source
   info "TURNSTILE_SITE_KEY=$([[ -n "$TURNSTILE_SITE_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：${value_source}）"
@@ -720,7 +735,7 @@ determine_deploy_kind_and_strategy() {
 
 prepare_directories_and_network() {
   phase "准备目录和 Docker 网络"
-  mkdir -p "$DATA_DIR" "$PAGES_DIR"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR"
 
   if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
     info "Docker 网络已存在：$NETWORK_NAME"
@@ -732,27 +747,36 @@ prepare_directories_and_network() {
 
   log_tree_state "data 目录初始化状态" "$DATA_DIR"
   log_tree_state "pages 目录初始化状态" "$PAGES_DIR"
+  log_tree_state "cdn_assets 目录初始化状态" "$CDN_ASSETS_DIR"
+}
+
+pull_with_timeout() {
+  local image="$1"
+  local label="$2"
+  info "正在拉取${label}镜像：$image"
+  info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${PULL_TIMEOUT:-300}" docker pull "$image" || die "${label}镜像拉取失败或超时（${PULL_TIMEOUT:-300} 秒限制），请检查网络连接和镜像地址。"
+  else
+    docker pull "$image" || die "${label}镜像拉取失败，请检查网络连接和镜像地址。"
+  fi
+  info "${label}镜像拉取完成。"
 }
 
 pull_latest_images() {
   phase "拉取最新镜像"
-  info "正在拉取网站镜像：$WEBSITE_IMAGE"
-  info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
-  docker pull "$WEBSITE_IMAGE"
-  info "网站镜像拉取完成。"
-
-  info "正在拉取网关镜像：$GATEWAY_IMAGE"
-  info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
-  docker pull "$GATEWAY_IMAGE"
-  info "网关镜像拉取完成。"
+  pull_with_timeout "$WEBSITE_IMAGE" "网站"
+  pull_with_timeout "$GATEWAY_IMAGE" "网关"
 }
 
 prepare_content_for_fresh_or_reset() {
   phase "准备首次部署 / 全新重置所需的新版本内容"
   export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-data" "/app/data" "$TMP_DATA_DIR" || die "无法从新镜像导出 /app/data"
   export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-pages" "/app/pages" "$TMP_PAGES_DIR" || die "无法从新镜像导出 /app/pages"
+  export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-cdn" "/app/cdn_assets" "$TMP_CDN_ASSETS_DIR" || die "无法从新镜像导出 /app/cdn_assets"
   log_tree_state "新镜像 data 导出结果" "$TMP_DATA_DIR"
   log_tree_state "新镜像 pages 导出结果" "$TMP_PAGES_DIR"
+  log_tree_state "新镜像 cdn_assets 导出结果" "$TMP_CDN_ASSETS_DIR"
 
   local backup_root=""
   if [[ "$DEPLOY_KIND" == "update" && "$DEPLOY_STRATEGY_MODE" == "reset" ]]; then
@@ -765,13 +789,50 @@ prepare_content_for_fresh_or_reset() {
 prepare_content_for_smart_update() {
   sync_image_tree "data 目录" "data" "/app/data" "$DATA_DIR" "$DATA_BASELINE_DIR" "$DATA_CONFLICTS_DIR" "$TMP_DATA_DIR" "$TMP_OLD_DATA_DIR"
   sync_image_tree "pages 目录" "pages" "/app/pages" "$PAGES_DIR" "$PAGES_BASELINE_DIR" "$PAGES_CONFLICTS_DIR" "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR"
+  sync_image_tree "cdn_assets 目录" "cdn" "/app/cdn_assets" "$CDN_ASSETS_DIR" "$CDN_ASSETS_BASELINE_DIR" "$CDN_ASSETS_CONFLICTS_DIR" "$TMP_CDN_ASSETS_DIR" "$TMP_OLD_CDN_ASSETS_DIR"
+}
+
+rollback_containers() {
+  local has_old_website="$1"
+  local has_old_gateway="$2"
+
+  warn "正在尝试回滚到旧容器..."
+  docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
+  docker rm -f "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+
+  if [[ "$has_old_website" == "true" ]]; then
+    docker rename "${WEBSITE_CONTAINER}-old" "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
+    docker start "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
+    info "已回滚网站容器到旧版本"
+  fi
+
+  if [[ "$has_old_gateway" == "true" ]]; then
+    docker rename "${GATEWAY_CONTAINER}-old" "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+    docker start "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+    info "已回滚网关容器到旧版本"
+  fi
 }
 
 recreate_containers() {
   phase "重建容器"
-  info "开始检查并移除旧容器。"
-  remove_container_if_exists "$GATEWAY_CONTAINER"
-  remove_container_if_exists "$WEBSITE_CONTAINER"
+
+  # 停止并重命名旧容器（保留以备回滚）
+  local has_old_website=false
+  local has_old_gateway=false
+
+  if docker container inspect "$WEBSITE_CONTAINER" >/dev/null 2>&1; then
+    info "正在停止旧网站容器并重命名为 ${WEBSITE_CONTAINER}-old"
+    docker stop "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
+    docker rename "$WEBSITE_CONTAINER" "${WEBSITE_CONTAINER}-old" >/dev/null 2>&1 || true
+    has_old_website=true
+  fi
+
+  if docker container inspect "$GATEWAY_CONTAINER" >/dev/null 2>&1; then
+    info "正在停止旧网关容器并重命名为 ${GATEWAY_CONTAINER}-old"
+    docker stop "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+    docker rename "$GATEWAY_CONTAINER" "${GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
+    has_old_gateway=true
+  fi
 
   website_cmd=(
     docker run -d
@@ -787,8 +848,10 @@ recreate_containers() {
     -e "ADMIN_USERNAME=$ADMIN_USERNAME_VAL"
     -e "CDN_ENABLED=$CDN_ENABLED_VAL"
     -e "TURNSTILE_ENABLED=$TURNSTILE_ENABLED_VAL"
+    -e "ALLOW_WEAK_ADMIN_PASSWORDS=$ALLOW_WEAK_ADMIN_PASSWORDS_VAL"
     -v "$DATA_DIR:/app/data"
     -v "$PAGES_DIR:/app/pages"
+    -v "$CDN_ASSETS_DIR:/app/cdn_assets"
   )
 
   if [[ -n "$ADMIN_PASSWORD_HASH_VAL" ]]; then
@@ -813,7 +876,18 @@ recreate_containers() {
   info "网站容器网络：${NETWORK_NAME}，网络别名：${WEBSITE_CONTAINER}"
   info "网站容器挂载：$DATA_DIR -> /app/data"
   info "网站容器挂载：$PAGES_DIR -> /app/pages"
-  WEBSITE_CONTAINER_ID="$("${website_cmd[@]}")"
+  info "网站容器挂载：$CDN_ASSETS_DIR -> /app/cdn_assets"
+
+  set +e
+  WEBSITE_CONTAINER_ID="$("${website_cmd[@]}" 2>&1)"
+  local ws_exit=$?
+  set -e
+
+  if (( ws_exit != 0 )); then
+    warn "新网站容器启动失败（退出码：$ws_exit）：$WEBSITE_CONTAINER_ID"
+    rollback_containers "$has_old_website" "$has_old_gateway"
+    die "新网站容器启动失败，已回滚到旧版本。请检查镜像和配置。"
+  fi
   info "网站容器启动成功，容器 ID：${WEBSITE_CONTAINER_ID:0:12}"
 
   gateway_cmd=(
@@ -829,8 +903,53 @@ recreate_containers() {
   info "正在启动网关容器：$GATEWAY_CONTAINER"
   info "网关容器端口映射：127.0.0.1:${MAIN_PORT} -> 80"
   info "网关容器端口映射：127.0.0.1:${CDN_PORT} -> 81"
-  GATEWAY_CONTAINER_ID="$("${gateway_cmd[@]}")"
+
+  set +e
+  GATEWAY_CONTAINER_ID="$("${gateway_cmd[@]}" 2>&1)"
+  local gw_exit=$?
+  set -e
+
+  if (( gw_exit != 0 )); then
+    warn "新网关容器启动失败（退出码：$gw_exit）：$GATEWAY_CONTAINER_ID"
+    docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
+    rollback_containers "$has_old_website" "$has_old_gateway"
+    die "新网关容器启动失败，已回滚到旧版本。请检查镜像和配置。"
+  fi
   info "网关容器启动成功，容器 ID：${GATEWAY_CONTAINER_ID:0:12}"
+
+  # 等待容器初始化稳定
+  info "等待容器初始化（3 秒）..."
+  sleep 3
+
+  # 验证新容器是否稳定运行
+  local rollback_needed=false
+  for c in "$WEBSITE_CONTAINER" "$GATEWAY_CONTAINER"; do
+    if ! docker ps --filter "name=^/${c}$" --format '{{.Names}}' | grep -qx "$c"; then
+      warn "容器 '$c' 启动后未能稳定运行。最近日志："
+      docker logs --tail 20 "$c" 2>&1 || true
+      rollback_needed=true
+    fi
+  done
+
+  if [[ "$rollback_needed" == "true" ]]; then
+    warn "新容器未能稳定运行，正在回滚到旧版本..."
+    docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
+    docker rm -f "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+    rollback_containers "$has_old_website" "$has_old_gateway"
+    die "新容器启动后崩溃，已回滚到旧版本。请查看上方日志排查原因。"
+  fi
+
+  info "新容器已通过稳定性验证。"
+
+  # 新容器正常运行，清理旧容器
+  if [[ "$has_old_website" == "true" ]]; then
+    docker rm -f "${WEBSITE_CONTAINER}-old" >/dev/null 2>&1 || true
+    info "已清理旧网站容器"
+  fi
+  if [[ "$has_old_gateway" == "true" ]]; then
+    docker rm -f "${GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
+    info "已清理旧网关容器"
+  fi
 }
 
 verify_containers() {
@@ -842,6 +961,25 @@ verify_containers() {
     info "容器运行正常：$c"
     info "容器详情摘要：$(docker ps --filter "name=^/${c}$" --format '{{.Names}} | {{.Image}} | {{.Status}}')"
   done
+
+  if command -v curl >/dev/null 2>&1; then
+    info "正在验证 HTTP 服务可用性..."
+    local http_ok=false
+    for _ in $(seq 1 15); do
+      if curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${MAIN_PORT}/"; then
+        http_ok=true
+        break
+      fi
+      sleep 1
+    done
+    if [[ "$http_ok" == "true" ]]; then
+      info "HTTP 服务验证通过：http://127.0.0.1:${MAIN_PORT}/"
+    else
+      warn "HTTP 服务在 15 秒内未就绪，容器进程正在运行但服务可能仍在启动中，请手动验证。"
+    fi
+  else
+    info "未检测到 curl，跳过 HTTP 可用性验证。"
+  fi
 }
 
 cleanup_old_images() {
@@ -859,9 +997,11 @@ cleanup() {
   docker rm -f \
     "${TMP_NEW_CONTAINER}-data" \
     "${TMP_NEW_CONTAINER}-pages" \
+    "${TMP_NEW_CONTAINER}-cdn" \
     "${TMP_OLD_CONTAINER}-data" \
-    "${TMP_OLD_CONTAINER}-pages" >/dev/null 2>&1 || true
-  rm -rf "$TMP_DATA_DIR" "$TMP_OLD_DATA_DIR" "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR"
+    "${TMP_OLD_CONTAINER}-pages" \
+    "${TMP_OLD_CONTAINER}-cdn" >/dev/null 2>&1 || true
+  rm -rf "$TMP_DATA_DIR" "$TMP_OLD_DATA_DIR" "$TMP_PAGES_DIR" "$TMP_OLD_PAGES_DIR" "$TMP_CDN_ASSETS_DIR" "$TMP_OLD_CDN_ASSETS_DIR"
 }
 
 show_help() {
@@ -886,12 +1026,14 @@ show_help() {
   CDN_PORT=2027
   CLEAN_OLD_IMAGES=true
   DEPLOY_STRATEGY=smart|reset
+  ALLOW_WEAK_ADMIN_PASSWORDS=true|false
 
 交互说明：
   - 首次部署：脚本会自动导入新镜像里的 data/pages 内容，并要求输入 SECRET_KEY、PUBLIC_BASE_URL；如果还没有 admin_users.json，也会要求输入管理员初始密码。
   - 更新部署：脚本会先让你选择“智能合并更新”或“全新部署重置”。
   - 如果旧容器仍存在，脚本会优先复用旧容器中的 SECRET_KEY、PUBLIC_BASE_URL 等环境变量。
   - 如果缺少这些环境变量，脚本会直接在终端里提示输入。
+  - 如确需允许首次初始化时使用弱密码，可显式传入 ALLOW_WEAK_ADMIN_PASSWORDS=true。
 
 风险说明：
   - “智能合并更新”会尽量保留宿主机已修改内容，但冲突文件仍可能需要人工核对。
@@ -912,16 +1054,21 @@ CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
 
 DATA_DIR="$YX_ROOT/data"
 PAGES_DIR="$YX_ROOT/pages"
-LEGACY_CDN_DIR="$YX_ROOT/cdn_assets"
+CDN_ASSETS_DIR="$YX_ROOT/cdn_assets"
 LEGACY_UPDATE_LOGS_DIR="$YX_ROOT/update_logs"
+LEGACY_CDN_DIR="$YX_ROOT/cdn"
 DATA_BASELINE_DIR="$YX_ROOT/.data-image-baseline"
 PAGES_BASELINE_DIR="$YX_ROOT/.pages-image-baseline"
+CDN_ASSETS_BASELINE_DIR="$YX_ROOT/.cdn-assets-image-baseline"
 DATA_CONFLICTS_DIR="$YX_ROOT/.data-merge-conflicts"
 PAGES_CONFLICTS_DIR="$YX_ROOT/.pages-merge-conflicts"
+CDN_ASSETS_CONFLICTS_DIR="$YX_ROOT/.cdn-assets-merge-conflicts"
 TMP_DATA_DIR="$YX_ROOT/.tmp-data"
 TMP_OLD_DATA_DIR="$YX_ROOT/.tmp-data-old"
 TMP_PAGES_DIR="$YX_ROOT/.tmp-pages"
 TMP_OLD_PAGES_DIR="$YX_ROOT/.tmp-pages-old"
+TMP_CDN_ASSETS_DIR="$YX_ROOT/.tmp-cdn-assets"
+TMP_OLD_CDN_ASSETS_DIR="$YX_ROOT/.tmp-cdn-assets-old"
 TMP_NEW_CONTAINER="yx-website-export-new-$(date +%s)-$$"
 TMP_OLD_CONTAINER="yx-website-export-old-$(date +%s)-$$"
 
@@ -937,6 +1084,17 @@ require_cmd rsync
 
 if [[ -z "$YX_ROOT" || "$YX_ROOT" == "/" ]]; then
   die "YX_ROOT 无效：'$YX_ROOT'"
+fi
+
+# 防止多实例并发执行
+mkdir -p "$YX_ROOT"
+LOCKFILE="$YX_ROOT/.deploy.lock"
+if command -v flock >/dev/null 2>&1; then
+  exec 200>"$LOCKFILE"
+  flock -n 200 || die "另一个部署实例正在运行中（锁文件：$LOCKFILE），请等待其完成或手动解除。"
+  info "已获取部署锁：$LOCKFILE"
+else
+  warn "未找到 flock 命令，跳过并发执行保护。请确保不要同时运行多个部署实例。"
 fi
 
 phase "开始执行站点部署脚本"
@@ -961,6 +1119,11 @@ else
 fi
 
 resolve_admin_bootstrap_if_needed
+
+phase "修复挂载目录权限"
+chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
+info "挂载目录权限检查完成。"
+
 recreate_containers
 verify_containers
 cleanup_old_images
@@ -977,4 +1140,7 @@ if has_regular_files "$DATA_CONFLICTS_DIR"; then
 fi
 if has_regular_files "$PAGES_CONFLICTS_DIR"; then
   warn "检测到 pages 合并冲突，请检查：$PAGES_CONFLICTS_DIR"
+fi
+if has_regular_files "$CDN_ASSETS_CONFLICTS_DIR"; then
+  warn "检测到 cdn_assets 合并冲突，请检查：$CDN_ASSETS_CONFLICTS_DIR"
 fi

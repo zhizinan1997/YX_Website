@@ -44,6 +44,15 @@
         "mc_ld_h2",
         "mc_ld_ph2"
       ]
+    },
+    {
+      "id": "environment_gas_monitoring",
+      "relatedProductIds": [
+        "mc_gd_01",
+        "mc_pgd_01",
+        "mc_pdr_01",
+        "mc_tm_01"
+      ]
     }
   ]
 }

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>储能锂电池热失控监测解决方案 - 元芯传感</title>
+    <title>定制化传感解决方案 - 元芯传感</title>
     <link rel="stylesheet" href="../../assets/css/yx-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -166,7 +166,7 @@
         .jjfa-hero {
             position: relative;
             background: linear-gradient(135deg, rgba(0, 55, 100, 0.4) 0%, rgba(0, 30, 60, 0.7) 100%),
-                url('/cdn_assets/images/solutions/311c8899d284.jpg') center/cover;
+                url('/cdn_assets/images/solutions/custom-sensing-solution.jpg') center/cover;
             height: 60vh;
             min-height: 450px;
             display: flex;
@@ -610,6 +610,198 @@
             font-weight: 500;
             margin: 0;
         }
+
+        .custom-intro-section {
+            padding: 88px 0 48px;
+            background: #ffffff;
+        }
+
+        .custom-intro-panel {
+            max-width: 1080px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #d9e5f2;
+            border-radius: 20px;
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+            padding: 54px 58px;
+        }
+
+        .custom-intro-panel h2 {
+            font-size: 34px;
+            line-height: 1.35;
+            color: var(--color-primary);
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .custom-intro-copy p {
+            font-size: 17px;
+            line-height: 1.95;
+            color: #555;
+            text-align: justify;
+            margin: 0 0 20px;
+        }
+
+        .custom-intro-copy p:last-child {
+            margin-bottom: 0;
+        }
+
+        .custom-intro-highlight {
+            margin-top: 34px;
+            padding: 26px 28px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(0, 55, 100, 0.08), rgba(0, 114, 188, 0.12));
+            border: 1px solid rgba(0, 55, 100, 0.1);
+        }
+
+        .highlight-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--color-accent-orange);
+            margin-bottom: 14px;
+        }
+
+        .highlight-label::before {
+            content: '';
+            width: 44px;
+            height: 2px;
+            background: var(--color-accent-orange);
+        }
+
+        .custom-intro-highlight p {
+            font-size: 18px;
+            line-height: 1.9;
+            color: #26415c;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .capability-section {
+            padding: 80px 0;
+            background: #f8f9fa;
+        }
+
+        .capabilities-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .capability-card {
+            background: #ffffff;
+            border: 1px solid #dce7f2;
+            border-radius: 16px;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+            padding: 30px 28px 28px;
+        }
+
+        .capability-kicker {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 112px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(0, 55, 100, 0.08);
+            color: var(--color-primary);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            margin-bottom: 16px;
+        }
+
+        .capability-card h4 {
+            font-size: 24px;
+            line-height: 1.45;
+            color: var(--color-primary);
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .capability-card p {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #566577;
+            margin: 0;
+            text-align: justify;
+        }
+
+        .delivery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 12px;
+        }
+
+        .delivery-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #dce7f2;
+            border-radius: 16px;
+            padding: 30px 28px 28px;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+        }
+
+        .delivery-card h4 {
+            font-size: 24px;
+            line-height: 1.45;
+            color: var(--color-primary);
+            margin-bottom: 14px;
+            font-weight: 700;
+        }
+
+        .delivery-card p {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #566577;
+            margin: 0;
+            text-align: justify;
+        }
+
+        @media (max-width: 992px) {
+            .custom-intro-panel {
+                padding: 42px 34px;
+            }
+
+            .custom-intro-panel h2 {
+                font-size: 30px;
+            }
+
+            .capabilities-grid,
+            .delivery-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .custom-intro-section {
+                padding: 72px 0 40px;
+            }
+
+            .custom-intro-panel {
+                padding: 30px 22px;
+            }
+
+            .custom-intro-panel h2,
+            .section-title,
+            .design-advantages-section h2,
+            .contact-section h2 {
+                font-size: 28px;
+            }
+
+            .custom-intro-copy p,
+            .custom-intro-highlight p,
+            .capability-card p,
+            .delivery-card p,
+            .advantage-new-item p {
+                font-size: 16px;
+            }
+        }
     </style>
     <!-- Site Search -->
     <link rel="stylesheet" href="../../assets/css/search.css">
@@ -635,81 +827,35 @@
 
     <main style="padding-top: 90px;">
         <section class="jjfa-hero">
-            <h1>储能锂电池热失控监测解决方案<span>提供全局化本质安全监测</span></h1>
+            <h1>定制化传感解决方案<span>量身定制生物与化学传感方案</span></h1>
             <p class="jjfa-breadcrumb">
-                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>储能锂电池热失控监测</span>
+                <a href="../../index.html">首页</a> - <a href="solutions-index.html">行业解决方案</a> - <span>定制化传感解决方案</span>
             </p>
         </section>
 
-        <section class="solution-tabs-section">
+        <section class="custom-intro-section">
             <div class="vs-container">
-                <div class="solution-tabs-container">
-                    <div class="solution-tabs-nav">
-                        <button class="solution-tab-btn active"
-                            onclick="switchSolutionTab(0, this)">储能锂电池热失控监测解决方案</button>
+                <div class="custom-intro-panel">
+                    <div class="custom-intro-copy">
+                        <h2>在当今瞬息万变的科技时代，定制化传感成为突破应用边界的关键能力</h2>
+                        <p>
+                            在当今瞬息万变的科技时代，各行各业对传感器的需求日益精细化、专业化。通用型传感器往往难以完美契合特定应用场景的独特要求，从精度、响应速度到环境适应性、集成方式，都可能存在局限。湖南元芯传感科技有限责任公司凭借其深厚的技术积累和强大的研发实力，隆重推出定制化生物与化学传感解决方案，旨在为客户提供量身定制、性能卓越的传感器及模组，以应对最具挑战性的应用需求。
+                        </p>
+                        <p>
+                            我们深知，每一个客户的需求都是独一无二的。无论是面对极端环境下的精准测量，对特定气体或物理量的超高灵敏度检测，还是在紧凑空间内的集成挑战，元芯传感都能提供专业的定制服务。我们不仅仅是传感器的供应商，更是您创新路上的技术合伙人。
+                        </p>
                     </div>
-                    <div class="solution-tabs-content">
-                        <!-- Panel 1: 储能锂电池热失控 -->
-                        <div class="solution-panel active">
-                            <div
-                                style="text-align: left; max-width: 1000px; margin: 0 auto; width: 100%; margin-bottom: 60px;">
-                                <h3
-                                    style="font-size: 32px; color: var(--color-primary); margin-bottom: 24px; font-weight: 700; text-align: center;">
-                                    储能锂电池热失控监测解决方案</h3>
-                                <p
-                                    style="font-size: 16px; line-height: 1.9; color: #555; text-align: justify; margin-bottom: 40px;">
-                                    随着全球能源转型的加速，锂离子电池储能系统（BESS）在电网侧、发电侧、用户侧等领域大规模应用。然而，锂电池存在热失控的固有风险，一旦发生，可能导致火灾、爆炸，造成严重的人员伤亡和财产损失。热失控是一个连锁反应过程，其早期阶段会释放出多种特征气体，其中氢气（H2）是最早产生且最敏感的气体之一。国家对储能安全的重视日益提升，2025年中国储能行业标准已明确要求通过检测氢气等特征气体，来及时采取热失控阻隔措施。元芯传感凭借领先的氢气探测技术，推出“储能锂电池热失控监测解决方案”。该方案通过超早期氢气监测、精准预警与联动及智慧平台管理，为储能系统提供高效、可靠的热失控预警，助力及时阻隔，减少损失。
-                                </p>
-                            </div>
-
-                            <!-- Section 1 -->
-                            <div class="solution-detail-row">
-                                <div class="detail-row-img">
-                                    <img src="/cdn_assets/images/solutions/3850c09204c2.png" alt="超早期氢气监测">
-                                </div>
-                                <div class="detail-row-content">
-                                    <h4>超早期氢气监测 · 预判热失控隐患</h4>
-                                    <p>
-                                        锂电池在进入热失控初期，由于内部电解液分解，会产生微量的氢气、一氧化碳等气体。在这些气体中，氢气往往是最早出现且浓度变化最明显的指示气体。元芯传感的解决方案采用高灵敏度、快速响应的氢气传感器，专门针对储能电池舱（Pack/Module）内部的微环境进行监测，能够实时捕捉到电池热失控萌芽阶段释放出的极微量氢气，远在电池温度大幅升高、烟雾弥漫或其他可见异常发生之前。这种超早期氢气监测能力，使得储能系统能够在热失控的初期阶段就发出预警信号，为运维人员争取宝贵的响应时间，有效识别和预测潜在的热失控隐患，将其扼杀在“萌芽状态”。
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Section 2 -->
-                            <div class="solution-detail-row reverse">
-                                <div class="detail-row-img">
-                                    <img src="/cdn_assets/images/solutions/2aba330eeba4.jpg" alt="精准预警与联动">
-                                </div>
-                                <div class="detail-row-content">
-                                    <h4>精准预警与联动 · 及时阻隔减少损失</h4>
-                                    <p>
-                                        储能系统对热失控的响应速度直接决定了能否有效控制风险。元芯传感的方案提供多级精准预警机制，并具备强大的智能联动功能。当监测到氢气浓度达到预设的报警阈值时，系统会立即触发声光报警，并通过储能BMS/EMS系统向控制中心发送报警信息。同时，它可无缝联动灭火系统（如气溶胶、IG541等）、通风系统、切断电池模块或电池簇的供电等应急措施，实现毫秒级或秒级响应。这种快速、自动化的响应机制，能够及时阻隔热失控的蔓延，将事故限制在最小范围，从而最大程度地减少损失。
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Section 3 -->
-                            <div class="solution-detail-row">
-                                <div class="detail-row-img watermark-crop">
-                                    <img src="/cdn_assets/images/solutions/e8bb885ee788.jpg" alt="智慧平台管理">
-                                </div>
-                                <div class="detail-row-content">
-                                    <h4>智慧平台管理 · 实现高效风险管控</h4>
-                                    <p>
-                                        元芯传感的解决方案可与储能电站的能量管理系统（EMS）、电池管理系统（BMS）以及消防系统进行深度融合，构建统一的智慧平台管理。平台能够实时显示所有电池舱的氢气浓度数据、报警状态、设备运行状态，并通过大数据分析和人工智能算法，对热失控风险进行智能评估和预测。运维人员可通过平台远程监控、接收报警，并进行历史数据追溯和故障诊断分析。
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="custom-intro-highlight">
+                        <span class="highlight-label">您的需求，我们的专业</span>
+                        <p>从极端环境下的精准测量，到特定气体或物理量的超高灵敏度检测，再到紧凑空间中的模组集成，元芯传感都能提供面向真实应用场景的专业定制服务。</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Design Advantages Section -->
         <section class="design-advantages-section">
             <div class="vs-container">
-                <h2>解决方案设计优势</h2>
+                <h2>元芯传感的定制优势</h2>
                 <div class="advantages-new-grid">
                     <div class="advantage-new-item">
                         <span class="advantage-icon" aria-hidden="true">
@@ -718,8 +864,8 @@
                                 <path d="M9 12l2 2 4-4"></path>
                             </svg>
                         </span>
-                        <h4>超早期预警</h4>
-                        <p>监测热失控早期释放的氢气，抢占宝贵应急时间</p>
+                        <h4>全方位技术定制</h4>
+                        <p>围绕核心传感技术、关键参数与环境工况开展精细化设计，帮助方案更准确地匹配客户场景。</p>
                     </div>
                     <div class="advantage-new-item">
                         <span class="advantage-icon" aria-hidden="true">
@@ -733,8 +879,8 @@
                                 <circle cx="12" cy="12" r="3"></circle>
                             </svg>
                         </span>
-                        <h4>智能联动</h4>
-                        <p>自动触发灭火、断电等措施，快速阻隔热失控蔓延</p>
+                        <h4>模组化集成开发</h4>
+                        <p>从信号调理、电控集成到通信接口与结构尺寸设计，提供一站式模组交付，缩短客户开发周期。</p>
                     </div>
                     <div class="advantage-new-item">
                         <span class="advantage-icon" aria-hidden="true">
@@ -746,8 +892,8 @@
                                 <circle cx="16" cy="9" r="1.4"></circle>
                             </svg>
                         </span>
-                        <h4>高效管理</h4>
-                        <p>智慧平台实现远程监控、风险评估与预测性维护</p>
+                        <h4>快速响应与协同开发</h4>
+                        <p>从需求分析、方案设计、样品制作到试产量产，全程与客户紧密协作，确保每一环节高效推进。</p>
                     </div>
                     <div class="advantage-new-item">
                         <span class="advantage-icon" aria-hidden="true">
@@ -756,86 +902,55 @@
                                 <path d="M8.5 13.2l2.2 2.1 4.8-4.8"></path>
                             </svg>
                         </span>
-                        <h4>安全可靠</h4>
-                        <p>从根本上提升储能系统内安全性，保障人员与财产安全</p>
+                        <h4>严格的质量控制</h4>
+                        <p>从原材料选择、生产制造到出厂测试，遵循严格质量体系，确保交付产品具备卓越性能和可靠性。</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Core Products -->
-        <section class="products-section">
+        <section class="capability-section">
             <div class="vs-container">
-                <h2 class="section-title">核心产品</h2>
-                <div class="products-grid">
-                    <a href="/pages/gassensing/mc_ld_h2.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5f991b498c72.png"
-                                alt="MC-LD-H2型手持氢气检测仪">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-LD-H2型手持氢气检测仪</h4>
-                            <div class="product-features">
-                                <p>◆ 高灵敏氢气传感芯片 1秒内探出氢气</p>
-                                <p>◆ 自动零点校准 防水防尘防爆</p>
-                                <p>◆ 最低检测浓度小于1 ppm</p>
-                                <p>◆ 本安型国家防爆认证</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="/pages/gassensing/mc_wd_01.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/192166e04cc6.png"
-                                alt="MC-WD-01型穿戴式氢气检测模块">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-WD-01型穿戴式氢气检测模块</h4>
-                            <div class="product-features">
-                                <p>◆ 体积小、重量轻，可方便夹戴</p>
-                                <p>◆ ⼀键使用，方便快捷</p>
-                                <p>◆ 防⽔防尘防爆，适用于恶劣工况</p>
-                                <p>◆ 声光震动报警提示</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="/pages/gassensing/mc_hp_1_0.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/2cc4d91cdb44.png"
-                                alt="MC-HP-1.0型车载氢气检测模块">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-HP-1.0型车载氢气检测模块</h4>
-                            <div class="product-features">
-                                <p>◆ 可定制量程</p>
-                                <p>◆ 采用车规级元器件与电路设计</p>
-                                <p>◆ 耐高温高湿</p>
-                                <p>◆ 核心器件材质耐用，寿命长</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="/pages/gassensing/mc_hla_01.html" class="product-card">
-                        <div class="product-card-img">
-                            <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/f6b3c15e28b4.png"
-                                alt="MC-HLA-01型固定式氢气报警器">
-                        </div>
-                        <div class="product-card-body">
-                            <h4>MC-HLA-01型固定式氢气报警器</h4>
-                            <div class="product-features">
-                                <p>◆ 碳基传感芯片，响应快，抗干扰</p>
-                                <p>◆ 自动零点校准，免开盖，易维护</p>
-                                <p>◆ 布线简单，安装快速</p>
-                                <p>◆ 物联网功能，支持远程监控</p>
-                            </div>
-                        </div>
-                    </a>
+                <h2 class="section-title">全方位技术定制能力</h2>
+                <div class="capabilities-grid">
+                    <article class="capability-card">
+                        <span class="capability-kicker">核心传感技术</span>
+                        <h4>从领先平台出发，拓展多元感知能力</h4>
+                        <p>基于我们领先的氢气传感技术平台，可进一步拓展开发适用于多种气体（如CO、CH4等）或特定物理量的定制化传感元件。</p>
+                    </article>
+                    <article class="capability-card">
+                        <span class="capability-kicker">参数优化</span>
+                        <h4>围绕关键指标进行精细化设计</h4>
+                        <p>根据客户对量程、精度、响应时间、选择性、重复性等关键性能指标的要求，进行精细化设计与优化，让传感表现真正贴合目标应用。</p>
+                    </article>
+                    <article class="capability-card">
+                        <span class="capability-kicker">环境适应性</span>
+                        <h4>复杂工况下也能稳定可靠运行</h4>
+                        <p>针对高温、低温、高湿、腐蚀性气体、高压等复杂或恶劣工况，定制化设计传感器的封装材料、防护等级及电路结构，确保其稳定可靠运行。</p>
+                    </article>
+                    <article class="capability-card">
+                        <span class="capability-kicker">模组化集成</span>
+                        <h4>提供一站式传感器模组交付</h4>
+                        <p>我们不仅提供传感器核心部件，更可根据客户产品结构和系统集成需求，定制开发集成化传感器模组，从信号调理电路、微控制器集成，到通信接口（如I2C、SPI、UART、4-20mA等）和结构尺寸，实现一站式模组交付。</p>
+                    </article>
+                </div>
+
+                <div class="delivery-grid">
+                    <article class="delivery-card">
+                        <h4>快速响应与协同开发</h4>
+                        <p>我们的专业研发团队具备快速响应能力，从需求分析、方案设计、样品制作到小批量试产及量产，全程与客户紧密协作，确保定制方案的每一个环节都精准高效。</p>
+                    </article>
+                    <article class="delivery-card">
+                        <h4>严格的质量控制</h4>
+                        <p>所有定制产品均遵循元芯传感严格的质量管理体系，从原材料选择到生产制造，再到出厂测试，确保每一个交付的传感器和模组都达到卓越的性能和可靠性标准。</p>
+                    </article>
                 </div>
             </div>
         </section>
 
-        <!-- Start Your Custom Solution -->
         <section class="contact-section">
             <div class="vs-container">
-                <h2>启动您的定制化方案</h2>
+                <h2>启动您的定制化传感方案</h2>
                 <div class="contact-form">
                     <form>
                         <div class="form-row">
@@ -847,7 +962,7 @@
                             <input type="tel" placeholder="联系电话" required>
                         </div>
                         <div style="margin-bottom: 24px;">
-                            <textarea placeholder="请简述您的监测需求..." required
+                            <textarea placeholder="请简述您的定制需求..." required
                                 style="height: 150px; resize: vertical;"></textarea>
                         </div>
                         <div class="form-submit">

@@ -1064,6 +1064,9 @@ def register_admin_routes(
     @login_required
     def admin_turnstile_update():
         """Update Turnstile settings for admin login protection."""
+        guard = require_super_admin_api()
+        if guard:
+            return guard
         if not _is_same_origin_request(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
         data = request.get_json(silent=True) or {}

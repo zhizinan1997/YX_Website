@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大气环境监测解决方案 - 元芯传感</title>
+    <title>环境气体监测解决方案 - 元芯传感</title>
     <link rel="stylesheet" href="../../assets/css/yx-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -259,113 +259,111 @@
             }
         }
 
-        /* Solutions Carousel */
-        .solutions-carousel-section {
-            background: #f8f9fa;
-            padding: 88px 0 80px;
+        /* Unified Solution Sections */
+        .unified-section {
+            background: linear-gradient(180deg, #f5f8fc 0%, #eef3f9 100%);
+            padding: 0 0 84px;
         }
 
-        .solutions-carousel-layout {
-            display: flex;
-            align-items: flex-start;
-            background: var(--color-white);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
-            min-height: 600px;
+        .unified-panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #d9e5f2;
+            border-radius: 18px;
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+            padding: 58px 72px;
+            margin: 0 auto;
         }
 
-        .carousel-nav {
-            width: 320px;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            background: var(--color-primary);
-            color: var(--color-white);
-        }
-
-        .carousel-nav-button {
-            width: 100%;
-            border: none;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            border-left: 4px solid transparent;
-            border-radius: 0;
-            background: transparent;
-            color: var(--color-white);
-            padding: 24px 30px;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-            opacity: 0.7;
-        }
-
-        .carousel-nav-button:hover {
-            opacity: 1;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .carousel-nav-button.active {
-            opacity: 1;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--color-white);
-            border-left-color: var(--color-accent-orange);
-        }
-
-        .carousel-nav-label {
-            flex: 1;
-            font-size: 16px;
-            font-weight: 500;
-            line-height: 1.6;
-        }
-
-        .carousel-content {
-            flex: 1;
-            min-width: 0;
-            padding: 60px;
-        }
-
-        .carousel-content-title {
-            font-size: 34px;
-            line-height: 1.3;
+        .unified-title {
+            font-size: 32px;
+            color: var(--color-primary);
+            margin-bottom: 54px;
             font-weight: 700;
-            color: #0d3560;
-            margin-bottom: 28px;
             text-align: center;
-        }
-
-        .carousel-panels-wrapper {
             position: relative;
-            min-height: 400px;
-            overflow: hidden;
+            letter-spacing: 0.6px;
         }
 
-        .solution-panel {
-            display: none;
-            flex-direction: column;
-            gap: 22px;
-            animation: carouselFadeIn 0.5s ease;
-        }
-
-        .solution-panel.active {
-            display: flex;
-        }
-
-        .solution-panel-img {
-            width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-        }
-
-        .solution-panel-img img {
-            width: 100%;
-            height: 350px;
-            object-fit: cover;
+        .unified-title::after {
+            content: '';
+            width: 72px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #f4a261, #f38a2f);
             display: block;
+            margin: 16px auto 0;
+        }
+
+        .solution-story-panel .unified-title,
+        .related-products-panel .unified-title {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        .solution-story-panel .unified-title::after,
+        .related-products-panel .unified-title::after {
+            margin: 14px 0 0;
+        }
+
+        .solution-story-header {
+            max-width: 920px;
+            margin-bottom: 30px;
+        }
+
+        .solution-story-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--color-accent-orange);
+            margin-bottom: 18px;
+        }
+
+        .solution-story-kicker::before {
+            content: '';
+            width: 44px;
+            height: 2px;
+            background: var(--color-accent-orange);
+        }
+
+        .solution-story-summary {
+            font-size: 18px;
+            line-height: 1.95;
+            color: #555;
+            margin: 0;
+        }
+
+        .environment-step-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .environment-step {
+            padding: 34px 0;
+            border-top: 1px solid #e5edf4;
+        }
+
+        .environment-step:first-child {
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .environment-step-label {
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--color-accent-blue);
+            margin-bottom: 12px;
+        }
+
+        .solution-panel-text {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
         }
 
         .solution-panel-text h3 {
@@ -375,67 +373,282 @@
             font-weight: 600;
         }
 
-        .panel-desc-text {
+        .panel-lead-text {
             font-size: 18px;
             line-height: 1.95;
             color: #555;
             text-align: justify;
-            text-indent: 2em;
             margin: 0;
         }
 
-        @keyframes carouselFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .panel-feature-list {
+            margin: 0;
+            padding-left: 1.4em;
+            color: #555;
         }
 
-        @media (max-width: 1200px) {
-            .carousel-nav {
-                width: 280px;
-            }
+        .panel-feature-list li {
+            font-size: 17px;
+            line-height: 1.95;
+            margin-bottom: 14px;
+        }
+
+        .panel-feature-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .panel-feature-list strong {
+            color: var(--color-primary);
+        }
+
+        .unified-panel.advantages-panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%);
+        }
+
+        .advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .advantage-card {
+            position: relative;
+            padding: 28px 26px 24px;
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid #dbe7f3;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .advantage-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
+        }
+
+        .advantage-icon-wrapper {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(0, 55, 100, 0.1), rgba(0, 112, 201, 0.14));
+            color: var(--color-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        .advantage-card h4 {
+            font-size: 20px;
+            line-height: 1.4;
+            color: #163b67;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .advantage-card p {
+            font-size: 15px;
+            line-height: 1.85;
+            color: #5a6b7d;
+            margin: 0;
+        }
+
+        .related-products-section {
+            padding-bottom: 40px !important;
+        }
+
+        .related-products-panel {
+            background: #ffffff;
+        }
+
+        .related-products-head {
+            margin-bottom: 34px;
+        }
+
+        .related-products-copy {
+            max-width: 760px;
+        }
+
+        .related-products-subtitle {
+            font-size: 16px;
+            line-height: 1.75;
+            color: #4b5d6f;
+            max-width: 56ch;
+            margin: 0;
+        }
+
+        .products-card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .product-item {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            min-height: 308px;
+            background: #ffffff;
+            border: 1px solid #d8e4f0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .product-item:hover {
+            border-color: #b8cde3;
+            background: #fbfdff;
+        }
+
+        .product-img-box {
+            flex: 0 0 248px;
+            width: 248px;
+            background: #f6f9fc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            border-right: 1px solid #d8e4f0;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .product-img-box img {
+            width: 100%;
+            height: 188px;
+            object-fit: contain;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .product-item:hover .product-img-box img {
+            transform: scale(1.03);
+        }
+
+        .product-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px 24px 20px;
+            min-width: 0;
+        }
+
+        .product-body h4 {
+            font-size: 20px;
+            line-height: 1.5;
+            color: #163b67;
+            margin-bottom: 14px;
+            font-weight: 700;
+        }
+
+        .product-list {
+            margin: 0 0 20px;
+            padding-left: 1.1em;
+            color: #5a6b7d;
+        }
+
+        .product-list li {
+            font-size: 15px;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+
+        .product-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .product-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .product-cta {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .product-cta::after {
+            content: '\203A';
+            font-size: 18px;
+            line-height: 1;
         }
 
         @media (max-width: 992px) {
-            .solutions-carousel-layout {
-                flex-direction: column;
-            }
-
-            .carousel-nav {
-                width: 100%;
-            }
-
-            .carousel-content {
+            .unified-panel {
                 padding: 44px 32px;
+            }
+
+            .unified-title {
+                font-size: 30px;
+            }
+
+            .advantages-grid,
+            .products-card-grid {
+                grid-template-columns: 1fr;
             }
         }
 
         @media (max-width: 768px) {
-            .solutions-carousel-section {
-                padding: 72px 0 64px;
+            .unified-section {
+                padding: 0 0 64px;
             }
 
-            .carousel-nav-button {
-                padding: 18px 20px;
-            }
-
-            .carousel-nav-label {
-                font-size: 15px;
-            }
-
-            .carousel-content-title {
-                font-size: 26px;
-                margin-bottom: 22px;
-            }
-
-            .carousel-content {
+            .unified-panel {
                 padding: 32px 22px;
+            }
+
+            .unified-title {
+                font-size: 26px;
+                margin-bottom: 36px;
+            }
+
+            .solution-panel-text h3 {
+                font-size: 24px;
+            }
+
+            .solution-story-summary,
+            .panel-lead-text,
+            .panel-feature-list li,
+            .related-products-subtitle {
+                font-size: 16px;
+            }
+
+            .environment-step {
+                padding: 28px 0;
+            }
+
+            .advantage-card {
+                padding: 24px 20px 22px;
+            }
+
+            .product-item {
+                flex-direction: column;
+                min-height: 0;
+            }
+
+            .product-img-box {
+                width: 100%;
+                flex-basis: auto;
+                height: 220px;
+                border-right: none;
+                border-bottom: 1px solid #d8e4f0;
+            }
+
+            .product-img-box img {
+                height: 160px;
+            }
+
+            .product-info {
+                padding: 22px 20px 18px;
             }
         }
     </style>
@@ -465,140 +678,227 @@
             <div class="vs-container">
                 <div class="aero-breadcrumb">
                     <a href="../../index.html">首页</a> &gt; <a href="solutions-index.html">行业解决方案</a> &gt;
-                    <span>大气环境监测</span>
+                    <span>环境气体监测解决方案</span>
                 </div>
                 <div class="aero-hero-content">
-                    <h1>让空气监测更精准</h1>
-                    <p class="aero-subtitle">元芯传感大气环境监测解决方案</p>
+                    <h1>环境气体监测解决方案</h1>
+                    <p class="aero-subtitle">元芯传感智能环境气体监测方案</p>
                     <p class="aero-desc">
-                        围绕城市网格站、工业园区排放追踪与双碳监测场景，元芯传感以高稳定气体传感器和多维环境融合能力，提供可规模化部署、可长期稳定运行的大气环境监测底层方案。
+                        随着工业化进程的加速和城市化水平的提高，环境空气质量日益受到关注，各类有毒有害及可燃气体的排放与泄漏对生态环境和人体健康构成潜在威胁。湖南元芯传感科技有限责任公司凭借其领先的氢传感及多气体传感技术，结合先进的物联网平台，为您量身打造智能环境气体监测解决方案，致力于提供精准、实时、可追溯的环境气体数据，守护您所在的环境安全与健康。
                     </p>
                 </div>
             </div>
             <div class="aero-hero-image-wrapper">
                 <div class="aero-hero-image">
-                    <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1920"
-                        alt="大气环境监测解决方案">
+                    <img src="/cdn_assets/images/solutions/environment-gas-monitoring-solution.jpg"
+                        alt="环境气体监测解决方案">
                 </div>
             </div>
         </section>
 
-        <section class="solutions-carousel-section" id="solutions-carousel">
+        <section class="unified-section solution-story-section">
             <div class="vs-container">
-                <div class="solutions-carousel-layout">
-                    <div class="carousel-nav" role="tablist" aria-label="大气环境监测方案切换">
-                        <button class="carousel-nav-button active" type="button" onclick="goToCarousel(0)" aria-selected="true">
-                            <span class="carousel-nav-label">网格化空气质量站</span>
-                        </button>
-                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(1)" aria-selected="false">
-                            <span class="carousel-nav-label">工业园区无组织排放监测</span>
-                        </button>
-                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(2)" aria-selected="false">
-                            <span class="carousel-nav-label">碳中和与温室气体监测</span>
-                        </button>
-                        <button class="carousel-nav-button" type="button" onclick="goToCarousel(3)" aria-selected="false">
-                            <span class="carousel-nav-label">智慧气象与科研级传感</span>
-                        </button>
+                <div class="unified-panel solution-story-panel">
+                    <div class="solution-story-header">
+                        <span class="solution-story-kicker">方案设计</span>
+                        <h2 class="unified-title">从需求洞察到智能预警的一体化环境气体监测体系</h2>
+                        <p class="solution-story-summary">
+                            方案围绕需求识别、传感选型、系统部署与物联网闭环四个层面展开说明，帮助客户快速理解从前端感知到平台预警的完整建设路径。
+                        </p>
                     </div>
 
-                    <div class="carousel-content">
-                        <h2 class="carousel-content-title" id="solution-current-title">网格化空气质量站</h2>
-                        <div class="carousel-panels-wrapper">
-                        <div class="solution-panel active">
-                            <div class="solution-panel-img">
-                                <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=1200"
-                                    alt="Urban Air Quality">
-                            </div>
+                    <div class="environment-step-list">
+                        <article class="environment-step">
+                            <span class="environment-step-label">01 / 洞察需求，定制开发</span>
                             <div class="solution-panel-text">
-                                <h3>微型化网格空气质量站</h3>
-                                <p class="panel-desc-text">
-                                    传统的监测站体积大、造价高。元芯传感提供的微型监测终端，依靠高稳定性、抗干扰的碳基 MEMS 传感器，可实现 PM2.5, SO2, NO2, O3
-                                    等关键指标的高精度侦测。由于体积轻巧且支持太阳能供电，可轻松部署于城市路灯杆或公园路段，实现街道级的“网格化”精准画像。
+                                <h3>洞察需求，定制开发</h3>
+                                <p class="panel-lead-text">
+                                    我们深知每一个环境监测场景都独具特色，无论是工业园区的边界监测、化工厂的工艺气体泄漏预警、城市地下管廊的复合气体检测，还是智慧农业的温室气体控制，都对气体种类、量程、响应速度及部署方式有着特定要求。
+                                </p>
+                                <p class="panel-lead-text">
+                                    元芯传感秉持“以客户需求为核心”的理念，可根据项目目标、部署条件和预算约束，为客户量身设计监测对象、量程范围、响应性能和安装形态，帮助方案快速落地。
                                 </p>
                             </div>
-                        </div>
+                        </article>
 
-                        <div class="solution-panel">
-                            <div class="solution-panel-img">
-                                <img src="https://images.unsplash.com/photo-1516937622178-6555e3c469ae?auto=format&fit=crop&w=1200"
-                                    alt="Industrial Emission">
-                            </div>
+                        <article class="environment-step">
+                            <span class="environment-step-label">02 / 多维度气体检测能力</span>
                             <div class="solution-panel-text">
-                                <h3>工业园区无组织排放监测</h3>
-                                <p class="panel-desc-text">
-                                    在石化、制造等工业园区，监测“烟囱”外的无组织排放是环保工作的难点。元芯传感模组支持对低浓度 VOCs 和 H2S
-                                    的快速捕捉。结合风速风向仪和园区拓扑数学模型，系统能实时追踪污染物扩散路径，帮助管理部门快速定位泄露点或偷排源。
-                                </p>
+                                <h3>多维度气体检测能力</h3>
+                                <ul class="panel-feature-list">
+                                    <li><strong>多维度气体检测能力：</strong>除了我们在氢传感领域的卓越表现，我们还提供包括可燃气体（甲烷、丙烷等）、有毒气体（一氧化碳、硫化氢、氨气、挥发性有机物VOCs等）以及氧气、二氧化碳等多种关键环境气体的精准检测。</li>
+                                    <li><strong>覆盖典型环境风险点：</strong>适用于边界排放监测、工艺泄漏预警、密闭空间安全巡检和农业温室气体控制等多类环境场景。</li>
+                                </ul>
                             </div>
-                        </div>
+                        </article>
 
-                        <div class="solution-panel">
-                            <div class="solution-panel-img">
-                                <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200"
-                                    alt="Carbon Monitoring">
-                            </div>
+                        <article class="environment-step">
+                            <span class="environment-step-label">03 / 场景化选型与柔性架构</span>
                             <div class="solution-panel-text">
-                                <h3>碳中和与温室气体在线监测</h3>
-                                <p class="panel-desc-text">
-                                    实现“双碳”目标离不开摸清碳排放底数。元芯的高精度 NDIR 红外传感模组（如 CO2, CH4
-                                    传感器），具有极低的量程漂移和极长的免校准周期。无论是针对城市交通碳排放通量监测，还是针对湿地、森林的科研级碳汇观测，元芯都能提供可靠的底层硬件支持。
-                                </p>
+                                <h3>场景化选型与柔性架构</h3>
+                                <ul class="panel-feature-list">
+                                    <li><strong>场景化传感器选型：</strong>针对不同气体、浓度范围和环境条件，我们专业团队将为您匹配最适合的传感器类型（电化学、催化燃烧、半导体、红外等），确保最佳的监测性能与成本效益。</li>
+                                    <li><strong>柔性化系统架构：</strong>无论是固定式在线监测、移动式巡检，还是便携式应急检测，我们的方案均能灵活适应，满足您从点到面的全方位监测需求。</li>
+                                </ul>
                             </div>
-                        </div>
+                        </article>
 
-                        <div class="solution-panel">
-                            <div class="solution-panel-img">
-                                <img src="https://images.unsplash.com/photo-1558449028-s04a80695371?auto=format&fit=crop&w=1200"
-                                    alt="Smart Weather">
-                            </div>
+                        <article class="environment-step">
+                            <span class="environment-step-label">04 / 物联网赋能，智能监测新范式</span>
                             <div class="solution-panel-text">
-                                <h3>智慧气象与多维传感器融合</h3>
-                                <p class="panel-desc-text">
-                                    真正的环境监测是多维数据的融合。元芯的一体化环境感知模组，单芯片可集成温湿度、气压及多种气体感测。通过低通滤波和环境动态补偿算法，传感器可以在多变的气候条件下输出高置信度的数据，赋能智慧农业、无人驾驶及航空安全等前沿领域。
+                                <h3>物联网赋能，智能监测新范式</h3>
+                                <p class="panel-lead-text">
+                                    将元芯传感的精密气体传感技术与前沿物联网（IoT）技术深度融合，我们打造了一套集数据采集、传输、存储、分析与预警于一体的智能监测系统：
                                 </p>
+                                <ul class="panel-feature-list">
+                                    <li><strong>高可靠数据采集：</strong>搭载元芯高性能气体传感器模块的智能终端，可实现对目标气体浓度的连续、稳定、高精度采集。</li>
+                                    <li><strong>多模态数据传输：</strong>支持4G/5G、LoRa、NB-IoT、Wi-Fi、以太网等多种通信方式，确保监测数据能稳定、高效地传输至云平台。</li>
+                                    <li><strong>可视化智能云平台：</strong>提供直观友好的数据可视化界面，支持趋势分析、阈值告警、历史追溯与多点位统一管理。</li>
+                                </ul>
                             </div>
-                        </div>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="unified-section advantages-section">
+            <div class="vs-container">
+                <div class="unified-panel advantages-panel">
+                    <h2 class="unified-title">方案优势</h2>
+                    <div class="advantages-grid" id="solution-advantages-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="unified-section related-products-section">
+            <div class="vs-container">
+                <div class="unified-panel related-products-panel">
+                    <div class="related-products-head">
+                        <div class="related-products-copy">
+                            <h2 class="unified-title">相关产品</h2>
+                            <p class="related-products-subtitle" id="solution-related-products-subtitle">
+                                围绕当前环境气体监测方案，精选可直接配套的检测、报警、采集与现场部署产品组合。
+                            </p>
                         </div>
                     </div>
+                    <div class="products-card-grid" id="solution-related-products-grid"></div>
                 </div>
             </div>
         </section>
     </main>
 
     <script>
-        const carouselTitles = [
-            '网格化空气质量站',
-            '工业园区无组织排放监测',
-            '碳中和与温室气体监测',
-            '智慧气象与科研级传感'
+        const SOLUTION_CONFIG_ID = 'environment_gas_monitoring';
+        const advantageIconSvgs = [
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3v18h18v-2H5V3H3zm16 4l-4.5 4.5-3.5-3.5-5 5V15h2.5l2.5-2.5 3.5 3.5L20 9.5V7h-1z"/></svg>',
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-2V5h-2v2H8V5H6v2H4v2h2v6H4v2h2v2h2v-2h6v2h2v-2h2v-2h2v-6h-2V9h2V7zm-4 8H8V9h8v6z"/></svg>',
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M11 21h-1l1-7H7.5c-.6 0-1-.5-1-1 0-.2.1-.4.2-.6l4-9h1L11 9h3.5c.6 0 1 .5 1 1 0 .2-.1.4-.2.6l-4 10.4z"/></svg>'
         ];
-        let currentCarousel = 0;
+        const solutionAdvantages = [
+            { title: '多气体精准感知', desc: '覆盖可燃气体、有毒气体及氧气、二氧化碳等关键监测对象，适配复杂环境风险识别。' },
+            { title: '灵活部署扩展', desc: '支持固定式、移动式、便携式等多种部署形态，满足从单点到区域化监测的不同需求。' },
+            { title: '稳定数据链路', desc: '结合4G/5G、LoRa、NB-IoT、Wi-Fi、以太网等通信方式，实现稳定、可持续的数据上云。' },
+            { title: '可视化预警追溯', desc: '通过云平台实现趋势分析、告警联动与历史追溯，帮助管理者更高效地闭环处置环境风险。' }
+        ];
+        const fallbackRelatedProducts = [
+            { title: 'MC-GD-01型可燃气体检漏仪', image: '/cdn_assets/images/common/f1dcc87cdcca.png', summary: '适用于可燃气体快速排查与现场泄漏定位。', link: '/pages/gassensing/mc_gd_01.html' },
+            { title: 'MC-PGD-01型手持泵吸式可燃气体检测仪', image: '/cdn_assets/images/common/f1dcc87cdcca.png', summary: '适用于现场巡检、点位复核和可燃气体快速排查。', link: '/pages/gassensing/mc_pgd_01.html' },
+            { title: 'MC-PDR-01型便携式传感器采集模块', image: '/cdn_assets/images/common/f1dcc87cdcca.png', summary: '便于环境监测设备集成和多传感器数据采集扩展。', link: '/pages/gassensing/mc_pdr_01.html' },
+            { title: 'MC-TM-01型气体组分分析模块', image: '/cdn_assets/images/common/f1dcc87cdcca.png', summary: '适用于多组分气体分析与环境监测系统扩展。', link: '/pages/gassensing/mc_tm_01.html' }
+        ];
+        let solutionRelatedProductsMap = {};
 
-        function updateCarouselNavigation() {
-            const panels = document.querySelectorAll('.carousel-panels-wrapper > .solution-panel');
-            const buttons = document.querySelectorAll('.carousel-nav-button');
-            const title = document.getElementById('solution-current-title');
-            panels.forEach((panel, idx) => {
-                panel.classList.toggle('active', idx === currentCarousel);
-            });
-            buttons.forEach((button, idx) => {
-                const isActive = idx === currentCarousel;
-                button.classList.toggle('active', isActive);
-                button.setAttribute('aria-selected', isActive ? 'true' : 'false');
-            });
-            if (title) {
-                title.textContent = carouselTitles[currentCarousel] || '';
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function extractSummaryBullets(text) {
+            const raw = String(text || '').trim();
+            if (!raw) return [];
+            const byLine = raw.split('\n').map(s => s.trim()).filter(Boolean);
+            const source = byLine.length > 1 ? byLine : raw.split(/[。；;]+/).map(s => s.trim()).filter(Boolean);
+            return source.filter(Boolean).slice(0, 4);
+        }
+
+        function renderSolutionAdvantages() {
+            const grid = document.getElementById('solution-advantages-grid');
+            if (!grid) return;
+            grid.innerHTML = solutionAdvantages.map((item, idx) => `
+                <div class="advantage-card">
+                    <div class="advantage-icon-wrapper">${advantageIconSvgs[idx % advantageIconSvgs.length]}</div>
+                    <h4>${escapeHtml(item.title || '')}</h4>
+                    <p>${escapeHtml(item.desc || '')}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderSolutionRelatedProducts() {
+            const grid = document.getElementById('solution-related-products-grid');
+            if (!grid) return;
+
+            const list = (solutionRelatedProductsMap[SOLUTION_CONFIG_ID] && solutionRelatedProductsMap[SOLUTION_CONFIG_ID].length)
+                ? solutionRelatedProductsMap[SOLUTION_CONFIG_ID]
+                : fallbackRelatedProducts;
+
+            if (!list.length) {
+                grid.innerHTML = '<div style="grid-column:1 / -1; text-align:center; color:#667085;">当前方案暂无相关产品配置</div>';
+                return;
             }
+
+            grid.innerHTML = list.slice(0, 4).map((item) => {
+                const bullets = extractSummaryBullets(item.summary || item.desc || item.description || '');
+                const bulletHtml = bullets.length
+                    ? bullets.slice(0, 2).map(b => `<li>${escapeHtml(b)}</li>`).join('')
+                    : '<li>适配当前环境气体监测方案。</li>';
+                const title = item.title || item.name || item.id || '相关产品';
+                const link = item.link || '#';
+                const image = item.image || '/cdn_assets/images/common/f1dcc87cdcca.png';
+                return `
+                    <a href="${escapeHtml(link)}" class="product-item">
+                        <div class="product-img-box">
+                            <img src="${escapeHtml(image)}" alt="${escapeHtml(title)}">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-body">
+                                <h4>${escapeHtml(title)}</h4>
+                            </div>
+                            <ul class="product-list">${bulletHtml}</ul>
+                            <div class="product-footer">
+                                <span class="product-cta">查看详情</span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
         }
 
-        function goToCarousel(index) {
-            const panels = document.querySelectorAll('.carousel-panels-wrapper > .solution-panel');
-            if (index < 0 || index >= panels.length || index === currentCarousel) return;
-            currentCarousel = index;
-            updateCarouselNavigation();
+        async function loadHydrogenSolutionConfig() {
+            try {
+                const res = await fetch('/api/solutions/hydrogen/config');
+                const data = await res.json();
+                const map = {};
+                (data.solutions || []).forEach(item => {
+                    const sid = String(item.id || '').trim();
+                    if (!sid) return;
+                    map[sid] = Array.isArray(item.relatedProducts) ? item.relatedProducts.slice(0, 4) : [];
+                });
+                solutionRelatedProductsMap = map;
+            } catch (e) {
+                solutionRelatedProductsMap = {};
+            }
+            renderSolutionRelatedProducts();
         }
 
-        updateCarouselNavigation();
+        renderSolutionAdvantages();
+        renderSolutionRelatedProducts();
+        loadHydrogenSolutionConfig();
     </script>
 
 <!-- 全站搜索 -->
