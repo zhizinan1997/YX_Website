@@ -1700,6 +1700,75 @@
             line-height: 1.7;
         }
 
+        /* Manual Edit Section Cards */
+        .me-section-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .me-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a3556;
+            -webkit-user-select: none;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .me-section-header:hover { background: #eff6ff; }
+        .me-section-icon { color: #007bff; width: 18px; text-align: center; }
+        .me-section-caret { margin-left: auto; color: #6b7f9f; font-size: 12px; transition: transform 0.2s; }
+        .me-section-card.is-collapsed .me-section-caret { transform: rotate(-90deg); }
+        .me-section-body { padding: 18px 18px 12px; }
+        .me-section-card.is-collapsed .me-section-body { display: none; }
+
+        .me-row-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+            position: relative;
+        }
+        .me-row-card .me-row-del {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: none;
+            background: transparent;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+        .me-row-card .me-row-del:hover { background: #fee2e2; }
+        .me-row-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7f9f;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .me-image-preview {
+            width: 52px;
+            height: 52px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
         .message-card-header {
             padding: 16px 20px 0 20px;
         }
@@ -3164,6 +3233,9 @@
                 <div class="menu-item" data-view="backup" onclick="switchView('backup')">
                     <i class="fas fa-database"></i> 备份恢复
                 </div>
+                <div class="menu-item" data-view="cdn-assets" onclick="switchView('cdn-assets')">
+                    <i class="fas fa-cloud-upload-alt"></i> CDN 素材
+                </div>
                 <div class="menu-item" data-view="changelog" onclick="switchView('changelog')">
                     <i class="fas fa-clipboard-list"></i> 更新日志
                 </div>
@@ -3291,6 +3363,7 @@
                         <button class="tab-btn active" onclick="switchProductTab('add', this)">气体传感器产品管理</button>
                         <button class="tab-btn" onclick="switchProductTab('ai', this)">AI 自动上架 · 气体传感产品</button>
                         <button class="tab-btn" onclick="switchProductTab('industries', this)">领域分类</button>
+                        <button class="tab-btn" onclick="switchProductTab('manual-edit', this)">手动编辑产品页</button>
                     </div>
 
                     <!-- Add Product Tab -->
@@ -3421,6 +3494,153 @@
                             </p>
                             <div id="industryFilterEditor"></div>
                             <div id="industryAssignEditor" style="margin-top: 20px;"></div>
+                        </div>
+                    </div>
+
+                    <div id="product-tab-manual-edit" class="tab-content">
+                        <div class="card" style="padding:30px;">
+                            <h3 class="section-header">手动编辑产品页</h3>
+                            <p style="margin-bottom:16px; color:#667085; font-size:13px;">
+                                选择产品后，系统将提取各编辑区块（产品标题、亮点、产品详情、产品优势、主要应用、技术指标等），可直接修改后保存。
+                            </p>
+                            <div class="form-group">
+                                <label>选择产品</label>
+                                <select id="manualEditProductSelect" class="form-control">
+                                    <option value="">-- 请选择产品 --</option>
+                                </select>
+                            </div>
+                            <div id="manualEditFieldsContainer" style="display:none;">
+                                <!-- 1. 基本信息 -->
+                                <div class="me-section-card" id="me-section-basic">
+                                    <div class="me-section-header" onclick="meToggleSection('basic')">
+                                        <i class="fas fa-tag me-section-icon"></i>
+                                        <span>基本信息</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-basic"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-basic">
+                                        <div class="form-group">
+                                            <label>产品标题（h1）</label>
+                                            <input type="text" id="meFieldTitle" class="form-control" placeholder="产品标题">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>一句话描述（hero desc）</label>
+                                            <textarea id="meFieldDescription" class="form-control" rows="3" placeholder="一句话描述"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 2. 图片库 -->
+                                <div class="me-section-card" id="me-section-images">
+                                    <div class="me-section-header" onclick="meToggleSection('images')">
+                                        <i class="fas fa-images me-section-icon"></i>
+                                        <span>图片库</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-images"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-images">
+                                        <p style="font-size:13px;color:#667085;margin-bottom:12px;">每行一个图片URL，第一行为主图。支持CDN链接或本地路径。</p>
+                                        <div id="meImagesContainer"></div>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddImageRow()">+ 添加图片</button>
+                                    </div>
+                                </div>
+
+                                <!-- 3. 产品亮点 -->
+                                <div class="me-section-card" id="me-section-highlights">
+                                    <div class="me-section-header" onclick="meToggleSection('highlights')">
+                                        <i class="fas fa-star me-section-icon"></i>
+                                        <span>产品亮点（特点列表）</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-highlights"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-highlights">
+                                        <div id="meHighlightsContainer"></div>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddHighlightRow()">+ 添加亮点</button>
+                                    </div>
+                                </div>
+
+                                <!-- 4. 产品详情 -->
+                                <div class="me-section-card" id="me-section-detail">
+                                    <div class="me-section-header" onclick="meToggleSection('detail')">
+                                        <i class="fas fa-align-left me-section-icon"></i>
+                                        <span>产品详情</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-detail"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-detail">
+                                        <p style="font-size:13px;color:#667085;margin-bottom:8px;">支持多段，用空行分隔段落。</p>
+                                        <textarea id="meFieldDetail" class="form-control" rows="8" placeholder="产品详情文字"></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- 5. 产品优势 -->
+                                <div class="me-section-card" id="me-section-advantages">
+                                    <div class="me-section-header" onclick="meToggleSection('advantages')">
+                                        <i class="fas fa-shield-alt me-section-icon"></i>
+                                        <span>产品优势</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-advantages"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-advantages">
+                                        <div id="meAdvantagesContainer"></div>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddAdvantageRow()">+ 添加优势卡片</button>
+                                    </div>
+                                </div>
+
+                                <!-- 6. 主要应用 -->
+                                <div class="me-section-card" id="me-section-applications">
+                                    <div class="me-section-header" onclick="meToggleSection('applications')">
+                                        <i class="fas fa-th-large me-section-icon"></i>
+                                        <span>主要应用</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-applications"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-applications">
+                                        <div class="form-group">
+                                            <label>应用导语（小片段）</label>
+                                            <textarea id="meFieldAppIntro" class="form-control" rows="2" placeholder="主要应用小片段文字"></textarea>
+                                        </div>
+                                        <div id="meApplicationsContainer"></div>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddApplicationRow()">+ 添加应用卡片</button>
+                                    </div>
+                                </div>
+
+                                <!-- 7. 技术指标 -->
+                                <div class="me-section-card" id="me-section-specs">
+                                    <div class="me-section-header" onclick="meToggleSection('specs')">
+                                        <i class="fas fa-table me-section-icon"></i>
+                                        <span>技术指标表格</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-specs"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-specs">
+                                        <table style="width:100%; border-collapse:collapse; font-size:13px;" id="meSpecsTable">
+                                            <thead>
+                                                <tr style="background:#f1f5f9;">
+                                                    <th style="padding:8px 10px; border:1px solid #dde6ef; width:35%; text-align:left;">参数名</th>
+                                                    <th style="padding:8px 10px; border:1px solid #dde6ef; text-align:left;">参数值</th>
+                                                    <th style="padding:8px 10px; border:1px solid #dde6ef; width:50px; text-align:center;">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="meSpecsTableBody"></tbody>
+                                        </table>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddSpecRow()">+ 添加行</button>
+                                    </div>
+                                </div>
+
+                                <!-- 8. 相关新闻 -->
+                                <div class="me-section-card" id="me-section-news">
+                                    <div class="me-section-header" onclick="meToggleSection('news')">
+                                        <i class="fas fa-newspaper me-section-icon"></i>
+                                        <span>相关新闻</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-news"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-news">
+                                        <div id="meNewsContainer"></div>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddNewsRow()">+ 添加新闻条</button>
+                                    </div>
+                                </div>
+
+                                <!-- 保存按钮 -->
+                                <div style="margin-top:24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                                    <button type="button" id="manualEditSaveBtn" class="btn-primary" style="width:auto; padding:12px 24px;">保存修改</button>
+                                    <a id="manualEditPreviewLink" href="#" target="_blank" style="font-size:13px; color:#2563eb; display:none;">预览产品页 ↗</a>
+                                    <span id="manualEditMsg" style="font-size:13px; color:#2563eb;"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -5565,6 +5785,75 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             onclick="restoreFromBackup()">上传并恢复</button>
                         <div id="backupMsg" class="error-message" style="color: #28a745; margin-top: 10px;"></div>
                     </div>
+                </div>
+
+                <!-- CDN Assets View -->
+                <div id="view-cdn-assets" class="view-section">
+                    <div class="view-header">
+                        <h2>CDN 素材管理</h2>
+                    </div>
+                    <div class="cdn-assets-container">
+                        <div class="cdn-assets-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <div class="cdn-info-box" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <span style="font-size:13px;color:#888;">CDN 状态：</span>
+                                <span id="cdnStatusBadge" style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;"></span>
+                                <span id="cdnDomainDisplay" style="font-size:13px;color:#667085;"></span>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button type="button" class="btn" style="background:#334155;color:#fff;border:none;font-size:13px;padding:7px 14px;border-radius:6px;cursor:pointer;" onclick="cdnCreateFolder()">
+                                    <i class="fas fa-folder-plus"></i> 新建文件夹
+                                </button>
+                                <button type="button" class="btn btn-primary" style="font-size:13px;padding:7px 14px;border-radius:6px;" onclick="document.getElementById('cdnFileInput').click()">
+                                    <i class="fas fa-upload"></i> 上传文件
+                                </button>
+                                <input type="file" id="cdnFileInput" style="display: none;" onchange="handleCdnFileUpload(this)" multiple>
+                            </div>
+                        </div>
+
+                        <!-- Breadcrumb navigation -->
+                        <div id="cdnBreadcrumb" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:13px;margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.08);"></div>
+
+                        <div class="cdn-assets-stats" style="display:flex;gap:12px;margin-bottom:14px;">
+                            <div style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+                                <div style="font-size:12px;color:#888;">当前项目数</div>
+                                <div style="font-size:18px;font-weight:600;" id="cdnFileCount">0</div>
+                            </div>
+                            <div style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+                                <div style="font-size:12px;color:#888;">文件大小合计</div>
+                                <div style="font-size:18px;font-weight:600;" id="cdnTotalSize">0 KB</div>
+                            </div>
+                        </div>
+
+                        <div class="cdn-assets-table-container" style="overflow-x:auto;">
+                            <table class="data-table" style="width:100%;border-collapse:collapse;">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align:left;padding:10px 12px;">名称</th>
+                                        <th style="text-align:left;padding:10px 12px;width:80px;">类型</th>
+                                        <th style="text-align:left;padding:10px 12px;width:90px;">大小</th>
+                                        <th style="text-align:left;padding:10px 12px;width:150px;">修改时间</th>
+                                        <th style="text-align:center;padding:10px 12px;width:180px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cdnAssetsTableBody">
+                                    <tr class="empty-row">
+                                        <td colspan="5" style="text-align:center;padding:30px;color:#888;">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CDN Preview Modal -->
+                <div id="cdnPreviewOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);" onclick="closeCdnPreview(event)">
+                    <div style="position:absolute;top:12px;right:16px;display:flex;gap:10px;z-index:10002;">
+                        <span id="cdnPreviewFileName" style="color:#ccc;font-size:13px;line-height:36px;margin-right:8px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                        <button onclick="cdnPreviewCopyUrl()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;" title="复制链接"><i class="fas fa-link"></i> 复制链接</button>
+                        <button onclick="cdnPreviewDownload()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;" title="下载"><i class="fas fa-download"></i> 下载</button>
+                        <button onclick="closeCdnPreview()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;" title="关闭"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="cdnPreviewContent" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:60px 40px 40px;" onclick="event.stopPropagation()"></div>
                 </div>
 
                 <!-- Changelog View -->
@@ -8031,6 +8320,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'site-reports': '网站数据',
                 'settings': '账号设置',
                 'backup': '备份恢复',
+                'cdn-assets': 'CDN 素材',
                 'changelog': '更新日志'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
@@ -8063,6 +8353,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
             if (viewName === 'settings') loadSubAccounts();
             if (viewName === 'changelog') loadChangelog();
+            if (viewName === 'cdn-assets') loadCdnAssets();
 
             renderGuidesForView(viewName);
             if (isMobileAdminViewport()) {
@@ -9538,6 +9829,45 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        async function deleteProductItem(productId) {
+            if (!productId) return;
+            const product = (productsData || []).find(item => String(item?.id || '') === String(productId));
+            const productName = String(product?.name || productId);
+            const tbody = document.getElementById('productsTableBody');
+            const msgEl = tbody
+                ? Array.from(tbody.querySelectorAll('.product-code-action-msg')).find(el => String(el.dataset.id) === String(productId))
+                : null;
+
+            if (!await showGlobalConfirm(`确定删除产品“${productName}”吗？这会直接删除产品页面代码，且无法撤销。`)) {
+                return;
+            }
+
+            if (msgEl) {
+                msgEl.style.color = '#666';
+                msgEl.textContent = '删除中...';
+            }
+
+            try {
+                const res = await fetch('/api/products/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: productId })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || '删除失败');
+                }
+                await loadProducts();
+            } catch (e) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = e?.message || '删除失败';
+                } else {
+                    alert(e?.message || '删除失败');
+                }
+            }
+        }
+
         async function loadProducts() {
             const tbody = document.getElementById('productsTableBody');
             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">加载中...</td></tr>';
@@ -9615,6 +9945,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <div class="action-wrap">
                                 <button type="button" class="btn-sm product-download-code-btn" data-id="${pidEsc}">下载代码</button>
                                 <button type="button" class="btn-sm product-upload-code-btn" data-id="${pidEsc}">上传覆盖代码</button>
+                                <button type="button" class="btn-sm btn-danger product-delete-btn" data-id="${pidEsc}">删除产品</button>
                                 <input type="file" class="product-upload-code-file" data-id="${pidEsc}" accept=".html,text/html" style="display:none;">
                             </div>
                             <div class="product-code-action-msg" data-id="${pidEsc}" style="font-size:11px; color:#666; margin-top:6px;"></div>
@@ -9697,6 +10028,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         const pid = e.target.dataset.id;
                         await uploadProductCodeFile(pid, file);
                         e.target.value = '';
+                    });
+                });
+                tbody.querySelectorAll('.product-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        deleteProductItem(btn.dataset.id);
                     });
                 });
                 // Update menu preview
@@ -11145,6 +11481,365 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 renderTabGuide(tab);
                 if (tabName === 'add') bindProductCreateEvents();
                 if (tabName === 'ai') bindAiProductEvents();
+                if (tabName === 'manual-edit') initManualEditTab();
+            }
+        }
+
+        let manualEditInitialized = false;
+        let manualEditCurrentProductId = null;
+
+        function initManualEditTab() {
+            const sel = document.getElementById('manualEditProductSelect');
+            if (!sel) return;
+            if (!manualEditInitialized) {
+                manualEditInitialized = true;
+                sel.addEventListener('change', function() {
+                    if (this.value) loadManualEditSections(this.value);
+                    else document.getElementById('manualEditFieldsContainer').style.display = 'none';
+                });
+            }
+            // Populate dropdown from productsData (only gassensing products)
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- 请选择产品 --</option>';
+            (productsData || []).forEach(p => {
+                if (p.isBiosensing || p.isCustomization) return; // only gas sensing for now
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = (p.displayName || p.cardTitle || p.name || p.id) + '  (' + p.id + ')';
+                sel.appendChild(opt);
+            });
+            if (currentVal) sel.value = currentVal;
+        }
+
+        function meToggleSection(name) {
+            const card = document.getElementById('me-section-' + name);
+            if (!card) return;
+            card.classList.toggle('is-collapsed');
+        }
+
+        // ---- Image rows ----
+        function meRenderImages(images) {
+            const c = document.getElementById('meImagesContainer');
+            if (!c) return;
+            c.innerHTML = '';
+            (images || []).forEach((src, i) => meAddImageRow(src, i === 0));
+        }
+        function meAddImageRow(src, isFirst) {
+            const c = document.getElementById('meImagesContainer');
+            if (!c) return;
+            const row = document.createElement('div');
+            row.className = 'me-row-card';
+            row.style.cssText = 'display:flex; gap:10px; align-items:flex-start; padding:10px 12px;';
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'form-control me-image-input';
+            inp.value = src || '';
+            inp.placeholder = isFirst ? '主图 URL（第一张）' : '附图 URL';
+            inp.style.flex = '1';
+            const img = document.createElement('img');
+            img.className = 'me-image-preview';
+            img.src = src || '';
+            img.onerror = () => img.style.display = 'none';
+            img.style.display = src ? '' : 'none';
+            inp.addEventListener('input', () => { img.src = inp.value; img.style.display = inp.value ? '' : 'none'; });
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.textContent = '✕';
+            del.className = 'me-row-del';
+            del.style.cssText = 'position:static; margin-left:4px; align-self:center;';
+            del.onclick = () => row.remove();
+            row.appendChild(inp);
+            row.appendChild(img);
+            row.appendChild(del);
+            c.appendChild(row);
+        }
+        function meGetImages() {
+            return Array.from(document.querySelectorAll('#meImagesContainer .me-image-input'))
+                .map(el => el.value.trim()).filter(Boolean);
+        }
+
+        // ---- Highlight rows ----
+        function meRenderHighlights(items) {
+            const c = document.getElementById('meHighlightsContainer');
+            if (!c) return;
+            c.innerHTML = '';
+            (items || []).forEach(text => meAddHighlightRow(text));
+        }
+        function meAddHighlightRow(text) {
+            const c = document.getElementById('meHighlightsContainer');
+            if (!c) return;
+            const row = document.createElement('div');
+            row.className = 'me-row-card';
+            row.style.cssText = 'display:flex; gap:8px; align-items:center; padding:8px 10px;';
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'form-control me-highlight-input';
+            inp.value = text || '';
+            inp.placeholder = '亮点文案';
+            inp.style.flex = '1';
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.textContent = '✕';
+            del.className = 'me-row-del';
+            del.style.cssText = 'position:static; margin-left:4px;';
+            del.onclick = () => row.remove();
+            row.appendChild(inp);
+            row.appendChild(del);
+            c.appendChild(row);
+        }
+        function meGetHighlights() {
+            return Array.from(document.querySelectorAll('#meHighlightsContainer .me-highlight-input'))
+                .map(el => el.value.trim()).filter(Boolean);
+        }
+
+        // ---- Advantage rows ----
+        function meRenderAdvantages(items) {
+            const c = document.getElementById('meAdvantagesContainer');
+            if (!c) return;
+            c.innerHTML = '';
+            (items || []).forEach(item => meAddAdvantageRow(item));
+        }
+        function meAddAdvantageRow(item) {
+            const c = document.getElementById('meAdvantagesContainer');
+            if (!c) return;
+            item = item || {};
+            const row = document.createElement('div');
+            row.className = 'me-row-card';
+            row.innerHTML = `
+                <button type="button" class="me-row-del" onclick="this.closest('.me-row-card').remove()">✕</button>
+                <div style="display:grid; grid-template-columns:1fr 1fr 2fr; gap:10px; padding-right:30px;">
+                    <div>
+                        <span class="me-row-label">图标类名（FontAwesome）</span>
+                        <input type="text" class="form-control me-adv-icon" value="${escapeHtml(item.icon || '')}" placeholder="fas fa-check-circle">
+                    </div>
+                    <div>
+                        <span class="me-row-label">标题</span>
+                        <input type="text" class="form-control me-adv-title" value="${escapeHtml(item.title || '')}" placeholder="优势标题">
+                    </div>
+                    <div>
+                        <span class="me-row-label">描述</span>
+                        <textarea class="form-control me-adv-desc" rows="2" placeholder="优势描述">${escapeHtml(item.desc || '')}</textarea>
+                    </div>
+                </div>`;
+            c.appendChild(row);
+        }
+        function meGetAdvantages() {
+            return Array.from(document.querySelectorAll('#meAdvantagesContainer .me-row-card')).map(row => ({
+                icon: (row.querySelector('.me-adv-icon') || {}).value || '',
+                title: (row.querySelector('.me-adv-title') || {}).value || '',
+                desc: (row.querySelector('.me-adv-desc') || {}).value || '',
+            }));
+        }
+
+        // ---- Application rows ----
+        function meRenderApplications(items) {
+            const c = document.getElementById('meApplicationsContainer');
+            if (!c) return;
+            c.innerHTML = '';
+            (items || []).forEach(item => meAddApplicationRow(item));
+        }
+        function meAddApplicationRow(item) {
+            const c = document.getElementById('meApplicationsContainer');
+            if (!c) return;
+            item = item || {};
+            const row = document.createElement('div');
+            row.className = 'me-row-card';
+            row.innerHTML = `
+                <button type="button" class="me-row-del" onclick="this.closest('.me-row-card').remove()">✕</button>
+                <div style="display:grid; grid-template-columns:1fr 1fr 2fr 1fr; gap:10px; padding-right:30px;">
+                    <div>
+                        <span class="me-row-label">图标类名</span>
+                        <input type="text" class="form-control me-app-icon" value="${escapeHtml(item.icon || '')}" placeholder="fas fa-circle">
+                    </div>
+                    <div>
+                        <span class="me-row-label">标题</span>
+                        <input type="text" class="form-control me-app-title" value="${escapeHtml(item.title || '')}" placeholder="应用场景标题">
+                    </div>
+                    <div>
+                        <span class="me-row-label">描述</span>
+                        <textarea class="form-control me-app-desc" rows="2" placeholder="应用描述">${escapeHtml(item.desc || '')}</textarea>
+                    </div>
+                    <div>
+                        <span class="me-row-label">场景标签</span>
+                        <input type="text" class="form-control me-app-scenario" value="${escapeHtml(item.scenario || '')}" placeholder="场景文字">
+                    </div>
+                </div>`;
+            c.appendChild(row);
+        }
+        function meGetApplications() {
+            return Array.from(document.querySelectorAll('#meApplicationsContainer .me-row-card')).map(row => ({
+                icon: (row.querySelector('.me-app-icon') || {}).value || '',
+                title: (row.querySelector('.me-app-title') || {}).value || '',
+                desc: (row.querySelector('.me-app-desc') || {}).value || '',
+                scenario: (row.querySelector('.me-app-scenario') || {}).value || '',
+            }));
+        }
+
+        // ---- Spec rows ----
+        function meRenderSpecs(items) {
+            const tbody = document.getElementById('meSpecsTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            (items || []).forEach(row => meAddSpecRow(row));
+        }
+        function meAddSpecRow(item) {
+            const tbody = document.getElementById('meSpecsTableBody');
+            if (!tbody) return;
+            item = item || {};
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding:4px 6px; border:1px solid #dde6ef;">
+                    <input type="text" class="form-control me-spec-key" value="${escapeHtml(item.key || '')}" placeholder="参数名" style="padding:6px 8px; font-size:13px;">
+                </td>
+                <td style="padding:4px 6px; border:1px solid #dde6ef;">
+                    <input type="text" class="form-control me-spec-val" value="${escapeHtml(item.value || '')}" placeholder="参数值" style="padding:6px 8px; font-size:13px;">
+                </td>
+                <td style="padding:4px 6px; border:1px solid #dde6ef; text-align:center;">
+                    <button type="button" onclick="this.closest('tr').remove()" style="border:none;background:transparent;color:#dc3545;cursor:pointer;font-size:14px;">✕</button>
+                </td>`;
+            tbody.appendChild(tr);
+        }
+        function meGetSpecs() {
+            return Array.from(document.querySelectorAll('#meSpecsTableBody tr')).map(tr => ({
+                key: (tr.querySelector('.me-spec-key') || {}).value || '',
+                value: (tr.querySelector('.me-spec-val') || {}).value || '',
+            })).filter(r => r.key);
+        }
+
+        // ---- News rows ----
+        function meRenderNews(items) {
+            const c = document.getElementById('meNewsContainer');
+            if (!c) return;
+            c.innerHTML = '';
+            (items || []).forEach(item => meAddNewsRow(item));
+        }
+        function meAddNewsRow(item) {
+            const c = document.getElementById('meNewsContainer');
+            if (!c) return;
+            item = item || {};
+            const row = document.createElement('div');
+            row.className = 'me-row-card';
+            row.innerHTML = `
+                <button type="button" class="me-row-del" onclick="this.closest('.me-row-card').remove()">✕</button>
+                <div style="display:grid; grid-template-columns:2fr 2fr 3fr 3fr; gap:10px; padding-right:30px;">
+                    <div>
+                        <span class="me-row-label">新闻链接 (href)</span>
+                        <input type="text" class="form-control me-news-href" value="${escapeHtml(item.href || '')}" placeholder="/news/...">
+                    </div>
+                    <div>
+                        <span class="me-row-label">封面图 URL</span>
+                        <input type="text" class="form-control me-news-img" value="${escapeHtml(item.img || '')}" placeholder="图片URL">
+                    </div>
+                    <div>
+                        <span class="me-row-label">标题</span>
+                        <input type="text" class="form-control me-news-title" value="${escapeHtml(item.title || '')}" placeholder="新闻标题">
+                    </div>
+                    <div>
+                        <span class="me-row-label">摘要</span>
+                        <textarea class="form-control me-news-desc" rows="2" placeholder="新闻摘要">${escapeHtml(item.desc || '')}</textarea>
+                    </div>
+                </div>`;
+            c.appendChild(row);
+        }
+        function meGetNews() {
+            return Array.from(document.querySelectorAll('#meNewsContainer .me-row-card')).map(row => ({
+                href: (row.querySelector('.me-news-href') || {}).value || '',
+                img: (row.querySelector('.me-news-img') || {}).value || '',
+                title: (row.querySelector('.me-news-title') || {}).value || '',
+                desc: (row.querySelector('.me-news-desc') || {}).value || '',
+            })).filter(r => r.href || r.title);
+        }
+
+        // ---- Load / Save ----
+        async function loadManualEditSections(productId) {
+            manualEditCurrentProductId = productId;
+            const container = document.getElementById('manualEditFieldsContainer');
+            const msg = document.getElementById('manualEditMsg');
+            msg.textContent = '加载中...';
+            msg.style.color = '#2563eb';
+            container.style.display = 'block';
+            try {
+                const res = await fetch('/api/products/page-sections?id=' + encodeURIComponent(productId));
+                const data = await res.json();
+                if (!data.success) { msg.textContent = data.message || '加载失败'; msg.style.color = '#dc3545'; return; }
+                msg.textContent = '';
+                const sec = data.sections || {};
+
+                // Populate fields
+                const titleEl = document.getElementById('meFieldTitle');
+                const descEl = document.getElementById('meFieldDescription');
+                const detailEl = document.getElementById('meFieldDetail');
+                const appIntroEl = document.getElementById('meFieldAppIntro');
+                if (titleEl) titleEl.value = sec.title || '';
+                if (descEl) descEl.value = sec.description || '';
+                if (detailEl) detailEl.value = sec.detail || '';
+                if (appIntroEl) appIntroEl.value = sec.app_intro || '';
+
+                meRenderImages(sec.images || []);
+                meRenderHighlights(sec.highlights || []);
+                meRenderAdvantages(sec.advantages || []);
+                meRenderApplications(sec.applications || []);
+                meRenderSpecs(sec.specs || []);
+                meRenderNews(sec.news || []);
+
+                // Show empty notice for sections with no data
+                const missing = [];
+                if (!sec.advantages || !sec.advantages.length) missing.push('产品优势');
+                if (!sec.applications || !sec.applications.length) missing.push('主要应用');
+                if (!sec.specs || !sec.specs.length) missing.push('技术指标');
+                if (missing.length) {
+                    msg.textContent = '提示：以下区块在该产品页暂未找到对应结构，添加内容后保存可能无效：' + missing.join('、');
+                    msg.style.color = '#f59e0b';
+                }
+
+                // Preview link
+                const previewLink = document.getElementById('manualEditPreviewLink');
+                if (previewLink) {
+                    previewLink.href = '/pages/gassensing/' + productId + '.html';
+                    previewLink.style.display = '';
+                }
+
+                // Bind save
+                document.getElementById('manualEditSaveBtn').onclick = () => saveManualEditSections(productId);
+            } catch (e) {
+                msg.textContent = '加载失败: ' + e.message;
+                msg.style.color = '#dc3545';
+            }
+        }
+
+        async function saveManualEditSections(productId) {
+            const msg = document.getElementById('manualEditMsg');
+            msg.textContent = '保存中...';
+            msg.style.color = '#2563eb';
+            const sections = {
+                title: (document.getElementById('meFieldTitle') || {}).value || '',
+                description: (document.getElementById('meFieldDescription') || {}).value || '',
+                detail: (document.getElementById('meFieldDetail') || {}).value || '',
+                app_intro: (document.getElementById('meFieldAppIntro') || {}).value || '',
+                images: meGetImages(),
+                highlights: meGetHighlights(),
+                advantages: meGetAdvantages(),
+                applications: meGetApplications(),
+                specs: meGetSpecs(),
+                news: meGetNews(),
+            };
+            try {
+                const res = await fetch('/api/products/page-sections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId, sections }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    msg.textContent = '✓ 保存成功';
+                    msg.style.color = '#16a34a';
+                } else {
+                    msg.textContent = data.message || '保存失败';
+                    msg.style.color = '#dc3545';
+                }
+            } catch (e) {
+                msg.textContent = '保存失败: ' + e.message;
+                msg.style.color = '#dc3545';
             }
         }
 
@@ -15688,6 +16383,412 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 fileInput.value = '';
             }
         }
+    
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // --- CDN Assets Functions ---
+        let cdnAssetsData = [];
+        let cdnSettings = { cdn_enabled: false, cdn_domain: '' };
+        let cdnCurrentPath = '';
+
+        function loadCdnAssets(path) {
+            if (typeof path === 'string') cdnCurrentPath = path;
+            const qs = cdnCurrentPath ? `?path=${encodeURIComponent(cdnCurrentPath)}` : '';
+            fetch(`/api/cdn/assets/list${qs}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        cdnAssetsData = data.files || [];
+                        cdnSettings = data.cdn_settings || { cdn_enabled: false, cdn_domain: '' };
+                        cdnCurrentPath = data.current_path || '';
+                        renderCdnBreadcrumb(data.breadcrumb || []);
+                        renderCdnAssets();
+                        updateCdnStatus();
+                    } else {
+                        showGlobalAlert('加载CDN素材失败: ' + (data.message || '未知错误'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Load CDN assets error:', err);
+                    showGlobalAlert('加载CDN素材失败');
+                });
+        }
+
+        function renderCdnBreadcrumb(breadcrumb) {
+            const el = document.getElementById('cdnBreadcrumb');
+            if (!el) return;
+            let html = `<span style="cursor:pointer;color:#60a5fa;font-weight:600;" onclick="loadCdnAssets('')"><i class="fas fa-home" style="margin-right:3px;"></i>cdn_assets</span>`;
+            if (breadcrumb && breadcrumb.length) {
+                breadcrumb.forEach((item, i) => {
+                    html += `<span style="color:#666;margin:0 2px;">/</span>`;
+                    if (i < breadcrumb.length - 1) {
+                        html += `<span style="cursor:pointer;color:#60a5fa;" onclick="loadCdnAssets('${escapeHtml(item.path)}')">${escapeHtml(item.name)}</span>`;
+                    } else {
+                        html += `<span style="font-weight:600;">${escapeHtml(item.name)}</span>`;
+                    }
+                });
+            }
+            el.innerHTML = html;
+        }
+
+        function updateCdnStatus() {
+            const badge = document.getElementById('cdnStatusBadge');
+            const domainDisplay = document.getElementById('cdnDomainDisplay');
+            if (!badge) return;
+
+            if (cdnSettings.cdn_enabled && cdnSettings.cdn_domain) {
+                badge.textContent = '已启用';
+                badge.style.background = '#166534';
+                badge.style.color = '#4ade80';
+                domainDisplay.textContent = cdnSettings.cdn_domain;
+            } else {
+                badge.textContent = '未启用';
+                badge.style.background = '#44403c';
+                badge.style.color = '#a8a29e';
+                domainDisplay.textContent = '(使用本地路径)';
+            }
+        }
+
+        function renderCdnAssets() {
+            const tbody = document.getElementById('cdnAssetsTableBody');
+            const fileCountEl = document.getElementById('cdnFileCount');
+            const totalSizeEl = document.getElementById('cdnTotalSize');
+
+            if (!cdnAssetsData.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#888;">此目录为空</td></tr>';
+                fileCountEl.textContent = '0';
+                totalSizeEl.textContent = '0 KB';
+                return;
+            }
+
+            let totalSize = 0;
+            let html = '';
+
+            cdnAssetsData.forEach(file => {
+                if (file.type === 'file') totalSize += file.size;
+
+                const itemPath = cdnCurrentPath ? `${cdnCurrentPath}/${file.name}` : file.name;
+                const escapedPath = escapeHtml(itemPath);
+                const escapedName = escapeHtml(file.name);
+
+                html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.06);">';
+
+                // Name column
+                if (file.type === 'folder') {
+                    html += `<td style="padding:10px 12px;cursor:pointer;" onclick="loadCdnAssets('${escapedPath}')">
+                        <i class="fas fa-folder" style="color:#facc15;margin-right:6px;"></i>
+                        <span style="color:#60a5fa;text-decoration:underline;">${escapedName}</span>
+                        <span style="color:#888;font-size:12px;margin-left:6px;">(${file.children || 0} 项)</span>
+                    </td>`;
+                } else {
+                    const previewable = isCdnPreviewable(file.name);
+                    if (previewable) {
+                        html += `<td style="padding:10px 12px;cursor:pointer;" onclick="previewCdnFile('${escapedPath}', '${escapedName}')">
+                            <i class="fas ${getCdnFileIcon(file.name)}" style="color:#94a3b8;margin-right:6px;"></i>
+                            <span style="color:#60a5fa;">${escapedName}</span>
+                        </td>`;
+                    } else {
+                        html += `<td style="padding:10px 12px;">
+                            <i class="fas ${getCdnFileIcon(file.name)}" style="color:#94a3b8;margin-right:6px;"></i>
+                            ${escapedName}
+                        </td>`;
+                    }
+                }
+
+                // Type column
+                const typeLabel = file.type === 'folder' ? '文件夹' : getFileTypeLabel(file.name);
+                html += `<td style="padding:10px 12px;"><span style="font-size:12px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.06);">${typeLabel}</span></td>`;
+
+                // Size column
+                html += `<td style="padding:10px 12px;">${file.type === 'folder' ? '-' : formatFileSize(file.size)}</td>`;
+
+                // Modified column
+                html += `<td style="padding:10px 12px;font-size:12px;color:#888;">${file.modified}</td>`;
+
+                // Actions column
+                html += '<td style="padding:10px 12px;text-align:center;white-space:nowrap;">';
+                if (file.type === 'file') {
+                    if (isCdnPreviewable(file.name)) {
+                        html += `<button class="action-btn" onclick="previewCdnFile('${escapedPath}', '${escapedName}')" title="预览" style="padding:4px 8px;margin:0 2px;border:none;border-radius:4px;cursor:pointer;background:rgba(168,85,247,0.15);color:#a855f7;font-size:12px;"><i class="fas fa-eye"></i></button>`;
+                    }
+                    html += `<button class="action-btn primary" onclick="copyCdnUrl('${escapedPath}')" title="复制链接" style="padding:4px 8px;margin:0 2px;border:none;border-radius:4px;cursor:pointer;background:rgba(96,165,250,0.15);color:#60a5fa;font-size:12px;"><i class="fas fa-link"></i></button>`;
+                    html += `<button class="action-btn primary" onclick="downloadCdnFile('${escapedPath}')" title="下载" style="padding:4px 8px;margin:0 2px;border:none;border-radius:4px;cursor:pointer;background:rgba(96,165,250,0.15);color:#60a5fa;font-size:12px;"><i class="fas fa-download"></i></button>`;
+                }
+                html += `<button class="action-btn secondary" onclick="renameCdnFile('${escapedPath}', '${escapedName}')" title="重命名" style="padding:4px 8px;margin:0 2px;border:none;border-radius:4px;cursor:pointer;background:rgba(255,255,255,0.08);color:#ccc;font-size:12px;"><i class="fas fa-edit"></i></button>`;
+                html += `<button class="action-btn danger" onclick="deleteCdnFile('${escapedPath}', '${escapedName}')" title="删除" style="padding:4px 8px;margin:0 2px;border:none;border-radius:4px;cursor:pointer;background:rgba(239,68,68,0.15);color:#ef4444;font-size:12px;"><i class="fas fa-trash"></i></button>`;
+                html += '</td></tr>';
+            });
+
+            tbody.innerHTML = html;
+            fileCountEl.textContent = cdnAssetsData.length;
+            totalSizeEl.textContent = formatFileSize(totalSize);
+        }
+
+        function getCdnFileIcon(filename) {
+            const ext = (filename.split('.').pop() || '').toLowerCase();
+            const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+            const videoExts = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'];
+            const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md'];
+            if (imageExts.includes(ext)) return 'fa-file-image';
+            if (videoExts.includes(ext)) return 'fa-file-video';
+            if (docExts.includes(ext)) return 'fa-file-alt';
+            return 'fa-file';
+        }
+
+        function getFileTypeLabel(filename) {
+            return (filename.split('.').pop() || '').toUpperCase();
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function handleCdnFileUpload(input) {
+            const files = input.files;
+            if (!files.length) return;
+
+            let uploaded = 0;
+            let failed = 0;
+
+            Array.from(files).forEach(file => {
+                const formData = new FormData();
+                formData.append('file', file);
+                if (cdnCurrentPath) formData.append('path', cdnCurrentPath);
+
+                fetch('/api/cdn/assets/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) uploaded++;
+                    else failed++;
+                    if (uploaded + failed === files.length) {
+                        showGlobalAlert(failed === 0
+                            ? `成功上传 ${uploaded} 个文件`
+                            : `成功 ${uploaded} 个，失败 ${failed} 个`);
+                        loadCdnAssets();
+                        input.value = '';
+                    }
+                })
+                .catch(() => {
+                    failed++;
+                    if (uploaded + failed === files.length) {
+                        showGlobalAlert(`成功 ${uploaded} 个，失败 ${failed} 个`);
+                        loadCdnAssets();
+                        input.value = '';
+                    }
+                });
+            });
+        }
+
+        function cdnCreateFolder() {
+            const name = prompt('请输入文件夹名称：');
+            if (!name || !name.trim()) return;
+
+            fetch('/api/cdn/assets/mkdir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: cdnCurrentPath, name: name.trim() })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showGlobalAlert('文件夹创建成功');
+                    loadCdnAssets();
+                } else {
+                    showGlobalAlert('创建失败: ' + data.message);
+                }
+            })
+            .catch(() => showGlobalAlert('创建失败'));
+        }
+
+        function copyCdnUrl(filePath) {
+            fetch(`/api/cdn/assets/url?path=${encodeURIComponent(filePath)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        copyToClipboard(data.full_url);
+                        showGlobalAlert('链接已复制：' + data.full_url);
+                    } else {
+                        showGlobalAlert('获取链接失败: ' + data.message);
+                    }
+                })
+                .catch(() => showGlobalAlert('获取链接失败'));
+        }
+
+        function downloadCdnFile(filePath) {
+            window.location.href = `/api/cdn/assets/download/${encodeURIComponent(filePath)}`;
+        }
+
+        function renameCdnFile(filePath, oldName) {
+            const newName = prompt('请输入新名称：', oldName);
+            if (!newName || newName === oldName) return;
+
+            fetch('/api/cdn/assets/rename', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ old_path: filePath, new_name: newName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showGlobalAlert('重命名成功');
+                    loadCdnAssets();
+                } else {
+                    showGlobalAlert('重命名失败: ' + data.message);
+                }
+            })
+            .catch(() => showGlobalAlert('重命名失败'));
+        }
+
+        async function deleteCdnFile(filePath, name) {
+            const ok = await showGlobalConfirm(`确定要删除 "${name}" 吗？此操作不可恢复。`);
+            if (!ok) return;
+
+            fetch('/api/cdn/assets/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: filePath })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showGlobalAlert('删除成功');
+                    loadCdnAssets();
+                } else {
+                    showGlobalAlert('删除失败: ' + data.message);
+                }
+            })
+            .catch(() => showGlobalAlert('删除失败'));
+        }
+
+        // --- CDN Preview ---
+        let _cdnPreviewPath = '';
+
+        const _cdnImageExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico', 'avif'];
+        const _cdnVideoExts = ['mp4', 'webm', 'mov', 'ogg'];
+        const _cdnDocExts = ['pdf'];
+        const _cdnTextExts = ['txt', 'md', 'json', 'csv', 'xml', 'html', 'css', 'js', 'py', 'sh', 'log', 'yml', 'yaml'];
+
+        function isCdnPreviewable(filename) {
+            const ext = (filename.split('.').pop() || '').toLowerCase();
+            return _cdnImageExts.includes(ext) || _cdnVideoExts.includes(ext) || _cdnDocExts.includes(ext) || _cdnTextExts.includes(ext);
+        }
+
+        function _cdnFileCategory(filename) {
+            const ext = (filename.split('.').pop() || '').toLowerCase();
+            if (_cdnImageExts.includes(ext)) return 'image';
+            if (_cdnVideoExts.includes(ext)) return 'video';
+            if (_cdnDocExts.includes(ext)) return 'pdf';
+            if (_cdnTextExts.includes(ext)) return 'text';
+            return 'unknown';
+        }
+
+        function previewCdnFile(filePath, fileName) {
+            _cdnPreviewPath = filePath;
+            const overlay = document.getElementById('cdnPreviewOverlay');
+            const content = document.getElementById('cdnPreviewContent');
+            const nameEl = document.getElementById('cdnPreviewFileName');
+            if (!overlay || !content) return;
+
+            nameEl.textContent = fileName || filePath;
+            const url = `/cdn_assets/${filePath}`;
+            const category = _cdnFileCategory(fileName || filePath);
+
+            let html = '';
+            switch (category) {
+                case 'image':
+                    html = `<img src="${url}" alt="${escapeHtml(fileName)}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.4);user-select:none;" ondragstart="return false" />`;
+                    break;
+                case 'video':
+                    html = `<video src="${url}" controls autoplay style="max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.4);outline:none;"></video>`;
+                    break;
+                case 'pdf':
+                    html = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px;background:#fff;"></iframe>`;
+                    break;
+                case 'text':
+                    html = `<div id="cdnTextPreviewBox" style="width:100%;max-width:900px;max-height:100%;overflow:auto;background:#1e1e2e;color:#cdd6f4;padding:24px;border-radius:10px;font-family:'Fira Code',Consolas,Monaco,monospace;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;box-shadow:0 8px 32px rgba(0,0,0,0.4);"><span style="color:#888;">加载中...</span></div>`;
+                    break;
+                default:
+                    html = `<div style="text-align:center;color:#888;"><i class="fas fa-file" style="font-size:48px;margin-bottom:16px;display:block;"></i>此文件类型不支持预览</div>`;
+            }
+
+            content.innerHTML = html;
+            overlay.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', _cdnPreviewKeyHandler);
+
+            // Load text content async
+            if (category === 'text') {
+                fetch(url)
+                    .then(res => {
+                        if (!res.ok) throw new Error('加载失败');
+                        return res.text();
+                    })
+                    .then(text => {
+                        const box = document.getElementById('cdnTextPreviewBox');
+                        if (box) {
+                            // Truncate very large files
+                            const maxLen = 200000;
+                            let displayText = text.length > maxLen ? text.substring(0, maxLen) + '\n\n... (文件过大，仅显示前 200KB)' : text;
+                            box.textContent = displayText;
+                        }
+                    })
+                    .catch(() => {
+                        const box = document.getElementById('cdnTextPreviewBox');
+                        if (box) box.innerHTML = '<span style="color:#f38ba8;">加载失败</span>';
+                    });
+            }
+        }
+
+        function closeCdnPreview(event) {
+            if (event && event.target && event.target.id !== 'cdnPreviewOverlay') return;
+            const overlay = document.getElementById('cdnPreviewOverlay');
+            const content = document.getElementById('cdnPreviewContent');
+            if (overlay) overlay.style.display = 'none';
+            if (content) {
+                // Stop any playing video
+                const video = content.querySelector('video');
+                if (video) { video.pause(); video.src = ''; }
+                content.innerHTML = '';
+            }
+            document.body.style.overflow = '';
+            document.removeEventListener('keydown', _cdnPreviewKeyHandler);
+            _cdnPreviewPath = '';
+        }
+
+        function _cdnPreviewKeyHandler(e) {
+            if (e.key === 'Escape') closeCdnPreview();
+        }
+
+        function cdnPreviewCopyUrl() {
+            if (!_cdnPreviewPath) return;
+            copyCdnUrl(_cdnPreviewPath);
+        }
+
+        function cdnPreviewDownload() {
+            if (!_cdnPreviewPath) return;
+            downloadCdnFile(_cdnPreviewPath);
+        }
+
     </script>
 
 </body>

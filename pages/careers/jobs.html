@@ -746,6 +746,7 @@
 
 <!-- 全站搜索 -->
     <script src="../../assets/js/search.js"></script>
+    <script src="../../assets/js/public-turnstile.js"></script>
 
     <!-- AI智能客服 -->
     <script src="../../assets/js/chatbot.js"></script>
@@ -757,6 +758,14 @@
             const applyForm = document.getElementById('jobApplyForm');
             const applyMsg = document.getElementById('jobApplyMsg');
             const applySubmitBtn = document.getElementById('jobApplySubmitBtn');
+            const jobApplyTurnstile = window.createPublicTurnstileGuard ? window.createPublicTurnstileGuard({
+                form: applyForm,
+                mountBefore: applyMsg,
+                onError: function (message) {
+                    applyMsg.style.color = '#dc2626';
+                    applyMsg.textContent = message;
+                }
+            }) : null;
             if (!list || !applyModal || !applyForm) return;
 
             function escapeHtml(raw) {
@@ -768,6 +777,9 @@
             function closeApplyModal() {
                 applyModal.classList.remove('show');
                 applyModal.setAttribute('aria-hidden', 'true');
+                if (jobApplyTurnstile) {
+                    jobApplyTurnstile.reset();
+                }
             }
 
             function openApplyModal(jobId, jobTitle) {
@@ -779,6 +791,9 @@
                 applyMsg.style.color = '#6b7280';
                 applyModal.classList.add('show');
                 applyModal.setAttribute('aria-hidden', 'false');
+                if (jobApplyTurnstile) {
+                    jobApplyTurnstile.ensureReady();
+                }
             }
 
             // Toggle job details
@@ -867,6 +882,9 @@
                 applySubmitBtn.disabled = true;
                 try {
                     const formData = new FormData(applyForm);
+                    if (jobApplyTurnstile) {
+                        await jobApplyTurnstile.decoratePayload(formData);
+                    }
                     const res = await fetch('/api/job-application', {
                         method: 'POST',
                         body: formData
@@ -883,6 +901,9 @@
                     applyMsg.style.color = '#dc2626';
                     applyMsg.textContent = err?.message || '提交失败，请稍后重试';
                 } finally {
+                    if (jobApplyTurnstile) {
+                        jobApplyTurnstile.reset();
+                    }
                     applySubmitBtn.disabled = false;
                 }
             });
