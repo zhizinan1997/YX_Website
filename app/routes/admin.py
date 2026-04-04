@@ -45,6 +45,7 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'backup', 'label': '备份恢复'},
     {'key': 'changelog', 'label': '更新日志'},
     {'key': 'cdn-assets', 'label': 'CDN 素材'},
+    {'key': 'docker-logs', 'label': '后端日志'},
 ]
 ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
 USERNAME_RULE = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
@@ -185,6 +186,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'site-reports'
     if p.startswith('/api/admin/changelog'):
         return 'changelog'
+    if p.startswith('/api/admin/docker-logs'):
+        return 'docker-logs'
     if p.startswith('/api/cdn/assets'):
         return 'cdn-assets'
     if p.startswith('/api/backup/'):
@@ -1609,6 +1612,142 @@ def register_admin_routes(
     def admin_changelog():
         """Get current version/build info and recent update entries."""
         return jsonify(build_admin_changelog_payload(project_root=project_root))
+
+    @app.route('/api/admin/docker-logs')
+    @login_required
+    def admin_docker_logs():
+        """Get Docker container logs for the two backend containers.
+        Falls back to local log file when Docker is not available."""
+        container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
+        container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
+        lines = request.args.get('lines', default=200, type=int)
+        lines = max(10, min(lines, 1000))
+
+        def get_container_logs(container_name):
+            try:
+                result = subprocess.run(
+                    ['docker', 'logs', '--tail', str(lines), container_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                stdout = result.stdout or ''
+                stderr = result.stderr or ''
+                combined = (stdout + stderr).strip()
+                if not combined:
+                    return '暂无日志记录'
+                return combined
+            except subprocess.TimeoutExpired:
+                return '日志获取超时'
+            except FileNotFoundError:
+                return None
+            except Exception as e:
+                return f'获取日志失败: {str(e)}'
+
+        def get_local_log_lines():
+            try:
+                log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
+                if not log_file:
+                    log_file = os.path.join(project_root, 'data', 'app.log')
+                if not os.path.exists(log_file):
+                    fallback = os.path.join(project_root, 'app.log')
+                    if os.path.exists(fallback):
+                        log_file = fallback
+                    else:
+                        return None
+                with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
+                    all_lines = f.readlines()
+                tail_lines = all_lines[-lines:] if all_lines else []
+                return ''.join(tail_lines).strip() or None
+            except Exception:
+                return None
+
+        logs1 = get_container_logs(container1_name)
+        logs2 = get_container_logs(container2_name)
+
+        is_docker_available = logs1 is not None and logs2 is not None
+
+        if logs1 is None:
+            local_logs = get_local_log_lines()
+            if local_logs:
+                logs1 = f'[本地开发模式] Flask 应用日志:\n{local_logs}'
+            else:
+                logs1 = '暂无日志记录（当前为本地开发模式，日志文件尚未生成）'
+
+        if logs2 is None:
+            if is_docker_available:
+                logs2 = '暂无 Nginx 日志记录'
+            else:
+                logs2 = '[本地开发模式] Nginx 日志仅在 Docker 部署时可用'
+
+        return jsonify({
+            'container1': {
+                'name': container1_name,
+                'logs': logs1
+            },
+            'container2': {
+                'name': container2_name,
+                'logs': logs2
+            }
+        })
+
+    @app.route('/api/admin/docker-logs/clear', methods=['POST'])
+    @login_required
+    def admin_docker_logs_clear():
+        """Clear Docker container logs or local log file."""
+        try:
+            data = request.get_json() or {}
+            container = data.get('container', 'all')
+            
+            def clear_container_logs(container_name):
+                try:
+                    subprocess.run(
+                        ['docker', 'logs', '--truncate', container_name],
+                        capture_output=True,
+                        timeout=10,
+                    )
+                    return True
+                except Exception:
+                    return False
+            
+            def clear_local_log():
+                try:
+                    log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
+                    if not log_file:
+                        log_file = os.path.join(project_root, 'data', 'app.log')
+                    if os.path.exists(log_file):
+                        open(log_file, 'w').close()
+                        return True
+                    fallback = os.path.join(project_root, 'app.log')
+                    if os.path.exists(fallback):
+                        open(fallback, 'w').close()
+                        return True
+                    return False
+                except Exception:
+                    return False
+            
+            container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
+            container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
+            
+            docker_available = True
+            try:
+                subprocess.run(['docker', 'ps'], capture_output=True, timeout=5)
+            except FileNotFoundError:
+                docker_available = False
+            except Exception:
+                docker_available = False
+            
+            if docker_available:
+                if container == 'all' or container == 'container1':
+                    clear_container_logs(container1_name)
+                if container == 'all' or container == 'container2':
+                    clear_container_logs(container2_name)
+            else:
+                clear_local_log()
+            
+            return jsonify({'success': True, 'message': '日志已清除'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/changelog/latest')
     def public_changelog_latest():

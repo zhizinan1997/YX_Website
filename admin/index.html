@@ -2304,8 +2304,315 @@
             font-size: 14px;
         }
 
+        .docker-logs-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .docker-logs-hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 22px 26px 18px;
+            border-bottom: 1px solid #e8edf5;
+            background: linear-gradient(135deg, #f0f6ff 0%, #fafcff 100%);
+        }
+
+        .docker-logs-hero-left {}
+
+        .docker-logs-kicker {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #007bff;
+            margin-bottom: 6px;
+        }
+
+        .docker-logs-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f2f5f;
+            margin-bottom: 4px;
+        }
+
+        .docker-logs-subtitle {
+            font-size: 13px;
+            color: #5a6e85;
+        }
+
+        .docker-logs-refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .docker-logs-refresh-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 51, 102, 0.25);
+        }
+
+        .docker-logs-refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .docker-logs-tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 26px;
+            border-bottom: 2px solid #e8edf5;
+            background: #fff;
+        }
+
+        .docker-logs-tab {
+            padding: 14px 24px;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .docker-logs-tab:hover {
+            color: #0f2f5f;
+            background: #f5f8ff;
+        }
+
+        .docker-logs-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .docker-logs-content {
+            display: none;
+            padding: 0;
+        }
+
+        .docker-logs-content.active {
+            display: block;
+        }
+
+        .docker-logs-output {
+            margin: 16px 26px 20px;
+            background: #1a1e24;
+            border-radius: 10px;
+            border: 1px solid #2d3440;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .docker-logs-output-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #252a32;
+            border-bottom: 1px solid #2d3440;
+        }
+
+        .docker-logs-output-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #8b95a5;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .docker-logs-output-body {
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            color: #d4d8e0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar-track {
+            background: #252a32;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar-thumb {
+            background: #3d4555;
+            border-radius: 4px;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar-thumb:hover {
+            background: #4d5565;
+        }
+
+        .docker-logs-empty {
+            padding: 40px 26px;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .docker-logs-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 26px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e8edf5;
+            flex-wrap: wrap;
+        }
+
+        .docker-logs-toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .docker-logs-toolbar-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .docker-logs-date-input {
+            padding: 6px 10px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #334155;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .docker-logs-date-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .docker-logs-toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            background: #d1d9e6;
+            border-radius: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .docker-logs-toggle.active {
+            background: #dc3545;
+        }
+
+        .docker-logs-toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .docker-logs-toggle.active::after {
+            transform: translateX(18px);
+        }
+
+        .docker-logs-clear-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: #fff;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .docker-logs-clear-btn:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .docker-logs-clear-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .docker-logs-filter-info {
+            font-size: 11px;
+            color: #94a3b8;
+            padding: 6px 26px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e8edf5;
+            display: none;
+        }
+
+        .docker-logs-filter-info.visible {
+            display: block;
+        }
+
+        .docker-logs-error-line {
+            color: #f87171;
+        }
+
+        .docker-logs-warning-line {
+            color: #fbbf24;
+        }
+
+        .docker-logs-info-line {
+            color: #60a5fa;
+        }
+
         .site-report-card {
             padding: 22px;
+        }
+
+        .site-report-alert {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            background: #fef3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .site-report-alert i {
+            color: #d39e00;
+            font-size: 14px;
         }
 
         .metric-with-help {
@@ -3238,6 +3545,9 @@
                 </div>
                 <div class="menu-item" data-view="changelog" onclick="switchView('changelog')">
                     <i class="fas fa-clipboard-list"></i> 更新日志
+                </div>
+                <div class="menu-item" data-view="docker-logs" onclick="switchView('docker-logs')">
+                    <i class="fas fa-server"></i> 后端日志
                 </div>
                 <div class="menu-item" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
@@ -5468,6 +5778,7 @@
 
                     <div class="card site-report-card" style="margin-top: 18px;">
                         <h3 class="section-header"><i class="fas fa-map-marked-alt" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源地图（中国按省 / 海外按洲）</h3>
+                        <div class="site-report-alert"><i class="fas fa-exclamation-triangle"></i> 提示：如短期内出现大量国外访问，请留意是否为网络攻击，及时处理。</div>
                         <div class="geo-map-layout">
                             <div class="world-map-panel">
                                 <div class="map-panel-header">
@@ -5599,6 +5910,33 @@
                                 <button type="button" class="site-report-page-btn" id="siteReportProvinceNextBtn"
                                     onclick="changeSiteReportProvincePage(1)">下一页</button>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card site-report-card">
+                        <h3 class="section-header">国家分布</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>国家</th>
+                                        <th>会话数</th>
+                                        <th>占比</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="siteReportCountryBody">
+                                    <tr>
+                                        <td colspan="3" class="no-data">暂无数据</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="site-report-pagination">
+                            <button type="button" class="site-report-page-btn" id="siteReportCountryPrevBtn"
+                                onclick="changeSiteReportCountryPage(-1)">上一页</button>
+                            <span class="site-report-page-info" id="siteReportCountryPageInfo">第 0 / 0 页</span>
+                            <button type="button" class="site-report-page-btn" id="siteReportCountryNextBtn"
+                                onclick="changeSiteReportCountryPage(1)">下一页</button>
                         </div>
                     </div>
 
@@ -5892,6 +6230,71 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     </div>
                 </div>
 
+                <!-- Docker Logs View -->
+                <div id="view-docker-logs" class="view-section">
+                    <div class="card docker-logs-card">
+                        <div class="docker-logs-hero">
+                            <div class="docker-logs-hero-left">
+                                <div class="docker-logs-kicker">Docker Logs</div>
+                                <h3 class="docker-logs-title">后端日志</h3>
+                                <p class="docker-logs-subtitle">查看 Docker 容器运行日志，支持两个后端服务。</p>
+                            </div>
+                            <button type="button" class="docker-logs-refresh-btn" id="dockerLogsRefreshBtn"
+                                onclick="loadDockerLogs(true)">
+                                <i class="fas fa-sync-alt"></i> 刷新日志
+                            </button>
+                        </div>
+
+                        <div class="docker-logs-tabs">
+                            <button type="button" class="docker-logs-tab active" data-tab="container1" onclick="switchDockerLogsTab('container1')">
+                                <i class="fas fa-box"></i> <span id="dockerLogsTab1Label">应用服务</span>
+                            </button>
+                            <button type="button" class="docker-logs-tab" data-tab="container2" onclick="switchDockerLogsTab('container2')">
+                                <i class="fas fa-box"></i> <span id="dockerLogsTab2Label">Nginx 服务</span>
+                            </button>
+                        </div>
+
+                        <div class="docker-logs-toolbar">
+                            <div class="docker-logs-toolbar-group">
+                                <span class="docker-logs-toolbar-label"><i class="fas fa-calendar"></i> 日期筛选</span>
+                                <input type="date" class="docker-logs-date-input" id="dockerLogsDateFilter" onchange="applyDockerLogsFilter()">
+                            </div>
+                            <div class="docker-logs-toolbar-group">
+                                <span class="docker-logs-toolbar-label">仅错误</span>
+                                <div class="docker-logs-toggle" id="dockerLogsErrorToggle" onclick="toggleDockerLogsErrorFilter()"></div>
+                            </div>
+                            <span id="dockerLogsFilterInfo" class="docker-logs-filter-info"></span>
+                            <button type="button" class="docker-logs-clear-btn" id="dockerLogsClearBtn" onclick="clearDockerLogs()">
+                                <i class="fas fa-trash-alt"></i> 清除日志
+                            </button>
+                        </div>
+
+                        <div id="dockerLogsContent1" class="docker-logs-content active">
+                            <div id="dockerLogsOutput1" class="docker-logs-output" style="display:none;">
+                                <div class="docker-logs-output-header">
+                                    <span class="docker-logs-output-title" id="dockerLogsTitle1">应用服务日志</span>
+                                </div>
+                                <div class="docker-logs-output-body" id="dockerLogsBody1"></div>
+                            </div>
+                            <div id="dockerLogsEmpty1" class="docker-logs-empty">
+                                <i class="fas fa-spinner fa-spin"></i> 正在加载日志...
+                            </div>
+                        </div>
+
+                        <div id="dockerLogsContent2" class="docker-logs-content">
+                            <div id="dockerLogsOutput2" class="docker-logs-output" style="display:none;">
+                                <div class="docker-logs-output-header">
+                                    <span class="docker-logs-output-title" id="dockerLogsTitle2">Nginx 服务日志</span>
+                                </div>
+                                <div class="docker-logs-output-body" id="dockerLogsBody2"></div>
+                            </div>
+                            <div id="dockerLogsEmpty2" class="docker-logs-empty">
+                                <i class="fas fa-spinner fa-spin"></i> 正在加载日志...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -5953,7 +6356,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             { key: 'site-settings', label: '站点设置' },
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
-            { key: 'changelog', label: '更新日志' }
+            { key: 'changelog', label: '更新日志' },
+            { key: 'docker-logs', label: '后端日志' }
         ];
         let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
         let currentAdminAuth = {
@@ -5965,11 +6369,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let siteReportsLoading = false;
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
+        const SITE_REPORT_COUNTRY_PAGE_SIZE = 8;
         let siteReportEventRowsAll = [];
         let siteReportProvinceRowsAll = [];
+        let siteReportCountryRowsAll = [];
         let siteReportRecentRowsAll = [];
         let siteReportEventPage = 1;
         let siteReportProvincePage = 1;
+        let siteReportCountryPage = 1;
         let siteReportRecentPage = 1;
         const SITE_REPORT_OS_META = {
             windows: { label: 'Windows', icon: 'fab fa-windows' },
@@ -7152,6 +7559,196 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        let dockerLogsData = null;
+
+        function switchDockerLogsTab(tabName) {
+            document.querySelectorAll('.docker-logs-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            document.getElementById('dockerLogsContent1').classList.toggle('active', tabName === 'container1');
+            document.getElementById('dockerLogsContent2').classList.toggle('active', tabName === 'container2');
+        }
+
+        function setDockerLogsLoading(isLoading) {
+            const btn = document.getElementById('dockerLogsRefreshBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-sync-alt fa-spin"></i> 刷新中...'
+                : '<i class="fas fa-sync-alt"></i> 刷新日志';
+        }
+
+        function renderDockerLogs(data) {
+            if (!data) return;
+            dockerLogsData = data;
+
+            const container1 = data.container1 || {};
+            const container2 = data.container2 || {};
+
+            const tab1Label = document.getElementById('dockerLogsTab1Label');
+            const tab2Label = document.getElementById('dockerLogsTab2Label');
+            if (tab1Label) tab1Label.textContent = container1.name || '应用服务';
+            if (tab2Label) tab2Label.textContent = container2.name || 'Nginx 服务';
+
+            const title1 = document.getElementById('dockerLogsTitle1');
+            const title2 = document.getElementById('dockerLogsTitle2');
+            if (title1) title1.textContent = `${container1.name || '应用服务'} 日志`;
+            if (title2) title2.textContent = `${container2.name || 'Nginx 服务'} 日志`;
+
+            renderDockerLogContent('1', container1.logs || '暂无日志');
+            renderDockerLogContent('2', container2.logs || '暂无日志');
+            updateDockerLogsFilterInfo();
+        }
+
+        function renderDockerLogContent(num, logs) {
+            const output = document.getElementById(`dockerLogsOutput${num}`);
+            const empty = document.getElementById(`dockerLogsEmpty${num}`);
+            const body = document.getElementById(`dockerLogsBody${num}`);
+
+            if (!output || !empty || !body) return;
+
+            if (logs && logs !== '暂无日志' && logs !== '日志获取超时' && !logs.startsWith('获取日志失败')) {
+                empty.style.display = 'none';
+                output.style.display = 'block';
+                body.textContent = logs;
+                body.scrollTop = body.scrollHeight;
+            } else {
+                empty.style.display = 'block';
+                output.style.display = 'none';
+                empty.innerHTML = `<i class="fas fa-info-circle"></i> ${logs || '暂无日志记录'}`;
+            }
+        }
+
+        function toggleDockerLogsErrorFilter() {
+            const toggle = document.getElementById('dockerLogsErrorToggle');
+            if (toggle) {
+                toggle.classList.toggle('active');
+                applyDockerLogsFilter();
+            }
+        }
+
+        function applyDockerLogsFilter() {
+            if (!dockerLogsData) return;
+            const dateFilter = document.getElementById('dockerLogsDateFilter')?.value;
+            const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
+            
+            const container1 = dockerLogsData.container1 || {};
+            const container2 = dockerLogsData.container2 || {};
+            
+            let logs1 = container1.logs || '';
+            let logs2 = container2.logs || '';
+            
+            if (errorOnly) {
+                logs1 = filterErrorLogs(logs1);
+                logs2 = filterErrorLogs(logs2);
+            }
+            
+            if (dateFilter) {
+                logs1 = filterLogsByDate(logs1, dateFilter);
+                logs2 = filterLogsByDate(logs2, dateFilter);
+            }
+            
+            renderDockerLogContent('1', logs1 || '暂无日志');
+            renderDockerLogContent('2', logs2 || '暂无日志');
+            updateDockerLogsFilterInfo();
+        }
+
+        function filterErrorLogs(logs) {
+            if (!logs) return '';
+            const lines = logs.split('\n');
+            const errorPatterns = [
+                /\b(ERROR|FATAL|CRITICAL|Exception|Traceback|Error)\b/i,
+                /\b\d{4}-\d{2}-\d{2}.*\[(ERROR|FATAL|WARNING)\]/i
+            ];
+            return lines.filter(line => errorPatterns.some(p => p.test(line))).join('\n');
+        }
+
+        function filterLogsByDate(logs, date) {
+            if (!logs || !date) return logs;
+            const lines = logs.split('\n');
+            const datePattern = new RegExp(`^${date.replace(/-/g, '[/-]')}`);
+            return lines.filter(line => datePattern.test(line)).join('\n');
+        }
+
+        function updateDockerLogsFilterInfo() {
+            const dateFilter = document.getElementById('dockerLogsDateFilter')?.value;
+            const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
+            const info = document.getElementById('dockerLogsFilterInfo');
+            if (!info) return;
+            
+            const parts = [];
+            if (dateFilter) {
+                parts.push(`日期: ${dateFilter}`);
+            }
+            if (errorOnly) {
+                parts.push('仅显示错误日志');
+            }
+            
+            if (parts.length > 0) {
+                info.textContent = `筛选条件: ${parts.join(' | ')}`;
+                info.classList.add('visible');
+            } else {
+                info.classList.remove('visible');
+            }
+        }
+
+        async function clearDockerLogs() {
+            if (!confirm('确定要清除所有日志文件吗？此操作不可恢复！')) return;
+            
+            const btn = document.getElementById('dockerLogsClearBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 清除中...';
+            }
+            
+            try {
+                const res = await fetch('/api/admin/docker-logs/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('日志已清除');
+                    loadDockerLogs(true);
+                } else {
+                    alert('清除失败: ' + (data.message || '未知错误'));
+                }
+            } catch (err) {
+                alert('清除失败: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-trash-alt"></i> 清除日志';
+                }
+            }
+        }
+
+        async function loadDockerLogs(manual = false) {
+            setDockerLogsLoading(true);
+            try {
+                const res = await fetch('/api/admin/docker-logs?lines=200', { cache: 'no-store' });
+                if (!res.ok) {
+                    renderDockerLogs({
+                        container1: { name: '应用服务', logs: `请求失败: ${res.status}` },
+                        container2: { name: 'Nginx 服务', logs: `请求失败: ${res.status}` }
+                    });
+                    return;
+                }
+                const data = await res.json();
+                renderDockerLogs(data);
+            } catch (err) {
+                console.warn('Load docker logs failed:', err);
+                renderDockerLogs({
+                    container1: { name: '应用服务', logs: `加载失败: ${err.message}` },
+                    container2: { name: 'Nginx 服务', logs: `加载失败: ${err.message}` }
+                });
+            } finally {
+                setDockerLogsLoading(false);
+            }
+        }
+
         function formatSiteReportNumber(value) {
             const num = Number(value || 0);
             if (!Number.isFinite(num)) return '0';
@@ -7257,6 +7854,96 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 澳门特别行政区: '澳门特别行政区'
             };
             return provinceMap[value] || value;
+        }
+
+        function normalizeCountryName(rawValue) {
+            const value = String(rawValue || '').trim();
+            if (!value) return '';
+            const countryMap = {
+                'China': '中国',
+                'United States': '美国',
+                'United Kingdom': '英国',
+                'Japan': '日本',
+                'Germany': '德国',
+                'France': '法国',
+                'Russia': '俄罗斯',
+                'Canada': '加拿大',
+                'Australia': '澳大利亚',
+                'Brazil': '巴西',
+                'India': '印度',
+                'South Korea': '韩国',
+                'Italy': '意大利',
+                'Spain': '西班牙',
+                'Mexico': '墨西哥',
+                'Netherlands': '荷兰',
+                'Singapore': '新加坡',
+                'Hong Kong': '香港',
+                'Taiwan': '台湾',
+                'Macao': '澳门',
+                'Turkey': '土耳其',
+                'Indonesia': '印度尼西亚',
+                'Switzerland': '瑞士',
+                'Poland': '波兰',
+                'Sweden': '瑞典',
+                'Belgium': '比利时',
+                'Argentina': '阿根廷',
+                'Austria': '奥地利',
+                'Norway': '挪威',
+                'Israel': '以色列',
+                'Ireland': '爱尔兰',
+                'Denmark': '丹麦',
+                'Finland': '芬兰',
+                'Vietnam': '越南',
+                'Thailand': '泰国',
+                'Malaysia': '马来西亚',
+                'Philippines': '菲律宾',
+                'Pakistan': '巴基斯坦',
+                'Bangladesh': '孟加拉国',
+                'Egypt': '埃及',
+                'South Africa': '南非',
+                'Nigeria': '尼日利亚',
+                'Kenya': '肯尼亚',
+                'Morocco': '摩洛哥',
+                'United Arab Emirates': '阿联酋',
+                'Saudi Arabia': '沙特阿拉伯',
+                'Iran': '伊朗',
+                'Iraq': '伊拉克',
+                'Ukraine': '乌克兰',
+                'Romania': '罗马尼亚',
+                'Czech Republic': '捷克',
+                'Portugal': '葡萄牙',
+                'Greece': '希腊',
+                'Hungary': '匈牙利',
+                'Chile': '智利',
+                'Colombia': '哥伦比亚',
+                'Peru': '秘鲁',
+                'New Zealand': '新西兰',
+                'Kazakhstan': '哈萨克斯坦',
+                'Uzbekistan': '乌兹别克斯坦',
+                'Pakistan': '巴基斯坦',
+                'Nepal': '尼泊尔',
+                'Sri Lanka': '斯里兰卡',
+                'Myanmar': '缅甸',
+                'Cambodia': '柬埔寨',
+                'Laos': '老挝',
+                'Mongolia': '蒙古',
+                'North Korea': '朝鲜',
+                ' Belarus': '白俄罗斯',
+                'Slovakia': '斯洛伐克',
+                'Bulgaria': '保加利亚',
+                'Serbia': '塞尔维亚',
+                'Croatia': '克罗地亚',
+                'Slovenia': '斯洛文尼亚',
+                'Lithuania': '立陶宛',
+                'Latvia': '拉脱维亚',
+                'Estonia': '爱沙尼亚',
+                'Luxembourg': '卢森堡',
+                'Iceland': '冰岛',
+                'Malta': '马耳他',
+                'Cyprus': '塞浦路斯'
+            };
+            if (countryMap[value]) return countryMap[value];
+            return value;
         }
 
         function getSiteReportMapColor(value, maxValue) {
@@ -7813,19 +8500,72 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const type = String(rawType || '').trim().toLowerCase();
             const map = {
                 page_view: '页面浏览',
+                pageview: '页面浏览',
                 scroll_depth: '滚动深度',
                 engaged_15s: '停留 15 秒',
+                engaged_30s: '停留 30 秒',
+                engaged_60s: '停留 60 秒',
                 click_link: '点击链接',
                 click_button: '点击按钮',
+                click: '点击',
                 contact_submit: '提交联系表单',
+                contact_form: '联系表单',
                 job_apply: '提交招聘申请',
+                job_form: '招聘申请',
                 form_submit: '提交表单',
+                form_start: '开始填写表单',
                 phone_click: '点击电话',
+                phone_view: '查看电话',
                 email_click: '点击邮箱',
+                email_view: '查看邮箱',
                 quote_request: '提交询价',
+                quote_form: '询价表单',
                 request_demo: '提交演示申请',
+                demo_form: '演示申请',
                 download_brochure: '下载资料',
-                session_end: '会话结束'
+                download: '下载文件',
+                video_play: '播放视频',
+                video_pause: '暂停视频',
+                video_complete: '看完视频',
+                search: '搜索',
+                search_submit: '提交搜索',
+                add_to_cart: '加入购物车',
+                remove_from_cart: '移出购物车',
+                checkout: '结算',
+                wishlist: '添加收藏',
+                share: '分享',
+                copy_link: '复制链接',
+                print: '打印',
+                tab_switch: '切换标签页',
+                window_focus: '窗口获得焦点',
+                window_blur: '窗口失去焦点',
+                scroll_to_bottom: '滚动到底部',
+                cta_click: '点击 CTA',
+                banner_click: '点击横幅',
+                nav_click: '点击导航',
+                sidebar_click: '点击侧边栏',
+                footer_click: '点击页脚',
+                image_view: '查看图片',
+                image_zoom: '放大图片',
+                map_view: '查看地图',
+                session_end: '会话结束',
+                product_view: '浏览产品',
+                product_click: '点击产品',
+                category_view: '浏览分类',
+                blog_view: '浏览博客',
+                news_view: '浏览资讯',
+                video_view: '浏览视频',
+                faq_view: '查看 FAQ',
+                help_view: '查看帮助',
+                login: '登录',
+                logout: '退出登录',
+                register: '注册',
+                subscribe: '订阅',
+                unsubscribe: '取消订阅',
+                feedback: '提交反馈',
+                survey: '填写问卷',
+                review: '发表评论',
+                print_page: '打印页面'
             };
 
             if (name && map[name]) return map[name];
@@ -7968,12 +8708,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (worldEastWrap) worldEastWrap.innerHTML = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
             siteReportEventRowsAll = [];
             siteReportProvinceRowsAll = [];
+            siteReportCountryRowsAll = [];
             siteReportRecentRowsAll = [];
             siteReportEventPage = 1;
             siteReportProvincePage = 1;
+            siteReportCountryPage = 1;
             siteReportRecentPage = 1;
             renderSiteReportEventTablePage();
             renderSiteReportProvinceTablePage();
+            renderSiteReportCountryTablePage();
             renderSiteReportRecentTablePage();
         }
 
@@ -8045,6 +8788,36 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }).join('');
         }
 
+        function renderSiteReportCountryTablePage() {
+            const tbody = document.getElementById('siteReportCountryBody');
+            const infoEl = document.getElementById('siteReportCountryPageInfo');
+            const prevBtn = document.getElementById('siteReportCountryPrevBtn');
+            const nextBtn = document.getElementById('siteReportCountryNextBtn');
+            if (!tbody) return;
+
+            const allRows = Array.isArray(siteReportCountryRowsAll) ? siteReportCountryRowsAll : [];
+            const pager = updateSiteReportPager(allRows.length, SITE_REPORT_COUNTRY_PAGE_SIZE, siteReportCountryPage, infoEl, prevBtn, nextBtn);
+            if (!pager.totalPages) {
+                tbody.innerHTML = '<tr><td colspan="3" class="no-data">暂无国家数据</td></tr>';
+                siteReportCountryPage = 1;
+                return;
+            }
+
+            siteReportCountryPage = pager.page;
+            const start = (siteReportCountryPage - 1) * SITE_REPORT_COUNTRY_PAGE_SIZE;
+            const pageRows = allRows.slice(start, start + SITE_REPORT_COUNTRY_PAGE_SIZE);
+            tbody.innerHTML = pageRows.map((item) => {
+                const countryName = normalizeCountryName(item?.country || '');
+                return `
+                    <tr>
+                        <td>${escapeHtml(countryName || '未知')}</td>
+                        <td>${formatSiteReportNumber(item?.sessions)}</td>
+                        <td>${formatSiteReportPercent(item?.ratio)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function renderSiteReportRecentTablePage() {
             const tbody = document.getElementById('siteReportRecentBody');
             const infoEl = document.getElementById('siteReportRecentPageInfo');
@@ -8089,6 +8862,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!move) return;
             siteReportProvincePage += move;
             renderSiteReportProvinceTablePage();
+            queueResponsiveTableLabels();
+        }
+
+        function changeSiteReportCountryPage(delta) {
+            const move = Number(delta || 0);
+            if (!move) return;
+            siteReportCountryPage += move;
+            renderSiteReportCountryTablePage();
             queueResponsiveTableLabels();
         }
 
@@ -8193,6 +8974,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             siteReportProvinceRowsAll = provinceRows;
             siteReportProvincePage = 1;
             renderSiteReportProvinceTablePage();
+
+            const countryRows = Array.isArray(data.country_breakdown) ? data.country_breakdown : [];
+            siteReportCountryRowsAll = countryRows;
+            siteReportCountryPage = 1;
+            renderSiteReportCountryTablePage();
 
             renderChinaProvinceHeatMap(provinceRows);
             renderWorldContinentHeatMaps(Array.isArray(data.continent_breakdown) ? data.continent_breakdown : []);
@@ -8321,7 +9107,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'cdn-assets': 'CDN 素材',
-                'changelog': '更新日志'
+                'changelog': '更新日志',
+                'docker-logs': '后端日志'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
 
@@ -8353,6 +9140,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
             if (viewName === 'settings') loadSubAccounts();
             if (viewName === 'changelog') loadChangelog();
+            if (viewName === 'docker-logs') loadDockerLogs();
             if (viewName === 'cdn-assets') loadCdnAssets();
 
             renderGuidesForView(viewName);

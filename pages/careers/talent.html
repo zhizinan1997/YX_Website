@@ -102,11 +102,11 @@
             opacity: 0.6;
         }
 
-        .hero__overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(0, 86, 179, 0.6) 100%);
-            mix-blend-mode: multiply;
+        video::-webkit-media-controls {
+            display: none !important;
+        }
+        video::-webkit-media-controls-enclosure {
+            display: none !important;
         }
 
         .hero__content {
@@ -249,7 +249,6 @@
             <video id="heroVideo" class="hero__video" muted loop playsinline autoplay preload="metadata">
                 <source src="/cdn_assets/videos/renwen.mp4" type="video/mp4" />
             </video>
-            <div class="hero__overlay"></div>
 
             <div class="hero__content reveal">
                 <h1 class="hero__title">人才理念</h1>

@@ -21,11 +21,12 @@
         "settings",
         "backup",
         "changelog",
-        "cdn-assets"
+        "cdn-assets",
+        "docker-logs"
       ],
       "created_at": "2026-03-30T03:35:48Z",
-      "updated_at": "2026-04-03T14:53:03Z",
-      "last_login_at": "2026-04-03T13:56:38Z"
+      "updated_at": "2026-04-04T01:00:34Z",
+      "last_login_at": "2026-04-04T00:02:06Z"
     }
   ]
 }

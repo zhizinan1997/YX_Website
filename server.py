@@ -16,6 +16,7 @@ import re
 import uuid
 import mimetypes
 import ipaddress
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from functools import wraps
@@ -221,6 +222,38 @@ def create_app():
         flask_app.config['SESSION_COOKIE_SECURE'] = False
     else:
         flask_app.config['SESSION_COOKIE_SECURE'] = get_public_base_url().startswith('https://')
+    
+    app_log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
+    if not app_log_file:
+        app_log_file = str(APP_ROOT / 'data' / 'app.log')
+    log_dir = os.path.dirname(app_log_file)
+    if log_dir and not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except Exception:
+            app_log_file = str(APP_ROOT / 'app.log')
+    log_handler_max_bytes = int(os.environ.get('FLASK_LOG_MAX_BYTES', str(10 * 1024 * 1024)))
+    log_handler_backup_count = int(os.environ.get('FLASK_LOG_BACKUP_COUNT', '5'))
+    try:
+        from logging.handlers import RotatingFileHandler
+        log_level = os.environ.get('FLASK_LOG_LEVEL', 'INFO').upper()
+        log_format = '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        file_handler = RotatingFileHandler(
+            app_log_file,
+            maxBytes=log_handler_max_bytes,
+            backupCount=log_handler_backup_count,
+            encoding='utf-8'
+        )
+        file_handler.setFormatter(logging.Formatter(log_format))
+        file_handler.setLevel(getattr(logging, log_level, logging.INFO))
+        flask_app.logger.addHandler(file_handler)
+        app_log_lvl = getattr(logging, log_level, logging.INFO)
+        flask_app.logger.setLevel(app_log_lvl)
+        logging.getLogger('werkzeug').setLevel(app_log_lvl)
+        logging.getLogger('werkzeug').addHandler(file_handler)
+    except Exception as e:
+        print(f"Warning: Failed to setup log file: {e}")
+    
     return flask_app
 
 
@@ -2878,11 +2911,19 @@ register_public_site_routes(
 
 
 if __name__ == '__main__':
+    data_dir = APP_ROOT / 'data'
+    if not data_dir.exists():
+        data_dir.mkdir(parents=True, exist_ok=True)
     print("=" * 50)
     print("YX Website Server")
     print("=" * 50)
     print(f"Local:   http://localhost:8000")
     print(f"Admin:   http://localhost:8000/admin")
     print(f"Data:    {MESSAGES_DIR.absolute()}")
+    app_log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
+    if not app_log_file:
+        app_log_file = str(APP_ROOT / 'data' / 'app.log')
+    print(f"Logs:    {app_log_file}")
+    app.logger.info("Flask application started successfully")
     print("=" * 50)
     app.run(host='0.0.0.0', port=8000, debug=True)

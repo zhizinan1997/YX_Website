@@ -372,7 +372,7 @@
         return map;
     }
 
-    function buildRecommendationCard(item, productMap, ctaText) {
+    function buildRecommendationCard(item, productMap, ctaText, imageFit) {
         var url = (item && item.url) ? String(item.url).trim() : '#';
         var name = (item && item.name) ? String(item.name).trim() : '\u672a\u547d\u540d\u4ea7\u54c1';
         var external = /^https?:\/\//i.test(url);
@@ -385,12 +385,13 @@
         var newBadge = isNew ? '<span class="vs-recommend-badge">NEW</span>' : '';
         if (!image && matched && matched.image) image = matched.image;
         if (!image) image = '/cdn_assets/images/common/f1dcc87cdcca.png';
+        var fitMode = imageFit === 'cover' ? 'cover' : 'contain';
 
         return '' +
             '<li class="vs-recommend-card">' +
             '  <a class="vs-recommend-link" href="' + escapeHtmlText(url) + '"' + target + '>' +
             '    <span class="vs-recommend-thumb">' +
-            '      <img src="' + escapeHtmlText(image) + '" alt="' + escapeHtmlText(name) + '">' +
+            '      <img src="' + escapeHtmlText(image) + '" alt="' + escapeHtmlText(name) + '" style="object-fit:' + fitMode + ';">' +
             '    </span>' +
             '    <span class="vs-recommend-body">' +
             '      <span class="vs-recommend-title-row">' +
@@ -496,6 +497,7 @@
         var pageSize = Math.max(1, parseInt(options && options.pageSize, 10) || 6);
         var ctaText = (options && options.ctaText) ? String(options.ctaText) : '\u4e86\u89e3\u9886\u57df';
         var emptyLabel = (options && options.emptyLabel) ? String(options.emptyLabel) : '\u6682\u65e0\u6570\u636e';
+        var imageFit = (options && options.imageFit) ? String(options.imageFit) : 'contain';
         var page = 0;
         var pageCount = Math.max(1, Math.ceil(list.length / pageSize));
 
@@ -515,7 +517,7 @@
             var pageItems = list.slice(start, start + pageSize);
             var cards = pageItems.map(function (item) {
                 var itemCta = (item && item.ctaText) ? String(item.ctaText) : ctaText;
-                return buildRecommendationCard(item, null, itemCta);
+                return buildRecommendationCard(item, null, itemCta, imageFit);
             }).join('');
 
             var pager = '';
@@ -718,7 +720,7 @@
                             'dynamic-product-list',
                             products.map(buildProductMenuCard),
                             {
-                                pageSize: 6,
+                                pageSize: 4,
                                 ctaText: '\u67e5\u770b\u4ea7\u54c1',
                                 emptyLabel: '\u6682\u65e0\u4ea7\u54c1'
                             }
@@ -828,7 +830,7 @@
                     })
             );
         }
-        if (document.getElementById('categoriesPanel')) {
+        if (document.getElementById('categoriesList')) {
             jobs.push(
                 fetch('/api/products/industry-filters', { credentials: 'same-origin' })
                     .then(function (res) { return res.json(); })
@@ -845,88 +847,99 @@
                         });
 
                         renderPaginatedNavCards(
-                            'categoriesPanel',
+                            'categoriesList',
                             items,
                             {
-                                pageSize: 6,
+                                pageSize: 4,
                                 ctaText: '\u67e5\u770b\u5206\u7c7b',
                                 emptyLabel: '\u6682\u65e0\u6570\u636e'
                             }
                         );
                     })
                     .catch(function () {
-                        safeSetHtml('categoriesPanel', '<p class="vs-nav-card-empty">\u52a0\u8f7d\u5931\u8d25</p>');
+                        safeSetHtml('categoriesList', '<p class="vs-nav-card-empty">\u52a0\u8f7d\u5931\u8d25</p>');
                     })
             );
         }
 
-        if (document.getElementById('measurementTargetsPanel')) {
+        if (document.getElementById('measurementTargetsList')) {
             jobs.push(
                 fetch('/api/measurement-targets', { credentials: 'same-origin' })
                     .then(function (res) { return res.json(); })
                     .then(function (data) {
                         var items = Array.isArray(data.items) ? data.items : [];
                         renderPaginatedNavCards(
-                            'measurementTargetsPanel',
+                            'measurementTargetsList',
                             items,
                             {
-                                pageSize: 6,
+                                pageSize: 4,
                                 ctaText: '\u66f4\u591a\u8be6\u60c5',
-                                emptyLabel: '\u6682\u65e0\u6570\u636e'
+                                emptyLabel: '\u6682\u65e0\u6570\u636e',
+                                imageFit: 'cover'
                             }
                         );
                     })
                     .catch(function () {
-                        safeSetHtml('measurementTargetsPanel', '<p class="vs-nav-card-empty">\u52a0\u8f7d\u5931\u8d25</p>');
+                        safeSetHtml('measurementTargetsList', '<p class="vs-nav-card-empty">\u52a0\u8f7d\u5931\u8d25</p>');
                     })
             );
         }
 
-        if (document.getElementById('gasIndustryList') || document.getElementById('gasIndustryLeft') || document.getElementById('gasIndustryRight')) {
+        if (document.getElementById('gasIndustryList')) {
             jobs.push(
                 fetch('/api/nav-industry-categories', { credentials: 'same-origin' })
                     .then(function (res) { return res.json(); })
                     .then(function (data) {
                         var items = Array.isArray(data.items) ? data.items : [];
-                        var primaryListId = document.getElementById('gasIndustryList') ? 'gasIndustryList' : 'gasIndustryLeft';
-                        var leftEl = document.getElementById(primaryListId);
-                        var rightEl = document.getElementById('gasIndustryRight');
-                        var half = Math.ceil(items.length / 2);
-                        var left = items.slice(0, half);
-                        var right = items.slice(half);
-                        var render = function (item) {
-                            var url = (item && item.url) ? String(item.url) : '#';
-                            var name = (item && item.name) ? String(item.name) : '\u672a\u547d\u540d';
-                            var external = /^https?:\/\//i.test(url);
-                            var target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
-                            return '<li><a href="' + url + '"' + target + '>' + name + '</a></li>';
-                        };
-                        render = function (item) {
-                            return buildRecommendationCard(item, null);
-                        };
-                        if (leftEl) {
-                            leftEl.classList.add('vs-mega-list-v2--cards', 'vs-mega-list-v2--single-column');
-                            if (leftEl.id === 'gasIndustryList' && !rightEl) {
-                                safeSetHtml('gasIndustryList', items.length ? items.map(render).join('') : '<li><a href="#">\u6682\u65e0\u6570\u636e</a></li>');
-                                return;
+                        var listEl = document.getElementById('gasIndustryList');
+                        var paginationEl = document.getElementById('gasIndustryPagination');
+                        var pageLabel = document.getElementById('gasIndustryPageLabel');
+                        var prevBtn = document.getElementById('gasIndustryPrev');
+                        var nextBtn = document.getElementById('gasIndustryNext');
+
+                        var pageSize = 4;
+                        var currentPage = 1;
+                        var totalPages = Math.ceil(items.length / pageSize) || 1;
+
+                        listEl.classList.add('vs-mega-list-v2--cards');
+
+                        function renderIndustryPage(page) {
+                            var start = (page - 1) * pageSize;
+                            var end = start + pageSize;
+                            var pageItems = items.slice(start, end);
+
+                            if (pageItems.length === 0) {
+                                safeSetHtml('gasIndustryList', '<li><a href="#">\u6682\u65e0\u6570\u636e</a></li>');
+                            } else {
+                                safeSetHtml('gasIndustryList', pageItems.map(function(item) {
+                                    return buildRecommendationCard(item, null, null, 'cover');
+                                }).join(''));
                             }
-                            if (leftEl.id === 'gasIndustryList') {
-                                safeSetHtml('gasIndustryList', left.length ? left.map(render).join('') : '<li><a href="#">\u6682\u65e0\u6570\u636e</a></li>');
+
+                            pageLabel.textContent = '\u7b2c ' + page + ' / ' + totalPages + ' \u9875';
+                            prevBtn.disabled = page <= 1;
+                            nextBtn.disabled = page >= totalPages;
+                            paginationEl.style.display = totalPages > 1 ? 'flex' : 'none';
+                        }
+
+                        prevBtn.addEventListener('click', function() {
+                            if (currentPage > 1) {
+                                currentPage--;
+                                renderIndustryPage(currentPage);
                             }
-                        }
-                        if (rightEl) {
-                            rightEl.classList.add('vs-mega-list-v2--cards', 'vs-mega-list-v2--single-column');
-                        }
-                        if (document.getElementById('gasIndustryLeft')) {
-                            safeSetHtml('gasIndustryLeft', left.length ? left.map(render).join('') : '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
-                        }
-                        if (document.getElementById('gasIndustryRight')) {
-                            safeSetHtml('gasIndustryRight', right.length ? right.map(render).join('') : '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
-                        }
+                        });
+
+                        nextBtn.addEventListener('click', function() {
+                            if (currentPage < totalPages) {
+                                currentPage++;
+                                renderIndustryPage(currentPage);
+                            }
+                        });
+
+                        renderIndustryPage(1);
                     })
                     .catch(function () {
-                        if (document.getElementById('gasIndustryLeft')) safeSetHtml('gasIndustryLeft', '<li><a href="#">鍔犺浇澶辫触</a></li>');
-                        if (document.getElementById('gasIndustryRight')) safeSetHtml('gasIndustryRight', '');
+                        safeSetHtml('gasIndustryList', '<li><a href="#">\u52a0\u8f7d\u5931\u8d25</a></li>');
                     })
             );
         }

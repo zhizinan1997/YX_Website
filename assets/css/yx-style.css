@@ -1682,6 +1682,10 @@ li {
     background: linear-gradient(180deg, #f5f7fb 0%, #eef2f7 100%);
 }
 
+.vs-solutions-showcase .vs-container {
+    max-width: 1600px;
+}
+
 .vs-solutions-showcase .vs-product-showcase__header {
     gap: 14px;
 }
@@ -1712,7 +1716,7 @@ li {
 }
 
 .vs-solutions-showcase .vs-product-showcase__grid {
-    gap: 28px;
+    gap: 60px;
 }
 
 .vs-solutions-showcase .vs-product-showcase__item {
@@ -1825,7 +1829,7 @@ li {
 }
 
 .vs-latest-news .vs-container {
-    max-width: min(1900px, 98vw);
+    max-width: 1600px;
     padding: 0 6px;
 }
 
@@ -1878,7 +1882,7 @@ li {
 .vs-latest-news__grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 22px;
+    gap: 60px;
 }
 
 .vs-latest-news__item {
@@ -2063,7 +2067,7 @@ li {
     }
 
     .vs-latest-news__grid {
-        gap: 36px;
+        gap: 60px;
     }
 
     .vs-product-showcase__grid {
@@ -2398,6 +2402,7 @@ li {
    Global Mobile Fallbacks
 ======================================== */
 @media (max-width: 900px) {
+
     html,
     body {
         overflow-x: hidden;

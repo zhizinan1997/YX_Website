@@ -35,6 +35,19 @@ SITE_ANALYTICS_CONVERSION_EVENTS = {
     'download_brochure',
     'phone_click',
     'email_click',
+    'form_submit',
+    'demo_form',
+    'quote_form',
+    'contact_form',
+    'job_form',
+    'checkout',
+    'subscribe',
+    'register',
+    'feedback',
+    'survey',
+    'review',
+    'wishlist',
+    'video_complete',
 }
 SITE_ANALYTICS_SEARCH_HOST_KEYWORDS = (
     'google.',
@@ -851,6 +864,7 @@ def build_site_analytics_report(range_days=30):
     os_counter = {}
     province_counter = {}
     continent_counter = {}
+    country_counter = {}
     for item in tracked_sessions:
         source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
@@ -865,6 +879,8 @@ def build_site_analytics_report(range_days=30):
         continent_key = _analytics_resolve_continent_from_country(country)
         if country and country != '中国' and continent_key:
             continent_counter[continent_key] = continent_counter.get(continent_key, 0) + 1
+        if country:
+            country_counter[country] = country_counter.get(country, 0) + 1
 
     source_rows = [
         {
@@ -917,6 +933,16 @@ def build_site_analytics_report(range_days=30):
         for key, value in continent_counter.items()
     ]
     continent_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    country_rows = [
+        {
+            'country': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in country_counter.items()
+    ]
+    country_rows.sort(key=lambda item: item['sessions'], reverse=True)
 
     china_map_data = [
         {
@@ -974,6 +1000,7 @@ def build_site_analytics_report(range_days=30):
         'os_breakdown': os_rows,
         'province_breakdown': province_rows,
         'continent_breakdown': continent_rows,
+        'country_breakdown': country_rows,
         'china_map_data': china_map_data,
         'top_pages': top_pages,
         'top_events': top_events,
