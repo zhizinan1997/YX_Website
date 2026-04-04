@@ -1,4 +1,4 @@
-"""Admin login audit and IP geo helpers."""
+"""后台登录审计与 IP 归属地辅助模块。"""
 
 import ipaddress
 import json
@@ -41,7 +41,7 @@ def configure_admin_audit(
     httpx_module=None,
     get_client_ip=None,
 ):
-    """Configure runtime dependencies for admin audit helpers."""
+    """配置后台审计辅助函数运行时所需的共享依赖。"""
     global ADMIN_LOGIN_LOG_FILE, BEIJING_TZ
     global REQUESTS_SUPPORT, REQUESTS_MODULE, HTTPX_SUPPORT, HTTPX_MODULE, GET_CLIENT_IP
 
@@ -60,7 +60,7 @@ def configure_admin_audit(
 
 
 def load_admin_login_logs():
-    """Load admin login logs from file."""
+    """从文件加载后台登录日志。"""
     default_data = {'items': []}
     if ADMIN_LOGIN_LOG_FILE.exists():
         try:
@@ -81,7 +81,7 @@ def load_admin_login_logs():
 
 
 def save_admin_login_logs(items):
-    """Persist admin login logs to file."""
+    """将后台登录日志持久化保存到文件。"""
     safe_items = [item for item in (items or []) if isinstance(item, dict)]
     ADMIN_LOGIN_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     ADMIN_LOGIN_LOG_FILE.write_text(
@@ -179,7 +179,7 @@ def _fetch_ip_location_from_ip_api(ip: str):
 
 
 def fetch_ip_location(ip):
-    """Resolve geo location for a public IP by external service."""
+    """通过外部服务解析公网 IP 的归属地信息。"""
     ip_text = str(ip or '').strip()
     if not ip_text:
         return '未知'
@@ -204,7 +204,7 @@ def _is_unknown_location(value: str) -> bool:
 
 
 def resolve_ip_location(ip):
-    """Get a readable location text for IP."""
+    """获取适合展示的 IP 归属地文本。"""
     ip_text = str(ip or '').strip()
     if not ip_text:
         return '未知'
@@ -218,7 +218,7 @@ def resolve_ip_location(ip):
             if cached_location and expires_at > now_ts:
                 return cached_location
         elif isinstance(cached, str) and cached.strip() and not _is_unknown_location(cached):
-            # Backward compatibility for legacy in-memory cache format.
+            # 兼容旧版内存缓存格式。
             return cached.strip()
 
     location = '未知'
@@ -247,7 +247,7 @@ def resolve_ip_location(ip):
 
     with ADMIN_IP_LOCATION_LOCK:
         if len(ADMIN_IP_LOCATION_CACHE) >= ADMIN_IP_LOCATION_CACHE_MAX:
-            # Prefer clearing expired entries first; if still large then reset.
+            # 优先清理过期项；如果仍然过大，再整体重置缓存。
             expired_keys = []
             for key, value in ADMIN_IP_LOCATION_CACHE.items():
                 if isinstance(value, dict) and int(value.get('expires_at', 0) or 0) <= now_ts:
@@ -261,7 +261,7 @@ def resolve_ip_location(ip):
 
 
 def now_beijing_iso():
-    """Current datetime string in Asia/Shanghai timezone."""
+    """返回上海时区当前时间的 ISO 字符串。"""
     return datetime.now(BEIJING_TZ).isoformat(timespec='seconds')
 
 
@@ -269,7 +269,7 @@ MAX_ADMIN_LOGIN_LOG_ITEMS = 500
 
 
 def append_admin_login_log(operation, success, username='', detail=''):
-    """Append one immutable admin login-operation log record."""
+    """追加一条不可变更的后台登录操作日志。"""
     ip = GET_CLIENT_IP()
     log_item = {
         'id': uuid.uuid4().hex,

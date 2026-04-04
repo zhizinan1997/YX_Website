@@ -448,6 +448,8 @@
             flex-direction: column;
             flex-shrink: 0;
             transition: width 0.2s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .sidebar-overlay {
@@ -574,6 +576,56 @@
             box-shadow: 0 4px 10px rgba(234, 88, 12, 0.28);
         }
 
+        .read-only-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-bottom: 1px solid #fbbf24;
+            color: #92400e;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .read-only-banner i {
+            color: #d97706;
+            font-size: 16px;
+        }
+
+        .read-only-mode .view-header-actions {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .read-only-mode .btn-primary,
+        .read-only-mode .btn-success,
+        .read-only-mode .btn-danger,
+        .read-only-mode .btn-warning {
+            background-color: #9ca3af !important;
+            border-color: #9ca3af !important;
+            cursor: not-allowed;
+        }
+
+        .read-only-disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+
+        .read-only-disabled:focus,
+        .read-only-disabled:active {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        .menu-item.read-only-menu::after {
+            content: '(只读)';
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 4px;
+        }
+
         .main-content {
             flex: 1;
             overflow-y: auto;
@@ -695,13 +747,76 @@
             position: absolute;
             right: 0;
             top: calc(100% + 8px);
-            min-width: 148px;
+            min-width: 280px;
             background: #fff;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
             box-shadow: 0 12px 28px rgba(15, 35, 66, 0.14);
             padding: 8px;
             z-index: 20;
+        }
+
+        .account-menu-info {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .account-menu-info .account-username {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f3655;
+            margin-bottom: 4px;
+        }
+
+        .account-menu-info .account-role {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .account-menu-permissions {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .account-menu-permissions-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .account-menu-permissions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 0 4px;
+        }
+
+        .account-menu-permission-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #475569;
+        }
+
+        .account-menu-permission-tag.read-only {
+            background: #fef3c7;
+            border-color: #fbbf24;
+            color: #92400e;
+        }
+
+        .account-menu-permission-tag i {
+            margin-right: 4px;
+            font-size: 10px;
         }
 
         .account-menu-item {
@@ -2685,98 +2800,212 @@
 
         .site-report-trend {
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-            padding: 12px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+            padding: 16px 20px;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.06);
         }
 
         .site-report-line-wrap {
             width: 100%;
             overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         .site-report-line-svg {
             width: 100%;
-            height: 260px;
+            height: 280px;
             display: block;
         }
 
         .site-report-line-grid {
-            stroke: #dce5f2;
+            stroke: #e2e8f0;
             stroke-width: 1;
+            stroke-dasharray: 4 4;
         }
 
         .site-report-line-axis {
             stroke: #94a3b8;
-            stroke-width: 1.2;
+            stroke-width: 1.5;
         }
 
         .site-report-line-pv {
             fill: none;
-            stroke: #2563eb;
-            stroke-width: 2.2;
+            stroke: #3b82f6;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
         }
 
         .site-report-line-uv {
             fill: none;
-            stroke: #0f766e;
-            stroke-width: 2;
+            stroke: #10b981;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
+        }
+
+        .site-report-line-point-pv,
+        .site-report-line-point-uv {
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .site-report-line-point-pv {
-            fill: #2563eb;
+            fill: #ffffff;
+            stroke: #3b82f6;
+            stroke-width: 2.5;
+            r: 5;
+        }
+
+        .site-report-line-point-pv:hover,
+        .site-report-line-point-pv.highlight {
+            r: 8;
+            fill: #3b82f6;
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
         }
 
         .site-report-line-point-uv {
-            fill: #0f766e;
+            fill: #ffffff;
+            stroke: #10b981;
+            stroke-width: 2.5;
+            r: 5;
+        }
+
+        .site-report-line-point-uv:hover,
+        .site-report-line-point-uv.highlight {
+            r: 8;
+            fill: #10b981;
+            filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
         }
 
         .site-report-line-label {
-            font-size: 10.5px;
+            font-size: 11px;
             fill: #64748b;
+            font-weight: 500;
         }
 
         .site-report-line-y-label {
-            font-size: 10px;
+            font-size: 11px;
             fill: #64748b;
+            font-weight: 500;
         }
 
         .site-report-line-legend {
-            margin-top: 8px;
+            margin-top: 12px;
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 20px;
             flex-wrap: wrap;
-            font-size: 12px;
+            font-size: 13px;
             color: #334155;
         }
 
         .site-report-line-legend-item {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #f8fafc;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .site-report-line-legend-item:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         .site-report-line-legend-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 999px;
             display: inline-block;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
         .site-report-line-legend-dot.pv {
-            background: #2563eb;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
         }
 
         .site-report-line-legend-dot.uv {
-            background: #0f766e;
+            background: linear-gradient(135deg, #34d399, #10b981);
         }
 
         .site-report-line-summary {
-            margin-top: 8px;
-            font-weight: 700;
-            font-size: 12px;
+            margin-top: 10px;
+            font-weight: 600;
+            font-size: 13px;
             color: #475569;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .site-report-line-tooltip {
+            position: absolute;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #ffffff;
+            border-radius: 10px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            transform: translateY(5px);
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            line-height: 1.6;
+            min-width: 140px;
+        }
+
+        .site-report-line-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .site-report-line-tooltip-date {
+            font-weight: 600;
+            margin-bottom: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .site-report-line-tooltip-pv,
+        .site-report-line-tooltip-uv {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .site-report-line-tooltip-pv {
+            color: #93c5fd;
+        }
+
+        .site-report-line-tooltip-uv {
+            color: #6ee7b7;
         }
 
         .site-report-grid {
@@ -3400,6 +3629,107 @@
             border-radius: 4px;
             padding: 1px 4px;
         }
+
+        .last-login-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 10000;
+            background: linear-gradient(135deg, #003366 0%, #004488 100%);
+            color: #fff;
+            padding: 20px 24px;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 320px;
+            animation: toastSlideIn 0.4s ease;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .last-login-toast.hidden {
+            display: none;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .last-login-toast .toast-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .last-login-toast .toast-title {
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .last-login-toast .toast-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .last-login-toast .toast-close:hover {
+            color: #fff;
+        }
+
+        .last-login-toast .toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .last-login-toast .toast-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .last-login-toast .toast-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 4px 0;
+        }
+
+        .last-login-toast .toast-label {
+            color: rgba(255, 255, 255, 0.7);
+            min-width: 70px;
+        }
+
+        .last-login-toast .toast-value {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .last-login-toast .toast-greeting {
+            margin-top: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
     </style>
 </head>
 
@@ -3584,6 +3914,14 @@
                             <i class="fas fa-chevron-down account-menu-caret"></i>
                         </button>
                         <div class="account-menu-panel" id="accountMenuPanel" hidden>
+                            <div class="account-menu-info">
+                                <div class="account-username" id="accountMenuUsername"></div>
+                                <div class="account-role" id="accountMenuRole"></div>
+                            </div>
+                            <div class="account-menu-permissions">
+                                <div class="account-menu-permissions-title">功能权限</div>
+                                <div class="account-menu-permissions-list" id="accountMenuPermissions"></div>
+                            </div>
                             <button type="button" class="account-menu-item" onclick="logoutFromAccountMenu(event)">
                                 <i class="fas fa-sign-out-alt"></i>
                                 退出登录
@@ -4671,39 +5009,54 @@
                         </div>
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">导航栏设置 · 产品分类缩略图</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置【产品】→【产品种类】中各分类的缩略图。<br>
+                                不设置则使用页面内的默认图片。
+                            </p>
+                            <div id="productCategoryImagesEditor"></div>
+                            <button onclick="saveProductCategoryImages()" class="btn-primary"
+                                style="width: auto; padding: 12px 30px; margin-top: 20px;">保存设置</button>
+                            <div id="productCategoryImagesMsg" style="margin-top: 10px; color: #28a745;"></div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
                             <h3 class="section-header">导航栏设置 · 新品推荐</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                设置巨幕菜单【新品推荐】面板中显示的链接。<br>
-                                链接格式支持：<code>http://</code>、<code>https://</code> 和相对路径。<br>
-                                示例：<code>https://example.com/product</code> 或
-                                <code>../gassensing/ld_h2_detector.html</code>。
+                                设置巨幕菜单【新品推荐】面板中显示的产品链接。
                             </p>
 
                             <div>
                                 <h4 style="margin-bottom: 15px; color: #333;">最新发布（4项）</h4>
-                                <div class="form-group">
-                                    <label>第一个链接</label>
-                                    <input type="text" id="latest1Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest1Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>第二个链接</label>
-                                    <input type="text" id="latest2Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest2Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>第三个链接</label>
-                                    <input type="text" id="latest3Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest3Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>第四个链接</label>
-                                    <input type="text" id="latest4Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest4Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                                    <div class="form-group">
+                                        <label>第一个产品</label>
+                                        <select id="latest1Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest1Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第二个产品</label>
+                                        <select id="latest2Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest2Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第三个产品</label>
+                                        <select id="latest3Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest3Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第四个产品</label>
+                                        <select id="latest4Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest4Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
                                 </div>
                             </div>
                             <button onclick="saveRecommendations()" class="btn-primary"
@@ -6472,9 +6825,71 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function updateTopbarAccountDisplay() {
             const usernameEl = document.getElementById('topbarUsername');
-            if (!usernameEl) return;
+            const menuUsernameEl = document.getElementById('accountMenuUsername');
+            const menuRoleEl = document.getElementById('accountMenuRole');
+            const menuPermissionsEl = document.getElementById('accountMenuPermissions');
+
             const name = String(currentAdminAuth.username || '').trim();
-            usernameEl.textContent = name || '管理员';
+            if (usernameEl) {
+                usernameEl.textContent = name || '管理员';
+            }
+            if (menuUsernameEl) {
+                menuUsernameEl.textContent = name || '管理员';
+            }
+            if (menuRoleEl) {
+                menuRoleEl.textContent = currentAdminAuth.is_super_admin ? '超级管理员' : '子账号';
+            }
+            if (menuPermissionsEl) {
+                renderAccountMenuPermissions(menuPermissionsEl);
+            }
+        }
+
+        function renderAccountMenuPermissions(container) {
+            container.innerHTML = '';
+
+            const catalogMap = {};
+            if (Array.isArray(permissionCatalog)) {
+                permissionCatalog.forEach(item => {
+                    if (item.key) {
+                        catalogMap[item.key] = item.label || item.key;
+                    }
+                });
+            }
+
+            if (currentAdminAuth.is_super_admin) {
+                const allKeys = Object.keys(catalogMap);
+                if (allKeys.length === 0) {
+                    const tag = document.createElement('span');
+                    tag.className = 'account-menu-permission-tag';
+                    tag.innerHTML = '<i class="fas fa-check"></i>全部功能';
+                    container.appendChild(tag);
+                } else {
+                    allKeys.forEach(key => {
+                        const label = catalogMap[key] || key;
+                        const tag = document.createElement('span');
+                        tag.className = 'account-menu-permission-tag';
+                        tag.innerHTML = `<i class="fas fa-check"></i>${label}`;
+                        container.appendChild(tag);
+                    });
+                }
+            } else {
+                const userPerms = currentAdminAuth.permissions || [];
+
+                ADMIN_PERMISSION_KEYS.forEach(key => {
+                    const hasPermission = userPerms.includes(key);
+                    const label = catalogMap[key] || key;
+
+                    const tag = document.createElement('span');
+                    if (hasPermission) {
+                        tag.className = 'account-menu-permission-tag';
+                        tag.innerHTML = `<i class="fas fa-check"></i>${label}`;
+                    } else {
+                        tag.className = 'account-menu-permission-tag read-only';
+                        tag.innerHTML = `<i class="fas fa-eye"></i>${label}`;
+                    }
+                    container.appendChild(tag);
+                });
+            }
         }
 
         function closeAccountMenu() {
@@ -6493,6 +6908,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (wrap) wrap.classList.add('is-open');
             if (panel) panel.hidden = false;
             if (trigger) trigger.setAttribute('aria-expanded', 'true');
+            updateTopbarAccountDisplay();
         }
 
         function toggleAccountMenu(event) {
@@ -7037,6 +7453,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         function hasViewPermission(viewName) {
+            return true;
+        }
+
+        function canEditView(viewName) {
             if (currentAdminAuth.is_super_admin) return true;
             return currentAdminAuth.permissions.includes(String(viewName || '').trim());
         }
@@ -7099,12 +7519,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         function getFirstAllowedView() {
-            const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
-            for (const el of menuItems) {
-                const key = String(el.dataset.view || '').trim();
-                if (key && hasViewPermission(key)) return key;
-            }
-            return 'messages';
+            return 'site-reports';
         }
 
         function getStoredAdminView() {
@@ -7133,22 +7548,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function applySidebarPermissions() {
             const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
-            let activeVisible = false;
             for (const el of menuItems) {
                 const key = String(el.dataset.view || '').trim();
                 const allowed = hasViewPermission(key);
-                el.style.display = allowed ? '' : 'none';
-                if (allowed && el.classList.contains('active')) {
-                    activeVisible = true;
-                }
+                el.style.display = '';
+                const isEditable = canEditView(key);
+                el.classList.toggle('read-only-menu', allowed && !isEditable);
             }
             syncSidebarMenuGroupVisibility();
-            const activeMenuItem = document.querySelector('.menu-item.active[data-view]');
-            syncSidebarMenuGroups(activeMenuItem ? activeMenuItem.dataset.view : '');
-            if (!activeVisible) {
-                const firstView = getFirstAllowedView();
-                switchView(firstView);
-            }
         }
 
         function syncSubAccountManageVisibility() {
@@ -7327,6 +7734,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     const data = await parseJsonSafe(res);
 
                     if (res.ok && data.success) {
+                        if (data.last_login_at || data.last_login_ip) {
+                            const username = document.getElementById('username').value;
+                            showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at);
+                        }
                         await checkLoginStatus();
                     } else {
                         const reason = String(data.message || `登录失败（HTTP ${res.status || '-'}）`);
@@ -7379,6 +7790,88 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     // Network errors are ignored here; next interval will retry.
                 }
             }, 60 * 1000);
+        }
+
+        function closeLastLoginToast() {
+            const toast = document.getElementById('lastLoginToast');
+            if (toast) {
+                toast.classList.add('hidden');
+            }
+            localStorage.setItem('lastLoginToastShown', '1');
+        }
+
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 6) return { text: '凌晨好', emoji: '🌙' };
+            if (hour < 9) return { text: '早上好', emoji: '☀️' };
+            if (hour < 12) return { text: '上午好', emoji: '☀️' };
+            if (hour < 14) return { text: '中午好', emoji: '☀️' };
+            if (hour < 18) return { text: '下午好', emoji: '☕️' };
+            if (hour < 22) return { text: '晚上好', emoji: '🌙' };
+            return { text: '夜里好', emoji: '🌙' };
+        }
+
+        function formatLoginTime(isoString) {
+            if (!isoString) return '-';
+            try {
+                const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+                if (match) {
+                    const [_, year, month, day, hour, minute, second] = match;
+                    const pad = (n) => String(n).padStart(2, '0');
+                    return `${year}-${pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}:${pad(second)}`;
+                }
+                return isoString;
+            } catch (e) {
+                return isoString;
+            }
+        }
+
+        function showLastLoginToast(username, lastLoginAt, lastLoginIP, currentLoginAt) {
+            const toast = document.getElementById('lastLoginToast');
+            if (!toast) return;
+
+            const currentTimeEl = document.getElementById('currentLoginTime');
+            const currentIPEl = document.getElementById('currentLoginIP');
+            const lastTimeEl = document.getElementById('lastLoginTime');
+            const lastIPEl = document.getElementById('lastLoginIP');
+            const greetingEl = document.getElementById('greetingText');
+
+            if (currentTimeEl) {
+                if (currentLoginAt) {
+                    currentTimeEl.textContent = formatLoginTime(currentLoginAt);
+                } else {
+                    const now = new Date();
+                    const nowLocal = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+                    currentTimeEl.textContent = nowLocal.toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                }
+            }
+
+            if (currentIPEl) {
+                currentIPEl.textContent = lastLoginIP || '首次登录';
+            }
+
+            if (lastTimeEl) {
+                lastTimeEl.textContent = formatLoginTime(lastLoginAt);
+            }
+
+            if (lastIPEl) {
+                lastIPEl.textContent = '-';
+            }
+
+            if (greetingEl) {
+                const greeting = getGreeting();
+                greetingEl.textContent = username + '，' + greeting.text + '！' + greeting.emoji;
+            }
+
+            toast.classList.remove('hidden');
         }
 
         function showDashboard() {
@@ -8622,9 +9115,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }));
             const maxValue = Math.max(1, ...prepared.map(item => Math.max(item.pv, item.uv)));
 
-            const width = Math.max(920, prepared.length * 34);
+            const width = Math.max(920, prepared.length * 40);
             const height = 240;
-            const padding = { left: 48, right: 18, top: 16, bottom: 34 };
+            const padding = { left: 8, right: 4, top: 16, bottom: 34 };
             const plotWidth = Math.max(1, width - padding.left - padding.right);
             const plotHeight = Math.max(1, height - padding.top - padding.bottom);
 
@@ -8669,8 +9162,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const lastLabel = lastItem.date.length >= 5 ? lastItem.date.slice(5) : lastItem.date;
             const summary = `最近一天(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
 
+            const tooltipId = 'siteReportTrendTooltip';
             wrap.innerHTML = `
-                <div class="site-report-line-wrap">
+                <div class="site-report-line-wrap" style="position:relative;">
                     <svg class="site-report-line-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="每日趋势折线图">
                         ${gridLines.join('')}
                         <line class="site-report-line-axis" x1="${padding.left}" y1="${(padding.top + plotHeight).toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${(padding.top + plotHeight).toFixed(2)}"></line>
@@ -8680,6 +9174,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         ${uvDots}
                         ${xLabels}
                     </svg>
+                    <div id="${tooltipId}" class="site-report-line-tooltip"></div>
                 </div>
                 <div class="site-report-line-legend">
                     <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot pv"></i>PV</span>
@@ -8687,6 +9182,47 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </div>
                 <div class="site-report-line-summary">${escapeHtml(summary)}</div>
             `;
+
+            const svg = wrap.querySelector('.site-report-line-svg');
+            const tooltip = document.getElementById(tooltipId);
+
+            svg.addEventListener('mousemove', (e) => {
+                const svgRect = svg.getBoundingClientRect();
+                const scaleX = svgRect.width / width;
+                const scaleY = svgRect.height / height;
+                const mouseX = (e.clientX - svgRect.left) / scaleX;
+                let closestIdx = 0;
+                let minDist = Infinity;
+                prepared.forEach((item, idx) => {
+                    const dist = Math.abs(toX(idx) - mouseX);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = idx;
+                    }
+                });
+                const item = prepared[closestIdx];
+                tooltip.innerHTML = `
+                    <div class="site-report-line-tooltip-date">${escapeHtml(item.date)}</div>
+                    <div class="site-report-line-tooltip-pv"><span>PV</span><span>${formatSiteReportNumber(item.pv)}</span></div>
+                    <div class="site-report-line-tooltip-uv"><span>UV</span><span>${formatSiteReportNumber(item.uv)}</span></div>
+                `;
+                tooltip.classList.add('visible');
+                requestAnimationFrame(() => {
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    const tooltipWidth = tooltipRect.width;
+                    const tooltipHeight = tooltipRect.height;
+                    let left = e.clientX - svgRect.left - tooltipWidth / 2;
+                    left = Math.max(0, Math.min(left, svgRect.width - tooltipWidth));
+                    let top = (toY(item.pv) * scaleY) - tooltipHeight - 8;
+                    top = Math.max(0, Math.min(top, svgRect.height - tooltipHeight));
+                    tooltip.style.left = `${left}px`;
+                    tooltip.style.top = `${top}px`;
+                });
+            });
+
+            svg.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('visible');
+            });
         }
 
         function renderSiteReportRows() {
@@ -9144,10 +9680,102 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (viewName === 'cdn-assets') loadCdnAssets();
 
             renderGuidesForView(viewName);
+
+            const isEditable = canEditView(viewName);
+            applyReadOnlyMode(viewName, !isEditable);
+
             if (isMobileAdminViewport()) {
                 closeMobileSidebar();
             }
             queueResponsiveTableLabels();
+        }
+
+        function applyReadOnlyMode(viewName, readOnly) {
+            const view = document.getElementById(`view-${viewName}`);
+            if (!view) return;
+
+            view.classList.toggle('read-only-mode', readOnly);
+
+            let banner = view.querySelector('.read-only-banner');
+            if (readOnly) {
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.className = 'read-only-banner';
+                    banner.innerHTML = '<i class="fas fa-lock"></i> 当前账号无编辑权限，仅可查看数据';
+                    view.insertBefore(banner, view.firstChild);
+                }
+
+                const editableSelectors = [
+                    'button:not([disabled])',
+                    'input:not([disabled])',
+                    'textarea:not([disabled])',
+                    'select:not([disabled])',
+                    'a[href]',
+                    '[contenteditable="true"]',
+                    '.btn',
+                    '.action-btn',
+                    '[onclick*="save"]',
+                    '[onclick*="delete"]',
+                    '[onclick*="edit"]',
+                    '[onclick*="update"]',
+                    '[onclick*="create"]',
+                    '[onclick*="remove"]'
+                ];
+
+                editableSelectors.forEach(selector => {
+                    view.querySelectorAll(selector).forEach(el => {
+                        if (!el.classList.contains('read-only-safe') &&
+                            !el.closest('.read-only-banner')) {
+                            el.dataset.originalDisabled = el.disabled || '';
+                            el.dataset.originalReadOnly = el.readOnly || '';
+                            el.disabled = true;
+                            el.readOnly = true;
+                            el.classList.add('read-only-disabled');
+                        }
+                    });
+                });
+
+                view.querySelectorAll('[contenteditable]').forEach(el => {
+                    if (el.contentEditable === 'true') {
+                        el.dataset.originalContentEditable = el.contentEditable;
+                        el.contentEditable = 'false';
+                        el.classList.add('read-only-disabled');
+                    }
+                });
+
+                view.querySelectorAll('[onclick]').forEach(el => {
+                    const onclick = el.getAttribute('onclick') || '';
+                    const isAction = onclick.match(/save|delete|edit|update|create|remove|add/i);
+                    if (isAction && !el.classList.contains('read-only-safe')) {
+                        el.dataset.originalOnclick = onclick;
+                        el.removeAttribute('onclick');
+                        el.classList.add('read-only-disabled');
+                    }
+                });
+            } else {
+                if (banner) {
+                    banner.remove();
+                }
+
+                view.querySelectorAll('.read-only-disabled').forEach(el => {
+                    if (el.dataset.originalDisabled !== undefined) {
+                        el.disabled = el.dataset.originalDisabled === 'true';
+                    }
+                    if (el.dataset.originalReadOnly !== undefined) {
+                        el.readOnly = el.dataset.originalReadOnly === 'true';
+                    }
+                    el.classList.remove('read-only-disabled');
+                });
+
+                view.querySelectorAll('[data-original-contenteditable]').forEach(el => {
+                    el.contentEditable = el.dataset.originalContentEditable;
+                    el.classList.remove('read-only-disabled');
+                });
+
+                view.querySelectorAll('[data-original-onclick]').forEach(el => {
+                    el.setAttribute('onclick', el.dataset.originalOnclick);
+                });
+            }
         }
 
         // --- Products Logic ---
@@ -11826,42 +12454,221 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        // --- Product Category Images Functions ---
+        let productCategoryImagesData = [];
+
+        function renderProductCategoryImagesEditor() {
+            const container = document.getElementById('productCategoryImagesEditor');
+            if (!container) return;
+
+            const rows = productCategoryImagesData.map((item, idx) => `
+                <div style="display: flex; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid #eee;">
+                    <div style="flex: 1; min-width: 120px;">
+                        <strong style="color: #333;">${escapeHtml(item.name || '')}</strong>
+                    </div>
+                    <div style="flex: 2; display: flex; align-items: center; gap: 10px;">
+                        <input type="text" class="form-control product-category-image" data-key="${escapeHtml(item.key || '')}"
+                            value="${escapeHtml(item.image || '')}" placeholder="相对路径或 https:// 链接"
+                            title="不设置将使用默认图片"
+                            style="flex: 1; min-width: 200px;">
+                        <div class="product-category-image-preview" data-key="${escapeHtml(item.key || '')}"
+                            style="width: 56px; height: 40px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #f7f8fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            ${item.image ? `<img src="${escapeHtml(item.image)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">` : '<span style="font-size: 10px; color: #999;">预览</span>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = rows || '<div style="color: #888;">暂无产品分类数据</div>';
+            initProductCategoryImagePreviews();
+        }
+
+        function initProductCategoryImagePreviews() {
+            const imageInputs = document.querySelectorAll('.product-category-image');
+            imageInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const key = this.dataset.key;
+                    const preview = document.querySelector(`.product-category-image-preview[data-key="${key}"]`);
+                    if (!preview) return;
+
+                    const value = this.value.trim();
+                    if (!value) {
+                        preview.innerHTML = '<span style="font-size: 10px; color: #999;">预览</span>';
+                        return;
+                    }
+
+                    preview.innerHTML = `<img src="${escapeHtml(value)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">`;
+                });
+            });
+        }
+
+        async function loadProductCategoryImages() {
+            const container = document.getElementById('productCategoryImagesEditor');
+            if (!container) return;
+            container.innerHTML = '<div style="color:#888;">加载中...</div>';
+            try {
+                const res = await fetch('/api/categories/images');
+                const data = await res.json();
+                productCategoryImagesData = Array.isArray(data.categories) ? data.categories : [];
+                renderProductCategoryImagesEditor();
+            } catch (e) {
+                console.error('Load product category images error:', e);
+                container.innerHTML = '<div style="color:#dc3545;">加载失败，请刷新重试</div>';
+            }
+        }
+
+        async function saveProductCategoryImages() {
+            const msg = document.getElementById('productCategoryImagesMsg');
+            const images = {};
+            const inputs = document.querySelectorAll('.product-category-image');
+            inputs.forEach(input => {
+                const key = input.dataset.key;
+                const value = (input.value || '').trim();
+                if (key && value) {
+                    images[key] = value;
+                }
+            });
+
+            try {
+                const res = await fetch('/api/categories/images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ images })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    productCategoryImagesData = Array.isArray(result.categories) ? result.categories : [];
+                    renderProductCategoryImagesEditor();
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功！';
+                    }
+                    setTimeout(() => {
+                        if (msg) msg.textContent = '';
+                    }, 3000);
+                } else {
+                    throw new Error(result.message || '保存失败');
+                }
+            } catch (e) {
+                console.error('Save product category images error:', e);
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '保存失败';
+                }
+            }
+        }
+
         // --- Recommendations Functions ---
+        let recommendationsProductsAll = [];
+
         async function loadRecommendations() {
             try {
-                const res = await fetch('/api/recommendations');
-                const data = await res.json();
-                const latest = Array.isArray(data.latestReleases) ? data.latestReleases : [];
+                const [productsRes, recommendationsRes] = await Promise.all([
+                    fetch('/api/products/with-settings'),
+                    fetch('/api/recommendations')
+                ]);
+                const productsDataResult = await productsRes.json();
+                const recommendationsData = await recommendationsRes.json();
+
+                const rawProducts = productsDataResult.products || [];
+                recommendationsProductsAll = rawProducts.filter(p => {
+                    const pid = String(p?.id || '');
+                    if (!pid) return false;
+                    if (pid === 'all-products') return false;
+                    if (pid.startsWith('../biosensing/')) return false;
+                    if (pid.startsWith('../customization/')) return true;
+                    return !pid.startsWith('../');
+                });
+
+                const options = ['<option value="">不选择</option>']
+                    .concat(recommendationsProductsAll.map(item => {
+                        const label = item.displayName || item.shortName || item.name || item.id;
+                        return `<option value="${escapeHtml(item.id)}">${escapeHtml(label)}</option>`;
+                    }));
+
+                [1, 2, 3, 4].forEach((idx) => {
+                    const select = document.getElementById(`latest${idx}Select`);
+                    if (select) {
+                        select.innerHTML = options.join('');
+                    }
+                });
+
+                const latest = Array.isArray(recommendationsData.latestReleases) ? recommendationsData.latestReleases : [];
 
                 [1, 2, 3, 4].forEach((idx) => {
                     const item = latest[idx - 1] || {};
-                    document.getElementById(`latest${idx}Name`).value = item.name || '';
-                    document.getElementById(`latest${idx}Url`).value = item.url || '';
+                    const select = document.getElementById(`latest${idx}Select`);
+                    if (select && item.url) {
+                        const matchedProduct = recommendationsProductsAll.find(p => {
+                            const productUrl = `../gassensing/${p.id}.html`;
+                            return item.url === productUrl || item.url === p.id || item.url === `/${p.id}`;
+                        });
+                        if (matchedProduct) {
+                            select.value = matchedProduct.id;
+                        }
+                    }
                 });
+
+                updateRecommendationPreview();
             } catch (e) {
                 console.error('Load recommendations error:', e);
             }
         }
 
+        function updateRecommendationPreview() {
+            [1, 2, 3, 4].forEach((idx) => {
+                const select = document.getElementById(`latest${idx}Select`);
+                const preview = document.getElementById(`latest${idx}Preview`);
+                if (!select || !preview) return;
+
+                const selectedId = select.value;
+                if (!selectedId) {
+                    preview.innerHTML = '';
+                    return;
+                }
+
+                const product = recommendationsProductsAll.find(p => p.id === selectedId);
+                if (!product) {
+                    preview.innerHTML = '';
+                    return;
+                }
+
+                const image = product.cardImage || product.image || '';
+                const name = product.displayName || product.shortName || product.name || '';
+
+                preview.innerHTML = `
+                    <img src="${image}" alt="${escapeHtml(name)}" 
+                        style="width: 48px; height: 32px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: #f7f8fa;"
+                        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 40%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/><text x=%2230%22 y=%2225%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%228%22>无图</text></svg>'">
+                    <span style="font-size: 13px; color: #666;">${escapeHtml(name)}</span>
+                `;
+            });
+        }
+
         async function saveRecommendations() {
-            const isValidRecommendationUrl = (value) => {
-                const url = (value || '').trim();
-                if (!url) return false;
-                if (/^https?:\/\//i.test(url)) return true;
-                if (/^(\/|\.\/|\.\.\/)/.test(url)) return true;
-                if (!url.includes('://')) return true; // plain relative path
-                return false;
-            };
+            const latestReleases = [1, 2, 3, 4].map((idx) => {
+                const select = document.getElementById(`latest${idx}Select`);
+                const selectedId = select?.value || '';
 
-            const latestReleases = [1, 2, 3, 4].map((idx) => ({
-                name: document.getElementById(`latest${idx}Name`).value.trim(),
-                url: document.getElementById(`latest${idx}Url`).value.trim()
-            }));
+                if (!selectedId) {
+                    return { name: '', url: '' };
+                }
 
-            const invalid = latestReleases.find(item => !item.name || !isValidRecommendationUrl(item.url));
-            if (invalid) {
+                const product = recommendationsProductsAll.find(p => p.id === selectedId);
+                if (!product) {
+                    return { name: '', url: '' };
+                }
+
+                return {
+                    name: product.displayName || product.shortName || product.name || product.id,
+                    url: `../gassensing/${product.id}.html`
+                };
+            });
+
+            const validItems = latestReleases.filter(item => item.name && item.url);
+            if (validItems.length === 0) {
                 document.getElementById('recommendationsMsg').style.color = '#dc3545';
-                document.getElementById('recommendationsMsg').textContent = '请填写 4 个产品名称，并使用相对路径或 https 链接';
+                document.getElementById('recommendationsMsg').textContent = '请至少选择 1 个产品';
                 return;
             }
 
@@ -11901,6 +12708,20 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return false;
         }
 
+        let measurementPagesList = [];
+
+        function buildMeasurementPagesOptions(selectedUrl = '') {
+            if (measurementPagesList.length === 0) {
+                return '<option value="">加载中...</option>';
+            }
+            const options = ['<option value="">不选择</option>'];
+            measurementPagesList.forEach(page => {
+                const selected = page.url === selectedUrl ? 'selected' : '';
+                options.push(`<option value="${escapeHtml(page.url)}" ${selected}>${escapeHtml(page.name)}</option>`);
+            });
+            return options.join('');
+        }
+
         function renderMeasurementTargetsEditor() {
             const container = document.getElementById('measurementTargetsEditor');
             if (!container) return;
@@ -11916,8 +12737,21 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             value="${escapeHtml(item.name || '')}" placeholder="显示名称（如：氢气 (H2)）">
                     </td>
                     <td style="padding:8px;">
-                        <input type="text" class="form-control measurement-target-url" data-index="${idx}"
-                            value="${escapeHtml(item.url || '')}" placeholder="相对路径或 http(s) 链接">
+                        <select class="form-control measurement-target-url" data-index="${idx}" onchange="onMeasurementTargetUrlChange(this)">
+                            ${buildMeasurementPagesOptions(item.url || '')}
+                        </select>
+                    </td>
+                    <td style="padding:8px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" class="form-control measurement-target-image" data-index="${idx}"
+                                value="${escapeHtml(item.image || '')}" placeholder="相对路径或 https:// 链接"
+                                title="不设置此项将使用页面内的首张图片作为缩略图显示"
+                                style="flex: 1; min-width: 150px;">
+                            <div class="measurement-target-image-preview" data-index="${idx}" 
+                                style="width: 56px; height: 40px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #f7f8fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${item.image ? `<img src="${escapeHtml(item.image)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">` : '<span style="font-size: 10px; color: #999;">预览</span>'}
+                            </div>
+                        </div>
                     </td>
                     <td style="padding:8px; width:90px; text-align:center;">
                         <button class="btn-sm btn-danger" onclick="removeMeasurementTargetRow(${idx})">删除</button>
@@ -11933,6 +12767,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <th style="padding:10px; text-align:left; width:48px; border-bottom:2px solid #ddd;">#</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">显示名称</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">跳转链接</th>
+                            <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">缩略图（可选）</th>
                             <th style="padding:10px; text-align:center; width:90px; border-bottom:2px solid #ddd;">操作</th>
                         </tr>
                     </thead>
@@ -11940,14 +12775,47 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </table>
             `;
             initMeasurementTargetsSortable();
+            initMeasurementTargetImagePreviews();
+        }
+
+        function onMeasurementTargetUrlChange(select) {
+            const idx = select.dataset.index;
+            const nameInput = document.querySelector(`.measurement-target-name[data-index="${idx}"]`);
+            if (!nameInput) return;
+
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.value && !nameInput.value.trim()) {
+                nameInput.value = selectedOption.text;
+            }
+        }
+
+        function initMeasurementTargetImagePreviews() {
+            const imageInputs = document.querySelectorAll('#measurementTargetsTbody .measurement-target-image');
+            imageInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const idx = this.dataset.index;
+                    const preview = document.querySelector(`.measurement-target-image-preview[data-index="${idx}"]`);
+                    if (!preview) return;
+
+                    const value = this.value.trim();
+                    if (!value) {
+                        preview.innerHTML = '<span style="font-size: 10px; color: #999;">预览</span>';
+                        return;
+                    }
+
+                    preview.innerHTML = `<img src="${escapeHtml(value)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">`;
+                });
+            });
         }
 
         function collectMeasurementTargetsFromDom() {
             const names = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-name'));
             const urls = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-url'));
+            const images = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-image'));
             return names.map((nameInput, idx) => ({
                 name: (nameInput.value || '').trim(),
-                url: (urls[idx]?.value || '').trim()
+                url: (urls[idx]?.value || '').trim(),
+                image: (images[idx]?.value || '').trim()
             }));
         }
 
@@ -11975,9 +12843,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!container) return;
             container.innerHTML = '<div style="color:#888; padding: 8px 0;">加载中...</div>';
             try {
-                const res = await fetch('/api/measurement-targets');
-                const data = await res.json();
-                measurementTargetsData = Array.isArray(data.items) ? data.items : [];
+                const [pagesRes, targetsRes] = await Promise.all([
+                    fetch('/api/measurement-pages'),
+                    fetch('/api/measurement-targets')
+                ]);
+                const pagesData = await pagesRes.json();
+                const targetsData = await targetsRes.json();
+
+                measurementPagesList = Array.isArray(pagesData.pages) ? pagesData.pages : [];
+                measurementTargetsData = Array.isArray(targetsData.items) ? targetsData.items : [];
                 renderMeasurementTargetsEditor();
             } catch (e) {
                 console.error('Load measurement targets error:', e);
@@ -11987,7 +12861,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function addMeasurementTargetRow() {
             syncMeasurementTargetsFromDom();
-            measurementTargetsData.push({ name: '', url: '' });
+            measurementTargetsData.push({ name: '', url: '', image: '' });
             renderMeasurementTargetsEditor();
         }
 
@@ -12001,11 +12875,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const msg = document.getElementById('measurementTargetsMsg');
             const items = collectMeasurementTargetsFromDom();
 
-            const invalid = items.find(item => !item.name || !isValidNavLink(item.url));
+            const invalid = items.find(item => !item.name || !item.url);
             if (invalid) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请填写完整名称，并使用相对路径或 http(s) 链接';
+                    msg.textContent = '请填写完整名称并选择跳转链接';
                 }
                 return;
             }
@@ -12036,6 +12910,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         let navIndustryCategoriesData = [];
+        let solutionsPagesList = [];
+
+        function buildSolutionsPagesOptions(selectedUrl = '') {
+            if (solutionsPagesList.length === 0) {
+                return '<option value="">加载中...</option>';
+            }
+            const options = ['<option value="">不选择</option>'];
+            solutionsPagesList.forEach(page => {
+                const selected = page.url === selectedUrl ? 'selected' : '';
+                options.push(`<option value="${escapeHtml(page.url)}" ${selected}>${escapeHtml(page.name)}</option>`);
+            });
+            return options.join('');
+        }
 
         function renderNavIndustryCategoriesEditor() {
             const container = document.getElementById('navIndustryCategoriesEditor');
@@ -12052,8 +12939,21 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             value="${escapeHtml(item.name || '')}" placeholder="按钮名称（如：氢能源产业链）">
                     </td>
                     <td style="padding:8px;">
-                        <input type="text" class="form-control nav-industry-url" data-index="${idx}"
-                            value="${escapeHtml(item.url || '')}" placeholder="相对路径或 http(s) 链接">
+                        <select class="form-control nav-industry-url" data-index="${idx}" onchange="onSolutionsPageUrlChange(this)">
+                            ${buildSolutionsPagesOptions(item.url || '')}
+                        </select>
+                    </td>
+                    <td style="padding:8px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" class="form-control nav-industry-image" data-index="${idx}"
+                                value="${escapeHtml(item.image || '')}" placeholder="相对路径或 https:// 链接"
+                                title="不设置此项将使用页面内的首张图片作为缩略图显示"
+                                style="flex: 1; min-width: 150px;">
+                            <div class="nav-industry-image-preview" data-index="${idx}" 
+                                style="width: 56px; height: 40px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #f7f8fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${item.image ? `<img src="${escapeHtml(item.image)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">` : '<span style="font-size: 10px; color: #999;">预览</span>'}
+                            </div>
+                        </div>
                     </td>
                     <td style="padding:8px; width:90px; text-align:center;">
                         <button class="btn-sm btn-danger" onclick="removeNavIndustryCategoryRow(${idx})">删除</button>
@@ -12069,6 +12969,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <th style="padding:10px; text-align:left; width:48px; border-bottom:2px solid #ddd;">#</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">按钮名称</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">跳转链接</th>
+                            <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">缩略图（可选）</th>
                             <th style="padding:10px; text-align:center; width:90px; border-bottom:2px solid #ddd;">操作</th>
                         </tr>
                     </thead>
@@ -12076,15 +12977,48 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </table>
             `;
             initNavIndustryCategoriesSortable();
+            initNavIndustryCategoriesImagePreviews();
+        }
+
+        function onSolutionsPageUrlChange(select) {
+            const idx = select.dataset.index;
+            const nameInput = document.querySelector(`.nav-industry-name[data-index="${idx}"]`);
+            if (!nameInput) return;
+
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.value && !nameInput.value.trim()) {
+                nameInput.value = selectedOption.text;
+            }
         }
 
         function collectNavIndustryCategoriesFromDom() {
             const names = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-name'));
             const urls = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-url'));
+            const images = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-image'));
             return names.map((nameInput, idx) => ({
                 name: (nameInput.value || '').trim(),
-                url: (urls[idx]?.value || '').trim()
+                url: (urls[idx]?.value || '').trim(),
+                image: (images[idx]?.value || '').trim()
             }));
+        }
+
+        function initNavIndustryCategoriesImagePreviews() {
+            const imageInputs = document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-image');
+            imageInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const idx = this.dataset.index;
+                    const preview = document.querySelector(`.nav-industry-image-preview[data-index="${idx}"]`);
+                    if (!preview) return;
+
+                    const value = this.value.trim();
+                    if (!value) {
+                        preview.innerHTML = '<span style="font-size: 10px; color: #999;">预览</span>';
+                        return;
+                    }
+
+                    preview.innerHTML = `<img src="${escapeHtml(value)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">`;
+                });
+            });
         }
 
         function syncNavIndustryCategoriesFromDom() {
@@ -12111,9 +13045,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!container) return;
             container.innerHTML = '<div style="color:#888; padding: 8px 0;">加载中...</div>';
             try {
-                const res = await fetch('/api/nav-industry-categories');
-                const data = await res.json();
-                navIndustryCategoriesData = Array.isArray(data.items) ? data.items : [];
+                const [pagesRes, categoriesRes] = await Promise.all([
+                    fetch('/api/solutions-pages'),
+                    fetch('/api/nav-industry-categories')
+                ]);
+                const pagesData = await pagesRes.json();
+                const categoriesData = await categoriesRes.json();
+
+                solutionsPagesList = Array.isArray(pagesData.pages) ? pagesData.pages : [];
+                navIndustryCategoriesData = Array.isArray(categoriesData.items) ? categoriesData.items : [];
                 renderNavIndustryCategoriesEditor();
             } catch (e) {
                 console.error('Load nav industry categories error:', e);
@@ -12123,7 +13063,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function addNavIndustryCategoryRow() {
             syncNavIndustryCategoriesFromDom();
-            navIndustryCategoriesData.push({ name: '', url: '' });
+            navIndustryCategoriesData.push({ name: '', url: '', image: '' });
             renderNavIndustryCategoriesEditor();
         }
 
@@ -12137,11 +13077,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const msg = document.getElementById('navIndustryCategoriesMsg');
             const items = collectNavIndustryCategoriesFromDom();
 
-            const invalid = items.find(item => !item.name || !isValidNavLink(item.url));
+            const invalid = items.find(item => !item.name || !item.url);
             if (invalid) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请填写完整名称，并使用相对路径或 http(s) 链接';
+                    msg.textContent = '请填写完整名称并选择跳转链接';
                 }
                 return;
             }
@@ -13708,7 +14648,12 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     updateMenuPreview();
                     loadRecommendations();
                 }
-                loadMeasurementTargets();
+                loadProductCategoryImages();
+                if (measurementPagesList.length === 0) {
+                    loadMeasurementTargets();
+                } else {
+                    loadMeasurementTargets();
+                }
                 loadNavIndustryCategories();
             }
         }
@@ -17578,6 +18523,39 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
     </script>
+
+    <div id="lastLoginToast" class="last-login-toast hidden">
+        <div class="toast-header">
+            <div class="toast-title">
+                <i class="fas fa-user-clock"></i> 登录信息
+            </div>
+            <button class="toast-close" onclick="closeLastLoginToast()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="toast-content">
+            <div class="toast-row">
+                <span class="toast-label">本次登录</span>
+                <span id="currentLoginTime" class="toast-value">-</span>
+            </div>
+            <div class="toast-row">
+                <span class="toast-label">本次IP</span>
+                <span id="currentLoginIP" class="toast-value">-</span>
+            </div>
+            <div class="toast-divider"></div>
+            <div class="toast-row">
+                <span class="toast-label">上次登录</span>
+                <span id="lastLoginTime" class="toast-value">-</span>
+            </div>
+            <div class="toast-row">
+                <span class="toast-label">上次IP</span>
+                <span id="lastLoginIP" class="toast-value">-</span>
+            </div>
+            <div id="lastLoginGreeting" class="toast-greeting">
+                <span id="greetingText"></span>
+            </div>
+        </div>
+    </div>
 
 </body>
 

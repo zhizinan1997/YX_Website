@@ -1,4 +1,7 @@
-"""News-content helpers and routes."""
+"""新闻内容管理路由模块。
+
+负责新闻列表、文章解析、Markdown 渲染、封面处理、公开输出与后台编辑接口。
+"""
 
 from __future__ import annotations
 
@@ -6,15 +9,24 @@ import html
 import json
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import jsonify, request, send_from_directory
 
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def now_beijing():
+    """返回北京时间对应的当前时间。"""
+    return datetime.now(BEIJING_TZ)
+
+# 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 
 
+
+# 依赖注入配置入口。
 def configure_news_content(
     *,
     pages_dir,
@@ -45,7 +57,7 @@ def configure_news_content(
     get_chatbot_config,
     call_openai_api,
 ):
-    """Configure shared dependencies for news helpers/routes."""
+    """配置新闻内容模块的共享依赖。"""
     _DEPS.clear()
     _DEPS.update({
         'pages_dir': Path(pages_dir),
@@ -353,7 +365,7 @@ def build_news_card_html(
 
 
 def parse_news_from_html():
-    """Parse news data from news.html file."""
+    """从 news.html 文件中解析新闻数据。"""
     news_file = _news_index_path()
     if not news_file.exists():
         return {'enterprise': [], 'industry': [], 'science': []}
@@ -446,7 +458,7 @@ def parse_news_from_html():
 
 
 def get_next_news_id():
-    """Get next numeric ID for news_show file."""
+    """获取 news_show 目录可用的下一个数字 ID。"""
     news_dir = _news_dir()
     max_id = 0
     if news_dir.exists():
@@ -461,7 +473,7 @@ def get_next_news_id():
 
 
 def build_news_article_html(title, date, image_url, content_html):
-    """Render a news article HTML with consistent style."""
+    """以统一样式渲染新闻文章 HTML。"""
     safe_title_text = normalize_news_plain_text(title, max_length=200)
     safe_title = html.escape(safe_title_text, quote=True)
     hero_title = html.escape(safe_title_text, quote=False)
@@ -644,7 +656,7 @@ def build_news_article_html(title, date, image_url, content_html):
 
 
 def render_markdown(content: str) -> str:
-    """Render markdown to HTML."""
+    """将 Markdown 文本渲染为网页内容。"""
     if _dep('markdown_support'):
         return _dep('markdown_module').markdown(content, extensions=['extra', 'tables', 'sane_lists'])
 
@@ -715,7 +727,7 @@ def render_markdown(content: str) -> str:
 
 
 def parse_news_article_html(filepath: Path):
-    """Parse a news article HTML to extract fields."""
+    """解析新闻文章 HTML 并提取字段。"""
     def extract_first_div_by_class(html_text: str, class_name: str) -> str:
         start_re = re.compile(
             rf'<div\b[^>]*class=["\'][^"\']*\b{re.escape(class_name)}\b[^"\']*["\'][^>]*>',
@@ -769,7 +781,7 @@ def parse_news_article_html(filepath: Path):
 
 
 def derive_news_cover_and_summary(content_html: str, image_url: str = '', summary: str = ''):
-    """Fill optional cover image and summary from article content."""
+    """根据文章内容补齐封面图和摘要。"""
     html_body = content_html or ''
     final_image = (image_url or '').strip()
     final_summary = (summary or '').strip()
@@ -803,7 +815,7 @@ def derive_news_cover_and_summary(content_html: str, image_url: str = '', summar
 
 
 def insert_news_card(news_html_path: Path, card_html: str) -> bool:
-    """Insert a news card into news.html after the Page 1 marker."""
+    """在 `Page 1` 标记之后向 news.html 插入新闻卡片。"""
     if not news_html_path.exists():
         return False
     content = news_html_path.read_text(encoding='utf-8')
@@ -824,7 +836,7 @@ def insert_news_card(news_html_path: Path, card_html: str) -> bool:
 
 
 def build_news_card_regex(filename: str):
-    """Match a news card by filename across different href styles."""
+    """在不同 href 形式下按文件名匹配新闻卡片。"""
     return re.compile(
         rf'<a\s+[^>]*href\s*=\s*["\'][^"\']*{re.escape(filename)}[^"\']*["\'][^>]*>.*?</a>',
         re.DOTALL | re.IGNORECASE,
@@ -832,7 +844,7 @@ def build_news_card_regex(filename: str):
 
 
 def dedupe_news_cards(content: str, filename: str):
-    """Remove duplicate cards for the same news filename, keeping the first."""
+    """对同一新闻文件名去重，仅保留第一张卡片。"""
     pattern = build_news_card_regex(filename)
     matches = list(pattern.finditer(content))
     if len(matches) <= 1:
@@ -852,7 +864,7 @@ def dedupe_news_cards(content: str, filename: str):
 
 
 def get_hidden_news_links():
-    """Load hidden news links."""
+    """加载已隐藏的新闻链接。"""
     default_config = {'hidden_links': []}
     news_visibility_file = _dep('news_visibility_file')
     if news_visibility_file.exists():
@@ -868,7 +880,7 @@ def get_hidden_news_links():
 
 
 def save_hidden_news_links(links):
-    """Save hidden news links."""
+    """保存已隐藏的新闻链接。"""
     cleaned = []
     for link in links:
         if link and isinstance(link, str):
@@ -879,7 +891,7 @@ def save_hidden_news_links(links):
 
 
 def get_featured_news_config():
-    """Load featured news config."""
+    """加载精选新闻配置。"""
     default_config = {'links': []}
     news_featured_file = _dep('news_featured_file')
     if news_featured_file.exists():
@@ -894,7 +906,7 @@ def get_featured_news_config():
 
 
 def save_featured_news_config(new_config):
-    """Save featured news config."""
+    """保存精选新闻配置。"""
     links = new_config.get('links', [])
     if not isinstance(links, list):
         links = []
@@ -913,7 +925,7 @@ def save_featured_news_config(new_config):
 
 
 def get_all_news_items():
-    """Scan news.html for all news items with metadata."""
+    """扫描 news.html 中全部新闻项及其元数据。"""
     news_index = _news_index_path()
     if not news_index.exists():
         return []
@@ -1033,7 +1045,7 @@ def normalize_news_link_for_product(link: str) -> str:
 
 
 def save_h2_home_news(items):
-    """Save h2 home news with optional custom fields."""
+    """保存氢气首页新闻数据，并支持自定义字段。"""
     if not isinstance(items, list):
         items = []
     cleaned = []
@@ -1066,6 +1078,8 @@ def save_h2_home_news(items):
     return saved
 
 
+
+# 路由注册入口。
 def register_news_content_routes(
     app,
     *,
@@ -1098,7 +1112,7 @@ def register_news_content_routes(
     get_chatbot_config,
     call_openai_api,
 ):
-    """Register news-content helpers and routes."""
+    """注册新闻内容相关路由，并完成共享依赖注入。"""
     configure_news_content(
         pages_dir=pages_dir,
         news_featured_file=news_featured_file,
@@ -1553,7 +1567,7 @@ def register_news_content_routes(
     def preview_news_page():
         data = request.json or {}
         title = normalize_news_plain_text(data.get('title', ''), max_length=200) or '标题预览'
-        date = normalize_news_plain_text(data.get('date', ''), max_length=80) or datetime.now().strftime('%Y-%m-%d')
+        date = normalize_news_plain_text(data.get('date', ''), max_length=80) or now_beijing().strftime('%Y-%m-%d')
         image_url = sanitize_news_image_url(data.get('image_url', '')) or '/assets/images/logo.png'
         content = (data.get('content') or '').strip()
         is_html = bool(data.get('content_is_html', False))

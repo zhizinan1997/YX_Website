@@ -1,4 +1,7 @@
-"""Site analytics route module."""
+"""站点统计路由模块。
+
+负责埋点写入、事件清洗、地域与设备归类以及后台统计报表输出。
+"""
 
 import hashlib
 import json
@@ -1010,6 +1013,8 @@ def build_site_analytics_report(range_days=30):
 
 
 
+
+# 路由注册入口。
 def register_site_analytics_routes(
     app,
     *,
@@ -1019,7 +1024,7 @@ def register_site_analytics_routes(
     resolve_ip_location,
     beijing_tz,
 ):
-    """Register public analytics collection and admin reporting routes."""
+    """注册公开埋点收集与后台统计报表相关路由。"""
     global SITE_ANALYTICS_LOG_FILE, BEIJING_TZ, _resolve_ip_location_fn
 
     SITE_ANALYTICS_LOG_FILE = Path(data_dir) / "site_analytics_events.jsonl"
@@ -1028,7 +1033,7 @@ def register_site_analytics_routes(
 
     @app.route('/api/analytics/collect', methods=['POST'])
     def collect_site_analytics():
-        """Collect public website analytics events."""
+        """收集公开站点的统计事件。"""
         content_len = int(request.content_length or 0)
         if content_len and content_len > 64 * 1024:
             return jsonify({'success': False, 'message': 'payload too large'}), 413
@@ -1060,7 +1065,7 @@ def register_site_analytics_routes(
     @app.route('/api/admin/site-reports', methods=['GET'])
     @login_required
     def get_site_reports_admin():
-        """Get website analytics report for admin dashboard."""
+        """获取后台仪表盘使用的站点统计报表。"""
         range_days = request.args.get('range_days', 30)
         report = build_site_analytics_report(range_days=range_days)
         return jsonify({'success': True, **report})

@@ -1,4 +1,7 @@
-"""Backup/restore route module."""
+"""备份与恢复路由模块。
+
+负责项目文件打包导出、备份元数据处理以及备份恢复入口。
+"""
 
 import json
 import os
@@ -6,12 +9,20 @@ import posixpath
 import shutil
 import tempfile
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import after_this_request, jsonify, request, send_file
 
+BEIJING_TZ = timezone(timedelta(hours=8))
 
+def now_beijing():
+    """返回北京时间对应的当前时间。"""
+    return datetime.now(BEIJING_TZ)
+
+
+
+# 路由注册入口。
 def register_backup_routes(
     app,
     *,
@@ -22,11 +33,11 @@ def register_backup_routes(
     backup_excluded_file_names,
     backup_excluded_suffixes,
 ):
-    """Register full-site backup/restore routes."""
+    """注册整站备份与恢复相关路由。"""
     root = Path(project_root)
 
     def normalize_backup_rel_path(raw_path: str) -> str:
-        """Normalize backup relative path and guard against traversal."""
+        """规范化备份相对路径并防止路径穿越。"""
         if not raw_path:
             return ''
         normalized = posixpath.normpath(str(raw_path).replace('\\', '/')).lstrip('./')
@@ -35,7 +46,7 @@ def register_backup_routes(
         return normalized
 
     def should_include_site_backup_path(rel_path: str) -> bool:
-        """Decide whether a relative path should be included in full-site backup."""
+        """判断相对路径是否应纳入整站备份。"""
         normalized = normalize_backup_rel_path(rel_path)
         if not normalized:
             return False
@@ -46,7 +57,7 @@ def register_backup_routes(
         if not parts:
             return False
 
-        # Exclude cache/dev directories from any depth.
+        # 排除任意层级下的缓存目录和开发目录。
         for part in parts[:-1]:
             if part in backup_excluded_dir_names:
                 return False
@@ -62,7 +73,7 @@ def register_backup_routes(
         return True
 
     def iter_site_backup_files():
-        """Yield (abs_file_path, rel_posix_path) for backup-eligible files."""
+        """遍历可备份文件，并产出（绝对路径，相对 POSIX 路径）。"""
         for current_root, dirnames, filenames in os.walk(root, topdown=True):
             dirnames[:] = [d for d in dirnames if d not in backup_excluded_dir_names]
 
@@ -78,8 +89,8 @@ def register_backup_routes(
     @app.route('/api/backup/download', methods=['GET'])
     @login_required
     def download_backup():
-        """Download full-site backup (excluding cache/dev directories)."""
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        """下载整站备份，排除缓存目录与开发目录。"""
+        ts = now_beijing().strftime('%Y%m%d_%H%M%S')
         backup_name = f'yx_backup_{ts}.zip'
 
         fd, temp_zip = tempfile.mkstemp(prefix='yx_backup_', suffix='.zip')
@@ -90,7 +101,7 @@ def register_backup_routes(
 
             with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
                 manifest = {
-                    'created_at': datetime.now().isoformat(),
+                    'created_at': now_beijing().isoformat(),
                     'version': 3,
                     'scope': 'full_site',
                     'includes': {
@@ -135,7 +146,7 @@ def register_backup_routes(
     @app.route('/api/backup/restore', methods=['POST'])
     @login_required
     def restore_backup():
-        """Restore backup zip after docker redeploy."""
+        """在 Docker 重部署后恢复备份 ZIP。"""
         file = request.files.get('file')
         if not file or not file.filename:
             return jsonify({'success': False, 'message': '请上传备份文件'}), 400

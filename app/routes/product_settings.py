@@ -1,11 +1,15 @@
-"""Product settings and industry filter routes."""
+"""产品设置与行业筛选路由模块。
+
+负责产品配置、分类图片、行业筛选、产品卡片图片上传与设置保存。
+"""
 
 import json
 import re
+import uuid
 from pathlib import Path
 from urllib.parse import quote
 
-from flask import jsonify, request
+from flask import jsonify, request, send_from_directory
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = APP_ROOT / 'data'
@@ -13,6 +17,7 @@ PRODUCT_SETTINGS_FILE = DATA_DIR / 'product_settings.json'
 PRODUCT_INDUSTRY_FILTERS_FILE = DATA_DIR / 'product_industry_filters.json'
 BIO_PRODUCT_SETTINGS_FILE = DATA_DIR / 'bio_product_settings.json'
 BIO_PRODUCT_INDUSTRY_FILTERS_FILE = DATA_DIR / 'bio_product_industry_filters.json'
+PRODUCT_CATEGORY_IMAGES_FILE = DATA_DIR / 'product_category_images.json'
 
 _SANITIZE_PUBLIC_PRODUCT_SETTINGS = lambda settings: settings if isinstance(settings, dict) else {}
 _SANITIZE_PUBLIC_TEXT = lambda value, **_kwargs: str(value or '')
@@ -49,8 +54,43 @@ PRODUCT_MENU_CATEGORIES = [
 ]
 
 
+def get_product_category_images():
+    """获取产品分类图片映射。"""
+    if PRODUCT_CATEGORY_IMAGES_FILE.exists():
+        try:
+            data = json.loads(PRODUCT_CATEGORY_IMAGES_FILE.read_text(encoding='utf-8'))
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+    return {}
+
+
+def save_product_category_images(images_data):
+    """保存产品分类图片映射。"""
+    PRODUCT_CATEGORY_IMAGES_FILE.write_text(
+        json.dumps(images_data, ensure_ascii=False, indent=2),
+        encoding='utf-8',
+    )
+
+
+def get_product_categories_with_images():
+    """获取附带自定义图片的产品分类列表。"""
+    images = get_product_category_images()
+    categories = []
+    for item in PRODUCT_MENU_CATEGORIES:
+        key = item.get('key', '')
+        categories.append({
+            'key': key,
+            'name': item.get('name', ''),
+            'url': item.get('url', ''),
+            'image': images.get(key, '')
+        })
+    return categories
+
+
 def normalize_filter_key(raw_key, fallback_index=0):
-    """Normalize filter key to lowercase ascii slug."""
+    """将筛选键规范化为小写 ASCII slug。"""
     key = (raw_key or '').strip().lower()
     key = re.sub(r'[^a-z0-9_-]+', '-', key)
     key = re.sub(r'-{2,}', '-', key).strip('-')
@@ -60,7 +100,7 @@ def normalize_filter_key(raw_key, fallback_index=0):
 
 
 def infer_default_industry_categories(product):
-    """Infer initial industry categories for products with no custom mapping."""
+    """为未自定义映射的产品推断初始行业分类。"""
     pid = str(product.get('id', ''))
     name = str(product.get('name', ''))
     desc = str(product.get('description', ''))
@@ -89,7 +129,7 @@ def infer_default_industry_categories(product):
 
 
 def infer_default_bio_industry_categories(product):
-    """Infer default biosensing industry categories for products with no custom mapping."""
+    """为未自定义映射的生物传感产品推断默认行业分类。"""
     name = str(product.get('name', ''))
     desc = str(product.get('description', ''))
     text = f'{name} {desc}'
@@ -114,7 +154,7 @@ def infer_default_bio_industry_categories(product):
 
 
 def _normalize_related_news_links(value):
-    """Normalize product related news setting to max 2 unique links."""
+    """将产品相关新闻设置规范化为最多 2 个唯一链接。"""
     if isinstance(value, list):
         raw_list = value
     elif isinstance(value, str):
@@ -144,7 +184,7 @@ def _normalize_related_news_links(value):
 
 
 def get_product_settings():
-    """Load product settings (custom names, new badges)."""
+    """加载产品设置，如自定义名称和新品标记。"""
     if PRODUCT_SETTINGS_FILE.exists():
         try:
             raw = json.loads(PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
@@ -155,7 +195,7 @@ def get_product_settings():
 
 
 def get_bio_product_settings():
-    """Load biosensing product settings (custom names, new badges)."""
+    """加载生物传感产品设置，如自定义名称和新品标记。"""
     if BIO_PRODUCT_SETTINGS_FILE.exists():
         try:
             raw = json.loads(BIO_PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
@@ -166,13 +206,13 @@ def get_bio_product_settings():
 
 
 def save_product_settings(settings):
-    """Save product settings."""
+    """保存产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
     PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
 def save_bio_product_settings(settings):
-    """Save biosensing product settings."""
+    """保存生物传感产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
     BIO_PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
 
@@ -196,7 +236,7 @@ def _build_filter_preview_map(products, fallback_categories):
 
 
 def build_industry_filter_preview_map():
-    """Pick the first visible product image for each industry filter."""
+    """为每个行业筛选项选取第一张可见产品图。"""
     try:
         products = _GET_PRODUCTS_WITH_SETTINGS_DATA()
     except Exception:
@@ -205,7 +245,7 @@ def build_industry_filter_preview_map():
 
 
 def build_bio_industry_filter_preview_map():
-    """Pick the first visible biosensing product image for each industry filter."""
+    """为每个生物传感行业筛选项选取第一张可见产品图。"""
     try:
         products = _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA()
     except Exception:
@@ -236,7 +276,7 @@ def _normalize_filter_items(raw_items, default_items, ensure_item=None):
 
 
 def get_industry_filters():
-    """Load industry filters for all-products page."""
+    """加载全产品页的行业筛选配置。"""
     categories = []
     if PRODUCT_INDUSTRY_FILTERS_FILE.exists():
         try:
@@ -259,7 +299,7 @@ def get_industry_filters():
 
 
 def save_industry_filters(data):
-    """Persist industry filters and clean stale product mappings."""
+    """保存行业筛选配置，并清理过期的产品映射。"""
     raw_categories = data.get('categories', []) if isinstance(data, dict) else []
     cleaned = _normalize_filter_items(raw_categories, DEFAULT_INDUSTRY_FILTERS)
 
@@ -288,7 +328,7 @@ def save_industry_filters(data):
 
 
 def get_bio_industry_filters():
-    """Load biosensing industry filters for biosensing index page."""
+    """加载生物传感索引页的行业筛选配置。"""
     categories = []
     if BIO_PRODUCT_INDUSTRY_FILTERS_FILE.exists():
         try:
@@ -315,7 +355,7 @@ def get_bio_industry_filters():
 
 
 def save_bio_industry_filters(data):
-    """Persist biosensing industry filters and clean stale product mappings."""
+    """保存生物传感行业筛选配置，并清理过期的产品映射。"""
     raw_categories = data.get('categories', []) if isinstance(data, dict) else []
     cleaned = _normalize_filter_items(
         raw_categories,
@@ -399,6 +439,8 @@ def _apply_sort_order(settings, order):
     return settings, None
 
 
+
+# 路由注册入口。
 def register_product_settings_routes(
     app,
     *,
@@ -410,8 +452,11 @@ def register_product_settings_routes(
     sanitize_public_link_url,
     get_products_with_settings_data,
     get_biosensing_products_with_settings_data,
+    product_card_uploads_dir,
+    allowed_product_card_extensions,
+    validate_uploaded_image_extension,
 ):
-    """Register product settings and industry filter routes."""
+    """注册产品设置与行业筛选相关路由。"""
     global DATA_DIR, PRODUCT_SETTINGS_FILE, PRODUCT_INDUSTRY_FILTERS_FILE
     global BIO_PRODUCT_SETTINGS_FILE, BIO_PRODUCT_INDUSTRY_FILTERS_FILE
     global _SANITIZE_PUBLIC_PRODUCT_SETTINGS, _SANITIZE_PUBLIC_TEXT
@@ -429,21 +474,52 @@ def register_product_settings_routes(
     _SANITIZE_PUBLIC_LINK_URL = sanitize_public_link_url
     _GET_PRODUCTS_WITH_SETTINGS_DATA = get_products_with_settings_data
     _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA = get_biosensing_products_with_settings_data
+    product_card_uploads_path = Path(product_card_uploads_dir)
+    allowed_card_extensions = set(allowed_product_card_extensions or set())
+
+    @app.route('/api/products/card-image/upload', methods=['POST'])
+    @app.route('/api/bio-products/card-image/upload', methods=['POST'])
+    @login_required
+    def upload_product_card_image():
+        """上传产品卡片图片并返回可访问 URL。"""
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': '未找到上传文件'}), 400
+
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+        ext = validate_uploaded_image_extension(file, allowed_extensions=allowed_card_extensions)
+        if not ext:
+            return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP 图片'}), 400
+
+        saved_name = f'{uuid.uuid4().hex}{ext}'
+        save_path = product_card_uploads_path / saved_name
+        file.save(save_path)
+        return jsonify({
+            'success': True,
+            'url': f'/media/product-cards/{saved_name}',
+        })
+
+    @app.route('/media/product-cards/<path:filename>')
+    def serve_product_card_media(filename):
+        """提供已上传的产品卡片图片访问。"""
+        return send_from_directory(product_card_uploads_path, filename)
 
     @app.route('/api/products/settings', methods=['GET'])
     def get_product_settings_api():
-        """Get product menu settings."""
+        """获取产品菜单设置。"""
         return jsonify(get_product_settings())
 
     @app.route('/api/bio-products/settings', methods=['GET'])
     def get_bio_product_settings_api():
-        """Get biosensing product menu settings."""
+        """获取生物传感产品菜单设置。"""
         return jsonify(get_bio_product_settings())
 
     @app.route('/api/products/settings', methods=['POST'])
     @login_required
     def update_product_settings_api():
-        """Update product menu settings."""
+        """更新产品菜单设置。"""
         data = request.json or {}
         settings, error = _apply_product_settings_updates(get_product_settings(), data)
         if error:
@@ -454,7 +530,7 @@ def register_product_settings_routes(
     @app.route('/api/bio-products/settings', methods=['POST'])
     @login_required
     def update_bio_product_settings_api():
-        """Update biosensing product settings."""
+        """更新生物传感产品设置。"""
         data = request.json or {}
         settings, error = _apply_product_settings_updates(get_bio_product_settings(), data)
         if error:
@@ -465,7 +541,7 @@ def register_product_settings_routes(
     @app.route('/api/products/settings/sort', methods=['POST'])
     @login_required
     def update_product_sort_order():
-        """Batch update product sort order."""
+        """批量更新产品排序。"""
         data = request.json or {}
         settings, error = _apply_sort_order(get_product_settings(), data.get('order', []))
         if error:
@@ -476,7 +552,7 @@ def register_product_settings_routes(
     @app.route('/api/bio-products/settings/sort', methods=['POST'])
     @login_required
     def update_bio_product_sort_order():
-        """Batch update biosensing product sort order."""
+        """批量更新生物传感产品排序。"""
         data = request.json or {}
         settings, error = _apply_sort_order(get_bio_product_settings(), data.get('order', []))
         if error:
@@ -486,23 +562,39 @@ def register_product_settings_routes(
 
     @app.route('/api/categories')
     def get_categories_api():
-        """Get all product categories for mega menu."""
+        """获取 Mega Menu 使用的全部产品分类。"""
         return jsonify({'categories': [dict(item) for item in PRODUCT_MENU_CATEGORIES]})
+
+    @app.route('/api/categories/images', methods=['GET'])
+    def get_category_images_api():
+        """获取附带分类信息的产品分类图片。"""
+        return jsonify({'categories': get_product_categories_with_images()})
+
+    @app.route('/api/categories/images', methods=['POST'])
+    @login_required
+    def save_category_images_api():
+        """保存产品分类图片。"""
+        data = request.json or {}
+        images = data.get('images', {})
+        if not isinstance(images, dict):
+            return jsonify({'success': False, 'message': '无效的图片数据'}), 400
+        save_product_category_images(images)
+        return jsonify({'success': True, 'categories': get_product_categories_with_images()})
 
     @app.route('/api/products/industry-filters', methods=['GET'])
     def get_industry_filters_api():
-        """Get all-products industry filters."""
+        """获取全产品页行业筛选配置。"""
         return jsonify(get_industry_filters())
 
     @app.route('/api/bio-products/industry-filters', methods=['GET'])
     def get_bio_industry_filters_api():
-        """Get biosensing industry filters."""
+        """获取生物传感行业筛选配置。"""
         return jsonify(get_bio_industry_filters())
 
     @app.route('/api/products/industry-filters', methods=['POST'])
     @login_required
     def save_industry_filters_api():
-        """Update all-products industry filters."""
+        """更新全产品页行业筛选配置。"""
         data = request.json or {}
         saved = save_industry_filters(data)
         return jsonify({'success': True, 'categories': saved.get('categories', [])})
@@ -510,7 +602,7 @@ def register_product_settings_routes(
     @app.route('/api/bio-products/industry-filters', methods=['POST'])
     @login_required
     def save_bio_industry_filters_api():
-        """Update biosensing industry filters."""
+        """更新生物传感行业筛选配置。"""
         data = request.json or {}
         saved = save_bio_industry_filters(data)
         return jsonify({'success': True, 'categories': saved.get('categories', [])})

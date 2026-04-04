@@ -1,4 +1,7 @@
-"""AI chatbot, knowledge-base, and product-AI config helpers/routes."""
+"""AI 聊天机器人与知识库路由模块。
+
+负责聊天配置、知识库文件、对话日志、限流以及产品页 AI 能力。
+"""
 
 from __future__ import annotations
 
@@ -8,13 +11,20 @@ import re
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Response, jsonify, request, send_from_directory, stream_with_context
 
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def now_beijing():
+    """返回北京时间对应的当前时间。"""
+    return datetime.now(BEIJING_TZ)
+
+# 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 _knowledge_cache = {
     "content": "",
@@ -77,6 +87,8 @@ PRODUCT_AI_SYSTEM_PROMPT = """你是“元芯传感产品页编程助手”，�
 7) 图片或链接未知时可使用占位路径 /assets/images/logo.png 或保守留空。"""
 
 
+
+# 依赖注入配置入口。
 def configure_ai_chatbot(
     *,
     get_config,
@@ -95,7 +107,7 @@ def configure_ai_chatbot(
     httpx_support,
     httpx_module,
 ):
-    """Configure shared dependencies for AI/chatbot helpers."""
+    """配置 AI 聊天机器人模块的共享依赖。"""
     _DEPS.clear()
     _DEPS.update(
         {
@@ -222,7 +234,7 @@ def rate_limit_chatbot(max_per_minute=10, max_per_day=100):
 
 
 def sanitize_ai_api_base_url(raw_url: str) -> str:
-    """Validate AI API Base without DNS resolution to avoid proxy fake-IP false negatives."""
+    """校验 AI API Base 地址，避免 DNS 解析导致代理假 IP 误判。"""
     value = str(raw_url or "").strip()
     if not value:
         return ""
@@ -265,7 +277,7 @@ def sanitize_ai_api_base_url(raw_url: str) -> str:
 
 
 def get_chatbot_config():
-    """Get chatbot configuration from shared site config."""
+    """从共享站点配置中读取聊天机器人配置。"""
     config = _dep("get_config")()
     return {
         "api_key": config.get("chatbot_api_key", ""),
@@ -276,7 +288,7 @@ def get_chatbot_config():
 
 
 def get_product_page_ai_config():
-    """Get product-page coding AI configuration from shared site config."""
+    """从共享站点配置中读取产品页编码 AI 配置。"""
     config = _dep("get_config")()
     return {
         "enabled": config.get("product_ai_enabled", False),
@@ -287,7 +299,7 @@ def get_product_page_ai_config():
 
 
 def load_knowledge_base():
-    """Load and cache knowledge base content from PDF files."""
+    """从 PDF 文件加载并缓存知识库内容。"""
     knowledge_dir = _dep("knowledge_dir")
     pdf_support = _dep("pdf_support")
     pypdf2_module = _dep("pypdf2_module")
@@ -331,7 +343,7 @@ def load_knowledge_base():
 
 
 def load_chatbot_conversation_logs():
-    """Load chatbot conversation logs from newline-delimited JSON file."""
+    """从按行 JSON 日志文件中加载聊天记录。"""
     log_file = _dep("conversation_log_file")
     if not log_file.exists():
         return []
@@ -368,7 +380,7 @@ def append_chatbot_conversation_log(
     response_source="ai",
     model="",
 ):
-    """Append one chatbot conversation record."""
+    """追加一条聊天机器人对话记录。"""
     user_text = str(user_message or "").strip()
     assistant_text = str(assistant_message or "").strip()
     if not user_text or not assistant_text:
@@ -378,10 +390,10 @@ def append_chatbot_conversation_log(
         :80
     ]
     if not safe_session_id:
-        safe_session_id = f"session_{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+        safe_session_id = f"session_{now_beijing().strftime('%Y%m%d%H%M%S%f')}"
 
     record = {
-        "timestamp": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "timestamp": now_beijing().replace(microsecond=0).isoformat(),
         "session_id": safe_session_id,
         "ip": str(ip or "").strip()[:80],
         "location": str(location or "").strip()[:300],
@@ -402,14 +414,14 @@ def append_chatbot_conversation_log(
 
 
 def call_openai_api(messages, stream=False):
-    """Call OpenAI-compatible API in sync or stream mode."""
+    """以同步或流式模式调用兼容 OpenAI 的 API。"""
     if stream:
         return call_openai_api_stream(messages)
     return call_openai_api_sync(messages)
 
 
 def call_openai_api_sync(messages):
-    """Call OpenAI-compatible API (non-stream)."""
+    """调用兼容 OpenAI 的非流式 API。"""
     config = get_chatbot_config()
     if not config["api_key"]:
         return None, "AI客服未配置，请联系管理员"
@@ -458,7 +470,7 @@ def call_openai_api_sync(messages):
 
 
 def call_openai_api_stream(messages):
-    """Call OpenAI-compatible API (stream)."""
+    """调用兼容大模型接口规范的流式接口。"""
     config = get_chatbot_config()
     if not config["api_key"]:
         return None, "AI客服未配置，请联系管理员"
@@ -543,6 +555,8 @@ def call_openai_api_stream(messages):
     return None, "缺少HTTP客户端库(requests或httpx)"
 
 
+
+# 路由注册入口。
 def register_ai_chatbot_routes(
     app,
     *,
@@ -563,7 +577,7 @@ def register_ai_chatbot_routes(
     httpx_support,
     httpx_module,
 ):
-    """Register chatbot/knowledge/config routes and configure shared helpers."""
+    """注册聊天机器人、知识库与配置相关路由，并完成共享依赖注入。"""
     configure_ai_chatbot(
         get_config=get_config,
         update_config=update_config,

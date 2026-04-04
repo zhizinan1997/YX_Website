@@ -1,4 +1,7 @@
-"""CDN delivery and remote media proxy routes."""
+"""媒体分发与远程代理路由模块。
+
+负责 CDN 设置、远程视频代理、白名单校验以及 CDN 资源访问辅助能力。
+"""
 
 from pathlib import Path
 from urllib.parse import quote, urlparse
@@ -23,8 +26,8 @@ _HTTPX_SUPPORT = False
 _HTTPX_MODULE = None
 
 CDN_CONNECTIVITY_CHECK_HEADERS = {
-    # Use a browser-like request profile so CDN/WAF and our own anti-crawl
-    # rules do not misclassify the connectivity probe as a bot request.
+    # 使用更接近浏览器的请求特征，避免 CDN/WAF 与自有反爬规则误判请求。
+    # 这样连通性探测不会被当成机器人流量。
     'User-Agent': (
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
         'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -38,7 +41,7 @@ CDN_CONNECTIVITY_CHECK_HEADERS = {
 
 
 def normalize_cdn_domain(raw_value: str) -> str:
-    """Normalize CDN base domain to '<scheme>://<host>[:port]'."""
+    """将加速域名整理为“协议://主机[:端口]”格式。"""
     value = (raw_value or '').strip()
     if not value:
         return ''
@@ -62,7 +65,7 @@ def normalize_cdn_domain(raw_value: str) -> str:
 
 
 def normalize_remote_video_url(raw_url: str) -> str:
-    """Normalize remote video URL for allowlist checks."""
+    """为白名单校验规范化远程视频 URL。"""
     if not raw_url:
         return ''
     try:
@@ -73,12 +76,12 @@ def normalize_remote_video_url(raw_url: str) -> str:
         return ''
     if not parsed.netloc:
         return ''
-    # Remove fragment only; keep query params because some CDNs require them.
+    # 只移除 fragment，保留 query 参数，因为部分 CDN 依赖它们。
     return parsed._replace(fragment='').geturl()
 
 
 def get_cdn_settings() -> dict:
-    """Read CDN acceleration settings from config."""
+    """从配置中读取 CDN 加速设置。"""
     config = _GET_CONFIG() or {}
     domain = normalize_cdn_domain(str(config.get('cdn_domain') or ''))
     enabled = bool(config.get('cdn_enabled', False)) and bool(domain)
@@ -103,7 +106,7 @@ def _collect_remote_urls_from_items(items) -> set:
 
 
 def get_allowed_remote_media_urls() -> set:
-    """Allow proxying only URLs configured in H2-home and home-hero media lists."""
+    """仅允许代理 H2 首页和首页 Hero 已配置的媒体 URL。"""
     allowed = set()
     h2_config = _GET_H2_HOME_CONFIG() or {}
     hero_config = _GET_HERO_CONFIG(_HERO_CONFIG_FILE, _SANITIZE_PUBLIC_MEDIA_URL) or {}
@@ -112,6 +115,8 @@ def get_allowed_remote_media_urls() -> set:
     return allowed
 
 
+
+# 路由注册入口。
 def register_media_delivery_routes(
     app,
     *,
@@ -132,7 +137,7 @@ def register_media_delivery_routes(
     httpx_support,
     httpx_module,
 ):
-    """Register CDN settings, media proxy, and public asset delivery routes."""
+    """注册 CDN 设置、媒体代理和公开资源分发相关路由。"""
     global _CDN_ASSETS_DIR, _HERO_CONFIG_FILE, _MEDIA_IMMUTABLE_CACHE_CONTROL
     global _GET_CONFIG, _UPDATE_CONFIG, _IS_SAME_ORIGIN_REQUEST, _VALIDATE_SAFE_REMOTE_FETCH_URL
     global _FIRST_FORWARDED_VALUE, _GET_H2_HOME_CONFIG, _GET_HERO_CONFIG, _SANITIZE_PUBLIC_MEDIA_URL
@@ -156,7 +161,7 @@ def register_media_delivery_routes(
 
     @app.route('/api/video-proxy')
     def proxy_video():
-        """Same-origin media proxy for cross-origin CDN sources."""
+        """为跨域 CDN 资源提供同源媒体代理。"""
         raw_url = (request.args.get('url') or '').strip()
         target_url = normalize_remote_video_url(raw_url)
         if not target_url:
@@ -223,13 +228,13 @@ def register_media_delivery_routes(
     @app.route('/api/cdn/settings', methods=['GET'])
     @login_required
     def get_cdn_settings_api():
-        """Get CDN acceleration settings."""
+        """获取 CDN 加速设置。"""
         return jsonify(get_cdn_settings())
 
     @app.route('/api/cdn/settings', methods=['POST'])
     @login_required
     def update_cdn_settings_api():
-        """Update CDN acceleration settings."""
+        """更新 CDN 加速设置。"""
         if not _IS_SAME_ORIGIN_REQUEST(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
 
@@ -253,7 +258,7 @@ def register_media_delivery_routes(
     @app.route('/api/cdn/test', methods=['POST'])
     @login_required
     def test_cdn_settings_api():
-        """Connectivity test for CDN domain."""
+        """测试 CDN 域名连通性。"""
         if not _IS_SAME_ORIGIN_REQUEST(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
 
@@ -354,10 +359,7 @@ def register_media_delivery_routes(
 
     @app.route('/api/cdn/switch-header', methods=['GET', 'HEAD'])
     def get_cdn_switch_header():
-        """
-        Internal endpoint for gateway auth_request.
-        Returns lightweight headers indicating CDN switch state.
-        """
+        """网关 `auth_request` 使用的内部接口，返回 CDN 开关状态的轻量响应头。"""
         settings = get_cdn_settings()
         response = Response(status=204)
         response.headers['X-CDN-Enabled'] = '1' if settings.get('cdn_enabled') else '0'
@@ -367,11 +369,7 @@ def register_media_delivery_routes(
 
     @app.route('/cdn_assets/<path:asset_path>', methods=['GET', 'HEAD'])
     def serve_cdn_asset_with_redirect(asset_path):
-        """
-        Main-site CDN assets entry:
-        - CDN enabled: redirect client to CDN domain (offload bandwidth from main site)
-        - CDN disabled: serve local cdn_assets file
-        """
+        """主站 CDN 资源入口；开启 CDN 时重定向到 CDN 域名，未开启时回源本地文件。"""
         relative_path = str(asset_path or '').lstrip('/')
         if not relative_path:
             return jsonify({'error': '文件路径不能为空'}), 400
@@ -386,14 +384,14 @@ def register_media_delivery_routes(
             current_host = (forwarded_host or request.host or '').strip().lower()
             cdn_host = (urlparse(cdn_domain).netloc or '').strip().lower()
 
-            # Prevent accidental same-host redirect loops.
+            # 避免同主机重定向造成循环。
             if cdn_host and current_host != cdn_host:
                 target = f"{cdn_domain}/cdn_assets/{quote(relative_path, safe='/')}"
                 raw_qs = (request.query_string or b'').decode('utf-8', errors='ignore').strip()
                 if raw_qs:
                     target = f'{target}?{raw_qs}'
                 response = redirect(target, code=302)
-                # Avoid stale cache when toggling CDN switch in admin.
+                # 后台切换 CDN 开关时，避免命中陈旧缓存。
                 response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
                 response.headers['Pragma'] = 'no-cache'
                 response.headers['Expires'] = '0'

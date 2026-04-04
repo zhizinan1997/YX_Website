@@ -1,27 +1,32 @@
-"""
-CDN Assets Management Module
-Provides file management API for cdn_assets folder.
-Supports recursive directory browsing.
+"""CDN 素材管理路由模块。
+
+提供 `cdn_assets` 目录的浏览、上传、重命名、删除、下载与 URL 获取接口。
 """
 import os
 import json
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from flask import Blueprint, request, jsonify, send_from_directory, session
 
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def now_beijing():
+    """返回北京时间对应的当前时间。"""
+    return datetime.now(BEIJING_TZ)
+
 cdn_assets_bp = Blueprint('cdn_assets', __name__)
 
-# Module-level variables (will be set by register_cdn_assets_routes)
+# 模块级配置变量，由素材路由注册入口统一注入。
 _cdn_assets_dir = None
 _config_file = None
 
 
 def _get_config_file() -> Path:
-    """Get the config file path."""
+    """获取配置文件路径。"""
     if _config_file and _config_file.exists():
         return _config_file
-    # Fallback: try common locations
+    # 兜底逻辑：尝试几个常见目录位置。
     for candidate in [Path('data/config.json'), Path('data/site_config.json')]:
         if candidate.exists():
             return candidate
@@ -29,14 +34,14 @@ def _get_config_file() -> Path:
 
 
 def _get_cdn_assets_dir() -> Path:
-    """Get the cdn_assets directory path."""
+    """获取素材目录路径。"""
     if _cdn_assets_dir:
         return Path(_cdn_assets_dir)
     return Path('cdn_assets')
 
 
 def get_cdn_settings():
-    """Get CDN settings from config file."""
+    """从配置文件读取 CDN 设置。"""
     config_file = _get_config_file()
     if not config_file.exists():
         return {'cdn_enabled': False, 'cdn_domain': ''}
@@ -52,17 +57,17 @@ def get_cdn_settings():
 
 
 def _check_auth():
-    """Check admin authentication. Returns error response or None."""
+    """检查后台登录状态，返回错误响应或 None。"""
     if not session.get('admin_logged_in'):
         return jsonify({'success': False, 'message': '未登录'}), 401
     return None
 
 
 def _safe_subpath(base: Path, subpath: str) -> Path | None:
-    """Resolve subpath under base directory safely, preventing traversal."""
+    """在基础目录下安全解析子路径，防止路径穿越。"""
     if not subpath:
         return base
-    # Reject obvious traversal attempts
+    # 拒绝明显的路径穿越尝试。
     if '..' in subpath.split('/'):
         return None
     resolved = (base / subpath).resolve()
@@ -73,7 +78,7 @@ def _safe_subpath(base: Path, subpath: str) -> Path | None:
 
 
 def _build_file_url(relative_to_cdn: str) -> str:
-    """Build the full URL for a cdn_assets file."""
+    """构建素材文件的完整访问地址。"""
     cdn_path = f'/cdn_assets/{relative_to_cdn}'
     settings = get_cdn_settings()
     if settings.get('cdn_enabled') and settings.get('cdn_domain'):
@@ -83,7 +88,7 @@ def _build_file_url(relative_to_cdn: str) -> str:
 
 @cdn_assets_bp.route('/api/cdn/assets/list', methods=['GET'])
 def list_cdn_assets():
-    """List files in cdn_assets folder, supporting subdirectory browsing."""
+    """列出 cdn_assets 目录内容，并支持子目录浏览。"""
     auth_err = _check_auth()
     if auth_err:
         return auth_err
@@ -109,12 +114,12 @@ def list_cdn_assets():
                 continue
 
             stat = item.stat()
-            # Path relative to cdn_assets root
+            # 相对于 `cdn_assets` 根目录的路径。
             rel = item.relative_to(cdn_dir.resolve())
             relative_path = f'/cdn_assets/{rel.as_posix()}'
 
             if item.is_dir():
-                # Count children (non-hidden)
+                # 统计子项数量，忽略隐藏项。
                 child_count = sum(
                     1 for c in item.iterdir() if not c.name.startswith('.'))
                 files.append({
@@ -123,7 +128,7 @@ def list_cdn_assets():
                     'size': 0,
                     'children': child_count,
                     'modified': datetime.fromtimestamp(
-                        stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                        stat.st_mtime, tz=BEIJING_TZ).strftime('%Y-%m-%d %H:%M:%S'),
                     'url': relative_path
                 })
             else:
@@ -132,11 +137,11 @@ def list_cdn_assets():
                     'type': 'file',
                     'size': stat.st_size,
                     'modified': datetime.fromtimestamp(
-                        stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                        stat.st_mtime, tz=BEIJING_TZ).strftime('%Y-%m-%d %H:%M:%S'),
                     'url': relative_path
                 })
 
-        # Build breadcrumb parts
+        # 构建面包屑路径。
         breadcrumb = []
         if subpath:
             parts = subpath.split('/')
@@ -162,7 +167,7 @@ def list_cdn_assets():
 
 @cdn_assets_bp.route('/api/cdn/assets/upload', methods=['POST'])
 def upload_cdn_asset():
-    """Upload a file to cdn_assets folder (supports subdirectory)."""
+    """上传文件到 cdn_assets 目录，支持子目录。"""
     auth_err = _check_auth()
     if auth_err:
         return auth_err
@@ -187,7 +192,7 @@ def upload_cdn_asset():
         filename = file.filename
         filepath = target_dir / filename
 
-        # Avoid overwrite: auto-rename
+        # 避免覆盖已有文件：自动重命名。
         counter = 1
         stem = Path(filename).stem
         suffix = Path(filename).suffix
@@ -221,7 +226,7 @@ def upload_cdn_asset():
 
 @cdn_assets_bp.route('/api/cdn/assets/mkdir', methods=['POST'])
 def mkdir_cdn_asset():
-    """Create a new subdirectory inside cdn_assets."""
+    """在素材目录下创建子目录。"""
     auth_err = _check_auth()
     if auth_err:
         return auth_err
@@ -256,7 +261,7 @@ def mkdir_cdn_asset():
 
 @cdn_assets_bp.route('/api/cdn/assets/delete', methods=['POST'])
 def delete_cdn_asset():
-    """Delete a file or folder from cdn_assets."""
+    """删除 cdn_assets 中的文件或目录。"""
     auth_err = _check_auth()
     if auth_err:
         return auth_err
@@ -272,7 +277,7 @@ def delete_cdn_asset():
     if filepath is None:
         return jsonify({'success': False, 'message': '非法路径'}), 400
 
-    # Don't allow deleting the root
+    # 不允许删除根目录。
     if filepath.resolve() == cdn_dir.resolve():
         return jsonify({'success': False, 'message': '不能删除根目录'}), 400
 
@@ -295,7 +300,7 @@ def delete_cdn_asset():
 
 @cdn_assets_bp.route('/api/cdn/assets/rename', methods=['POST'])
 def rename_cdn_asset():
-    """Rename a file or folder in cdn_assets."""
+    """重命名 cdn_assets 中的文件或目录。"""
     auth_err = _check_auth()
     if auth_err:
         return auth_err
@@ -304,7 +309,7 @@ def rename_cdn_asset():
     old_path_str = data.get('old_path', '').strip().strip('/')
     new_name = data.get('new_name', '').strip()
 
-    # Backward compat: accept 'old_name' / 'new_name' at top level
+    # 兼容旧参数格式：顶层直接接收 `old_name` / `new_name`。
     if not old_path_str:
         old_name = data.get('old_name', '').strip()
         if old_name:
@@ -357,7 +362,7 @@ def rename_cdn_asset():
 
 @cdn_assets_bp.route('/api/cdn/assets/download/<path:filepath>', methods=['GET'])
 def download_cdn_asset(filepath):
-    """Download a file from cdn_assets."""
+    """下载素材目录中的文件。"""
     auth_err = _check_auth()
     if auth_err:
         return auth_err
@@ -386,13 +391,13 @@ def download_cdn_asset(filepath):
 
 @cdn_assets_bp.route('/api/cdn/assets/url', methods=['GET'])
 def get_asset_url():
-    """Get the full URL for an asset."""
+    """获取素材的完整访问 URL。"""
     auth_err = _check_auth()
     if auth_err:
         return auth_err
 
     filepath_str = request.args.get('path', '').strip().strip('/')
-    # Backward compat
+    # 兼容旧调用格式。
     if not filepath_str:
         filepath_str = request.args.get('filename', '').strip().strip('/')
 
@@ -421,18 +426,20 @@ def get_asset_url():
     })
 
 
+
+# 路由注册入口。
 def register_cdn_assets_routes(app, cdn_assets_dir=None,
                                 site_config_file=None):
-    """Register CDN assets routes to the Flask app."""
+    """向 Flask 应用注册 CDN 素材管理路由。"""
     global _cdn_assets_dir, _config_file
     _cdn_assets_dir = cdn_assets_dir
-    # Accept either site_config_file or find config.json in data/
+    # 既支持显式传入站点配置文件，也支持在数据目录中自动查找配置文件。
     if site_config_file:
         cfg = Path(site_config_file)
         if cfg.exists():
             _config_file = cfg
         else:
-            # Try config.json in the same directory
+            # 尝试同目录下的备用配置文件。
             alt = cfg.parent / 'config.json'
             _config_file = alt if alt.exists() else cfg
     app.register_blueprint(cdn_assets_bp)

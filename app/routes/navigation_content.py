@@ -1,4 +1,7 @@
-"""Navigation preview and recommendation routes."""
+"""导航预览与推荐内容路由模块。
+
+负责导航预览、解决方案入口、研究入口、推荐位和行业导航数据。
+"""
 
 import html
 import json
@@ -30,7 +33,7 @@ NAV_PREVIEW_PAGE_SECTIONS = (
 
 
 def get_web_dir_prefix_for_filepath(filepath):
-    """Build the public web directory prefix for a local HTML file."""
+    """为本地 HTML 文件构建公开 Web 目录前缀。"""
     site_root = APP_ROOT.resolve()
     try:
         relative_dir = filepath.resolve().parent.relative_to(site_root).as_posix()
@@ -40,7 +43,7 @@ def get_web_dir_prefix_for_filepath(filepath):
 
 
 def resolve_local_nav_target_path(url):
-    """Resolve a nav target URL to a local HTML file when possible."""
+    """在可能时将导航目标 URL 解析为本地 HTML 文件。"""
     raw_url = str(url or '').strip()
     if not raw_url or re.match(r'^https?://', raw_url, re.I):
         return None
@@ -77,7 +80,7 @@ def resolve_local_nav_target_path(url):
 
 
 def extract_generic_page_preview_image(filepath):
-    """Extract a best-effort preview image from an HTML page."""
+    """尽力从 HTML 页面中提取预览图。"""
     try:
         content = filepath.read_text(encoding='utf-8', errors='ignore')
     except Exception:
@@ -110,7 +113,7 @@ def extract_generic_page_preview_image(filepath):
 
 
 def normalize_nav_preview_text(text, limit=88):
-    """Normalize preview text for compact nav cards."""
+    """规范化导航卡片使用的简短预览文本。"""
     raw = re.sub(r'\s+', ' ', html.unescape(str(text or ''))).strip()
     if not raw:
         return ''
@@ -120,7 +123,7 @@ def normalize_nav_preview_text(text, limit=88):
 
 
 def extract_generic_page_preview_desc(filepath):
-    """Extract a short best-effort summary from a local HTML page."""
+    """尽力从本地 HTML 页面中提取简短摘要。"""
     try:
         content = filepath.read_text(encoding='utf-8', errors='ignore')
     except Exception:
@@ -143,7 +146,7 @@ def extract_generic_page_preview_desc(filepath):
 
 
 def infer_nav_target_preview(url):
-    """Infer title, preview image, and short summary for a nav target."""
+    """推断导航目标的标题、预览图和摘要。"""
     filepath = resolve_local_nav_target_path(url)
     if not filepath:
         return {'title': '', 'image': '', 'desc': ''}
@@ -191,12 +194,12 @@ def infer_nav_target_preview(url):
 
 
 def infer_nav_target_image(url):
-    """Infer a preview image for a nav link from its target page."""
+    """根据目标页面为导航链接推断预览图。"""
     return str(infer_nav_target_preview(url).get('image') or '')
 
 
 def serialize_nav_industry_category_items(items):
-    """Attach preview images to nav industry items when available."""
+    """为行业导航项附加可用的预览图。"""
     serialized = []
     for item in items or []:
         if not isinstance(item, dict):
@@ -206,15 +209,19 @@ def serialize_nav_industry_category_items(items):
         if not name or not url:
             continue
         entry = {'name': name, 'url': url}
-        image = infer_nav_target_image(url)
-        if image:
-            entry['image'] = image
+        custom_image = str(item.get('image') or '').strip()
+        if custom_image:
+            entry['image'] = custom_image
+        else:
+            inferred_image = infer_nav_target_image(url)
+            if inferred_image:
+                entry['image'] = inferred_image
         serialized.append(entry)
     return serialized
 
 
 def is_safe_recommendation_url(url: str) -> bool:
-    """Allow relative paths and http(s) links; block script/data protocols."""
+    """允许相对路径和 http(s) 链接，阻止 script/data 等协议。"""
     value = (url or '').strip().lower()
     if not value:
         return False
@@ -230,7 +237,7 @@ def is_safe_recommendation_url(url: str) -> bool:
 
 
 def normalize_recommendation_items(items):
-    """Normalize recommendation item list and keep only valid entries."""
+    """规范化推荐位列表，仅保留有效条目。"""
     normalized = []
     if not isinstance(items, list):
         return normalized
@@ -247,7 +254,7 @@ def normalize_recommendation_items(items):
 
 
 def get_default_measurement_targets():
-    """Default measurement targets for mega menu."""
+    """获取 Mega Menu 默认测量对象数据。"""
     return {
         'items': [
             {'name': '环境氢', 'url': '../measurement/measurement-environment-hydrogen.html'},
@@ -262,8 +269,70 @@ def get_default_measurement_targets():
     }
 
 
+def get_measurement_pages():
+    """获取测量页面目录下的页面列表。"""
+    pages_dir = APP_ROOT / 'pages' / 'measurement'
+    if not pages_dir.exists():
+        return []
+
+    pages = []
+    for filepath in sorted(pages_dir.glob('*.html')):
+        filename = filepath.stem
+        url = f'../measurement/{filename}.html'
+
+        page_title = filename.replace('measurement-', '').replace('-', ' ').title()
+
+        try:
+            content = filepath.read_text(encoding='utf-8')
+            title_match = re.search(r'<title[^>]*>([^<]+)</title>', content, re.IGNORECASE)
+            if title_match:
+                page_title = html.unescape(title_match.group(1).strip())
+                page_title = re.sub(r'\s*[-|].*$', '', page_title).strip()
+        except Exception:
+            pass
+
+        pages.append({
+            'name': page_title,
+            'url': url,
+            'file': filename
+        })
+
+    return pages
+
+
+def get_solutions_pages():
+    """获取解决方案页面目录下的页面列表。"""
+    pages_dir = APP_ROOT / 'pages' / 'solutions'
+    if not pages_dir.exists():
+        return []
+
+    pages = []
+    for filepath in sorted(pages_dir.glob('*.html')):
+        filename = filepath.stem
+        url = f'/pages/solutions/{filename}.html'
+
+        page_title = filename.replace('solutions-', '').replace('industry-', '').replace('-', ' ').title()
+
+        try:
+            content = filepath.read_text(encoding='utf-8')
+            title_match = re.search(r'<title[^>]*>([^<]+)</title>', content, re.IGNORECASE)
+            if title_match:
+                page_title = html.unescape(title_match.group(1).strip())
+                page_title = re.sub(r'\s*[-|].*$', '', page_title).strip()
+        except Exception:
+            pass
+
+        pages.append({
+            'name': page_title,
+            'url': url,
+            'file': filename
+        })
+
+    return pages
+
+
 def normalize_measurement_target_items(items):
-    """Normalize measurement target items and keep only valid entries."""
+    """规范化测量对象条目，仅保留有效项。"""
     normalized = []
     if not isinstance(items, list):
         return normalized
@@ -274,12 +343,16 @@ def normalize_measurement_target_items(items):
         url = str(item.get('url') or '').strip()
         if not name or not is_safe_recommendation_url(url):
             continue
-        normalized.append({'name': name, 'url': url})
+        entry = {'name': name, 'url': url}
+        image = str(item.get('image') or '').strip()
+        if image:
+            entry['image'] = image
+        normalized.append(entry)
     return normalized
 
 
 def serialize_measurement_target_items(items):
-    """Attach preview images to measurement target items when available."""
+    """为测量对象条目附加可用的预览图。"""
     serialized = []
     for item in items or []:
         if not isinstance(item, dict):
@@ -289,15 +362,19 @@ def serialize_measurement_target_items(items):
         if not name or not url:
             continue
         entry = {'name': name, 'url': url}
-        image = infer_nav_target_image(url)
-        if image:
-            entry['image'] = image
+        custom_image = str(item.get('image') or '').strip()
+        if custom_image:
+            entry['image'] = custom_image
+        else:
+            inferred_image = infer_nav_target_image(url)
+            if inferred_image:
+                entry['image'] = inferred_image
         serialized.append(entry)
     return serialized
 
 
 def get_default_solution_nav_items():
-    """Default gas nav solution links."""
+    """获取气体导航默认解决方案链接。"""
     return {
         'items': [
             {'name': '氢能源产业链', 'url': '/pages/solutions/industry-hydrogen.html'},
@@ -310,7 +387,7 @@ def get_default_solution_nav_items():
 
 
 def get_default_research_nav_items():
-    """Default gas nav research links."""
+    """获取气体导航默认研究方向链接。"""
     return {
         'items': [
             {'name': '传感器微纳加工', 'url': '/pages/research/micro-nano.html'},
@@ -321,7 +398,7 @@ def get_default_research_nav_items():
 
 
 def serialize_solution_nav_items(items):
-    """Attach preview image and summary to solution nav items."""
+    """为解决方案导航项附加预览图和摘要。"""
     serialized = []
     for item in items or []:
         if not isinstance(item, dict):
@@ -346,17 +423,17 @@ def serialize_solution_nav_items(items):
 
 
 def get_solution_nav_items():
-    """Build solution nav preview data."""
+    """构建解决方案导航预览数据。"""
     return {'items': serialize_solution_nav_items(get_default_solution_nav_items().get('items', []))}
 
 
 def get_research_nav_items():
-    """Build research nav preview data."""
+    """构建研究方向导航预览数据。"""
     return {'items': serialize_solution_nav_items(get_default_research_nav_items().get('items', []))}
 
 
 def get_default_featured_case_nav_items():
-    """Default featured case links for gas nav mega menu."""
+    """获取气体导航 Mega Menu 默认精选案例链接。"""
     return {
         'items': [
             {'name': '氢能重卡氢气检测', 'url': '/pages/gassensing/cases/case-1-truck.html'},
@@ -369,12 +446,12 @@ def get_default_featured_case_nav_items():
 
 
 def get_featured_case_nav_items():
-    """Build featured case nav preview data."""
+    """构建精选案例导航预览数据。"""
     return {'items': serialize_solution_nav_items(get_default_featured_case_nav_items().get('items', []))}
 
 
 def get_default_nav_industry_categories():
-    """Default industry category links for gas nav mega menu."""
+    """获取气体导航 Mega Menu 默认行业分类链接。"""
     return {
         'items': [
             {'name': '氢能源产业链', 'url': '/pages/solutions/industry-hydrogen.html'},
@@ -388,7 +465,7 @@ def get_default_nav_industry_categories():
 
 
 def normalize_nav_industry_category_items(items):
-    """Normalize industry category items and keep only valid entries."""
+    """规范化行业分类条目，仅保留有效项。"""
     normalized = []
     if not isinstance(items, list):
         return normalized
@@ -399,12 +476,16 @@ def normalize_nav_industry_category_items(items):
         url = str(item.get('url') or '').strip()
         if not name or not is_safe_recommendation_url(url):
             continue
-        normalized.append({'name': name, 'url': url})
+        entry = {'name': name, 'url': url}
+        image = str(item.get('image') or '').strip()
+        if image:
+            entry['image'] = image
+        normalized.append(entry)
     return normalized
 
 
 def get_nav_industry_categories():
-    """Load gas nav industry categories settings."""
+    """加载气体导航行业分类设置。"""
     if NAV_INDUSTRY_CATEGORIES_FILE.exists():
         try:
             data = json.loads(NAV_INDUSTRY_CATEGORIES_FILE.read_text(encoding='utf-8'))
@@ -417,7 +498,7 @@ def get_nav_industry_categories():
 
 
 def save_nav_industry_categories(data):
-    """Save gas nav industry categories settings."""
+    """保存气体导航行业分类设置。"""
     NAV_INDUSTRY_CATEGORIES_FILE.write_text(
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding='utf-8',
@@ -425,7 +506,7 @@ def save_nav_industry_categories(data):
 
 
 def get_measurement_targets():
-    """Load measurement targets settings."""
+    """加载测量对象设置。"""
     if MEASUREMENT_TARGETS_FILE.exists():
         try:
             data = json.loads(MEASUREMENT_TARGETS_FILE.read_text(encoding='utf-8'))
@@ -438,7 +519,7 @@ def get_measurement_targets():
 
 
 def save_measurement_targets(data):
-    """Save measurement targets settings."""
+    """保存测量对象设置。"""
     MEASUREMENT_TARGETS_FILE.write_text(
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding='utf-8',
@@ -446,7 +527,7 @@ def save_measurement_targets(data):
 
 
 def get_default_recommendations():
-    """Default recommendations data."""
+    """获取默认推荐位数据。"""
     return {
         'latestReleases': [
             {'name': 'MC-LD-H2 氢气泄漏检测仪', 'url': '../gassensing/mc_ld_h2.html'},
@@ -462,7 +543,7 @@ def get_default_recommendations():
 
 
 def get_recommendations():
-    """Load recommendations settings."""
+    """加载推荐位设置。"""
     if RECOMMENDATIONS_FILE.exists():
         try:
             return json.loads(RECOMMENDATIONS_FILE.read_text(encoding='utf-8'))
@@ -472,10 +553,12 @@ def get_recommendations():
 
 
 def save_recommendations(data):
-    """Save recommendations settings."""
+    """保存推荐位设置。"""
     RECOMMENDATIONS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
+
+# 路由注册入口。
 def register_navigation_content_routes(
     app,
     *,
@@ -487,7 +570,7 @@ def register_navigation_content_routes(
     extract_case_meta_from_html,
     extract_product_meta_from_html,
 ):
-    """Register navigation preview and recommendation routes."""
+    """注册导航预览、推荐位与导航结构相关路由。"""
     global APP_ROOT, DATA_DIR, RECOMMENDATIONS_FILE, MEASUREMENT_TARGETS_FILE, NAV_INDUSTRY_CATEGORIES_FILE
     global _NORMALIZE_SCANNED_IMAGE_PATH, _EXTRACT_SOLUTION_META_FROM_HTML
     global _EXTRACT_CASE_META_FROM_HTML, _EXTRACT_PRODUCT_META_FROM_HTML
@@ -504,13 +587,13 @@ def register_navigation_content_routes(
 
     @app.route('/api/recommendations', methods=['GET'])
     def get_recommendations_api():
-        """Get mega menu recommendations."""
+        """获取 Mega Menu 推荐位数据。"""
         return jsonify(get_recommendations())
 
     @app.route('/api/recommendations', methods=['POST'])
     @login_required
     def update_recommendations_api():
-        """Update mega menu recommendations."""
+        """更新 Mega Menu 推荐位数据。"""
         data = request.json or {}
         recommendations = get_recommendations()
 
@@ -531,28 +614,38 @@ def register_navigation_content_routes(
 
     @app.route('/api/measurement-targets', methods=['GET'])
     def get_measurement_targets_api():
-        """Get mega menu measurement targets."""
+        """获取 Mega Menu 测量对象数据。"""
         return jsonify(get_measurement_targets())
 
     @app.route('/api/nav-solution-previews', methods=['GET'])
     def get_solution_nav_items_api():
-        """Get gas nav solution preview items."""
+        """获取气体导航解决方案预览项。"""
         return jsonify(get_solution_nav_items())
 
     @app.route('/api/nav-research-previews', methods=['GET'])
     def get_research_nav_items_api():
-        """Get gas nav research preview items."""
+        """获取气体导航研究方向预览项。"""
         return jsonify(get_research_nav_items())
 
     @app.route('/api/nav-featured-cases', methods=['GET'])
     def get_featured_case_nav_items_api():
-        """Get gas nav featured case preview items."""
+        """获取气体导航精选案例预览项。"""
         return jsonify(get_featured_case_nav_items())
+
+    @app.route('/api/measurement-pages', methods=['GET'])
+    def get_measurement_pages_api():
+        """获取下拉选择用的测量页面列表。"""
+        return jsonify({'pages': get_measurement_pages()})
+
+    @app.route('/api/measurement-targets', methods=['GET'])
+    def fetch_measurement_targets_api():
+        """获取 Mega Menu 测量对象数据。"""
+        return jsonify(get_measurement_targets())
 
     @app.route('/api/measurement-targets', methods=['POST'])
     @login_required
-    def update_measurement_targets_api():
-        """Update mega menu measurement targets."""
+    def save_measurement_targets_api():
+        """更新 Mega Menu 测量对象数据。"""
         data = request.json or {}
         items = normalize_measurement_target_items(data.get('items', []))
         if not items:
@@ -562,15 +655,20 @@ def register_navigation_content_routes(
         save_measurement_targets(payload)
         return jsonify({'success': True, 'items': serialize_measurement_target_items(items)})
 
+    @app.route('/api/solutions-pages', methods=['GET'])
+    def get_solutions_pages_api():
+        """获取下拉选择用的解决方案页面列表。"""
+        return jsonify({'pages': get_solutions_pages()})
+
     @app.route('/api/nav-industry-categories', methods=['GET'])
-    def get_nav_industry_categories_api():
-        """Get gas nav industry categories."""
+    def fetch_nav_industry_categories_api():
+        """获取气体导航行业分类数据。"""
         return jsonify(get_nav_industry_categories())
 
     @app.route('/api/nav-industry-categories', methods=['POST'])
     @login_required
-    def update_nav_industry_categories_api():
-        """Update gas nav industry categories."""
+    def save_nav_industry_categories_api():
+        """更新气体导航行业分类数据。"""
         data = request.json or {}
         items = normalize_nav_industry_category_items(data.get('items', []))
         if not items:

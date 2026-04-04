@@ -1,4 +1,7 @@
-"""Product editor/admin routes and product HTML helpers."""
+"""产品编辑与产品页 HTML 处理路由模块。
+
+负责产品页面模板、字段与区块编辑、产品文件上传下载、删除及 AI 参考内容处理。
+"""
 
 from __future__ import annotations
 
@@ -9,7 +12,7 @@ import re
 from html.parser import HTMLParser
 from pathlib import Path
 
-from flask import Response, jsonify, request, stream_with_context
+from flask import Response, jsonify, request, send_file, stream_with_context
 
 try:
     import httpx
@@ -24,11 +27,14 @@ except ImportError:
     REQUESTS_SUPPORT = False
 
 
+# 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 PRODUCT_ADMIN_DATA_PREFIX = 'MC_PRODUCT_ADMIN_DATA:'
 ALLOWED_PRODUCT_CATEGORIES = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
 
 
+
+# 依赖注入配置入口。
 def configure_product_editor(
     *,
     app_root,
@@ -38,12 +44,17 @@ def configure_product_editor(
     get_product_page_ai_system_prompt,
     get_product_settings,
     save_product_settings,
+    product_featured_file,
+    excluded_product_files,
+    hydrogen_solutions_config_file,
+    get_hydrogen_solution_products_config,
+    save_hydrogen_solution_products_config,
     default_product_categories,
     normalize_ai_product_image_extension,
     infer_ai_product_image_extension_from_mime,
     allowed_ai_product_image_mime_types,
 ):
-    """Configure shared dependencies for product editor helpers/routes."""
+    """配置产品编辑模块的共享依赖。"""
     _DEPS.clear()
     _DEPS.update({
         'app_root': Path(app_root),
@@ -53,6 +64,11 @@ def configure_product_editor(
         'get_product_page_ai_system_prompt': get_product_page_ai_system_prompt,
         'get_product_settings': get_product_settings,
         'save_product_settings': save_product_settings,
+        'product_featured_file': Path(product_featured_file),
+        'excluded_product_files': set(excluded_product_files or set()),
+        'hydrogen_solutions_config_file': Path(hydrogen_solutions_config_file),
+        'get_hydrogen_solution_products_config': get_hydrogen_solution_products_config,
+        'save_hydrogen_solution_products_config': save_hydrogen_solution_products_config,
         'default_product_categories': dict(default_product_categories or {}),
         'normalize_ai_product_image_extension': normalize_ai_product_image_extension,
         'infer_ai_product_image_extension_from_mime': infer_ai_product_image_extension_from_mime,
@@ -83,8 +99,63 @@ def _gassensing_products_dir() -> Path:
     return _dep('app_root') / 'pages' / 'gassensing'
 
 
+def resolve_product_html_path_by_id(product_id: str) -> tuple[Path | None, str]:
+    """根据产品 ID 解析 pages 目录中的本地 HTML 路径。"""
+    pid = str(product_id or '').strip()
+    base_dir = _dep('app_root') / 'pages'
+    if pid.startswith('../customization/'):
+        slug = pid.replace('../customization/', '').strip('/')
+        if not re.fullmatch(r'[a-z0-9_]+', slug):
+            return None, ''
+        return base_dir / 'customization' / f'{slug}.html', slug
+    if pid.startswith('../biosensing/'):
+        slug = pid.replace('../biosensing/', '').strip('/')
+        if not re.fullmatch(r'[a-z0-9_]+', slug):
+            return None, ''
+        return base_dir / 'biosensing' / f'{slug}.html', slug
+    if not re.fullmatch(r'[a-z0-9_]+', pid):
+        return None, ''
+    return base_dir / 'gassensing' / f'{pid}.html', pid
+
+
+def _cleanup_deleted_product_references(product_id: str):
+    """清理后台配置中已删除产品的关联引用。"""
+    settings = _dep('get_product_settings')()
+    if product_id in settings:
+        settings.pop(product_id, None)
+        _dep('save_product_settings')(settings)
+
+    product_featured_file = _dep('product_featured_file')
+    if product_featured_file.exists():
+        try:
+            raw = json.loads(product_featured_file.read_text(encoding='utf-8'))
+        except Exception:
+            raw = {}
+        if isinstance(raw, dict):
+            ids = raw.get('ids', [])
+            if isinstance(ids, list):
+                filtered_ids = []
+                for item in ids:
+                    current_id = str(item or '').strip()
+                    if not current_id or current_id == product_id or current_id in filtered_ids:
+                        continue
+                    filtered_ids.append(current_id)
+                if filtered_ids != ids:
+                    raw['ids'] = filtered_ids[:3]
+                    product_featured_file.write_text(
+                        json.dumps(raw, ensure_ascii=False, indent=2),
+                        encoding='utf-8',
+                    )
+
+    hydrogen_solutions_config_file = _dep('hydrogen_solutions_config_file')
+    if hydrogen_solutions_config_file.exists():
+        save_hydrogen_solution_products_config = _dep('save_hydrogen_solution_products_config')
+        get_hydrogen_solution_products_config = _dep('get_hydrogen_solution_products_config')
+        save_hydrogen_solution_products_config(get_hydrogen_solution_products_config())
+
+
 def get_product_template_html() -> str:
-    """Load product page template HTML from legacy/new template paths."""
+    """从旧模板或新模板路径加载产品页面模板 HTML。"""
     for template_file in _product_template_files():
         if template_file.exists():
             return template_file.read_text(encoding='utf-8', errors='ignore')
@@ -93,7 +164,7 @@ def get_product_template_html() -> str:
 
 
 def get_product_ai_reference_html() -> str:
-    """Load AI generation reference HTML, fallback to generic template."""
+    """加载 AI 生成参考 HTML，缺失时回退到通用模板。"""
     reference_file = _product_ai_reference_file()
     if reference_file.exists():
         return reference_file.read_text(encoding='utf-8', errors='ignore')
@@ -101,7 +172,7 @@ def get_product_ai_reference_html() -> str:
 
 
 def extract_product_template_placeholders(template_html: str):
-    """Extract ordered unique placeholders like 【产品名字】 from template."""
+    """从模板中提取按顺序出现的唯一占位符，如【产品名字】。"""
     seen = set()
     ordered = []
     for token in re.findall(r'【[^】]+】', template_html or ''):
@@ -113,7 +184,7 @@ def extract_product_template_placeholders(template_html: str):
 
 
 def split_product_detail_from_editor(content_html: str):
-    """Split visual editor content into two detail paragraphs."""
+    """将可视化编辑器内容拆分成两段产品详情。"""
     source = (content_html or '').strip()
     if not source:
         return '', ''
@@ -146,7 +217,7 @@ def _strip_html_text(fragment: str) -> str:
 
 
 def extract_legacy_template_fields(page_html: str, defaults: dict):
-    """Extract template-like fields from legacy product HTML structure."""
+    """从旧版产品 HTML 结构中提取模板式字段。"""
     extracted = {}
     content = page_html or ''
 
@@ -289,7 +360,7 @@ def extract_legacy_template_fields(page_html: str, defaults: dict):
 
 
 def normalize_product_template_fields(raw_fields):
-    """Keep only valid template placeholder key/value pairs."""
+    """仅保留有效的模板占位符键值对。"""
     normalized = {}
     if not isinstance(raw_fields, dict):
         return normalized
@@ -302,7 +373,7 @@ def normalize_product_template_fields(raw_fields):
 
 
 def build_product_template_defaults(title: str, summary: str, image_url: str, detail1: str, detail2: str):
-    """Build default values for all placeholders in product template HTML."""
+    """为产品模板中的全部占位符构建默认值。"""
     placeholders = extract_product_template_placeholders(get_product_template_html())
     image = (image_url or '/assets/images/logo.png').strip()
     defaults = {}
@@ -328,7 +399,7 @@ def build_product_template_defaults(title: str, summary: str, image_url: str, de
 
 
 def sanitize_product_template_value(key: str, value: str) -> str:
-    """Escape placeholder values safely for HTML/template substitution."""
+    """为 HTML 或模板替换安全转义占位符值。"""
     v = (value or '').strip()
     if not v:
         if '链接' in key:
@@ -346,7 +417,7 @@ def sanitize_product_template_value(key: str, value: str) -> str:
 
 
 def inject_product_meta_tags(page_html: str, title: str, short_name: str, image_url: str, summary: str, category: str) -> str:
-    """Inject product-* meta tags for admin scanner compatibility."""
+    """注入 `product-*` meta 标签，兼容后台扫描逻辑。"""
     safe_title = html.escape(title or '', quote=True)
     safe_short_name = html.escape(short_name or '', quote=True)
     safe_image = html.escape(image_url or '', quote=True)
@@ -366,14 +437,14 @@ def inject_product_meta_tags(page_html: str, title: str, short_name: str, image_
 
 
 def encode_product_admin_data(payload: dict) -> str:
-    """Encode admin editor state into HTML comment for future edits."""
+    """将后台编辑状态编码进 HTML 注释，便于后续继续编辑。"""
     raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
     encoded = base64.b64encode(raw.encode('utf-8')).decode('ascii')
     return f'<!-- {PRODUCT_ADMIN_DATA_PREFIX}{encoded} -->'
 
 
 def decode_product_admin_data(page_html: str):
-    """Decode embedded admin editor payload from HTML comment."""
+    """从 HTML 注释中解码嵌入的后台编辑载荷。"""
     m = re.search(r'<!--\s*' + re.escape(PRODUCT_ADMIN_DATA_PREFIX) + r'([A-Za-z0-9+/=_-]+)\s*-->', page_html or '')
     if not m:
         return None
@@ -396,7 +467,7 @@ def render_gassensing_product_html(
     content_html: str,
     template_fields=None
 ):
-    """Render product page based on resolved product template HTML."""
+    """基于解析后的产品模板 HTML 渲染产品页。"""
     safe_title = (title or '').strip()
     safe_short_name = (short_name or safe_title).strip()
     safe_category = (category or 'module').strip()
@@ -464,7 +535,7 @@ def render_gassensing_product_html(
 
 
 def parse_gassensing_product_detail(filepath: Path):
-    """Parse product detail page fields for admin editing."""
+    """解析产品详情页字段，供后台编辑使用。"""
     if not filepath.exists():
         return None
 
@@ -524,7 +595,7 @@ def parse_gassensing_product_detail(filepath: Path):
 
 
 def call_openai_api_sync_with_custom_config(messages, config):
-    """Call OpenAI-compatible API with explicit config."""
+    """使用显式配置调用兼容 OpenAI 的同步 API。"""
     api_key = (config or {}).get('api_key', '')
     api_base = (config or {}).get('api_base', 'https://api.openai.com/v1')
     model = (config or {}).get('model', 'gpt-4o-mini')
@@ -619,7 +690,7 @@ def call_openai_api_sync_with_custom_config(messages, config):
 
 
 def _extract_stream_chunk_text(chunk_obj):
-    """Extract text delta from OpenAI-compatible stream chunk."""
+    """从兼容 OpenAI 的流式分片中提取文本增量。"""
     if not isinstance(chunk_obj, dict):
         return ''
     choices = chunk_obj.get('choices') or []
@@ -643,7 +714,7 @@ def _extract_stream_chunk_text(chunk_obj):
 
 
 def call_openai_api_stream_with_custom_config(messages, config):
-    """Call OpenAI-compatible stream API with explicit config."""
+    """使用显式配置调用兼容 OpenAI 的流式 API。"""
     api_key = (config or {}).get('api_key', '')
     api_base = (config or {}).get('api_base', 'https://api.openai.com/v1')
     model = (config or {}).get('model', 'gpt-4o-mini')
@@ -737,7 +808,7 @@ def call_openai_api_stream_with_custom_config(messages, config):
 
 
 def parse_json_object_from_ai_text(text: str):
-    """Extract first valid JSON object from AI text."""
+    """从 AI 文本中提取第一个有效 JSON 对象。"""
     raw = (text or '').strip()
     if not raw:
         raise ValueError('AI返回为空')
@@ -761,7 +832,7 @@ def parse_json_object_from_ai_text(text: str):
 
 
 def extract_html_from_ai_text(text: str, title: str = '产品页面'):
-    """Extract HTML document from model output, with robust fallbacks."""
+    """从模型输出中提取 HTML 文档，并做稳健兜底。"""
     raw = (text or '').strip()
     if not raw:
         raise ValueError('AI返回为空')
@@ -810,7 +881,7 @@ def extract_html_from_ai_text(text: str, title: str = '产品页面'):
 
 
 def build_product_content_html_from_template_fields(template_fields: dict):
-    """Build editor content_html from template fields for admin edit backfill."""
+    """基于模板字段构建编辑器使用的 `content_html` 回填内容。"""
     d1 = str((template_fields or {}).get('【产品详情1】', '') or '').strip()
     d2 = str((template_fields or {}).get('【产品详情2】', '') or '').strip()
     parts = []
@@ -824,7 +895,7 @@ def build_product_content_html_from_template_fields(template_fields: dict):
 
 
 def _normalize_text_lines(value):
-    """Normalize multiline / comma-separated text into clean non-empty lines."""
+    """将多行或逗号分隔文本规范化为非空文本列表。"""
     if value is None:
         return []
     if isinstance(value, list):
@@ -848,7 +919,7 @@ def _build_product_ai_html_messages(
     news_urls='',
     related_product_urls='',
 ):
-    """Build system/user messages for product full-html generation."""
+    """构建用于整页产品 HTML 生成的 system/user 消息。"""
     ai_cfg = _dep('get_product_page_ai_config')()
     reference_html = get_product_ai_reference_html()
     system_prompt = _dep('get_product_page_ai_system_prompt')()
@@ -893,7 +964,7 @@ def _build_product_ai_html_messages(
 
 
 def _ensure_html_tail(page_html: str) -> str:
-    """Best-effort close missing body/html tail when output is truncated."""
+    """在输出被截断时尽力补齐缺失的 body/html 尾部。"""
     txt = (page_html or '').strip()
     if '<html' not in txt.lower():
         return txt
@@ -940,7 +1011,7 @@ def _build_related_section_html(section_class: str, title: str, grid_class: str,
 
 
 def ensure_product_dynamic_sections(page_html: str) -> str:
-    """Post-process AI HTML to ensure related-news/products dynamic blocks are renderable."""
+    """后处理 AI 生成 HTML，确保相关新闻或产品动态区块可正常渲染。"""
     text = str(page_html or '')
     if not text.strip():
         return text
@@ -992,7 +1063,7 @@ def _build_product_ai_revise_messages(
     instruction,
     current_html,
 ):
-    """Build system/user messages for product HTML revise workflow."""
+    """构建用于产品 HTML 修改流程的 system/user 消息。"""
     system_prompt = _dep('get_product_page_ai_system_prompt')()
     detail_images = _normalize_text_lines(detail_image_urls)
     news_links = _normalize_text_lines(news_urls)
@@ -1127,6 +1198,8 @@ def extract_product_meta_from_html(filepath):
         return None
 
 
+
+# 路由注册入口。
 def register_product_editor_routes(
     app,
     *,
@@ -1138,12 +1211,17 @@ def register_product_editor_routes(
     get_product_page_ai_system_prompt,
     get_product_settings,
     save_product_settings,
+    product_featured_file,
+    excluded_product_files,
+    hydrogen_solutions_config_file,
+    get_hydrogen_solution_products_config,
+    save_hydrogen_solution_products_config,
     default_product_categories,
     normalize_ai_product_image_extension,
     infer_ai_product_image_extension_from_mime,
     allowed_ai_product_image_mime_types,
 ):
-    """Register product editor/admin routes."""
+    """注册产品编辑后台相关路由。"""
     configure_product_editor(
         app_root=app_root,
         require_super_admin_api=require_super_admin_api,
@@ -1152,6 +1230,11 @@ def register_product_editor_routes(
         get_product_page_ai_system_prompt=get_product_page_ai_system_prompt,
         get_product_settings=get_product_settings,
         save_product_settings=save_product_settings,
+        product_featured_file=product_featured_file,
+        excluded_product_files=excluded_product_files,
+        hydrogen_solutions_config_file=hydrogen_solutions_config_file,
+        get_hydrogen_solution_products_config=get_hydrogen_solution_products_config,
+        save_hydrogen_solution_products_config=save_hydrogen_solution_products_config,
         default_product_categories=default_product_categories,
         normalize_ai_product_image_extension=normalize_ai_product_image_extension,
         infer_ai_product_image_extension_from_mime=infer_ai_product_image_extension_from_mime,
@@ -1161,14 +1244,14 @@ def register_product_editor_routes(
     @app.route('/api/products/template/placeholders')
     @login_required
     def get_product_template_placeholders_api():
-        """Get placeholder list from product template for admin visual form."""
+        """获取后台可视化表单所需的模板占位符列表。"""
         placeholders = extract_product_template_placeholders(get_product_template_html())
         return jsonify({'items': placeholders, 'count': len(placeholders)})
 
     @app.route('/api/products/ai-generate-html', methods=['POST'])
     @login_required
     def ai_generate_product_html():
-        """Generate full product HTML by AI with template.html as reference."""
+        """以页面模板为参考，通过 AI 生成完整产品页代码。"""
         data = request.json or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -1224,7 +1307,7 @@ def register_product_editor_routes(
     @app.route('/api/products/ai-upload-images', methods=['POST'])
     @login_required
     def ai_upload_product_images():
-        """Upload AI product images into pages/gassensing/<MODEL>/ folder."""
+        """将 AI 生成的产品图片上传到产品图片目录。"""
         slug = (request.form.get('slug') or '').strip().lower()
         short_name = (request.form.get('short_name') or '').strip()
         files = request.files.getlist('files')
@@ -1291,7 +1374,7 @@ def register_product_editor_routes(
     @app.route('/api/products/ai-generate-html-stream', methods=['POST'])
     @login_required
     def ai_generate_product_html_stream():
-        """Generate full product HTML by AI with streaming + auto continuation."""
+        """以流式方式生成完整产品 HTML，并支持自动续写。"""
         data = request.json or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -1371,7 +1454,7 @@ def register_product_editor_routes(
     @app.route('/api/products/ai-revise-html-stream', methods=['POST'])
     @login_required
     def ai_revise_product_html_stream():
-        """Revise already-generated HTML by user instruction (streaming)."""
+        """按用户指令流式修订已生成的 HTML。"""
         data = request.json or {}
         title = (data.get('title') or '').strip() or '产品页面'
         category = (data.get('category') or 'sensor').strip()
@@ -1457,7 +1540,7 @@ def register_product_editor_routes(
     @app.route('/api/products/ai-revise-html', methods=['POST'])
     @login_required
     def ai_revise_product_html():
-        """Revise already-generated HTML by user instruction (non-stream fallback)."""
+        """按用户指令修订已生成的 HTML，作为非流式兜底。"""
         data = request.json or {}
         title = (data.get('title') or '').strip() or '产品页面'
         category = (data.get('category') or 'sensor').strip()
@@ -1519,7 +1602,7 @@ def register_product_editor_routes(
     @app.route('/api/products/ai-create-html', methods=['POST'])
     @login_required
     def ai_create_product_from_html():
-        """Save AI-generated full HTML as a product page file."""
+        """将 AI 生成的完整 HTML 保存为产品页文件。"""
         super_admin_denied = _dep('require_super_admin_api')()
         if super_admin_denied:
             return super_admin_denied
@@ -1585,7 +1668,7 @@ def register_product_editor_routes(
     @app.route('/api/products/ai-generate-fields', methods=['POST'])
     @login_required
     def ai_generate_product_template_fields():
-        """Generate template fields by product-page coding AI."""
+        """通过产品页编码 AI 生成模板字段。"""
         data = request.json or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -1668,7 +1751,7 @@ def register_product_editor_routes(
     @app.route('/api/products/ai-create', methods=['POST'])
     @login_required
     def ai_create_gassensing_product():
-        """Create product HTML from AI-generated template fields."""
+        """使用 AI 生成的模板字段创建产品 HTML。"""
         data = request.json or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -1709,7 +1792,7 @@ def register_product_editor_routes(
     @app.route('/api/products/create', methods=['POST'])
     @login_required
     def create_gassensing_product():
-        """Create a gassensing product detail page from admin visual form."""
+        """通过后台可视化表单创建气体传感产品详情页。"""
         data = request.json or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -1758,7 +1841,7 @@ def register_product_editor_routes(
     @app.route('/api/products/detail')
     @login_required
     def get_product_detail():
-        """Get one gassensing product detail for admin visual editing."""
+        """获取单个气体传感产品详情，供后台可视化编辑。"""
         product_id = (request.args.get('id') or '').strip()
         if not product_id:
             return jsonify({'success': False, 'message': '缺少产品ID'}), 400
@@ -1776,7 +1859,7 @@ def register_product_editor_routes(
     @app.route('/api/products/update', methods=['POST'])
     @login_required
     def update_gassensing_product():
-        """Update an existing gassensing product detail page."""
+        """更新已有的气体传感产品详情页。"""
         data = request.json or {}
         original_slug = (data.get('original_slug') or '').strip()
         slug = (data.get('slug') or '').strip()
@@ -1841,7 +1924,7 @@ def register_product_editor_routes(
     @app.route('/api/products/preview-page', methods=['POST'])
     @login_required
     def preview_product_page():
-        """Render full gassensing product page HTML for admin live preview."""
+        """为后台实时预览渲染完整产品页 HTML。"""
         data = request.json or {}
         title = (data.get('title') or '').strip() or '产品标题'
         short_name = (data.get('short_name') or '').strip() or title
@@ -1888,33 +1971,201 @@ def register_product_editor_routes(
 
         return jsonify({'success': True, 'page_html': page_html})
 
+    @app.route('/api/products/code/download')
+    @app.route('/api/bio-products/code/download')
+    @login_required
+    def download_product_code():
+        """根据产品 ID 下载 HTML 源码。"""
+        product_id = (request.args.get('id') or '').strip()
+        filepath, slug = resolve_product_html_path_by_id(product_id)
+        if not filepath or not filepath.exists():
+            return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=f'{slug}.html',
+            mimetype='text/html',
+        )
+
+    @app.route('/api/products/code/upload', methods=['POST'])
+    @app.route('/api/bio-products/code/upload', methods=['POST'])
+    @login_required
+    def upload_product_code():
+        """根据产品 ID 上传并覆盖 HTML 源码。"""
+        super_admin_denied = _dep('require_super_admin_api')()
+        if super_admin_denied:
+            return super_admin_denied
+
+        product_id = (request.form.get('id') or '').strip()
+        upload_file = request.files.get('file')
+        filepath, _ = resolve_product_html_path_by_id(product_id)
+        if not filepath or not filepath.exists():
+            return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+        if not upload_file or not upload_file.filename:
+            return jsonify({'success': False, 'message': '未选择上传文件'}), 400
+        if not str(upload_file.filename).lower().endswith('.html'):
+            return jsonify({'success': False, 'message': '仅支持上传 .html 文件'}), 400
+
+        raw = upload_file.read()
+        try:
+            content = raw.decode('utf-8')
+        except UnicodeDecodeError:
+            content = raw.decode('utf-8', errors='ignore')
+        if '<html' not in content.lower():
+            return jsonify({'success': False, 'message': '上传内容不是有效的HTML文件'}), 400
+
+        filepath.write_text(content, encoding='utf-8')
+        return jsonify({'success': True, 'message': '覆盖上传成功'})
+
+    @app.route('/api/products/delete', methods=['POST'])
+    @login_required
+    def delete_product_item():
+        """删除单个气体传感或定制化产品页及相关后台配置。"""
+        super_admin_denied = _dep('require_super_admin_api')()
+        if super_admin_denied:
+            return super_admin_denied
+
+        body = request.get_json(force=True, silent=True) or {}
+        product_id = str(body.get('id') or '').strip()
+        if not product_id:
+            return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+        if product_id.startswith('../biosensing/'):
+            return jsonify({'success': False, 'message': '该接口仅支持删除【氢气产品】列表中的产品'}), 400
+
+        filepath, slug = resolve_product_html_path_by_id(product_id)
+        if not filepath or not filepath.exists():
+            return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+        if filepath.name in _dep('excluded_product_files') or filepath.name == 'index.html':
+            return jsonify({'success': False, 'message': '该页面不允许删除'}), 400
+
+        try:
+            filepath.unlink()
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'删除文件失败: {exc}'}), 500
+
+        _cleanup_deleted_product_references(product_id)
+        return jsonify({
+            'success': True,
+            'message': '产品和页面代码已删除',
+            'id': product_id,
+            'slug': slug,
+            'filename': filepath.name,
+        })
+
+    @app.route('/api/products/page-fields', methods=['GET'])
+    @login_required
+    def get_product_page_fields():
+        """获取产品页中可编辑的模板字段。"""
+        product_id = (request.args.get('id') or '').strip()
+        if not product_id:
+            return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+        filepath, _ = resolve_product_html_path_by_id(product_id)
+        if not filepath or not filepath.exists():
+            return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+        parsed = parse_gassensing_product_detail(filepath)
+        if not parsed:
+            return jsonify({'success': False, 'message': '无法解析产品页面'}), 500
+        return jsonify({'success': True, 'productId': product_id, 'fields': parsed.get('template_fields', {})})
+
+    @app.route('/api/products/page-fields', methods=['POST'])
+    @login_required
+    def save_product_page_fields():
+        """将可编辑模板字段写回产品页。"""
+        super_admin_denied = _dep('require_super_admin_api')()
+        if super_admin_denied:
+            return super_admin_denied
+
+        body = request.get_json(force=True, silent=True) or {}
+        product_id = str(body.get('productId') or '').strip()
+        new_fields = body.get('fields') or {}
+        if not product_id:
+            return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+        if not isinstance(new_fields, dict):
+            return jsonify({'success': False, 'message': '字段格式错误'}), 400
+
+        filepath, _ = resolve_product_html_path_by_id(product_id)
+        if not filepath or not filepath.exists():
+            return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+        parsed = parse_gassensing_product_detail(filepath)
+        if not parsed:
+            return jsonify({'success': False, 'message': '无法解析产品页面'}), 500
+
+        merged_fields = parsed.get('template_fields', {})
+        merged_fields.update(new_fields)
+        page_html, _ = render_gassensing_product_html(
+            title=new_fields.get('【产品名字】') or new_fields.get('【这里是产品名字】') or parsed.get('title', ''),
+            short_name=parsed.get('short_name', ''),
+            category=parsed.get('category', 'module'),
+            image_url=new_fields.get('【主图链接】') or parsed.get('image_url', ''),
+            summary=new_fields.get('【产品描述】') or parsed.get('summary', ''),
+            content_html=parsed.get('content_html', ''),
+            template_fields=merged_fields,
+        )
+        filepath.write_text(page_html, encoding='utf-8')
+        return jsonify({'success': True, 'message': '保存成功'})
+
+    @app.route('/api/products/page-sections', methods=['GET'])
+    @login_required
+    def get_product_page_sections():
+        """提取现代 `vs-*` 产品页中的全部可编辑区块。"""
+        product_id = (request.args.get('id') or '').strip()
+        if not product_id:
+            return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+        filepath, _ = resolve_product_html_path_by_id(product_id)
+        if not filepath or not filepath.exists():
+            return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+        try:
+            page_html = filepath.read_text(encoding='utf-8', errors='ignore')
+            sections = extract_vs_product_sections(page_html)
+            return jsonify({'success': True, 'productId': product_id, 'sections': sections})
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'解析失败: {exc}'}), 500
+
+    @app.route('/api/products/page-sections', methods=['POST'])
+    @login_required
+    def save_product_page_sections():
+        """用编辑后的区块内容修补现代 `vs-*` 产品页 HTML。"""
+        super_admin_denied = _dep('require_super_admin_api')()
+        if super_admin_denied:
+            return super_admin_denied
+
+        body = request.get_json(force=True, silent=True) or {}
+        product_id = str(body.get('productId') or '').strip()
+        sections = body.get('sections') or {}
+        if not product_id:
+            return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+        if not isinstance(sections, dict):
+            return jsonify({'success': False, 'message': '数据格式错误'}), 400
+
+        filepath, _ = resolve_product_html_path_by_id(product_id)
+        if not filepath or not filepath.exists():
+            return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+        try:
+            page_html = filepath.read_text(encoding='utf-8', errors='ignore')
+            patched = patch_vs_product_sections(page_html, sections)
+            filepath.write_text(patched, encoding='utf-8')
+            return jsonify({'success': True, 'message': '保存成功'})
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'保存失败: {exc}'}), 500
+
 
 def extract_vs_product_sections(page_html: str) -> dict:
-    """Extract all editable sections from a modern vs-* style product page.
-
-    Returns a structured dict with keys:
-      title, description, images (list of src), highlights (list of str),
-      detail (str), advantages (list of {icon, title, desc}),
-      app_intro (str), applications (list of {icon, title, desc, scenario}),
-      specs (list of {key, value}),
-      news (list of {href, img, title, desc}),
-      cta_title, cta_desc
-    """
+    """提取现代 `vs-*` 风格产品页中的全部可编辑区块，并返回结构化区块数据。"""
     c = page_html or ''
 
     def strip(fragment):
         text = re.sub(r'<[^>]+>', '', fragment or '', flags=re.S)
         return html.unescape(text).strip()
 
-    # --- title ---
+    # --- 标题 ---
     h1 = re.search(r'<h1[^>]*>(.*?)</h1>', c, re.S | re.I)
     title = strip(h1.group(1)) if h1 else ''
 
-    # --- hero description ---
+    # --- 首屏描述 ---
     desc_m = re.search(r'<p[^>]*class="[^"]*vs-product-hero__desc[^"]*"[^>]*>(.*?)</p>', c, re.S | re.I)
     description = strip(desc_m.group(1)) if desc_m else ''
 
-    # --- images: gallery thumbs ---
+    # --- 图片：画廊缩略图 ---
     thumbs_block = re.search(
         r'<div[^>]*class="[^"]*vs-gallery-thumbs[^"]*"[^>]*>(.*?)</div>\s*</div>',
         c, re.S | re.I
@@ -1929,14 +2180,14 @@ def extract_vs_product_sections(page_html: str) -> dict:
         if main_img:
             images = [main_img.group(1)]
 
-    # --- highlights (vs-feature-list) ---
+    # --- 产品亮点区块 ---
     feat_ul = re.search(r'<ul[^>]*class="[^"]*vs-feature-list[^"]*"[^>]*>(.*?)</ul>', c, re.S | re.I)
     highlights = []
     if feat_ul:
         items = re.findall(r'<li[^>]*>(.*?)</li>', feat_ul.group(1), re.S | re.I)
         highlights = [strip(x) for x in items if strip(x)]
 
-    # --- product detail (single long paragraph) ---
+    # --- 产品详情（单段长文） ---
     detail_m = re.search(
         r'产品详情\s*</h2>\s*<div[^>]*class="[^"]*vs-product-section__content[^"]*"[^>]*>(.*?)</div>',
         c, re.S | re.I
@@ -1947,12 +2198,12 @@ def extract_vs_product_sections(page_html: str) -> dict:
         parts = [strip(p) for p in ps if strip(p)]
         detail = '\n\n'.join(parts)
     if not detail:
-        # fallback: try article body
+        # 兜底：尝试从正文区域提取。
         article = re.search(r'<article[^>]*>(.*?)</article>', c, re.S | re.I)
         if article:
             detail = strip(article.group(1))
 
-    # --- advantages (vs-advantages-grid) ---
+    # --- 产品优势区块 ---
     adv_section = re.search(
         r'产品优势\s*</h2>(.*?)</section>',
         c, re.S | re.I
@@ -1964,7 +2215,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
             adv_section.group(1), re.S | re.I
         )
         if not cards:
-            # Try a broader match
+            # 尝试更宽松的匹配方式。
             grid_m = re.search(r'<div[^>]*class="[^"]*vs-advantages-grid[^"]*"[^>]*>(.*)', adv_section.group(1), re.S | re.I)
             if grid_m:
                 cards = re.findall(r'<div[^>]*class="[^"]*vs-advantage-card[^"]*"[^>]*>(.*?)</div>\s*\n', grid_m.group(1), re.S | re.I)
@@ -1978,7 +2229,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
                 'desc': strip(p_m.group(1)) if p_m else '',
             })
 
-    # Better approach: use direct regex to find all advantage cards
+    # 更稳妥的做法：直接用正则提取全部优势卡片。
     if not advantages:
         all_adv_cards = re.findall(
             r'<div[^>]*class="[^"]*vs-advantage-card[^"]*"[^>]*>(.*?)</div>(?=\s*(?:<div|</div>))',
@@ -1995,7 +2246,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
                     'desc': strip(p_m.group(1)) if p_m else '',
                 })
 
-    # --- application intro + items (vs-application-highlights) ---
+    # --- 应用简介与条目区块 ---
     app_section_m = re.search(r'主要应用\s*</h2>(.*?)</section>', c, re.S | re.I)
     app_intro = ''
     applications = []
@@ -2017,7 +2268,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
                 'scenario': strip(sc_m.group(1)) if sc_m else '',
             })
 
-    # --- specs table (vs-specs-table) ---
+    # --- 规格参数表区块 ---
     specs_m = re.search(r'<table[^>]*class="[^"]*vs-specs-table[^"]*"[^>]*>(.*?)</table>', c, re.S | re.I)
     specs = []
     if specs_m:
@@ -2031,7 +2282,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
             if k:
                 specs.append({'key': k, 'value': v})
 
-    # --- related news ---
+    # --- 相关新闻 ---
     news_sec = re.search(r'<section[^>]*class="[^"]*vs-related-news[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
     news = []
     if news_sec:
@@ -2052,7 +2303,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
                 'desc': strip(p_m.group(1)) if p_m else '',
             })
 
-    # --- CTA section ---
+    # --- CTA 区块 ---
     cta_m = re.search(r'<section[^>]*class="[^"]*vs-cta-section[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
     cta_title = ''
     cta_desc = ''
@@ -2079,37 +2330,33 @@ def extract_vs_product_sections(page_html: str) -> dict:
 
 
 def patch_vs_product_sections(page_html: str, sections: dict) -> str:
-    """Patch a modern vs-* style product page HTML with edited sections.
-
-    Only patches the sections that are present in the `sections` dict.
-    Returns the modified HTML string.
-    """
+    """用给定区块内容修补现代 `vs-*` 风格产品页 HTML，并仅更新已提供的区块。"""
     c = page_html or ''
 
     def esc(text: str) -> str:
         return html.escape(str(text or '').strip(), quote=True)
 
     def esc_text(text: str) -> str:
-        """Escape for HTML text content (not attribute)."""
+        """对 HTML 文本内容做转义，不用于属性值。"""
         return esc(text)
 
-    # --- title ---
+    # --- 标题 ---
     if 'title' in sections:
         new_title = esc_text(sections['title'])
-        # H1 inside product hero
+        # 产品 Hero 区内的 H1。
         c = re.sub(
             r'(<h1[^>]*>)(.*?)(</h1>)',
             lambda m: m.group(1) + new_title + m.group(3),
             c, count=1, flags=re.S | re.I
         )
-        # <title> tag
+        # 页面标题标签。
         c = re.sub(
             r'(<title[^>]*>)(.*?)(\s*-\s*元芯传感\s*</title>|</title>)',
             lambda m: m.group(1) + new_title + (' - 元芯传感' if '元芯传感' in m.group(0) else '') + '</title>',
             c, count=1, flags=re.S | re.I
         )
 
-    # --- description ---
+    # --- 描述 ---
     if 'description' in sections:
         new_desc = esc_text(sections['description'])
         c = re.sub(
@@ -2118,18 +2365,18 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
             c, count=1, flags=re.S | re.I
         )
 
-    # --- images ---
+    # --- 图片 ---
     if 'images' in sections:
         imgs = [str(x or '').strip() for x in sections['images'] if str(x or '').strip()]
         if imgs:
-            # Patch mainImage src
+            # 替换主图元素的地址属性。
             main_src = esc(imgs[0])
             c = re.sub(
                 r'(<img[^>]*id="mainImage"[^>]*src=")([^"]*)"',
                 lambda m: m.group(1) + main_src + '"',
                 c, count=1, flags=re.I
             )
-            # Patch gallery thumbs block
+            # 替换画廊缩略图区块。
             thumbs_match = re.search(
                 r'(<div[^>]*class="[^"]*vs-gallery-thumbs[^"]*"[^>]*>)(.*?)(</div>\s*</div>)',
                 c, re.S | re.I
@@ -2148,7 +2395,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                     )
                 c = c[:thumbs_match.start(2)] + new_thumbs + '\n                        ' + c[thumbs_match.start(3):]
 
-    # --- highlights ---
+    # --- 亮点 ---
     if 'highlights' in sections:
         items = [str(x or '').strip() for x in sections['highlights'] if str(x or '').strip()]
         feat_match = re.search(
@@ -2159,7 +2406,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
             new_items = '\n'.join(f'                            <li>{esc_text(x)}</li>' for x in items)
             c = c[:feat_match.start(2)] + '\n' + new_items + '\n                        ' + c[feat_match.start(3):]
 
-    # --- detail ---
+    # --- 详情 ---
     if 'detail' in sections:
         new_detail_text = str(sections['detail'] or '').strip()
         paragraphs = [p.strip() for p in new_detail_text.split('\n\n') if p.strip()]
@@ -2173,7 +2420,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
         if detail_match:
             c = c[:detail_match.start(2)] + '\n' + new_detail_html + '\n                ' + c[detail_match.start(3):]
 
-    # --- advantages ---
+    # --- 优势 ---
     if 'advantages' in sections:
         adv_list = sections['advantages']
         if isinstance(adv_list, list):
@@ -2196,7 +2443,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                     )
                 c = c[:adv_grid_match.start(2)] + new_cards + '\n\n                ' + c[adv_grid_match.start(3):]
 
-    # --- application intro ---
+    # --- 应用简介 ---
     if 'app_intro' in sections:
         new_intro = esc_text(sections['app_intro'])
         c = re.sub(
@@ -2205,7 +2452,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
             c, count=1, flags=re.S | re.I
         )
 
-    # --- applications ---
+    # --- 应用场景 ---
     if 'applications' in sections:
         app_list = sections['applications']
         if isinstance(app_list, list):
@@ -2234,7 +2481,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                     )
                 c = c[:app_grid_match.start(2)] + new_arts + '\n                ' + c[app_grid_match.start(3):]
 
-    # --- specs ---
+    # --- 规格参数 ---
     if 'specs' in sections:
         spec_list = sections['specs']
         if isinstance(spec_list, list):
@@ -2255,7 +2502,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                     )
                 c = c[:specs_match.start(2)] + new_rows + '\n                ' + c[specs_match.start(3):]
 
-    # --- news ---
+    # --- 新闻 ---
     if 'news' in sections:
         news_list = sections['news']
         if isinstance(news_list, list):

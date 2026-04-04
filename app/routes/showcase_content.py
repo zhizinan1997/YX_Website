@@ -1,4 +1,7 @@
-"""Homepage showcase routes: featured products/solutions and H2-home content."""
+"""首页展示位与氢气首页内容路由模块。
+
+负责精选产品、精选方案、氢气首页配置、案例与测量对象展示。
+"""
 
 from __future__ import annotations
 
@@ -9,6 +12,7 @@ from pathlib import Path
 
 from flask import jsonify, request, session
 
+# 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 MEASUREMENT_PRODUCT_LIMIT = 4
 MEASUREMENT_PAGE_ORDER = [
@@ -25,6 +29,8 @@ MEASUREMENT_PAGE_ORDER = [
 ]
 
 
+
+# 依赖注入配置入口。
 def configure_showcase_content(
     *,
     pages_dir,
@@ -35,6 +41,7 @@ def configure_showcase_content(
     validate_uploaded_video_extension,
     product_featured_file,
     solutions_featured_file,
+    hydrogen_solutions_config_file,
     h2_home_file,
     h2_home_video_uploads_dir,
     allowed_h2_home_video_extensions,
@@ -43,7 +50,7 @@ def configure_showcase_content(
     get_all_case_items,
     extract_solution_meta_from_html,
 ):
-    """Configure shared dependencies for showcase/homepage content."""
+    """配置首页展示内容模块的共享依赖。"""
     _DEPS.clear()
     _DEPS.update({
         'pages_dir': Path(pages_dir),
@@ -54,6 +61,7 @@ def configure_showcase_content(
         'validate_uploaded_video_extension': validate_uploaded_video_extension,
         'product_featured_file': Path(product_featured_file),
         'solutions_featured_file': Path(solutions_featured_file),
+        'hydrogen_solutions_config_file': Path(hydrogen_solutions_config_file),
         'h2_home_file': Path(h2_home_file),
         'h2_home_video_uploads_dir': Path(h2_home_video_uploads_dir),
         'allowed_h2_home_video_extensions': set(allowed_h2_home_video_extensions or set()),
@@ -72,7 +80,7 @@ def _dep(name):
 
 
 def get_featured_products_config():
-    """Load featured products config."""
+    """加载精选产品配置。"""
     default_config = {'ids': []}
     product_featured_file = _dep('product_featured_file')
     if product_featured_file.exists():
@@ -87,7 +95,7 @@ def get_featured_products_config():
 
 
 def save_featured_products_config(new_config):
-    """Save featured products config."""
+    """保存精选产品配置。"""
     ids = new_config.get('ids', [])
     if not isinstance(ids, list):
         ids = []
@@ -106,7 +114,7 @@ def save_featured_products_config(new_config):
 
 
 def get_featured_solutions_config():
-    """Load featured solutions config."""
+    """加载精选解决方案配置。"""
     default_config = {'ids': []}
     solutions_featured_file = _dep('solutions_featured_file')
     if solutions_featured_file.exists():
@@ -121,7 +129,7 @@ def get_featured_solutions_config():
 
 
 def save_featured_solutions_config(new_config):
-    """Save featured solutions config."""
+    """保存精选解决方案配置。"""
     ids = new_config.get('ids', [])
     if not isinstance(ids, list):
         ids = []
@@ -140,7 +148,7 @@ def save_featured_solutions_config(new_config):
 
 
 def build_product_link(product):
-    """Build public product link path from product id."""
+    """根据产品 ID 构建公开产品链接路径。"""
     product_id = product.get('id', '')
     if product_id.startswith('../customization/'):
         slug = product_id.replace('../customization/', '').strip('/')
@@ -248,7 +256,7 @@ def _serialize_public_product_item(item):
 
 
 def get_all_solution_items():
-    """Get all solution items from pages/solutions."""
+    """获取 pages/solutions 目录下的全部解决方案项。"""
     solutions_dir = _dep('pages_dir') / 'solutions'
     items = []
     if solutions_dir.exists():
@@ -263,7 +271,7 @@ def get_all_solution_items():
 
 
 def get_h2_home_config():
-    """Load hydrogen homepage config."""
+    """加载氢气首页配置。"""
     default_config = {'items': [], 'products': [], 'cases': [], 'news': [], 'measurementProducts': {}}
     h2_home_file = _dep('h2_home_file')
     if h2_home_file.exists():
@@ -346,7 +354,7 @@ def save_h2_home_products(product_ids):
 
 
 def save_h2_home_cases(items):
-    """Save H2-home cases with optional custom copy."""
+    """保存氢气首页案例，并支持可选自定义文案。"""
     if not isinstance(items, list):
         items = []
     cleaned = []
@@ -406,6 +414,181 @@ def save_h2_home_measurement_products(items):
     return saved
 
 
+HYDROGEN_SOLUTION_DEFINITIONS = [
+    {'id': 'electrolysis_online_leak', 'title': '电解水制氢过程在线分析与泄漏监测解决方案'},
+    {'id': 'station_vehicle_safety', 'title': '加氢站与燃料电池车氢监测协同安全解决方案'},
+    {'id': 'lab_multidimensional_monitoring', 'title': '涉氢实验室多维度气体泄漏立体监测系统'},
+    {'id': 'city_pipeline_home_safety', 'title': '城市能源输氢管网与用氢家庭安全解决方案'},
+    {'id': 'trace_hydrogen_leak_detection', 'title': '微量氢气泄漏检测解决方案'},
+    {'id': 'generator_h2_purity_leak', 'title': '氢冷发电机氢气纯度分析与泄漏监测解决方案'},
+    {'id': 'stator_cooling_water_h2', 'title': '发电机组定冷水氢检测解决方案'},
+    {'id': 'nuclear_dissolved_h2', 'title': '核电站水中溶解氢监测解决方案'},
+    {'id': 'transformer_oil_h2', 'title': '变压器油中氢浓度检测解决方案'},
+    {'id': 'general_pipe_container_leak', 'title': '管道容器通用检漏解决方案'},
+    {'id': 'refrigerant_industry_leak', 'title': '冷媒行业检漏解决方案'},
+    {'id': 'energy_storage_thermal_runaway_warning', 'title': '储能锂电池热失控预警解决方案'},
+    {'id': 'environment_gas_monitoring', 'title': '环境气体监测解决方案'},
+]
+
+DEFAULT_HYDROGEN_SOLUTION_PRODUCTS = {
+    'electrolysis_online_leak': ['mc_ol_h1', 'mc_ld_h2', 'mc_hla_01', 'mc_pgd_01'],
+    'station_vehicle_safety': ['mc_ld_h2', 'mc_hp_1_0', 'mc_wd_01', 'mc_hla_01'],
+    'lab_multidimensional_monitoring': ['mc_ld_ph2', 'mc_ld_h2', 'mc_wd_01', 'mc_pdr_01'],
+    'city_pipeline_home_safety': ['mc_hha_01', 'mc_hla_01', 'mc_pgd_01', 'mc_ld_nh2'],
+    'trace_hydrogen_leak_detection': ['mc_td_01', 'mc_ld_nh2', 'mc_ld_h2', 'mc_ld_ph2'],
+    'generator_h2_purity_leak': ['mc_ol_h1', 'mc_hla_01', 'mc_ld_h2', 'mc_pgd_01'],
+    'stator_cooling_water_h2': ['mc_pgd_01', 'mc_ol_h1', 'mc_hla_01', 'mc_ld_h2'],
+    'nuclear_dissolved_h2': ['mc_pgd_01', 'mc_ol_h1', 'mc_hla_01', 'mc_wd_01'],
+    'transformer_oil_h2': ['mc_pgd_01', 'mc_ld_h2', 'mc_hla_01', 'mc_td_01'],
+    'general_pipe_container_leak': ['mc_td_01', 'mc_ld_nh2', 'mc_ld_h2', 'mc_ld_ph2'],
+    'refrigerant_industry_leak': ['mc_hla_01', 'mc_wd_01', 'mc_ld_h2', 'mc_td_01'],
+    'energy_storage_thermal_runaway_warning': ['mc_hla_01', 'mc_ld_h2', 'mc_ld_ph2', 'mc_pgd_01'],
+    'environment_gas_monitoring': ['mc_gd_01', 'mc_pgd_01', 'mc_pdr_01', 'mc_tm_01'],
+}
+
+
+def get_hydrogen_solution_definitions():
+    return [dict(item) for item in HYDROGEN_SOLUTION_DEFINITIONS]
+
+
+def get_hydrogen_solution_product_pool():
+    """获取可用于氢气解决方案关联配置的产品池。"""
+    pool = []
+    for product in _dep('get_products_with_settings_data')():
+        product_id = str(product.get('id', '')).strip()
+        if not product_id or product_id == 'all-products':
+            continue
+        if product_id.startswith('../biosensing/'):
+            continue
+        pool.append(product)
+    return pool
+
+
+def normalize_hydrogen_solution_products_config(raw_config):
+    """规范化已存储的氢气解决方案关联产品配置，确保每个方案都有 1 到 4 个有效产品 ID。"""
+    pool = get_hydrogen_solution_product_pool()
+    ordered_pool_ids = [str(item.get('id', '')).strip() for item in pool if str(item.get('id', '')).strip()]
+    available_ids = set(ordered_pool_ids)
+
+    raw_map = {}
+    if isinstance(raw_config, dict):
+        if isinstance(raw_config.get('solutions'), list):
+            for item in raw_config.get('solutions', []):
+                if not isinstance(item, dict):
+                    continue
+                solution_id = str(item.get('id', '')).strip()
+                if solution_id:
+                    raw_map[solution_id] = item.get('relatedProductIds', [])
+        else:
+            for solution_id, value in raw_config.items():
+                if not isinstance(solution_id, str):
+                    continue
+                raw_map[solution_id] = value
+
+    normalized_solutions = []
+    fallback_pool_ids = ordered_pool_ids[:4]
+
+    for definition in get_hydrogen_solution_definitions():
+        solution_id = definition['id']
+        candidate_ids = raw_map.get(solution_id, [])
+        if not isinstance(candidate_ids, list):
+            candidate_ids = []
+        cleaned_ids = []
+        seen = set()
+        for product_id in candidate_ids:
+            current_id = str(product_id or '').strip()
+            if not current_id or current_id in seen or current_id not in available_ids:
+                continue
+            seen.add(current_id)
+            cleaned_ids.append(current_id)
+            if len(cleaned_ids) >= 4:
+                break
+
+        if not cleaned_ids:
+            default_ids = DEFAULT_HYDROGEN_SOLUTION_PRODUCTS.get(solution_id, [])
+            for product_id in default_ids:
+                if product_id in available_ids and product_id not in cleaned_ids:
+                    cleaned_ids.append(product_id)
+                if len(cleaned_ids) >= 4:
+                    break
+
+        if not cleaned_ids:
+            cleaned_ids = fallback_pool_ids[:4]
+
+        normalized_solutions.append({
+            'id': solution_id,
+            'relatedProductIds': cleaned_ids[:4],
+        })
+
+    return {'solutions': normalized_solutions}
+
+
+def get_hydrogen_solution_products_config():
+    config_file = _dep('hydrogen_solutions_config_file')
+    if config_file.exists():
+        try:
+            raw = json.loads(config_file.read_text(encoding='utf-8'))
+        except Exception:
+            raw = {}
+    else:
+        raw = {}
+    return normalize_hydrogen_solution_products_config(raw)
+
+
+def save_hydrogen_solution_products_config(new_config):
+    normalized = normalize_hydrogen_solution_products_config(new_config)
+    _dep('hydrogen_solutions_config_file').write_text(
+        json.dumps(normalized, ensure_ascii=False, indent=2),
+        encoding='utf-8',
+    )
+    return normalized
+
+
+def to_solution_product_card(product):
+    title = product.get('displayName') or product.get('shortName') or product.get('name') or product.get('id', '')
+    image = (product.get('cardImage') or '').strip() or (product.get('image') or '').strip()
+    summary = (product.get('cardSummary') or '').strip() or (product.get('description') or '').strip()
+    link = '/' + build_product_link(product).lstrip('/')
+    return {
+        'id': product.get('id', ''),
+        'title': _dep('sanitize_public_text')(title, max_length=120),
+        'image': _dep('sanitize_public_media_url')(image, enforce_remote_public=False),
+        'summary': _dep('sanitize_public_text')(summary, max_length=220),
+        'link': _dep('sanitize_public_link_url')(link, default='#'),
+    }
+
+
+def build_hydrogen_solution_public_payload():
+    config = get_hydrogen_solution_products_config()
+    config_map = {
+        str(item.get('id', '')).strip(): item.get('relatedProductIds', [])
+        for item in config.get('solutions', []) if isinstance(item, dict)
+    }
+    pool = get_hydrogen_solution_product_pool()
+    product_map = {str(item.get('id', '')).strip(): item for item in pool if str(item.get('id', '')).strip()}
+
+    payload = []
+    for definition in get_hydrogen_solution_definitions():
+        solution_id = definition['id']
+        related_ids = config_map.get(solution_id, [])
+        related_products = []
+        for product_id in related_ids:
+            product = product_map.get(str(product_id).strip())
+            if not product:
+                continue
+            related_products.append(to_solution_product_card(product))
+            if len(related_products) >= 4:
+                break
+        payload.append({
+            'id': solution_id,
+            'title': definition['title'],
+            'relatedProducts': related_products,
+        })
+    return payload
+
+
+
+# 路由注册入口。
 def register_showcase_content_routes(
     app,
     *,
@@ -418,6 +601,7 @@ def register_showcase_content_routes(
     validate_uploaded_video_extension,
     product_featured_file,
     solutions_featured_file,
+    hydrogen_solutions_config_file,
     h2_home_file,
     h2_home_video_uploads_dir,
     allowed_h2_home_video_extensions,
@@ -426,7 +610,7 @@ def register_showcase_content_routes(
     get_all_case_items,
     extract_solution_meta_from_html,
 ):
-    """Register homepage showcase routes."""
+    """注册首页展示位与氢气首页相关路由。"""
     configure_showcase_content(
         pages_dir=pages_dir,
         cached_json_response=cached_json_response,
@@ -436,6 +620,7 @@ def register_showcase_content_routes(
         validate_uploaded_video_extension=validate_uploaded_video_extension,
         product_featured_file=product_featured_file,
         solutions_featured_file=solutions_featured_file,
+        hydrogen_solutions_config_file=hydrogen_solutions_config_file,
         h2_home_file=h2_home_file,
         h2_home_video_uploads_dir=h2_home_video_uploads_dir,
         allowed_h2_home_video_extensions=allowed_h2_home_video_extensions,
@@ -444,6 +629,41 @@ def register_showcase_content_routes(
         get_all_case_items=get_all_case_items,
         extract_solution_meta_from_html=extract_solution_meta_from_html,
     )
+
+    @app.route('/api/solutions/hydrogen/config')
+    def get_hydrogen_solutions_public_config():
+        """获取行业解决方案页面使用的公开配置，按方案返回关联产品。"""
+        return jsonify({'solutions': build_hydrogen_solution_public_payload()})
+
+    @app.route('/api/admin/hydrogen-solutions/config')
+    @login_required
+    def get_hydrogen_solutions_admin_config():
+        """获取后台配置载荷，包含方案列表、已选产品 ID 与候选产品项。"""
+        products = get_hydrogen_solution_product_pool()
+        product_options = []
+        for product in products:
+            product_id = str(product.get('id', '')).strip()
+            if not product_id:
+                continue
+            product_options.append({
+                'id': product_id,
+                'title': product.get('displayName') or product.get('shortName') or product.get('name') or product_id,
+                'image': (product.get('cardImage') or '').strip() or (product.get('image') or '').strip(),
+            })
+        return jsonify({
+            'success': True,
+            'definitions': get_hydrogen_solution_definitions(),
+            'config': get_hydrogen_solution_products_config(),
+            'products': product_options,
+        })
+
+    @app.route('/api/admin/hydrogen-solutions/config', methods=['POST'])
+    @login_required
+    def update_hydrogen_solutions_admin_config():
+        """持久化保存后台编辑的方案关联产品 ID。"""
+        data = request.json or {}
+        saved = save_hydrogen_solution_products_config(data)
+        return jsonify({'success': True, 'config': saved})
 
     @app.route('/api/products/featured')
     def get_featured_products():
