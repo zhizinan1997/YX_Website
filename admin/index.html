@@ -5052,18 +5052,6 @@
                         </div>
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
-                            <h3 class="section-header">导航栏设置 · 产品分类缩略图</h3>
-                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                设置【产品】→【产品种类】中各分类的缩略图。<br>
-                                不设置则使用页面内的默认图片。
-                            </p>
-                            <div id="productCategoryImagesEditor"></div>
-                            <button onclick="saveProductCategoryImages()" class="btn-primary"
-                                style="width: auto; padding: 12px 30px; margin-top: 20px;">保存设置</button>
-                            <div id="productCategoryImagesMsg" style="margin-top: 10px; color: #28a745;"></div>
-                        </div>
-
-                        <div class="card" style="padding: 30px; margin-top: 20px;">
                             <h3 class="section-header">导航栏设置 · 新品推荐</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                                 设置巨幕菜单【新品推荐】面板中显示的产品链接。
@@ -7796,9 +7784,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     const data = await parseJsonSafe(res);
 
                     if (res.ok && data.success) {
-                        if (data.last_login_at || data.last_login_ip) {
+                        if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
                             const username = document.getElementById('username').value;
-                            showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at);
+                            showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
                         }
                         await checkLoginStatus();
                     } else {
@@ -7888,7 +7876,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
-        function showLastLoginToast(username, lastLoginAt, lastLoginIP, currentLoginAt) {
+        function showLastLoginToast(username, lastLoginAt, lastLoginIP, currentLoginAt, currentLoginIP) {
             const toast = document.getElementById('lastLoginToast');
             if (!toast) return;
 
@@ -7917,7 +7905,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
 
             if (currentIPEl) {
-                currentIPEl.textContent = lastLoginIP || '首次登录';
+                currentIPEl.textContent = currentLoginIP || '-';
             }
 
             if (lastTimeEl) {
@@ -7925,7 +7913,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
 
             if (lastIPEl) {
-                lastIPEl.textContent = '-';
+                lastIPEl.textContent = lastLoginIP || '首次登录';
             }
 
             if (greetingEl) {
@@ -14710,7 +14698,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     updateMenuPreview();
                     loadRecommendations();
                 }
-                loadProductCategoryImages();
                 if (measurementPagesList.length === 0) {
                     loadMeasurementTargets();
                 } else {

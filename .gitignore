@@ -37,3 +37,5 @@ htmlcov/
 /data/messages/
 /data/resumes/
 /data/site_analytics_events.jsonl
+data/admin_users.json
+data/site_analytics_events.jsonl

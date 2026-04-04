@@ -541,7 +541,7 @@ def _parse_bool(raw, default: bool = False) -> bool:
     return default
 
 
-def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_location_func) -> tuple:
+def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_country_code_func) -> tuple:
     """检查 IP 所属国家是否在允许列表中，返回（是否允许，原因）。"""
     if not ip:
         return True, ''
@@ -552,18 +552,16 @@ def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_location_fun
             return True, ''
     except ValueError:
         return True, ''
-    location = resolve_location_func(ip)
-    if not location or location == '未知':
-        return False, '无法获取IP归属地，已拒绝登录'
-    country_code = ''
-    for part in location.split('/'):
-        part = part.strip().upper()
-        if len(part) == 2 and part.isalpha():
-            country_code = part
-            break
+    country_code = resolve_country_code_func(ip)
     if not country_code:
-        return False, '无法识别IP归属地，已拒绝登录'
+        return False, '无法获取IP归属地，已拒绝登录'
     if country_code not in allowed_countries:
+        location = ''
+        try:
+            from app.admin_audit import resolve_ip_location
+            location = resolve_ip_location(ip)
+        except Exception:
+            location = ''
         return False, f'您的登录IP归属地({location})被禁止登录'
     return True, ''
 
@@ -939,7 +937,8 @@ def register_admin_routes(
     resolve_ip_country_code=None,
 ):
     """向 Flask 应用注册后台管理相关路由。"""
-    _resolve_ip = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
+    _resolve_ip_location = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
+    _resolve_ip_country_code = resolve_ip_country_code if resolve_ip_country_code else lambda ip: ''
     root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
     try:
         _ensure_admin_users_store(root, get_config, update_config)
@@ -1030,7 +1029,7 @@ def register_admin_routes(
         turnstile_settings = _get_turnstile_settings(config)
 
         country_allowed, country_reason = _is_ip_country_allowed(
-            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip
+            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code
         )
         if not country_allowed:
             append_admin_login_log(
@@ -1195,6 +1194,7 @@ def register_admin_routes(
             'last_login_at': prev_last_login_at,
             'last_login_ip': prev_last_login_ip,
             'current_login_at': current_login_at,
+            'current_login_ip': ip_addr,
         })
 
     @app.route('/admin/change-password', methods=['POST'])
