@@ -1,2 +1,2 @@
-"""Route registration modules."""
+"""路由注册模块集合。"""
 

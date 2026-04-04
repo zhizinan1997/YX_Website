@@ -1,4 +1,7 @@
-"""Home-content routes: hero, partners, and home section visibility."""
+"""首页内容管理路由模块。
+
+负责 Hero 区、合作伙伴、首页区块显示控制以及派生图片处理。
+"""
 
 from __future__ import annotations
 
@@ -12,7 +15,7 @@ from flask import jsonify, request, send_from_directory, session
 
 
 def get_hero_config(hero_config_file, sanitize_public_media_url):
-    """Load hero carousel config from file or defaults."""
+    """从文件或默认值加载 Hero 轮播配置。"""
     hero_config_path = Path(hero_config_file)
     default_config = {
         'interval_seconds': 5,
@@ -51,7 +54,7 @@ def get_hero_config(hero_config_file, sanitize_public_media_url):
 
 
 def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url):
-    """Validate and save hero carousel config."""
+    """校验并保存 Hero 轮播配置。"""
     config = get_hero_config(hero_config_file, sanitize_public_media_url)
     interval_seconds = new_config.get('interval_seconds', config.get('interval_seconds', 5))
     try:
@@ -89,7 +92,7 @@ def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url)
 
 
 def load_hero_derived_manifest(hero_derived_manifest_file):
-    """Load hero derived-image manifest from disk."""
+    """从磁盘加载 Hero 派生图片清单。"""
     manifest_path = Path(hero_derived_manifest_file)
     default_manifest = {'version': 1, 'items': {}}
     if not manifest_path.exists():
@@ -107,7 +110,7 @@ def load_hero_derived_manifest(hero_derived_manifest_file):
 
 
 def save_hero_derived_manifest(manifest, *, hero_derived_manifest_file):
-    """Persist hero derived-image manifest to disk."""
+    """将 Hero 派生图片清单持久化到磁盘。"""
     payload = manifest if isinstance(manifest, dict) else {'version': 1, 'items': {}}
     Path(hero_derived_manifest_file).write_text(
         json.dumps(payload, indent=2, ensure_ascii=False),
@@ -140,7 +143,7 @@ def _iter_hero_variant_filenames(entry):
 
 
 def remove_hero_variants_for_source(source_filename: str, *, hero_derived_dir, hero_derived_manifest_file):
-    """Delete derived variants for a source hero image and update manifest."""
+    """删除某张 Hero 原图对应的派生图片并更新清单。"""
     source_name = (source_filename or '').strip()
     if not source_name:
         return
@@ -185,7 +188,7 @@ def generate_hero_variants_for_source(
     hero_derived_widths,
     hero_derived_formats,
 ):
-    """Generate AVIF/WebP responsive variants for one hero source image."""
+    """为单张 Hero 原图生成 AVIF/WebP 响应式派生图。"""
     source_name = (source_filename or '').strip()
     if not source_name or not pil_support:
         return None
@@ -299,7 +302,7 @@ def build_hero_api_payload(
     hero_derived_widths,
     hero_derived_formats,
 ):
-    """Build hero API payload with responsive image sources when available."""
+    """在可用时为 Hero 接口构建带响应式图片源的返回载荷。"""
     config = get_hero_config(hero_config_file, sanitize_public_media_url)
     items = config.get('items', [])
     if not isinstance(items, list):
@@ -407,7 +410,7 @@ def sanitize_public_partner_items(items, sanitize_public_media_url):
 
 
 def get_partners_config(partners_config_file, sanitize_public_media_url):
-    """Load partners config from file or defaults."""
+    """从文件或默认值加载合作伙伴配置。"""
     partners_config_path = Path(partners_config_file)
     default_config = {'items': []}
 
@@ -428,7 +431,7 @@ def get_partners_config(partners_config_file, sanitize_public_media_url):
 
 
 def save_partners_config(new_config, *, partners_config_file, sanitize_public_media_url):
-    """Validate and save partners config."""
+    """校验并保存合作伙伴配置。"""
     config = get_partners_config(partners_config_file, sanitize_public_media_url)
     items = new_config.get('items', config.get('items', []))
     normalized_items = sanitize_public_partner_items(items if isinstance(items, list) else [], sanitize_public_media_url)
@@ -438,7 +441,7 @@ def save_partners_config(new_config, *, partners_config_file, sanitize_public_me
 
 
 def get_home_section_visibility_config(home_section_visibility_file):
-    """Load homepage section visibility config."""
+    """加载首页区块显示控制配置。"""
     visibility_path = Path(home_section_visibility_file)
     default_config = {
         'partners': True,
@@ -463,7 +466,7 @@ def get_home_section_visibility_config(home_section_visibility_file):
 
 
 def save_home_section_visibility_config(new_config, *, home_section_visibility_file):
-    """Save homepage section visibility config."""
+    """保存首页区块显示控制配置。"""
     existing = get_home_section_visibility_config(home_section_visibility_file)
     saved = {
         'partners': bool(new_config.get('partners', existing.get('partners', True))),
@@ -475,6 +478,8 @@ def save_home_section_visibility_config(new_config, *, home_section_visibility_f
     return saved
 
 
+
+# 路由注册入口。
 def register_home_content_routes(
     app,
     *,
@@ -502,7 +507,7 @@ def register_home_content_routes(
     image_ops_module,
     pil_features,
 ):
-    """Register hero, partners, and home-section routes."""
+    """注册首页 Hero、合作伙伴与区块显示控制相关路由。"""
 
     @app.route('/api/hero', methods=['GET'])
     def get_hero():

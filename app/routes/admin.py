@@ -1,21 +1,29 @@
-"""Admin/auth route module."""
+"""后台认证与管理路由模块。
 
-import hmac
-import ipaddress
+负责管理员登录、会话校验、账号管理、站点设置以及后台运维相关接口。
+"""
+
 import json
 import os
 import re
 import subprocess
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import ssl
 
 from flask import jsonify, make_response, request, send_from_directory, session
+from app.request_security import get_request_client_ip, is_same_origin_request
 from werkzeug.security import check_password_hash, generate_password_hash
+
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def now_beijing():
+    """返回北京时间对应的当前时间。"""
+    return datetime.now(BEIJING_TZ)
 
 LOGIN_FAIL_WINDOW_SECONDS = 12 * 3600
 LOGIN_FAIL_LIMIT = 3
@@ -24,9 +32,12 @@ LOGIN_ATTEMPTS_LOCK = threading.Lock()
 ADMIN_USERS_LOCK = threading.RLock()
 TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 try:
-    ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '28800').strip()))
+    ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '7200').strip()))
 except Exception:
-    ADMIN_SESSION_MAX_AGE_SECONDS = 28800
+    ADMIN_SESSION_MAX_AGE_SECONDS = 7200
+ADMIN_SESSION_SCHEMA_VERSION = 2
+LOGIN_DELAY_SECONDS = [60, 180]
+ALLOWED_LOGIN_COUNTRIES = {'CN', 'HK', 'MO', 'TW'}
 
 ADMIN_PERMISSION_CATALOG = [
     {'key': 'site-reports', 'label': '网站数据'},
@@ -44,6 +55,7 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'backup', 'label': '备份恢复'},
     {'key': 'changelog', 'label': '更新日志'},
     {'key': 'cdn-assets', 'label': 'CDN 素材'},
+    {'key': 'docker-logs', 'label': '后端日志'},
 ]
 ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
 USERNAME_RULE = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
@@ -65,29 +77,6 @@ def _normalize_username(raw_value: str) -> str:
 def _is_development_mode() -> bool:
     return APP_ENV in DEV_ENV_NAMES
 
-
-def _env_bool(name: str, default: bool = False) -> bool:
-    raw = (os.environ.get(name) or '').strip().lower()
-    if raw in {'1', 'true', 'yes', 'on'}:
-        return True
-    if raw in {'0', 'false', 'no', 'off'}:
-        return False
-    return default
-
-
-def _normalize_public_base_url(raw_value: str) -> str:
-    value = (raw_value or '').strip()
-    if not value:
-        return ''
-    if not re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', value):
-        value = f'https://{value}'
-    try:
-        parsed = urlparse(value)
-    except Exception:
-        return ''
-    if parsed.scheme not in {'http', 'https'} or not parsed.netloc:
-        return ''
-    return f'{parsed.scheme.lower()}://{parsed.netloc.lower()}'.rstrip('/')
 
 
 def _normalize_permissions(raw_permissions, is_super_admin: bool = False):
@@ -169,7 +158,7 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
     if not p:
         return None
 
-    # Public/login/session-check routes are handled elsewhere.
+    # 公开页、登录页和会话检查接口在别处处理。
     if p in {'/admin', '/admin/login', '/admin/logout', '/admin/check'}:
         return None
 
@@ -184,6 +173,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'site-reports'
     if p.startswith('/api/admin/changelog'):
         return 'changelog'
+    if p.startswith('/api/admin/docker-logs'):
+        return 'docker-logs'
     if p.startswith('/api/cdn/assets'):
         return 'cdn-assets'
     if p.startswith('/api/backup/'):
@@ -223,14 +214,14 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
     if p.startswith('/api/search/rebuild'):
         return 'settings'
 
-    # For sub-accounts, unknown protected API paths are denied by default.
+    # 对子账号而言，未识别的受保护 API 默认拒绝访问。
     if p.startswith('/api/'):
         return '__unknown__'
     return None
 
 
 def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: bool = False):
-    now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+    now_iso = now_beijing().isoformat(timespec='seconds')
     username = _normalize_username(user.get('username') if isinstance(user, dict) else fallback_username)
     if not username:
         username = fallback_username
@@ -243,6 +234,7 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
     created_at = str((user or {}).get('created_at', '') or '').strip() or now_iso
     updated_at = str((user or {}).get('updated_at', '') or '').strip() or now_iso
     last_login_at = str((user or {}).get('last_login_at', '') or '').strip()
+    last_login_ip = str((user or {}).get('last_login_ip', '') or '').strip()
     return {
         'username': username,
         'password_hash': password_hash,
@@ -252,6 +244,7 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
         'created_at': created_at,
         'updated_at': updated_at,
         'last_login_at': last_login_at,
+        'last_login_ip': last_login_ip,
     }
 
 
@@ -265,6 +258,7 @@ def _public_user_profile(user):
         'created_at': str(record.get('created_at') or ''),
         'updated_at': str(record.get('updated_at') or ''),
         'last_login_at': str(record.get('last_login_at') or ''),
+        'last_login_ip': str(record.get('last_login_ip') or ''),
     }
 
 
@@ -288,7 +282,7 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
         if not config_admin_plain and _is_development_mode():
             config_admin_plain = 'admin123'
 
-        now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+        now_iso = now_beijing().isoformat(timespec='seconds')
 
         super_idx = -1
         for idx, item in enumerate(users):
@@ -326,7 +320,7 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
             users[super_idx] = super_user
             changed_users = True
 
-        # Normalize sub accounts and remove duplicate usernames.
+        # 规范化子账号记录，并去掉重复用户名。
         normalized_users = []
         seen_names = set()
         for idx, raw_user in enumerate(users):
@@ -345,7 +339,7 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
                     else:
                         continue
                 else:
-                    # Skip invalid sub-account without password hash.
+                    # 没有密码哈希的无效子账号直接跳过。
                     continue
             seen_names.add(uname)
             normalized_users.append(item)
@@ -353,7 +347,7 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
         users_data = {'version': 1, 'users': normalized_users}
         _save_admin_users(users_file, users_data)
 
-        # Sync config to hashed mode and super-admin identity.
+        # 把配置同步到哈希口令模式，并补齐超级管理员标识。
         super_user = next((u for u in normalized_users if str(u.get('role')) == 'super_admin'), None)
         if super_user is not None:
             config_updates = {}
@@ -370,7 +364,7 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
 
 
 def _run_git_command(args, cwd: Path) -> str:
-    """Run git command safely and return trimmed stdout."""
+    """安全执行 git 命令并返回去除首尾空白后的标准输出。"""
     try:
         proc = subprocess.run(
             ['git', *args],
@@ -418,22 +412,12 @@ def _save_login_attempts(file_path: Path, state):
 
 
 def _get_request_ip(req):
-    if _should_trust_proxy_headers(req):
-        direct_ip = _normalize_ip_text(req.remote_addr or '')
-        cf_ip = _normalize_ip_text(req.headers.get('CF-Connecting-IP', ''))
-        if cf_ip and _ip_is_publicly_routable(cf_ip):
-            return cf_ip
-
-        x_real_ip = _normalize_ip_text(req.headers.get('X-Real-IP', ''))
-        proxied_ip = _extract_client_ip_from_proxy_headers(req, direct_ip=direct_ip, x_real_ip=x_real_ip)
-        if proxied_ip:
-            return proxied_ip
-
-        if x_real_ip and x_real_ip != direct_ip:
-            return x_real_ip
-
-    direct_ip = _normalize_ip_text(req.remote_addr or '')
-    return direct_ip or ((req.remote_addr or 'unknown').strip() or 'unknown')
+    return get_request_client_ip(
+        req,
+        default_ip=((req.remote_addr or 'unknown').strip() or 'unknown'),
+        trust_proxy_headers_default=False,
+        public_ip_header_names=('CF-Connecting-IP', 'CDN-Real-IP', 'Ali-CDN-Real-IP'),
+    )
 
 
 def _prune_login_attempts(state, now_ts: int):
@@ -481,6 +465,38 @@ def _register_login_failure(state, ip_addr: str, now_ts: int):
     return is_blocked_now, blocked_until, remaining
 
 
+def _get_login_delay_seconds(state, ip_addr: str, now_ts: int) -> int:
+    """根据连续失败次数返回所需延迟秒数；无需延迟时返回 0。"""
+    ips = state.get('ips') if isinstance(state, dict) else {}
+    item = ips.get(ip_addr, {}) if isinstance(ips.get(ip_addr), dict) else {}
+    failures = [int(ts) for ts in item.get('failures', []) if isinstance(ts, (int, float)) and now_ts - int(ts) <= LOGIN_FAIL_WINDOW_SECONDS]
+    delay_until = int(item.get('delay_until', 0) or 0)
+    if delay_until > now_ts:
+        return delay_until - now_ts
+    failure_count = len(failures)
+    if failure_count == 1 and LOGIN_DELAY_SECONDS[0] > 0:
+        return LOGIN_DELAY_SECONDS[0]
+    if failure_count >= 2 and LOGIN_DELAY_SECONDS[1] > 0:
+        return LOGIN_DELAY_SECONDS[1]
+    return 0
+
+
+def _set_login_delay(state, ip_addr: str, now_ts: int):
+    """根据连续失败次数为当前 IP 设置登录延迟。"""
+    ips = state.setdefault('ips', {})
+    item = ips.get(ip_addr, {}) if isinstance(ips.get(ip_addr), dict) else {}
+    failures = [int(ts) for ts in item.get('failures', []) if isinstance(ts, (int, float)) and now_ts - int(ts) <= LOGIN_FAIL_WINDOW_SECONDS]
+    delay_seconds = 0
+    failure_count = len(failures)
+    if failure_count == 1 and LOGIN_DELAY_SECONDS[0] > 0:
+        delay_seconds = LOGIN_DELAY_SECONDS[0]
+    elif failure_count >= 2 and LOGIN_DELAY_SECONDS[1] > 0:
+        delay_seconds = LOGIN_DELAY_SECONDS[1]
+    if delay_seconds > 0:
+        item['delay_until'] = now_ts + delay_seconds
+    ips[ip_addr] = item
+
+
 def _reset_login_attempts_for_ip(state, ip_addr: str):
     ips = state.get('ips') if isinstance(state, dict) else {}
     if isinstance(ips, dict):
@@ -495,7 +511,7 @@ def _format_blocked_until(ts_value: int) -> str:
 
 
 def _parse_datetime_safe(raw_value: str):
-    """Parse datetime with several common formats."""
+    """尝试按多种常见格式解析日期时间。"""
     value = (raw_value or '').strip()
     if not value:
         return None
@@ -525,11 +541,37 @@ def _parse_bool(raw, default: bool = False) -> bool:
     return default
 
 
+def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_location_func) -> tuple:
+    """检查 IP 所属国家是否在允许列表中，返回（是否允许，原因）。"""
+    if not ip:
+        return True, ''
+    try:
+        import ipaddress as ipaddress_module
+        ip_obj = ipaddress_module.ip_address(ip)
+        if ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_reserved:
+            return True, ''
+    except ValueError:
+        return True, ''
+    location = resolve_location_func(ip)
+    if not location or location == '未知':
+        return False, '无法获取IP归属地，已拒绝登录'
+    country_code = ''
+    for part in location.split('/'):
+        part = part.strip().upper()
+        if len(part) == 2 and part.isalpha():
+            country_code = part
+            break
+    if not country_code:
+        return False, '无法识别IP归属地，已拒绝登录'
+    if country_code not in allowed_countries:
+        return False, f'您的登录IP归属地({location})被禁止登录'
+    return True, ''
+
+
 def _get_turnstile_settings(config):
     enabled = _parse_bool(config.get('turnstile_enabled', False), False)
     site_key = str(config.get('turnstile_site_key', '') or '').strip()
     secret_key = str(config.get('turnstile_secret_key', '') or '').strip()
-    # Enforce key completeness when enabled to avoid half-config.
     if enabled and (not site_key or not secret_key):
         enabled = False
     return {
@@ -581,12 +623,12 @@ def _verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
 
 
 def get_turnstile_settings(config):
-    """Shared Turnstile config reader for public/admin flows."""
+    """读取公共流程与后台流程共用的 Turnstile 配置。"""
     return _get_turnstile_settings(config)
 
 
 def verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
-    """Shared Turnstile token verification helper for public/admin flows."""
+    """校验公共流程与后台流程共用的 Turnstile 令牌。"""
     return _verify_turnstile_token(secret_key=secret_key, token=token, remote_ip=remote_ip)
 
 
@@ -609,156 +651,20 @@ def _is_admin_session_expired(sess) -> bool:
     return (now_ts - login_at) > ttl
 
 
-def _normalize_origin(raw_value: str) -> str:
-    value = str(raw_value or '').strip()
-    if not value:
-        return ''
-    try:
-        parsed = urlparse(value)
-    except Exception:
-        return ''
-    if not parsed.scheme or not parsed.netloc:
-        return ''
-    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
-
-
-def _first_forwarded_value(raw_value: str) -> str:
-    text = str(raw_value or '').strip()
-    if not text:
-        return ''
-    return text.split(',')[0].strip()
-
-
-def _normalize_ip_text(raw_value: str) -> str:
-    text = str(raw_value or '').strip()
-    if not text or text.lower() == 'unknown':
-        return ''
-
-    candidate = text
-    if text.startswith('[') and ']' in text:
-        candidate = text[1:text.index(']')].strip()
-    elif text.count(':') == 1 and '.' in text:
-        host, _, _port = text.rpartition(':')
-        candidate = host.strip()
-
-    try:
-        ipaddress.ip_address(candidate)
-        return candidate
-    except ValueError:
-        return ''
-
-
-def _is_private_proxy_source(ip_text: str) -> bool:
-    normalized = _normalize_ip_text(ip_text)
-    if not normalized:
-        return False
-    try:
-        ip_obj = ipaddress.ip_address(normalized)
-    except ValueError:
-        return False
-    return bool(ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local)
-
-
-def _should_trust_proxy_headers(req) -> bool:
-    return _env_bool('TRUST_PROXY_HEADERS', False)
-
-
-def _parse_forwarded_ip_chain(raw_value: str) -> list[str]:
-    chain = []
-    for part in str(raw_value or '').split(','):
-        ip_text = _normalize_ip_text(part)
-        if ip_text and ip_text not in chain:
-            chain.append(ip_text)
-    return chain
-
-
-def _ip_is_publicly_routable(ip_text: str) -> bool:
-    normalized = _normalize_ip_text(ip_text)
-    if not normalized:
-        return False
-    try:
-        ip_obj = ipaddress.ip_address(normalized)
-    except ValueError:
-        return False
-    return not (
-        ip_obj.is_private
-        or ip_obj.is_loopback
-        or ip_obj.is_link_local
-        or ip_obj.is_multicast
-        or ip_obj.is_reserved
-        or ip_obj.is_unspecified
-    )
-
-
-def _extract_client_ip_from_proxy_headers(req, direct_ip: str = '', x_real_ip: str = '') -> str:
-    chain = _parse_forwarded_ip_chain(req.headers.get('X-Forwarded-For', ''))
-    if chain:
-        for ip_text in reversed(chain):
-            if not _is_private_proxy_source(ip_text):
-                return ip_text
-
-        proxy_hints = {ip for ip in {direct_ip, x_real_ip} if ip}
-        for ip_text in reversed(chain):
-            if ip_text not in proxy_hints:
-                return ip_text
-        return chain[0]
-    return ''
-
-
 def _is_same_origin_request(req) -> bool:
-    """Basic CSRF guard for admin write actions."""
-    allowed_origins = []
-
-    def add_allowed(raw_origin: str):
-        normalized = _normalize_origin(raw_origin)
-        if normalized and normalized not in allowed_origins:
-            allowed_origins.append(normalized)
-
-    add_allowed(_normalize_public_base_url(os.environ.get('PUBLIC_BASE_URL', '')))
-
-    host_url = str(getattr(req, 'host_url', '') or '').strip()
-    add_allowed(host_url)
-
-    parsed_host = urlparse(host_url) if host_url else None
-    host_netloc = (parsed_host.netloc or '').strip().lower() if parsed_host else ''
-    host_scheme = (parsed_host.scheme or '').strip().lower() if parsed_host else ''
-    if host_netloc:
-        if host_scheme == 'http':
-            add_allowed(f'https://{host_netloc}')
-        elif host_scheme == 'https':
-            add_allowed(f'http://{host_netloc}')
-
-    if _should_trust_proxy_headers(req):
-        xf_host = _first_forwarded_value(req.headers.get('X-Forwarded-Host', ''))
-        xf_proto = _first_forwarded_value(req.headers.get('X-Forwarded-Proto', '')).lower()
-        if xf_host:
-            proto = xf_proto if xf_proto in {'http', 'https'} else (host_scheme or 'https')
-            add_allowed(f'{proto}://{xf_host}')
-            add_allowed(f'{"https" if proto == "http" else "http"}://{xf_host}')
-
-    if not allowed_origins:
-        return False
-
-    origin = _normalize_origin(req.headers.get('Origin', ''))
-    if origin:
-        return any(hmac.compare_digest(origin, item) for item in allowed_origins)
-
-    referer = _normalize_origin(req.headers.get('Referer', ''))
-    if referer:
-        return any(hmac.compare_digest(referer, item) for item in allowed_origins)
-
-    return False
+    """后台写操作使用的基础同源校验。"""
+    return is_same_origin_request(req, trust_proxy_headers_default=False)
 
 
 def _to_display_time(dt_value):
-    """Format datetime object to standard string."""
+    """将日期时间对象格式化为统一展示字符串。"""
     if not isinstance(dt_value, datetime):
         return ''
     return dt_value.strftime('%Y-%m-%d %H:%M:%S')
 
 
 def _get_changelog_dir(project_root: Path) -> Path:
-    """Get changelog directory from env or default folder."""
+    """从环境变量或默认目录中获取更新日志目录。"""
     explicit = (os.environ.get('APP_CHANGELOG_DIR') or '').strip()
     if explicit:
         p = Path(explicit).expanduser()
@@ -769,7 +675,7 @@ def _get_changelog_dir(project_root: Path) -> Path:
 
 
 def _find_local_update_logs(project_root: Path):
-    """Locate all local changelog markdown files in update log directory."""
+    """定位更新日志目录下的本地 Markdown 日志文件。"""
     explicit_file = (os.environ.get('APP_CHANGELOG_FILE') or '').strip()
     if explicit_file:
         p = Path(explicit_file).expanduser()
@@ -788,7 +694,7 @@ def _find_local_update_logs(project_root: Path):
 
 
 def _extract_updates_from_markdown(text: str, limit: int):
-    """Extract markdown list items as logical entries (merge nested sub-items)."""
+    """从 Markdown 中提取逻辑上的更新条目，并合并嵌套子项。"""
     items = []
     current = ''
     in_code_block = False
@@ -812,7 +718,7 @@ def _extract_updates_from_markdown(text: str, limit: int):
             if not value:
                 continue
 
-            # Top-level bullet starts a new entry.
+            # 一级列表项会开启一条新的更新记录。
             if indent <= 1 or not current:
                 if current:
                     items.append(current.strip())
@@ -820,7 +726,7 @@ def _extract_updates_from_markdown(text: str, limit: int):
                         return items[:limit]
                 current = value
             else:
-                # Nested bullet belongs to previous top-level entry.
+                # 二级列表项归属到上一条一级更新记录。
                 current = f"{current}\n• {value}".strip()
             continue
 
@@ -841,7 +747,7 @@ def _extract_updates_from_markdown(text: str, limit: int):
                 current = value
             continue
 
-        # Continuation line: append to current item instead of creating a new one.
+        # 连续文本追加到当前记录，不新建列表项。
         if current and not stripped.startswith('#'):
             continuation = re.sub(r'\s+', ' ', stripped)
             if continuation:
@@ -853,7 +759,7 @@ def _extract_updates_from_markdown(text: str, limit: int):
 
 
 def _extract_markdown_field(text: str, patterns):
-    """Extract one-line field value with regex patterns."""
+    """使用正则模式提取单行字段值。"""
     for raw in text.splitlines():
         line = (raw or '').strip()
         if not line:
@@ -877,7 +783,7 @@ def _normalize_version_text(raw: str):
 
 
 def _extract_release_from_markdown(log_file: Path, item_limit: int):
-    """Build one structured release item from one markdown file."""
+    """从单个 Markdown 文件构建一条结构化发布记录。"""
     try:
         text = log_file.read_text(encoding='utf-8')
     except Exception:
@@ -911,9 +817,9 @@ def _extract_release_from_markdown(log_file: Path, item_limit: int):
             build_dt = _parse_datetime_safe(m_date.group(1))
     if not build_dt:
         try:
-            build_dt = datetime.fromtimestamp(log_file.stat().st_mtime)
+            build_dt = datetime.fromtimestamp(log_file.stat().st_mtime, tz=BEIJING_TZ)
         except OSError:
-            build_dt = datetime.now()
+            build_dt = now_beijing()
 
     if not version:
         version = f"v{build_dt.strftime('%Y.%m.%d')}"
@@ -931,7 +837,7 @@ def _extract_release_from_markdown(log_file: Path, item_limit: int):
 
 
 def _build_local_changelog_history(project_root: Path, release_limit: int, item_limit: int):
-    """Build structured release history from local markdown files."""
+    """根据本地 Markdown 文件构建结构化更新历史。"""
     files = _find_local_update_logs(project_root)
     if not files:
         return []
@@ -957,7 +863,7 @@ def _build_local_changelog_history(project_root: Path, release_limit: int, item_
 
 
 def build_admin_changelog_payload(project_root=None):
-    """Build admin changelog payload from local markdown history, env vars or git metadata."""
+    """根据本地日志、环境变量或 Git 元数据构建后台更新日志载荷。"""
     root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
 
     release_limit_raw = (os.environ.get('APP_CHANGELOG_LIMIT') or '20').strip()
@@ -1001,7 +907,7 @@ def build_admin_changelog_payload(project_root=None):
     if not version:
         version = 'v1.0.0'
     if not build_time:
-        build_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        build_time = now_beijing().strftime('%Y-%m-%d %H:%M:%S')
     if not updates:
         updates = ['新增后台「更新日志」菜单，可查看版本号、构建时间与更新内容。']
 
@@ -1017,6 +923,8 @@ def build_admin_changelog_payload(project_root=None):
     }
 
 
+
+# 路由注册入口。
 def register_admin_routes(
     app,
     *,
@@ -1027,18 +935,20 @@ def register_admin_routes(
     load_admin_login_logs,
     admin_login_log_lock,
     project_root=None,
+    resolve_ip_location=None,
 ):
-    """Register admin routes on the given Flask app."""
+    """向 Flask 应用注册后台管理相关路由。"""
+    _resolve_ip = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
     root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
     try:
         _ensure_admin_users_store(root, get_config, update_config)
     except Exception:
-        # Keep routes available even if initial migration has temporary issues.
+        # 即使初始化迁移暂时异常，也尽量保持路由可用。
         pass
 
     @app.route('/admin', strict_slashes=False)
     def admin_page():
-        """Admin login/dashboard page."""
+        """后台登录页与控制台入口页面。"""
         resp = make_response(send_from_directory('admin', 'index.html'))
         resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         resp.headers['Pragma'] = 'no-cache'
@@ -1050,7 +960,7 @@ def register_admin_routes(
 
     @app.route('/api/admin/security/turnstile/public', methods=['GET'])
     def admin_turnstile_public_config():
-        """Public config for login page Turnstile widget."""
+        """获取登录页 Turnstile 组件使用的公开配置。"""
         config = get_config()
         settings = _get_turnstile_settings(config)
         return jsonify({
@@ -1061,7 +971,7 @@ def register_admin_routes(
     @app.route('/api/admin/security/turnstile', methods=['GET'])
     @login_required
     def admin_turnstile_config():
-        """Get Turnstile settings for admin panel."""
+        """获取后台面板使用的 Turnstile 配置。"""
         settings = _get_turnstile_settings(get_config())
         secret_masked = ''
         if settings['secret_key']:
@@ -1076,7 +986,7 @@ def register_admin_routes(
     @app.route('/api/admin/security/turnstile', methods=['POST'])
     @login_required
     def admin_turnstile_update():
-        """Update Turnstile settings for admin login protection."""
+        """更新后台登录保护使用的 Turnstile 配置。"""
         if not _is_super_admin_session(session):
             return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
         if not _is_same_origin_request(request):
@@ -1088,7 +998,7 @@ def register_admin_routes(
 
         config = get_config()
         existing_secret = str(config.get('turnstile_secret_key', '') or '').strip()
-        # Keep existing secret when masked/empty value submitted.
+        # 提交的是掩码值或空值时，保留现有密钥。
         if secret_key_input and not secret_key_input.startswith('***'):
             secret_key = secret_key_input
         else:
@@ -1106,7 +1016,7 @@ def register_admin_routes(
 
     @app.route('/admin/login', methods=['POST'])
     def admin_login():
-        """Handle admin login."""
+        """处理管理员登录。"""
         data = request.form if request.form else request.get_json(silent=True) or {}
         username = str(data.get('username', '') or '').strip()
         password = str(data.get('password', '') or '')
@@ -1117,6 +1027,22 @@ def register_admin_routes(
         attempts_file = _get_login_attempts_file(root)
         config = get_config() or {}
         turnstile_settings = _get_turnstile_settings(config)
+
+        country_allowed, country_reason = _is_ip_country_allowed(
+            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip
+        )
+        if not country_allowed:
+            append_admin_login_log(
+                operation='后台登录',
+                success=False,
+                username=username,
+                detail=country_reason
+            )
+            return jsonify({
+                'success': False,
+                'message': country_reason
+            }), 403
+
         turnstile_ok = True
         turnstile_fail_reason = ''
         if turnstile_settings['enabled']:
@@ -1169,6 +1095,7 @@ def register_admin_routes(
             _prune_login_attempts(attempts_state, now_ts)
             ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
             blocked_until = int(ip_item.get('blocked_until', 0) or 0) if isinstance(ip_item, dict) else 0
+            delay_seconds = _get_login_delay_seconds(attempts_state, ip_addr, now_ts)
 
             if blocked_until > now_ts:
                 _save_login_attempts(attempts_file, attempts_state)
@@ -1179,10 +1106,25 @@ def register_admin_routes(
                 }
                 failed_status = 429
                 failed_detail = f'IP 被封禁，解封时间：{blocked_at or blocked_until}'
+            elif delay_seconds > 0:
+                delay_minutes = delay_seconds // 60
+                delay_secs = delay_seconds % 60
+                if delay_minutes > 0:
+                    wait_hint = f'{delay_minutes}分{delay_secs}秒'
+                else:
+                    wait_hint = f'{delay_secs}秒'
+                failed_payload = {
+                    'success': False,
+                    'message': f'登录失败次数过多，请等待 {wait_hint} 后再试。'
+                }
+                failed_status = 429
+                failed_detail = f'登录延迟中，需等待 {wait_hint}'
+                _save_login_attempts(attempts_file, attempts_state)
             elif credentials_ok:
                 _reset_login_attempts_for_ip(attempts_state, ip_addr)
                 _save_login_attempts(attempts_file, attempts_state)
             else:
+                _set_login_delay(attempts_state, ip_addr, now_ts)
                 is_blocked_now, blocked_until, remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
                 _save_login_attempts(attempts_file, attempts_state)
                 if is_blocked_now:
@@ -1194,12 +1136,17 @@ def register_admin_routes(
                     failed_status = 429
                     failed_detail = f'{fail_reason}；同一 IP 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，封禁至 {blocked_at or blocked_until}'
                 else:
+                    fail_count = remaining - 1
+                    if fail_count > 0:
+                        fail_payload_msg = f'{fail_reason}。您的IP已触发保护机制，请稍后再试。'
+                    else:
+                        fail_payload_msg = f'{fail_reason}。当前IP已触发保护，将延迟3分钟后才能继续登录。'
                     failed_payload = {
                         'success': False,
-                        'message': f'{fail_reason}。当前 IP 还可再尝试 {remaining} 次（超过将封禁 12 小时）。'
+                        'message': fail_payload_msg
                     }
                     failed_status = 400 if fail_reason != '用户名或密码错误' else 401
-                    failed_detail = f'{fail_reason}；当前 IP 在 12 小时窗口内剩余尝试次数：{remaining}'
+                    failed_detail = f'{fail_reason}；失败{fail_count + 1}次，触发延迟保护'
 
         if failed_payload is not None:
             append_admin_login_log(
@@ -1210,7 +1157,6 @@ def register_admin_routes(
             )
             return jsonify(failed_payload), failed_status
 
-        # Successful login: clear old session to reduce fixation risk.
         session.clear()
         session['admin_logged_in'] = True
         session['admin_username'] = login_username
@@ -1218,14 +1164,21 @@ def register_admin_routes(
         session['admin_permissions'] = list(user_permissions)
         session['admin_login_at'] = now_ts
         session['admin_session_ttl'] = ADMIN_SESSION_MAX_AGE_SECONDS
+        session['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
 
+        prev_last_login_at = ''
+        prev_last_login_ip = ''
+        current_login_at = now_beijing().isoformat(timespec='seconds')
         with ADMIN_USERS_LOCK:
             users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
             user_ref, idx = _find_user(users_data, login_username)
             if user_ref is not None and idx >= 0:
                 user_ref = dict(user_ref)
-                user_ref['last_login_at'] = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
-                user_ref['updated_at'] = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+                prev_last_login_at = str(user_ref.get('last_login_at', '') or '').strip()
+                prev_last_login_ip = str(user_ref.get('last_login_ip', '') or '').strip()
+                user_ref['last_login_at'] = current_login_at
+                user_ref['last_login_ip'] = ip_addr
+                user_ref['updated_at'] = current_login_at
                 users_data['users'][idx] = user_ref
                 _save_admin_users(users_file, users_data)
 
@@ -1236,12 +1189,17 @@ def register_admin_routes(
             detail=('用户名和密码验证通过；人机验证通过' if turnstile_settings['enabled'] else '用户名和密码验证通过')
             + ('；角色：超级管理员' if is_super_admin else '；角色：子账号')
         )
-        return jsonify({'success': True})
+        return jsonify({
+            'success': True,
+            'last_login_at': prev_last_login_at,
+            'last_login_ip': prev_last_login_ip,
+            'current_login_at': current_login_at,
+        })
 
     @app.route('/admin/change-password', methods=['POST'])
     @login_required
     def change_password():
-        """Change admin username and password."""
+        """修改管理员用户名和密码。"""
         if not _is_same_origin_request(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
 
@@ -1294,7 +1252,7 @@ def register_admin_routes(
             if existing is not None and existing_idx != current_index:
                 return jsonify({'success': False, 'message': '用户名已存在，请更换'}), 400
 
-            now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+            now_iso = now_beijing().isoformat(timespec='seconds')
             updated_user = dict(current_user)
             updated_user['username'] = new_username
             updated_user['password_hash'] = _hash_password(new_password)
@@ -1378,7 +1336,7 @@ def register_admin_routes(
             existing, _ = _find_user(users_data, username)
             if existing is not None:
                 return jsonify({'success': False, 'message': '用户名已存在'}), 400
-            now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+            now_iso = now_beijing().isoformat(timespec='seconds')
             user = _sanitize_user_record({
                 'username': username,
                 'password_hash': _hash_password(password),
@@ -1428,7 +1386,7 @@ def register_admin_routes(
             if str(target_user.get('role') or '') == 'super_admin':
                 return jsonify({'success': False, 'message': '超级管理员账号不可在此修改'}), 400
 
-            now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+            now_iso = now_beijing().isoformat(timespec='seconds')
             updated = dict(target_user)
             updated['enabled'] = enabled
             updated['permissions'] = permissions
@@ -1483,7 +1441,7 @@ def register_admin_routes(
 
     @app.route('/admin/logout', methods=['POST'])
     def admin_logout():
-        """Handle admin logout."""
+        """处理管理员登出。"""
         username = session.get('admin_username') or ''
         if session.get('admin_logged_in'):
             append_admin_login_log(
@@ -1502,7 +1460,7 @@ def register_admin_routes(
 
     @app.route('/admin/check')
     def admin_check():
-        """Check if admin is logged in."""
+        """检查管理员是否已登录。"""
         logged_in = bool(session.get('admin_logged_in', False))
         if logged_in and _is_admin_session_expired(session):
             session.clear()
@@ -1544,13 +1502,15 @@ def register_admin_routes(
             'is_super_admin': is_super_admin,
             'permissions': permissions,
             'permission_catalog': ADMIN_PERMISSION_CATALOG,
+            'last_login_at': str(user.get('last_login_at') or ''),
+            'last_login_ip': str(user.get('last_login_ip') or ''),
         })
 
     @app.route('/api/admin/login-logs')
     @login_required
     def admin_login_logs():
-        """Get immutable admin login-operation logs."""
-        # Backward-compatible mode: ?limit=300
+        """获取不可变更的管理员登录操作日志。"""
+        # 兼容旧调用方式：支持 `?limit=300`。
         limit_raw = request.args.get('limit')
         page_raw = request.args.get('page')
         page_size_raw = request.args.get('page_size')
@@ -1605,12 +1565,147 @@ def register_admin_routes(
     @app.route('/api/admin/changelog')
     @login_required
     def admin_changelog():
-        """Get current version/build info and recent update entries."""
+        """获取当前版本、构建信息与最近更新记录。"""
         return jsonify(build_admin_changelog_payload(project_root=project_root))
+
+    @app.route('/api/admin/docker-logs')
+    @login_required
+    def admin_docker_logs():
+        """获取两个后端容器的 Docker 日志；Docker 不可用时回退到本地日志文件。"""
+        container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
+        container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
+        lines = request.args.get('lines', default=200, type=int)
+        lines = max(10, min(lines, 1000))
+
+        def get_container_logs(container_name):
+            try:
+                result = subprocess.run(
+                    ['docker', 'logs', '--tail', str(lines), container_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                stdout = result.stdout or ''
+                stderr = result.stderr or ''
+                combined = (stdout + stderr).strip()
+                if not combined:
+                    return '暂无日志记录'
+                return combined
+            except subprocess.TimeoutExpired:
+                return '日志获取超时'
+            except FileNotFoundError:
+                return None
+            except Exception as e:
+                return f'获取日志失败: {str(e)}'
+
+        def get_local_log_lines():
+            try:
+                log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
+                if not log_file:
+                    log_file = os.path.join(project_root, 'data', 'app.log')
+                if not os.path.exists(log_file):
+                    fallback = os.path.join(project_root, 'app.log')
+                    if os.path.exists(fallback):
+                        log_file = fallback
+                    else:
+                        return None
+                with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
+                    all_lines = f.readlines()
+                tail_lines = all_lines[-lines:] if all_lines else []
+                return ''.join(tail_lines).strip() or None
+            except Exception:
+                return None
+
+        logs1 = get_container_logs(container1_name)
+        logs2 = get_container_logs(container2_name)
+
+        is_docker_available = logs1 is not None and logs2 is not None
+
+        if logs1 is None:
+            local_logs = get_local_log_lines()
+            if local_logs:
+                logs1 = f'[本地开发模式] Flask 应用日志:\n{local_logs}'
+            else:
+                logs1 = '暂无日志记录（当前为本地开发模式，日志文件尚未生成）'
+
+        if logs2 is None:
+            if is_docker_available:
+                logs2 = '暂无 Nginx 日志记录'
+            else:
+                logs2 = '[本地开发模式] Nginx 日志仅在 Docker 部署时可用'
+
+        return jsonify({
+            'container1': {
+                'name': container1_name,
+                'logs': logs1
+            },
+            'container2': {
+                'name': container2_name,
+                'logs': logs2
+            }
+        })
+
+    @app.route('/api/admin/docker-logs/clear', methods=['POST'])
+    @login_required
+    def admin_docker_logs_clear():
+        """清理 Docker 容器日志或本地日志文件。"""
+        try:
+            data = request.get_json() or {}
+            container = data.get('container', 'all')
+            
+            def clear_container_logs(container_name):
+                try:
+                    subprocess.run(
+                        ['docker', 'logs', '--truncate', container_name],
+                        capture_output=True,
+                        timeout=10,
+                    )
+                    return True
+                except Exception:
+                    return False
+            
+            def clear_local_log():
+                try:
+                    log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
+                    if not log_file:
+                        log_file = os.path.join(project_root, 'data', 'app.log')
+                    if os.path.exists(log_file):
+                        open(log_file, 'w').close()
+                        return True
+                    fallback = os.path.join(project_root, 'app.log')
+                    if os.path.exists(fallback):
+                        open(fallback, 'w').close()
+                        return True
+                    return False
+                except Exception:
+                    return False
+            
+            container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
+            container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
+            
+            docker_available = True
+            try:
+                subprocess.run(['docker', 'ps'], capture_output=True, timeout=5)
+            except FileNotFoundError:
+                docker_available = False
+            except Exception:
+                docker_available = False
+            
+            if docker_available:
+                if container == 'all' or container == 'container1':
+                    clear_container_logs(container1_name)
+                if container == 'all' or container == 'container2':
+                    clear_container_logs(container2_name)
+            else:
+                clear_local_log()
+            
+            return jsonify({'success': True, 'message': '日志已清除'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
 
     @app.route('/api/changelog/latest')
     def public_changelog_latest():
-        """Public endpoint for homepage test-version popup."""
+        """提供给首页测试版本弹窗使用的公开更新日志接口。"""
         payload = build_admin_changelog_payload(project_root=project_root)
         history_raw = payload.get('history') if isinstance(payload, dict) else []
         history = []

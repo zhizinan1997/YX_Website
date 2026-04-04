@@ -448,6 +448,8 @@
             flex-direction: column;
             flex-shrink: 0;
             transition: width 0.2s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .sidebar-overlay {
@@ -574,6 +576,56 @@
             box-shadow: 0 4px 10px rgba(234, 88, 12, 0.28);
         }
 
+        .read-only-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-bottom: 1px solid #fbbf24;
+            color: #92400e;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .read-only-banner i {
+            color: #d97706;
+            font-size: 16px;
+        }
+
+        .read-only-mode .view-header-actions {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .read-only-mode .btn-primary,
+        .read-only-mode .btn-success,
+        .read-only-mode .btn-danger,
+        .read-only-mode .btn-warning {
+            background-color: #9ca3af !important;
+            border-color: #9ca3af !important;
+            cursor: not-allowed;
+        }
+
+        .read-only-disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+
+        .read-only-disabled:focus,
+        .read-only-disabled:active {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        .menu-item.read-only-menu::after {
+            content: '(只读)';
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 4px;
+        }
+
         .main-content {
             flex: 1;
             overflow-y: auto;
@@ -695,13 +747,76 @@
             position: absolute;
             right: 0;
             top: calc(100% + 8px);
-            min-width: 148px;
+            min-width: 280px;
             background: #fff;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
             box-shadow: 0 12px 28px rgba(15, 35, 66, 0.14);
             padding: 8px;
             z-index: 20;
+        }
+
+        .account-menu-info {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .account-menu-info .account-username {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f3655;
+            margin-bottom: 4px;
+        }
+
+        .account-menu-info .account-role {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .account-menu-permissions {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .account-menu-permissions-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .account-menu-permissions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 0 4px;
+        }
+
+        .account-menu-permission-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #475569;
+        }
+
+        .account-menu-permission-tag.read-only {
+            background: #fef3c7;
+            border-color: #fbbf24;
+            color: #92400e;
+        }
+
+        .account-menu-permission-tag i {
+            margin-right: 4px;
+            font-size: 10px;
         }
 
         .account-menu-item {
@@ -2304,8 +2419,315 @@
             font-size: 14px;
         }
 
+        .docker-logs-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .docker-logs-hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 22px 26px 18px;
+            border-bottom: 1px solid #e8edf5;
+            background: linear-gradient(135deg, #f0f6ff 0%, #fafcff 100%);
+        }
+
+        .docker-logs-hero-left {}
+
+        .docker-logs-kicker {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #007bff;
+            margin-bottom: 6px;
+        }
+
+        .docker-logs-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f2f5f;
+            margin-bottom: 4px;
+        }
+
+        .docker-logs-subtitle {
+            font-size: 13px;
+            color: #5a6e85;
+        }
+
+        .docker-logs-refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .docker-logs-refresh-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 51, 102, 0.25);
+        }
+
+        .docker-logs-refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .docker-logs-tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 26px;
+            border-bottom: 2px solid #e8edf5;
+            background: #fff;
+        }
+
+        .docker-logs-tab {
+            padding: 14px 24px;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .docker-logs-tab:hover {
+            color: #0f2f5f;
+            background: #f5f8ff;
+        }
+
+        .docker-logs-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .docker-logs-content {
+            display: none;
+            padding: 0;
+        }
+
+        .docker-logs-content.active {
+            display: block;
+        }
+
+        .docker-logs-output {
+            margin: 16px 26px 20px;
+            background: #1a1e24;
+            border-radius: 10px;
+            border: 1px solid #2d3440;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .docker-logs-output-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #252a32;
+            border-bottom: 1px solid #2d3440;
+        }
+
+        .docker-logs-output-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #8b95a5;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .docker-logs-output-body {
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            color: #d4d8e0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar-track {
+            background: #252a32;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar-thumb {
+            background: #3d4555;
+            border-radius: 4px;
+        }
+
+        .docker-logs-output-body::-webkit-scrollbar-thumb:hover {
+            background: #4d5565;
+        }
+
+        .docker-logs-empty {
+            padding: 40px 26px;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .docker-logs-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 26px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e8edf5;
+            flex-wrap: wrap;
+        }
+
+        .docker-logs-toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .docker-logs-toolbar-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .docker-logs-date-input {
+            padding: 6px 10px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #334155;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .docker-logs-date-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .docker-logs-toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            background: #d1d9e6;
+            border-radius: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .docker-logs-toggle.active {
+            background: #dc3545;
+        }
+
+        .docker-logs-toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .docker-logs-toggle.active::after {
+            transform: translateX(18px);
+        }
+
+        .docker-logs-clear-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: #fff;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .docker-logs-clear-btn:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .docker-logs-clear-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .docker-logs-filter-info {
+            font-size: 11px;
+            color: #94a3b8;
+            padding: 6px 26px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e8edf5;
+            display: none;
+        }
+
+        .docker-logs-filter-info.visible {
+            display: block;
+        }
+
+        .docker-logs-error-line {
+            color: #f87171;
+        }
+
+        .docker-logs-warning-line {
+            color: #fbbf24;
+        }
+
+        .docker-logs-info-line {
+            color: #60a5fa;
+        }
+
         .site-report-card {
             padding: 22px;
+        }
+
+        .site-report-alert {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            background: #fef3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .site-report-alert i {
+            color: #d39e00;
+            font-size: 14px;
         }
 
         .metric-with-help {
@@ -2378,98 +2800,212 @@
 
         .site-report-trend {
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-            padding: 12px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%);
+            padding: 16px 20px;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.06);
         }
 
         .site-report-line-wrap {
             width: 100%;
             overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .site-report-line-wrap::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         .site-report-line-svg {
             width: 100%;
-            height: 260px;
+            height: 280px;
             display: block;
         }
 
         .site-report-line-grid {
-            stroke: #dce5f2;
+            stroke: #e2e8f0;
             stroke-width: 1;
+            stroke-dasharray: 4 4;
         }
 
         .site-report-line-axis {
             stroke: #94a3b8;
-            stroke-width: 1.2;
+            stroke-width: 1.5;
         }
 
         .site-report-line-pv {
             fill: none;
-            stroke: #2563eb;
-            stroke-width: 2.2;
+            stroke: #3b82f6;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
         }
 
         .site-report-line-uv {
             fill: none;
-            stroke: #0f766e;
-            stroke-width: 2;
+            stroke: #10b981;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
+        }
+
+        .site-report-line-point-pv,
+        .site-report-line-point-uv {
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .site-report-line-point-pv {
-            fill: #2563eb;
+            fill: #ffffff;
+            stroke: #3b82f6;
+            stroke-width: 2.5;
+            r: 5;
+        }
+
+        .site-report-line-point-pv:hover,
+        .site-report-line-point-pv.highlight {
+            r: 8;
+            fill: #3b82f6;
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
         }
 
         .site-report-line-point-uv {
-            fill: #0f766e;
+            fill: #ffffff;
+            stroke: #10b981;
+            stroke-width: 2.5;
+            r: 5;
+        }
+
+        .site-report-line-point-uv:hover,
+        .site-report-line-point-uv.highlight {
+            r: 8;
+            fill: #10b981;
+            filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
         }
 
         .site-report-line-label {
-            font-size: 10.5px;
+            font-size: 11px;
             fill: #64748b;
+            font-weight: 500;
         }
 
         .site-report-line-y-label {
-            font-size: 10px;
+            font-size: 11px;
             fill: #64748b;
+            font-weight: 500;
         }
 
         .site-report-line-legend {
-            margin-top: 8px;
+            margin-top: 12px;
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 20px;
             flex-wrap: wrap;
-            font-size: 12px;
+            font-size: 13px;
             color: #334155;
         }
 
         .site-report-line-legend-item {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #f8fafc;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .site-report-line-legend-item:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         .site-report-line-legend-dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 999px;
             display: inline-block;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
         .site-report-line-legend-dot.pv {
-            background: #2563eb;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
         }
 
         .site-report-line-legend-dot.uv {
-            background: #0f766e;
+            background: linear-gradient(135deg, #34d399, #10b981);
         }
 
         .site-report-line-summary {
-            margin-top: 8px;
-            font-weight: 700;
-            font-size: 12px;
+            margin-top: 10px;
+            font-weight: 600;
+            font-size: 13px;
             color: #475569;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .site-report-line-tooltip {
+            position: absolute;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #ffffff;
+            border-radius: 10px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            transform: translateY(5px);
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            line-height: 1.6;
+            min-width: 140px;
+        }
+
+        .site-report-line-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .site-report-line-tooltip-date {
+            font-weight: 600;
+            margin-bottom: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .site-report-line-tooltip-pv,
+        .site-report-line-tooltip-uv {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .site-report-line-tooltip-pv {
+            color: #93c5fd;
+        }
+
+        .site-report-line-tooltip-uv {
+            color: #6ee7b7;
         }
 
         .site-report-grid {
@@ -3093,6 +3629,107 @@
             border-radius: 4px;
             padding: 1px 4px;
         }
+
+        .last-login-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 10000;
+            background: linear-gradient(135deg, #003366 0%, #004488 100%);
+            color: #fff;
+            padding: 20px 24px;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 320px;
+            animation: toastSlideIn 0.4s ease;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .last-login-toast.hidden {
+            display: none;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .last-login-toast .toast-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .last-login-toast .toast-title {
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .last-login-toast .toast-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .last-login-toast .toast-close:hover {
+            color: #fff;
+        }
+
+        .last-login-toast .toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .last-login-toast .toast-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .last-login-toast .toast-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 4px 0;
+        }
+
+        .last-login-toast .toast-label {
+            color: rgba(255, 255, 255, 0.7);
+            min-width: 70px;
+        }
+
+        .last-login-toast .toast-value {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .last-login-toast .toast-greeting {
+            margin-top: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
     </style>
 </head>
 
@@ -3239,6 +3876,9 @@
                 <div class="menu-item" data-view="changelog" onclick="switchView('changelog')">
                     <i class="fas fa-clipboard-list"></i> 更新日志
                 </div>
+                <div class="menu-item" data-view="docker-logs" onclick="switchView('docker-logs')">
+                    <i class="fas fa-server"></i> 后端日志
+                </div>
                 <div class="menu-item" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
                 </div>
@@ -3274,6 +3914,14 @@
                             <i class="fas fa-chevron-down account-menu-caret"></i>
                         </button>
                         <div class="account-menu-panel" id="accountMenuPanel" hidden>
+                            <div class="account-menu-info">
+                                <div class="account-username" id="accountMenuUsername"></div>
+                                <div class="account-role" id="accountMenuRole"></div>
+                            </div>
+                            <div class="account-menu-permissions">
+                                <div class="account-menu-permissions-title">功能权限</div>
+                                <div class="account-menu-permissions-list" id="accountMenuPermissions"></div>
+                            </div>
                             <button type="button" class="account-menu-item" onclick="logoutFromAccountMenu(event)">
                                 <i class="fas fa-sign-out-alt"></i>
                                 退出登录
@@ -4361,39 +5009,54 @@
                         </div>
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
+                            <h3 class="section-header">导航栏设置 · 产品分类缩略图</h3>
+                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                                设置【产品】→【产品种类】中各分类的缩略图。<br>
+                                不设置则使用页面内的默认图片。
+                            </p>
+                            <div id="productCategoryImagesEditor"></div>
+                            <button onclick="saveProductCategoryImages()" class="btn-primary"
+                                style="width: auto; padding: 12px 30px; margin-top: 20px;">保存设置</button>
+                            <div id="productCategoryImagesMsg" style="margin-top: 10px; color: #28a745;"></div>
+                        </div>
+
+                        <div class="card" style="padding: 30px; margin-top: 20px;">
                             <h3 class="section-header">导航栏设置 · 新品推荐</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                设置巨幕菜单【新品推荐】面板中显示的链接。<br>
-                                链接格式支持：<code>http://</code>、<code>https://</code> 和相对路径。<br>
-                                示例：<code>https://example.com/product</code> 或
-                                <code>../gassensing/ld_h2_detector.html</code>。
+                                设置巨幕菜单【新品推荐】面板中显示的产品链接。
                             </p>
 
                             <div>
                                 <h4 style="margin-bottom: 15px; color: #333;">最新发布（4项）</h4>
-                                <div class="form-group">
-                                    <label>第一个链接</label>
-                                    <input type="text" id="latest1Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest1Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>第二个链接</label>
-                                    <input type="text" id="latest2Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest2Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>第三个链接</label>
-                                    <input type="text" id="latest3Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest3Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>第四个链接</label>
-                                    <input type="text" id="latest4Name" class="form-control" placeholder="名称">
-                                    <input type="text" id="latest4Url" class="form-control"
-                                        placeholder="相对路径或 https:// 链接" style="margin-top: 5px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                                    <div class="form-group">
+                                        <label>第一个产品</label>
+                                        <select id="latest1Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest1Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第二个产品</label>
+                                        <select id="latest2Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest2Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第三个产品</label>
+                                        <select id="latest3Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest3Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>第四个产品</label>
+                                        <select id="latest4Select" class="form-control" onchange="updateRecommendationPreview()">
+                                            <option value="">加载中...</option>
+                                        </select>
+                                        <div id="latest4Preview" class="recommendation-preview" style="margin-top: 8px; display: flex; align-items: center; gap: 10px;"></div>
+                                    </div>
                                 </div>
                             </div>
                             <button onclick="saveRecommendations()" class="btn-primary"
@@ -5468,6 +6131,7 @@
 
                     <div class="card site-report-card" style="margin-top: 18px;">
                         <h3 class="section-header"><i class="fas fa-map-marked-alt" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源地图（中国按省 / 海外按洲）</h3>
+                        <div class="site-report-alert"><i class="fas fa-exclamation-triangle"></i> 提示：如短期内出现大量国外访问，请留意是否为网络攻击，及时处理。</div>
                         <div class="geo-map-layout">
                             <div class="world-map-panel">
                                 <div class="map-panel-header">
@@ -5599,6 +6263,33 @@
                                 <button type="button" class="site-report-page-btn" id="siteReportProvinceNextBtn"
                                     onclick="changeSiteReportProvincePage(1)">下一页</button>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card site-report-card">
+                        <h3 class="section-header">国家分布</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>国家</th>
+                                        <th>会话数</th>
+                                        <th>占比</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="siteReportCountryBody">
+                                    <tr>
+                                        <td colspan="3" class="no-data">暂无数据</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="site-report-pagination">
+                            <button type="button" class="site-report-page-btn" id="siteReportCountryPrevBtn"
+                                onclick="changeSiteReportCountryPage(-1)">上一页</button>
+                            <span class="site-report-page-info" id="siteReportCountryPageInfo">第 0 / 0 页</span>
+                            <button type="button" class="site-report-page-btn" id="siteReportCountryNextBtn"
+                                onclick="changeSiteReportCountryPage(1)">下一页</button>
                         </div>
                     </div>
 
@@ -5892,6 +6583,71 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     </div>
                 </div>
 
+                <!-- Docker Logs View -->
+                <div id="view-docker-logs" class="view-section">
+                    <div class="card docker-logs-card">
+                        <div class="docker-logs-hero">
+                            <div class="docker-logs-hero-left">
+                                <div class="docker-logs-kicker">Docker Logs</div>
+                                <h3 class="docker-logs-title">后端日志</h3>
+                                <p class="docker-logs-subtitle">查看 Docker 容器运行日志，支持两个后端服务。</p>
+                            </div>
+                            <button type="button" class="docker-logs-refresh-btn" id="dockerLogsRefreshBtn"
+                                onclick="loadDockerLogs(true)">
+                                <i class="fas fa-sync-alt"></i> 刷新日志
+                            </button>
+                        </div>
+
+                        <div class="docker-logs-tabs">
+                            <button type="button" class="docker-logs-tab active" data-tab="container1" onclick="switchDockerLogsTab('container1')">
+                                <i class="fas fa-box"></i> <span id="dockerLogsTab1Label">应用服务</span>
+                            </button>
+                            <button type="button" class="docker-logs-tab" data-tab="container2" onclick="switchDockerLogsTab('container2')">
+                                <i class="fas fa-box"></i> <span id="dockerLogsTab2Label">Nginx 服务</span>
+                            </button>
+                        </div>
+
+                        <div class="docker-logs-toolbar">
+                            <div class="docker-logs-toolbar-group">
+                                <span class="docker-logs-toolbar-label"><i class="fas fa-calendar"></i> 日期筛选</span>
+                                <input type="date" class="docker-logs-date-input" id="dockerLogsDateFilter" onchange="applyDockerLogsFilter()">
+                            </div>
+                            <div class="docker-logs-toolbar-group">
+                                <span class="docker-logs-toolbar-label">仅错误</span>
+                                <div class="docker-logs-toggle" id="dockerLogsErrorToggle" onclick="toggleDockerLogsErrorFilter()"></div>
+                            </div>
+                            <span id="dockerLogsFilterInfo" class="docker-logs-filter-info"></span>
+                            <button type="button" class="docker-logs-clear-btn" id="dockerLogsClearBtn" onclick="clearDockerLogs()">
+                                <i class="fas fa-trash-alt"></i> 清除日志
+                            </button>
+                        </div>
+
+                        <div id="dockerLogsContent1" class="docker-logs-content active">
+                            <div id="dockerLogsOutput1" class="docker-logs-output" style="display:none;">
+                                <div class="docker-logs-output-header">
+                                    <span class="docker-logs-output-title" id="dockerLogsTitle1">应用服务日志</span>
+                                </div>
+                                <div class="docker-logs-output-body" id="dockerLogsBody1"></div>
+                            </div>
+                            <div id="dockerLogsEmpty1" class="docker-logs-empty">
+                                <i class="fas fa-spinner fa-spin"></i> 正在加载日志...
+                            </div>
+                        </div>
+
+                        <div id="dockerLogsContent2" class="docker-logs-content">
+                            <div id="dockerLogsOutput2" class="docker-logs-output" style="display:none;">
+                                <div class="docker-logs-output-header">
+                                    <span class="docker-logs-output-title" id="dockerLogsTitle2">Nginx 服务日志</span>
+                                </div>
+                                <div class="docker-logs-output-body" id="dockerLogsBody2"></div>
+                            </div>
+                            <div id="dockerLogsEmpty2" class="docker-logs-empty">
+                                <i class="fas fa-spinner fa-spin"></i> 正在加载日志...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -5953,7 +6709,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             { key: 'site-settings', label: '站点设置' },
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
-            { key: 'changelog', label: '更新日志' }
+            { key: 'changelog', label: '更新日志' },
+            { key: 'docker-logs', label: '后端日志' }
         ];
         let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
         let currentAdminAuth = {
@@ -5965,11 +6722,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         let siteReportsLoading = false;
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
+        const SITE_REPORT_COUNTRY_PAGE_SIZE = 8;
         let siteReportEventRowsAll = [];
         let siteReportProvinceRowsAll = [];
+        let siteReportCountryRowsAll = [];
         let siteReportRecentRowsAll = [];
         let siteReportEventPage = 1;
         let siteReportProvincePage = 1;
+        let siteReportCountryPage = 1;
         let siteReportRecentPage = 1;
         const SITE_REPORT_OS_META = {
             windows: { label: 'Windows', icon: 'fab fa-windows' },
@@ -6065,9 +6825,71 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function updateTopbarAccountDisplay() {
             const usernameEl = document.getElementById('topbarUsername');
-            if (!usernameEl) return;
+            const menuUsernameEl = document.getElementById('accountMenuUsername');
+            const menuRoleEl = document.getElementById('accountMenuRole');
+            const menuPermissionsEl = document.getElementById('accountMenuPermissions');
+
             const name = String(currentAdminAuth.username || '').trim();
-            usernameEl.textContent = name || '管理员';
+            if (usernameEl) {
+                usernameEl.textContent = name || '管理员';
+            }
+            if (menuUsernameEl) {
+                menuUsernameEl.textContent = name || '管理员';
+            }
+            if (menuRoleEl) {
+                menuRoleEl.textContent = currentAdminAuth.is_super_admin ? '超级管理员' : '子账号';
+            }
+            if (menuPermissionsEl) {
+                renderAccountMenuPermissions(menuPermissionsEl);
+            }
+        }
+
+        function renderAccountMenuPermissions(container) {
+            container.innerHTML = '';
+
+            const catalogMap = {};
+            if (Array.isArray(permissionCatalog)) {
+                permissionCatalog.forEach(item => {
+                    if (item.key) {
+                        catalogMap[item.key] = item.label || item.key;
+                    }
+                });
+            }
+
+            if (currentAdminAuth.is_super_admin) {
+                const allKeys = Object.keys(catalogMap);
+                if (allKeys.length === 0) {
+                    const tag = document.createElement('span');
+                    tag.className = 'account-menu-permission-tag';
+                    tag.innerHTML = '<i class="fas fa-check"></i>全部功能';
+                    container.appendChild(tag);
+                } else {
+                    allKeys.forEach(key => {
+                        const label = catalogMap[key] || key;
+                        const tag = document.createElement('span');
+                        tag.className = 'account-menu-permission-tag';
+                        tag.innerHTML = `<i class="fas fa-check"></i>${label}`;
+                        container.appendChild(tag);
+                    });
+                }
+            } else {
+                const userPerms = currentAdminAuth.permissions || [];
+
+                ADMIN_PERMISSION_KEYS.forEach(key => {
+                    const hasPermission = userPerms.includes(key);
+                    const label = catalogMap[key] || key;
+
+                    const tag = document.createElement('span');
+                    if (hasPermission) {
+                        tag.className = 'account-menu-permission-tag';
+                        tag.innerHTML = `<i class="fas fa-check"></i>${label}`;
+                    } else {
+                        tag.className = 'account-menu-permission-tag read-only';
+                        tag.innerHTML = `<i class="fas fa-eye"></i>${label}`;
+                    }
+                    container.appendChild(tag);
+                });
+            }
         }
 
         function closeAccountMenu() {
@@ -6086,6 +6908,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (wrap) wrap.classList.add('is-open');
             if (panel) panel.hidden = false;
             if (trigger) trigger.setAttribute('aria-expanded', 'true');
+            updateTopbarAccountDisplay();
         }
 
         function toggleAccountMenu(event) {
@@ -6630,6 +7453,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         function hasViewPermission(viewName) {
+            return true;
+        }
+
+        function canEditView(viewName) {
             if (currentAdminAuth.is_super_admin) return true;
             return currentAdminAuth.permissions.includes(String(viewName || '').trim());
         }
@@ -6692,12 +7519,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         function getFirstAllowedView() {
-            const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
-            for (const el of menuItems) {
-                const key = String(el.dataset.view || '').trim();
-                if (key && hasViewPermission(key)) return key;
-            }
-            return 'messages';
+            return 'site-reports';
         }
 
         function getStoredAdminView() {
@@ -6726,22 +7548,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function applySidebarPermissions() {
             const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
-            let activeVisible = false;
             for (const el of menuItems) {
                 const key = String(el.dataset.view || '').trim();
                 const allowed = hasViewPermission(key);
-                el.style.display = allowed ? '' : 'none';
-                if (allowed && el.classList.contains('active')) {
-                    activeVisible = true;
-                }
+                el.style.display = '';
+                const isEditable = canEditView(key);
+                el.classList.toggle('read-only-menu', allowed && !isEditable);
             }
             syncSidebarMenuGroupVisibility();
-            const activeMenuItem = document.querySelector('.menu-item.active[data-view]');
-            syncSidebarMenuGroups(activeMenuItem ? activeMenuItem.dataset.view : '');
-            if (!activeVisible) {
-                const firstView = getFirstAllowedView();
-                switchView(firstView);
-            }
         }
 
         function syncSubAccountManageVisibility() {
@@ -6920,6 +7734,10 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     const data = await parseJsonSafe(res);
 
                     if (res.ok && data.success) {
+                        if (data.last_login_at || data.last_login_ip) {
+                            const username = document.getElementById('username').value;
+                            showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at);
+                        }
                         await checkLoginStatus();
                     } else {
                         const reason = String(data.message || `登录失败（HTTP ${res.status || '-'}）`);
@@ -6972,6 +7790,88 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     // Network errors are ignored here; next interval will retry.
                 }
             }, 60 * 1000);
+        }
+
+        function closeLastLoginToast() {
+            const toast = document.getElementById('lastLoginToast');
+            if (toast) {
+                toast.classList.add('hidden');
+            }
+            localStorage.setItem('lastLoginToastShown', '1');
+        }
+
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 6) return { text: '凌晨好', emoji: '🌙' };
+            if (hour < 9) return { text: '早上好', emoji: '☀️' };
+            if (hour < 12) return { text: '上午好', emoji: '☀️' };
+            if (hour < 14) return { text: '中午好', emoji: '☀️' };
+            if (hour < 18) return { text: '下午好', emoji: '☕️' };
+            if (hour < 22) return { text: '晚上好', emoji: '🌙' };
+            return { text: '夜里好', emoji: '🌙' };
+        }
+
+        function formatLoginTime(isoString) {
+            if (!isoString) return '-';
+            try {
+                const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+                if (match) {
+                    const [_, year, month, day, hour, minute, second] = match;
+                    const pad = (n) => String(n).padStart(2, '0');
+                    return `${year}-${pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}:${pad(second)}`;
+                }
+                return isoString;
+            } catch (e) {
+                return isoString;
+            }
+        }
+
+        function showLastLoginToast(username, lastLoginAt, lastLoginIP, currentLoginAt) {
+            const toast = document.getElementById('lastLoginToast');
+            if (!toast) return;
+
+            const currentTimeEl = document.getElementById('currentLoginTime');
+            const currentIPEl = document.getElementById('currentLoginIP');
+            const lastTimeEl = document.getElementById('lastLoginTime');
+            const lastIPEl = document.getElementById('lastLoginIP');
+            const greetingEl = document.getElementById('greetingText');
+
+            if (currentTimeEl) {
+                if (currentLoginAt) {
+                    currentTimeEl.textContent = formatLoginTime(currentLoginAt);
+                } else {
+                    const now = new Date();
+                    const nowLocal = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+                    currentTimeEl.textContent = nowLocal.toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                }
+            }
+
+            if (currentIPEl) {
+                currentIPEl.textContent = lastLoginIP || '首次登录';
+            }
+
+            if (lastTimeEl) {
+                lastTimeEl.textContent = formatLoginTime(lastLoginAt);
+            }
+
+            if (lastIPEl) {
+                lastIPEl.textContent = '-';
+            }
+
+            if (greetingEl) {
+                const greeting = getGreeting();
+                greetingEl.textContent = username + '，' + greeting.text + '！' + greeting.emoji;
+            }
+
+            toast.classList.remove('hidden');
         }
 
         function showDashboard() {
@@ -7152,6 +8052,196 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        let dockerLogsData = null;
+
+        function switchDockerLogsTab(tabName) {
+            document.querySelectorAll('.docker-logs-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            document.getElementById('dockerLogsContent1').classList.toggle('active', tabName === 'container1');
+            document.getElementById('dockerLogsContent2').classList.toggle('active', tabName === 'container2');
+        }
+
+        function setDockerLogsLoading(isLoading) {
+            const btn = document.getElementById('dockerLogsRefreshBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-sync-alt fa-spin"></i> 刷新中...'
+                : '<i class="fas fa-sync-alt"></i> 刷新日志';
+        }
+
+        function renderDockerLogs(data) {
+            if (!data) return;
+            dockerLogsData = data;
+
+            const container1 = data.container1 || {};
+            const container2 = data.container2 || {};
+
+            const tab1Label = document.getElementById('dockerLogsTab1Label');
+            const tab2Label = document.getElementById('dockerLogsTab2Label');
+            if (tab1Label) tab1Label.textContent = container1.name || '应用服务';
+            if (tab2Label) tab2Label.textContent = container2.name || 'Nginx 服务';
+
+            const title1 = document.getElementById('dockerLogsTitle1');
+            const title2 = document.getElementById('dockerLogsTitle2');
+            if (title1) title1.textContent = `${container1.name || '应用服务'} 日志`;
+            if (title2) title2.textContent = `${container2.name || 'Nginx 服务'} 日志`;
+
+            renderDockerLogContent('1', container1.logs || '暂无日志');
+            renderDockerLogContent('2', container2.logs || '暂无日志');
+            updateDockerLogsFilterInfo();
+        }
+
+        function renderDockerLogContent(num, logs) {
+            const output = document.getElementById(`dockerLogsOutput${num}`);
+            const empty = document.getElementById(`dockerLogsEmpty${num}`);
+            const body = document.getElementById(`dockerLogsBody${num}`);
+
+            if (!output || !empty || !body) return;
+
+            if (logs && logs !== '暂无日志' && logs !== '日志获取超时' && !logs.startsWith('获取日志失败')) {
+                empty.style.display = 'none';
+                output.style.display = 'block';
+                body.textContent = logs;
+                body.scrollTop = body.scrollHeight;
+            } else {
+                empty.style.display = 'block';
+                output.style.display = 'none';
+                empty.innerHTML = `<i class="fas fa-info-circle"></i> ${logs || '暂无日志记录'}`;
+            }
+        }
+
+        function toggleDockerLogsErrorFilter() {
+            const toggle = document.getElementById('dockerLogsErrorToggle');
+            if (toggle) {
+                toggle.classList.toggle('active');
+                applyDockerLogsFilter();
+            }
+        }
+
+        function applyDockerLogsFilter() {
+            if (!dockerLogsData) return;
+            const dateFilter = document.getElementById('dockerLogsDateFilter')?.value;
+            const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
+            
+            const container1 = dockerLogsData.container1 || {};
+            const container2 = dockerLogsData.container2 || {};
+            
+            let logs1 = container1.logs || '';
+            let logs2 = container2.logs || '';
+            
+            if (errorOnly) {
+                logs1 = filterErrorLogs(logs1);
+                logs2 = filterErrorLogs(logs2);
+            }
+            
+            if (dateFilter) {
+                logs1 = filterLogsByDate(logs1, dateFilter);
+                logs2 = filterLogsByDate(logs2, dateFilter);
+            }
+            
+            renderDockerLogContent('1', logs1 || '暂无日志');
+            renderDockerLogContent('2', logs2 || '暂无日志');
+            updateDockerLogsFilterInfo();
+        }
+
+        function filterErrorLogs(logs) {
+            if (!logs) return '';
+            const lines = logs.split('\n');
+            const errorPatterns = [
+                /\b(ERROR|FATAL|CRITICAL|Exception|Traceback|Error)\b/i,
+                /\b\d{4}-\d{2}-\d{2}.*\[(ERROR|FATAL|WARNING)\]/i
+            ];
+            return lines.filter(line => errorPatterns.some(p => p.test(line))).join('\n');
+        }
+
+        function filterLogsByDate(logs, date) {
+            if (!logs || !date) return logs;
+            const lines = logs.split('\n');
+            const datePattern = new RegExp(`^${date.replace(/-/g, '[/-]')}`);
+            return lines.filter(line => datePattern.test(line)).join('\n');
+        }
+
+        function updateDockerLogsFilterInfo() {
+            const dateFilter = document.getElementById('dockerLogsDateFilter')?.value;
+            const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
+            const info = document.getElementById('dockerLogsFilterInfo');
+            if (!info) return;
+            
+            const parts = [];
+            if (dateFilter) {
+                parts.push(`日期: ${dateFilter}`);
+            }
+            if (errorOnly) {
+                parts.push('仅显示错误日志');
+            }
+            
+            if (parts.length > 0) {
+                info.textContent = `筛选条件: ${parts.join(' | ')}`;
+                info.classList.add('visible');
+            } else {
+                info.classList.remove('visible');
+            }
+        }
+
+        async function clearDockerLogs() {
+            if (!confirm('确定要清除所有日志文件吗？此操作不可恢复！')) return;
+            
+            const btn = document.getElementById('dockerLogsClearBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 清除中...';
+            }
+            
+            try {
+                const res = await fetch('/api/admin/docker-logs/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('日志已清除');
+                    loadDockerLogs(true);
+                } else {
+                    alert('清除失败: ' + (data.message || '未知错误'));
+                }
+            } catch (err) {
+                alert('清除失败: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-trash-alt"></i> 清除日志';
+                }
+            }
+        }
+
+        async function loadDockerLogs(manual = false) {
+            setDockerLogsLoading(true);
+            try {
+                const res = await fetch('/api/admin/docker-logs?lines=200', { cache: 'no-store' });
+                if (!res.ok) {
+                    renderDockerLogs({
+                        container1: { name: '应用服务', logs: `请求失败: ${res.status}` },
+                        container2: { name: 'Nginx 服务', logs: `请求失败: ${res.status}` }
+                    });
+                    return;
+                }
+                const data = await res.json();
+                renderDockerLogs(data);
+            } catch (err) {
+                console.warn('Load docker logs failed:', err);
+                renderDockerLogs({
+                    container1: { name: '应用服务', logs: `加载失败: ${err.message}` },
+                    container2: { name: 'Nginx 服务', logs: `加载失败: ${err.message}` }
+                });
+            } finally {
+                setDockerLogsLoading(false);
+            }
+        }
+
         function formatSiteReportNumber(value) {
             const num = Number(value || 0);
             if (!Number.isFinite(num)) return '0';
@@ -7257,6 +8347,96 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 澳门特别行政区: '澳门特别行政区'
             };
             return provinceMap[value] || value;
+        }
+
+        function normalizeCountryName(rawValue) {
+            const value = String(rawValue || '').trim();
+            if (!value) return '';
+            const countryMap = {
+                'China': '中国',
+                'United States': '美国',
+                'United Kingdom': '英国',
+                'Japan': '日本',
+                'Germany': '德国',
+                'France': '法国',
+                'Russia': '俄罗斯',
+                'Canada': '加拿大',
+                'Australia': '澳大利亚',
+                'Brazil': '巴西',
+                'India': '印度',
+                'South Korea': '韩国',
+                'Italy': '意大利',
+                'Spain': '西班牙',
+                'Mexico': '墨西哥',
+                'Netherlands': '荷兰',
+                'Singapore': '新加坡',
+                'Hong Kong': '香港',
+                'Taiwan': '台湾',
+                'Macao': '澳门',
+                'Turkey': '土耳其',
+                'Indonesia': '印度尼西亚',
+                'Switzerland': '瑞士',
+                'Poland': '波兰',
+                'Sweden': '瑞典',
+                'Belgium': '比利时',
+                'Argentina': '阿根廷',
+                'Austria': '奥地利',
+                'Norway': '挪威',
+                'Israel': '以色列',
+                'Ireland': '爱尔兰',
+                'Denmark': '丹麦',
+                'Finland': '芬兰',
+                'Vietnam': '越南',
+                'Thailand': '泰国',
+                'Malaysia': '马来西亚',
+                'Philippines': '菲律宾',
+                'Pakistan': '巴基斯坦',
+                'Bangladesh': '孟加拉国',
+                'Egypt': '埃及',
+                'South Africa': '南非',
+                'Nigeria': '尼日利亚',
+                'Kenya': '肯尼亚',
+                'Morocco': '摩洛哥',
+                'United Arab Emirates': '阿联酋',
+                'Saudi Arabia': '沙特阿拉伯',
+                'Iran': '伊朗',
+                'Iraq': '伊拉克',
+                'Ukraine': '乌克兰',
+                'Romania': '罗马尼亚',
+                'Czech Republic': '捷克',
+                'Portugal': '葡萄牙',
+                'Greece': '希腊',
+                'Hungary': '匈牙利',
+                'Chile': '智利',
+                'Colombia': '哥伦比亚',
+                'Peru': '秘鲁',
+                'New Zealand': '新西兰',
+                'Kazakhstan': '哈萨克斯坦',
+                'Uzbekistan': '乌兹别克斯坦',
+                'Pakistan': '巴基斯坦',
+                'Nepal': '尼泊尔',
+                'Sri Lanka': '斯里兰卡',
+                'Myanmar': '缅甸',
+                'Cambodia': '柬埔寨',
+                'Laos': '老挝',
+                'Mongolia': '蒙古',
+                'North Korea': '朝鲜',
+                ' Belarus': '白俄罗斯',
+                'Slovakia': '斯洛伐克',
+                'Bulgaria': '保加利亚',
+                'Serbia': '塞尔维亚',
+                'Croatia': '克罗地亚',
+                'Slovenia': '斯洛文尼亚',
+                'Lithuania': '立陶宛',
+                'Latvia': '拉脱维亚',
+                'Estonia': '爱沙尼亚',
+                'Luxembourg': '卢森堡',
+                'Iceland': '冰岛',
+                'Malta': '马耳他',
+                'Cyprus': '塞浦路斯'
+            };
+            if (countryMap[value]) return countryMap[value];
+            return value;
         }
 
         function getSiteReportMapColor(value, maxValue) {
@@ -7813,19 +8993,72 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const type = String(rawType || '').trim().toLowerCase();
             const map = {
                 page_view: '页面浏览',
+                pageview: '页面浏览',
                 scroll_depth: '滚动深度',
                 engaged_15s: '停留 15 秒',
+                engaged_30s: '停留 30 秒',
+                engaged_60s: '停留 60 秒',
                 click_link: '点击链接',
                 click_button: '点击按钮',
+                click: '点击',
                 contact_submit: '提交联系表单',
+                contact_form: '联系表单',
                 job_apply: '提交招聘申请',
+                job_form: '招聘申请',
                 form_submit: '提交表单',
+                form_start: '开始填写表单',
                 phone_click: '点击电话',
+                phone_view: '查看电话',
                 email_click: '点击邮箱',
+                email_view: '查看邮箱',
                 quote_request: '提交询价',
+                quote_form: '询价表单',
                 request_demo: '提交演示申请',
+                demo_form: '演示申请',
                 download_brochure: '下载资料',
-                session_end: '会话结束'
+                download: '下载文件',
+                video_play: '播放视频',
+                video_pause: '暂停视频',
+                video_complete: '看完视频',
+                search: '搜索',
+                search_submit: '提交搜索',
+                add_to_cart: '加入购物车',
+                remove_from_cart: '移出购物车',
+                checkout: '结算',
+                wishlist: '添加收藏',
+                share: '分享',
+                copy_link: '复制链接',
+                print: '打印',
+                tab_switch: '切换标签页',
+                window_focus: '窗口获得焦点',
+                window_blur: '窗口失去焦点',
+                scroll_to_bottom: '滚动到底部',
+                cta_click: '点击 CTA',
+                banner_click: '点击横幅',
+                nav_click: '点击导航',
+                sidebar_click: '点击侧边栏',
+                footer_click: '点击页脚',
+                image_view: '查看图片',
+                image_zoom: '放大图片',
+                map_view: '查看地图',
+                session_end: '会话结束',
+                product_view: '浏览产品',
+                product_click: '点击产品',
+                category_view: '浏览分类',
+                blog_view: '浏览博客',
+                news_view: '浏览资讯',
+                video_view: '浏览视频',
+                faq_view: '查看 FAQ',
+                help_view: '查看帮助',
+                login: '登录',
+                logout: '退出登录',
+                register: '注册',
+                subscribe: '订阅',
+                unsubscribe: '取消订阅',
+                feedback: '提交反馈',
+                survey: '填写问卷',
+                review: '发表评论',
+                print_page: '打印页面'
             };
 
             if (name && map[name]) return map[name];
@@ -7882,9 +9115,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }));
             const maxValue = Math.max(1, ...prepared.map(item => Math.max(item.pv, item.uv)));
 
-            const width = Math.max(920, prepared.length * 34);
+            const width = Math.max(920, prepared.length * 40);
             const height = 240;
-            const padding = { left: 48, right: 18, top: 16, bottom: 34 };
+            const padding = { left: 8, right: 4, top: 16, bottom: 34 };
             const plotWidth = Math.max(1, width - padding.left - padding.right);
             const plotHeight = Math.max(1, height - padding.top - padding.bottom);
 
@@ -7929,8 +9162,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const lastLabel = lastItem.date.length >= 5 ? lastItem.date.slice(5) : lastItem.date;
             const summary = `最近一天(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
 
+            const tooltipId = 'siteReportTrendTooltip';
             wrap.innerHTML = `
-                <div class="site-report-line-wrap">
+                <div class="site-report-line-wrap" style="position:relative;">
                     <svg class="site-report-line-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="每日趋势折线图">
                         ${gridLines.join('')}
                         <line class="site-report-line-axis" x1="${padding.left}" y1="${(padding.top + plotHeight).toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${(padding.top + plotHeight).toFixed(2)}"></line>
@@ -7940,6 +9174,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         ${uvDots}
                         ${xLabels}
                     </svg>
+                    <div id="${tooltipId}" class="site-report-line-tooltip"></div>
                 </div>
                 <div class="site-report-line-legend">
                     <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot pv"></i>PV</span>
@@ -7947,6 +9182,47 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </div>
                 <div class="site-report-line-summary">${escapeHtml(summary)}</div>
             `;
+
+            const svg = wrap.querySelector('.site-report-line-svg');
+            const tooltip = document.getElementById(tooltipId);
+
+            svg.addEventListener('mousemove', (e) => {
+                const svgRect = svg.getBoundingClientRect();
+                const scaleX = svgRect.width / width;
+                const scaleY = svgRect.height / height;
+                const mouseX = (e.clientX - svgRect.left) / scaleX;
+                let closestIdx = 0;
+                let minDist = Infinity;
+                prepared.forEach((item, idx) => {
+                    const dist = Math.abs(toX(idx) - mouseX);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = idx;
+                    }
+                });
+                const item = prepared[closestIdx];
+                tooltip.innerHTML = `
+                    <div class="site-report-line-tooltip-date">${escapeHtml(item.date)}</div>
+                    <div class="site-report-line-tooltip-pv"><span>PV</span><span>${formatSiteReportNumber(item.pv)}</span></div>
+                    <div class="site-report-line-tooltip-uv"><span>UV</span><span>${formatSiteReportNumber(item.uv)}</span></div>
+                `;
+                tooltip.classList.add('visible');
+                requestAnimationFrame(() => {
+                    const tooltipRect = tooltip.getBoundingClientRect();
+                    const tooltipWidth = tooltipRect.width;
+                    const tooltipHeight = tooltipRect.height;
+                    let left = e.clientX - svgRect.left - tooltipWidth / 2;
+                    left = Math.max(0, Math.min(left, svgRect.width - tooltipWidth));
+                    let top = (toY(item.pv) * scaleY) - tooltipHeight - 8;
+                    top = Math.max(0, Math.min(top, svgRect.height - tooltipHeight));
+                    tooltip.style.left = `${left}px`;
+                    tooltip.style.top = `${top}px`;
+                });
+            });
+
+            svg.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('visible');
+            });
         }
 
         function renderSiteReportRows() {
@@ -7968,12 +9244,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (worldEastWrap) worldEastWrap.innerHTML = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
             siteReportEventRowsAll = [];
             siteReportProvinceRowsAll = [];
+            siteReportCountryRowsAll = [];
             siteReportRecentRowsAll = [];
             siteReportEventPage = 1;
             siteReportProvincePage = 1;
+            siteReportCountryPage = 1;
             siteReportRecentPage = 1;
             renderSiteReportEventTablePage();
             renderSiteReportProvinceTablePage();
+            renderSiteReportCountryTablePage();
             renderSiteReportRecentTablePage();
         }
 
@@ -8045,6 +9324,36 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }).join('');
         }
 
+        function renderSiteReportCountryTablePage() {
+            const tbody = document.getElementById('siteReportCountryBody');
+            const infoEl = document.getElementById('siteReportCountryPageInfo');
+            const prevBtn = document.getElementById('siteReportCountryPrevBtn');
+            const nextBtn = document.getElementById('siteReportCountryNextBtn');
+            if (!tbody) return;
+
+            const allRows = Array.isArray(siteReportCountryRowsAll) ? siteReportCountryRowsAll : [];
+            const pager = updateSiteReportPager(allRows.length, SITE_REPORT_COUNTRY_PAGE_SIZE, siteReportCountryPage, infoEl, prevBtn, nextBtn);
+            if (!pager.totalPages) {
+                tbody.innerHTML = '<tr><td colspan="3" class="no-data">暂无国家数据</td></tr>';
+                siteReportCountryPage = 1;
+                return;
+            }
+
+            siteReportCountryPage = pager.page;
+            const start = (siteReportCountryPage - 1) * SITE_REPORT_COUNTRY_PAGE_SIZE;
+            const pageRows = allRows.slice(start, start + SITE_REPORT_COUNTRY_PAGE_SIZE);
+            tbody.innerHTML = pageRows.map((item) => {
+                const countryName = normalizeCountryName(item?.country || '');
+                return `
+                    <tr>
+                        <td>${escapeHtml(countryName || '未知')}</td>
+                        <td>${formatSiteReportNumber(item?.sessions)}</td>
+                        <td>${formatSiteReportPercent(item?.ratio)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function renderSiteReportRecentTablePage() {
             const tbody = document.getElementById('siteReportRecentBody');
             const infoEl = document.getElementById('siteReportRecentPageInfo');
@@ -8089,6 +9398,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!move) return;
             siteReportProvincePage += move;
             renderSiteReportProvinceTablePage();
+            queueResponsiveTableLabels();
+        }
+
+        function changeSiteReportCountryPage(delta) {
+            const move = Number(delta || 0);
+            if (!move) return;
+            siteReportCountryPage += move;
+            renderSiteReportCountryTablePage();
             queueResponsiveTableLabels();
         }
 
@@ -8193,6 +9510,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             siteReportProvinceRowsAll = provinceRows;
             siteReportProvincePage = 1;
             renderSiteReportProvinceTablePage();
+
+            const countryRows = Array.isArray(data.country_breakdown) ? data.country_breakdown : [];
+            siteReportCountryRowsAll = countryRows;
+            siteReportCountryPage = 1;
+            renderSiteReportCountryTablePage();
 
             renderChinaProvinceHeatMap(provinceRows);
             renderWorldContinentHeatMaps(Array.isArray(data.continent_breakdown) ? data.continent_breakdown : []);
@@ -8321,7 +9643,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'cdn-assets': 'CDN 素材',
-                'changelog': '更新日志'
+                'changelog': '更新日志',
+                'docker-logs': '后端日志'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
 
@@ -8353,13 +9676,106 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
             if (viewName === 'settings') loadSubAccounts();
             if (viewName === 'changelog') loadChangelog();
+            if (viewName === 'docker-logs') loadDockerLogs();
             if (viewName === 'cdn-assets') loadCdnAssets();
 
             renderGuidesForView(viewName);
+
+            const isEditable = canEditView(viewName);
+            applyReadOnlyMode(viewName, !isEditable);
+
             if (isMobileAdminViewport()) {
                 closeMobileSidebar();
             }
             queueResponsiveTableLabels();
+        }
+
+        function applyReadOnlyMode(viewName, readOnly) {
+            const view = document.getElementById(`view-${viewName}`);
+            if (!view) return;
+
+            view.classList.toggle('read-only-mode', readOnly);
+
+            let banner = view.querySelector('.read-only-banner');
+            if (readOnly) {
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.className = 'read-only-banner';
+                    banner.innerHTML = '<i class="fas fa-lock"></i> 当前账号无编辑权限，仅可查看数据';
+                    view.insertBefore(banner, view.firstChild);
+                }
+
+                const editableSelectors = [
+                    'button:not([disabled])',
+                    'input:not([disabled])',
+                    'textarea:not([disabled])',
+                    'select:not([disabled])',
+                    'a[href]',
+                    '[contenteditable="true"]',
+                    '.btn',
+                    '.action-btn',
+                    '[onclick*="save"]',
+                    '[onclick*="delete"]',
+                    '[onclick*="edit"]',
+                    '[onclick*="update"]',
+                    '[onclick*="create"]',
+                    '[onclick*="remove"]'
+                ];
+
+                editableSelectors.forEach(selector => {
+                    view.querySelectorAll(selector).forEach(el => {
+                        if (!el.classList.contains('read-only-safe') &&
+                            !el.closest('.read-only-banner')) {
+                            el.dataset.originalDisabled = el.disabled || '';
+                            el.dataset.originalReadOnly = el.readOnly || '';
+                            el.disabled = true;
+                            el.readOnly = true;
+                            el.classList.add('read-only-disabled');
+                        }
+                    });
+                });
+
+                view.querySelectorAll('[contenteditable]').forEach(el => {
+                    if (el.contentEditable === 'true') {
+                        el.dataset.originalContentEditable = el.contentEditable;
+                        el.contentEditable = 'false';
+                        el.classList.add('read-only-disabled');
+                    }
+                });
+
+                view.querySelectorAll('[onclick]').forEach(el => {
+                    const onclick = el.getAttribute('onclick') || '';
+                    const isAction = onclick.match(/save|delete|edit|update|create|remove|add/i);
+                    if (isAction && !el.classList.contains('read-only-safe')) {
+                        el.dataset.originalOnclick = onclick;
+                        el.removeAttribute('onclick');
+                        el.classList.add('read-only-disabled');
+                    }
+                });
+            } else {
+                if (banner) {
+                    banner.remove();
+                }
+
+                view.querySelectorAll('.read-only-disabled').forEach(el => {
+                    if (el.dataset.originalDisabled !== undefined) {
+                        el.disabled = el.dataset.originalDisabled === 'true';
+                    }
+                    if (el.dataset.originalReadOnly !== undefined) {
+                        el.readOnly = el.dataset.originalReadOnly === 'true';
+                    }
+                    el.classList.remove('read-only-disabled');
+                });
+
+                view.querySelectorAll('[data-original-contenteditable]').forEach(el => {
+                    el.contentEditable = el.dataset.originalContentEditable;
+                    el.classList.remove('read-only-disabled');
+                });
+
+                view.querySelectorAll('[data-original-onclick]').forEach(el => {
+                    el.setAttribute('onclick', el.dataset.originalOnclick);
+                });
+            }
         }
 
         // --- Products Logic ---
@@ -11038,42 +12454,221 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        // --- Product Category Images Functions ---
+        let productCategoryImagesData = [];
+
+        function renderProductCategoryImagesEditor() {
+            const container = document.getElementById('productCategoryImagesEditor');
+            if (!container) return;
+
+            const rows = productCategoryImagesData.map((item, idx) => `
+                <div style="display: flex; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid #eee;">
+                    <div style="flex: 1; min-width: 120px;">
+                        <strong style="color: #333;">${escapeHtml(item.name || '')}</strong>
+                    </div>
+                    <div style="flex: 2; display: flex; align-items: center; gap: 10px;">
+                        <input type="text" class="form-control product-category-image" data-key="${escapeHtml(item.key || '')}"
+                            value="${escapeHtml(item.image || '')}" placeholder="相对路径或 https:// 链接"
+                            title="不设置将使用默认图片"
+                            style="flex: 1; min-width: 200px;">
+                        <div class="product-category-image-preview" data-key="${escapeHtml(item.key || '')}"
+                            style="width: 56px; height: 40px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #f7f8fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            ${item.image ? `<img src="${escapeHtml(item.image)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">` : '<span style="font-size: 10px; color: #999;">预览</span>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = rows || '<div style="color: #888;">暂无产品分类数据</div>';
+            initProductCategoryImagePreviews();
+        }
+
+        function initProductCategoryImagePreviews() {
+            const imageInputs = document.querySelectorAll('.product-category-image');
+            imageInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const key = this.dataset.key;
+                    const preview = document.querySelector(`.product-category-image-preview[data-key="${key}"]`);
+                    if (!preview) return;
+
+                    const value = this.value.trim();
+                    if (!value) {
+                        preview.innerHTML = '<span style="font-size: 10px; color: #999;">预览</span>';
+                        return;
+                    }
+
+                    preview.innerHTML = `<img src="${escapeHtml(value)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">`;
+                });
+            });
+        }
+
+        async function loadProductCategoryImages() {
+            const container = document.getElementById('productCategoryImagesEditor');
+            if (!container) return;
+            container.innerHTML = '<div style="color:#888;">加载中...</div>';
+            try {
+                const res = await fetch('/api/categories/images');
+                const data = await res.json();
+                productCategoryImagesData = Array.isArray(data.categories) ? data.categories : [];
+                renderProductCategoryImagesEditor();
+            } catch (e) {
+                console.error('Load product category images error:', e);
+                container.innerHTML = '<div style="color:#dc3545;">加载失败，请刷新重试</div>';
+            }
+        }
+
+        async function saveProductCategoryImages() {
+            const msg = document.getElementById('productCategoryImagesMsg');
+            const images = {};
+            const inputs = document.querySelectorAll('.product-category-image');
+            inputs.forEach(input => {
+                const key = input.dataset.key;
+                const value = (input.value || '').trim();
+                if (key && value) {
+                    images[key] = value;
+                }
+            });
+
+            try {
+                const res = await fetch('/api/categories/images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ images })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    productCategoryImagesData = Array.isArray(result.categories) ? result.categories : [];
+                    renderProductCategoryImagesEditor();
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = '✓ 保存成功！';
+                    }
+                    setTimeout(() => {
+                        if (msg) msg.textContent = '';
+                    }, 3000);
+                } else {
+                    throw new Error(result.message || '保存失败');
+                }
+            } catch (e) {
+                console.error('Save product category images error:', e);
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '保存失败';
+                }
+            }
+        }
+
         // --- Recommendations Functions ---
+        let recommendationsProductsAll = [];
+
         async function loadRecommendations() {
             try {
-                const res = await fetch('/api/recommendations');
-                const data = await res.json();
-                const latest = Array.isArray(data.latestReleases) ? data.latestReleases : [];
+                const [productsRes, recommendationsRes] = await Promise.all([
+                    fetch('/api/products/with-settings'),
+                    fetch('/api/recommendations')
+                ]);
+                const productsDataResult = await productsRes.json();
+                const recommendationsData = await recommendationsRes.json();
+
+                const rawProducts = productsDataResult.products || [];
+                recommendationsProductsAll = rawProducts.filter(p => {
+                    const pid = String(p?.id || '');
+                    if (!pid) return false;
+                    if (pid === 'all-products') return false;
+                    if (pid.startsWith('../biosensing/')) return false;
+                    if (pid.startsWith('../customization/')) return true;
+                    return !pid.startsWith('../');
+                });
+
+                const options = ['<option value="">不选择</option>']
+                    .concat(recommendationsProductsAll.map(item => {
+                        const label = item.displayName || item.shortName || item.name || item.id;
+                        return `<option value="${escapeHtml(item.id)}">${escapeHtml(label)}</option>`;
+                    }));
+
+                [1, 2, 3, 4].forEach((idx) => {
+                    const select = document.getElementById(`latest${idx}Select`);
+                    if (select) {
+                        select.innerHTML = options.join('');
+                    }
+                });
+
+                const latest = Array.isArray(recommendationsData.latestReleases) ? recommendationsData.latestReleases : [];
 
                 [1, 2, 3, 4].forEach((idx) => {
                     const item = latest[idx - 1] || {};
-                    document.getElementById(`latest${idx}Name`).value = item.name || '';
-                    document.getElementById(`latest${idx}Url`).value = item.url || '';
+                    const select = document.getElementById(`latest${idx}Select`);
+                    if (select && item.url) {
+                        const matchedProduct = recommendationsProductsAll.find(p => {
+                            const productUrl = `../gassensing/${p.id}.html`;
+                            return item.url === productUrl || item.url === p.id || item.url === `/${p.id}`;
+                        });
+                        if (matchedProduct) {
+                            select.value = matchedProduct.id;
+                        }
+                    }
                 });
+
+                updateRecommendationPreview();
             } catch (e) {
                 console.error('Load recommendations error:', e);
             }
         }
 
+        function updateRecommendationPreview() {
+            [1, 2, 3, 4].forEach((idx) => {
+                const select = document.getElementById(`latest${idx}Select`);
+                const preview = document.getElementById(`latest${idx}Preview`);
+                if (!select || !preview) return;
+
+                const selectedId = select.value;
+                if (!selectedId) {
+                    preview.innerHTML = '';
+                    return;
+                }
+
+                const product = recommendationsProductsAll.find(p => p.id === selectedId);
+                if (!product) {
+                    preview.innerHTML = '';
+                    return;
+                }
+
+                const image = product.cardImage || product.image || '';
+                const name = product.displayName || product.shortName || product.name || '';
+
+                preview.innerHTML = `
+                    <img src="${image}" alt="${escapeHtml(name)}" 
+                        style="width: 48px; height: 32px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: #f7f8fa;"
+                        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 40%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/><text x=%2230%22 y=%2225%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%228%22>无图</text></svg>'">
+                    <span style="font-size: 13px; color: #666;">${escapeHtml(name)}</span>
+                `;
+            });
+        }
+
         async function saveRecommendations() {
-            const isValidRecommendationUrl = (value) => {
-                const url = (value || '').trim();
-                if (!url) return false;
-                if (/^https?:\/\//i.test(url)) return true;
-                if (/^(\/|\.\/|\.\.\/)/.test(url)) return true;
-                if (!url.includes('://')) return true; // plain relative path
-                return false;
-            };
+            const latestReleases = [1, 2, 3, 4].map((idx) => {
+                const select = document.getElementById(`latest${idx}Select`);
+                const selectedId = select?.value || '';
 
-            const latestReleases = [1, 2, 3, 4].map((idx) => ({
-                name: document.getElementById(`latest${idx}Name`).value.trim(),
-                url: document.getElementById(`latest${idx}Url`).value.trim()
-            }));
+                if (!selectedId) {
+                    return { name: '', url: '' };
+                }
 
-            const invalid = latestReleases.find(item => !item.name || !isValidRecommendationUrl(item.url));
-            if (invalid) {
+                const product = recommendationsProductsAll.find(p => p.id === selectedId);
+                if (!product) {
+                    return { name: '', url: '' };
+                }
+
+                return {
+                    name: product.displayName || product.shortName || product.name || product.id,
+                    url: `../gassensing/${product.id}.html`
+                };
+            });
+
+            const validItems = latestReleases.filter(item => item.name && item.url);
+            if (validItems.length === 0) {
                 document.getElementById('recommendationsMsg').style.color = '#dc3545';
-                document.getElementById('recommendationsMsg').textContent = '请填写 4 个产品名称，并使用相对路径或 https 链接';
+                document.getElementById('recommendationsMsg').textContent = '请至少选择 1 个产品';
                 return;
             }
 
@@ -11113,6 +12708,20 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             return false;
         }
 
+        let measurementPagesList = [];
+
+        function buildMeasurementPagesOptions(selectedUrl = '') {
+            if (measurementPagesList.length === 0) {
+                return '<option value="">加载中...</option>';
+            }
+            const options = ['<option value="">不选择</option>'];
+            measurementPagesList.forEach(page => {
+                const selected = page.url === selectedUrl ? 'selected' : '';
+                options.push(`<option value="${escapeHtml(page.url)}" ${selected}>${escapeHtml(page.name)}</option>`);
+            });
+            return options.join('');
+        }
+
         function renderMeasurementTargetsEditor() {
             const container = document.getElementById('measurementTargetsEditor');
             if (!container) return;
@@ -11128,8 +12737,21 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             value="${escapeHtml(item.name || '')}" placeholder="显示名称（如：氢气 (H2)）">
                     </td>
                     <td style="padding:8px;">
-                        <input type="text" class="form-control measurement-target-url" data-index="${idx}"
-                            value="${escapeHtml(item.url || '')}" placeholder="相对路径或 http(s) 链接">
+                        <select class="form-control measurement-target-url" data-index="${idx}" onchange="onMeasurementTargetUrlChange(this)">
+                            ${buildMeasurementPagesOptions(item.url || '')}
+                        </select>
+                    </td>
+                    <td style="padding:8px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" class="form-control measurement-target-image" data-index="${idx}"
+                                value="${escapeHtml(item.image || '')}" placeholder="相对路径或 https:// 链接"
+                                title="不设置此项将使用页面内的首张图片作为缩略图显示"
+                                style="flex: 1; min-width: 150px;">
+                            <div class="measurement-target-image-preview" data-index="${idx}" 
+                                style="width: 56px; height: 40px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #f7f8fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${item.image ? `<img src="${escapeHtml(item.image)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">` : '<span style="font-size: 10px; color: #999;">预览</span>'}
+                            </div>
+                        </div>
                     </td>
                     <td style="padding:8px; width:90px; text-align:center;">
                         <button class="btn-sm btn-danger" onclick="removeMeasurementTargetRow(${idx})">删除</button>
@@ -11145,6 +12767,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <th style="padding:10px; text-align:left; width:48px; border-bottom:2px solid #ddd;">#</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">显示名称</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">跳转链接</th>
+                            <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">缩略图（可选）</th>
                             <th style="padding:10px; text-align:center; width:90px; border-bottom:2px solid #ddd;">操作</th>
                         </tr>
                     </thead>
@@ -11152,14 +12775,47 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </table>
             `;
             initMeasurementTargetsSortable();
+            initMeasurementTargetImagePreviews();
+        }
+
+        function onMeasurementTargetUrlChange(select) {
+            const idx = select.dataset.index;
+            const nameInput = document.querySelector(`.measurement-target-name[data-index="${idx}"]`);
+            if (!nameInput) return;
+
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.value && !nameInput.value.trim()) {
+                nameInput.value = selectedOption.text;
+            }
+        }
+
+        function initMeasurementTargetImagePreviews() {
+            const imageInputs = document.querySelectorAll('#measurementTargetsTbody .measurement-target-image');
+            imageInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const idx = this.dataset.index;
+                    const preview = document.querySelector(`.measurement-target-image-preview[data-index="${idx}"]`);
+                    if (!preview) return;
+
+                    const value = this.value.trim();
+                    if (!value) {
+                        preview.innerHTML = '<span style="font-size: 10px; color: #999;">预览</span>';
+                        return;
+                    }
+
+                    preview.innerHTML = `<img src="${escapeHtml(value)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">`;
+                });
+            });
         }
 
         function collectMeasurementTargetsFromDom() {
             const names = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-name'));
             const urls = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-url'));
+            const images = Array.from(document.querySelectorAll('#measurementTargetsTbody .measurement-target-image'));
             return names.map((nameInput, idx) => ({
                 name: (nameInput.value || '').trim(),
-                url: (urls[idx]?.value || '').trim()
+                url: (urls[idx]?.value || '').trim(),
+                image: (images[idx]?.value || '').trim()
             }));
         }
 
@@ -11187,9 +12843,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!container) return;
             container.innerHTML = '<div style="color:#888; padding: 8px 0;">加载中...</div>';
             try {
-                const res = await fetch('/api/measurement-targets');
-                const data = await res.json();
-                measurementTargetsData = Array.isArray(data.items) ? data.items : [];
+                const [pagesRes, targetsRes] = await Promise.all([
+                    fetch('/api/measurement-pages'),
+                    fetch('/api/measurement-targets')
+                ]);
+                const pagesData = await pagesRes.json();
+                const targetsData = await targetsRes.json();
+
+                measurementPagesList = Array.isArray(pagesData.pages) ? pagesData.pages : [];
+                measurementTargetsData = Array.isArray(targetsData.items) ? targetsData.items : [];
                 renderMeasurementTargetsEditor();
             } catch (e) {
                 console.error('Load measurement targets error:', e);
@@ -11199,7 +12861,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function addMeasurementTargetRow() {
             syncMeasurementTargetsFromDom();
-            measurementTargetsData.push({ name: '', url: '' });
+            measurementTargetsData.push({ name: '', url: '', image: '' });
             renderMeasurementTargetsEditor();
         }
 
@@ -11213,11 +12875,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const msg = document.getElementById('measurementTargetsMsg');
             const items = collectMeasurementTargetsFromDom();
 
-            const invalid = items.find(item => !item.name || !isValidNavLink(item.url));
+            const invalid = items.find(item => !item.name || !item.url);
             if (invalid) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请填写完整名称，并使用相对路径或 http(s) 链接';
+                    msg.textContent = '请填写完整名称并选择跳转链接';
                 }
                 return;
             }
@@ -11248,6 +12910,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         let navIndustryCategoriesData = [];
+        let solutionsPagesList = [];
+
+        function buildSolutionsPagesOptions(selectedUrl = '') {
+            if (solutionsPagesList.length === 0) {
+                return '<option value="">加载中...</option>';
+            }
+            const options = ['<option value="">不选择</option>'];
+            solutionsPagesList.forEach(page => {
+                const selected = page.url === selectedUrl ? 'selected' : '';
+                options.push(`<option value="${escapeHtml(page.url)}" ${selected}>${escapeHtml(page.name)}</option>`);
+            });
+            return options.join('');
+        }
 
         function renderNavIndustryCategoriesEditor() {
             const container = document.getElementById('navIndustryCategoriesEditor');
@@ -11264,8 +12939,21 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             value="${escapeHtml(item.name || '')}" placeholder="按钮名称（如：氢能源产业链）">
                     </td>
                     <td style="padding:8px;">
-                        <input type="text" class="form-control nav-industry-url" data-index="${idx}"
-                            value="${escapeHtml(item.url || '')}" placeholder="相对路径或 http(s) 链接">
+                        <select class="form-control nav-industry-url" data-index="${idx}" onchange="onSolutionsPageUrlChange(this)">
+                            ${buildSolutionsPagesOptions(item.url || '')}
+                        </select>
+                    </td>
+                    <td style="padding:8px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" class="form-control nav-industry-image" data-index="${idx}"
+                                value="${escapeHtml(item.image || '')}" placeholder="相对路径或 https:// 链接"
+                                title="不设置此项将使用页面内的首张图片作为缩略图显示"
+                                style="flex: 1; min-width: 150px;">
+                            <div class="nav-industry-image-preview" data-index="${idx}" 
+                                style="width: 56px; height: 40px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #f7f8fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                ${item.image ? `<img src="${escapeHtml(item.image)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">` : '<span style="font-size: 10px; color: #999;">预览</span>'}
+                            </div>
+                        </div>
                     </td>
                     <td style="padding:8px; width:90px; text-align:center;">
                         <button class="btn-sm btn-danger" onclick="removeNavIndustryCategoryRow(${idx})">删除</button>
@@ -11281,6 +12969,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <th style="padding:10px; text-align:left; width:48px; border-bottom:2px solid #ddd;">#</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">按钮名称</th>
                             <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">跳转链接</th>
+                            <th style="padding:10px; text-align:left; border-bottom:2px solid #ddd;">缩略图（可选）</th>
                             <th style="padding:10px; text-align:center; width:90px; border-bottom:2px solid #ddd;">操作</th>
                         </tr>
                     </thead>
@@ -11288,15 +12977,48 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </table>
             `;
             initNavIndustryCategoriesSortable();
+            initNavIndustryCategoriesImagePreviews();
+        }
+
+        function onSolutionsPageUrlChange(select) {
+            const idx = select.dataset.index;
+            const nameInput = document.querySelector(`.nav-industry-name[data-index="${idx}"]`);
+            if (!nameInput) return;
+
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.value && !nameInput.value.trim()) {
+                nameInput.value = selectedOption.text;
+            }
         }
 
         function collectNavIndustryCategoriesFromDom() {
             const names = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-name'));
             const urls = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-url'));
+            const images = Array.from(document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-image'));
             return names.map((nameInput, idx) => ({
                 name: (nameInput.value || '').trim(),
-                url: (urls[idx]?.value || '').trim()
+                url: (urls[idx]?.value || '').trim(),
+                image: (images[idx]?.value || '').trim()
             }));
+        }
+
+        function initNavIndustryCategoriesImagePreviews() {
+            const imageInputs = document.querySelectorAll('#navIndustryCategoriesTbody .nav-industry-image');
+            imageInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const idx = this.dataset.index;
+                    const preview = document.querySelector(`.nav-industry-image-preview[data-index="${idx}"]`);
+                    if (!preview) return;
+
+                    const value = this.value.trim();
+                    if (!value) {
+                        preview.innerHTML = '<span style="font-size: 10px; color: #999;">预览</span>';
+                        return;
+                    }
+
+                    preview.innerHTML = `<img src="${escapeHtml(value)}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#999;\\'>加载失败</span>'">`;
+                });
+            });
         }
 
         function syncNavIndustryCategoriesFromDom() {
@@ -11323,9 +13045,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             if (!container) return;
             container.innerHTML = '<div style="color:#888; padding: 8px 0;">加载中...</div>';
             try {
-                const res = await fetch('/api/nav-industry-categories');
-                const data = await res.json();
-                navIndustryCategoriesData = Array.isArray(data.items) ? data.items : [];
+                const [pagesRes, categoriesRes] = await Promise.all([
+                    fetch('/api/solutions-pages'),
+                    fetch('/api/nav-industry-categories')
+                ]);
+                const pagesData = await pagesRes.json();
+                const categoriesData = await categoriesRes.json();
+
+                solutionsPagesList = Array.isArray(pagesData.pages) ? pagesData.pages : [];
+                navIndustryCategoriesData = Array.isArray(categoriesData.items) ? categoriesData.items : [];
                 renderNavIndustryCategoriesEditor();
             } catch (e) {
                 console.error('Load nav industry categories error:', e);
@@ -11335,7 +13063,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
 
         function addNavIndustryCategoryRow() {
             syncNavIndustryCategoriesFromDom();
-            navIndustryCategoriesData.push({ name: '', url: '' });
+            navIndustryCategoriesData.push({ name: '', url: '', image: '' });
             renderNavIndustryCategoriesEditor();
         }
 
@@ -11349,11 +13077,11 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             const msg = document.getElementById('navIndustryCategoriesMsg');
             const items = collectNavIndustryCategoriesFromDom();
 
-            const invalid = items.find(item => !item.name || !isValidNavLink(item.url));
+            const invalid = items.find(item => !item.name || !item.url);
             if (invalid) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请填写完整名称，并使用相对路径或 http(s) 链接';
+                    msg.textContent = '请填写完整名称并选择跳转链接';
                 }
                 return;
             }
@@ -12920,7 +14648,12 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     updateMenuPreview();
                     loadRecommendations();
                 }
-                loadMeasurementTargets();
+                loadProductCategoryImages();
+                if (measurementPagesList.length === 0) {
+                    loadMeasurementTargets();
+                } else {
+                    loadMeasurementTargets();
+                }
                 loadNavIndustryCategories();
             }
         }
@@ -16790,6 +18523,39 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
     </script>
+
+    <div id="lastLoginToast" class="last-login-toast hidden">
+        <div class="toast-header">
+            <div class="toast-title">
+                <i class="fas fa-user-clock"></i> 登录信息
+            </div>
+            <button class="toast-close" onclick="closeLastLoginToast()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="toast-content">
+            <div class="toast-row">
+                <span class="toast-label">本次登录</span>
+                <span id="currentLoginTime" class="toast-value">-</span>
+            </div>
+            <div class="toast-row">
+                <span class="toast-label">本次IP</span>
+                <span id="currentLoginIP" class="toast-value">-</span>
+            </div>
+            <div class="toast-divider"></div>
+            <div class="toast-row">
+                <span class="toast-label">上次登录</span>
+                <span id="lastLoginTime" class="toast-value">-</span>
+            </div>
+            <div class="toast-row">
+                <span class="toast-label">上次IP</span>
+                <span id="lastLoginIP" class="toast-value">-</span>
+            </div>
+            <div id="lastLoginGreeting" class="toast-greeting">
+                <span id="greetingText"></span>
+            </div>
+        </div>
+    </div>
 
 </body>
 

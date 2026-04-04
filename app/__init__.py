@@ -1,2 +1,2 @@
-"""Application package for modular Flask route registration."""
+"""应用主包与模块化 Flask 接线入口。"""
 

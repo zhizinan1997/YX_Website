@@ -1,4 +1,7 @@
-"""Public site routes: SEO, search, favicon, and static file serving."""
+"""公开站点路由模块。
+
+负责公开页面渲染、SEO 元信息、搜索、favicon 与静态资源访问控制。
+"""
 
 from __future__ import annotations
 
@@ -8,14 +11,22 @@ import posixpath
 import re
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
 
 from flask import Response, jsonify, redirect, request, send_file, send_from_directory
 
+BEIJING_TZ = timezone(timedelta(hours=8))
 
+def now_beijing():
+    """返回北京时间对应的当前时间。"""
+    return datetime.now(BEIJING_TZ)
+
+
+
+# 路由注册入口。
 def register_public_site_routes(
     app,
     *,
@@ -44,7 +55,7 @@ def register_public_site_routes(
     seo_breadcrumb_labels,
     seo_breadcrumb_targets,
 ):
-    """Register public-facing SEO, search, and static routes."""
+    """注册公开站点的 SEO、搜索与静态资源路由。"""
     root = Path(app_root)
     favicon_file = Path(cdn_assets_dir) / Path(site_favicon_relative_path)
 
@@ -421,9 +432,9 @@ def register_public_site_routes(
                 return
             seen.add(url_path)
             try:
-                lastmod = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).strftime('%Y-%m-%d')
+                lastmod = datetime.fromtimestamp(file_path.stat().st_mtime, tz=BEIJING_TZ).strftime('%Y-%m-%d')
             except Exception:
-                lastmod = datetime.now(tz=timezone.utc).strftime('%Y-%m-%d')
+                lastmod = now_beijing().strftime('%Y-%m-%d')
             output.append({
                 'path': url_path,
                 'lastmod': lastmod,

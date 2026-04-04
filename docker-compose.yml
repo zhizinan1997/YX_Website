@@ -40,4 +40,9 @@ services:
       - "${MAIN_PORT:-2026}:80"
       # CDN 专用入口（仅放行 /cdn_assets/*）
       - "${CDN_PORT:-2027}:81"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped

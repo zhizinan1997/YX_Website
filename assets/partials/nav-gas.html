@@ -50,16 +50,14 @@
                             <!-- Panel: Industry -->
                             <div id="panel-industry" class="vs-mega-panel">
                                 <h3>行业分类</h3>
-                                <div class="vs-mega-grid-v2">
-                                    <div>
-                                        <ul class="vs-mega-list-v2" id="gasIndustryList">
-                                            <li><a href="#">加载中...</a></li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <ul class="vs-mega-list-v2" id="gasIndustryRight">
-                                            <li><a href="#">加载中...</a></li>
-                                        </ul>
+                                <ul class="vs-mega-list-v2 vs-mega-list-v2--cards" id="gasIndustryList" style="grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                                    <li><a href="#">加载中...</a></li>
+                                </ul>
+                                <div class="vs-nav-card-pagination" id="gasIndustryPagination" style="display: none;">
+                                    <span class="vs-nav-card-page-label" id="gasIndustryPageLabel"></span>
+                                    <div class="vs-nav-card-page-controls">
+                                        <button class="vs-nav-card-page-btn" id="gasIndustryPrev" disabled>‹ 上一页</button>
+                                        <button class="vs-nav-card-page-btn" id="gasIndustryNext" disabled>下一页 ›</button>
                                     </div>
                                 </div>
                             </div>
@@ -67,43 +65,25 @@
                             <!-- Panel: Target -->
                             <div id="panel-target" class="vs-mega-panel">
                                 <h3>测量对象</h3>
-                                <div class="vs-mega-grid-v2" id="measurementTargetsPanel">
-                                    <div>
-                                        <ul class="vs-mega-list-v2" id="measurementTargetsLeft">
-                                            <li><a href="#">加载中...</a></li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <ul class="vs-mega-list-v2" id="measurementTargetsRight">
-                                            <li><a href="#">加载中...</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
+                                <ul class="vs-mega-list-v2" id="measurementTargetsList">
+                                    <li><a href="#">加载中...</a></li>
+                                </ul>
                             </div>
 
                             <!-- Panel: Type -->
                             <div id="panel-type" class="vs-mega-panel">
                                 <h3>产品种类</h3>
-                                <div class="vs-mega-grid-v2" id="categoriesPanel">
-                                    <div>
-                                        <ul class="vs-mega-list-v2" id="categoriesLeft">
-                                            <li><a href="#">加载中...</a></li>
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <ul class="vs-mega-list-v2" id="categoriesRight">
-                                            <li><a href="#">加载中...</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
+                                <ul class="vs-mega-list-v2" id="categoriesList">
+                                    <li><a href="#">加载中...</a></li>
+                                </ul>
                             </div>
 
                             <!-- Panel: List -->
                             <div id="panel-list" class="vs-mega-panel">
                                 <h3>全部产品</h3>
-                                <div class="vs-mega-grid-v2" id="dynamic-product-list">
+                                <ul class="vs-mega-list-v2" id="dynamic-product-list">
                                     <!-- 产品由JS动态生成 -->
-                                </div>
+                                </ul>
                                 <div style="margin-top: 20px;">
                                     <a href="/pages/gassensing/all-products.html" class="vs-mega-view-all"
                                         style="color: var(--color-primary); font-weight: 600;">查看所有产品 <i

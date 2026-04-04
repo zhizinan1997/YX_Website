@@ -239,6 +239,8 @@ docker run -d \
   --name yx-gateway \
   --restart unless-stopped \
   --network yx-net \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   -p 127.0.0.1:2026:80 \
   -p 127.0.0.1:2027:81 \
   ghcr.io/zhizinan1997/yx-gateway:latest

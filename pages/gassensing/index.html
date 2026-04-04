@@ -982,8 +982,8 @@
         .h2-contact-cta__card {
             max-width: 1160px;
             margin: 0 auto;
-            padding: clamp(72px, 7vw, 100px) clamp(40px, 4.6vw, 88px);
-            min-height: clamp(440px, 42vw, 560px);
+            padding: clamp(50px, 5vw, 70px) clamp(40px, 4.6vw, 88px);
+            min-height: clamp(310px, 30vw, 390px);
             border: 1px solid #e6edf7;
             border-radius: 18px;
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(248, 251, 255, 0.86) 100%);
@@ -1008,6 +1008,7 @@
             margin: 0 auto 40px;
             max-width: 780px;
             font-size: 18px;
+            font-weight: 500;
             line-height: 1.8;
             color: #4e6786;
         }
@@ -1097,7 +1098,7 @@
                             <div
                                 style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; height: 100%; padding-top: 24px;">
                                 <p
-                                    style="font-size: 20px; color: transparent; background: linear-gradient(135deg, #fff 0%, #a8e6ff 50%, #7dd3fc 100%); -webkit-background-clip: text; background-clip: text; margin-bottom: 28px; text-align: right; max-width: 420px; line-height: 1.85; text-shadow: none; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.62)); font-weight: 500; letter-spacing: 0.3px;">
+                                    style="font-size: 22px; color: transparent; background: linear-gradient(135deg, #fff 0%, #a8e6ff 50%, #7dd3fc 100%); -webkit-background-clip: text; background-clip: text; margin-bottom: 28px; text-align: right; max-width: 420px; line-height: 1.85; text-shadow: none; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.62)); font-weight: 650; letter-spacing: 0.3px;">
                                     元芯传感致力于先进的氢气传感技术<br>构筑绿色安全的氢能事业
                                 </p>
                                 <a href="../../pages/contact/contact.html"
@@ -1484,7 +1485,7 @@
                     if (!dateText) return '';
                     const match = String(dateText).match(/^(\d{4})-(\d{2})-(\d{2})$/);
                     if (!match) return String(dateText);
-                    return `${parseInt(match[3], 10)} ${parseInt(match[2], 10)}月 ${match[1]}`;
+                    return `${match[1]}年${parseInt(match[2], 10)}月${parseInt(match[3], 10)}日`;
                 }
 
                 function render(items) {

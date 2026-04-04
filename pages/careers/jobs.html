@@ -247,6 +247,13 @@
             transition: opacity 0.8s ease;
         }
 
+        video::-webkit-media-controls {
+            display: none !important;
+        }
+        video::-webkit-media-controls-enclosure {
+            display: none !important;
+        }
+
         .job-hero h1 {
             font-size: 48px;
             font-weight: 700;
@@ -615,7 +622,7 @@
         <section class="job-hero">
             <!-- 视频背景（同联系页） -->
             <video id="heroVideo" muted playsinline preload="metadata" poster="../contact/contact_hero_bg.png">
-                <source src="https://data.zhizinan.top/renwen.mp4" type="video/mp4" />
+                <source src="/cdn_assets/videos/renwen.mp4" type="video/mp4" />
             </video>
             <div class="vs-container" style="position: relative; z-index: 3;">
                 <h1>人才招聘</h1>

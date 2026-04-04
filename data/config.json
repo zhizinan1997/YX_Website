@@ -4,7 +4,7 @@
   "admin_password": "",
   "cdn_enabled": false,
   "cdn_domain": "",
-  "turnstile_enabled": true,
+  "turnstile_enabled": false,
   "turnstile_site_key": "0x4AAAAAACwKu-2HPFYY3XaB",
   "turnstile_secret_key": "0x4AAAAAACwKuxfpGhJXKGtu1PhTl9ANq24",
   "chatbot_api_key": "sk-rbiMEElnnf1pG8k6JtvL5xO6EFhDVZs0hGHW4AdONkEHmQS6",

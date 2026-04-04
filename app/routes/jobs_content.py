@@ -1,4 +1,7 @@
-"""Jobs/careers helpers and routes."""
+"""招聘内容管理路由模块。
+
+负责岗位数据解析、清洗、保存以及后台招聘接口。
+"""
 
 from __future__ import annotations
 
@@ -10,11 +13,14 @@ from pathlib import Path
 
 from flask import jsonify, request
 
+# 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 
 
+
+# 依赖注入配置入口。
 def configure_jobs_content(*, jobs_file, pages_dir, sanitize_news_html_fragment):
-    """Configure shared dependencies for jobs helpers/routes."""
+    """配置招聘内容模块的共享依赖。"""
     _DEPS.clear()
     _DEPS.update({
         'jobs_file': Path(jobs_file),
@@ -31,7 +37,7 @@ def _dep(name):
 
 
 def parse_jobs_from_html(html_text):
-    """Parse jobs list from legacy job.aspx.html."""
+    """从旧版 job.aspx.html 中解析岗位列表。"""
     try:
         match = re.search(r'<ul class="jobs_list">(.*?)</ul>', html_text, re.S)
         if not match:
@@ -75,7 +81,7 @@ def parse_jobs_from_html(html_text):
 
 
 def clean_job_text(value: str) -> str:
-    """Normalize legacy whitespace/HTML entities in job fields."""
+    """规范化岗位字段中的旧版空白与 HTML 实体。"""
     if value is None:
         return ''
     text = str(value)
@@ -87,7 +93,7 @@ def clean_job_text(value: str) -> str:
 
 
 def normalize_job_date(value: str) -> str:
-    """Normalize date to YYYY-MM-DD for input[type=date] compatibility."""
+    """将日期整理为年-月-日格式，兼容日期输入框。"""
     text = clean_job_text(value)
     if not text:
         return ''
@@ -102,7 +108,7 @@ def normalize_job_date(value: str) -> str:
 
 
 def normalize_job_record(item):
-    """Sanitize one job object from storage/user input."""
+    """规范化来自存储或用户输入的单条岗位数据。"""
     if not isinstance(item, dict):
         return None
     return {
@@ -157,6 +163,8 @@ def save_jobs_data(data):
     _dep('jobs_file').write_text(json.dumps({'jobs': jobs}, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
+
+# 路由注册入口。
 def register_jobs_content_routes(
     app,
     *,
@@ -165,7 +173,7 @@ def register_jobs_content_routes(
     pages_dir,
     sanitize_news_html_fragment,
 ):
-    """Register jobs/careers routes."""
+    """注册招聘与岗位管理相关路由。"""
     configure_jobs_content(
         jobs_file=jobs_file,
         pages_dir=pages_dir,
