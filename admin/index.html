@@ -6917,8 +6917,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 }
             } else {
                 const userPerms = currentAdminAuth.permissions || [];
+                const permKeys = Object.keys(catalogMap);
 
-                ADMIN_PERMISSION_KEYS.forEach(key => {
+                permKeys.forEach(key => {
                     const hasPermission = userPerms.includes(key);
                     const label = catalogMap[key] || key;
 
@@ -7479,7 +7480,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 is_super_admin: safe.is_super_admin === true,
                 permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : []
             };
-            updateTopbarAccountDisplay();
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
                 permissionCatalog = safe.permission_catalog
                     .map(item => ({
@@ -7490,6 +7490,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             } else {
                 permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
             }
+            updateTopbarAccountDisplay();
             const usernameInput = document.getElementById('newUsername');
             if (usernameInput && currentAdminAuth.username) {
                 usernameInput.value = currentAdminAuth.username;

@@ -74,6 +74,7 @@ from app.admin_audit import (
     append_admin_login_log,
     configure_admin_audit,
     load_admin_login_logs,
+    resolve_ip_country_code,
     resolve_ip_location,
 )
 from app.auth_guards import login_required, require_super_admin_api
@@ -266,6 +267,7 @@ def register_all_routes(app):
         admin_login_log_lock=ADMIN_LOGIN_LOG_LOCK,
         project_root=APP_ROOT,
         resolve_ip_location=resolve_ip_location,
+        resolve_ip_country_code=resolve_ip_country_code,
     )
 
     register_home_content_routes(

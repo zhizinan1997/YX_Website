@@ -135,54 +135,67 @@ def _http_get_json(url: str, timeout: float = 2.5):
 def _fetch_ip_location_from_ipwhois(ip: str):
     data = _http_get_json(f'https://ipwho.is/{ip}?lang=zh', timeout=2.6)
     if not isinstance(data, dict):
-        return ''
+        return '', ''
     if data.get('success') is False:
-        return ''
+        return '', ''
+    country_code = str(data.get('country_code') or '').strip().upper()
     connection = data.get('connection') if isinstance(data.get('connection'), dict) else {}
-    return _build_location_text(
-        data.get('country') or data.get('country_code'),
+    location = _build_location_text(
+        data.get('country') or country_code,
         data.get('region'),
         data.get('city'),
         connection.get('isp') or connection.get('org'),
     )
+    return location, country_code
 
 
 def _fetch_ip_location_from_ipapi_co(ip: str):
     data = _http_get_json(f'https://ipapi.co/{ip}/json/', timeout=2.6)
     if not isinstance(data, dict):
-        return ''
+        return '', ''
     if data.get('error') is True:
-        return ''
-    return _build_location_text(
-        data.get('country_name') or data.get('country'),
+        return '', ''
+    country_code = str(data.get('country_code') or data.get('country') or '').strip().upper()
+    # ipapi.co 的 country 字段本身就是 ISO 代码
+    if country_code and len(country_code) != 2:
+        country_code = ''
+    location = _build_location_text(
+        data.get('country_name') or country_code,
         data.get('region'),
         data.get('city'),
         data.get('org') or data.get('asn'),
     )
+    return location, country_code
 
 
 def _fetch_ip_location_from_ip_api(ip: str):
     data = _http_get_json(
-        f'http://ip-api.com/json/{ip}?lang=zh-CN&fields=status,country,regionName,city,isp',
+        f'http://ip-api.com/json/{ip}?lang=zh-CN&fields=status,country,regionName,city,isp,countryCode',
         timeout=2.6,
     )
     if not isinstance(data, dict):
-        return ''
+        return '', ''
     if data.get('status') != 'success':
-        return ''
-    return _build_location_text(
+        return '', ''
+    country_code = str(data.get('countryCode') or '').strip().upper()
+    location = _build_location_text(
         data.get('country'),
         data.get('regionName'),
         data.get('city'),
         data.get('isp'),
     )
+    return location, country_code
 
 
 def fetch_ip_location(ip):
-    """通过外部服务解析公网 IP 的归属地信息。"""
+    """通过外部服务解析公网 IP 的归属地信息。
+
+    返回 (归属地展示文本, ISO 国家代码) 的元组。
+    如果所有 API 均不可用，返回 ('未知', '')。
+    """
     ip_text = str(ip or '').strip()
     if not ip_text:
-        return '未知'
+        return '未知', ''
 
     for resolver in (
         _fetch_ip_location_from_ipwhois,
@@ -190,12 +203,24 @@ def fetch_ip_location(ip):
         _fetch_ip_location_from_ip_api,
     ):
         try:
-            location = str(resolver(ip_text) or '').strip()
+            result = resolver(ip_text)
+            if isinstance(result, tuple) and len(result) == 2:
+                location, cc = result
+            else:
+                location, cc = str(result or '').strip(), ''
         except Exception:
-            location = ''
+            location, cc = '', ''
+        location = str(location or '').strip()
+        cc = str(cc or '').strip().upper()
         if location and location != '未知':
-            return location
-    return '未知'
+            return location, cc
+    return '未知', ''
+
+
+def fetch_ip_country_code(ip):
+    """仅获取公网 IP 对应的 ISO 国家代码，供登录地域校验使用。"""
+    _, cc = fetch_ip_location(ip)
+    return cc
 
 
 def _is_unknown_location(value: str) -> bool:
@@ -222,6 +247,7 @@ def resolve_ip_location(ip):
             return cached.strip()
 
     location = '未知'
+    country_code = ''
     try:
         ip_obj = ipaddress.ip_address(ip_text)
         if ip_obj.is_loopback:
@@ -235,13 +261,14 @@ def resolve_ip_location(ip):
         elif ip_obj.is_multicast:
             location = '组播地址'
         else:
-            location = fetch_ip_location(ip_text)
+            location, country_code = fetch_ip_location(ip_text)
     except ValueError:
         location = '未知'
 
     ttl = ADMIN_IP_LOCATION_CACHE_TTL_UNKNOWN if _is_unknown_location(location) else ADMIN_IP_LOCATION_CACHE_TTL_SUCCESS
     cache_item = {
         'location': str(location or '未知').strip() or '未知',
+        'country_code': str(country_code or '').strip().upper(),
         'expires_at': now_ts + ttl,
     }
 
@@ -258,6 +285,23 @@ def resolve_ip_location(ip):
                 ADMIN_IP_LOCATION_CACHE.clear()
         ADMIN_IP_LOCATION_CACHE[ip_text] = cache_item
     return cache_item['location']
+
+
+def resolve_ip_country_code(ip):
+    """获取 IP 对应的 ISO 国家代码（带缓存），供登录地域校验使用。
+
+    会先调用 resolve_ip_location 确保缓存已填充，然后从缓存中读取 country_code。
+    """
+    ip_text = str(ip or '').strip()
+    if not ip_text:
+        return ''
+    # 确保缓存已填充
+    resolve_ip_location(ip_text)
+    with ADMIN_IP_LOCATION_LOCK:
+        cached = ADMIN_IP_LOCATION_CACHE.get(ip_text)
+        if isinstance(cached, dict):
+            return str(cached.get('country_code') or '').strip().upper()
+    return ''
 
 
 def now_beijing_iso():

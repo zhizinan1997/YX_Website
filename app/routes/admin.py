@@ -936,6 +936,7 @@ def register_admin_routes(
     admin_login_log_lock,
     project_root=None,
     resolve_ip_location=None,
+    resolve_ip_country_code=None,
 ):
     """向 Flask 应用注册后台管理相关路由。"""
     _resolve_ip = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
