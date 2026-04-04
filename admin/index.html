@@ -702,6 +702,46 @@
             background: #f5f9ff;
         }
 
+        .version-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid #d4dbe6;
+            background: #fff;
+            color: #1f3655;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: default;
+            transition: all 0.2s ease;
+        }
+
+        .version-badge:hover {
+            border-color: #9fb3d1;
+            background: #f5f9ff;
+        }
+
+        .version-badge .version-label {
+            opacity: 0.75;
+            font-weight: 500;
+        }
+
+        .version-badge .version-number {
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .version-badge .version-time {
+            opacity: 0.7;
+            font-size: 11px;
+        }
+
+        .version-badge .version-sep {
+            margin: 0 6px;
+            opacity: 0.4;
+        }
+
         .account-menu {
             position: relative;
         }
@@ -3902,6 +3942,9 @@
                     <div class="page-title" id="pageTitle">网站数据</div>
                 </div>
                 <div class="top-bar-actions">
+                    <span class="version-badge" id="versionBadge" title="正在加载版本信息...">
+                        <span class="version-label">v</span><span class="version-number">...</span>
+                    </span>
                     <a class="top-home-btn" href="/" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-external-link-alt"></i>
                         官网首页
@@ -7288,6 +7331,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         initLoginBackground();
         initLoginSecurity();
         checkLoginStatus();
+        loadVersionBadge();
         document.addEventListener('click', (event) => {
             const wrap = document.getElementById('accountMenu');
             if (!wrap) return;
@@ -7677,6 +7721,23 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 }
             } catch (e) {
                 console.error(e);
+            }
+        }
+
+        async function loadVersionBadge() {
+            const badge = document.getElementById('versionBadge');
+            if (!badge) return;
+            try {
+                const res = await fetch('/api/changelog/latest');
+                const data = await res.json();
+                const version = data?.version || '?.?.?';
+                const buildTime = data?.build_time || '';
+                badge.innerHTML = `
+                    <span class="version-label">版本号：</span><span class="version-number">${version}</span><span class="version-sep">|</span><span class="version-label">构建时间：</span><span class="version-time">${buildTime}</span>
+                `;
+                badge.title = `最新版本：${version}${buildTime ? '，更新时间：' + buildTime : ''}`;
+            } catch (e) {
+                badge.innerHTML = '<span class="version-label">版本号：</span><span class="version-number">?.?.?</span>';
             }
         }
 

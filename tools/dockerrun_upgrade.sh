@@ -978,6 +978,13 @@ recreate_containers() {
   fi
   info "网站容器启动成功，容器 ID：${WEBSITE_CONTAINER_ID:0:12}"
 
+  # 同时连接 bridge 网络，确保端口映射和域名访问正常
+  if ! docker network connect bridge "$WEBSITE_CONTAINER" 2>/dev/null; then
+    info "网站容器已在 bridge 网络中，跳过。"
+  else
+    info "已将网站容器连接到 bridge 网络。"
+  fi
+
   gateway_cmd=(
     docker run -d
     --name "$GATEWAY_CONTAINER"
@@ -1004,6 +1011,13 @@ recreate_containers() {
     die "新网关容器启动失败，已回滚到旧版本。请检查镜像和配置。"
   fi
   info "网关容器启动成功，容器 ID：${GATEWAY_CONTAINER_ID:0:12}"
+
+  # 同时连接 bridge 网络，确保端口映射和域名访问正常
+  if ! docker network connect bridge "$GATEWAY_CONTAINER" 2>/dev/null; then
+    info "网关容器已在 bridge 网络中，跳过。"
+  else
+    info "已将网关容器连接到 bridge 网络。"
+  fi
 
   # 等待容器初始化稳定
   info "等待容器初始化（3 秒）..."

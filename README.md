@@ -97,8 +97,8 @@ python3 server.py
 推荐执行命令：
 
 ```bash
-echo "【1/4】开始下载最新升级脚本..." && \
-curl -fL --progress-bar -o /root/yxwebsite/dockerrun_upgrade.sh https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh && \
+echo "【1/4】开始下载最新升级脚本 (通过代理)..." && \
+curl -fL -x 127.0.0.1:8090 --progress-bar -o /root/yxwebsite/dockerrun_upgrade.sh https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh && \
 echo "【2/4】升级脚本下载完成，开始赋予执行权限..." && \
 chmod +x /root/yxwebsite/dockerrun_upgrade.sh && \
 echo "【3/4】执行权限已设置，开始运行升级脚本..." && \
@@ -234,6 +234,9 @@ docker run -d \
   -v /root/yxwebsite/pages:/app/pages \
   ghcr.io/zhizinan1997/yx_website:latest
 
+# 4.1) 将网站容器同时连接到 bridge 网络（避免域名 502）
+docker network connect bridge yx-website
+
 # 5) 启动网关容器
 docker run -d \
   --name yx-gateway \
@@ -244,6 +247,9 @@ docker run -d \
   -p 127.0.0.1:2026:80 \
   -p 127.0.0.1:2027:81 \
   ghcr.io/zhizinan1997/yx-gateway:latest
+
+# 5.1) 将网关容器同时连接到 bridge 网络（避免域名 502）
+docker network connect bridge yx-gateway
 ```
 
 ## 📡 CDN 加速开关
