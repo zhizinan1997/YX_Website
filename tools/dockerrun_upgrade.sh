@@ -645,6 +645,13 @@ resolve_basic_runtime_values() {
   pick_value ADMIN_USERNAME admin ADMIN_USERNAME_VAL value_source
   info "ADMIN_USERNAME=${ADMIN_USERNAME_VAL}（来源：${value_source}）"
 
+  HIDDEN_ADMIN_USERNAME_VAL="$(trim "${HIDDEN_ADMIN_USERNAME-}")"
+  HIDDEN_ADMIN_PASSWORD_HASH_VAL="$(trim "${HIDDEN_ADMIN_PASSWORD_HASH-}")"
+  HIDDEN_ADMIN_PASSWORD_VAL="$(trim "${HIDDEN_ADMIN_PASSWORD-}")"
+  info "HIDDEN_ADMIN_USERNAME=${HIDDEN_ADMIN_USERNAME_VAL:-<not set>} (source: external env)"
+  info "HIDDEN_ADMIN_PASSWORD_HASH=$([[ -n "$HIDDEN_ADMIN_PASSWORD_HASH_VAL" ]] && printf 'provided' || printf 'not provided') (source: external env)"
+  info "HIDDEN_ADMIN_PASSWORD=$([[ -n "$HIDDEN_ADMIN_PASSWORD_VAL" ]] && printf 'provided' || printf 'not provided') (source: external env)"
+
   pick_value TRUST_PROXY_HEADERS true TRUST_PROXY_HEADERS_VAL value_source
   info "TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS_VAL}（来源：${value_source}）"
 
@@ -742,6 +749,31 @@ resolve_admin_bootstrap_if_needed() {
 
   prompt_confirm_secret_into ADMIN_PASSWORD_VAL "请输入超级管理员初始密码（至少 6 位）" 6
   info "超级管理员初始密码已通过交互输入获取。"
+}
+
+validate_hidden_admin_runtime_values() {
+  if [[ -z "${HIDDEN_ADMIN_USERNAME_VAL:-}" ]]; then
+    if [[ -n "${HIDDEN_ADMIN_PASSWORD_HASH_VAL:-}" || -n "${HIDDEN_ADMIN_PASSWORD_VAL:-}" ]]; then
+      die "已提供 HIDDEN_ADMIN_PASSWORD_HASH/HIDDEN_ADMIN_PASSWORD，但缺少 HIDDEN_ADMIN_USERNAME"
+    fi
+    return 0
+  fi
+
+  if [[ ! "$HIDDEN_ADMIN_USERNAME_VAL" =~ ^[A-Za-z0-9_.-]{3,32}$ ]]; then
+    die "HIDDEN_ADMIN_USERNAME 格式不合法，仅支持 3-32 位字母、数字、下划线、点、短横线"
+  fi
+
+  if [[ "$HIDDEN_ADMIN_USERNAME_VAL" == "$ADMIN_USERNAME_VAL" ]]; then
+    die "HIDDEN_ADMIN_USERNAME 不能与 ADMIN_USERNAME 相同"
+  fi
+
+  if [[ -z "${HIDDEN_ADMIN_PASSWORD_HASH_VAL:-}" && -z "${HIDDEN_ADMIN_PASSWORD_VAL:-}" ]]; then
+    die "启用隐藏超级管理员时，必须提供 HIDDEN_ADMIN_PASSWORD_HASH 或 HIDDEN_ADMIN_PASSWORD"
+  fi
+
+  if [[ -n "${HIDDEN_ADMIN_PASSWORD_VAL:-}" && ${#HIDDEN_ADMIN_PASSWORD_VAL} -lt 8 ]]; then
+    die "HIDDEN_ADMIN_PASSWORD 长度至少需要 8 位"
+  fi
 }
 
 load_existing_state() {
@@ -948,6 +980,15 @@ recreate_containers() {
   if [[ -n "$ADMIN_PASSWORD_VAL" ]]; then
     website_cmd+=( -e "ADMIN_PASSWORD=$ADMIN_PASSWORD_VAL" )
   fi
+  if [[ -n "$HIDDEN_ADMIN_USERNAME_VAL" ]]; then
+    website_cmd+=( -e "HIDDEN_ADMIN_USERNAME=$HIDDEN_ADMIN_USERNAME_VAL" )
+  fi
+  if [[ -n "$HIDDEN_ADMIN_PASSWORD_HASH_VAL" ]]; then
+    website_cmd+=( -e "HIDDEN_ADMIN_PASSWORD_HASH=$HIDDEN_ADMIN_PASSWORD_HASH_VAL" )
+  fi
+  if [[ -n "$HIDDEN_ADMIN_PASSWORD_VAL" ]]; then
+    website_cmd+=( -e "HIDDEN_ADMIN_PASSWORD=$HIDDEN_ADMIN_PASSWORD_VAL" )
+  fi
   if [[ -n "$CDN_DOMAIN_VAL" ]]; then
     website_cmd+=( -e "CDN_DOMAIN=$CDN_DOMAIN_VAL" )
   fi
@@ -1130,6 +1171,9 @@ show_help() {
   CLEAN_OLD_IMAGES=true
   DEPLOY_STRATEGY=smart|reset|reset-keep-data
   ALLOW_WEAK_ADMIN_PASSWORDS=true|false
+  HIDDEN_ADMIN_USERNAME=shadow_root
+  HIDDEN_ADMIN_PASSWORD_HASH=...
+  HIDDEN_ADMIN_PASSWORD=...
 
 交互说明：
   - 首次部署：脚本会自动导入新镜像里的 data/pages 内容，并要求输入 SECRET_KEY、PUBLIC_BASE_URL；如果还没有 admin_users.json，也会要求输入管理员初始密码。
@@ -1225,6 +1269,7 @@ else
 fi
 
 resolve_admin_bootstrap_if_needed
+validate_hidden_admin_runtime_values
 
 phase "修复挂载目录权限"
 chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
