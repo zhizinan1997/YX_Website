@@ -50,6 +50,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import sys
 import time
@@ -72,6 +73,7 @@ DEV_ENV_NAMES = {'dev', 'development', 'local', 'test', 'testing'}
 WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 WEAK_ADMIN_PASSWORDS = {'admin123', 'admin', '123456', 'password'}
 PLACEHOLDER_SECRET_KEYS = {'your-secret-key-change-in-production'}
+ADMIN_USERNAME_PATTERN = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
 PUBLIC_STATIC_EXACT_FILES = {'index.html', 'robots.txt'}
 PUBLIC_STATIC_ROOT_DIRS = {'pages', 'assets', 'cdn_assets'}
 PRIVATE_STATIC_PREFIXES = (
@@ -365,14 +367,19 @@ except Exception:
 
 
 def ensure_required_runtime_config():
+    """Validate required runtime security config outside development."""
     if is_development_mode():
         return
 
     errors = []
     secret_key = (os.environ.get('SECRET_KEY') or '').strip()
     public_base_url = get_public_base_url()
+    admin_username = (os.environ.get('ADMIN_USERNAME') or 'admin').strip()
     admin_hash = (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip()
     admin_password = (os.environ.get('ADMIN_PASSWORD') or '').strip()
+    hidden_admin_username = (os.environ.get('HIDDEN_ADMIN_USERNAME') or '').strip()
+    hidden_admin_hash = (os.environ.get('HIDDEN_ADMIN_PASSWORD_HASH') or '').strip()
+    hidden_admin_password = (os.environ.get('HIDDEN_ADMIN_PASSWORD') or '').strip()
     allow_weak_admin_passwords = env_bool('ALLOW_WEAK_ADMIN_PASSWORDS', False)
 
     if not secret_key:
@@ -384,6 +391,7 @@ def ensure_required_runtime_config():
         errors.append('缺少合法的 PUBLIC_BASE_URL')
 
     has_bootstrapped_admin = False
+    has_bootstrapped_hidden_admin = False
     admin_users_file = DATA_DIR / 'admin_users.json'
     admin_users_file_exists = admin_users_file.exists()
     admin_users_read_error = ''
@@ -392,12 +400,22 @@ def ensure_required_runtime_config():
             payload = json.loads(admin_users_file.read_text(encoding='utf-8'))
             users = payload.get('users', []) if isinstance(payload, dict) else []
             has_bootstrapped_admin = any(
-                isinstance(item, dict) and str(item.get('role') or '') == 'super_admin' and str(item.get('password_hash') or '').strip()
+                isinstance(item, dict)
+                and str(item.get('role') or '') == 'super_admin'
+                and str(item.get('password_hash') or '').strip()
+                for item in users
+            )
+            has_bootstrapped_hidden_admin = any(
+                isinstance(item, dict)
+                and str(item.get('role') or '') == 'super_admin'
+                and bool(item.get('hidden', False))
+                and str(item.get('password_hash') or '').strip()
                 for item in users
             )
         except Exception as exc:
             admin_users_read_error = str(exc)
             has_bootstrapped_admin = False
+            has_bootstrapped_hidden_admin = False
 
     if (
         admin_password
@@ -427,10 +445,42 @@ def ensure_required_runtime_config():
             message += f'；并且未找到 {admin_users_file}'
         errors.append(message)
 
+    hidden_admin_config_enabled = bool(hidden_admin_username or hidden_admin_hash or hidden_admin_password)
+    if hidden_admin_config_enabled and not hidden_admin_username:
+        errors.append('缺少 HIDDEN_ADMIN_USERNAME：启用隐藏超级管理员时必须提供用户名')
+    if hidden_admin_username and not ADMIN_USERNAME_PATTERN.match(hidden_admin_username):
+        errors.append('HIDDEN_ADMIN_USERNAME 格式不合法：仅支持 3-32 位字母、数字、下划线、点、短横线')
+    if hidden_admin_config_enabled and hidden_admin_username and hidden_admin_username == admin_username:
+        errors.append('HIDDEN_ADMIN_USERNAME 不能与 ADMIN_USERNAME 相同')
+    if (
+        hidden_admin_password
+        and hidden_admin_password in WEAK_ADMIN_PASSWORDS
+        and not allow_weak_admin_passwords
+        and not has_bootstrapped_hidden_admin
+        and not hidden_admin_hash
+    ):
+        message = 'HIDDEN_ADMIN_PASSWORD 不能使用弱口令'
+        if admin_users_file_exists:
+            if admin_users_read_error:
+                message += f'；且无法读取 {admin_users_file}：{admin_users_read_error}'
+            else:
+                message += f'；且 {admin_users_file} 中未检测到带 password_hash 的隐藏 super_admin'
+        else:
+            message += f'；且未找到 {admin_users_file}'
+        errors.append(message)
+    if hidden_admin_config_enabled and not has_bootstrapped_hidden_admin and not hidden_admin_hash and not hidden_admin_password:
+        message = '缺少隐藏超级管理员初始化凭据：请提供 HIDDEN_ADMIN_PASSWORD_HASH 或一次性 HIDDEN_ADMIN_PASSWORD'
+        if admin_users_file_exists:
+            if admin_users_read_error:
+                message += f'；另外无法读取 {admin_users_file}：{admin_users_read_error}'
+            else:
+                message += f'；并且 {admin_users_file} 中未检测到有效的隐藏 super_admin'
+        else:
+            message += f'；并且未找到 {admin_users_file}'
+        errors.append(message)
+
     if errors:
         raise RuntimeError('生产环境安全配置不完整：' + '；'.join(errors))
-
-
 
 NEWS_SAFE_HTML_TAGS = {
     'p', 'br', 'div', 'span',
@@ -471,6 +521,9 @@ def get_config():
         'admin_username': os.environ.get('ADMIN_USERNAME', 'admin'),
         'admin_password_hash': (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip(),
         'admin_password': (os.environ.get('ADMIN_PASSWORD') or ('admin123' if is_development_mode() else '')).strip(),
+        'hidden_admin_username': (os.environ.get('HIDDEN_ADMIN_USERNAME') or '').strip(),
+        'hidden_admin_password_hash': (os.environ.get('HIDDEN_ADMIN_PASSWORD_HASH') or '').strip(),
+        'hidden_admin_password': (os.environ.get('HIDDEN_ADMIN_PASSWORD') or '').strip(),
         'cdn_enabled': env_bool('CDN_ENABLED', False),
         'cdn_domain': (os.environ.get('CDN_DOMAIN') or os.environ.get('CDN_ASSET_BASE_URL') or '').strip(),
         'turnstile_enabled': env_bool('TURNSTILE_ENABLED', False),
@@ -482,7 +535,14 @@ def get_config():
         try:
             config = json.loads(CONFIG_FILE.read_text(encoding='utf-8'))
             merged = {**default_config, **config}
-            for key in ('admin_username', 'admin_password_hash', 'admin_password'):
+            for key in (
+                'admin_username',
+                'admin_password_hash',
+                'admin_password',
+                'hidden_admin_username',
+                'hidden_admin_password_hash',
+                'hidden_admin_password',
+            ):
                 env_value = str(default_config.get(key, '') or '').strip()
                 file_value = str(config.get(key, '') or '').strip() if isinstance(config, dict) else ''
                 if env_value and not file_value:

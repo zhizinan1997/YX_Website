@@ -113,7 +113,14 @@ def load_admin_login_logs():
             items = data.get('items', [])
             if not isinstance(items, list):
                 items = []
-            return [item for item in items if isinstance(item, dict)]
+            normalized = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                record = dict(item)
+                record['hidden_account'] = bool(record.get('hidden_account', False))
+                normalized.append(record)
+            return normalized
         except Exception:
             pass
 
@@ -357,7 +364,7 @@ def now_beijing_iso():
 MAX_ADMIN_LOGIN_LOG_ITEMS = 500
 
 
-def append_admin_login_log(operation, success, username='', detail=''):
+def append_admin_login_log(operation, success, username='', detail='', hidden_account=False):
     """追加一条不可变更的后台登录操作日志。"""
     ip = GET_CLIENT_IP()
     log_item = {
@@ -369,6 +376,7 @@ def append_admin_login_log(operation, success, username='', detail=''):
         'operation': str(operation or '后台操作').strip(),
         'username': str(username or '').strip(),
         'detail': str(detail or '').strip(),
+        'hidden_account': bool(hidden_account),
     }
 
     with ADMIN_LOGIN_LOG_LOCK:
