@@ -1,4 +1,64 @@
-"""公开输出内容清洗辅助模块。"""
+"""
+公开输出内容清洗辅助模块。
+
+本模块负责对公开显示的内容进行安全清洗，防止XSS攻击和恶意内容注入。
+所有面向用户的内容输出都必须经过本模块处理。
+
+主要功能：
+1. 文本清洗（sanitize_public_text）
+   - 纯文本内容的安全处理
+   - 可选的最大长度限制
+   - 移除所有HTML标签和特殊字符
+
+2. 日期文本清洗（sanitize_public_date_text）
+   - 日期显示内容的安全处理
+   - 限制最大长度（默认32字符）
+   - 防止恶意内容注入
+
+3. 链接URL清洗（sanitize_public_link_url）
+   - 验证链接URL的合法性
+   - 可选强制远程公网地址验证
+   - 防止javascript:伪协议攻击
+   - 空链接返回默认值
+
+4. 媒体URL清洗（sanitize_public_media_url）
+   - 图片、视频等媒体URL的安全处理
+   - 可选强制远程公网地址验证
+   - 支持相对路径和绝对路径
+
+5. 产品设置清洗（sanitize_public_product_settings）
+   - 产品展示配置的全面清洗
+   - 支持的配置项：
+     * displayName: 显示名称
+     * isNew: 新品标识
+     * hidden: 隐藏标识
+     * sortOrder: 排序权重
+     * cardTitle: 卡片标题
+     * cardImage: 卡片图片
+     * cardSummary: 卡片摘要
+     * categories: 产品分类
+     * industryCategories: 行业分类
+     * relatedNews: 相关新闻
+
+6. 合作伙伴数据清洗（sanitize_public_partner_items）
+   - 合作伙伴Logo的URL清洗
+   - 生成唯一标识符
+   - 标记图片来源（上传或URL）
+
+安全特性：
+- 默认拒绝所有javascript:伪协议
+- 强制验证远程URL的公网可达性
+- 移除潜在的危险字符和标签
+- 长度限制防止缓冲区溢出
+
+使用场景：
+- 首页展示内容
+- 产品详情页
+- 新闻文章
+- 合作伙伴展示
+
+作者：元芯传感技术团队
+"""
 
 from __future__ import annotations
 

@@ -1,6 +1,53 @@
-"""站点统计路由模块。
+"""
+站点统计路由模块。
 
-负责埋点写入、事件清洗、地域与设备归类以及后台统计报表输出。
+本模块提供网站访问统计和用户行为追踪功能，包括：
+1. 数据埋点写入
+2. 事件清洗
+3. 地域和设备归类
+4. 统计报表输出
+
+主要功能：
+1. 数据采集
+   - 页面浏览事件
+   - 自定义事件追踪
+   - 会话结束事件
+   - 事件批次处理
+
+2. 数据清洗
+   - 事件名称长度限制
+   - 文本内容限制
+   - 路径长度限制
+   - 事件类型白名单
+
+3. 用户归类
+   - IP地域识别
+   - 设备类型检测
+   - 浏览器识别
+   - 操作系统识别
+
+4. 转化追踪
+   - 联系表单提交
+   - 简历投递
+   - 询价请求
+   - Demo申请
+   - 文件下载
+   - 电话点击
+   - 邮箱点击
+
+5. 统计报表
+   - 访问趋势
+   - 热门页面
+   - 用户地域分布
+   - 转化漏斗
+   - 实时访客
+
+6. 数据导出
+   - JSON格式导出
+   - 分页查询
+   - 数据聚合
+
+作者：元芯传感技术团队
 """
 
 import hashlib
@@ -206,6 +253,37 @@ def _analytics_build_geo_lookup_key(text: str) -> str:
     return re.sub(r'[\s/|,_\-·，、()（）]+', '', raw)
 
 
+_ANALYTICS_GEO_ASCII_ADMIN_SUFFIXES = (
+    ('special', 'administrative', 'region'),
+    ('autonomous', 'region'),
+    ('municipality',),
+    ('province',),
+    ('city',),
+    ('region',),
+    ('sar',),
+)
+
+
+def _analytics_build_geo_match_key(text: str) -> str:
+    raw = str(text or '').strip()
+    if not raw:
+        return ''
+    if re.search(r'[A-Za-z]', raw):
+        words = re.sub(r'[^a-z]+', ' ', raw.lower()).split()
+        while words:
+            trimmed = False
+            for suffix_words in _ANALYTICS_GEO_ASCII_ADMIN_SUFFIXES:
+                suffix_len = len(suffix_words)
+                if suffix_len and tuple(words[-suffix_len:]) == suffix_words:
+                    words = words[:-suffix_len]
+                    trimmed = True
+                    break
+            if not trimmed:
+                break
+        return ' '.join(words)
+    return re.sub(r'[\s/|,_\-·，、()（）]+', '', raw)
+
+
 _ANALYTICS_NON_GEO_LOCATION_LABELS = {
     '未知',
     'unknown',
@@ -226,6 +304,19 @@ _ANALYTICS_CONTINENT_LABELS = {
     'africa': '非洲',
     'oceania': '大洋洲',
 }
+
+_ANALYTICS_CHINA_COUNTRY_ALIASES = (
+    '中国',
+    '中华人民共和国',
+    '中国大陆',
+    'china',
+    'cn',
+    'prc',
+    "people's republic of china",
+    'people s republic of china',
+    'mainland china',
+    'china mainland',
+)
 
 _ANALYTICS_COUNTRY_CONTINENT_ALIASES = {
     'asia': (
@@ -408,58 +499,106 @@ for _continent_key, _aliases in _ANALYTICS_COUNTRY_CONTINENT_ALIASES.items():
             _ANALYTICS_COUNTRY_TO_CONTINENT[_lookup_key] = _continent_key
 
 
-def _analytics_extract_china_province(location_text: str) -> str:
+_ANALYTICS_CHINA_COUNTRY_LOOKUP_KEYS = {
+    _analytics_build_geo_match_key(alias)
+    for alias in _ANALYTICS_CHINA_COUNTRY_ALIASES
+    if _analytics_build_geo_match_key(alias)
+}
+
+_ANALYTICS_CHINA_PROVINCE_LOOKUP = {}
+for _province_name, _aliases in _ANALYTICS_CHINA_PROVINCE_ALIASES:
+    for _alias in _aliases:
+        _lookup_key = _analytics_build_geo_match_key(_alias)
+        if _lookup_key:
+            _ANALYTICS_CHINA_PROVINCE_LOOKUP[_lookup_key] = _province_name
+
+
+def _analytics_split_location_segments(location_text: str) -> list[str]:
     text = str(location_text or '').strip()
-    if not text:
+    if not text or text in _ANALYTICS_NON_GEO_LOCATION_LABELS:
+        return []
+    return [segment.strip() for segment in re.split(r'\s*/\s*', text) if segment and segment.strip()]
+
+
+def _analytics_match_china_province_segment(segment_text: str) -> str:
+    lookup_key = _analytics_build_geo_match_key(segment_text)
+    if not lookup_key:
         return ''
-    normalized = re.sub(r'\s+', '', text)
-    ascii_words = _analytics_normalize_ascii_words(text)
-    if not normalized and not ascii_words:
+    return _ANALYTICS_CHINA_PROVINCE_LOOKUP.get(lookup_key, '')
+
+
+def _analytics_is_china_country_segment(segment_text: str) -> bool:
+    lookup_key = _analytics_build_geo_match_key(segment_text)
+    if not lookup_key:
+        return False
+    return (
+        lookup_key in _ANALYTICS_CHINA_COUNTRY_LOOKUP_KEYS
+        or lookup_key in _ANALYTICS_CHINA_PROVINCE_LOOKUP
+    )
+
+
+def _analytics_extract_location_country_segment(location_text: str) -> str:
+    segments = _analytics_split_location_segments(location_text)
+    if not segments:
+        return ''
+    return segments[0]
+
+
+def _analytics_extract_china_province(location_text: str) -> str:
+    segments = _analytics_split_location_segments(location_text)
+    if not segments:
         return ''
 
-    for province_name, aliases in _ANALYTICS_CHINA_PROVINCE_ALIASES:
-        for alias in aliases:
-            alias_text = str(alias or '').strip()
-            if not alias_text:
-                continue
-            if re.search(r'[A-Za-z]', alias_text):
-                alias_words = _analytics_normalize_ascii_words(alias_text)
-                if alias_words and alias_words in ascii_words:
-                    return province_name
-            elif alias_text in normalized:
-                return province_name
+    first_segment = segments[0]
+    first_lookup_key = _analytics_build_geo_match_key(first_segment)
+    first_province = _analytics_match_china_province_segment(first_segment)
+    if first_province and first_lookup_key not in _ANALYTICS_CHINA_COUNTRY_LOOKUP_KEYS:
+        return first_province
+
+    if not _analytics_is_china_country_segment(first_segment):
+        return ''
+
+    for segment in segments[1:3]:
+        province_name = _analytics_match_china_province_segment(segment)
+        if province_name:
+            return province_name
     return ''
 
 
 def _analytics_extract_record_province(item) -> str:
+    location = _analytics_clean_text(item.get('location'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+    derived_country = _analytics_extract_country_from_location(location)
+    derived_province = _analytics_extract_china_province(location)
+    if derived_province:
+        return _analytics_clean_text(derived_province, max_length=32)
+    if derived_country and derived_country != '中国':
+        return ''
     province = _analytics_clean_text(item.get('province'), max_length=32)
     if province:
         return province
-    location = _analytics_clean_text(item.get('location'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
-    derived = _analytics_extract_china_province(location)
-    return _analytics_clean_text(derived, max_length=32)
+    return ''
 
 
 def _analytics_extract_country_from_location(location_text: str) -> str:
-    text = str(location_text or '').strip()
-    if not text or text in _ANALYTICS_NON_GEO_LOCATION_LABELS:
+    first_segment = _analytics_extract_location_country_segment(location_text)
+    if not first_segment:
         return ''
-    if _analytics_extract_china_province(text):
+    if _analytics_is_china_country_segment(first_segment):
         return '中国'
-    first_segment = str(text.split('/', 1)[0] or '').strip()
-    if not first_segment or first_segment in _ANALYTICS_NON_GEO_LOCATION_LABELS:
-        return ''
     return first_segment
 
 
 def _analytics_extract_record_country(item) -> str:
+    location = _analytics_clean_text(item.get('location'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+    derived_country = _analytics_extract_country_from_location(location)
+    if derived_country:
+        return _analytics_clean_text(derived_country, max_length=64)
     country = _analytics_clean_text(item.get('country'), max_length=64)
     if country:
-        if _analytics_extract_china_province(country):
+        if _analytics_is_china_country_segment(country):
             return '中国'
         return country
-    location = _analytics_clean_text(item.get('location'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
-    return _analytics_clean_text(_analytics_extract_country_from_location(location), max_length=64)
+    return ''
 
 
 def _analytics_resolve_continent_from_country(country_text: str) -> str:

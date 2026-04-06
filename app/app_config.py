@@ -1,4 +1,50 @@
-"""应用级配置、运行时初始化与缓存辅助模块。"""
+"""
+应用级配置、运行时初始化与缓存辅助模块。
+
+本模块提供Flask应用的全局配置、运行时初始化和缓存相关的工具函数，
+是整个后端应用的核心配置中心。
+
+主要功能：
+1. 应用实例创建（create_app）
+   - 初始化Flask应用实例
+   - 配置Session安全策略
+   - 设置日志记录
+   - 配置北京时区
+
+2. 安全配置（ensure_required_runtime_config）
+   - 验证生产环境必需的安全配置
+   - 检查SECRET_KEY的强度
+   - 验证管理员密码强度
+   - 确保PUBLIC_BASE_URL正确配置
+
+3. 密钥管理（load_or_create_secret_key）
+   - 从环境变量加载密钥
+   - 自动生成并持久化密钥
+   - 生产环境强制验证密钥强度
+
+4. 配置管理（get_config, update_config）
+   - 读写站点配置文件
+   - 支持环境变量和配置文件双重配置
+   - 环境变量优先级高于配置文件
+
+5. 缓存优化（cached_json_response）
+   - 提供带ETag的JSON响应
+   - 支持stale-while-revalidate缓存策略
+   - 减少重复计算和传输
+
+6. 常量定义
+   - 文件上传白名单配置
+   - 站点SEO元数据配置
+   - 媒体缓存控制策略
+   - 北京时区时间工具
+
+文件路径约定：
+- DATA_DIR: data/ - 数据存储目录
+- CDN_ASSETS_DIR: cdn_assets/ - CDN资源目录
+- 各类上传目录：hero、partners、product_cards、news等
+
+作者：元芯传感技术团队
+"""
 
 import hashlib
 import json

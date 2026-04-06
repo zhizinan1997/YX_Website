@@ -1,6 +1,75 @@
-"""CDN 素材管理路由模块。
+"""
+CDN素材管理路由模块。
 
-提供 `cdn_assets` 目录的浏览、上传、重命名、删除、下载与 URL 获取接口。
+本模块提供cdn_assets目录的完整文件管理功能，支持后台管理员
+对静态资源的上传、浏览、重命名、删除等操作。
+
+主要功能：
+1. 文件列表浏览（/api/cdn/assets/list）
+   - 递归列出目录内容
+   - 支持子目录浏览
+   - 显示文件大小、修改时间
+   - 生成面包屑导航
+   - 区分文件和文件夹
+
+2. 文件上传（/api/cdn/assets/upload）
+   - 支持多格式文件上传
+   - 自动创建目标目录
+   - 避免文件名冲突（自动重命名）
+   - 返回文件URL和完整地址
+
+3. 目录创建（/api/cdn/assets/mkdir）
+   - 在指定路径创建子目录
+   - 验证目录名合法性
+   - 防止路径穿越攻击
+
+4. 文件/目录删除（/api/cdn/assets/delete）
+   - 删除指定文件或空目录
+   - 递归删除目录树
+   - 保护根目录不被删除
+
+5. 重命名功能（/api/cdn/assets/rename）
+   - 重命名文件或目录
+   - 验证目标名称合法性
+   - 检查目标名是否已存在
+   - 兼容新旧参数格式
+
+6. 文件下载（/api/cdn/assets/download）
+   - 后台下载指定文件
+   - 支持文件流传输
+
+7. URL获取（/api/cdn/assets/url）
+   - 获取文件的相对URL
+   - 获取文件的完整CDN地址
+   - 显示CDN配置状态
+
+安全特性：
+- 路径穿越防护（使用safe_subpath函数）
+- 隐藏文件过滤（.开头文件不显示）
+- 根目录保护（不允许删除）
+- 登录状态校验
+- 文件名合法性验证
+
+CDN配置支持：
+- 本地模式：使用/cdn_assets/路径
+- CDN模式：使用配置的CDN域名
+- 配置状态查询
+
+文件组织：
+cdn_assets/
+├── images/
+│   ├── common/
+│   ├── products/
+│   ├── news/
+│   ├── gassensing/
+│   ├── biosensing/
+│   └── measurement/
+├── research/
+│   ├── development/
+│   └── cooperation/
+└── external-cache/
+
+作者：元芯传感技术团队
 """
 import os
 import json

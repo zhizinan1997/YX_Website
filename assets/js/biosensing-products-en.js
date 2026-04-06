@@ -6,77 +6,77 @@ const BIOSENSING_PRODUCTS = [
     {
         id: 'mc_bw_bio_workstation',
         name: 'MC-BW-01 Biosensing Workstation',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/71239bd525e4.jpg',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/71239bd525e4.webp',
         description: 'The MC-BW-01 biosensing workstation features pico-ampere level current measurement precision, designed for convenient measurement of weak current signals, supporting multi-channel parallel testing.',
         category: 'instrument'
     },
     {
         id: 'ion_detector',
         name: 'Ion Detector',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/e7c2ff731b1c.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/e7c2ff731b1c.webp',
         description: 'The Ion Detector is a portable, fast, and precise testing device utilizing ion-selective electrode technology for real-time field analysis.',
         category: 'instrument'
     },
     {
         id: 'portable_bio_detector',
         name: 'Portable Handheld Bio-Detector',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/889872f2cdab.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/889872f2cdab.webp',
         description: 'A portable handheld bio-tester with nano-ampere level current measurement precision, designed for convenient measurement of weak current signals. Compact and easy to carry.',
         category: 'instrument'
     },
     {
         id: 'carbon_bio_package_chip',
         name: 'Carbon-Based Bio-Packaging Chip',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5ae73ef90181.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5ae73ef90181.webp',
         description: 'The MCB-P series carbon-based bio-packaging chips use carbon-based FET sensing principles, featuring high uniformity, miniaturization, high sensitivity, and excellent stability.',
         category: 'chip'
     },
     {
         id: 'blood_potassium_chip',
         name: 'Portable Blood Potassium Detection Chip',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/c7c3bf65312d.bmp',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/c7c3bf65312d.webp',
         description: 'Portable blood potassium detection chip utilizing ion-sensitive field-effect transistor detection methodology, a domestic first in the IVD industry.',
         category: 'chip'
     },
     {
         id: 'chlorine_detection_chip',
         name: 'Residual Chlorine Detection Chip',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/e44b0c29e5b8.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/e44b0c29e5b8.webp',
         description: 'The residual chlorine detection chip is designed and manufactured using micro-nano fabrication processes combined with electrochemical detection principles for water quality testing.',
         category: 'chip'
     },
     {
         id: 'carbon_bio_platform',
         name: 'Carbon-Based Biosensing Platform',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/8496a8cc6608.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/8496a8cc6608.webp',
         description: 'A universal biosensing platform built on carbon-based field-effect transistor principles, featuring high uniformity, miniaturization, high sensitivity, and low noise.',
         category: 'platform'
     },
     {
         id: 'custom_bio_sensor_chip',
         name: 'Customized Biosensing Chip',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5ae73ef90181.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5ae73ef90181.webp',
         description: 'Utilizing carbon-based FET sensing principles, featuring high uniformity, miniaturization, and high sensitivity. Available for customized production.',
         category: 'chip'
     },
     {
         id: 'respiratory_virus_chip',
         name: 'Acute Respiratory Virus Detection Chip',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ac96ed29d345.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ac96ed29d345.webp',
         description: 'Rapid detection chip for acute respiratory viruses based on carbon-based FET technology, enabling high-sensitivity detection of various viruses.',
         category: 'chip'
     },
     {
         id: 'igzo_device',
         name: 'IGZO Device',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/a68f7093c2a5.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/a68f7093c2a5.webp',
         description: 'IGZO (Indium Gallium Zinc Oxide) thin-film transistor devices, featuring high mobility, low leakage current, and high transparency.',
         category: 'device'
     },
     {
         id: '../customization/micronano_fabrication',
         name: 'Micro-nano Fabrication Service',
-        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/693d8dddb7ee.png',
+        image: '/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/693d8dddb7ee.webp',
         description: 'Providing full-chain customized services from design to fabrication to testing, including noble metal deposition, dielectric growth, and complete micro-nano processes.',
         category: 'service'
     }
