@@ -227,8 +227,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
     if not p:
         return None
 
-    # 公开页、登录页和会话检查接口在别处处理。
-    if p in {'/admin', '/admin/login', '/admin/logout', '/admin/check'}:
+    # 公开页、登录页、会话检查和 IP 预检接口在别处处理。
+    if p in {'/admin', '/admin/login', '/admin/logout', '/admin/check', '/api/admin/ip-preflight'}:
         return None
 
     # 历史登录日志为全管理员只读审计信息，不绑定单一侧栏权限，避免子账号误拦截。
@@ -670,7 +670,7 @@ def _verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
             ssl_context = None
 
     try:
-        with urlopen(req, timeout=8, context=ssl_context) as resp:
+        with urlopen(req, timeout=30, context=ssl_context) as resp:
             body = resp.read().decode('utf-8', errors='ignore')
         result = json.loads(body) if body else {}
     except Exception as exc:
@@ -1026,6 +1026,23 @@ def register_admin_routes(
         resp.headers['X-Content-Type-Options'] = 'nosniff'
         resp.headers['Referrer-Policy'] = 'same-origin'
         return resp
+
+    @app.route('/api/admin/ip-preflight', methods=['GET'])
+    def admin_ip_preflight():
+        """登录前 IP 预检：返回客户端 IP、归属地和是否允许登录。"""
+        ip_addr = _get_request_ip(request)
+        location = _resolve_ip_location(ip_addr)
+        country_code = _resolve_ip_country_code(ip_addr)
+        allowed, reason = _is_ip_country_allowed(
+            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code
+        )
+        return jsonify({
+            'ip': ip_addr,
+            'location': location,
+            'country_code': country_code,
+            'allowed': allowed,
+            'reason': reason,
+        })
 
     @app.route('/api/admin/security/turnstile/public', methods=['GET'])
     def admin_turnstile_public_config():

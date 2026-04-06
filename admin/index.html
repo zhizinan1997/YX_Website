@@ -417,6 +417,94 @@
             filter: brightness(1.04);
         }
 
+        /* IP 预检弹窗 */
+        .ip-preflight-body {
+            text-align: center;
+            padding: 8px 0 4px;
+        }
+
+        .ip-preflight-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #0b4f86;
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            animation: ip-spin 0.7s linear infinite;
+        }
+
+        @keyframes ip-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .ip-preflight-status {
+            font-size: 14px;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .ip-preflight-detail {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .ip-preflight-detail .ip-addr {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+            color: #0f172a;
+            background: #f1f5f9;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .ip-preflight-detail .ip-location {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .ip-preflight-icon-ok {
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 20px;
+        }
+
+        .ip-preflight-icon-ok.is-ok {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .ip-preflight-icon-ok.is-blocked {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .ip-preflight-warn {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-top: 14px;
+            font-size: 13px;
+            color: #991b1b;
+            line-height: 1.7;
+            text-align: left;
+        }
+
+        .ip-preflight-warn .warn-title {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         @media (max-width: 640px) {
             .login-page {
                 padding: 14px;
@@ -3820,6 +3908,22 @@
             <p id="loginFailReason" class="login-fail-reason">用户名或密码错误。</p>
             <div class="login-fail-actions">
                 <button type="button" class="login-fail-close-btn" onclick="closeLoginFailModal()">知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ipPreflightModal" class="login-fail-modal" hidden>
+        <div class="login-fail-dialog" role="alertdialog" aria-modal="true" aria-labelledby="ipPreflightTitle">
+            <div class="login-fail-head">
+                <span class="login-fail-icon" id="ipPreflightHeadIcon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-shield-halved"></i></span>
+                <h3 id="ipPreflightTitle">IP 安全核验</h3>
+            </div>
+            <div class="ip-preflight-body" id="ipPreflightBody">
+                <div class="ip-preflight-spinner"></div>
+                <div class="ip-preflight-status">正在核验您的登录 IP…</div>
+            </div>
+            <div class="login-fail-actions" id="ipPreflightActions" style="display:none;">
+                <button type="button" class="login-fail-close-btn" id="ipPreflightCloseBtn" onclick="closeIpPreflightModal()">知道了</button>
             </div>
         </div>
     </div>
@@ -7605,6 +7709,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         }
 
         // --- Auth Functions ---
+        const TURNSTILE_LOAD_TIMEOUT_MS = 30000;
+
         async function initLoginSecurity() {
             const wrap = document.getElementById('loginTurnstileWrap');
             const errEl = document.getElementById('loginTurnstileError');
@@ -7630,15 +7736,17 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 renderLoginTurnstile();
                 setLoginSubmitState(true, '请先完成人机验证');
             } catch (e) {
-                setLoginSubmitState(true, '人机验证初始化失败');
-                if (errEl) errEl.textContent = '人机验证初始化失败，请稍后重试';
+                const isCfTimeout = e && e.message && e.message.includes('Turnstile');
+                if (errEl) errEl.textContent = 'Cloudflare 人机挑战验证暂时无法连通，请稍后再次尝试或者更换网络。';
+                setLoginSubmitState(true, '人机验证不可用');
             }
         }
 
         function ensureTurnstileScriptLoaded() {
             if (window.turnstile) return Promise.resolve();
             if (turnstileScriptPromise) return turnstileScriptPromise;
-            turnstileScriptPromise = new Promise((resolve, reject) => {
+
+            const loadPromise = new Promise((resolve, reject) => {
                 const existing = document.querySelector('script[data-turnstile="1"]');
                 if (existing) {
                     existing.addEventListener('load', () => resolve(), { once: true });
@@ -7654,6 +7762,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 script.onload = () => resolve();
                 script.onerror = () => reject(new Error('Turnstile script load failed'));
                 document.head.appendChild(script);
+            });
+
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Turnstile script load timeout')), TURNSTILE_LOAD_TIMEOUT_MS);
+            });
+
+            turnstileScriptPromise = Promise.race([loadPromise, timeoutPromise]).catch(err => {
+                turnstileScriptPromise = null;
+                throw err;
             });
             return turnstileScriptPromise;
         }
@@ -7751,6 +7868,113 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        /* --- IP 预检弹窗逻辑 --- */
+        let ipPreflightResolver = null;
+
+        function showIpPreflightModal() {
+            const modal = document.getElementById('ipPreflightModal');
+            const body = document.getElementById('ipPreflightBody');
+            const actions = document.getElementById('ipPreflightActions');
+            const headIcon = document.getElementById('ipPreflightHeadIcon');
+            const title = document.getElementById('ipPreflightTitle');
+            if (!modal || !body) return;
+            title.textContent = 'IP 安全核验';
+            headIcon.style.background = '#dbeafe';
+            headIcon.style.color = '#1d4ed8';
+            headIcon.innerHTML = '<i class="fas fa-shield-halved"></i>';
+            body.innerHTML = '<div class="ip-preflight-spinner"></div><div class="ip-preflight-status">正在核验您的登录 IP…</div>';
+            actions.style.display = 'none';
+            modal.hidden = false;
+        }
+
+        function showIpPreflightAllowed(ip, location) {
+            const body = document.getElementById('ipPreflightBody');
+            const headIcon = document.getElementById('ipPreflightHeadIcon');
+            const title = document.getElementById('ipPreflightTitle');
+            if (!body) return;
+            title.textContent = 'IP 核验通过';
+            headIcon.style.background = '#dcfce7';
+            headIcon.style.color = '#15803d';
+            headIcon.innerHTML = '<i class="fas fa-circle-check"></i>';
+            body.innerHTML = `
+                <div class="ip-preflight-icon-ok is-ok"><i class="fas fa-circle-check"></i></div>
+                <div class="ip-preflight-status">IP 核验通过，正在登录…</div>
+                <div class="ip-preflight-detail">
+                    <span class="ip-addr">${ip}</span>
+                    <span style="margin:0 4px;">·</span>
+                    <span class="ip-location">${location}</span>
+                </div>
+            `;
+        }
+
+        function showIpPreflightBlocked(ip, location) {
+            const body = document.getElementById('ipPreflightBody');
+            const actions = document.getElementById('ipPreflightActions');
+            const headIcon = document.getElementById('ipPreflightHeadIcon');
+            const title = document.getElementById('ipPreflightTitle');
+            if (!body) return;
+            title.textContent = '登录被拒绝';
+            headIcon.style.background = '#fee2e2';
+            headIcon.style.color = '#b91c1c';
+            headIcon.innerHTML = '<i class="fas fa-circle-exclamation"></i>';
+            body.innerHTML = `
+                <div class="ip-preflight-icon-ok is-blocked"><i class="fas fa-ban"></i></div>
+                <div class="ip-preflight-detail" style="text-align:left;">
+                    <div class="ip-preflight-warn">
+                        <div class="warn-title"><i class="fas fa-triangle-exclamation"></i> 禁止登录</div>
+                        您的 IP <span class="ip-addr">${ip}</span> 归属地为 <span class="ip-location">${location}</span>，不在管理后台允许登录列表中，已被禁止登录。
+                        <br><br>
+                        <span style="color:#7f1d1d;font-weight:600;">⚠ 您的登录 IP 已被记录在系统中！</span>
+                    </div>
+                </div>
+            `;
+            if (actions) actions.style.display = 'flex';
+        }
+
+        function showIpPreflightError(message) {
+            const body = document.getElementById('ipPreflightBody');
+            const actions = document.getElementById('ipPreflightActions');
+            const headIcon = document.getElementById('ipPreflightHeadIcon');
+            const title = document.getElementById('ipPreflightTitle');
+            if (!body) return;
+            title.textContent = 'IP 核验失败';
+            headIcon.style.background = '#fef3c7';
+            headIcon.style.color = '#92400e';
+            headIcon.innerHTML = '<i class="fas fa-triangle-exclamation"></i>';
+            body.innerHTML = `
+                <div class="ip-preflight-icon-ok" style="background:#fef3c7;color:#92400e;"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="ip-preflight-status">${message || 'IP 核验失败，请稍后重试'}</div>
+            `;
+            if (actions) actions.style.display = 'flex';
+        }
+
+        function closeIpPreflightModal() {
+            const modal = document.getElementById('ipPreflightModal');
+            if (modal) modal.hidden = true;
+        }
+
+        async function runIpPreflight() {
+            showIpPreflightModal();
+            try {
+                const res = await fetch('/api/admin/ip-preflight', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                const ip = String(data.ip || '').trim() || '未知';
+                const location = String(data.location || '').trim() || '未知';
+                const allowed = data.allowed === true;
+
+                if (allowed) {
+                    showIpPreflightAllowed(ip, location);
+                    return { allowed: true, ip, location };
+                } else {
+                    showIpPreflightBlocked(ip, location);
+                    return { allowed: false, ip, location };
+                }
+            } catch (e) {
+                showIpPreflightError('IP 核验服务暂时不可用，请稍后重试。');
+                return { allowed: false, ip: '', location: '' };
+            }
+        }
+
         const loginForm = document.getElementById('loginForm');
         if (loginForm && loginForm.dataset.loginBound !== '1') {
             loginForm.dataset.loginBound = '1';
@@ -7770,6 +7994,22 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         return;
                     }
                 }
+
+                // --- IP 预检 ---
+                const preflight = await runIpPreflight();
+                if (!preflight.allowed) {
+                    // 被拦截，弹窗已显示，恢复按钮状态
+                    if (turnstilePublicConfig.enabled && !turnstileToken) {
+                        setLoginSubmitState(true, '请先完成人机验证');
+                    } else {
+                        setLoginSubmitState(false, '登 录');
+                    }
+                    return;
+                }
+
+                // IP 核验通过，短暂展示后继续登录
+                await new Promise(r => setTimeout(r, 800));
+                closeIpPreflightModal();
 
                 try {
                     const res = await fetch('/admin/login', {
