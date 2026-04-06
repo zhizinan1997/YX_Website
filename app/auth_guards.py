@@ -1,4 +1,55 @@
-"""共享的后台登录与会话权限守卫。"""
+"""
+共享的后台登录与会话权限守卫。
+
+本模块提供后台管理系统的认证和授权功能，是保护后台API安全的第一道防线。
+
+主要功能：
+1. 登录状态验证（login_required装饰器）
+   - 检查Session中的管理员登录状态
+   - 验证会话是否过期（基于admin_login_at和admin_session_ttl）
+   - 检查会话schema版本，确保兼容新版本
+   - 防止跨站请求伪造（CSRF）
+
+2. 权限控制系统
+   - 超级管理员（super_admin）：拥有所有权限
+   - 子管理员（sub_admin）：根据分配的权限集合访问特定功能
+   - 权限映射表（ADMIN_PERMISSION_KEYS）：定义所有可分配的权限项
+
+3. 会话安全机制
+   - 会话超时自动失效（默认8小时，可配置）
+   - 会话schema版本校验，防止旧版会话继续使用
+   - 同源请求校验，防止跨站API调用
+
+4. 权限校验流程
+   - 根据请求路径和HTTP方法解析所需权限
+   - 超级管理员跳过权限检查
+   - 子管理员验证权限集合中是否包含所需权限
+   - 写操作（POST/PUT/PATCH/DELETE）必须通过权限检查
+
+权限项定义（ADMIN_PERMISSION_CATALOG）：
+- site-reports: 网站数据查看
+- messages: 留言系统管理
+- home: 首页设置
+- h2-home: 氢气首页设置
+- products: 氢气产品管理
+- bio-products: 生物产品管理
+- hydrogen-solutions: 氢气方案管理
+- news-create: 资讯发布
+- jobs: 招聘信息管理
+- chatbot: AI聊天机器人配置
+- site-settings: 站点设置
+- settings: 账号设置
+- backup: 备份恢复
+- changelog: 更新日志查看
+- cdn-assets: CDN素材管理
+- docker-logs: 后端日志查看
+
+使用方式：
+在需要保护的路由函数上添加 @login_required 装饰器，
+系统会自动进行完整的认证和权限校验。
+
+作者：元芯传感技术团队
+"""
 
 import time
 from functools import wraps

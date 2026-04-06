@@ -251,6 +251,112 @@
             border-radius: 12px;
             overflow: hidden;
             border: 1px solid #ddd;
+            min-height: 300px;
+        }
+
+        /* 移动端适配 - 平板及以下 */
+        @media screen and (max-width: 1024px) {
+            main {
+                padding-top: 0 !important;
+            }
+
+            .vs-hero {
+                padding-top: 70px !important;
+                height: 40vh !important;
+            }
+
+            .contact-section {
+                padding: 60px 0;
+            }
+
+            .vs-hero h1 {
+                font-size: 32px !important;
+            }
+
+            .vs-hero p {
+                font-size: 14px !important;
+            }
+
+            .contact-grid {
+                grid-template-columns: 1fr !important;
+                gap: 30px !important;
+            }
+
+            .contact-card {
+                padding: 24px !important;
+            }
+
+            .contact-info-item {
+                flex-direction: column;
+                gap: 12px;
+                margin-bottom: 24px;
+            }
+
+            .contact-info-item i {
+                font-size: 20px;
+            }
+
+            .contact-info-item div h4 {
+                font-size: 16px;
+            }
+
+            .contact-info-item div p {
+                font-size: 14px;
+            }
+
+            .map-box {
+                min-height: 250px;
+            }
+
+            .vs-mega-menu {
+                display: none !important;
+            }
+        }
+
+        /* 手机竖屏 */
+        @media screen and (max-width: 768px) {
+            main {
+                padding-top: 0 !important;
+            }
+
+            .vs-hero {
+                padding-top: 70px !important;
+            }
+
+            .vs-hero h1 {
+                font-size: 28px !important;
+            }
+
+            .contact-grid {
+                gap: 20px !important;
+            }
+
+            .contact-card {
+                padding: 20px !important;
+            }
+        }
+
+        /* 小屏幕手机 */
+        @media screen and (max-width: 480px) {
+            .contact-section {
+                padding: 40px 0;
+            }
+
+            .vs-hero h1 {
+                font-size: 24px !important;
+            }
+
+            .contact-card {
+                padding: 16px !important;
+            }
+
+            .contact-info-item {
+                margin-bottom: 16px;
+            }
+
+            .map-box {
+                min-height: 200px;
+            }
         }
     </style>
   <!-- Site Search -->

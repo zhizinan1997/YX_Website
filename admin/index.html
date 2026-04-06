@@ -702,6 +702,46 @@
             background: #f5f9ff;
         }
 
+        .version-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid #d4dbe6;
+            background: #fff;
+            color: #1f3655;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 6px 10px;
+            cursor: default;
+            transition: all 0.2s ease;
+        }
+
+        .version-badge:hover {
+            border-color: #9fb3d1;
+            background: #f5f9ff;
+        }
+
+        .version-badge .version-label {
+            opacity: 0.75;
+            font-weight: 500;
+        }
+
+        .version-badge .version-number {
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .version-badge .version-time {
+            opacity: 0.7;
+            font-size: 11px;
+        }
+
+        .version-badge .version-sep {
+            margin: 0 6px;
+            opacity: 0.4;
+        }
+
         .account-menu {
             position: relative;
         }
@@ -3902,6 +3942,9 @@
                     <div class="page-title" id="pageTitle">网站数据</div>
                 </div>
                 <div class="top-bar-actions">
+                    <span class="version-badge" id="versionBadge" title="正在加载版本信息...">
+                        <span class="version-label">v</span><span class="version-number">...</span>
+                    </span>
                     <a class="top-home-btn" href="/" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-external-link-alt"></i>
                         官网首页
@@ -5006,18 +5049,6 @@
                             <div id="menuPreview" style="display: flex; gap: 40px; flex-wrap: wrap;">
                                 <!-- Menu preview will be loaded here -->
                             </div>
-                        </div>
-
-                        <div class="card" style="padding: 30px; margin-top: 20px;">
-                            <h3 class="section-header">导航栏设置 · 产品分类缩略图</h3>
-                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                设置【产品】→【产品种类】中各分类的缩略图。<br>
-                                不设置则使用页面内的默认图片。
-                            </p>
-                            <div id="productCategoryImagesEditor"></div>
-                            <button onclick="saveProductCategoryImages()" class="btn-primary"
-                                style="width: auto; padding: 12px 30px; margin-top: 20px;">保存设置</button>
-                            <div id="productCategoryImagesMsg" style="margin-top: 10px; color: #28a745;"></div>
                         </div>
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
@@ -6874,8 +6905,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 }
             } else {
                 const userPerms = currentAdminAuth.permissions || [];
+                const permKeys = Object.keys(catalogMap);
 
-                ADMIN_PERMISSION_KEYS.forEach(key => {
+                permKeys.forEach(key => {
                     const hasPermission = userPerms.includes(key);
                     const label = catalogMap[key] || key;
 
@@ -7288,6 +7320,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         initLoginBackground();
         initLoginSecurity();
         checkLoginStatus();
+        loadVersionBadge();
         document.addEventListener('click', (event) => {
             const wrap = document.getElementById('accountMenu');
             if (!wrap) return;
@@ -7435,7 +7468,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 is_super_admin: safe.is_super_admin === true,
                 permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : []
             };
-            updateTopbarAccountDisplay();
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
                 permissionCatalog = safe.permission_catalog
                     .map(item => ({
@@ -7446,6 +7478,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             } else {
                 permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
             }
+            updateTopbarAccountDisplay();
             const usernameInput = document.getElementById('newUsername');
             if (usernameInput && currentAdminAuth.username) {
                 usernameInput.value = currentAdminAuth.username;
@@ -7680,6 +7713,23 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
+        async function loadVersionBadge() {
+            const badge = document.getElementById('versionBadge');
+            if (!badge) return;
+            try {
+                const res = await fetch('/api/changelog/latest');
+                const data = await res.json();
+                const version = data?.version || '?.?.?';
+                const buildTime = data?.build_time || '';
+                badge.innerHTML = `
+                    <span class="version-label">版本号：</span><span class="version-number">${version}</span><span class="version-sep">|</span><span class="version-label">构建时间：</span><span class="version-time">${buildTime}</span>
+                `;
+                badge.title = `最新版本：${version}${buildTime ? '，更新时间：' + buildTime : ''}`;
+            } catch (e) {
+                badge.innerHTML = '<span class="version-label">版本号：</span><span class="version-number">?.?.?</span>';
+            }
+        }
+
         function showLoginFailModal(reason) {
             const modal = document.getElementById('loginFailModal');
             const reasonEl = document.getElementById('loginFailReason');
@@ -7734,9 +7784,9 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     const data = await parseJsonSafe(res);
 
                     if (res.ok && data.success) {
-                        if (data.last_login_at || data.last_login_ip) {
+                        if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
                             const username = document.getElementById('username').value;
-                            showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at);
+                            showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
                         }
                         await checkLoginStatus();
                     } else {
@@ -7826,7 +7876,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
         }
 
-        function showLastLoginToast(username, lastLoginAt, lastLoginIP, currentLoginAt) {
+        function showLastLoginToast(username, lastLoginAt, lastLoginIP, currentLoginAt, currentLoginIP) {
             const toast = document.getElementById('lastLoginToast');
             if (!toast) return;
 
@@ -7855,7 +7905,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
 
             if (currentIPEl) {
-                currentIPEl.textContent = lastLoginIP || '首次登录';
+                currentIPEl.textContent = currentLoginIP || '-';
             }
 
             if (lastTimeEl) {
@@ -7863,7 +7913,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             }
 
             if (lastIPEl) {
-                lastIPEl.textContent = '-';
+                lastIPEl.textContent = lastLoginIP || '首次登录';
             }
 
             if (greetingEl) {
@@ -14648,7 +14698,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     updateMenuPreview();
                     loadRecommendations();
                 }
-                loadProductCategoryImages();
                 if (measurementPagesList.length === 0) {
                     loadMeasurementTargets();
                 } else {

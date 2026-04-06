@@ -1,4 +1,79 @@
-"""共享的上传与媒体校验辅助模块。"""
+"""
+共享的上传与媒体校验辅助模块。
+
+本模块提供文件上传的安全校验功能，确保只有合法文件才能被上传和保存。
+支持图片、视频、PDF等多种文件类型的MIME类型检测和文件签名验证。
+
+主要功能：
+1. MIME类型推断（infer_*_extension_from_mime系列函数）
+   - infer_extension_from_mime: 通用文件扩展名推断
+   - infer_partner_extension_from_mime: 合作伙伴Logo扩展名推断
+   - infer_h2_home_video_extension_from_mime: 氢气首页视频扩展名推断
+   - infer_product_card_extension_from_mime: 产品卡片图片扩展名推断
+   - infer_news_image_extension_from_mime: 新闻图片扩展名推断
+   - infer_ai_product_image_extension_from_mime: AI产品图片扩展名推断
+
+2. 文件签名检测（infer_*_extension_from_bytes系列函数）
+   - infer_ai_product_image_extension_from_bytes: 根据图片文件头字节识别格式
+     * PNG: \x89PNG\r\n\x1a\n
+     * JPEG: \xff\xd8\xff
+     * GIF: GIF87a 或 GIF89a
+     * BMP: BM
+     * WebP: RIFF....WEBP
+     * TIFF: II*\x00 或 MM\x00*
+     * AVIF: ftypavif
+     * HEIC/HEIF: ftypheic/heix/hevc等
+   - infer_video_extension_from_bytes: 根据视频文件头识别格式
+     * MP4: ftyp
+     * WebM: \x1aE\xdf\xa3
+     * OGG: OggS
+
+3. 综合扩展名规范化（normalize_ai_product_image_extension）
+   - 优先使用文件名扩展名
+   - 其次根据MIME类型推断
+   - 最后根据文件签名验证
+   - 确保扩展名在白名单内
+
+4. 文件内容读取（peek_upload_bytes）
+   - 安全读取文件流的前N个字节
+   - 保存原始读取位置
+   - 读取后恢复文件指针
+   - 默认读取8192字节
+
+5. 图片扩展名验证（validate_uploaded_image_extension）
+   - 综合文件名扩展名和文件签名验证
+   - 支持SVG特殊处理
+   - 返回空字符串表示验证失败
+
+6. 图片字节验证（validate_image_bytes）
+   - 验证已上传的图片字节内容
+   - 支持文件名和MIME类型辅助验证
+   - 用于远程图片URL的安全验证
+
+7. 视频扩展名验证（validate_uploaded_video_extension）
+   - 验证视频文件的扩展名
+   - 综合文件签名和文件名
+   - 支持多种视频格式
+
+8. PDF验证（validate_uploaded_pdf）
+   - 简单检查PDF文件头
+   - 验证文件以%PDF-开头
+
+安全特性：
+- 三重验证机制：文件名 → MIME类型 → 文件签名
+- 文件签名防止扩展名伪装攻击
+- 白名单机制限制可接受的文件类型
+- SVG文件特殊处理，避免XSS风险
+
+文件上传流程：
+1. 读取文件流前8192字节
+2. 检测文件签名确定真实格式
+3. 结合文件名扩展名和MIME类型推断
+4. 规范化扩展名并验证白名单
+5. 仅在通过所有检查后才保存文件
+
+作者：元芯传感技术团队
+"""
 
 from __future__ import annotations
 

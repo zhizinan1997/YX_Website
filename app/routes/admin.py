@@ -1,6 +1,75 @@
-"""后台认证与管理路由模块。
+"""
+后台认证与管理路由模块。
 
-负责管理员登录、会话校验、账号管理、站点设置以及后台运维相关接口。
+本模块是元芯传感官网后台管理系统的核心，负责：
+1. 管理员身份认证（登录、会话、登出）
+2. 账号管理体系（超级管理员、子管理员）
+3. 登录安全保护（IP地域限制、Turnstile验证码、暴力破解防护）
+4. 后台运维功能（日志查看、更新日志）
+
+主要功能：
+1. 管理员登录系统
+   - 用户名密码验证
+   - Turnstile人机验证（可选Cloudflare验证码）
+   - IP地域限制（仅允许中国大陆和港澳台）
+   - 登录失败计数和封禁机制
+   - 登录延迟机制（防止暴力破解）
+
+2. 会话管理系统
+   - Session存储管理员状态
+   - 会话过期自动失效（默认8小时）
+   - 会话版本校验（防止旧会话攻击）
+   - 同源请求验证（防CSRF）
+
+3. 账号权限体系
+   - 超级管理员（super_admin）：拥有所有权限
+   - 子管理员（sub_admin）：按需分配权限
+   - 16种权限项覆盖所有后台功能
+   - 权限路径映射自动校验
+
+4. 子管理员CRUD操作
+   - 创建子账号（用户名、密码、权限分配）
+   - 更新子账号（启用状态、权限调整）
+   - 删除子账号
+   - 查看所有子账号列表
+
+5. 密码管理
+   - 修改当前账号密码
+   - 密码强度要求（至少8位）
+   - 用户名规则验证（3-32位字母数字下划线）
+
+6. Turnstile配置
+   - 启用/关闭人机验证
+   - 配置Site Key和Secret Key
+   - 后台实时更新
+
+7. 后台运维接口
+   - Docker容器日志查看
+   - 本地日志文件查看（开发模式）
+   - 更新日志构建（支持本地Markdown或Git历史）
+   - 登录日志审计
+
+安全特性：
+- 登录失败封禁机制（12小时封禁，3次失败触发）
+- 登录延迟机制（60秒/180秒渐进延迟）
+- IP地域白名单（默认仅CN/HK/MO/TW）
+- 会话同源校验
+- 审计日志完整记录
+
+API路由清单：
+- /admin: 后台登录页
+- /admin/login: POST登录请求
+- /admin/logout: POST登出请求
+- /admin/check: GET会话状态检查
+- /admin/change-password: POST修改密码
+- /api/admin/subaccounts/*: 子账号管理CRUD
+- /api/admin/security/turnstile/*: Turnstile配置
+- /api/admin/login-logs: 登录日志查询
+- /api/admin/changelog: 更新日志
+- /api/admin/docker-logs: 容器日志
+- /api/changelog/latest: 公开的更新日志
+
+作者：元芯传感技术团队
 """
 
 import json
@@ -541,7 +610,7 @@ def _parse_bool(raw, default: bool = False) -> bool:
     return default
 
 
-def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_location_func) -> tuple:
+def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_country_code_func) -> tuple:
     """检查 IP 所属国家是否在允许列表中，返回（是否允许，原因）。"""
     if not ip:
         return True, ''
@@ -552,18 +621,16 @@ def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_location_fun
             return True, ''
     except ValueError:
         return True, ''
-    location = resolve_location_func(ip)
-    if not location or location == '未知':
-        return False, '无法获取IP归属地，已拒绝登录'
-    country_code = ''
-    for part in location.split('/'):
-        part = part.strip().upper()
-        if len(part) == 2 and part.isalpha():
-            country_code = part
-            break
+    country_code = resolve_country_code_func(ip)
     if not country_code:
-        return False, '无法识别IP归属地，已拒绝登录'
+        return False, '无法获取IP归属地，已拒绝登录'
     if country_code not in allowed_countries:
+        location = ''
+        try:
+            from app.admin_audit import resolve_ip_location
+            location = resolve_ip_location(ip)
+        except Exception:
+            location = ''
         return False, f'您的登录IP归属地({location})被禁止登录'
     return True, ''
 
@@ -936,9 +1003,11 @@ def register_admin_routes(
     admin_login_log_lock,
     project_root=None,
     resolve_ip_location=None,
+    resolve_ip_country_code=None,
 ):
     """向 Flask 应用注册后台管理相关路由。"""
-    _resolve_ip = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
+    _resolve_ip_location = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
+    _resolve_ip_country_code = resolve_ip_country_code if resolve_ip_country_code else lambda ip: ''
     root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
     try:
         _ensure_admin_users_store(root, get_config, update_config)
@@ -1029,7 +1098,7 @@ def register_admin_routes(
         turnstile_settings = _get_turnstile_settings(config)
 
         country_allowed, country_reason = _is_ip_country_allowed(
-            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip
+            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code
         )
         if not country_allowed:
             append_admin_login_log(
@@ -1194,6 +1263,7 @@ def register_admin_routes(
             'last_login_at': prev_last_login_at,
             'last_login_ip': prev_last_login_ip,
             'current_login_at': current_login_at,
+            'current_login_ip': ip_addr,
         })
 
     @app.route('/admin/change-password', methods=['POST'])

@@ -1,4 +1,60 @@
-"""请求安全辅助模块，负责代理、IP 与同源校验。"""
+"""
+请求安全辅助模块，负责代理、IP与同源校验。
+
+本模块提供全面的Web安全防护功能，包括：
+1. 客户端IP解析
+2. 同源请求验证
+3. 防爬虫机制
+4. 远程URL安全验证
+
+主要功能：
+1. IP地址处理
+   - 规范化IP地址格式（支持IPv4和IPv6）
+   - 从代理头（X-Forwarded-For）中提取真实IP
+   - 识别私网、回环、保留地址
+   - 支持Cloudflare等CDN的IP头
+
+2. 同源请求验证（is_same_origin_request）
+   - 验证请求的Origin或Referer头
+   - 支持代理头信任配置
+   - 防止跨站请求伪造（CSRF）
+
+3. 代理头处理
+   - X-Forwarded-For: 负载均衡器传递的真实IP链
+   - X-Forwarded-Host: 原始请求的主机名
+   - X-Forwarded-Proto: 原始请求的协议
+   - X-Real-IP: Nginx等反向代理的真实IP
+   - CF-Connecting-IP: Cloudflare的访客真实IP
+
+4. 远程URL安全验证（validate_safe_remote_fetch_url）
+   - 检查URL协议（仅允许http/https）
+   - 验证主机名不为保留地址（localhost、127.0.0.1等）
+   - DNS解析验证，防止DNS Rebinding攻击
+   - 检查解析后的IP地址是否为公网可达
+
+5. 防爬虫机制
+   - 识别爬虫User-Agent特征
+   - 区分搜索引擎爬虫和恶意爬虫
+   - 拦截私有路径上的爬虫访问
+   - 设置严格响应头防止爬虫索引
+
+6. 反爬虫守卫（register_strict_anti_crawl_guard）
+   - 在before_request钩子中拦截恶意爬虫
+   - 保护/admin、/api/admin、/data/等私有路径
+   - 区分公开资源和私有资源
+
+安全常量：
+- ANTI_CRAWL_STRICT_PRIVATE_PREFIXES: 需要保护的私有路径前缀
+- ANTI_CRAWL_RESOURCE_PREFIXES: 需要保护的资源路径前缀
+- ANTI_CRAWL_BOT_UA_KEYWORDS: 爬虫UA特征关键词
+- SEARCH_ENGINE_BOT_UA_KEYWORDS: 合法的搜索引擎爬虫
+- REMOTE_FETCH_BLOCKED_HOSTS: 禁止远程访问的主机列表
+
+配置选项：
+- TRUST_PROXY_HEADERS: 是否信任代理头（默认关闭，需显式开启）
+
+作者：元芯传感技术团队
+"""
 
 from __future__ import annotations
 

@@ -18,7 +18,6 @@
 
     // DOM Elements
     let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton, suggestionTrack, resizeHandle;
-    let bodyOverflowBackup = '';
     let hideWindowTimer = null;
     let isResizing = false;
     let resizeStartX = 0;
@@ -283,7 +282,6 @@
             clearTimeout(hideWindowTimer);
             hideWindowTimer = null;
         }
-        lockPageScroll();
         syncChatbotWidthForViewport();
         chatbotWindow.style.display = 'flex';
         positionChatWindow();
@@ -295,7 +293,6 @@
     }
 
     function minimizeChatWindow() {
-        unlockPageScroll();
         chatbotWindow.classList.remove('open');
         chatbotTrigger.classList.remove('active');
         if (hideWindowTimer) {
@@ -314,22 +311,22 @@
         minimizeChatWindow();
     }
 
-    function lockPageScroll() {
-        bodyOverflowBackup = document.body.style.overflow || '';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function unlockPageScroll() {
-        document.body.style.overflow = bodyOverflowBackup;
-    }
-
     function handleChatWindowWheel(e) {
         if (!chatbotWindow || !chatbotWindow.classList.contains('open')) return;
         if (!messagesContainer) return;
 
-        // Always keep wheel scroll inside chatbot window to avoid page scroll bleed-through.
-        messagesContainer.scrollTop += e.deltaY;
-        e.preventDefault();
+        // Only intercept scroll when mouse is inside the chatbot window
+        const rect = chatbotWindow.getBoundingClientRect();
+        const isInsideChatbot = 
+            e.clientX >= rect.left && 
+            e.clientX <= rect.right && 
+            e.clientY >= rect.top && 
+            e.clientY <= rect.bottom;
+
+        if (isInsideChatbot) {
+            messagesContainer.scrollTop += e.deltaY;
+            e.preventDefault();
+        }
     }
 
     function positionChatWindow() {

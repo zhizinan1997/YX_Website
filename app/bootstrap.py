@@ -1,4 +1,35 @@
-"""应用启动接线模块，集中注册全站路由与共享依赖。"""
+"""
+应用启动接线模块，集中注册全站路由与共享依赖。
+
+本模块负责在Flask应用启动时，按特定顺序注册所有功能路由和共享依赖项。
+采用依赖注入模式，将各功能模块需要的配置和工具函数统一传入，实现模块间的解耦。
+
+注册顺序设计原则：
+1. 先注册基础设施相关路由（备份、CDN资产、媒体分发），避免被后续广义路由抢占
+2. 再注册公开表单与统计接口（留言、站点分析），支持内容管理功能
+3. 后台认证与内容管理接口放在中间位置
+4. 最后注册公开站点路由，避免抢占更具体的API和后台路径
+
+主要功能模块注册顺序：
+1. 备份恢复模块（register_backup_routes）：数据备份和恢复功能
+2. CDN资产管理（register_cdn_assets_routes）：静态资源分发
+3. 媒体分发（register_media_delivery_routes）：图片、视频等媒体资源处理
+4. 留言系统（register_contact_message_routes）：用户留言和简历投递
+5. 站点分析（register_site_analytics_routes）：访问统计和数据分析
+6. 后台管理（register_admin_routes）：管理员认证和权限控制
+7. 首页内容（register_home_content_routes）：首页Banner、合作伙伴等
+8. 产品目录（register_product_catalog_routes）：产品列表和分类
+9. 产品设置（register_product_settings_routes）：产品详情和配置
+10. 展示内容（register_showcase_content_routes）：案例和解决方案展示
+11. 导航内容（register_navigation_content_routes）：网站导航配置
+12. 招聘信息（register_jobs_content_routes）：职位发布和管理
+13. 产品编辑器（register_product_editor_routes）：产品内容编辑
+14. AI聊天机器人（register_ai_chatbot_routes）：智能客服功能
+15. 新闻内容（register_news_content_routes）：资讯发布和管理
+16. 公开站点（register_public_site_routes）：面向用户的前台页面
+
+作者：元芯传感技术团队
+"""
 
 from __future__ import annotations
 
@@ -74,6 +105,7 @@ from app.admin_audit import (
     append_admin_login_log,
     configure_admin_audit,
     load_admin_login_logs,
+    resolve_ip_country_code,
     resolve_ip_location,
 )
 from app.auth_guards import login_required, require_super_admin_api
@@ -266,6 +298,7 @@ def register_all_routes(app):
         admin_login_log_lock=ADMIN_LOGIN_LOG_LOCK,
         project_root=APP_ROOT,
         resolve_ip_location=resolve_ip_location,
+        resolve_ip_country_code=resolve_ip_country_code,
     )
 
     register_home_content_routes(
