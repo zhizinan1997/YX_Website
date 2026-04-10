@@ -128,12 +128,34 @@ def _product_template_files() -> tuple[Path, Path]:
     )
 
 
-def _product_ai_reference_file() -> Path:
-    return _dep('app_root') / 'pages' / 'gassensing' / 'mc_ld_h2.html'
+def _product_ai_reference_file(product_family: str = 'gas') -> Path:
+    app_root = _dep('app_root')
+    if str(product_family or '').strip().lower() == 'bio':
+        return app_root / 'pages' / 'biosensing' / 'blood_potassium_chip.html'
+    return app_root / 'pages' / 'gassensing' / 'mc_ld_h2.html'
 
 
 def _gassensing_products_dir() -> Path:
     return _dep('app_root') / 'pages' / 'gassensing'
+
+
+def _biosensing_products_dir() -> Path:
+    return _dep('app_root') / 'pages' / 'biosensing'
+
+
+def _get_product_family_from_request() -> str:
+    path = str(getattr(request, 'path', '') or '').strip().lower()
+    if path.startswith('/api/bio-products/'):
+        return 'bio'
+    return 'gas'
+
+
+def _get_products_dir_by_family(product_family: str) -> Path:
+    return _biosensing_products_dir() if str(product_family or '').strip().lower() == 'bio' else _gassensing_products_dir()
+
+
+def _get_products_web_prefix_by_family(product_family: str) -> str:
+    return '/pages/biosensing' if str(product_family or '').strip().lower() == 'bio' else '/pages/gassensing'
 
 
 def resolve_product_html_path_by_id(product_id: str) -> tuple[Path | None, str]:
@@ -200,9 +222,9 @@ def get_product_template_html() -> str:
     raise FileNotFoundError(f'产品模板不存在，已检查: {checked}')
 
 
-def get_product_ai_reference_html() -> str:
+def get_product_ai_reference_html(product_family: str = 'gas') -> str:
     """加载 AI 生成参考 HTML，缺失时回退到通用模板。"""
-    reference_file = _product_ai_reference_file()
+    reference_file = _product_ai_reference_file(product_family)
     if reference_file.exists():
         return reference_file.read_text(encoding='utf-8', errors='ignore')
     return get_product_template_html()
@@ -955,10 +977,11 @@ def _build_product_ai_html_messages(
     detail_image_urls='',
     news_urls='',
     related_product_urls='',
+    product_family='gas',
 ):
     """构建用于整页产品 HTML 生成的 system/user 消息。"""
     ai_cfg = _dep('get_product_page_ai_config')()
-    reference_html = get_product_ai_reference_html()
+    reference_html = get_product_ai_reference_html(product_family)
     system_prompt = _dep('get_product_page_ai_system_prompt')()
     detail_images = _normalize_text_lines(detail_image_urls)
     news_links = _normalize_text_lines(news_urls)
@@ -1286,10 +1309,12 @@ def register_product_editor_routes(
         return jsonify({'items': placeholders, 'count': len(placeholders)})
 
     @app.route('/api/products/ai-generate-html', methods=['POST'])
+    @app.route('/api/bio-products/ai-generate-html', methods=['POST'])
     @login_required
     def ai_generate_product_html():
         """以页面模板为参考，通过 AI 生成完整产品页代码。"""
         data = request.json or {}
+        product_family = _get_product_family_from_request()
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
         category = (data.get('category') or 'sensor').strip()
@@ -1313,6 +1338,7 @@ def register_product_editor_routes(
             detail_image_urls=detail_image_urls,
             news_urls=news_urls,
             related_product_urls=related_product_urls,
+            product_family=product_family,
         )
         if not ai_cfg.get('enabled', False):
             return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
@@ -1342,9 +1368,11 @@ def register_product_editor_routes(
         return jsonify({'success': True, 'page_html': page_html, 'attempts_used': attempts_used})
 
     @app.route('/api/products/ai-upload-images', methods=['POST'])
+    @app.route('/api/bio-products/ai-upload-images', methods=['POST'])
     @login_required
     def ai_upload_product_images():
         """将 AI 生成的产品图片上传到产品图片目录。"""
+        product_family = _get_product_family_from_request()
         slug = (request.form.get('slug') or '').strip().lower()
         short_name = (request.form.get('short_name') or '').strip()
         files = request.files.getlist('files')
@@ -1359,8 +1387,9 @@ def register_product_editor_routes(
         if not model_folder:
             model_folder = slug_dash.upper()
 
-        target_dir = _gassensing_products_dir() / model_folder
+        target_dir = _get_products_dir_by_family(product_family) / model_folder
         target_dir.mkdir(parents=True, exist_ok=True)
+        web_prefix = _get_products_web_prefix_by_family(product_family)
 
         existing = sorted(target_dir.glob(f'{slug_dash}-product-*.*'))
         counter = len(existing) + 1
@@ -1403,16 +1432,18 @@ def register_product_editor_routes(
                 counter += 1
 
             uploaded.save(str(filepath))
-            urls.append(f'/pages/gassensing/{model_folder}/{filename}')
+            urls.append(f'{web_prefix}/{model_folder}/{filename}')
             counter += 1
 
         return jsonify({'success': True, 'folder': model_folder, 'urls': urls})
 
     @app.route('/api/products/ai-generate-html-stream', methods=['POST'])
+    @app.route('/api/bio-products/ai-generate-html-stream', methods=['POST'])
     @login_required
     def ai_generate_product_html_stream():
         """以流式方式生成完整产品 HTML，并支持自动续写。"""
         data = request.json or {}
+        product_family = _get_product_family_from_request()
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
         category = (data.get('category') or 'sensor').strip()
@@ -1436,6 +1467,7 @@ def register_product_editor_routes(
             detail_image_urls=detail_image_urls,
             news_urls=news_urls,
             related_product_urls=related_product_urls,
+            product_family=product_family,
         )
         if not ai_cfg.get('enabled', False):
             return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
@@ -1489,6 +1521,7 @@ def register_product_editor_routes(
         )
 
     @app.route('/api/products/ai-revise-html-stream', methods=['POST'])
+    @app.route('/api/bio-products/ai-revise-html-stream', methods=['POST'])
     @login_required
     def ai_revise_product_html_stream():
         """按用户指令流式修订已生成的 HTML。"""
@@ -1575,6 +1608,7 @@ def register_product_editor_routes(
         )
 
     @app.route('/api/products/ai-revise-html', methods=['POST'])
+    @app.route('/api/bio-products/ai-revise-html', methods=['POST'])
     @login_required
     def ai_revise_product_html():
         """按用户指令修订已生成的 HTML，作为非流式兜底。"""
@@ -1637,6 +1671,7 @@ def register_product_editor_routes(
         return jsonify({'success': True, 'page_html': page_html, 'attempts_used': attempts_used})
 
     @app.route('/api/products/ai-create-html', methods=['POST'])
+    @app.route('/api/bio-products/ai-create-html', methods=['POST'])
     @login_required
     def ai_create_product_from_html():
         """将 AI 生成的完整 HTML 保存为产品页文件。"""
@@ -1644,6 +1679,7 @@ def register_product_editor_routes(
         if super_admin_denied:
             return super_admin_denied
         data = request.json or {}
+        product_family = _get_product_family_from_request()
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
         category = (data.get('category') or '').strip()
@@ -1693,14 +1729,18 @@ def register_product_editor_routes(
         else:
             enriched_html += '\n' + marker
 
-        products_dir = _gassensing_products_dir()
+        products_dir = _get_products_dir_by_family(product_family)
         products_dir.mkdir(parents=True, exist_ok=True)
         filename = f'{slug}.html'
         filepath = products_dir / filename
         if filepath.exists():
             return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
         filepath.write_text(enriched_html, encoding='utf-8')
-        return jsonify({'success': True, 'filename': filename, 'link': f'/pages/gassensing/{filename}'})
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'link': f'{_get_products_web_prefix_by_family(product_family)}/{filename}',
+        })
 
     @app.route('/api/products/ai-generate-fields', methods=['POST'])
     @login_required
@@ -2142,6 +2182,7 @@ def register_product_editor_routes(
         return jsonify({'success': True, 'message': '保存成功'})
 
     @app.route('/api/products/page-sections', methods=['GET'])
+    @app.route('/api/bio-products/page-sections', methods=['GET'])
     @login_required
     def get_product_page_sections():
         """提取现代 `vs-*` 产品页中的全部可编辑区块。"""
@@ -2159,6 +2200,7 @@ def register_product_editor_routes(
             return jsonify({'success': False, 'message': f'解析失败: {exc}'}), 500
 
     @app.route('/api/products/page-sections', methods=['POST'])
+    @app.route('/api/bio-products/page-sections', methods=['POST'])
     @login_required
     def save_product_page_sections():
         """用编辑后的区块内容修补现代 `vs-*` 产品页 HTML。"""
@@ -2590,4 +2632,3 @@ __all__ = [
     'patch_vs_product_sections',
     'register_product_editor_routes',
 ]
-

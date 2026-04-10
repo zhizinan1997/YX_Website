@@ -1,0 +1,24 @@
+:root {
+    --admin2-bg: #eef3f9;
+    --admin2-bg-accent: #e4edf8;
+    --admin2-surface: rgba(255, 255, 255, 0.86);
+    --admin2-surface-strong: #ffffff;
+    --admin2-border: rgba(14, 41, 78, 0.12);
+    --admin2-border-strong: rgba(14, 41, 78, 0.18);
+    --admin2-text: #10233d;
+    --admin2-text-muted: #5d708b;
+    --admin2-nav: #08192d;
+    --admin2-nav-elevated: #102845;
+    --admin2-primary: #123d71;
+    --admin2-primary-strong: #0d2d56;
+    --admin2-accent: #27c7d9;
+    --admin2-accent-soft: rgba(39, 199, 217, 0.16);
+    --admin2-success: #17935f;
+    --admin2-danger: #c84658;
+    --admin2-warning: #d18a18;
+    --primary-color: #123d71;
+    --secondary-color: #08192d;
+    --accent-color: #27c7d9;
+    --text-color: #10233d;
+    --bg-color: #eef3f9;
+}

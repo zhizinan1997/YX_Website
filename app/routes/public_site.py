@@ -779,7 +779,14 @@ def register_public_site_routes(
         normalized = normalize_public_static_path(path)
         if not normalized:
             return Response(status=404)
-        is_admin_html = normalized in {'admin', 'admin/index', 'admin/index.html'} or normalized.startswith('admin/')
+        admin_roots = ('admin',)
+        is_admin_html = any(
+            normalized == base
+            or normalized == f'{base}/index'
+            or normalized == f'{base}/index.html'
+            or normalized.startswith(f'{base}/')
+            for base in admin_roots
+        )
 
         exact_path = root / normalized
         if exact_path.is_file():

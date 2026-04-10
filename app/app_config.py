@@ -75,7 +75,7 @@ WEAK_ADMIN_PASSWORDS = {'admin123', 'admin', '123456', 'password'}
 PLACEHOLDER_SECRET_KEYS = {'your-secret-key-change-in-production'}
 ADMIN_USERNAME_PATTERN = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
 PUBLIC_STATIC_EXACT_FILES = {'index.html', 'robots.txt'}
-PUBLIC_STATIC_ROOT_DIRS = {'pages', 'assets', 'cdn_assets'}
+PUBLIC_STATIC_ROOT_DIRS = {'pages', 'assets', 'cdn_assets', 'admin'}
 PRIVATE_STATIC_PREFIXES = (
     'data',
     'update_logs',
@@ -561,5 +561,4 @@ def update_config(new_config):
     config.update(new_config)
     CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding='utf-8')
     return config
-
 

@@ -1,0 +1,85 @@
+.admin2-root .dashboard {
+    background: transparent;
+}
+
+.admin2-root .sidebar {
+    position: relative;
+    background:
+        linear-gradient(180deg, rgba(7, 23, 43, 0.96) 0%, rgba(8, 29, 54, 0.98) 100%);
+    box-shadow: 22px 0 54px rgba(6, 18, 35, 0.18);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin2-root .sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top left, rgba(39, 199, 217, 0.16), transparent 24%),
+        linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.02) 100%);
+    pointer-events: none;
+}
+
+.admin2-root .sidebar-header {
+    position: relative;
+    height: 76px;
+    padding: 0 22px;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    color: #f4fbff;
+    font-size: 17px;
+    letter-spacing: 0.04em;
+}
+
+.admin2-root .sidebar-menu {
+    position: relative;
+    padding: 18px 14px 18px 12px;
+}
+
+.admin2-root .sidebar-section {
+    margin-bottom: 18px;
+}
+
+.admin2-root .sidebar-section-label {
+    padding: 0 14px 8px;
+    color: rgba(210, 227, 244, 0.54);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin2-root .top-bar {
+    height: 78px;
+    padding: 0 24px 0 28px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid rgba(12, 38, 68, 0.08);
+    box-shadow: 0 8px 30px rgba(8, 25, 45, 0.05);
+}
+
+.admin2-root .top-bar-main {
+    gap: 14px;
+}
+
+.admin2-root .content-area {
+    padding: 24px;
+}
+
+.admin2-root .main-content {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+@media (max-width: 1024px) {
+    .admin2-root .sidebar {
+        box-shadow: none;
+    }
+
+    .admin2-root .content-area {
+        padding: 18px;
+    }
+
+    .admin2-root .top-bar {
+        padding: 12px 14px;
+    }
+}
