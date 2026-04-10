@@ -1,0 +1,51 @@
+html,
+body.admin2-root {
+    min-height: 100%;
+}
+
+body.admin2-root {
+    background:
+        radial-gradient(circle at top left, rgba(39, 199, 217, 0.12), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(18, 61, 113, 0.14), transparent 34%),
+        linear-gradient(180deg, #f5f8fd 0%, var(--admin2-bg) 100%);
+    color: var(--admin2-text);
+}
+
+body.admin2-root::selection {
+    background: rgba(39, 199, 217, 0.24);
+}
+
+.admin2-login-badge,
+.admin2-shell-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(39, 199, 217, 0.32);
+    background: rgba(39, 199, 217, 0.12);
+    color: #d8faff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.admin2-shell-badge {
+    color: var(--admin2-primary);
+    background: rgba(39, 199, 217, 0.12);
+    border-color: rgba(18, 61, 113, 0.16);
+}
+
+.admin2-root .login-box {
+    max-width: 460px;
+}
+
+.admin2-root .login-subtitle {
+    line-height: 1.7;
+}
+
+.admin2-root .page-title {
+    color: var(--admin2-primary-strong);
+}

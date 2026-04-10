@@ -1,25 +1,74 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+supports_color() {
+  [[ -t 2 ]] || return 1
+  [[ -n "${NO_COLOR:-}" ]] && return 1
+  [[ "${TERM:-}" == "dumb" ]] && return 1
+}
+
+if supports_color; then
+  STYLE_RESET=$'\033[0m'
+  STYLE_BOLD=$'\033[1m'
+  STYLE_DIM=$'\033[2m'
+  STYLE_RED=$'\033[31m'
+  STYLE_GREEN=$'\033[32m'
+  STYLE_YELLOW=$'\033[33m'
+  STYLE_BLUE=$'\033[34m'
+  STYLE_MAGENTA=$'\033[35m'
+  STYLE_CYAN=$'\033[36m'
+else
+  STYLE_RESET=''
+  STYLE_BOLD=''
+  STYLE_DIM=''
+  STYLE_RED=''
+  STYLE_GREEN=''
+  STYLE_YELLOW=''
+  STYLE_BLUE=''
+  STYLE_MAGENTA=''
+  STYLE_CYAN=''
+fi
+
+print_rule() {
+  printf '%b%s%b\n' "$STYLE_DIM" '----------------------------------------------------------------------' "$STYLE_RESET" >&2
+}
+
+log_with_level() {
+  local style="$1"
+  local label="$2"
+  shift 2
+
+  printf '%b[%s]%b %b[%s]%b %s\n' \
+    "$STYLE_DIM" "$(date '+%Y-%m-%d %H:%M:%S')" "$STYLE_RESET" \
+    "$style" "$label" "$STYLE_RESET" \
+    "$*" >&2
+}
+
 log() {
-  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2
+  log_with_level "$STYLE_CYAN" "日志" "$*"
 }
 
 phase() {
   printf '\n' >&2
-  log "==> $*"
+  print_rule
+  printf '%b%s%b %s\n' "$STYLE_BLUE$STYLE_BOLD" '==>' "$STYLE_RESET" "$*" >&2
+  print_rule
 }
 
 info() {
-  log "    $*"
+  log_with_level "$STYLE_CYAN" "信息" "$*"
+}
+
+success() {
+  log_with_level "$STYLE_GREEN$STYLE_BOLD" "完成" "$*"
 }
 
 warn() {
-  log "警告：$*"
+  log_with_level "$STYLE_YELLOW$STYLE_BOLD" "警告" "$*"
 }
 
 die() {
-  log "错误：$*"
+  log_with_level "$STYLE_RED$STYLE_BOLD" "错误" "$*"
   exit 1
 }
 
@@ -137,9 +186,9 @@ prompt_line_into() {
   [[ -r /dev/tty ]] || die "当前脚本需要交互输入，但未检测到可用终端。请直接在服务器终端执行，或通过环境变量预先传入参数。"
 
   if [[ -n "$default_value" ]]; then
-    printf '%s [%s]: ' "$prompt" "$default_value" >&2
+    printf '%b%s%b [%s]: ' "$STYLE_MAGENTA$STYLE_BOLD" "$prompt" "$STYLE_RESET" "$default_value" >&2
   else
-    printf '%s: ' "$prompt" >&2
+    printf '%b%s%b: ' "$STYLE_MAGENTA$STYLE_BOLD" "$prompt" "$STYLE_RESET" >&2
   fi
 
   if [[ "$secret" == "true" ]]; then
@@ -186,17 +235,20 @@ choose_update_strategy() {
   local answer=""
 
   printf '\n' >&2
+  print_rule
+  printf '%b%s%b\n' "$STYLE_BLUE$STYLE_BOLD" '更新模式选择' "$STYLE_RESET" >&2
   printf '检测到当前机器上已经存在部署痕迹，本次属于"更新部署"。\n' >&2
-  printf '请选择更新方式：\n' >&2
-  printf '  1) 智能合并更新（默认）\n' >&2
+  printf '%b%s%b\n' "$STYLE_DIM" '请选择更新方式：' "$STYLE_RESET" >&2
+  printf '  %b1)%b 智能合并更新（默认）\n' "$STYLE_GREEN$STYLE_BOLD" "$STYLE_RESET" >&2
   printf '     保留宿主机已修改的 data/pages 文件；如镜像和宿主机同时改了同一文件，会保留宿主机版本，并把镜像版本存到冲突目录。\n' >&2
   printf '     说明：这种方式最适合保留客户数据和客户改动，但智能合并依然可能遇到误判或需要人工核对的情况。\n' >&2
-  printf '  2) 全新部署重置\n' >&2
+  printf '  %b2)%b 全新部署重置\n' "$STYLE_YELLOW$STYLE_BOLD" "$STYLE_RESET" >&2
   printf '     会先备份当前宿主机内容，然后清空 data/pages，以及旧版遗留的 cdn_assets/update_logs 宿主机目录，再把新镜像内容完整导入。\n' >&2
   printf '     说明：这种方式会把宿主机现有客户数据和客户改动整体替换掉，只适合确认要"按新版本重来"时使用。\n' >&2
-  printf '  3) 重置界面，保留用户数据\n' >&2
+  printf '  %b3)%b 重置界面，保留用户数据\n' "$STYLE_CYAN$STYLE_BOLD" "$STYLE_RESET" >&2
   printf '     会先备份当前宿主机内容，然后清空 pages/cdn_assets 并从新镜像重新导入，但完整保留 data 目录不做任何改动。\n' >&2
   printf '     说明：适合界面代码需要完全刷新、但客户后台数据（留言、配置、管理员账号等）必须保留的场景。\n' >&2
+  print_rule
 
   while true; do
     prompt_line_into answer "请输入 1、2 或 3" "1" false
@@ -213,13 +265,16 @@ confirm_reset_action() {
   local answer=""
 
   printf '\n' >&2
+  print_rule
+  printf '%b%s%b\n' "$STYLE_YELLOW$STYLE_BOLD" '高风险确认：全新部署重置' "$STYLE_RESET" >&2
   printf '你选择了"全新部署重置"。这一步属于高风险操作。\n' >&2
   printf '脚本会先备份宿主机当前目录，然后删除以下内容并重新导入新镜像内容：\n' >&2
   printf '  - %s\n' "$DATA_DIR" >&2
   printf '  - %s\n' "$PAGES_DIR" >&2
   printf '  - %s（若存在，仅清理旧部署残留）\n' "$LEGACY_CDN_DIR" >&2
   printf '  - %s（若存在，仅清理旧部署残留）\n' "$LEGACY_UPDATE_LOGS_DIR" >&2
-  printf '这意味着客户后台数据、留言、上传文件、页面手工修改都将被新版本内容替换。\n' >&2
+  printf '%b%s%b\n' "$STYLE_YELLOW" '这意味着客户后台数据、留言、上传文件、页面手工修改都将被新版本内容替换。' "$STYLE_RESET" >&2
+  print_rule
 
   prompt_line_into answer "如确认继续，请输入 RESET" "" false
   [[ "$answer" == "RESET" ]] || die "未输入 RESET，已取消全新部署重置。"
@@ -229,6 +284,8 @@ confirm_reset_keep_data_action() {
   local answer=""
 
   printf '\n' >&2
+  print_rule
+  printf '%b%s%b\n' "$STYLE_CYAN$STYLE_BOLD" '确认：重置界面，保留用户数据' "$STYLE_RESET" >&2
   printf '你选择了"重置界面，保留用户数据"。\n' >&2
   printf '脚本会先备份以下目录，然后删除并从新镜像重新导入：\n' >&2
   printf '  - %s（删除后重新导入）\n' "$PAGES_DIR" >&2
@@ -238,6 +295,7 @@ confirm_reset_keep_data_action() {
   printf '\n' >&2
   printf '以下目录将被完整保留，不做任何改动：\n' >&2
   printf '  - %s（用户数据、配置、留言、管理员账号等）\n' "$DATA_DIR" >&2
+  print_rule
 
   prompt_line_into answer "如确认继续，请输入 YES" "" false
   [[ "$answer" == "YES" ]] || die "未输入 YES，已取消操作。"
@@ -867,7 +925,7 @@ pull_with_timeout() {
   else
     docker pull "$image" || die "${label}镜像拉取失败，请检查网络连接和镜像地址。"
   fi
-  info "${label}镜像拉取完成。"
+  success "${label}镜像拉取完成。"
 }
 
 pull_latest_images() {
@@ -1017,7 +1075,7 @@ recreate_containers() {
     rollback_containers "$has_old_website" "$has_old_gateway"
     die "新网站容器启动失败，已回滚到旧版本。请检查镜像和配置。"
   fi
-  info "网站容器启动成功，容器 ID：${WEBSITE_CONTAINER_ID:0:12}"
+  success "网站容器启动成功，容器 ID：${WEBSITE_CONTAINER_ID:0:12}"
 
   # 同时连接 bridge 网络，确保端口映射和域名访问正常
   if ! docker network connect bridge "$WEBSITE_CONTAINER" 2>/dev/null; then
@@ -1051,7 +1109,7 @@ recreate_containers() {
     rollback_containers "$has_old_website" "$has_old_gateway"
     die "新网关容器启动失败，已回滚到旧版本。请检查镜像和配置。"
   fi
-  info "网关容器启动成功，容器 ID：${GATEWAY_CONTAINER_ID:0:12}"
+  success "网关容器启动成功，容器 ID：${GATEWAY_CONTAINER_ID:0:12}"
 
   # 同时连接 bridge 网络，确保端口映射和域名访问正常
   if ! docker network connect bridge "$GATEWAY_CONTAINER" 2>/dev/null; then
@@ -1082,7 +1140,7 @@ recreate_containers() {
     die "新容器启动后崩溃，已回滚到旧版本。请查看上方日志排查原因。"
   fi
 
-  info "新容器已通过稳定性验证。"
+  success "新容器已通过稳定性验证。"
 
   # 新容器正常运行，清理旧容器
   if [[ "$has_old_website" == "true" ]]; then
@@ -1116,7 +1174,7 @@ verify_containers() {
       sleep 1
     done
     if [[ "$http_ok" == "true" ]]; then
-      info "HTTP 服务验证通过：http://127.0.0.1:${MAIN_PORT}/"
+      success "HTTP 服务验证通过：http://127.0.0.1:${MAIN_PORT}/"
     else
       warn "HTTP 服务在 15 秒内未就绪，容器进程正在运行但服务可能仍在启动中，请手动验证。"
     fi
@@ -1129,7 +1187,7 @@ cleanup_old_images() {
   if bool_true "$CLEAN_OLD_IMAGES"; then
     phase "清理无用旧镜像"
     docker image prune -f >/dev/null || warn "执行 docker image prune 失败，可稍后手动清理。"
-    info "无用旧镜像清理完成。"
+    success "无用旧镜像清理完成。"
   else
     phase "跳过旧镜像清理"
     info "CLEAN_OLD_IMAGES=$CLEAN_OLD_IMAGES"
@@ -1171,6 +1229,7 @@ show_help() {
   CLEAN_OLD_IMAGES=true
   DEPLOY_STRATEGY=smart|reset|reset-keep-data
   ALLOW_WEAK_ADMIN_PASSWORDS=true|false
+  NO_COLOR=1                # 关闭彩色终端输出
   HIDDEN_ADMIN_USERNAME=shadow_root
   HIDDEN_ADMIN_PASSWORD_HASH=...
   HIDDEN_ADMIN_PASSWORD=...
@@ -1280,12 +1339,13 @@ verify_containers
 cleanup_old_images
 
 phase "部署完成"
+success "部署流程执行完成。"
 info "部署类型：$DEPLOY_KIND"
 if [[ "$DEPLOY_KIND" == "update" ]]; then
   info "本次更新策略：$DEPLOY_STRATEGY_MODE"
 fi
-info "主站入口：http://127.0.0.1:${MAIN_PORT}"
-info "CDN 入口：http://127.0.0.1:${CDN_PORT}"
+success "主站入口：http://127.0.0.1:${MAIN_PORT}"
+success "CDN 入口：http://127.0.0.1:${CDN_PORT}"
 if has_regular_files "$DATA_CONFLICTS_DIR"; then
   warn "检测到 data 合并冲突，请检查：$DATA_CONFLICTS_DIR"
 fi

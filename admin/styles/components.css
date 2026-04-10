@@ -1,0 +1,163 @@
+.admin2-root .menu-item,
+.admin2-root .sidebar-menu-group-toggle {
+    position: relative;
+    margin: 4px 0;
+    padding: 13px 16px;
+    border-left: none;
+    border-radius: 14px;
+    color: rgba(226, 238, 248, 0.78);
+}
+
+.admin2-root .menu-item:hover,
+.admin2-root .menu-item.active,
+.admin2-root .sidebar-menu-group-toggle:hover,
+.admin2-root .sidebar-menu-group.is-open .sidebar-menu-group-toggle,
+.admin2-root .sidebar-menu-group.has-active-child .sidebar-menu-group-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-left: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.admin2-root .sidebar-menu-group-items .menu-item {
+    margin-left: 10px;
+    padding-left: 18px;
+}
+
+.admin2-root .sidebar-footer {
+    position: relative;
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.admin2-root .sidebar-toggle-btn,
+.admin2-root .mobile-menu-btn,
+.admin2-root .top-home-btn,
+.admin2-root .version-badge,
+.admin2-root .account-menu-trigger {
+    border-radius: 12px;
+}
+
+.admin2-root .card,
+.admin2-root .stat-card,
+.admin2-root .site-report-card,
+.admin2-root .changelog-card,
+.admin2-root .docker-logs-card {
+    border: 1px solid var(--admin2-border);
+    border-radius: 20px;
+    background: var(--admin2-surface);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 16px 36px rgba(14, 41, 78, 0.08);
+}
+
+.admin2-root .stat-card {
+    min-height: 132px;
+}
+
+.admin2-root .stat-label {
+    color: var(--admin2-text-muted);
+    letter-spacing: 0.08em;
+}
+
+.admin2-root .stat-value {
+    color: var(--admin2-primary-strong);
+}
+
+.admin2-root .btn-primary,
+.admin2-root .btn-sm {
+    border-radius: 12px;
+}
+
+.admin2-root .btn-primary {
+    background: linear-gradient(135deg, #143d73 0%, #1b5ea0 48%, #27c7d9 100%);
+    box-shadow: 0 14px 28px rgba(20, 61, 115, 0.18);
+}
+
+.admin2-root .btn-sm {
+    background: #edf4fb;
+    color: var(--admin2-primary);
+}
+
+.admin2-root .btn-sm:hover {
+    background: #dfeaf7;
+}
+
+.admin2-root .form-control,
+.admin2-root .audit-page-size select {
+    border-radius: 12px;
+    border-color: rgba(14, 41, 78, 0.14);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.admin2-root .form-control:focus {
+    border-color: rgba(39, 199, 217, 0.68);
+    box-shadow: 0 0 0 4px rgba(39, 199, 217, 0.14);
+}
+
+.admin2-root .tabs {
+    gap: 12px;
+    border-bottom: none;
+    margin-bottom: 18px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--admin2-border);
+    border-radius: 18px;
+}
+
+.admin2-root .tab-btn {
+    border-radius: 14px;
+    border-bottom: none;
+    color: var(--admin2-text-muted);
+}
+
+.admin2-root .tab-btn.active {
+    background: linear-gradient(135deg, rgba(18, 61, 113, 0.14), rgba(39, 199, 217, 0.12));
+    color: var(--admin2-primary-strong);
+}
+
+.admin2-root table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.admin2-root th {
+    background: rgba(240, 245, 251, 0.88);
+    color: var(--admin2-text-muted);
+    border-bottom-color: rgba(14, 41, 78, 0.08);
+}
+
+.admin2-root td {
+    border-bottom-color: rgba(14, 41, 78, 0.06);
+}
+
+.admin2-root tr:hover {
+    background: rgba(39, 199, 217, 0.04);
+}
+
+.admin2-root .section-header {
+    color: var(--admin2-primary-strong);
+    border-bottom-color: rgba(14, 41, 78, 0.08);
+}
+
+.admin2-root .file-upload-zone,
+.admin2-root .backup-guide,
+.admin2-root .me-section-card,
+.admin2-root .hero-item,
+.admin2-root .file-item {
+    border-radius: 18px;
+}
+
+.admin2-root .status-indicator.enabled {
+    background: rgba(23, 147, 95, 0.12);
+    color: var(--admin2-success);
+}
+
+.admin2-root .status-indicator.disabled {
+    background: rgba(200, 70, 88, 0.12);
+    color: var(--admin2-danger);
+}
+
+.admin2-root .account-menu-panel {
+    border-radius: 18px;
+    border-color: var(--admin2-border);
+    box-shadow: 0 18px 44px rgba(11, 32, 59, 0.16);
+}
