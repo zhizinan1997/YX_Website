@@ -531,6 +531,18 @@ def get_config():
         'turnstile_enabled': env_bool('TURNSTILE_ENABLED', False),
         'turnstile_site_key': (os.environ.get('TURNSTILE_SITE_KEY') or '').strip(),
         'turnstile_secret_key': (os.environ.get('TURNSTILE_SECRET_KEY') or '').strip(),
+        'email_auth_enabled': env_bool('EMAIL_AUTH_ENABLED', False),
+        'smtp_host': (os.environ.get('SMTP_HOST') or '').strip(),
+        'smtp_port': int((os.environ.get('SMTP_PORT') or '465').strip() or '465'),
+        'smtp_username': (os.environ.get('SMTP_USERNAME') or '').strip(),
+        'smtp_password_or_app_code': (os.environ.get('SMTP_PASSWORD_OR_APP_CODE') or '').strip(),
+        'smtp_use_ssl': env_bool('SMTP_USE_SSL', True),
+        'smtp_use_tls': env_bool('SMTP_USE_TLS', False),
+        'smtp_from_name': (os.environ.get('SMTP_FROM_NAME') or '').strip(),
+        'smtp_from_email': (os.environ.get('SMTP_FROM_EMAIL') or '').strip(),
+        'smtp_notice_email': (os.environ.get('SMTP_NOTICE_EMAIL') or '').strip(),
+        'smtp_password_set_at': (os.environ.get('SMTP_PASSWORD_SET_AT') or '').strip(),
+        'smtp_password_expires_at': (os.environ.get('SMTP_PASSWORD_EXPIRES_AT') or '').strip(),
     }
     
     if CONFIG_FILE.exists():

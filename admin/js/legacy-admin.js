@@ -25,6 +25,14 @@
         let turnstileWidgetId = null;
         let turnstileToken = '';
         let turnstileScriptPromise = null;
+        let emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
+        let pendingLoginId = '';
+        let pendingLoginEmailMasked = '';
+        let loginEmailCodeCountdown = 0;
+        let loginEmailCodeTimer = null;
+        let bindingRequiredState = false;
+        let bindingCountdown = 0;
+        let bindingTimer = null;
         let globalActionResolver = null;
         const DEFAULT_PERMISSION_CATALOG = [
             { key: 'site-reports', label: '网站数据' },
@@ -766,8 +774,11 @@
             currentAdminAuth = {
                 username: String(safe.username || ''),
                 is_super_admin: safe.is_super_admin === true,
-                permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : []
+                permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : [],
+                email: String(safe.email || ''),
+                email_verified: safe.email_verified === true
             };
+            bindingRequiredState = safe.binding_required === true;
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
                 permissionCatalog = safe.permission_catalog
                     .map(item => ({
@@ -937,6 +948,8 @@
             const errEl = document.getElementById('loginTurnstileError');
             if (errEl) errEl.textContent = '';
             if (wrap) wrap.style.display = 'none';
+            resetPendingLoginState();
+            await loadEmailAuthPublicConfig();
             setLoginSubmitState(true, '加载中...');
             try {
                 const res = await fetch('/api/admin/security/turnstile/public', { cache: 'no-store' });
@@ -949,6 +962,7 @@
                 if (!turnstilePublicConfig.enabled || !turnstilePublicConfig.site_key) {
                     turnstileToken = '';
                     setLoginSubmitState(false, '登 录');
+                    updateLoginActionState();
                     return;
                 }
 
@@ -956,10 +970,12 @@
                 await ensureTurnstileScriptLoaded();
                 renderLoginTurnstile();
                 setLoginSubmitState(true, '请先完成人机验证');
+                updateLoginActionState();
             } catch (e) {
                 const isCfTimeout = e && e.message && e.message.includes('Turnstile');
                 if (errEl) errEl.textContent = 'Cloudflare 人机挑战验证暂时无法连通，请稍后再次尝试或者更换网络。';
                 setLoginSubmitState(true, '人机验证不可用');
+                updateLoginActionState();
             }
         }
 
@@ -1008,16 +1024,19 @@
                     turnstileToken = String(token || '');
                     if (errEl) errEl.textContent = '';
                     setLoginSubmitState(false, '登 录');
+                    updateLoginActionState();
                 },
                 'expired-callback': function () {
                     turnstileToken = '';
                     if (errEl) errEl.textContent = '验证已过期，请重新验证';
                     setLoginSubmitState(true, '请先完成人机验证');
+                    updateLoginActionState();
                 },
                 'error-callback': function () {
                     turnstileToken = '';
                     if (errEl) errEl.textContent = '人机验证异常，请刷新后重试';
                     setLoginSubmitState(true, '请先完成人机验证');
+                    updateLoginActionState();
                 }
             });
         }
@@ -1034,6 +1053,7 @@
                     window.turnstile.reset(turnstileWidgetId);
                 } catch (_) { }
             }
+            updateLoginActionState();
         }
 
         async function checkLoginStatus() {
@@ -1044,7 +1064,9 @@
                     setAdminAuthFromCheck(data);
                     showDashboard(data);
                 } else {
+                    bindingRequiredState = false;
                     document.getElementById('loginPage').style.display = 'flex';
+                    document.getElementById('dashboard').style.display = 'none';
                 }
             } catch (e) {
                 console.error(e);
@@ -1196,77 +1218,227 @@
             }
         }
 
+        function updateLoginActionState() {
+            const sendBtn = document.getElementById('loginSendCodeBtn');
+            const submitBtn = document.getElementById('loginSubmitBtn');
+            const codeWrap = document.getElementById('loginEmailCodeWrap');
+            const emailEnabled = emailAuthAdminConfig.email_auth_enabled === true;
+            const sendDisabled = (turnstilePublicConfig.enabled && !turnstileToken) || emailAuthAdminConfig.smtp_ready === false;
+            if (sendBtn) {
+                sendBtn.style.display = emailEnabled ? '' : 'none';
+                sendBtn.disabled = emailEnabled ? sendDisabled : true;
+                if (emailEnabled) {
+                    sendBtn.textContent = emailAuthAdminConfig.smtp_ready === false
+                        ? '邮箱验证暂不可用'
+                        : (loginEmailCodeCountdown > 0 ? `重新发送（${loginEmailCodeCountdown}s）` : '发送邮箱验证码');
+                }
+            }
+            if (submitBtn) {
+                submitBtn.style.display = emailEnabled ? '' : '';
+                submitBtn.textContent = emailEnabled ? '验证并登录' : '登 录';
+                submitBtn.disabled = emailEnabled
+                    ? (!pendingLoginId || emailAuthAdminConfig.smtp_ready === false)
+                    : !!(turnstilePublicConfig.enabled && !turnstileToken);
+            }
+            if (codeWrap) {
+                codeWrap.style.display = emailEnabled && pendingLoginId ? 'block' : 'none';
+            }
+        }
+
+        function stopLoginCodeTimer() {
+            if (loginEmailCodeTimer) {
+                clearInterval(loginEmailCodeTimer);
+                loginEmailCodeTimer = null;
+            }
+        }
+
+        function startLoginCodeTimer(seconds) {
+            stopLoginCodeTimer();
+            loginEmailCodeCountdown = Math.max(0, Number(seconds || 0));
+            updateLoginActionState();
+            if (loginEmailCodeCountdown <= 0) return;
+            loginEmailCodeTimer = setInterval(() => {
+                loginEmailCodeCountdown = Math.max(0, loginEmailCodeCountdown - 1);
+                updateLoginActionState();
+                if (loginEmailCodeCountdown <= 0) stopLoginCodeTimer();
+            }, 1000);
+        }
+
+        function resetPendingLoginState(options = {}) {
+            pendingLoginId = '';
+            pendingLoginEmailMasked = '';
+            stopLoginCodeTimer();
+            loginEmailCodeCountdown = 0;
+            const codeInput = document.getElementById('loginEmailCode');
+            const hintEl = document.getElementById('loginEmailHint');
+            if (codeInput) codeInput.value = '';
+            if (hintEl) hintEl.textContent = options.hint || '验证码将发送到已绑定安全邮箱。';
+            updateLoginActionState();
+        }
+
+        async function loadEmailAuthPublicConfig() {
+            try {
+                const res = await fetch('/api/admin/email-auth/public', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                emailAuthAdminConfig = data && typeof data === 'object' ? data : { email_auth_enabled: false };
+            } catch (_) {
+                emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
+            }
+            updateLoginActionState();
+        }
+
+        async function handleLoginStart() {
+            const err = document.getElementById('loginError');
+            const turnstileErr = document.getElementById('loginTurnstileError');
+            if (err) err.textContent = '';
+            if (turnstileErr) turnstileErr.textContent = '';
+
+            if (turnstilePublicConfig.enabled && !turnstileToken) {
+                if (turnstileErr) turnstileErr.textContent = '请先完成人机验证';
+                updateLoginActionState();
+                return false;
+            }
+
+            const preflight = await runIpPreflight();
+            if (!preflight.allowed) {
+                updateLoginActionState();
+                return false;
+            }
+            await new Promise(r => setTimeout(r, 800));
+            closeIpPreflightModal();
+
+            const res = await fetch('/admin/login/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value,
+                    turnstileToken: turnstileToken
+                })
+            });
+            const data = await parseJsonSafe(res);
+            if (!res.ok || !data.success) {
+                const reason = String(data.message || `登录失败（HTTP ${res.status || '-'}）`);
+                if (err) err.textContent = reason;
+                showLoginFailModal(reason);
+                resetPendingLoginState();
+                resetLoginTurnstile();
+                return false;
+            }
+
+            if (data.requires_email_code) {
+                pendingLoginId = String(data.pending_login_id || '');
+                pendingLoginEmailMasked = String(data.email_masked || '');
+                const hintEl = document.getElementById('loginEmailHint');
+                if (hintEl) hintEl.textContent = `验证码将发送到 ${pendingLoginEmailMasked || '已绑定邮箱'}。`;
+                updateLoginActionState();
+                return true;
+            }
+
+            if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
+                const username = document.getElementById('username').value;
+                showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
+            }
+            await checkLoginStatus();
+            return true;
+        }
+
+        async function sendLoginEmailCode() {
+            const err = document.getElementById('loginError');
+            if (err) err.textContent = '';
+            const sendBtn = document.getElementById('loginSendCodeBtn');
+            if (sendBtn) sendBtn.disabled = true;
+            try {
+                if (!pendingLoginId) {
+                    const started = await handleLoginStart();
+                    if (!started || !pendingLoginId) {
+                        updateLoginActionState();
+                        return;
+                    }
+                }
+                const res = await fetch('/admin/login/send-email-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pending_login_id: pendingLoginId })
+                });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || !data.success) {
+                    const reason = String(data.message || `发送失败（HTTP ${res.status || '-'}）`);
+                    if (err) err.textContent = reason;
+                    showLoginFailModal(reason);
+                    if (res.status === 401) resetPendingLoginState();
+                    updateLoginActionState();
+                    return;
+                }
+                const hintEl = document.getElementById('loginEmailHint');
+                if (hintEl) hintEl.textContent = `验证码已发送到 ${String(data.email_masked || pendingLoginEmailMasked || '已绑定邮箱')}。`;
+                startLoginCodeTimer(Number(data.resend_after || 60));
+            } catch (e) {
+                const reason = '网络错误，请检查连接后重试。';
+                if (err) err.textContent = reason;
+                showLoginFailModal(reason);
+                updateLoginActionState();
+            }
+        }
+
+        async function verifyLoginEmailCode() {
+            const err = document.getElementById('loginError');
+            if (err) err.textContent = '';
+            if (!pendingLoginId) {
+                if (err) err.textContent = '请先发送邮箱验证码。';
+                return;
+            }
+            const code = String(document.getElementById('loginEmailCode')?.value || '').trim();
+            if (!code) {
+                if (err) err.textContent = '请输入邮箱验证码。';
+                return;
+            }
+            setLoginSubmitState(true, '验证中...');
+            try {
+                const res = await fetch('/admin/login/verify-email-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pending_login_id: pendingLoginId, code })
+                });
+                const data = await parseJsonSafe(res);
+                if (res.ok && data.success) {
+                    if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
+                        const username = document.getElementById('username').value;
+                        showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
+                    }
+                    resetPendingLoginState();
+                    await checkLoginStatus();
+                    return;
+                }
+                const reason = String(data.message || `验证失败（HTTP ${res.status || '-'}）`);
+                if (err) err.textContent = reason;
+                showLoginFailModal(reason);
+            } catch (e) {
+                const reason = '网络错误，请检查连接后重试。';
+                if (err) err.textContent = reason;
+                showLoginFailModal(reason);
+            } finally {
+                updateLoginActionState();
+            }
+        }
+
+        const loginSendCodeBtn = document.getElementById('loginSendCodeBtn');
+        if (loginSendCodeBtn && loginSendCodeBtn.dataset.bound !== '1') {
+            loginSendCodeBtn.dataset.bound = '1';
+            loginSendCodeBtn.addEventListener('click', async () => {
+                await sendLoginEmailCode();
+            });
+        }
+
         const loginForm = document.getElementById('loginForm');
         if (loginForm && loginForm.dataset.loginBound !== '1') {
             loginForm.dataset.loginBound = '1';
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const err = document.getElementById('loginError');
-                const turnstileErr = document.getElementById('loginTurnstileError');
-
-                setLoginSubmitState(true, '登录中...');
-                err.textContent = '';
-                if (turnstileErr) turnstileErr.textContent = '';
-
-                if (turnstilePublicConfig.enabled) {
-                    if (!turnstileToken) {
-                        if (turnstileErr) turnstileErr.textContent = '请先完成人机验证';
-                        setLoginSubmitState(true, '请先完成人机验证');
-                        return;
-                    }
-                }
-
-                // --- IP 预检 ---
-                const preflight = await runIpPreflight();
-                if (!preflight.allowed) {
-                    // 被拦截，弹窗已显示，恢复按钮状态
-                    if (turnstilePublicConfig.enabled && !turnstileToken) {
-                        setLoginSubmitState(true, '请先完成人机验证');
-                    } else {
-                        setLoginSubmitState(false, '登 录');
-                    }
-                    return;
-                }
-
-                // IP 核验通过，短暂展示后继续登录
-                await new Promise(r => setTimeout(r, 800));
-                closeIpPreflightModal();
-
-                try {
-                    const res = await fetch('/admin/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: document.getElementById('username').value,
-                            password: document.getElementById('password').value,
-                            turnstileToken: turnstileToken
-                        })
-                    });
-                    const data = await parseJsonSafe(res);
-
-                    if (res.ok && data.success) {
-                        if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
-                            const username = document.getElementById('username').value;
-                            showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
-                        }
-                        await checkLoginStatus();
-                    } else {
-                        const reason = String(data.message || `登录失败（HTTP ${res.status || '-'}）`);
-                        err.textContent = reason;
-                        showLoginFailModal(reason);
-                        resetLoginTurnstile();
-                    }
-                } catch (e) {
-                    const reason = '网络错误，请检查连接后重试。';
-                    err.textContent = reason;
-                    showLoginFailModal(reason);
-                    resetLoginTurnstile();
-                } finally {
-                    if (turnstilePublicConfig.enabled && !turnstileToken) {
-                        setLoginSubmitState(true, '请先完成人机验证');
-                    } else {
-                        setLoginSubmitState(false, '登 录');
-                    }
+                if (emailAuthAdminConfig.email_auth_enabled) {
+                    await verifyLoginEmailCode();
+                } else {
+                    await handleLoginStart();
                 }
             });
         }
@@ -1296,6 +1468,9 @@
                         setAdminAuthFromCheck(data);
                         applySidebarPermissions();
                         syncSubAccountManageVisibility();
+                        if (bindingRequiredState) {
+                            switchView('settings');
+                        }
                     }
                 } catch (_) {
                     // Network errors are ignored here; next interval will retry.
@@ -1394,7 +1569,7 @@
             applySidebarPermissions();
             syncSubAccountManageVisibility();
             startAdminSessionWatcher();
-            switchView(getPreferredInitialView());
+            switchView(bindingRequiredState ? 'settings' : getPreferredInitialView());
         }
 
         const TAB_GUIDES = {
@@ -3122,6 +3297,9 @@
         function switchView(viewName, options = {}) {
             const persist = options && options.persist !== false;
             const hashSync = !options || options.hash !== false;
+            if (bindingRequiredState && viewName !== 'settings') {
+                viewName = 'settings';
+            }
             if (!hasViewPermission(viewName)) {
                 showGlobalAlert('当前账号没有访问该功能的权限');
                 return;
@@ -3184,12 +3362,16 @@
             if (viewName === 'site-settings') {
                 loadCdnSettings();
                 loadTurnstileAdminConfig();
+                loadEmailAuthSettings();
             }
             if (viewName === 'site-reports') {
                 loadSiteReports();
                 loadAdminLoginLogs();
             }
-            if (viewName === 'settings') loadSubAccounts();
+            if (viewName === 'settings') {
+                if (!bindingRequiredState) loadSubAccounts();
+                loadEmailBindingStatus();
+            }
             if (viewName === 'changelog') loadChangelog();
             if (viewName === 'docker-logs') loadDockerLogs();
             if (viewName === 'cdn-assets') loadCdnAssets();
@@ -11784,6 +11966,203 @@
             }
         }
 
+        function stopBindingTimer() {
+            if (bindingTimer) {
+                clearInterval(bindingTimer);
+                bindingTimer = null;
+            }
+        }
+
+        function startBindingTimer(seconds) {
+            stopBindingTimer();
+            bindingCountdown = Math.max(0, Number(seconds || 0));
+            updateBindingActionState();
+            if (bindingCountdown <= 0) return;
+            bindingTimer = setInterval(() => {
+                bindingCountdown = Math.max(0, bindingCountdown - 1);
+                updateBindingActionState();
+                if (bindingCountdown <= 0) stopBindingTimer();
+            }, 1000);
+        }
+
+        function updateBindingActionState() {
+            const sendBtn = document.getElementById('bindingSendCodeBtn');
+            const verifyBtn = document.getElementById('bindingVerifyBtn');
+            const banner = document.getElementById('bindingRequiredBanner');
+            const codeWrap = document.getElementById('bindingCodeWrap');
+            if (banner) banner.style.display = bindingRequiredState ? 'block' : 'none';
+            if (codeWrap) codeWrap.style.display = bindingCountdown > 0 || bindingRequiredState ? 'block' : (document.getElementById('bindingCodeInput')?.value ? 'block' : 'none');
+            if (sendBtn) sendBtn.textContent = bindingCountdown > 0 ? `重新发送（${bindingCountdown}s）` : '发送绑定验证码';
+            if (sendBtn) sendBtn.disabled = bindingCountdown > 0;
+            if (verifyBtn) verifyBtn.disabled = false;
+        }
+
+        async function loadEmailBindingStatus() {
+            const statusEl = document.getElementById('bindingStatusText');
+            const inputEl = document.getElementById('bindingEmailInput');
+            const msgEl = document.getElementById('bindingMsg');
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#28a745';
+            }
+            try {
+                const res = await fetch('/api/admin/account/email-binding', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || !data.success) {
+                    if (statusEl) statusEl.textContent = '邮箱状态加载失败';
+                    return;
+                }
+                if (inputEl) inputEl.value = String(data.email || '');
+                if (statusEl) {
+                    statusEl.textContent = data.email_verified
+                        ? `已绑定：${String(data.email_masked || data.email || '')}`
+                        : '尚未绑定安全邮箱';
+                }
+                bindingRequiredState = data.binding_required === true || bindingRequiredState;
+                updateBindingActionState();
+            } catch (e) {
+                if (statusEl) statusEl.textContent = '邮箱状态加载失败';
+            }
+        }
+
+        async function sendBindingCode() {
+            const msgEl = document.getElementById('bindingMsg');
+            const email = String(document.getElementById('bindingEmailInput')?.value || '').trim();
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#dc3545';
+            }
+            if (!email) {
+                if (msgEl) msgEl.textContent = '请先输入邮箱地址。';
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/account/email-binding/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || !data.success) {
+                    if (msgEl) msgEl.textContent = data.message || '验证码发送失败';
+                    return;
+                }
+                if (msgEl) {
+                    msgEl.style.color = '#28a745';
+                    msgEl.textContent = data.message || '绑定验证码已发送。';
+                }
+                startBindingTimer(Number(data.resend_after || 60));
+                const codeWrap = document.getElementById('bindingCodeWrap');
+                if (codeWrap) codeWrap.style.display = 'block';
+            } catch (e) {
+                if (msgEl) msgEl.textContent = '网络错误，验证码发送失败';
+            }
+        }
+
+        async function verifyBindingCode() {
+            const msgEl = document.getElementById('bindingMsg');
+            const email = String(document.getElementById('bindingEmailInput')?.value || '').trim();
+            const code = String(document.getElementById('bindingCodeInput')?.value || '').trim();
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#dc3545';
+            }
+            if (!email || !code) {
+                if (msgEl) msgEl.textContent = '请输入邮箱和验证码。';
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/account/email-binding/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code })
+                });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || !data.success) {
+                    if (msgEl) msgEl.textContent = data.message || '邮箱绑定失败';
+                    return;
+                }
+                if (msgEl) {
+                    msgEl.style.color = '#28a745';
+                    msgEl.textContent = data.message || '邮箱绑定成功';
+                }
+                bindingRequiredState = false;
+                stopBindingTimer();
+                bindingCountdown = 0;
+                if (document.getElementById('bindingCodeInput')) document.getElementById('bindingCodeInput').value = '';
+                await checkLoginStatus();
+                await loadEmailBindingStatus();
+            } catch (e) {
+                if (msgEl) msgEl.textContent = '网络错误，邮箱绑定失败';
+            }
+        }
+
+        function renderSmtpExpiryStatus(config = {}) {
+            const statusEl = document.getElementById('smtpExpiryStatus');
+            if (!statusEl) return;
+            const remaining = Number(config.smtp_password_remaining_days);
+            const expiresAt = String(config.smtp_password_expires_at || '').trim();
+            if (!config.smtp_configured) {
+                statusEl.textContent = '当前 SMTP 配置不完整。';
+                statusEl.style.color = '#b45309';
+                return;
+            }
+            if (config.smtp_password_expired) {
+                statusEl.textContent = `授权码已到期${expiresAt ? `（${expiresAt}）` : ''}，请立即更新。`;
+                statusEl.style.color = '#b91c1c';
+                return;
+            }
+            if (Number.isFinite(remaining)) {
+                statusEl.textContent = `授权码预计剩余 ${remaining} 天${expiresAt ? `，到期时间：${expiresAt}` : ''}`;
+                statusEl.style.color = remaining <= 7 ? '#b45309' : '#2e7d32';
+                return;
+            }
+            statusEl.textContent = '已配置，但尚未记录授权码到期时间。';
+            statusEl.style.color = '#666';
+        }
+
+        async function loadEmailAuthSettings() {
+            const msgEl = document.getElementById('emailAuthSettingsMsg');
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#28a745';
+            }
+            try {
+                const res = await fetch('/api/admin/email-auth/config', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                emailAuthAdminConfig = data && typeof data === 'object' ? data : { email_auth_enabled: false };
+                const setValue = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = value || '';
+                };
+                const setChecked = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = value === true;
+                };
+                setChecked('emailAuthEnabled', data.email_auth_enabled === true);
+                setValue('smtpHost', data.smtp_host || '');
+                setValue('smtpPort', data.smtp_port || 465);
+                setValue('smtpUsername', data.smtp_username || '');
+                setValue('smtpFromName', data.smtp_from_name || '');
+                setValue('smtpFromEmail', data.smtp_from_email || '');
+                setValue('smtpNoticeEmail', data.smtp_notice_email || '');
+                const smtpPwdEl = document.getElementById('smtpPassword');
+                if (smtpPwdEl) {
+                    smtpPwdEl.value = '';
+                    smtpPwdEl.placeholder = data.smtp_password_masked ? `${data.smtp_password_masked}（留空不修改）` : '留空表示保持当前授权码不变';
+                }
+                setChecked('smtpUseSsl', data.smtp_use_ssl !== false);
+                setChecked('smtpUseTls', data.smtp_use_tls === true);
+                renderSmtpExpiryStatus(data);
+                updateLoginActionState();
+            } catch (e) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = 'SMTP 设置加载失败';
+                }
+            }
+        }
+
         // --- Settings Logic ---
         function downloadFullBackup() {
             window.open('/api/backup/download', '_blank');
@@ -12128,6 +12507,105 @@
                 btn.disabled = false;
             }
         });
+
+        const bindingSendCodeBtn = document.getElementById('bindingSendCodeBtn');
+        if (bindingSendCodeBtn && bindingSendCodeBtn.dataset.bound !== '1') {
+            bindingSendCodeBtn.dataset.bound = '1';
+            bindingSendCodeBtn.addEventListener('click', async () => {
+                await sendBindingCode();
+            });
+        }
+
+        const bindingVerifyBtn = document.getElementById('bindingVerifyBtn');
+        if (bindingVerifyBtn && bindingVerifyBtn.dataset.bound !== '1') {
+            bindingVerifyBtn.dataset.bound = '1';
+            bindingVerifyBtn.addEventListener('click', async () => {
+                await verifyBindingCode();
+            });
+        }
+
+        const emailAuthSettingsForm = document.getElementById('emailAuthSettingsForm');
+        if (emailAuthSettingsForm && emailAuthSettingsForm.dataset.bound !== '1') {
+            emailAuthSettingsForm.dataset.bound = '1';
+            emailAuthSettingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button[type="submit"]');
+                const msg = document.getElementById('emailAuthSettingsMsg');
+                if (msg) {
+                    msg.textContent = '';
+                    msg.style.color = '#dc3545';
+                }
+                if (btn) btn.disabled = true;
+                try {
+                    const res = await fetch('/api/admin/email-auth/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email_auth_enabled: !!document.getElementById('emailAuthEnabled')?.checked,
+                            smtp_host: document.getElementById('smtpHost')?.value || '',
+                            smtp_port: document.getElementById('smtpPort')?.value || 465,
+                            smtp_username: document.getElementById('smtpUsername')?.value || '',
+                            smtp_password_or_app_code: document.getElementById('smtpPassword')?.value || '',
+                            smtp_use_ssl: !!document.getElementById('smtpUseSsl')?.checked,
+                            smtp_use_tls: !!document.getElementById('smtpUseTls')?.checked,
+                            smtp_from_name: document.getElementById('smtpFromName')?.value || '',
+                            smtp_from_email: document.getElementById('smtpFromEmail')?.value || '',
+                            smtp_notice_email: document.getElementById('smtpNoticeEmail')?.value || ''
+                        })
+                    });
+                    const data = await parseJsonSafe(res);
+                    if (!res.ok || !data.success) {
+                        if (msg) msg.textContent = data.message || '保存失败';
+                        return;
+                    }
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = data.message || 'SMTP 设置保存成功';
+                    }
+                    await loadEmailAuthSettings();
+                    await initLoginSecurity();
+                } catch (e) {
+                    if (msg) msg.textContent = '网络错误，保存失败';
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
+        }
+
+        const smtpTestBtn = document.getElementById('smtpTestBtn');
+        if (smtpTestBtn && smtpTestBtn.dataset.bound !== '1') {
+            smtpTestBtn.dataset.bound = '1';
+            smtpTestBtn.addEventListener('click', async () => {
+                const msg = document.getElementById('emailAuthSettingsMsg');
+                if (msg) {
+                    msg.textContent = '';
+                    msg.style.color = '#666';
+                    msg.textContent = '测试邮件发送中...';
+                }
+                smtpTestBtn.disabled = true;
+                try {
+                    const res = await fetch('/api/admin/email-auth/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            target_email: document.getElementById('smtpNoticeEmail')?.value || ''
+                        })
+                    });
+                    const data = await parseJsonSafe(res);
+                    if (msg) {
+                        msg.style.color = res.ok && data.success ? '#28a745' : '#dc3545';
+                        msg.textContent = data.message || (res.ok ? '测试邮件已发送' : '测试失败');
+                    }
+                } catch (e) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '网络错误，测试失败';
+                    }
+                } finally {
+                    smtpTestBtn.disabled = false;
+                }
+            });
+        }
 
         let subAccountsCache = [];
 

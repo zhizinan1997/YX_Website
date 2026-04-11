@@ -1830,40 +1830,18 @@ def build_news_article_html(title, date, image_url, content_html):
   <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
 <body>
-    <!-- Header -->
-    <header class="vs-header">
-    <div class="vs-container vs-header__inner">
-      <div style="display: flex; align-items: center">
-        <a href="../../index.html" class="vs-logo">
-          <img src="../../assets/images/logo.png" alt="Metachip Logo" style="filter: brightness(0) invert(1)" />
-          METACHIP
-        </a>
-      </div>
-
-      <nav class="vs-nav" style="margin-left: auto; margin-right: 40px;">
-        <ul class="vs-nav__list">
-
-          <li class="vs-nav__item">
-            <a href="../biosensing/index.html?filter=sensor" class="vs-nav__link">生化传感事业部</a>
-          </li>
-          <li class="vs-nav__item">
-            <a href="../gassensing/index.html" class="vs-nav__link">先进氢气传感解决方案</a>
-          </li>
-          <li class="vs-nav__item vs-nav__item--has-mega">
-            <a href="../news/news.html" class="vs-nav__link">洞察与资讯</a>
-          </li>
-          <li class="vs-nav__item">
-            <a href="../contact/contact.html" class="vs-nav__link">联系我们</a>
-          </li>
-        </ul>
-      </nav>
-
-      <div style="display: flex; gap: 24px; color: white; align-items: center">
-        <a href="#" class="vs-search-trigger" title="搜索 (Ctrl+K)"><i class="fas fa-search"></i></a>
-        <span style="font-size: 14px; font-weight: 700; color:white;">CN</span> / <a href="../../index_en.html" style="font-size: 14px; font-weight: 500;">EN</a>
-      </div>
-    </div>
-  </header>
+    <div id="mc-nav-root" data-nav-profile="home"></div>
+    <noscript><div class="mc-nav-noscript">
+      <a href="/index.html">首页</a> |
+      <a href="/pages/gassensing/all-products.html">产品</a> |
+      <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+      <a href="/pages/research/index.html">科研服务</a> |
+      <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+      <a href="/pages/about/about.html">公司简介</a> |
+      <a href="/pages/gassensing/online-store.html">线上店铺</a> |
+      <a href="/pages/contact/contact.html">联系我们</a>
+    </div></noscript>
+    <script src="/assets/js/nav-loader.js?v=20260411a"></script>
 
     <section class="article-hero" data-cover-image="{safe_image_url}">
         <h1 class="article-hero__title">{hero_title}</h1>
