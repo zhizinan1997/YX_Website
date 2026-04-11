@@ -75,10 +75,14 @@ API路由清单：
 import json
 import os
 import re
+import secrets
+import smtplib
 import subprocess
 import threading
 import time
+import hashlib
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -99,14 +103,24 @@ LOGIN_FAIL_LIMIT = 3
 LOGIN_BLOCK_SECONDS = 12 * 3600
 LOGIN_ATTEMPTS_LOCK = threading.Lock()
 ADMIN_USERS_LOCK = threading.RLock()
+EMAIL_AUTH_STATE_LOCK = threading.RLock()
+SMTP_REMINDER_THREAD_LOCK = threading.Lock()
 TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 try:
     ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '7200').strip()))
 except Exception:
     ADMIN_SESSION_MAX_AGE_SECONDS = 7200
-ADMIN_SESSION_SCHEMA_VERSION = 3
+ADMIN_SESSION_SCHEMA_VERSION = 4
 LOGIN_DELAY_SECONDS = [60, 180]
 ALLOWED_LOGIN_COUNTRIES = {'CN', 'HK', 'MO', 'TW'}
+EMAIL_CODE_LENGTH = 6
+EMAIL_CODE_EXPIRES_SECONDS = 300
+EMAIL_CODE_RESEND_COOLDOWN_SECONDS = 60
+EMAIL_CODE_MAX_SENDS = 5
+EMAIL_CODE_MAX_VERIFY_FAILURES = 5
+PENDING_LOGIN_EXPIRES_SECONDS = 600
+SMTP_PASSWORD_VALID_DAYS = 180
+SMTP_REMINDER_DAYS = (7, 3, 1)
 
 ADMIN_PERMISSION_CATALOG = [
     {'key': 'site-reports', 'label': '网站数据'},
@@ -141,6 +155,10 @@ except Exception:
 
 def _normalize_username(raw_value: str) -> str:
     return str(raw_value or '').strip()
+
+
+def _normalize_email(raw_value: str) -> str:
+    return str(raw_value or '').strip().lower()
 
 
 def _is_development_mode() -> bool:
@@ -221,6 +239,221 @@ def _verify_password(password_hash: str, plain_password: str) -> bool:
         return False
 
 
+def _get_email_auth_state_file(project_root: Path) -> Path:
+    data_dir = (project_root / 'data').resolve()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir / 'admin_email_auth_state.json'
+
+
+def _load_email_auth_state(file_path: Path):
+    default_state = {
+        'version': 1,
+        'pending_logins': {},
+        'binding_codes': {},
+        'smtp_notice_history': {},
+    }
+    if not file_path.exists():
+        return default_state
+    try:
+        data = json.loads(file_path.read_text(encoding='utf-8'))
+    except Exception:
+        return default_state
+    if not isinstance(data, dict):
+        return default_state
+    return {
+        'version': int(data.get('version', 1) or 1),
+        'pending_logins': data.get('pending_logins', {}) if isinstance(data.get('pending_logins'), dict) else {},
+        'binding_codes': data.get('binding_codes', {}) if isinstance(data.get('binding_codes'), dict) else {},
+        'smtp_notice_history': data.get('smtp_notice_history', {}) if isinstance(data.get('smtp_notice_history'), dict) else {},
+    }
+
+
+def _save_email_auth_state(file_path: Path, data):
+    payload = data if isinstance(data, dict) else {}
+    safe = {
+        'version': int(payload.get('version', 1) or 1),
+        'pending_logins': payload.get('pending_logins', {}) if isinstance(payload.get('pending_logins'), dict) else {},
+        'binding_codes': payload.get('binding_codes', {}) if isinstance(payload.get('binding_codes'), dict) else {},
+        'smtp_notice_history': payload.get('smtp_notice_history', {}) if isinstance(payload.get('smtp_notice_history'), dict) else {},
+    }
+    tmp = file_path.with_suffix('.tmp')
+    tmp.write_text(json.dumps(safe, ensure_ascii=False, indent=2), encoding='utf-8')
+    tmp.replace(file_path)
+
+
+def _email_code_hash(code: str, salt: str) -> str:
+    return hashlib.sha256(f'{salt}:{str(code or "").strip()}'.encode('utf-8')).hexdigest()
+
+
+def _generate_email_code() -> str:
+    return ''.join(secrets.choice('0123456789') for _ in range(EMAIL_CODE_LENGTH))
+
+
+def _mask_email_address(email: str) -> str:
+    normalized = _normalize_email(email)
+    if '@' not in normalized:
+        return normalized
+    local_part, domain = normalized.split('@', 1)
+    if len(local_part) <= 1:
+        masked_local = '*'
+    elif len(local_part) == 2:
+        masked_local = f'{local_part[0]}*'
+    else:
+        masked_local = f'{local_part[0]}***{local_part[-1]}'
+    return f'{masked_local}@{domain}'
+
+
+def _parse_iso_datetime(raw_value: str):
+    value = str(raw_value or '').strip()
+    if not value:
+        return None
+    normalized = value.replace('Z', '+00:00')
+    try:
+        dt_value = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if dt_value.tzinfo is None:
+        return dt_value.replace(tzinfo=BEIJING_TZ)
+    return dt_value.astimezone(BEIJING_TZ)
+
+
+def _to_iso_datetime(dt_value):
+    if not isinstance(dt_value, datetime):
+        return ''
+    return dt_value.astimezone(BEIJING_TZ).isoformat(timespec='seconds')
+
+
+def _get_email_auth_settings(config):
+    safe = config if isinstance(config, dict) else {}
+    host = str(safe.get('smtp_host', '') or '').strip()
+    username = str(safe.get('smtp_username', '') or '').strip()
+    password = str(safe.get('smtp_password_or_app_code', '') or '').strip()
+    from_name = str(safe.get('smtp_from_name', '') or '').strip()
+    from_email = _normalize_email(safe.get('smtp_from_email', ''))
+    notice_email = _normalize_email(safe.get('smtp_notice_email', ''))
+    password_set_at = str(safe.get('smtp_password_set_at', '') or '').strip()
+    password_expires_at = str(safe.get('smtp_password_expires_at', '') or '').strip()
+    try:
+        port = int(str(safe.get('smtp_port', 465) or 465).strip())
+    except Exception:
+        port = 465
+    use_ssl = _parse_bool(safe.get('smtp_use_ssl', True), True)
+    use_tls = _parse_bool(safe.get('smtp_use_tls', False), False)
+    enabled = _parse_bool(safe.get('email_auth_enabled', False), False)
+
+    missing_fields = []
+    if not host:
+        missing_fields.append('smtp_host')
+    if port <= 0:
+        missing_fields.append('smtp_port')
+    if not username:
+        missing_fields.append('smtp_username')
+    if not password:
+        missing_fields.append('smtp_password_or_app_code')
+    if not from_email:
+        missing_fields.append('smtp_from_email')
+
+    set_dt = _parse_iso_datetime(password_set_at)
+    expires_dt = _parse_iso_datetime(password_expires_at)
+    if expires_dt is None and set_dt is not None:
+        expires_dt = set_dt + timedelta(days=SMTP_PASSWORD_VALID_DAYS)
+
+    now_dt = now_beijing()
+    remaining_days = None
+    if expires_dt is not None:
+        remaining_seconds = int((expires_dt - now_dt).total_seconds())
+        remaining_days = max(0, (remaining_seconds + 86399) // 86400)
+
+    expired = expires_dt is not None and expires_dt <= now_dt
+    configured = not missing_fields
+
+    return {
+        'enabled': enabled,
+        'smtp_host': host,
+        'smtp_port': port,
+        'smtp_username': username,
+        'smtp_password_or_app_code': password,
+        'smtp_use_ssl': use_ssl,
+        'smtp_use_tls': use_tls,
+        'smtp_from_name': from_name,
+        'smtp_from_email': from_email,
+        'smtp_notice_email': notice_email,
+        'smtp_password_set_at': password_set_at,
+        'smtp_password_expires_at': _to_iso_datetime(expires_dt) if expires_dt else '',
+        'smtp_password_masked': ('***' if password else ''),
+        'configured': configured,
+        'missing_fields': missing_fields,
+        'expired': expired,
+        'remaining_days': remaining_days,
+    }
+
+
+def _smtp_ready_for_email_auth(settings) -> bool:
+    return bool(settings.get('configured')) and not bool(settings.get('expired'))
+
+
+def _build_smtp_status_payload(config):
+    settings = _get_email_auth_settings(config)
+    return {
+        'email_auth_enabled': settings['enabled'],
+        'smtp_host': settings['smtp_host'],
+        'smtp_port': settings['smtp_port'],
+        'smtp_username': settings['smtp_username'],
+        'smtp_use_ssl': settings['smtp_use_ssl'],
+        'smtp_use_tls': settings['smtp_use_tls'],
+        'smtp_from_name': settings['smtp_from_name'],
+        'smtp_from_email': settings['smtp_from_email'],
+        'smtp_notice_email': settings['smtp_notice_email'],
+        'smtp_password_masked': settings['smtp_password_masked'],
+        'smtp_password_set_at': settings['smtp_password_set_at'],
+        'smtp_password_expires_at': settings['smtp_password_expires_at'],
+        'smtp_password_remaining_days': settings['remaining_days'],
+        'smtp_password_expired': settings['expired'],
+        'smtp_configured': settings['configured'],
+        'smtp_missing_fields': settings['missing_fields'],
+    }
+
+
+def _send_smtp_mail(settings, *, to_email: str, subject: str, html_body: str, text_body: str = ''):
+    recipient = _normalize_email(to_email)
+    if not recipient:
+        raise ValueError('missing recipient')
+    if not _smtp_ready_for_email_auth(settings):
+        raise RuntimeError('SMTP 配置不可用')
+
+    message = EmailMessage()
+    from_name = str(settings.get('smtp_from_name') or '').strip()
+    from_email = _normalize_email(settings.get('smtp_from_email', ''))
+    message['From'] = f'{from_name} <{from_email}>' if from_name else from_email
+    message['To'] = recipient
+    message['Subject'] = subject
+    message.set_content(text_body or '请使用支持 HTML 的邮箱客户端查看邮件。')
+    message.add_alternative(html_body, subtype='html')
+
+    host = settings['smtp_host']
+    port = int(settings['smtp_port'])
+    username = settings['smtp_username']
+    password = settings['smtp_password_or_app_code']
+
+    if settings.get('smtp_use_ssl'):
+        server = smtplib.SMTP_SSL(host, port, timeout=30)
+    else:
+        server = smtplib.SMTP(host, port, timeout=30)
+    try:
+        server.ehlo()
+        if settings.get('smtp_use_tls') and not settings.get('smtp_use_ssl'):
+            server.starttls()
+            server.ehlo()
+        if username:
+            server.login(username, password)
+        server.send_message(message)
+    finally:
+        try:
+            server.quit()
+        except Exception:
+            pass
+
+
 def resolve_permission_for_path(path: str, method: str = 'GET'):
     p = str(path or '').strip()
     m = str(method or 'GET').upper()
@@ -228,7 +461,16 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return None
 
     # 公开页、登录页、会话检查和 IP 预检接口在别处处理。
-    if p in {'/admin', '/admin/login', '/admin/logout', '/admin/check', '/api/admin/ip-preflight'}:
+    if p in {
+        '/admin',
+        '/admin/login',
+        '/admin/login/start',
+        '/admin/login/send-email-code',
+        '/admin/login/verify-email-code',
+        '/admin/logout',
+        '/admin/check',
+        '/api/admin/ip-preflight',
+    }:
         return None
 
     # 历史登录日志为全管理员只读审计信息，不绑定单一侧栏权限，避免子账号误拦截。
@@ -236,6 +478,10 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return None
     if p.startswith('/api/admin/subaccounts') or p.startswith('/admin/change-password'):
         return 'settings'
+    if p.startswith('/api/admin/account/email-binding'):
+        return 'settings'
+    if p.startswith('/api/admin/email-auth'):
+        return 'site-settings'
     if p.startswith('/api/admin/security/turnstile') or p.startswith('/api/cdn/'):
         return 'site-settings'
     if p.startswith('/api/admin/site-reports'):
@@ -309,6 +555,10 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
     updated_at = str((user or {}).get('updated_at', '') or '').strip() or now_iso
     last_login_at = str((user or {}).get('last_login_at', '') or '').strip()
     last_login_ip = str((user or {}).get('last_login_ip', '') or '').strip()
+    email = _normalize_email((user or {}).get('email', ''))
+    email_bound_at = str((user or {}).get('email_bound_at', '') or '').strip()
+    email_verified = bool(email and (user or {}).get('email_verified', False))
+    two_factor_enabled = True if (user or {}).get('two_factor_enabled', True) is not False else False
     return {
         'username': username,
         'password_hash': password_hash,
@@ -320,6 +570,10 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
         'updated_at': updated_at,
         'last_login_at': last_login_at,
         'last_login_ip': last_login_ip,
+        'email': email,
+        'email_bound_at': email_bound_at,
+        'email_verified': email_verified,
+        'two_factor_enabled': two_factor_enabled,
     }
 
 
@@ -334,6 +588,10 @@ def _public_user_profile(user):
         'updated_at': str(record.get('updated_at') or ''),
         'last_login_at': str(record.get('last_login_at') or ''),
         'last_login_ip': str(record.get('last_login_ip') or ''),
+        'email': _normalize_email(record.get('email', '')),
+        'email_verified': bool(record.get('email_verified', False)),
+        'email_bound_at': str(record.get('email_bound_at') or ''),
+        'two_factor_enabled': record.get('two_factor_enabled', True) is not False,
     }
 
 
@@ -372,6 +630,172 @@ def _hidden_admin_not_found_response():
 
 def _is_super_admin_session(sess) -> bool:
     return bool(sess.get('admin_is_super_admin', False))
+
+
+def _has_verified_email(user) -> bool:
+    return bool(_normalize_email((user or {}).get('email', '')) and bool((user or {}).get('email_verified', False)))
+
+
+def _is_binding_required_session(sess) -> bool:
+    return bool(sess.get('admin_logged_in')) and bool(sess.get('admin_binding_required', False))
+
+
+def is_binding_allowed_path(path: str) -> bool:
+    p = str(path or '').strip()
+    if not p:
+        return False
+    if p in {'/admin', '/admin/', '/admin/index.html', '/admin/check', '/admin/logout'}:
+        return True
+    if p.startswith('/api/admin/account/email-binding'):
+        return True
+    return False
+
+
+def _clear_pending_login_session(sess):
+    for key in (
+        'admin_pending_login_id',
+        'admin_pending_username',
+        'admin_pending_started_at',
+        'admin_pending_ip',
+    ):
+        sess.pop(key, None)
+
+
+def _clear_admin_session(sess):
+    for key in (
+        'admin_logged_in',
+        'admin_username',
+        'admin_is_super_admin',
+        'admin_is_hidden',
+        'admin_permissions',
+        'admin_login_at',
+        'admin_session_ttl',
+        'admin_session_schema',
+        'admin_binding_required',
+    ):
+        sess.pop(key, None)
+    _clear_pending_login_session(sess)
+
+
+def _set_pending_login_session(sess, *, pending_login_id: str, username: str, ip_addr: str):
+    _clear_admin_session(sess)
+    sess['admin_pending_login_id'] = pending_login_id
+    sess['admin_pending_username'] = username
+    sess['admin_pending_started_at'] = int(time.time())
+    sess['admin_pending_ip'] = ip_addr
+
+
+def _set_logged_in_session(sess, *, user, permissions, is_super_admin: bool, is_hidden_admin: bool, binding_required: bool = False):
+    _clear_pending_login_session(sess)
+    sess['admin_logged_in'] = True
+    sess['admin_username'] = _normalize_username((user or {}).get('username', ''))
+    sess['admin_is_super_admin'] = bool(is_super_admin)
+    sess['admin_is_hidden'] = bool(is_hidden_admin)
+    sess['admin_permissions'] = list(permissions or [])
+    sess['admin_login_at'] = int(time.time())
+    sess['admin_session_ttl'] = ADMIN_SESSION_MAX_AGE_SECONDS
+    sess['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
+    sess['admin_binding_required'] = bool(binding_required)
+
+
+def _save_login_success(root: Path, get_config, update_config, username: str, ip_addr: str):
+    prev_last_login_at = ''
+    prev_last_login_ip = ''
+    current_login_at = now_beijing().isoformat(timespec='seconds')
+    with ADMIN_USERS_LOCK:
+        users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+        user_ref, idx = _find_user(users_data, username)
+        if user_ref is not None and idx >= 0:
+            user_ref = dict(user_ref)
+            prev_last_login_at = str(user_ref.get('last_login_at', '') or '').strip()
+            prev_last_login_ip = str(user_ref.get('last_login_ip', '') or '').strip()
+            user_ref['last_login_at'] = current_login_at
+            user_ref['last_login_ip'] = ip_addr
+            user_ref['updated_at'] = current_login_at
+            users_data['users'][idx] = _sanitize_user_record(
+                user_ref,
+                fallback_username=username,
+                is_super_admin=bool(str(user_ref.get('role') or '') == 'super_admin'),
+                force_hidden=bool(user_ref.get('hidden', False)),
+            )
+            _save_admin_users(users_file, users_data)
+    return prev_last_login_at, prev_last_login_ip, current_login_at
+
+
+def _find_user_by_email(users_data, email: str, exclude_username: str = ''):
+    normalized = _normalize_email(email)
+    exclude_name = _normalize_username(exclude_username)
+    users = users_data.get('users', []) if isinstance(users_data, dict) else []
+    for item in users if isinstance(users, list) else []:
+        if _normalize_username(item.get('username', '')) == exclude_name:
+            continue
+        if _normalize_email(item.get('email', '')) == normalized:
+            return item
+    return None
+
+
+def _prune_email_auth_state(state, now_ts: int):
+    pending = state.get('pending_logins', {}) if isinstance(state, dict) else {}
+    if isinstance(pending, dict):
+        for key in list(pending.keys()):
+            item = pending.get(key)
+            expires_at = int((item or {}).get('expires_at', 0) or 0) if isinstance(item, dict) else 0
+            if expires_at <= now_ts:
+                pending.pop(key, None)
+    binding_codes = state.get('binding_codes', {}) if isinstance(state, dict) else {}
+    if isinstance(binding_codes, dict):
+        for key in list(binding_codes.keys()):
+            item = binding_codes.get(key)
+            expires_at = int((item or {}).get('expires_at', 0) or 0) if isinstance(item, dict) else 0
+            if expires_at <= now_ts:
+                binding_codes.pop(key, None)
+
+
+def _build_login_email_subject():
+    return '管理员登录邮箱验证码'
+
+
+def _build_login_email_content(username: str, code: str):
+    safe_username = _normalize_username(username) or '管理员'
+    html_body = f"""
+    <div style="font-family:Arial,'Microsoft YaHei',sans-serif;line-height:1.7;color:#1f2937;">
+      <h2 style="margin:0 0 12px;">后台登录验证码</h2>
+      <p>账号 <strong>{safe_username}</strong> 正在登录管理后台。</p>
+      <p>本次验证码为：</p>
+      <div style="font-size:28px;font-weight:700;letter-spacing:6px;color:#0f2f5f;margin:16px 0;">{code}</div>
+      <p>验证码 5 分钟内有效，若非本人操作，请立即修改后台密码。</p>
+    </div>
+    """
+    text_body = f'账号 {safe_username} 正在登录管理后台，本次验证码：{code}，5 分钟内有效。'
+    return html_body, text_body
+
+
+def _build_binding_email_content(username: str, code: str):
+    safe_username = _normalize_username(username) or '管理员'
+    html_body = f"""
+    <div style="font-family:Arial,'Microsoft YaHei',sans-serif;line-height:1.7;color:#1f2937;">
+      <h2 style="margin:0 0 12px;">邮箱绑定验证码</h2>
+      <p>账号 <strong>{safe_username}</strong> 正在绑定后台安全邮箱。</p>
+      <p>本次验证码为：</p>
+      <div style="font-size:28px;font-weight:700;letter-spacing:6px;color:#0f2f5f;margin:16px 0;">{code}</div>
+      <p>验证码 5 分钟内有效。完成绑定后，后续后台登录将通过邮箱二次校验。</p>
+    </div>
+    """
+    text_body = f'账号 {safe_username} 正在绑定后台安全邮箱，本次验证码：{code}，5 分钟内有效。'
+    return html_body, text_body
+
+
+def _build_smtp_notice_content(remaining_days: int, expires_at: str):
+    html_body = f"""
+    <div style="font-family:Arial,'Microsoft YaHei',sans-serif;line-height:1.7;color:#1f2937;">
+      <h2 style="margin:0 0 12px;">SMTP 授权码即将到期</h2>
+      <p>后台使用的 SMTP 授权码预计还剩 <strong>{remaining_days}</strong> 天到期。</p>
+      <p>预计到期时间：<strong>{expires_at or '未知'}</strong></p>
+      <p>请尽快前往后台“站点设置”更新 163 邮箱授权码，避免管理员无法收到登录验证码。</p>
+    </div>
+    """
+    text_body = f'SMTP 授权码预计还剩 {remaining_days} 天到期，到期时间：{expires_at or "未知"}。请尽快更新后台 SMTP 授权码。'
+    return html_body, text_body
 
 
 def _filter_admin_login_logs_for_session(items, sess):
@@ -561,6 +985,7 @@ def _load_login_attempts(file_path: Path):
             return data
     except Exception:
         pass
+    _start_smtp_reminder_worker_once(app=app, root=root, get_config=get_config)
     return default_state
 
 
@@ -790,6 +1215,300 @@ def get_turnstile_settings(config):
 def verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
     """校验公共流程与后台流程共用的 Turnstile 令牌。"""
     return _verify_turnstile_token(secret_key=secret_key, token=token, remote_ip=remote_ip)
+
+
+def _create_pending_login(root: Path, username: str, ip_addr: str):
+    now_ts = int(time.time())
+    pending_login_id = secrets.token_urlsafe(24)
+    state_file = _get_email_auth_state_file(root)
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        _prune_email_auth_state(state, now_ts)
+        state.setdefault('pending_logins', {})[pending_login_id] = {
+            'username': _normalize_username(username),
+            'ip_addr': str(ip_addr or '').strip(),
+            'created_at': now_ts,
+            'expires_at': now_ts + PENDING_LOGIN_EXPIRES_SECONDS,
+            'send_count': 0,
+            'verify_fail_count': 0,
+            'last_sent_at': 0,
+            'code_hash': '',
+            'code_salt': '',
+            'code_expires_at': 0,
+            'used': False,
+        }
+        _save_email_auth_state(state_file, state)
+    return pending_login_id
+
+
+def _load_pending_login(root: Path, pending_login_id: str):
+    now_ts = int(time.time())
+    state_file = _get_email_auth_state_file(root)
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        _prune_email_auth_state(state, now_ts)
+        item = (state.get('pending_logins') or {}).get(str(pending_login_id or '').strip())
+        _save_email_auth_state(state_file, state)
+    return item
+
+
+def _delete_pending_login(root: Path, pending_login_id: str):
+    state_file = _get_email_auth_state_file(root)
+    pending_key = str(pending_login_id or '').strip()
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        pending = state.get('pending_logins', {})
+        if isinstance(pending, dict):
+            pending.pop(pending_key, None)
+        _save_email_auth_state(state_file, state)
+
+
+def _send_pending_login_code(root: Path, *, pending_login_id: str, email: str, smtp_settings):
+    pending_key = str(pending_login_id or '').strip()
+    state_file = _get_email_auth_state_file(root)
+    now_ts = int(time.time())
+    code_to_send = ''
+    username = ''
+
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        _prune_email_auth_state(state, now_ts)
+        item = (state.get('pending_logins') or {}).get(pending_key)
+        if not isinstance(item, dict):
+            _save_email_auth_state(state_file, state)
+            return False, '待验证登录已失效，请重新输入账号密码登录。', {}
+        if int(item.get('expires_at', 0) or 0) <= now_ts:
+            state.get('pending_logins', {}).pop(pending_key, None)
+            _save_email_auth_state(state_file, state)
+            return False, '待验证登录已过期，请重新登录。', {}
+        last_sent_at = int(item.get('last_sent_at', 0) or 0)
+        if last_sent_at > 0 and (now_ts - last_sent_at) < EMAIL_CODE_RESEND_COOLDOWN_SECONDS:
+            resend_after = EMAIL_CODE_RESEND_COOLDOWN_SECONDS - (now_ts - last_sent_at)
+            _save_email_auth_state(state_file, state)
+            return False, f'验证码发送过于频繁，请 {resend_after} 秒后再试。', {'resend_after': resend_after}
+        send_count = int(item.get('send_count', 0) or 0)
+        if send_count >= EMAIL_CODE_MAX_SENDS:
+            state.get('pending_logins', {}).pop(pending_key, None)
+            _save_email_auth_state(state_file, state)
+            return False, '验证码发送次数已达上限，请重新登录后再试。', {}
+
+        code_to_send = _generate_email_code()
+        code_salt = secrets.token_hex(8)
+        item['code_salt'] = code_salt
+        item['code_hash'] = _email_code_hash(code_to_send, code_salt)
+        item['code_expires_at'] = now_ts + EMAIL_CODE_EXPIRES_SECONDS
+        item['last_sent_at'] = now_ts
+        item['send_count'] = send_count + 1
+        item['verify_fail_count'] = 0
+        username = _normalize_username(item.get('username', ''))
+        state['pending_logins'][pending_key] = item
+        _save_email_auth_state(state_file, state)
+
+    html_body, text_body = _build_login_email_content(username, code_to_send)
+    _send_smtp_mail(
+        smtp_settings,
+        to_email=email,
+        subject=_build_login_email_subject(),
+        html_body=html_body,
+        text_body=text_body,
+    )
+    return True, '验证码已发送，请查收邮箱。', {
+        'expires_in': EMAIL_CODE_EXPIRES_SECONDS,
+        'resend_after': EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
+        'email_masked': _mask_email_address(email),
+    }
+
+
+def _verify_pending_login_code(root: Path, *, pending_login_id: str, code: str):
+    pending_key = str(pending_login_id or '').strip()
+    now_ts = int(time.time())
+    state_file = _get_email_auth_state_file(root)
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        _prune_email_auth_state(state, now_ts)
+        item = (state.get('pending_logins') or {}).get(pending_key)
+        if not isinstance(item, dict):
+            _save_email_auth_state(state_file, state)
+            return False, '待验证登录已失效，请重新登录。', None
+        if int(item.get('expires_at', 0) or 0) <= now_ts:
+            state.get('pending_logins', {}).pop(pending_key, None)
+            _save_email_auth_state(state_file, state)
+            return False, '待验证登录已过期，请重新登录。', None
+        if int(item.get('code_expires_at', 0) or 0) <= now_ts or not item.get('code_hash'):
+            _save_email_auth_state(state_file, state)
+            return False, '验证码已过期，请重新发送。', None
+        if bool(item.get('used', False)):
+            _save_email_auth_state(state_file, state)
+            return False, '该验证码已使用，请重新登录。', None
+        expected_hash = str(item.get('code_hash', '') or '').strip()
+        code_salt = str(item.get('code_salt', '') or '').strip()
+        if _email_code_hash(code, code_salt) != expected_hash:
+            item['verify_fail_count'] = int(item.get('verify_fail_count', 0) or 0) + 1
+            if item['verify_fail_count'] >= EMAIL_CODE_MAX_VERIFY_FAILURES:
+                state.get('pending_logins', {}).pop(pending_key, None)
+                _save_email_auth_state(state_file, state)
+                return False, '验证码连续输错次数过多，请重新登录。', None
+            state['pending_logins'][pending_key] = item
+            _save_email_auth_state(state_file, state)
+            return False, '邮箱验证码错误，请重新输入。', None
+        item['used'] = True
+        state['pending_logins'][pending_key] = item
+        payload = dict(item)
+        _save_email_auth_state(state_file, state)
+        return True, '', payload
+
+
+def _send_binding_code(root: Path, *, username: str, email: str, smtp_settings):
+    normalized_username = _normalize_username(username)
+    normalized_email = _normalize_email(email)
+    if not normalized_email:
+        return False, '请先输入邮箱地址。', {}
+    now_ts = int(time.time())
+    state_file = _get_email_auth_state_file(root)
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        _prune_email_auth_state(state, now_ts)
+        item = (state.get('binding_codes') or {}).get(normalized_username, {})
+        if not isinstance(item, dict):
+            item = {}
+        last_sent_at = int(item.get('last_sent_at', 0) or 0)
+        if last_sent_at > 0 and (now_ts - last_sent_at) < EMAIL_CODE_RESEND_COOLDOWN_SECONDS:
+            resend_after = EMAIL_CODE_RESEND_COOLDOWN_SECONDS - (now_ts - last_sent_at)
+            _save_email_auth_state(state_file, state)
+            return False, f'验证码发送过于频繁，请 {resend_after} 秒后再试。', {'resend_after': resend_after}
+        send_count = int(item.get('send_count', 0) or 0)
+        if send_count >= EMAIL_CODE_MAX_SENDS:
+            state.get('binding_codes', {}).pop(normalized_username, None)
+            _save_email_auth_state(state_file, state)
+            return False, '邮箱验证码发送次数已达上限，请稍后重试。', {}
+
+        code = _generate_email_code()
+        salt = secrets.token_hex(8)
+        state.setdefault('binding_codes', {})[normalized_username] = {
+            'email': normalized_email,
+            'code_hash': _email_code_hash(code, salt),
+            'code_salt': salt,
+            'send_count': send_count + 1,
+            'verify_fail_count': 0,
+            'last_sent_at': now_ts,
+            'expires_at': now_ts + EMAIL_CODE_EXPIRES_SECONDS,
+        }
+        _save_email_auth_state(state_file, state)
+
+    html_body, text_body = _build_binding_email_content(normalized_username, code)
+    _send_smtp_mail(
+        smtp_settings,
+        to_email=normalized_email,
+        subject='后台邮箱绑定验证码',
+        html_body=html_body,
+        text_body=text_body,
+    )
+    return True, '绑定验证码已发送，请查收邮箱。', {
+        'expires_in': EMAIL_CODE_EXPIRES_SECONDS,
+        'resend_after': EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
+        'email_masked': _mask_email_address(normalized_email),
+    }
+
+
+def _verify_binding_code(root: Path, *, username: str, email: str, code: str):
+    normalized_username = _normalize_username(username)
+    normalized_email = _normalize_email(email)
+    now_ts = int(time.time())
+    state_file = _get_email_auth_state_file(root)
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        _prune_email_auth_state(state, now_ts)
+        item = (state.get('binding_codes') or {}).get(normalized_username)
+        if not isinstance(item, dict):
+            _save_email_auth_state(state_file, state)
+            return False, '绑定验证码已失效，请重新发送。'
+        if _normalize_email(item.get('email', '')) != normalized_email:
+            _save_email_auth_state(state_file, state)
+            return False, '当前邮箱与发送验证码的邮箱不一致，请重新发送验证码。'
+        if int(item.get('expires_at', 0) or 0) <= now_ts:
+            state.get('binding_codes', {}).pop(normalized_username, None)
+            _save_email_auth_state(state_file, state)
+            return False, '绑定验证码已过期，请重新发送。'
+        if _email_code_hash(code, str(item.get('code_salt', '') or '').strip()) != str(item.get('code_hash', '') or '').strip():
+            item['verify_fail_count'] = int(item.get('verify_fail_count', 0) or 0) + 1
+            if item['verify_fail_count'] >= EMAIL_CODE_MAX_VERIFY_FAILURES:
+                state.get('binding_codes', {}).pop(normalized_username, None)
+                _save_email_auth_state(state_file, state)
+                return False, '验证码连续输错次数过多，请重新发送。'
+            state['binding_codes'][normalized_username] = item
+            _save_email_auth_state(state_file, state)
+            return False, '邮箱验证码错误，请重新输入。'
+        state.get('binding_codes', {}).pop(normalized_username, None)
+        _save_email_auth_state(state_file, state)
+    return True, ''
+
+
+def _clear_smtp_notice_history(root: Path):
+    state_file = _get_email_auth_state_file(root)
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        state['smtp_notice_history'] = {}
+        _save_email_auth_state(state_file, state)
+
+
+def _maybe_send_smtp_expiry_notice(*, root: Path, get_config):
+    config = get_config() or {}
+    settings = _get_email_auth_settings(config)
+    notice_email = _normalize_email(settings.get('smtp_notice_email', ''))
+    remaining_days = settings.get('remaining_days')
+    if not notice_email or remaining_days is None or not settings.get('smtp_password_expires_at', ''):
+        return
+    if remaining_days not in SMTP_REMINDER_DAYS:
+        return
+    if not settings.get('configured') or settings.get('expired'):
+        return
+
+    today = now_beijing().strftime('%Y-%m-%d')
+    state_file = _get_email_auth_state_file(root)
+    key = str(remaining_days)
+    should_send = False
+    with EMAIL_AUTH_STATE_LOCK:
+        state = _load_email_auth_state(state_file)
+        history = state.setdefault('smtp_notice_history', {})
+        last_sent = str(history.get(key, '') or '').strip()
+        if last_sent != today:
+            history[key] = today
+            should_send = True
+            _save_email_auth_state(state_file, state)
+    if not should_send:
+        return
+    html_body, text_body = _build_smtp_notice_content(remaining_days, settings.get('smtp_password_expires_at', ''))
+    _send_smtp_mail(
+        settings,
+        to_email=notice_email,
+        subject='后台 SMTP 授权码即将到期提醒',
+        html_body=html_body,
+        text_body=text_body,
+    )
+
+
+def _start_smtp_reminder_worker_once(*, app, root: Path, get_config):
+    if getattr(app, '_admin_smtp_reminder_started', False):
+        return
+    with SMTP_REMINDER_THREAD_LOCK:
+        if getattr(app, '_admin_smtp_reminder_started', False):
+            return
+
+        def worker():
+            last_run_date = ''
+            while True:
+                try:
+                    today = now_beijing().strftime('%Y-%m-%d')
+                    if today != last_run_date:
+                        _maybe_send_smtp_expiry_notice(root=root, get_config=get_config)
+                        last_run_date = today
+                except Exception:
+                    pass
+                time.sleep(3600)
+
+        thread = threading.Thread(target=worker, name='admin-smtp-expiry-reminder', daemon=True)
+        thread.start()
+        app._admin_smtp_reminder_started = True
 
 
 def _is_admin_session_expired(sess) -> bool:
@@ -1107,6 +1826,7 @@ def register_admin_routes(
     except Exception:
         # 即使初始化迁移暂时异常，也尽量保持路由可用。
         pass
+    _start_smtp_reminder_worker_once(app=app, root=root, get_config=get_config)
 
     def _build_admin_html_response(directory: str, filename: str = 'index.html'):
         resp = make_response(send_from_directory(directory, filename))
@@ -1197,8 +1917,428 @@ def register_admin_routes(
         })
         return jsonify({'success': True, 'message': '登录验证设置已保存'})
 
+    @app.route('/api/admin/email-auth/public', methods=['GET'])
+    def admin_email_auth_public():
+        settings = _get_email_auth_settings(get_config() or {})
+        return jsonify({
+            'email_auth_enabled': bool(settings.get('enabled', False)),
+            'smtp_ready': bool(_smtp_ready_for_email_auth(settings)),
+            'smtp_password_expired': bool(settings.get('expired', False)),
+        })
+
+    @app.route('/api/admin/email-auth/config', methods=['GET'])
+    @login_required
+    def admin_email_auth_config():
+        config = get_config() or {}
+        return jsonify(_build_smtp_status_payload(config))
+
+    @app.route('/api/admin/email-auth/config', methods=['POST'])
+    @login_required
+    def admin_email_auth_config_update():
+        if not _is_super_admin_session(session):
+            return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+
+        data = request.get_json(silent=True) or {}
+        config = get_config() or {}
+        existing_password = str(config.get('smtp_password_or_app_code', '') or '').strip()
+        password_input = str(data.get('smtp_password_or_app_code', '') or '').strip()
+        password_value = password_input if password_input and not password_input.startswith('***') else existing_password
+
+        updates = {
+            'email_auth_enabled': _parse_bool(data.get('email_auth_enabled', False), False),
+            'smtp_host': str(data.get('smtp_host', '') or '').strip(),
+            'smtp_port': int(data.get('smtp_port') or 465),
+            'smtp_username': str(data.get('smtp_username', '') or '').strip(),
+            'smtp_password_or_app_code': password_value,
+            'smtp_use_ssl': _parse_bool(data.get('smtp_use_ssl', True), True),
+            'smtp_use_tls': _parse_bool(data.get('smtp_use_tls', False), False),
+            'smtp_from_name': str(data.get('smtp_from_name', '') or '').strip(),
+            'smtp_from_email': _normalize_email(data.get('smtp_from_email', '')),
+            'smtp_notice_email': _normalize_email(data.get('smtp_notice_email', '')),
+        }
+        if password_input and not password_input.startswith('***'):
+            now_iso = now_beijing().isoformat(timespec='seconds')
+            updates['smtp_password_set_at'] = now_iso
+            updates['smtp_password_expires_at'] = (now_beijing() + timedelta(days=SMTP_PASSWORD_VALID_DAYS)).isoformat(timespec='seconds')
+
+        merged = dict(config)
+        merged.update(updates)
+        smtp_settings = _get_email_auth_settings(merged)
+        if updates['email_auth_enabled'] and not smtp_settings['configured']:
+            return jsonify({'success': False, 'message': '启用邮箱验证前，请先完整填写 SMTP 配置。'}), 400
+
+        update_config(updates)
+        if password_input and not password_input.startswith('***'):
+            _clear_smtp_notice_history(root)
+        return jsonify({
+            'success': True,
+            'message': 'SMTP 与邮箱验证设置已保存。',
+            'config': _build_smtp_status_payload(get_config() or {}),
+        })
+
+    @app.route('/api/admin/email-auth/test', methods=['POST'])
+    @login_required
+    def admin_email_auth_test():
+        if not _is_super_admin_session(session):
+            return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        smtp_settings = _get_email_auth_settings(get_config() or {})
+        target_email = _normalize_email(data.get('target_email') or smtp_settings.get('smtp_notice_email') or smtp_settings.get('smtp_from_email'))
+        if not target_email:
+            return jsonify({'success': False, 'message': '请先设置 SMTP 通知邮箱或发件邮箱。'}), 400
+        if not smtp_settings['configured']:
+            return jsonify({'success': False, 'message': 'SMTP 配置不完整，无法发送测试邮件。'}), 400
+        try:
+            _send_smtp_mail(
+                smtp_settings,
+                to_email=target_email,
+                subject='后台 SMTP 测试邮件',
+                html_body='<div style="font-family:Arial,Microsoft YaHei,sans-serif;line-height:1.7;"><h2>SMTP 测试成功</h2><p>这是一封来自后台站点设置的测试邮件，说明当前 SMTP 配置可用。</p></div>',
+                text_body='SMTP 测试成功，这是一封来自后台站点设置的测试邮件。',
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'SMTP 测试失败：{exc}'}), 400
+        return jsonify({'success': True, 'message': f'测试邮件已发送到 {target_email}'})
+
+    def _finalize_login_success(login_user, ip_addr: str, *, binding_required: bool = False, detail_suffix: str = ''):
+        is_hidden_admin = _is_hidden_admin_record(login_user)
+        is_super_admin = bool((login_user or {}).get('role') == 'super_admin')
+        permissions = _normalize_permissions((login_user or {}).get('permissions', []), is_super_admin=is_super_admin)
+        login_username = _normalize_username((login_user or {}).get('username', ''))
+        _set_logged_in_session(
+            session,
+            user=login_user,
+            permissions=permissions,
+            is_super_admin=is_super_admin,
+            is_hidden_admin=is_hidden_admin,
+            binding_required=binding_required,
+        )
+        prev_last_login_at, prev_last_login_ip, current_login_at = _save_login_success(
+            root, get_config, update_config, login_username, ip_addr
+        )
+        append_admin_login_log(
+            operation='admin_login',
+            success=True,
+            username=login_username,
+            detail=detail_suffix or ('凭据校验通过；role: super_admin' if is_super_admin else '凭据校验通过；role: sub_admin'),
+            hidden_account=is_hidden_admin,
+        )
+        return jsonify({
+            'success': True,
+            'binding_required': bool(binding_required),
+            'last_login_at': prev_last_login_at,
+            'last_login_ip': prev_last_login_ip,
+            'current_login_at': current_login_at,
+            'current_login_ip': ip_addr,
+        })
+
+    def _perform_login_start():
+        data = request.form if request.form else request.get_json(silent=True) or {}
+        username = str(data.get('username', '') or '').strip()
+        password = str(data.get('password', '') or '')
+        turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
+        ip_addr = _get_request_ip(request)
+        now_ts = int(time.time())
+        attempts_file = _get_login_attempts_file(root)
+        config = get_config() or {}
+        turnstile_settings = _get_turnstile_settings(config)
+        smtp_settings = _get_email_auth_settings(config)
+
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            login_user, _ = _find_user(users_data, username)
+            if login_user is not None:
+                login_user = dict(login_user)
+
+        is_hidden_admin = _is_hidden_admin_record(login_user)
+        country_allowed, country_reason = _is_ip_country_allowed(ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code)
+        if not country_allowed:
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=username,
+                detail=country_reason,
+                hidden_account=is_hidden_admin,
+            )
+            return jsonify({'success': False, 'message': country_reason}), 403
+
+        turnstile_ok = True
+        turnstile_fail_reason = ''
+        if turnstile_settings['enabled']:
+            if not turnstile_token:
+                turnstile_ok = False
+                turnstile_fail_reason = '请先完成人机验证。'
+            else:
+                turnstile_ok, detail = _verify_turnstile_token(
+                    secret_key=turnstile_settings['secret_key'],
+                    token=turnstile_token,
+                    remote_ip=ip_addr,
+                )
+                if not turnstile_ok:
+                    turnstile_fail_reason = detail or '人机验证失败，请重试。'
+
+        user_enabled = bool(login_user and login_user.get('enabled', True))
+        user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
+        password_ok = bool(login_user) and user_enabled and _verify_password(user_password_hash, password)
+        credentials_ok = bool(turnstile_ok and password_ok)
+        login_username = _normalize_username((login_user or {}).get('username', '') or username)
+
+        if not username and not password:
+            fail_reason = '用户名和密码不能为空。'
+        elif not username:
+            fail_reason = '请输入用户名。'
+        elif not password:
+            fail_reason = '请输入密码。'
+        elif turnstile_settings['enabled'] and not turnstile_ok:
+            fail_reason = turnstile_fail_reason or '人机验证失败，请重试。'
+        elif login_user and not user_enabled:
+            fail_reason = '该账号已被停用，请联系管理员。'
+        else:
+            fail_reason = '用户名或密码错误。'
+
+        failed_payload = None
+        failed_status = 401
+        failed_detail = ''
+        with LOGIN_ATTEMPTS_LOCK:
+            attempts_state = _load_login_attempts(attempts_file)
+            _prune_login_attempts(attempts_state, now_ts)
+            ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
+            blocked_until = int(ip_item.get('blocked_until', 0) or 0) if isinstance(ip_item, dict) else 0
+            delay_seconds = _get_login_delay_seconds(attempts_state, ip_addr, now_ts)
+            if blocked_until > now_ts:
+                _save_login_attempts(attempts_file, attempts_state)
+                blocked_at = _format_blocked_until(blocked_until)
+                failed_payload = {'success': False, 'message': f'当前登录 IP 已被封禁至 {blocked_at}，请稍后再试。'}
+                failed_status = 429
+                failed_detail = f'IP 已封禁至 {blocked_at or blocked_until}'
+            elif delay_seconds > 0:
+                wait_hint = f'{delay_seconds // 60}m {delay_seconds % 60}s' if delay_seconds >= 60 else f'{delay_seconds}s'
+                failed_payload = {'success': False, 'message': f'失败次数过多，请等待 {wait_hint} 后再试。'}
+                failed_status = 429
+                failed_detail = f'登录已触发延迟保护，等待 {wait_hint}'
+                _save_login_attempts(attempts_file, attempts_state)
+            elif credentials_ok:
+                _reset_login_attempts_for_ip(attempts_state, ip_addr)
+                _save_login_attempts(attempts_file, attempts_state)
+            else:
+                _set_login_delay(attempts_state, ip_addr, now_ts)
+                is_blocked_now, blocked_until, _remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
+                _save_login_attempts(attempts_file, attempts_state)
+                if is_blocked_now:
+                    blocked_at = _format_blocked_until(blocked_until)
+                    failed_payload = {'success': False, 'message': f'{fail_reason} 同一 IP 在 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，已封禁至 {blocked_at}。'}
+                    failed_status = 429
+                    failed_detail = f'{fail_reason}；已封禁至 {blocked_at or blocked_until}'
+                else:
+                    failed_payload = {'success': False, 'message': f'{fail_reason} 已触发延迟保护，请稍后再试。'}
+                    failed_status = 400 if fail_reason != '用户名或密码错误。' else 401
+                    failed_detail = f'{fail_reason}；已触发延迟保护'
+
+        if failed_payload is not None:
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=username,
+                detail=failed_detail,
+                hidden_account=is_hidden_admin,
+            )
+            return jsonify(failed_payload), failed_status
+
+        if smtp_settings['enabled'] and not _smtp_ready_for_email_auth(smtp_settings):
+            return jsonify({'success': False, 'message': '邮箱验证已启用，但 SMTP 配置不可用或已过期，请联系管理员更新。'}), 503
+
+        if smtp_settings['enabled'] and _has_verified_email(login_user):
+            pending_login_id = _create_pending_login(root, login_username, ip_addr)
+            _set_pending_login_session(session, pending_login_id=pending_login_id, username=login_username, ip_addr=ip_addr)
+            return jsonify({
+                'success': True,
+                'requires_email_code': True,
+                'pending_login_id': pending_login_id,
+                'email_masked': _mask_email_address(login_user.get('email', '')),
+                'message': '账号密码已验证，请发送邮箱验证码。',
+            })
+
+        return _finalize_login_success(
+            login_user,
+            ip_addr,
+            binding_required=bool(smtp_settings['enabled'] and not _has_verified_email(login_user)),
+            detail_suffix='凭据校验通过；已进入后台' + ('；需绑定安全邮箱' if smtp_settings['enabled'] and not _has_verified_email(login_user) else ''),
+        )
+
+    @app.route('/admin/login/start', methods=['POST'])
+    def admin_login_start():
+        return _perform_login_start()
+
+    @app.route('/admin/login/send-email-code', methods=['POST'])
+    def admin_login_send_email_code():
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        pending_login_id = str(data.get('pending_login_id') or session.get('admin_pending_login_id') or '').strip()
+        pending_login = _load_pending_login(root, pending_login_id)
+        if not isinstance(pending_login, dict):
+            _clear_pending_login_session(session)
+            return jsonify({'success': False, 'message': '待验证登录已失效，请重新输入账号密码。'}), 401
+        username = _normalize_username(pending_login.get('username', ''))
+        if username != _normalize_username(session.get('admin_pending_username', '')):
+            return jsonify({'success': False, 'message': '待验证登录信息不匹配，请重新登录。'}), 401
+
+        smtp_settings = _get_email_auth_settings(get_config() or {})
+        if not smtp_settings['enabled'] or not _smtp_ready_for_email_auth(smtp_settings):
+            return jsonify({'success': False, 'message': '当前邮箱验证不可用，请联系管理员。'}), 503
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            login_user, _ = _find_user(users_data, username)
+        if login_user is None or not _has_verified_email(login_user):
+            return jsonify({'success': False, 'message': '当前账号未绑定可用邮箱，请联系管理员。'}), 400
+
+        try:
+            ok, message, payload = _send_pending_login_code(
+                root,
+                pending_login_id=pending_login_id,
+                email=login_user.get('email', ''),
+                smtp_settings=smtp_settings,
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'验证码邮件发送失败：{exc}'}), 400
+        if not ok:
+            return jsonify({'success': False, 'message': message, **payload}), 400
+        return jsonify({'success': True, 'message': message, **payload})
+
+    @app.route('/admin/login/verify-email-code', methods=['POST'])
+    def admin_login_verify_email_code():
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        pending_login_id = str(data.get('pending_login_id') or session.get('admin_pending_login_id') or '').strip()
+        code = str(data.get('code', '') or '').strip()
+        if not code:
+            return jsonify({'success': False, 'message': '请输入邮箱验证码。'}), 400
+        ok, message, pending_login = _verify_pending_login_code(root, pending_login_id=pending_login_id, code=code)
+        if not ok:
+            return jsonify({'success': False, 'message': message}), 400
+
+        username = _normalize_username((pending_login or {}).get('username', ''))
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            login_user, _ = _find_user(users_data, username)
+            if login_user is not None:
+                login_user = dict(login_user)
+        if login_user is None or not _has_verified_email(login_user):
+            _delete_pending_login(root, pending_login_id)
+            return jsonify({'success': False, 'message': '账号邮箱状态已变化，请重新登录。'}), 400
+
+        _delete_pending_login(root, pending_login_id)
+        return _finalize_login_success(login_user, str((pending_login or {}).get('ip_addr', '') or ''), detail_suffix='凭据校验通过；邮箱验证码通过')
+
+    @app.route('/api/admin/account/email-binding', methods=['GET'])
+    @login_required
+    def admin_email_binding_status():
+        current_admin = _normalize_username(session.get('admin_username', ''))
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            current_user, _ = _find_user(users_data, current_admin)
+        if current_user is None:
+            return jsonify({'success': False, 'message': '当前登录状态已失效，请重新登录。'}), 401
+        return jsonify({
+            'success': True,
+            'username': current_admin,
+            'email': _normalize_email(current_user.get('email', '')),
+            'email_masked': _mask_email_address(current_user.get('email', '')),
+            'email_verified': bool(current_user.get('email_verified', False)),
+            'binding_required': _is_binding_required_session(session),
+        })
+
+    @app.route('/api/admin/account/email-binding/send-code', methods=['POST'])
+    @login_required
+    def admin_email_binding_send_code():
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        target_email = _normalize_email(data.get('email', ''))
+        if not target_email or '@' not in target_email:
+            return jsonify({'success': False, 'message': '请输入有效的邮箱地址。'}), 400
+        smtp_settings = _get_email_auth_settings(get_config() or {})
+        if not smtp_settings['enabled'] or not _smtp_ready_for_email_auth(smtp_settings):
+            return jsonify({'success': False, 'message': '当前邮箱绑定不可用，请联系管理员。'}), 503
+
+        current_admin = _normalize_username(session.get('admin_username', ''))
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            duplicated = _find_user_by_email(users_data, target_email, exclude_username=current_admin)
+            if duplicated is not None:
+                return jsonify({'success': False, 'message': '该邮箱已绑定其他后台账号，请更换邮箱。'}), 400
+
+        try:
+            ok, message, payload = _send_binding_code(
+                root,
+                username=current_admin,
+                email=target_email,
+                smtp_settings=smtp_settings,
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'绑定验证码发送失败：{exc}'}), 400
+        if not ok:
+            return jsonify({'success': False, 'message': message, **payload}), 400
+        return jsonify({'success': True, 'message': message, **payload})
+
+    @app.route('/api/admin/account/email-binding/verify', methods=['POST'])
+    @login_required
+    def admin_email_binding_verify():
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        target_email = _normalize_email(data.get('email', ''))
+        code = str(data.get('code', '') or '').strip()
+        if not target_email or '@' not in target_email:
+            return jsonify({'success': False, 'message': '请输入有效的邮箱地址。'}), 400
+        if not code:
+            return jsonify({'success': False, 'message': '请输入邮箱验证码。'}), 400
+
+        current_admin = _normalize_username(session.get('admin_username', ''))
+        ok, message = _verify_binding_code(root, username=current_admin, email=target_email, code=code)
+        if not ok:
+            return jsonify({'success': False, 'message': message}), 400
+
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            duplicated = _find_user_by_email(users_data, target_email, exclude_username=current_admin)
+            if duplicated is not None:
+                return jsonify({'success': False, 'message': '该邮箱已绑定其他后台账号，请更换邮箱。'}), 400
+            current_user, idx = _find_user(users_data, current_admin)
+            if current_user is None or idx < 0:
+                return jsonify({'success': False, 'message': '当前登录状态已失效，请重新登录。'}), 401
+            updated_user = dict(current_user)
+            now_iso = now_beijing().isoformat(timespec='seconds')
+            updated_user['email'] = target_email
+            updated_user['email_verified'] = True
+            updated_user['email_bound_at'] = now_iso
+            updated_user['updated_at'] = now_iso
+            users_data['users'][idx] = _sanitize_user_record(
+                updated_user,
+                fallback_username=current_admin,
+                is_super_admin=bool(str(current_user.get('role') or '') == 'super_admin'),
+                force_hidden=bool(current_user.get('hidden', False)),
+            )
+            _save_admin_users(users_file, users_data)
+
+        session['admin_binding_required'] = False
+        append_admin_login_log(
+            operation='admin_email_binding',
+            success=True,
+            username=current_admin,
+            detail=f'已绑定邮箱：{target_email}',
+            hidden_account=_is_hidden_admin_session(session),
+        )
+        return jsonify({'success': True, 'message': '安全邮箱绑定成功。', 'email_masked': _mask_email_address(target_email)})
+
     @app.route('/admin/login', methods=['POST'])
     def admin_login():
+        return _perform_login_start()
         """Handle admin login."""
         data = request.form if request.form else request.get_json(silent=True) or {}
         username = str(data.get('username', '') or '').strip()
@@ -1664,14 +2804,7 @@ def register_admin_routes(
                 detail='手动退出登录',
                 hidden_account=is_hidden,
             )
-        session.pop('admin_logged_in', None)
-        session.pop('admin_username', None)
-        session.pop('admin_is_super_admin', None)
-        session.pop('admin_is_hidden', None)
-        session.pop('admin_permissions', None)
-        session.pop('admin_login_at', None)
-        session.pop('admin_session_ttl', None)
-        session.pop('admin_session_schema', None)
+        _clear_admin_session(session)
         return jsonify({'success': True})
     @app.route('/admin/check')
     def admin_check():
@@ -1686,6 +2819,7 @@ def register_admin_routes(
                 'username': '',
                 'is_super_admin': False,
                 'is_hidden_admin': False,
+                'binding_required': False,
                 'permissions': [],
                 'permission_catalog': ADMIN_PERMISSION_CATALOG,
             })
@@ -1703,6 +2837,7 @@ def register_admin_routes(
                 'username': '',
                 'is_super_admin': False,
                 'is_hidden_admin': False,
+                'binding_required': False,
                 'permissions': [],
                 'permission_catalog': ADMIN_PERMISSION_CATALOG,
             })
@@ -1714,16 +2849,21 @@ def register_admin_routes(
         session['admin_is_hidden'] = is_hidden_admin
         session['admin_permissions'] = permissions
         session['admin_username'] = _normalize_username(user.get('username', current_name))
+        session['admin_binding_required'] = bool((get_config() or {}).get('email_auth_enabled', False) and not _has_verified_email(user))
 
         return jsonify({
             'logged_in': True,
             'username': session.get('admin_username', ''),
             'is_super_admin': is_super_admin,
             'is_hidden_admin': is_hidden_admin,
+            'binding_required': bool(session.get('admin_binding_required', False)),
             'permissions': permissions,
             'permission_catalog': ADMIN_PERMISSION_CATALOG,
             'last_login_at': str(user.get('last_login_at') or ''),
             'last_login_ip': str(user.get('last_login_ip') or ''),
+            'email': _normalize_email(user.get('email', '')),
+            'email_masked': _mask_email_address(user.get('email', '')),
+            'email_verified': bool(user.get('email_verified', False)),
         })
     @app.route('/api/admin/login-logs')
     @login_required

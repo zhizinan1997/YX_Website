@@ -61,6 +61,7 @@ from app.request_security import is_same_origin_request
 from app.routes.admin import (
     ADMIN_PERMISSION_KEYS,
     ADMIN_SESSION_SCHEMA_VERSION,
+    is_binding_allowed_path,
     resolve_permission_for_path,
 )
 
@@ -101,6 +102,11 @@ def login_required(f):
         if (request.method or 'GET').upper() in WRITE_METHODS and not is_same_origin_request(request):
             if is_api:
                 return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+            return redirect('/admin')
+
+        if bool(session.get('admin_binding_required', False)) and not is_binding_allowed_path(request.path or ''):
+            if is_api:
+                return jsonify({'success': False, 'message': '当前账号必须先绑定安全邮箱后才能继续操作。', 'binding_required': True}), 403
             return redirect('/admin')
 
         is_super_admin = bool(session.get('admin_is_super_admin', False))

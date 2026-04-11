@@ -37,7 +37,15 @@
                     <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
                     <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
                 </div>
-                <button type="submit" id="loginSubmitBtn" class="btn-primary">登 录</button>
+                <div class="form-group" id="loginEmailCodeWrap" style="display:none;">
+                    <label>邮箱验证码</label>
+                    <input type="text" id="loginEmailCode" class="form-control" placeholder="请输入 6 位邮箱验证码" inputmode="numeric" maxlength="6">
+                    <div class="form-hint" id="loginEmailHint">验证码将发送到已绑定安全邮箱。</div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button type="button" id="loginSendCodeBtn" class="btn-primary" style="flex:1 1 220px;">发送邮箱验证码</button>
+                    <button type="submit" id="loginSubmitBtn" class="btn-primary" style="flex:1 1 180px;">验证并登录</button>
+                </div>
                 <div id="loginError" class="error-message"></div>
             </form>
             <div class="login-security-tip">
@@ -2354,6 +2362,33 @@
 
                 <!-- Settings View -->
                 <div id="view-settings" class="view-section">
+                    <div class="card" id="emailBindingCard" style="padding: 30px; margin-bottom: 20px;">
+                        <h3 class="section-header">安全邮箱绑定</h3>
+                        <p style="margin-bottom: 16px; color:#666; font-size:14px; line-height:1.75;">
+                            开启邮箱二次验证后，每个后台账号都需要绑定并验证安全邮箱。未完成绑定时，后台将限制其他操作。
+                        </p>
+                        <div id="bindingRequiredBanner" class="error-message" style="display:none; color:#b91c1c; margin-bottom:12px;">
+                            当前账号必须先完成安全邮箱绑定，绑定前无法访问其他后台功能。
+                        </div>
+                        <div class="form-group">
+                            <label>当前状态</label>
+                            <div id="bindingStatusText" class="form-hint">未加载</div>
+                        </div>
+                        <div class="form-group">
+                            <label>绑定邮箱</label>
+                            <input type="email" id="bindingEmailInput" class="form-control" placeholder="请输入可接收验证码的邮箱">
+                        </div>
+                        <div class="form-group" id="bindingCodeWrap" style="display:none;">
+                            <label>绑定验证码</label>
+                            <input type="text" id="bindingCodeInput" class="form-control" placeholder="请输入 6 位验证码" inputmode="numeric" maxlength="6">
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button type="button" id="bindingSendCodeBtn" class="btn-primary" style="width:auto; padding:12px 22px;">发送绑定验证码</button>
+                            <button type="button" id="bindingVerifyBtn" class="btn-primary" style="width:auto; padding:12px 22px;">确认绑定邮箱</button>
+                        </div>
+                        <div id="bindingMsg" class="error-message" style="color:#28a745;"></div>
+                    </div>
+
                     <div class="card" style="padding: 30px;">
                         <h3 class="section-header">修改当前账号</h3>
                         <form id="settingsForm">
@@ -2571,6 +2606,70 @@
                                 <span id="turnstileStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
                             </div>
                             <div id="turnstileSettingsMsg" class="error-message" style="color: #28a745;"></div>
+                        </form>
+                    </div>
+
+                    <div class="card" style="padding: 30px; margin-top: 20px;">
+                        <h3 class="section-header">SMTP / 邮箱验证</h3>
+                        <p style="margin-bottom: 16px; color:#666; font-size:14px; line-height:1.75;">
+                            用于后台登录邮箱验证码、账号安全邮箱绑定和 163 授权码到期提醒。
+                        </p>
+                        <form id="emailAuthSettingsForm">
+                            <div class="form-group">
+                                <label style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="emailAuthEnabled">
+                                    <span>启用后台邮箱二次验证</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP 服务器</label>
+                                <input type="text" id="smtpHost" class="form-control" placeholder="smtp.163.com">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP 端口</label>
+                                <input type="number" id="smtpPort" class="form-control" placeholder="465">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP 用户名</label>
+                                <input type="text" id="smtpUsername" class="form-control" placeholder="例如：yourname@163.com">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP 授权码 / 密钥</label>
+                                <input type="password" id="smtpPassword" class="form-control" placeholder="留空表示保持当前授权码不变">
+                            </div>
+                            <div class="form-group">
+                                <label style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="smtpUseSsl" checked>
+                                    <span>使用 SSL 连接</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="smtpUseTls">
+                                    <span>使用 TLS STARTTLS</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>发件人名称</label>
+                                <input type="text" id="smtpFromName" class="form-control" placeholder="管理后台">
+                            </div>
+                            <div class="form-group">
+                                <label>发件邮箱</label>
+                                <input type="email" id="smtpFromEmail" class="form-control" placeholder="yourname@163.com">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP 通知邮箱</label>
+                                <input type="email" id="smtpNoticeEmail" class="form-control" placeholder="用于接收 7/3/1 天到期提醒">
+                            </div>
+                            <div class="form-group">
+                                <label>授权码状态</label>
+                                <div id="smtpExpiryStatus" class="form-hint">未加载</div>
+                            </div>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <button type="submit" class="btn-primary" style="width:auto; padding:12px 30px;">保存 SMTP 设置</button>
+                                <button type="button" id="smtpTestBtn" class="btn-primary" style="width:auto; padding:12px 20px; background:#4b5563;">发送测试邮件</button>
+                            </div>
+                            <div id="emailAuthSettingsMsg" class="error-message" style="color:#28a745;"></div>
                         </form>
                     </div>
                 </div>
