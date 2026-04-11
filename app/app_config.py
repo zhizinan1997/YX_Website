@@ -271,7 +271,8 @@ JOBS_FILE = DATA_DIR / 'jobs.json'
 H2_HOME_FILE = DATA_DIR / 'h2_home.json'
 H2_HOME_VIDEO_UPLOADS_DIR = DATA_DIR / 'h2_home_videos'
 HYDROGEN_SOLUTIONS_CONFIG_FILE = DATA_DIR / 'hydrogen_solutions_config.json'
-NEWS_UPLOADS_DIR = DATA_DIR / 'news_uploads'
+LEGACY_NEWS_UPLOADS_DIR = DATA_DIR / 'news_uploads'
+NEWS_UPLOADS_DIR = CDN_ASSETS_DIR / 'news'
 RESUME_UPLOADS_DIR = DATA_DIR / 'resumes'
 if ZoneInfo is not None:
     try:
@@ -299,6 +300,7 @@ HERO_DERIVED_DIR.mkdir(parents=True, exist_ok=True)
 PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 PRODUCT_CARD_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 H2_HOME_VIDEO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+LEGACY_NEWS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 NEWS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 RESUME_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 

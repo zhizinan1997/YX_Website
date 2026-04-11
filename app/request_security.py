@@ -135,6 +135,12 @@ REMOTE_FETCH_BLOCKED_HOSTS = {
     '127.0.0.1',
     '::1',
 }
+REMOTE_FETCH_TRUSTED_HOST_PATH_RULES = (
+    {
+        'host_keywords': ('feishu', 'larksuite', 'larkoffice'),
+        'schemes': ('http', 'https'),
+    },
+)
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -275,6 +281,41 @@ def normalize_remote_fetch_url(raw_url: str) -> str:
     return parsed._replace(fragment='').geturl()
 
 
+def is_trusted_remote_fetch_service_url(scheme: str, hostname: str, path: str) -> bool:
+    normalized_scheme = str(scheme or '').strip().lower()
+    normalized_host = str(hostname or '').strip().lower()
+    normalized_path = str(path or '').strip() or '/'
+    if not normalized_path.startswith('/'):
+        normalized_path = f'/{normalized_path}'
+    if not normalized_scheme or not normalized_host:
+        return False
+
+    for rule in REMOTE_FETCH_TRUSTED_HOST_PATH_RULES:
+        allowed_schemes = tuple(str(item or '').strip().lower() for item in rule.get('schemes', ()))
+        if allowed_schemes and normalized_scheme not in allowed_schemes:
+            continue
+
+        host_keywords = tuple(str(item or '').strip().lower() for item in rule.get('host_keywords', ()))
+        keyword_match = any(keyword and keyword in normalized_host for keyword in host_keywords)
+        host_suffixes = tuple(str(item or '').strip().lower() for item in rule.get('host_suffixes', ()))
+        suffix_match = any(
+            normalized_host == suffix.lstrip('.') or normalized_host.endswith(suffix)
+            for suffix in host_suffixes
+            if suffix
+        )
+        if host_keywords and not keyword_match and not suffix_match:
+            continue
+        if not host_keywords and not suffix_match:
+            continue
+
+        path_prefixes = tuple(str(item or '').strip() for item in rule.get('path_prefixes', ()))
+        if path_prefixes and not any(normalized_path.startswith(prefix) for prefix in path_prefixes if prefix):
+            continue
+
+        return True
+    return False
+
+
 def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
     normalized = normalize_remote_fetch_url(raw_url)
     if not normalized:
@@ -290,6 +331,7 @@ def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
         return False, '链接缺少主机名', ''
     if parsed.username or parsed.password:
         return False, '链接中不允许包含账号信息', ''
+    trusted_service_url = is_trusted_remote_fetch_service_url(parsed.scheme, hostname, parsed.path)
     if hostname in REMOTE_FETCH_BLOCKED_HOSTS:
         return False, '禁止访问本机或保留地址', ''
 
@@ -322,6 +364,8 @@ def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
     if not resolved_ips:
         return False, '域名解析结果为空', ''
     if any(not ip_is_publicly_routable(ip_text) for ip_text in resolved_ips):
+        if trusted_service_url:
+            return True, '', normalized
         return False, '禁止访问内网或保留地址', ''
     return True, '', normalized
 

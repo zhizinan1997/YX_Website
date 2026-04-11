@@ -1,4 +1,4 @@
-const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
+﻿const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
         const ADMIN_LAST_VIEW_KEY = 'yx_admin2_last_view';
         const MOBILE_NAV_BREAKPOINT = 1024;
         const CHANGELOG_FALLBACK = {
@@ -9376,6 +9376,7 @@ const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
         let aiTypesetPending = false;
         let aiTypesetBeforeHtml = '';
         let newsPreviewBridgeBound = false;
+        let newsImageProcessingPromise = Promise.resolve({ imported: 0, failed: 0, total: 0 });
         const newsEditorEl = document.getElementById('newsContentEditor');
         const newsSourceEl = document.getElementById('newsContent');
         const newsAiActionsEl = document.getElementById('newsAiActions');
@@ -9450,6 +9451,585 @@ const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
             const value = html || '';
             newsEditorEl.innerHTML = value;
             newsSourceEl.value = value;
+        }
+
+        function getNewsFeishuImportMsgEl() {
+            return document.getElementById('newsFeishuImportMsg');
+        }
+
+        function setNewsFeishuImportMessage(message, color = '#666') {
+            const el = getNewsFeishuImportMsgEl();
+            if (!el) return;
+            el.style.color = color;
+            el.textContent = String(message || '');
+        }
+
+        function getNewsImageProcessMsgEl() {
+            return document.getElementById('newsImageProcessMsg');
+        }
+
+        function getNewsImageProcessUi() {
+            const el = getNewsImageProcessMsgEl();
+            if (!el) return null;
+            if (el.dataset.enhanced !== '1') {
+                el.dataset.enhanced = '1';
+                el.innerHTML = [
+                    '<span class="news-image-process-icon" aria-hidden="true"></span>',
+                    '<div class="news-image-process-main">',
+                    '<div class="news-image-process-title"></div>',
+                    '<div class="news-image-process-caption" hidden></div>',
+                    '<div class="news-image-process-progress" hidden><div class="news-image-process-progress-bar"></div></div>',
+                    '</div>'
+                ].join('');
+            }
+            return {
+                el,
+                titleEl: el.querySelector('.news-image-process-title'),
+                captionEl: el.querySelector('.news-image-process-caption'),
+                progressEl: el.querySelector('.news-image-process-progress'),
+                progressBarEl: el.querySelector('.news-image-process-progress-bar')
+            };
+        }
+
+        function getNewsImageProcessMeta(message, color = '#666') {
+            const text = String(message || '').trim();
+            if (!text) {
+                return { state: 'hidden', title: '', caption: '', progress: null };
+            }
+
+            const convertingMatch = text.match(/正在转换第\s*(\d+)\s*张图，共\s*(\d+)\s*张/);
+            if (convertingMatch) {
+                const current = Number(convertingMatch[1]) || 0;
+                const total = Math.max(Number(convertingMatch[2]) || 0, current, 1);
+                return {
+                    state: 'processing',
+                    title: `图片转存中 ${current}/${total}`,
+                    caption: text,
+                    progress: Math.max(10, Math.min(100, Math.round((current / total) * 100)))
+                };
+            }
+
+            if (text.includes('正在识别粘贴图片')) {
+                return {
+                    state: 'processing',
+                    title: '正在识别待转存图片',
+                    caption: text,
+                    progress: 12
+                };
+            }
+
+            if (text.includes('正在上传图片')) {
+                return {
+                    state: 'processing',
+                    title: '正在上传图片',
+                    caption: text,
+                    progress: 20
+                };
+            }
+
+            if (text.includes('正在下载并导入图片')) {
+                return {
+                    state: 'processing',
+                    title: '正在导入远程图片',
+                    caption: text,
+                    progress: 24
+                };
+            }
+
+            if (text.includes('正在重试转换')) {
+                return {
+                    state: 'warning',
+                    title: '正在重试图片转存',
+                    caption: text,
+                    progress: null
+                };
+            }
+
+            if (text.startsWith('正在')) {
+                return {
+                    state: 'processing',
+                    title: text,
+                    caption: '处理中，请稍候...',
+                    progress: null
+                };
+            }
+
+            const tone = String(color || '').toLowerCase();
+            if (tone.includes('28a745') || tone.includes('17935f')) {
+                return {
+                    state: 'success',
+                    title: text,
+                    caption: '已完成自动转存，可以继续编辑或发布',
+                    progress: 100
+                };
+            }
+
+            if (tone.includes('dc3545') || tone.includes('c84658')) {
+                return {
+                    state: 'error',
+                    title: text,
+                    caption: '请处理失败图片后再继续操作',
+                    progress: null
+                };
+            }
+
+            if (tone.includes('d97706') || tone.includes('d18a18')) {
+                return {
+                    state: 'warning',
+                    title: text,
+                    caption: '部分图片需要手动处理',
+                    progress: null
+                };
+            }
+
+            return {
+                state: 'info',
+                title: text,
+                caption: '',
+                progress: null
+            };
+        }
+
+        function setNewsImageProcessMessage(message, color = '#666') {
+            const ui = getNewsImageProcessUi();
+            if (!ui) return;
+
+            const { el, titleEl, captionEl, progressEl, progressBarEl } = ui;
+            const meta = getNewsImageProcessMeta(message, color);
+            const stateClasses = ['is-hidden', 'is-processing', 'is-success', 'is-warning', 'is-error', 'is-info'];
+            el.classList.remove(...stateClasses);
+
+            if (meta.state === 'hidden') {
+                el.classList.add('is-hidden');
+                el.setAttribute('aria-hidden', 'true');
+                if (titleEl) titleEl.textContent = '';
+                if (captionEl) {
+                    captionEl.textContent = '';
+                    captionEl.hidden = true;
+                }
+                if (progressEl) progressEl.hidden = true;
+                if (progressBarEl) progressBarEl.style.width = '0%';
+                return;
+            }
+
+            el.classList.add(`is-${meta.state}`);
+            el.removeAttribute('aria-hidden');
+
+            if (titleEl) titleEl.textContent = meta.title;
+            if (captionEl) {
+                captionEl.textContent = meta.caption || '';
+                captionEl.hidden = !meta.caption;
+            }
+            if (progressEl && progressBarEl) {
+                if (typeof meta.progress === 'number') {
+                    progressEl.hidden = false;
+                    progressBarEl.style.width = `${Math.max(0, Math.min(meta.progress, 100))}%`;
+                } else {
+                    progressEl.hidden = true;
+                    progressBarEl.style.width = '0%';
+                }
+            }
+        }
+
+        function getNewsPlainTextFromHtml(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html || '';
+            return String(div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function hasNewsDraftContent() {
+            const fields = [
+                document.getElementById('newsTitle')?.value,
+                document.getElementById('newsDate')?.value,
+                document.getElementById('newsImage')?.value,
+                document.getElementById('newsSummary')?.value,
+                document.getElementById('newsDivision')?.value,
+            ];
+            if (fields.some((value) => String(value || '').trim())) {
+                return true;
+            }
+            return !!getNewsPlainTextFromHtml(getNewsEditorHtml());
+        }
+
+        function resetNewsImportedDraftState() {
+            cancelNewsEdit();
+            aiTypesetPending = false;
+            aiTypesetBeforeHtml = '';
+            updateAiTypesetActionVisibility();
+            const createMsg = document.getElementById('newsCreateMsg');
+            const createLink = document.getElementById('newsCreateLink');
+            if (createMsg) createMsg.textContent = '';
+            if (createLink) createLink.textContent = '';
+        }
+
+        function applyImportedNewsDraft(data) {
+            resetNewsImportedDraftState();
+            const titleEl = document.getElementById('newsTitle');
+            const dateEl = document.getElementById('newsDate');
+            const categoryEl = document.getElementById('newsCategory');
+            const imageEl = document.getElementById('newsImage');
+            const summaryEl = document.getElementById('newsSummary');
+            if (titleEl) titleEl.value = String(data?.title || '').trim();
+            if (dateEl && String(data?.date || '').trim()) dateEl.value = String(data.date).trim();
+            if (categoryEl && String(data?.category || '').trim()) categoryEl.value = String(data.category).trim();
+            if (imageEl) imageEl.value = String(data?.image_url || '').trim();
+            if (summaryEl) summaryEl.value = String(data?.summary || '').trim();
+            setNewsEditorHtml(String(data?.content_html || '').trim());
+            switchNewsEditorMode('visual');
+            updateNewsPreview();
+
+            const importedCount = Number(data?.imported_image_count || 0);
+            const failedCount = Number(data?.image_failed_count || 0);
+            if (importedCount > 0 || failedCount > 0) {
+                const tone = failedCount > 0 ? '#d97706' : '#28a745';
+                setNewsImageProcessMessage(
+                    failedCount > 0
+                        ? `飞书正文图片已转存 ${importedCount} 张，另有 ${failedCount} 张未成功转存`
+                        : `飞书正文图片已转存 ${importedCount} 张`,
+                    tone
+                );
+            } else {
+                setNewsImageProcessMessage('', '#666');
+            }
+        }
+
+        async function importNewsFromFeishuUrl() {
+            const input = document.getElementById('newsFeishuImportUrl');
+            const button = document.getElementById('newsFeishuImportBtn');
+            if (input?.disabled || button?.disabled) {
+                setNewsFeishuImportMessage('功能尚不完善，持续开发中', '#888');
+                return;
+            }
+            const rawUrl = String(input?.value || '').trim();
+            if (!rawUrl) {
+                setNewsFeishuImportMessage('请先粘贴飞书共享链接', '#dc3545');
+                return;
+            }
+
+            const isEditing = !!editingNewsLink;
+            if (isEditing || hasNewsDraftContent()) {
+                const confirmMessage = isEditing
+                    ? '当前正在编辑一条资讯。继续导入会退出编辑状态并覆盖当前表单内容，是否继续？'
+                    : '继续导入会覆盖当前已填写的标题、摘要和正文内容，是否继续？';
+                const ok = await showGlobalConfirm(confirmMessage, '确认导入飞书内容');
+                if (!ok) return;
+            }
+
+            if (button) button.disabled = true;
+            setNewsFeishuImportMessage('正在抓取飞书分享页并解析正文...', '#666');
+            try {
+                const res = await fetch('/api/news/import/feishu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: rawUrl })
+                });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || '飞书内容导入失败');
+                }
+
+                applyImportedNewsDraft(data);
+                if (input) input.value = '';
+
+                const warnings = Array.isArray(data.warnings)
+                    ? data.warnings.map((item) => String(item || '').trim()).filter(Boolean)
+                    : [];
+                let message = String(data.message || '飞书内容导入成功');
+                if (warnings.length > 0) {
+                    message += `；${warnings.slice(0, 2).join('；')}`;
+                }
+                const tone = Number(data.image_failed_count || 0) > 0 || warnings.length > 0 ? '#d97706' : '#28a745';
+                setNewsFeishuImportMessage(message, tone);
+            } catch (error) {
+                setNewsFeishuImportMessage(error?.message || '飞书内容导入失败', '#dc3545');
+            } finally {
+                if (button) button.disabled = false;
+            }
+        }
+
+        function decodeNewsJsonAttribute(rawValue) {
+            const value = String(rawValue || '').trim();
+            if (!value) return null;
+            const attempts = [value];
+            try {
+                attempts.push(decodeURIComponent(value));
+            } catch (e) { }
+            for (const candidate of attempts) {
+                try {
+                    return JSON.parse(candidate);
+                } catch (e) { }
+            }
+            return null;
+        }
+
+        function decodeNewsBase64JsonAttribute(rawValue) {
+            const value = String(rawValue || '').trim();
+            if (!value) return null;
+            try {
+                return JSON.parse(window.atob(value));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function normalizeNewsCandidateUrl(rawValue) {
+            const value = String(rawValue || '').trim();
+            if (!value) return '';
+            if (value.startsWith('//')) {
+                return `${window.location.protocol}${value}`;
+            }
+            return value;
+        }
+
+        function isHttpNewsCandidateUrl(rawValue) {
+            const value = normalizeNewsCandidateUrl(rawValue);
+            if (!value) return false;
+            try {
+                const url = new URL(value, window.location.origin);
+                return url.protocol === 'http:' || url.protocol === 'https:';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function isLocalNewsImageUrl(rawValue) {
+            const value = normalizeNewsCandidateUrl(rawValue);
+            if (!value) return false;
+            if (value.startsWith('blob:') || value.startsWith('data:')) return false;
+            try {
+                const url = new URL(value, window.location.origin);
+                if (url.origin !== window.location.origin) return false;
+                return url.pathname.startsWith('/cdn_assets/')
+                    || url.pathname.startsWith('/media/')
+                    || url.pathname.startsWith('/assets/')
+                    || url.pathname.startsWith('/uploads/');
+            } catch (e) {
+                return value.startsWith('/cdn_assets/')
+                    || value.startsWith('/media/')
+                    || value.startsWith('/assets/')
+                    || value.startsWith('/uploads/');
+            }
+        }
+
+        function collectNewsImageCandidateUrls(img) {
+            const values = [];
+            const push = (rawValue) => {
+                const value = normalizeNewsCandidateUrl(rawValue);
+                if (!value) return;
+                values.push(value);
+            };
+
+            push(img?.getAttribute?.('src'));
+            push(img?.getAttribute?.('data-src'));
+
+            const suiteData = decodeNewsBase64JsonAttribute(img?.getAttribute?.('data-suite'));
+            if (suiteData && typeof suiteData === 'object') {
+                push(suiteData.originSrc);
+                push(suiteData.originalSrc);
+                push(suiteData.src);
+            }
+
+            const galleryHost = img?.closest?.('[data-ace-gallery-json]');
+            const galleryData = decodeNewsJsonAttribute(galleryHost?.getAttribute?.('data-ace-gallery-json'));
+            if (galleryData && Array.isArray(galleryData.items)) {
+                galleryData.items.forEach((item) => {
+                    push(item?.src);
+                    try {
+                        push(decodeURIComponent(String(item?.src || '')));
+                    } catch (e) { }
+                });
+            }
+
+            return [...new Set(values)].filter((url) => {
+                if (url.startsWith('blob:') || url.startsWith('data:')) return true;
+                return isHttpNewsCandidateUrl(url) && !isLocalNewsImageUrl(url);
+            });
+        }
+
+        function getNewsPendingImageNodes(root = newsEditorEl) {
+            if (!root) return [];
+            return Array.from(root.querySelectorAll('img')).filter((img) => {
+                if (img.dataset.newsLocalized === '1' || img.dataset.newsImporting === '1') {
+                    return false;
+                }
+                const src = normalizeNewsCandidateUrl(img.getAttribute('src'));
+                if (src.startsWith('blob:') || src.startsWith('data:')) {
+                    return true;
+                }
+                return collectNewsImageCandidateUrls(img).length > 0;
+            });
+        }
+
+        async function uploadNewsBlobImage(blob, fileName = '') {
+            const extByType = {
+                'image/jpeg': 'jpg',
+                'image/png': 'png',
+                'image/gif': 'gif',
+                'image/webp': 'webp',
+                'image/svg+xml': 'svg'
+            };
+            const extension = extByType[String(blob?.type || '').toLowerCase()] || 'png';
+            const finalName = fileName || `news-paste-${Date.now()}.${extension}`;
+            const file = blob instanceof File ? blob : new File([blob], finalName, { type: blob?.type || 'image/png' });
+            const formData = new FormData();
+            formData.append('file', file, file.name);
+            const res = await fetch('/api/news/image/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await parseJsonSafe(res);
+            if (!res.ok || !data.success || !data.url) {
+                throw new Error(data.message || '图片上传失败');
+            }
+            return data;
+        }
+
+        async function importNewsRemoteImageUrl(rawUrl) {
+            const res = await fetch('/api/news/image/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: rawUrl })
+            });
+            const data = await parseJsonSafe(res);
+            if (!res.ok || !data.success || !data.url) {
+                throw new Error(data.message || '图片转换失败，请改用“上传图片文件”或“导入图片链接”');
+            }
+            return data;
+        }
+
+        function markNewsImageAsLocalized(img, url) {
+            if (!img || !url) return;
+            img.setAttribute('src', url);
+            img.dataset.newsLocalized = '1';
+            img.removeAttribute('data-src');
+            img.removeAttribute('data-suite');
+            img.removeAttribute('data-lark-image-uri');
+            img.removeAttribute('data-lark-image-width');
+            img.removeAttribute('data-lark-image-height');
+            img.removeAttribute('data-width');
+            img.removeAttribute('data-height');
+            const galleryHost = img.closest?.('[data-ace-gallery-json]');
+            if (galleryHost) {
+                galleryHost.removeAttribute('data-ace-gallery-json');
+            }
+        }
+
+        async function localizeSingleNewsImageNode(img, index, total) {
+            if (!img) return { success: false, error: new Error('图片节点不存在') };
+            img.dataset.newsImporting = '1';
+            try {
+                const candidates = collectNewsImageCandidateUrls(img);
+                for (const candidate of candidates) {
+                    try {
+                        let localData;
+                        if (candidate.startsWith('blob:') || candidate.startsWith('data:')) {
+                            const response = await fetch(candidate);
+                            if (!response.ok) throw new Error('读取粘贴图片失败');
+                            const blob = await response.blob();
+                            localData = await uploadNewsBlobImage(blob, `news-paste-${Date.now()}-${index}.png`);
+                        } else {
+                            localData = await importNewsRemoteImageUrl(candidate);
+                        }
+                        markNewsImageAsLocalized(img, localData.url);
+                        return { success: true, url: localData.url };
+                    } catch (candidateError) {
+                        // Try the next candidate URL.
+                    }
+                }
+                throw new Error('图片转换失败，请改用“上传图片文件”或“导入图片链接”');
+            } catch (error) {
+                return { success: false, error };
+            } finally {
+                delete img.dataset.newsImporting;
+            }
+        }
+
+        async function processPendingNewsImages(options = {}) {
+            const { announceNoop = false } = options;
+            if (!newsEditorEl) return { imported: 0, failed: 0, total: 0 };
+            setNewsImageProcessMessage('正在识别粘贴图片...', '#666');
+            const nodes = getNewsPendingImageNodes();
+            if (nodes.length === 0) {
+                if (announceNoop) {
+                    setNewsImageProcessMessage('未检测到需要转换的粘贴图片', '#666');
+                } else {
+                    setNewsImageProcessMessage('', '#666');
+                }
+                return { imported: 0, failed: 0, total: 0 };
+            }
+
+            let imported = 0;
+            let failed = 0;
+            for (let i = 0; i < nodes.length; i += 1) {
+                setNewsImageProcessMessage(`正在转换第 ${i + 1} 张图，共 ${nodes.length} 张...`, '#666');
+                const result = await localizeSingleNewsImageNode(nodes[i], i + 1, nodes.length);
+                if (result.success) {
+                    imported += 1;
+                } else {
+                    failed += 1;
+                }
+            }
+
+            schedulePreview();
+            if (failed > 0) {
+                setNewsImageProcessMessage(
+                    `图片转换完成：成功 ${imported} 张，失败 ${failed} 张。失败图片请改用“上传图片文件”或“导入图片链接”`,
+                    '#d97706'
+                );
+            } else {
+                setNewsImageProcessMessage(`图片转换成功，共 ${imported} 张`, '#28a745');
+            }
+            return { imported, failed, total: nodes.length };
+        }
+
+        function queueNewsImageProcessing(options = {}) {
+            const run = async () => {
+                await new Promise((resolve) => setTimeout(resolve, 80));
+                return processPendingNewsImages(options);
+            };
+            newsImageProcessingPromise = Promise.resolve(newsImageProcessingPromise).catch(() => ({ imported: 0, failed: 0, total: 0 })).then(run, run);
+            return newsImageProcessingPromise;
+        }
+
+        async function insertNewsClipboardImages(files) {
+            if (!Array.isArray(files) || files.length === 0) return;
+            let imported = 0;
+            let failed = 0;
+            for (let i = 0; i < files.length; i += 1) {
+                setNewsImageProcessMessage(`正在转换第 ${i + 1} 张图，共 ${files.length} 张...`, '#666');
+                try {
+                    const data = await uploadNewsBlobImage(files[i], files[i]?.name || `news-paste-${Date.now()}-${i + 1}.png`);
+                    const width = getNewsImageWidthSetting();
+                    insertHtmlToNewsEditor(
+                        `<p style="text-align:center;"><img src="${data.url}" alt="news-image" data-news-localized="1" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
+                    );
+                    imported += 1;
+                } catch (error) {
+                    failed += 1;
+                }
+            }
+            if (failed > 0) {
+                setNewsImageProcessMessage(
+                    `图片转换完成：成功 ${imported} 张，失败 ${failed} 张。失败图片请改用“上传图片文件”或“导入图片链接”`,
+                    '#d97706'
+                );
+            } else {
+                setNewsImageProcessMessage(`图片转换成功，共 ${imported} 张`, '#28a745');
+            }
+        }
+
+        async function ensureNewsImagesReadyForSubmit() {
+            await Promise.resolve(newsImageProcessingPromise).catch(() => ({ imported: 0, failed: 0, total: 0 }));
+            let pending = getNewsPendingImageNodes();
+            if (pending.length === 0) return true;
+            setNewsImageProcessMessage('检测到正文里仍有未转存图片，正在重试转换...', '#d97706');
+            await processPendingNewsImages({ announceNoop: false });
+            pending = getNewsPendingImageNodes();
+            if (pending.length > 0) {
+                setNewsImageProcessMessage('仍有图片未转换成功，请改用“上传图片文件”或“导入图片链接”处理后再发布', '#dc3545');
+                return false;
+            }
+            return true;
         }
 
         function switchNewsEditorMode(mode) {
@@ -9726,35 +10306,18 @@ const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
         }
 
         async function uploadNewsImageFile(inputEl) {
-            const msg = document.getElementById('newsCreateMsg');
             const file = inputEl?.files?.[0];
             if (!file) return;
-            if (msg) {
-                msg.style.color = '#666';
-                msg.textContent = '正在上传图片...';
-            }
+            setNewsImageProcessMessage('正在上传图片...', '#666');
             try {
-                const formData = new FormData();
-                formData.append('file', file);
-                const res = await fetch('/api/news/image/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (!data.success) throw new Error(data.message || '上传失败');
+                const data = await uploadNewsBlobImage(file, file.name || '');
                 const width = getNewsImageWidthSetting();
                 insertHtmlToNewsEditor(
-                    `<p style="text-align:center;"><img src="${data.url}" alt="news-image" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
+                    `<p style="text-align:center;"><img src="${data.url}" alt="news-image" data-news-localized="1" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
                 );
-                if (msg) {
-                    msg.style.color = '#28a745';
-                    msg.textContent = '✓ 图片上传并插入成功';
-                }
+                setNewsImageProcessMessage('图片上传并插入成功', '#28a745');
             } catch (e) {
-                if (msg) {
-                    msg.style.color = '#dc3545';
-                    msg.textContent = e?.message || '图片上传失败';
-                }
+                setNewsImageProcessMessage(e?.message || '图片上传失败', '#dc3545');
             } finally {
                 if (inputEl) inputEl.value = '';
             }
@@ -9762,40 +10325,22 @@ const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
 
         async function insertNewsImageFromUrl() {
             const input = document.getElementById('newsInsertImageUrl');
-            const msg = document.getElementById('newsCreateMsg');
             const rawUrl = (input?.value || '').trim();
             if (!rawUrl) {
                 alert('请先粘贴图片链接');
                 return;
             }
-            if (msg) {
-                msg.style.color = '#666';
-                msg.textContent = '正在下载并导入图片...';
-            }
+            setNewsImageProcessMessage('正在下载并导入图片...', '#666');
             try {
-                const res = await fetch('/api/news/image/import', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: rawUrl })
-                });
-                const data = await res.json();
-                if (!data.success) {
-                    throw new Error(data.message || '导入失败');
-                }
+                const data = await importNewsRemoteImageUrl(rawUrl);
                 const width = getNewsImageWidthSetting();
                 insertHtmlToNewsEditor(
-                    `<p style="text-align:center;"><img src="${data.url}" alt="news-image" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
+                    `<p style="text-align:center;"><img src="${data.url}" alt="news-image" data-news-localized="1" style="width:${width};max-width:100%;height:auto;display:block;margin:0 auto;"></p>`
                 );
                 if (input) input.value = '';
-                if (msg) {
-                    msg.style.color = '#28a745';
-                    msg.textContent = '✓ 图片已导入';
-                }
+                setNewsImageProcessMessage('图片已导入', '#28a745');
             } catch (e) {
-                if (msg) {
-                    msg.style.color = '#dc3545';
-                    msg.textContent = e?.message || '图片导入失败';
-                }
+                setNewsImageProcessMessage(e?.message || '图片导入失败', '#dc3545');
             }
         }
 
@@ -9858,6 +10403,14 @@ const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
                     if (msg) {
                         msg.style.color = '#dc3545';
                         msg.textContent = '请填写正文内容';
+                    }
+                    return;
+                }
+
+                if (!await ensureNewsImagesReadyForSubmit()) {
+                    if (msg) {
+                        msg.style.color = '#dc3545';
+                        msg.textContent = '请先等待正文图片转换完成';
                     }
                     return;
                 }
@@ -10107,10 +10660,45 @@ const SIDEBAR_COLLAPSE_KEY = 'yx_admin2_sidebar_collapsed';
                 newsEditorEl.addEventListener('mouseup', saveNewsEditorSelection);
                 newsEditorEl.addEventListener('focus', saveNewsEditorSelection);
                 newsEditorEl.addEventListener('blur', saveNewsEditorSelection);
+                newsEditorEl.addEventListener('paste', (event) => {
+                    const clipboard = event.clipboardData;
+                    const htmlSnippet = String(clipboard?.getData('text/html') || '');
+                    const imageFiles = clipboard
+                        ? Array.from(clipboard.items || [])
+                            .filter((item) => item.kind === 'file' && String(item.type || '').startsWith('image/'))
+                            .map((item) => item.getAsFile())
+                            .filter(Boolean)
+                        : [];
+                    const hasRichText = !!(clipboard && (clipboard.getData('text/html') || clipboard.getData('text/plain')));
+                    const likelyContainsImages = imageFiles.length > 0
+                        || /<img[\s>]/i.test(htmlSnippet)
+                        || /data-ace-gallery-json|data-lark-image-uri|feishu\.cn|larksuite\.com|larkoffice\.com/i.test(htmlSnippet);
+
+                    if (imageFiles.length > 0 && !hasRichText) {
+                        event.preventDefault();
+                        insertNewsClipboardImages(imageFiles);
+                        return;
+                    }
+
+                    if (!likelyContainsImages) {
+                        return;
+                    }
+
+                    setNewsImageProcessMessage('正在识别粘贴图片...', '#666');
+                    queueNewsImageProcessing({ announceNoop: true });
+                });
             }
             if (newsSourceEl) {
                 newsSourceEl.addEventListener('input', schedulePreview);
                 newsSourceEl.addEventListener('change', schedulePreview);
+            }
+            const feishuImportInput = document.getElementById('newsFeishuImportUrl');
+            if (feishuImportInput) {
+                feishuImportInput.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    importNewsFromFeishuUrl();
+                });
             }
         }
 

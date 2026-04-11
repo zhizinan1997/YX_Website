@@ -1647,7 +1647,25 @@
                             </div>
 
                             <div>
+                                <div class="form-group news-feishu-import-disabled">
+                                    <label>飞书链接导入</label>
+                                    <div class="news-feishu-import-disabled-panel" aria-disabled="true">
+                                        <div class="news-feishu-import-disabled-title">功能尚不完善，持续开发中</div>
+                                        <div class="news-feishu-import-disabled-row">
+                                            <input type="text" id="newsFeishuImportUrl" class="form-control"
+                                                style="flex:1 1 360px;"
+                                                placeholder="功能尚不完善，持续开发中" disabled>
+                                            <button type="button" id="newsFeishuImportBtn" class="btn-sm"
+                                                onclick="importNewsFromFeishuUrl()" disabled>飞书链接导入</button>
+                                        </div>
+                                        <div class="form-hint news-feishu-import-disabled-hint">当前请先使用复制粘贴正文的方式导入内容。</div>
+                                    </div>
+                                    <div id="newsFeishuImportMsg" class="news-feishu-import-msg-hidden"
+                                        aria-hidden="true"></div>
+                                </div>
                                 <div class="form-group">
+                                    <div id="newsImageProcessMsg" class="news-image-process-banner is-hidden"
+                                        role="status" aria-live="polite" aria-hidden="true"></div>
                                     <label>正文内容</label>
                                     <div class="news-editor-toolbar">
                                         <div class="news-toolbar-row">
@@ -1811,6 +1829,8 @@
                                                 onclick="insertNewsImageFromUrl()">导入图片链接</button>
                                         </div>
                                     </div>
+                                    <div id="newsImageImportMsg"
+                                        style="min-height:20px; margin: 8px 0 10px; font-size: 13px; color:#666;"></div>
                                     <div id="newsContentEditor" class="news-editor-surface" contenteditable="true">
                                     </div>
                                     <textarea id="newsContent" class="form-control news-editor-source" rows="14"
