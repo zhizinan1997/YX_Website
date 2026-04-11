@@ -1,87 +1,1218 @@
-"""
-新闻内容管理路由模块。
+﻿"""
+鏂伴椈鍐呭绠＄悊璺敱妯″潡銆?
 
-本模块提供新闻资讯的完整管理功能，包括：
-1. 新闻列表API
-2. 文章解析和渲染
-3. Markdown支持
-4. 封面图片管理
-5. 公开内容输出
-6. 后台编辑接口
+鏈ā鍧楁彁渚涙柊闂昏祫璁殑瀹屾暣绠＄悊鍔熻兘锛屽寘鎷細
+1. 鏂伴椈鍒楄〃API
+2. 鏂囩珷瑙ｆ瀽鍜屾覆鏌?
+3. Markdown鏀寔
+4. 灏侀潰鍥剧墖绠＄悊
+5. 鍏紑鍐呭杈撳嚭
+6. 鍚庡彴缂栬緫鎺ュ彛
 
-主要功能：
-1. 新闻列表API
-   - 按分类筛选
-   - 分页查询
-   - 置顶新闻处理
-   - 发布时间排序
+涓昏鍔熻兘锛?
+1. 鏂伴椈鍒楄〃API
+   - 鎸夊垎绫荤瓫閫?
+   - 鍒嗛〉鏌ヨ
+   - 缃《鏂伴椈澶勭悊
+   - 鍙戝竷鏃堕棿鎺掑簭
 
-2. 文章解析
-   - HTML内容解析
-   - Markdown渲染
-   - 元数据提取（标题、摘要、发布时间等）
-   - 远程图片处理
+2. 鏂囩珷瑙ｆ瀽
+   - HTML鍐呭瑙ｆ瀽
+   - Markdown娓叉煋
+   - 鍏冩暟鎹彁鍙栵紙鏍囬銆佹憳瑕併€佸彂甯冩椂闂寸瓑锛?
+   - 杩滅▼鍥剧墖澶勭悊
 
-3. 封面图片
-   - 图片上传验证
-   - 相对路径转换
-   - 远程图片获取和缓存
+3. 灏侀潰鍥剧墖
+   - 鍥剧墖涓婁紶楠岃瘉
+   - 鐩稿璺緞杞崲
+   - 杩滅▼鍥剧墖鑾峰彇鍜岀紦瀛?
 
-4. HTML安全清洗
-   - 白名单标签过滤
-   - 危险标签移除
-   - 属性清理
-   - XSS防护
+4. HTML瀹夊叏娓呮礂
+   - 鐧藉悕鍗曟爣绛捐繃婊?
+   - 鍗遍櫓鏍囩绉婚櫎
+   - 灞炴€ф竻鐞?
+   - XSS闃叉姢
 
-5. 后台管理
-   - 新闻列表管理
-   - 分类设置
-   - 置顶管理
-   - 删除功能
+5. 鍚庡彴绠＄悊
+   - 鏂伴椈鍒楄〃绠＄悊
+   - 鍒嗙被璁剧疆
+   - 缃《绠＄悊
+   - 鍒犻櫎鍔熻兘
 
-6. 公开输出
-   - 安全的内容清洗
-   - 相对URL处理
-   - 日期格式化
+6. 鍏紑杈撳嚭
+   - 瀹夊叏鐨勫唴瀹规竻娲?
+   - 鐩稿URL澶勭悊
+   - 鏃ユ湡鏍煎紡鍖?
 
-安全特性：
-- HTML白名单机制
-- 危险标签过滤（script、iframe、form等）
-- JavaScript伪协议屏蔽
-- 远程URL验证
+瀹夊叏鐗规€э細
+- HTML鐧藉悕鍗曟満鍒?
+- 鍗遍櫓鏍囩杩囨护锛坰cript銆乮frame銆乫orm绛夛級
+- JavaScript浼崗璁睆钄?
+- 杩滅▼URL楠岃瘉
 
-作者：元芯传感技术团队
+浣滆€咃細鍏冭姱浼犳劅鎶€鏈洟闃?
 """
 
 from __future__ import annotations
 
+import base64
+import binascii
 import html
 import json
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 from flask import jsonify, request, send_from_directory
 
 BEIJING_TZ = timezone(timedelta(hours=8))
+FEISHU_HOST_KEYWORDS = ('feishu', 'larksuite', 'larkoffice')
+VOID_HTML_TAGS = {
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img',
+    'input', 'link', 'meta', 'param', 'source', 'track', 'wbr',
+}
+INLINE_RENDER_TAGS = {
+    'strong': 'strong',
+    'b': 'strong',
+    'em': 'em',
+    'i': 'em',
+    'u': 'u',
+    'code': 'code',
+    'span': '',
+}
+REMOTE_BROWSER_HEADERS = {
+    'User-Agent': (
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/124.0.0.0 Safari/537.36'
+    ),
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+}
 
 def now_beijing():
-    """返回北京时间对应的当前时间。"""
+    """Return the current Beijing time."""
     return datetime.now(BEIJING_TZ)
 
-# 模块级依赖容器，在 configure/register 阶段一次性注入。
+
+class RemoteFetchError(Exception):
+    """Structured remote fetch error for news import flows."""
+
+    def __init__(self, message: str, *, reason: str = 'download_failed', **details):
+        super().__init__(message)
+        self.message = message
+        self.reason = reason
+        self.details = details
+
+
+def is_http_url(raw_url: str) -> bool:
+    value = str(raw_url or '').strip()
+    if not value:
+        return False
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return False
+    return parsed.scheme.lower() in {'http', 'https'} and bool(parsed.netloc)
+
+
+def is_feishu_like_hostname(hostname: str) -> bool:
+    host = str(hostname or '').strip().lower()
+    return any(keyword in host for keyword in FEISHU_HOST_KEYWORDS)
+
+
+def resolve_remote_candidate_url(base_url: str, raw_url: str) -> str:
+    value = html.unescape(str(raw_url or '')).strip()
+    if not value:
+        return ''
+    if value.startswith(('javascript:', 'data:', 'vbscript:', 'file:')):
+        return ''
+    resolved = urljoin(base_url or '', value)
+    return resolved if is_http_url(resolved) else ''
+
+
+def extract_html_title_text(html_text: str) -> str:
+    match = re.search(r'<title\b[^>]*>(.*?)</title>', html_text or '', re.I | re.S)
+    if not match:
+        return ''
+    title = normalize_news_plain_text(match.group(1), max_length=200)
+    title = re.sub(r'\s*[-|_]\s*(椋炰功|Lark|Feishu).*$', '', title, flags=re.I).strip()
+    return title
+
+
+def is_feishu_login_page_html(html_text: str) -> bool:
+    sample = str(html_text or '')[:200000].lower()
+    if not sample:
+        return False
+    markers = (
+        'suite/passport/static/login',
+        'window.serverinjectres',
+        'window.passportsettings',
+        'passport_web_did',
+        'crossloginurl',
+    )
+    if 'suite/passport/static/login' in sample:
+        return True
+    return sum(1 for marker in markers if marker in sample) >= 3
+
+
+def extract_feishu_client_vars_payload(html_text: str) -> dict | None:
+    text = str(html_text or '')
+    if not text:
+        return None
+
+    match = re.search(r'"type"\s*:\s*"CLIENT_VARS"', text)
+    if not match:
+        return None
+
+    object_start = text.rfind('Object({', 0, match.start())
+    if object_start < 0:
+        return None
+
+    start = object_start + len('Object(')
+    depth = 0
+    in_string = False
+    escaped = False
+    end = -1
+
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == '\\':
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                end = idx + 1
+                break
+
+    if end <= start:
+        return None
+
+    try:
+        payload = json.loads(text[start:end])
+    except Exception:
+        return None
+
+    data = payload.get('data')
+    return data if isinstance(data, dict) else None
+
+
+def extract_first_html_element_by_attr(html_text: str, *, tag_name: str, attr_name: str, attr_value: str = '') -> str:
+    from html.parser import HTMLParser
+
+    class StopExtract(Exception):
+        pass
+
+    def build_start_tag(tag: str, attrs: list[tuple[str, str]], *, self_closing: bool = False) -> str:
+        attr_text = ''.join(
+            f' {str(name or "").lower()}="{html.escape(str(value or ""), quote=True)}"'
+            for name, value in attrs
+        )
+        return f'<{tag}{attr_text}{" /" if self_closing else ""}>'
+
+    target_tag = str(tag_name or '').strip().lower()
+    target_attr = str(attr_name or '').strip().lower()
+    target_value = str(attr_value or '')
+
+    class ElementExtractor(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=False)
+            self.capture_depth = 0
+            self.parts = []
+            self.fragment = ''
+
+        def _matches(self, tag: str, attrs: list[tuple[str, str]]) -> bool:
+            if str(tag or '').lower() != target_tag:
+                return False
+            for name, value in attrs:
+                if str(name or '').lower() != target_attr:
+                    continue
+                if target_value == '' or str(value or '') == target_value:
+                    return True
+            return False
+
+        def handle_starttag(self, tag, attrs):
+            raw = self.get_starttag_text() or build_start_tag(tag, attrs)
+            if self.capture_depth == 0:
+                if self._matches(tag, attrs):
+                    self.capture_depth = 1
+                    self.parts = [raw]
+            else:
+                self.parts.append(raw)
+                if str(tag or '').lower() == target_tag:
+                    self.capture_depth += 1
+
+        def handle_startendtag(self, tag, attrs):
+            raw = self.get_starttag_text() or build_start_tag(tag, attrs, self_closing=True)
+            if self.capture_depth == 0:
+                if self._matches(tag, attrs):
+                    self.fragment = raw
+                    raise StopExtract()
+                return
+            self.parts.append(raw)
+
+        def handle_endtag(self, tag):
+            if self.capture_depth == 0:
+                return
+            self.parts.append(f'</{tag}>')
+            if str(tag or '').lower() == target_tag:
+                self.capture_depth -= 1
+                if self.capture_depth == 0:
+                    self.fragment = ''.join(self.parts)
+                    raise StopExtract()
+
+        def handle_data(self, data):
+            if self.capture_depth > 0 and data:
+                self.parts.append(data)
+
+        def handle_entityref(self, name):
+            if self.capture_depth > 0:
+                self.parts.append(f'&{name};')
+
+        def handle_charref(self, name):
+            if self.capture_depth > 0:
+                self.parts.append(f'&#{name};')
+
+        def handle_comment(self, data):
+            if self.capture_depth > 0:
+                self.parts.append(f'<!--{data}-->')
+
+        def handle_decl(self, decl):
+            if self.capture_depth > 0:
+                self.parts.append(f'<!{decl}>')
+
+    parser = ElementExtractor()
+    try:
+        parser.feed(html_text or '')
+    except StopExtract:
+        pass
+    finally:
+        parser.close()
+    return parser.fragment.strip()
+
+
+def build_simple_html_tree(fragment: str) -> dict:
+    from html.parser import HTMLParser
+
+    root = {'type': 'root', 'children': []}
+    stack = [root]
+
+    class TreeParser(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=False)
+
+        def handle_starttag(self, tag, attrs):
+            node = {
+                'type': 'tag',
+                'tag': str(tag or '').lower(),
+                'attrs': {str(name or '').lower(): str(value or '') for name, value in attrs},
+                'children': [],
+            }
+            stack[-1]['children'].append(node)
+            if node['tag'] not in VOID_HTML_TAGS:
+                stack.append(node)
+
+        def handle_startendtag(self, tag, attrs):
+            node = {
+                'type': 'tag',
+                'tag': str(tag or '').lower(),
+                'attrs': {str(name or '').lower(): str(value or '') for name, value in attrs},
+                'children': [],
+            }
+            stack[-1]['children'].append(node)
+
+        def handle_endtag(self, tag):
+            target = str(tag or '').lower()
+            for idx in range(len(stack) - 1, 0, -1):
+                if stack[idx].get('tag') == target:
+                    del stack[idx:]
+                    break
+
+        def handle_data(self, data):
+            if data:
+                stack[-1]['children'].append({'type': 'text', 'text': data})
+
+        def handle_entityref(self, name):
+            stack[-1]['children'].append({'type': 'text', 'text': html.unescape(f'&{name};')})
+
+        def handle_charref(self, name):
+            stack[-1]['children'].append({'type': 'text', 'text': html.unescape(f'&#{name};')})
+
+    parser = TreeParser()
+    parser.feed(fragment or '')
+    parser.close()
+    return root
+
+
+def extract_text_from_html_node(node) -> str:
+    if not node:
+        return ''
+    if node.get('type') == 'text':
+        return str(node.get('text') or '')
+    return ''.join(extract_text_from_html_node(child) for child in node.get('children', []))
+
+
+def decode_feishu_json_attr(raw_value: str):
+    value = html.unescape(str(raw_value or '')).strip()
+    if not value:
+        return None
+    try:
+        return json.loads(value)
+    except Exception:
+        return None
+
+
+def decode_feishu_base64_json_attr(raw_value: str):
+    value = str(raw_value or '').strip()
+    if not value:
+        return None
+    padding = (-len(value)) % 4
+    if padding:
+        value += '=' * padding
+    try:
+        decoded = base64.b64decode(value)
+    except (binascii.Error, ValueError):
+        return None
+    try:
+        return json.loads(decoded.decode('utf-8'))
+    except Exception:
+        return None
+
+
+def normalize_imported_news_date(raw_text: str) -> str:
+    text = normalize_news_plain_text(raw_text, max_length=0)
+    if not text:
+        return ''
+    patterns = [
+        re.compile(r'(?P<year>20\d{2})\u5e74(?P<month>\d{1,2})\u6708(?P<day>\d{1,2})\u65e5'),
+        re.compile(r'(?P<year>20\d{2})[-/.](?P<month>\d{1,2})[-/.](?P<day>\d{1,2})'),
+    ]
+    for pattern in patterns:
+        match = pattern.search(text)
+        if not match:
+            continue
+        year = int(match.group('year'))
+        month = int(match.group('month'))
+        day = int(match.group('day'))
+        try:
+            return datetime(year, month, day).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return ''
+
+def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, timeout: float = 20.0,
+                             headers: dict | None = None) -> dict:
+    safe_headers = {str(key): str(value) for key, value in (headers or {}).items() if key and value}
+    raw_source_url = (source_url or '').strip()
+    if not raw_source_url:
+        raise RemoteFetchError('缂哄皯杩滅▼鍦板潃', reason='missing_url')
+
+    ok, reason, safe_source_url = _dep('validate_safe_remote_fetch_url')(raw_source_url)
+    if not ok:
+        raise RemoteFetchError(
+            reason or '杩滅▼鍦板潃鏍￠獙澶辫触',
+            reason='validate_safe_remote_fetch_url',
+            source_url=raw_source_url,
+            safe_source_url=safe_source_url,
+        )
+
+    try:
+        if _dep('requests_support'):
+            response = _dep('requests_module').get(
+                safe_source_url,
+                timeout=timeout,
+                allow_redirects=allow_redirects,
+                headers=safe_headers or None,
+            )
+            status_code = int(response.status_code)
+            if not allow_redirects and 300 <= status_code < 400:
+                raise RemoteFetchError(
+                    '閾炬帴鍙戠敓閲嶅畾鍚戯紝璇锋敼鐢ㄦ渶缁堝湴鍧€',
+                    reason='redirect_not_supported',
+                    source_url=raw_source_url,
+                    safe_source_url=safe_source_url,
+                    status_code=status_code,
+                    location=response.headers.get('Location', ''),
+                )
+            response.raise_for_status()
+            final_url = str(getattr(response, 'url', '') or safe_source_url)
+            content_type = (response.headers.get('Content-Type') or '').split(';')[0].strip().lower()
+            return {
+                'source_url': raw_source_url,
+                'safe_source_url': safe_source_url,
+                'final_url': final_url,
+                'status_code': status_code,
+                'content_type': content_type,
+                'content': response.content or b'',
+                'text': response.text or '',
+            }
+        if _dep('httpx_support'):
+            response = _dep('httpx_module').get(
+                safe_source_url,
+                timeout=timeout,
+                follow_redirects=allow_redirects,
+                headers=safe_headers or None,
+            )
+            status_code = int(response.status_code)
+            if not allow_redirects and 300 <= status_code < 400:
+                raise RemoteFetchError(
+                    '閾炬帴鍙戠敓閲嶅畾鍚戯紝璇锋敼鐢ㄦ渶缁堝湴鍧€',
+                    reason='redirect_not_supported',
+                    source_url=raw_source_url,
+                    safe_source_url=safe_source_url,
+                    status_code=status_code,
+                    location=response.headers.get('Location', ''),
+                )
+            response.raise_for_status()
+            final_url = str(getattr(response, 'url', '') or safe_source_url)
+            content_type = (response.headers.get('Content-Type') or '').split(';')[0].strip().lower()
+            return {
+                'source_url': raw_source_url,
+                'safe_source_url': safe_source_url,
+                'final_url': final_url,
+                'status_code': status_code,
+                'content_type': content_type,
+                'content': response.content or b'',
+                'text': response.text or '',
+            }
+    except RemoteFetchError:
+        raise
+    except Exception as exc:
+        raise RemoteFetchError(
+            '杩滅▼鍐呭涓嬭浇澶辫触锛岃纭閾炬帴鍙叕寮€璁块棶',
+            reason='download_failed',
+            source_url=raw_source_url,
+            safe_source_url=safe_source_url,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        ) from exc
+
+    raise RemoteFetchError(
+        '鏈嶅姟绔己灏戜笅杞藉鎴风渚濊禆',
+        reason='no_http_client_dependency',
+        source_url=raw_source_url,
+        safe_source_url=safe_source_url,
+    )
+
+
+def import_news_image_url_to_asset(source_url: str, *, cache: dict | None = None) -> tuple[str, bool]:
+    raw_source_url = str(source_url or '').strip()
+    if not raw_source_url:
+        raise RemoteFetchError('缂哄皯鍥剧墖閾炬帴', reason='missing_url')
+
+    normalized_existing = normalize_legacy_news_asset_url(raw_source_url)
+    if normalized_existing.startswith('/cdn_assets/news/'):
+        return normalized_existing, False
+
+    if cache is not None and raw_source_url in cache:
+        return cache[raw_source_url], False
+
+    fetched = fetch_remote_url_content(raw_source_url, allow_redirects=False, timeout=20.0)
+    content = fetched.get('content') or b''
+    content_type = str(fetched.get('content_type') or '').strip().lower()
+    final_url = str(fetched.get('final_url') or raw_source_url)
+    parsed = urlparse(final_url)
+
+    if len(content) == 0:
+        raise RemoteFetchError('鍥剧墖鍐呭涓虹┖', reason='empty_content', source_url=raw_source_url)
+    if len(content) > 15 * 1024 * 1024:
+        raise RemoteFetchError(
+            '图片过大（最大 15MB）',
+            reason='image_too_large',
+            source_url=raw_source_url,
+            content_length=len(content),
+        )
+
+    ext = _dep('validate_image_bytes')(
+        str(parsed.path or ''),
+        content_type,
+        content,
+        allowed_extensions=_dep('allowed_news_image_extensions'),
+    )
+    if ext not in _dep('allowed_news_image_extensions'):
+        raise RemoteFetchError(
+            '閾炬帴鍐呭涓嶆槸鍙楁敮鎸佺殑鍥剧墖鏍煎紡',
+            reason='unsupported_image_format',
+            source_url=raw_source_url,
+            content_type=content_type,
+            parsed_path=str(parsed.path or ''),
+            detected_ext=ext,
+        )
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = _dep('news_uploads_dir') / filename
+    file_path.write_bytes(content)
+    local_url = build_news_asset_url(filename)
+    if cache is not None:
+        cache[raw_source_url] = local_url
+    return local_url, True
+
+
+def render_inline_text_for_html(raw_text: str, *, preserve_newlines: bool = False) -> str:
+    value = str(raw_text or '').replace('\u00a0', ' ')
+    value = value.replace('\r\n', '\n').replace('\r', '\n')
+    if preserve_newlines:
+        escaped = html.escape(value, quote=False)
+        return escaped.replace('\n', '<br>')
+    value = re.sub(r'\s+', ' ', value)
+    if not value.strip():
+        return ''
+    return html.escape(value, quote=False)
+
+
+def record_feishu_import_warning(state: dict, message: str) -> None:
+    text = normalize_news_plain_text(message, max_length=300)
+    if not text:
+        return
+    warnings = state.setdefault('warnings', [])
+    if text not in warnings:
+        warnings.append(text)
+
+
+def merge_remote_candidate_urls(*candidate_groups) -> list[str]:
+    merged = []
+    seen = set()
+    for group in candidate_groups:
+        for raw_value in group or []:
+            value = str(raw_value or '').strip()
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            merged.append(value)
+    return merged
+
+
+def collect_feishu_image_candidate_urls(node: dict, *, page_url: str = '', parent_node: dict | None = None) -> list[str]:
+    attrs = dict(node.get('attrs') or {})
+    parent_attrs = dict((parent_node or {}).get('attrs') or {})
+    candidates = []
+
+    def add_candidate(raw_url: str):
+        raw_value = str(raw_url or '').strip()
+        if not raw_value:
+            return
+        normalized_local = normalize_legacy_news_asset_url(raw_value)
+        if normalized_local.startswith('/cdn_assets/news/'):
+            if normalized_local not in candidates:
+                candidates.append(normalized_local)
+            return
+        resolved = resolve_remote_candidate_url(page_url, raw_value)
+        if resolved and resolved not in candidates:
+            candidates.append(resolved)
+
+    for attr_name in ('src', 'data-src', 'data-origin-src', 'data-raw-src', 'data-original-src'):
+        add_candidate(attrs.get(attr_name, ''))
+
+    suite_meta = decode_feishu_base64_json_attr(attrs.get('data-suite', ''))
+    if isinstance(suite_meta, dict):
+        add_candidate(suite_meta.get('originSrc', ''))
+
+    gallery_sources = [
+        parent_attrs.get('data-ace-gallery-json', ''),
+        attrs.get('data-ace-gallery-json', ''),
+    ]
+    for raw_gallery in gallery_sources:
+        gallery_meta = decode_feishu_json_attr(raw_gallery)
+        items = gallery_meta.get('items') if isinstance(gallery_meta, dict) else None
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            raw_src = str(item.get('src') or '').strip()
+            if raw_src:
+                add_candidate(unquote(raw_src))
+
+    return candidates
+
+
+def collect_feishu_page_image_candidate_groups(page_html: str, *, page_url: str = '') -> list[dict]:
+    text = str(page_html or '').strip()
+    if not text:
+        return []
+
+    groups = []
+    seen_keys = set()
+
+    def add_group(candidates: list[str], *, alt: str = ''):
+        normalized = merge_remote_candidate_urls(candidates)
+        if not normalized:
+            return
+        key = '\n'.join(normalized)
+        if key in seen_keys:
+            return
+        seen_keys.add(key)
+        groups.append({
+            'candidates': normalized,
+            'alt': normalize_news_plain_text(alt, max_length=300),
+        })
+
+    try:
+        tree = build_simple_html_tree(text)
+    except Exception:
+        tree = {'type': 'root', 'children': []}
+
+    feishu_meta_attrs = (
+        'data-suite',
+        'data-ace-gallery-json',
+        'data-lark-image-uri',
+        'data-origin-src',
+        'data-raw-src',
+        'data-original-src',
+    )
+
+    def walk(node, parent_node: dict | None = None):
+        if not isinstance(node, dict):
+            return
+        if node.get('type') != 'tag':
+            for child in node.get('children', []):
+                walk(child, parent_node)
+            return
+
+        attrs = dict(node.get('attrs') or {})
+        parent_attrs = dict((parent_node or {}).get('attrs') or {})
+        if node.get('tag') == 'img':
+            has_feishu_meta = any(str(attrs.get(name) or '').strip() for name in feishu_meta_attrs)
+            has_feishu_meta = has_feishu_meta or any(
+                str(parent_attrs.get(name) or '').strip() for name in ('data-ace-gallery-json',)
+            )
+            candidates = collect_feishu_image_candidate_urls(node, page_url=page_url, parent_node=parent_node)
+            if has_feishu_meta or any('/space/api/box/stream/download/' in item for item in candidates):
+                add_group(
+                    candidates,
+                    alt=str(attrs.get('alt') or attrs.get('title') or ''),
+                )
+
+        for child in node.get('children', []):
+            walk(child, node)
+
+    walk(tree)
+
+    asynccode_matches = re.findall(
+        r'https://[^"\'\s<>]+/space/api/box/stream/download/asynccode/\?code=[^"\'\s<>]+',
+        text,
+        flags=re.I,
+    )
+    for matched_url in asynccode_matches:
+        resolved = resolve_remote_candidate_url(page_url, matched_url)
+        if resolved:
+            add_group([resolved])
+
+    return groups
+
+
+def pop_feishu_page_image_candidates(state: dict, *, image_name: str = '') -> list[str]:
+    groups = state.get('page_image_candidate_groups') or []
+    if not isinstance(groups, list) or not groups:
+        return []
+
+    used_indexes = state.setdefault('page_image_candidate_used_indexes', set())
+    current_index = int(state.get('page_image_candidate_index') or 0)
+    target_name = normalize_news_plain_text(image_name, max_length=300).lower()
+
+    if target_name:
+        for idx, group in enumerate(groups):
+            if idx in used_indexes or not isinstance(group, dict):
+                continue
+            alt = normalize_news_plain_text(group.get('alt', ''), max_length=300).lower()
+            if alt and (target_name in alt or alt in target_name):
+                used_indexes.add(idx)
+                state['page_image_candidate_index'] = max(current_index, idx + 1)
+                return list(group.get('candidates') or [])
+
+    for idx in range(current_index, len(groups)):
+        if idx in used_indexes or not isinstance(groups[idx], dict):
+            continue
+        used_indexes.add(idx)
+        state['page_image_candidate_index'] = idx + 1
+        return list(groups[idx].get('candidates') or [])
+
+    for idx, group in enumerate(groups):
+        if idx in used_indexes or not isinstance(group, dict):
+            continue
+        used_indexes.add(idx)
+        state['page_image_candidate_index'] = max(current_index, idx + 1)
+        return list(group.get('candidates') or [])
+
+    return []
+
+
+def render_feishu_image_node(node: dict, state: dict, *, parent_node: dict | None = None) -> str:
+    state['image_seen_count'] = int(state.get('image_seen_count') or 0) + 1
+    candidates = collect_feishu_image_candidate_urls(
+        node,
+        page_url=state.get('page_url', ''),
+        parent_node=parent_node,
+    )
+    local_url = ''
+    last_error = None
+    for candidate in candidates:
+        if candidate.startswith('/cdn_assets/news/'):
+            local_url = candidate
+            break
+        try:
+            local_url, created = import_news_image_url_to_asset(candidate, cache=state.setdefault('image_cache', {}))
+            if created:
+                state['imported_image_count'] = int(state.get('imported_image_count') or 0) + 1
+            break
+        except Exception as exc:
+            last_error = exc
+
+    if not local_url:
+        state['image_failed_count'] = int(state.get('image_failed_count') or 0) + 1
+        if last_error:
+            message = getattr(last_error, 'message', '') or str(last_error)
+            record_feishu_import_warning(state, f'有图片未能转存：{message}')
+        return ''
+
+    attrs = dict(node.get('attrs') or {})
+    alt = normalize_news_plain_text(
+        attrs.get('alt', '') or attrs.get('title', '') or 'news-image',
+        max_length=300,
+    ) or 'news-image'
+    return f'<img src="{html.escape(local_url, quote=True)}" alt="{html.escape(alt, quote=True)}">'
+
+
+def render_feishu_inline_node(node: dict, state: dict, *, parent_node: dict | None = None,
+                              preserve_newlines: bool = False) -> str:
+    if not node:
+        return ''
+    if node.get('type') == 'text':
+        return render_inline_text_for_html(node.get('text', ''), preserve_newlines=preserve_newlines)
+
+    tag = str(node.get('tag') or '').lower()
+    attrs = dict(node.get('attrs') or {})
+
+    if tag == 'br':
+        return '<br>'
+    if tag == 'img':
+        return render_feishu_image_node(node, state, parent_node=parent_node)
+    if tag == 'a':
+        raw_href = attrs.get('href', '')
+        href = resolve_remote_candidate_url(state.get('page_url', ''), raw_href) or raw_href
+        safe_href = sanitize_news_link_url(href)
+        inner = ''.join(
+            render_feishu_inline_node(child, state, parent_node=node, preserve_newlines=preserve_newlines)
+            for child in node.get('children', [])
+        ).strip()
+        if not inner:
+            return ''
+        if safe_href:
+            return f'<a href="{html.escape(safe_href, quote=True)}">{inner}</a>'
+        return inner
+    if tag in INLINE_RENDER_TAGS:
+        inner = ''.join(
+            render_feishu_inline_node(child, state, parent_node=node, preserve_newlines=preserve_newlines)
+            for child in node.get('children', [])
+        )
+        wrap_tag = INLINE_RENDER_TAGS[tag]
+        if not wrap_tag:
+            return inner
+        return f'<{wrap_tag}>{inner}</{wrap_tag}>' if inner else ''
+
+    return ''.join(
+        render_feishu_inline_node(child, state, parent_node=node, preserve_newlines=preserve_newlines)
+        for child in node.get('children', [])
+    )
+
+
+def render_feishu_list_node(node: dict, state: dict) -> str:
+    tag = str(node.get('tag') or '').lower()
+    items_html = []
+    for child in node.get('children', []):
+        if child.get('type') != 'tag' or str(child.get('tag') or '').lower() != 'li':
+            continue
+        inline_parts = []
+        nested_parts = []
+        for li_child in child.get('children', []):
+            child_tag = str(li_child.get('tag') or '').lower() if li_child.get('type') == 'tag' else ''
+            if child_tag in {'ul', 'ol'}:
+                nested_parts.append(render_feishu_list_node(li_child, state))
+            else:
+                inline_parts.append(render_feishu_inline_node(li_child, state, parent_node=child))
+        inner_main = ''.join(inline_parts).strip()
+        inner = inner_main + ''.join(part for part in nested_parts if part)
+        if normalize_news_plain_text(inner, max_length=0):
+            items_html.append(f'<li>{inner}</li>')
+    if not items_html:
+        return ''
+    return f'<{tag}>{"".join(items_html)}</{tag}>'
+
+
+def render_feishu_block_node(node: dict, state: dict, *, parent_node: dict | None = None) -> str:
+    if not node:
+        return ''
+    if node.get('type') == 'text':
+        text_html = render_inline_text_for_html(node.get('text', ''))
+        return f'<p>{text_html}</p>' if text_html else ''
+
+    tag = str(node.get('tag') or '').lower()
+    attrs = dict(node.get('attrs') or {})
+    children = list(node.get('children', []))
+
+    if attrs.get('data-lark-html-role') == 'root':
+        return ''.join(render_feishu_block_node(child, state, parent_node=node) for child in children)
+
+    if tag == 'h1':
+        title_text = normalize_news_plain_text(extract_text_from_html_node(node), max_length=200)
+        if title_text and not state.get('title'):
+            state['title'] = title_text
+            return ''
+        inner = ''.join(render_feishu_inline_node(child, state, parent_node=node) for child in children).strip()
+        return f'<h2>{inner}</h2>' if inner else ''
+
+    if tag in {'h2', 'h3', 'h4', 'h5', 'h6'}:
+        inner = ''.join(render_feishu_inline_node(child, state, parent_node=node) for child in children).strip()
+        return f'<{tag}>{inner}</{tag}>' if inner else ''
+
+    if tag in {'ul', 'ol'}:
+        return render_feishu_list_node(node, state)
+
+    if tag == 'img':
+        image_html = render_feishu_image_node(node, state, parent_node=parent_node)
+        return f'<p>{image_html}</p>' if image_html else ''
+
+    if tag == 'hr' or attrs.get('data-type') == 'divider':
+        return '<hr>'
+
+    if tag in {'div', 'p', 'blockquote', 'section', 'article'}:
+        if attrs.get('data-type') == 'image':
+            direct_images = [
+                render_feishu_image_node(child, state, parent_node=node)
+                for child in children
+                if child.get('type') == 'tag' and str(child.get('tag') or '').lower() == 'img'
+            ]
+            direct_images = [f'<p>{item}</p>' for item in direct_images if item]
+            if direct_images:
+                return ''.join(direct_images)
+            image_html = render_feishu_image_node(node, state, parent_node=parent_node)
+            return f'<p>{image_html}</p>' if image_html else ''
+
+        block_children = [
+            child for child in children
+            if child.get('type') == 'tag'
+            and str(child.get('tag') or '').lower() in {'div', 'p', 'ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'section', 'article'}
+        ]
+        if block_children:
+            return ''.join(render_feishu_block_node(child, state, parent_node=node) for child in children)
+
+        preserve_newlines = 'white-space:pre' in str(attrs.get('style') or '').replace(' ', '').lower()
+        inner = ''.join(
+            render_feishu_inline_node(child, state, parent_node=node, preserve_newlines=preserve_newlines)
+            for child in children
+        ).strip()
+        if not normalize_news_plain_text(inner, max_length=0):
+            return ''
+        if tag == 'blockquote':
+            return f'<blockquote>{inner}</blockquote>'
+        return f'<p>{inner}</p>'
+
+    inner = ''.join(render_feishu_inline_node(child, state, parent_node=node) for child in children).strip()
+    return f'<p>{inner}</p>' if normalize_news_plain_text(inner, max_length=0) else ''
+
+
+def convert_feishu_root_fragment_to_news_payload(root_fragment: str, *, page_url: str = '', page_title: str = '') -> dict:
+    tree = build_simple_html_tree(root_fragment or '')
+    root_node = next(
+        (
+            child for child in tree.get('children', [])
+            if child.get('type') == 'tag' and str(child.get('attrs', {}).get('data-lark-html-role', '')).lower() == 'root'
+        ),
+        None,
+    )
+    if not root_node:
+        root_node = next((child for child in tree.get('children', []) if child.get('type') == 'tag'), None)
+    if not root_node:
+        raise ValueError('未能识别飞书正文节点')
+
+    state = {
+        'page_url': page_url,
+        'page_title': page_title,
+        'title': '',
+        'warnings': [],
+        'image_cache': {},
+        'imported_image_count': 0,
+        'image_seen_count': 0,
+        'image_failed_count': 0,
+    }
+    content_parts = [
+        render_feishu_block_node(child, state, parent_node=root_node)
+        for child in root_node.get('children', [])
+    ]
+    content_html = ''.join(part for part in content_parts if part).strip()
+    content_html = sanitize_news_html_fragment(content_html)
+    content_html = re.sub(r'(?is)<p>\s*</p>', '', content_html)
+    content_html = re.sub(r'\n{3,}', '\n\n', content_html).strip()
+
+    title = state.get('title') or normalize_news_plain_text(page_title, max_length=200)
+    date = normalize_imported_news_date(extract_text_from_html_node(root_node))
+    if not date:
+        date = now_beijing().strftime('%Y-%m-%d')
+        record_feishu_import_warning(state, '未识别到发布日期，已使用今天日期，请确认后再发布')
+    if not title:
+        record_feishu_import_warning(state, '未识别到标题，请检查导入结果后再发布')
+    if state.get('image_failed_count'):
+        record_feishu_import_warning(
+            state,
+            f'有 {int(state.get("image_failed_count") or 0)} 张图片未能成功转存，请发布前检查正文图片',
+        )
+
+    return {
+        'title': title,
+        'date': date,
+        'content_html': content_html,
+        'warnings': state.get('warnings', []),
+        'imported_image_count': int(state.get('imported_image_count') or 0),
+        'image_failed_count': int(state.get('image_failed_count') or 0),
+        'image_seen_count': int(state.get('image_seen_count') or 0),
+    }
+
+
+def extract_feishu_client_vars_block_text(block_data: dict) -> str:
+    text_data = (
+        ((block_data or {}).get('text') or {}).get('initialAttributedTexts') or {}
+    ).get('text')
+    if isinstance(text_data, dict):
+        parts = []
+        for key in sorted(text_data.keys(), key=lambda item: int(str(item)) if str(item).isdigit() else str(item)):
+            value = text_data.get(key)
+            if value is None:
+                continue
+            parts.append(str(value))
+        return ''.join(parts)
+    if isinstance(text_data, list):
+        return ''.join(str(item) for item in text_data if item is not None)
+    if text_data is None:
+        return ''
+    return str(text_data)
+
+
+def collect_feishu_client_vars_image_candidate_urls(block_id: str, block_data: dict) -> list[str]:
+    image = dict((block_data or {}).get('image') or {})
+    token = str(image.get('token') or '').strip()
+    mount_node_token = str(block_id or '').strip()
+    if not token or not mount_node_token:
+        return []
+
+    return [
+        (
+            'https://internal-api-drive-stream.feishu.cn/'
+            f'space/api/box/stream/download/v2/cover/{token}/'
+            f'?fallback_source=1&height=1280&mount_node_token={mount_node_token}'
+            '&mount_point=docx_image&policy=equal&width=1280'
+        ),
+        (
+            'https://internal-api-drive-stream.feishu.cn/'
+            f'space/api/box/stream/download/all/{token}/'
+            f'?mount_node_token={mount_node_token}&mount_point=docx_image'
+        ),
+        (
+            'https://internal-api-drive-stream.feishu.cn/'
+            f'space/api/box/stream/download/preview/{token}/?preview_type=16'
+        ),
+    ]
+
+
+def render_feishu_client_vars_image_block(block_id: str, block_data: dict, state: dict) -> str:
+    state['image_seen_count'] = int(state.get('image_seen_count') or 0) + 1
+    image_name = normalize_news_plain_text(((block_data or {}).get('image') or {}).get('name', ''), max_length=120)
+    page_candidates = pop_feishu_page_image_candidates(state, image_name=image_name)
+    token_candidates = collect_feishu_client_vars_image_candidate_urls(block_id, block_data)
+    candidates = merge_remote_candidate_urls(page_candidates, token_candidates)
+    local_url = ''
+    last_error = None
+
+    for candidate in candidates:
+        if candidate.startswith('/cdn_assets/news/'):
+            local_url = candidate
+            break
+        try:
+            local_url, created = import_news_image_url_to_asset(candidate, cache=state.setdefault('image_cache', {}))
+            if created:
+                state['imported_image_count'] = int(state.get('imported_image_count') or 0) + 1
+            break
+        except Exception as exc:
+            last_error = exc
+
+    if not local_url:
+        state['image_failed_count'] = int(state.get('image_failed_count') or 0) + 1
+        if image_name:
+            record_feishu_import_warning(state, f'图片“{image_name}”未能转存：飞书当前未提供可直接下载的公开图片地址，可能仍需登录权限')
+        else:
+            record_feishu_import_warning(state, '有图片未能转存：飞书当前未提供可直接下载的公开图片地址，可能仍需登录权限')
+        return ''
+
+    image_meta = dict((block_data or {}).get('image') or {})
+    alt = normalize_news_plain_text(
+        image_meta.get('name', '') or 'news-image',
+        max_length=300,
+    ) or 'news-image'
+    align = str((block_data or {}).get('align') or '').strip().lower()
+    wrapper_style = 'text-align:center;' if align == 'center' else ''
+    return (
+        f'<p style="{wrapper_style}"><img src="{html.escape(local_url, quote=True)}" '
+        f'alt="{html.escape(alt, quote=True)}"></p>'
+    )
+
+
+def convert_feishu_client_vars_payload_to_news_payload(
+    client_vars_data: dict,
+    *,
+    page_url: str = '',
+    page_title: str = '',
+    page_html: str = '',
+) -> dict:
+    state = {
+        'page_url': page_url,
+        'page_title': page_title,
+        'title': '',
+        'warnings': [],
+        'image_cache': {},
+        'imported_image_count': 0,
+        'image_seen_count': 0,
+        'image_failed_count': 0,
+        'page_image_candidate_groups': collect_feishu_page_image_candidate_groups(page_html, page_url=page_url),
+        'page_image_candidate_index': 0,
+    }
+
+    data = dict(client_vars_data or {})
+    block_map = dict(data.get('block_map') or {})
+    meta_map = dict(data.get('meta_map') or {})
+    page_id = str(data.get('id') or '').strip()
+    page_block = dict((block_map.get(page_id) or {}).get('data') or {})
+    sequence = list(page_block.get('children') or data.get('block_sequence') or [])
+    if sequence and page_id and sequence[0] == page_id:
+        sequence = sequence[1:]
+
+    content_parts = []
+    bullet_items = []
+    all_text_parts = []
+
+    def flush_bullets():
+        nonlocal bullet_items
+        if bullet_items:
+            content_parts.append(f"<ul>{''.join(bullet_items)}</ul>")
+            bullet_items = []
+
+    for block_id in sequence:
+        block = dict((block_map.get(block_id) or {}).get('data') or {})
+        if not block or block.get('hidden'):
+            continue
+        block_type = str(block.get('type') or '').strip().lower()
+        text_value = extract_feishu_client_vars_block_text(block)
+        normalized_text = normalize_news_plain_text(text_value, max_length=0)
+        if normalized_text:
+            all_text_parts.append(normalized_text)
+
+        if block_type == 'heading1':
+            flush_bullets()
+            title_text = normalize_news_plain_text(text_value, max_length=200)
+            if title_text and not state.get('title'):
+                state['title'] = title_text
+            elif title_text:
+                content_parts.append(f'<h2>{html.escape(title_text, quote=False)}</h2>')
+            continue
+
+        if block_type == 'heading2':
+            flush_bullets()
+            if normalized_text:
+                content_parts.append(f'<h2>{html.escape(normalized_text, quote=False)}</h2>')
+            continue
+
+        if block_type == 'bullet':
+            if normalized_text:
+                bullet_items.append(f'<li>{render_inline_text_for_html(text_value, preserve_newlines=True)}</li>')
+            continue
+
+        flush_bullets()
+
+        if block_type == 'text':
+            if normalized_text:
+                content_parts.append(f'<p>{render_inline_text_for_html(text_value, preserve_newlines=True)}</p>')
+            continue
+
+        if block_type == 'image':
+            image_html = render_feishu_client_vars_image_block(str(block_id), block, state)
+            if image_html:
+                content_parts.append(image_html)
+            continue
+
+        if block_type == 'divider':
+            content_parts.append('<hr>')
+            continue
+
+    flush_bullets()
+
+    content_html = ''.join(part for part in content_parts if part).strip()
+    content_html = sanitize_news_html_fragment(content_html)
+    content_html = re.sub(r'(?is)<p>\s*</p>', '', content_html)
+    content_html = re.sub(r'\n{3,}', '\n\n', content_html).strip()
+
+    page_meta = dict(meta_map.get(page_id) or {})
+    fallback_title = (
+        normalize_news_plain_text(page_meta.get('title', ''), max_length=200)
+        or normalize_news_plain_text(page_block.get('text', {}).get('initialAttributedTexts', {}).get('text', {}).get('0', ''), max_length=200)
+        or normalize_news_plain_text(page_title, max_length=200)
+    )
+    title = state.get('title') or fallback_title
+
+    date_source = ' '.join(
+        part for part in [
+            *all_text_parts,
+            str(page_meta.get('update_time') or ''),
+            str(page_meta.get('edit_time') or ''),
+            str(page_meta.get('create_time') or ''),
+        ]
+        if str(part or '').strip()
+    )
+    date = normalize_imported_news_date(date_source)
+    if not date:
+        date = now_beijing().strftime('%Y-%m-%d')
+        record_feishu_import_warning(state, '未识别到发布日期，已使用今天日期，请确认后再发布')
+    if not title:
+        record_feishu_import_warning(state, '未识别到标题，请检查导入结果后再发布')
+    if state.get('image_failed_count'):
+        record_feishu_import_warning(
+            state,
+            f'有 {int(state.get("image_failed_count") or 0)} 张图片未能成功转存，请发布前检查正文图片',
+        )
+
+    return {
+        'title': title,
+        'date': date,
+        'content_html': content_html,
+        'warnings': state.get('warnings', []),
+        'imported_image_count': int(state.get('imported_image_count') or 0),
+        'image_failed_count': int(state.get('image_failed_count') or 0),
+        'image_seen_count': int(state.get('image_seen_count') or 0),
+    }
+
+# 妯″潡绾т緷璧栧鍣紝鍦?configure/register 闃舵涓€娆℃€ф敞鍏ャ€?
 _DEPS = {}
 
 
 
-# 依赖注入配置入口。
+# 渚濊禆娉ㄥ叆閰嶇疆鍏ュ彛銆?
 def configure_news_content(
     *,
     pages_dir,
     news_featured_file,
     news_visibility_file,
+    legacy_news_uploads_dir,
     news_uploads_dir,
     h2_home_file,
     markdown_support,
@@ -107,12 +1238,13 @@ def configure_news_content(
     get_chatbot_config,
     call_openai_api,
 ):
-    """配置新闻内容模块的共享依赖。"""
+    """Configure shared dependencies for the news content module."""
     _DEPS.clear()
     _DEPS.update({
         'pages_dir': Path(pages_dir),
         'news_featured_file': Path(news_featured_file),
         'news_visibility_file': Path(news_visibility_file),
+        'legacy_news_uploads_dir': Path(legacy_news_uploads_dir),
         'news_uploads_dir': Path(news_uploads_dir),
         'h2_home_file': Path(h2_home_file),
         'markdown_support': bool(markdown_support),
@@ -145,6 +1277,51 @@ def _dep(name):
     if value is None and name not in _DEPS:
         raise RuntimeError(f'News content dependency not configured: {name}')
     return value
+
+
+def build_news_asset_url(filename: str) -> str:
+    safe_name = str(filename or '').strip().lstrip('/')
+    if not safe_name:
+        return ''
+    return f'/cdn_assets/news/{safe_name}'
+
+
+def resolve_news_asset_file(filename: str) -> Path | None:
+    safe_name = str(filename or '').strip().lstrip('/')
+    if not safe_name or '..' in safe_name.split('/'):
+        return None
+
+    primary_path = _dep('news_uploads_dir') / safe_name
+    if primary_path.is_file():
+        return primary_path
+
+    legacy_path = _dep('legacy_news_uploads_dir') / safe_name
+    if legacy_path.is_file():
+        return legacy_path
+
+    return None
+
+
+def normalize_legacy_news_asset_url(raw_url: str) -> str:
+    value = str(raw_url or '').strip()
+    if not value:
+        return ''
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return value
+
+    path = str(parsed.path or '').strip()
+    if not path.startswith('/media/news/'):
+        return value
+
+    filename = path.split('/media/news/', 1)[1].lstrip('/')
+    normalized_path = build_news_asset_url(filename)
+    if not normalized_path:
+        return value
+    if parsed.query:
+        return f'{normalized_path}?{parsed.query}'
+    return normalized_path
 
 
 def _news_dir() -> Path:
@@ -203,7 +1380,7 @@ def sanitize_news_image_url(raw_url: str) -> str:
     lower = safe_url.lower()
     if lower.startswith(('mailto:', 'tel:')):
         return ''
-    return safe_url
+    return normalize_legacy_news_asset_url(safe_url)
 
 
 def sanitize_news_html_fragment(fragment: str) -> str:
@@ -408,14 +1585,14 @@ def build_news_card_html(
                             <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> {safe_date}</div>
                             <h3 class="vs-card__title">{safe_title}</h3>
                             <p class="vs-card__desc">{safe_summary}</p>
-                            <span class="vs-link-arrow">查看详情</span>
+                            <span class="vs-link-arrow">鏌ョ湅璇︽儏</span>
                         </div>
                     </a>
 """
 
 
 def parse_news_from_html():
-    """从 news.html 文件中解析新闻数据。"""
+    """Parse news cards from news.html."""
     news_file = _news_index_path()
     if not news_file.exists():
         return {'enterprise': [], 'industry': [], 'science': []}
@@ -508,7 +1685,7 @@ def parse_news_from_html():
 
 
 def get_next_news_id():
-    """获取 news_show 目录可用的下一个数字 ID。"""
+    """Return the next available news_show numeric id."""
     news_dir = _news_dir()
     max_id = 0
     if news_dir.exists():
@@ -523,12 +1700,16 @@ def get_next_news_id():
 
 
 def build_news_article_html(title, date, image_url, content_html):
-    """以统一样式渲染新闻文章 HTML。"""
+    """Render a news article page in the unified template."""
     safe_title_text = normalize_news_plain_text(title, max_length=200)
     safe_title = html.escape(safe_title_text, quote=True)
     hero_title = html.escape(safe_title_text, quote=False)
     safe_date = html.escape(normalize_news_plain_text(date, max_length=80), quote=False)
     safe_image_url = html.escape(sanitize_news_image_url(image_url) or '/assets/images/logo.png', quote=True)
+    hero_background_url = sanitize_news_image_url(image_url)
+    if not hero_background_url or hero_background_url == '/assets/images/logo.png':
+        hero_background_url = '/assets/images/section2_bj.jpg'
+    safe_hero_background_url = html.escape(hero_background_url, quote=True)
     safe_content_html = sanitize_news_html_fragment(content_html)
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -550,7 +1731,7 @@ def build_news_article_html(title, date, image_url, content_html):
     <style>
         .article-hero {{
             position: relative;
-            background: linear-gradient(135deg, rgba(0, 31, 63, 0.9) 0%, rgba(0, 31, 63, 0.7) 100%), url('../../assets/images/section2_bj.jpg') center/cover;
+            background: linear-gradient(135deg, rgba(0, 31, 63, 0.78) 0%, rgba(0, 31, 63, 0.58) 100%), url('{safe_hero_background_url}') center/cover;
             height: 40vh;
             min-height: 300px;
             display: flex;
@@ -684,14 +1865,13 @@ def build_news_article_html(title, date, image_url, content_html):
     </div>
   </header>
 
-    <section class="article-hero">
+    <section class="article-hero" data-cover-image="{safe_image_url}">
         <h1 class="article-hero__title">{hero_title}</h1>
         <div class="article-hero__meta">{safe_date}</div>
     </section>
 
     <div class="article-container">
         <div class="article-content">
-            <img src="{safe_image_url}" alt="News">
             {safe_content_html}
         </div>
 
@@ -706,7 +1886,7 @@ def build_news_article_html(title, date, image_url, content_html):
 
 
 def render_markdown(content: str) -> str:
-    """将 Markdown 文本渲染为网页内容。"""
+    """Render Markdown content for the news editor."""
     if _dep('markdown_support'):
         return _dep('markdown_module').markdown(content, extensions=['extra', 'tables', 'sane_lists'])
 
@@ -777,7 +1957,7 @@ def render_markdown(content: str) -> str:
 
 
 def parse_news_article_html(filepath: Path):
-    """解析新闻文章 HTML 并提取字段。"""
+    """Parse a generated news article page and extract fields."""
     def extract_first_div_by_class(html_text: str, class_name: str) -> str:
         start_re = re.compile(
             rf'<div\b[^>]*class=["\'][^"\']*\b{re.escape(class_name)}\b[^"\']*["\'][^>]*>',
@@ -805,15 +1985,16 @@ def parse_news_article_html(filepath: Path):
     content = filepath.read_text(encoding='utf-8')
     title_match = re.search(r'<h1 class="article-hero__title">(.*?)</h1>', content, re.S)
     date_match = re.search(r'<div class="article-hero__meta">(.*?)</div>', content, re.S)
+    cover_match = re.search(r'<section\b[^>]*class="article-hero"[^>]*data-cover-image="([^"]*)"', content, re.I | re.S)
     title = title_match.group(1).strip() if title_match else ''
     date = date_match.group(1).strip() if date_match else ''
+    image_url = html.unescape(cover_match.group(1).strip()) if cover_match else ''
     body_html = extract_first_div_by_class(content, 'article-content').strip()
     leading_image_match = re.match(r'^\s*<img\s+[^>]*src="([^"]+)"[^>]*>\s*', body_html, re.I)
     if leading_image_match:
-        image_url = leading_image_match.group(1)
+        if not image_url:
+            image_url = leading_image_match.group(1)
         body_html = re.sub(r'^\s*<img\s+[^>]*>\s*', '', body_html, count=1, flags=re.I)
-    else:
-        image_url = ''
     body_text = body_html
     body_text = re.sub(r'(?i)<br\\s*/?>', '\n', body_text)
     body_text = re.sub(r'(?i)</p\\s*>', '\n', body_text)
@@ -831,7 +2012,7 @@ def parse_news_article_html(filepath: Path):
 
 
 def derive_news_cover_and_summary(content_html: str, image_url: str = '', summary: str = ''):
-    """根据文章内容补齐封面图和摘要。"""
+    """Derive a cover image and summary from article content."""
     html_body = content_html or ''
     final_image = (image_url or '').strip()
     final_summary = (summary or '').strip()
@@ -865,7 +2046,7 @@ def derive_news_cover_and_summary(content_html: str, image_url: str = '', summar
 
 
 def insert_news_card(news_html_path: Path, card_html: str) -> bool:
-    """在 `Page 1` 标记之后向 news.html 插入新闻卡片。"""
+    """Insert a news card into news.html after the page marker."""
     if not news_html_path.exists():
         return False
     content = news_html_path.read_text(encoding='utf-8')
@@ -886,7 +2067,7 @@ def insert_news_card(news_html_path: Path, card_html: str) -> bool:
 
 
 def build_news_card_regex(filename: str):
-    """在不同 href 形式下按文件名匹配新闻卡片。"""
+    """Build a regex that matches a news card by filename."""
     return re.compile(
         rf'<a\s+[^>]*href\s*=\s*["\'][^"\']*{re.escape(filename)}[^"\']*["\'][^>]*>.*?</a>',
         re.DOTALL | re.IGNORECASE,
@@ -894,7 +2075,7 @@ def build_news_card_regex(filename: str):
 
 
 def dedupe_news_cards(content: str, filename: str):
-    """对同一新闻文件名去重，仅保留第一张卡片。"""
+    """Remove duplicate news cards for the same filename."""
     pattern = build_news_card_regex(filename)
     matches = list(pattern.finditer(content))
     if len(matches) <= 1:
@@ -914,7 +2095,7 @@ def dedupe_news_cards(content: str, filename: str):
 
 
 def get_hidden_news_links():
-    """加载已隐藏的新闻链接。"""
+    """Load hidden news links."""
     default_config = {'hidden_links': []}
     news_visibility_file = _dep('news_visibility_file')
     if news_visibility_file.exists():
@@ -930,7 +2111,7 @@ def get_hidden_news_links():
 
 
 def save_hidden_news_links(links):
-    """保存已隐藏的新闻链接。"""
+    """Persist hidden news links."""
     cleaned = []
     for link in links:
         if link and isinstance(link, str):
@@ -941,7 +2122,7 @@ def save_hidden_news_links(links):
 
 
 def get_featured_news_config():
-    """加载精选新闻配置。"""
+    """Load featured news links."""
     default_config = {'links': []}
     news_featured_file = _dep('news_featured_file')
     if news_featured_file.exists():
@@ -956,7 +2137,7 @@ def get_featured_news_config():
 
 
 def save_featured_news_config(new_config):
-    """保存精选新闻配置。"""
+    """Persist featured news links."""
     links = new_config.get('links', [])
     if not isinstance(links, list):
         links = []
@@ -975,7 +2156,7 @@ def save_featured_news_config(new_config):
 
 
 def get_all_news_items():
-    """扫描 news.html 中全部新闻项及其元数据。"""
+    """Scan all news items and normalize their metadata."""
     news_index = _news_index_path()
     if not news_index.exists():
         return []
@@ -1095,7 +2276,7 @@ def normalize_news_link_for_product(link: str) -> str:
 
 
 def save_h2_home_news(items):
-    """保存氢气首页新闻数据，并支持自定义字段。"""
+    """Save homepage news configuration with custom fields."""
     if not isinstance(items, list):
         items = []
     cleaned = []
@@ -1129,7 +2310,7 @@ def save_h2_home_news(items):
 
 
 
-# 路由注册入口。
+# 璺敱娉ㄥ唽鍏ュ彛銆?
 def register_news_content_routes(
     app,
     *,
@@ -1137,6 +2318,7 @@ def register_news_content_routes(
     pages_dir,
     news_featured_file,
     news_visibility_file,
+    legacy_news_uploads_dir,
     news_uploads_dir,
     h2_home_file,
     markdown_support,
@@ -1162,11 +2344,12 @@ def register_news_content_routes(
     get_chatbot_config,
     call_openai_api,
 ):
-    """注册新闻内容相关路由，并完成共享依赖注入。"""
+    """Register news-content routes and inject shared dependencies."""
     configure_news_content(
         pages_dir=pages_dir,
         news_featured_file=news_featured_file,
         news_visibility_file=news_visibility_file,
+        legacy_news_uploads_dir=legacy_news_uploads_dir,
         news_uploads_dir=news_uploads_dir,
         h2_home_file=h2_home_file,
         markdown_support=markdown_support,
@@ -1263,7 +2446,7 @@ def register_news_content_routes(
     def get_product_related_news():
         product_id = (request.args.get('id') or '').strip()
         if not product_id:
-            return jsonify({'success': False, 'message': '缺少产品ID'}), 400
+            return jsonify({'success': False, 'message': '缂哄皯浜у搧ID'}), 400
 
         all_items = [item for item in get_all_news_items() if not item.get('hidden')]
         normalized_items = []
@@ -1419,7 +2602,7 @@ def register_news_content_routes(
         news_index = news_dir / 'news.html'
         inserted = insert_news_card(news_index, card_html)
         if not inserted:
-            return jsonify({'success': False, 'message': '已创建资讯，但未能更新 news.html'}), 500
+            return jsonify({'success': False, 'message': '宸插垱寤鸿祫璁紝浣嗘湭鑳芥洿鏂?news.html'}), 500
 
         return jsonify({'success': True, 'filename': filename, 'link': f'/pages/news/{filename}'})
 
@@ -1430,7 +2613,7 @@ def register_news_content_routes(
         link = (data.get('link') or '').strip()
         hidden = bool(data.get('hidden'))
         if not link:
-            return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
 
         hidden_links = get_hidden_news_links()
         if hidden:
@@ -1473,7 +2656,7 @@ def register_news_content_routes(
         category = (data.get('category') or '').strip()
 
         if not link:
-            return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
         if category not in {'enterprise', 'industry', 'science'}:
             return jsonify({'success': False, 'message': '分类不合法'}), 400
 
@@ -1491,7 +2674,7 @@ def register_news_content_routes(
         card_html = card_match.group(0)
         open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
         if not open_tag_match:
-            return jsonify({'success': False, 'message': '卡片格式异常'}), 500
+            return jsonify({'success': False, 'message': '鍗＄墖鏍煎紡寮傚父'}), 500
 
         open_tag = open_tag_match.group(0)
         if 'data-category=' in open_tag:
@@ -1515,7 +2698,7 @@ def register_news_content_routes(
         data = request.json or {}
         link = (data.get('link') or '').strip()
         if not link:
-            return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
 
         filename = Path(link).name
         news_dir = _news_dir()
@@ -1555,7 +2738,7 @@ def register_news_content_routes(
         content_is_html = bool(data.get('content_is_html', False))
 
         if not link:
-            return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
         if not title or not date or not category or not division or not content:
             return jsonify({'success': False, 'message': '请填写标题、日期、分类、归属事业部和正文'}), 400
         if category not in {'enterprise', 'industry', 'science'}:
@@ -1595,7 +2778,7 @@ def register_news_content_routes(
     def get_news_detail():
         link = request.args.get('link', '').strip()
         if not link:
-            return jsonify({'success': False, 'message': '缺少资讯链接'}), 400
+            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
         filename = Path(link).name
         filepath = _news_dir() / filename
         detail = parse_news_article_html(filepath)
@@ -1618,12 +2801,13 @@ def register_news_content_routes(
         data = request.json or {}
         title = normalize_news_plain_text(data.get('title', ''), max_length=200) or '标题预览'
         date = normalize_news_plain_text(data.get('date', ''), max_length=80) or now_beijing().strftime('%Y-%m-%d')
-        image_url = sanitize_news_image_url(data.get('image_url', '')) or '/assets/images/logo.png'
+        image_url = sanitize_news_image_url(data.get('image_url', ''))
         content = (data.get('content') or '').strip()
         is_html = bool(data.get('content_is_html', False))
 
         content_html = content if is_html else render_markdown(content)
         content_html = sanitize_news_html_fragment(content_html)
+        image_url, _ = derive_news_cover_and_summary(content_html, image_url, '')
         page_html = build_news_article_html(title, date, image_url, content_html)
         resize_bridge = """
 <style>
@@ -1722,21 +2906,21 @@ body {
                 return value
             value = re.sub(r'^\s*```(?:html|markdown)?\s*', '', value, flags=re.IGNORECASE)
             value = re.sub(r'\s*```\s*$', '', value)
-            value = re.sub(r'^\s*(?:新闻标题|标题)\s*[：:].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
-            value = re.sub(r'^\s*摘要\s*[：:].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
-            value = re.sub(r'^\s*正文\s*[：:]\s*', '', value, flags=re.IGNORECASE)
+            value = re.sub(r'^\s*(?:鏂伴椈鏍囬|鏍囬)\s*[锛?].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
+            value = re.sub(r'^\s*鎽樿\s*[锛?].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
+            value = re.sub(r'^\s*姝ｆ枃\s*[锛?]\s*', '', value, flags=re.IGNORECASE)
 
             if is_html:
-                value = re.sub(r'^\s*<p>\s*(?:新闻标题|标题)\s*[：:].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
-                value = re.sub(r'^\s*<p>\s*摘要\s*[：:].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
-                value = re.sub(r'^\s*<p>\s*正文\s*[：:]\s*</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
+                value = re.sub(r'^\s*<p>\s*(?:鏂伴椈鏍囬|鏍囬)\s*[锛?].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
+                value = re.sub(r'^\s*<p>\s*鎽樿\s*[锛?].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
+                value = re.sub(r'^\s*<p>\s*姝ｆ枃\s*[锛?]\s*</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
             return value.strip()
 
         config = _dep('get_chatbot_config')()
         if not config.get('enabled', True):
-            return jsonify({'success': False, 'message': 'AI客服暂时不可用'}), 503
+            return jsonify({'success': False, 'message': 'AI 客服暂时不可用'}), 503
         if not config.get('api_key'):
-            return jsonify({'success': False, 'message': 'AI客服未配置'}), 400
+            return jsonify({'success': False, 'message': 'AI 客服未配置'}), 400
 
         data = request.json or {}
         title = (data.get('title') or '').strip()
@@ -1790,15 +2974,180 @@ body {
 
         return jsonify({'success': True, 'content': response, 'changed_text': False})
 
-    @app.route('/api/news/image/import', methods=['POST'])
+    @app.route('/api/news/import/feishu', methods=['POST'])
     @login_required
-    def import_news_image_from_url():
+    def import_news_from_feishu_share():
+        def log_import_failure(reason: str, **details):
+            parts = [f"reason={reason}"]
+            for key, value in details.items():
+                if value in (None, '', b''):
+                    continue
+                parts.append(f"{key}={value!r}")
+            app.logger.warning("news feishu import failed | %s", ' | '.join(parts))
+
         data = request.json or {}
         source_url = (data.get('url') or '').strip()
         if not source_url:
-            return jsonify({'success': False, 'message': '缺少图片链接'}), 400
+            log_import_failure('missing_url')
+            return jsonify({'success': False, 'message': '请输入飞书分享链接'}), 400
+
+        try:
+            parsed = urlparse(source_url)
+        except Exception:
+            parsed = None
+        hostname = str((parsed.hostname if parsed else '') or '').strip().lower()
+        if not is_feishu_like_hostname(hostname):
+            log_import_failure('unsupported_host', source_url=source_url, hostname=hostname)
+            return jsonify({'success': False, 'message': '目前仅支持飞书分享链接导入'}), 400
+
+        try:
+            fetched = fetch_remote_url_content(
+                source_url,
+                allow_redirects=True,
+                timeout=25.0,
+                headers=REMOTE_BROWSER_HEADERS,
+            )
+        except RemoteFetchError as exc:
+            log_import_failure(exc.reason, source_url=source_url, **exc.details)
+            status_code = 500 if exc.reason == 'no_http_client_dependency' else 400
+            return jsonify({'success': False, 'message': exc.message}), status_code
+
+        final_url = str(fetched.get('final_url') or source_url).strip()
+        ok, reason, _safe_final_url = _dep('validate_safe_remote_fetch_url')(final_url)
+        final_hostname = str(urlparse(final_url).hostname or '').strip().lower()
+        if not ok or not is_feishu_like_hostname(final_hostname):
+            log_import_failure(
+                'unsafe_final_url',
+                source_url=source_url,
+                final_url=final_url,
+                message=reason,
+            )
+            return jsonify({'success': False, 'message': '分享链接重定向到了不受支持的地址'}), 400
+
+        page_html = str(fetched.get('text') or '')
+        if not page_html.strip():
+            page_html = (fetched.get('content') or b'').decode('utf-8', errors='replace')
+        if not page_html.strip():
+            log_import_failure('empty_page', source_url=source_url, final_url=final_url)
+            return jsonify({'success': False, 'message': '飞书分享页内容为空'}), 400
+        if is_feishu_login_page_html(page_html):
+            log_import_failure(
+                'login_page_returned',
+                source_url=source_url,
+                final_url=final_url,
+                page_title=extract_html_title_text(page_html),
+            )
+            return jsonify({
+                'success': False,
+                'message': '该飞书链接当前返回的是登录页，不是文档正文。通常是未开启公开分享，或必须登录飞书后才能访问；请把分享权限改为可直接访问后重试。',
+            }), 400
+
+        root_fragment = extract_first_html_element_by_attr(
+            page_html,
+            tag_name='div',
+            attr_name='data-lark-html-role',
+            attr_value='root',
+        )
+        if not root_fragment:
+            root_fragment = extract_first_html_element_by_attr(
+                page_html,
+                tag_name='div',
+                attr_name='data-docx-has-block-data',
+                attr_value='true',
+            )
+        client_vars_payload = extract_feishu_client_vars_payload(page_html)
+        if not root_fragment and not client_vars_payload:
+            log_import_failure('root_fragment_not_found', source_url=source_url, final_url=final_url)
+            return jsonify({
+                'success': False,
+                'message': '未在分享页中解析到正文，请确认该飞书链接已开启分享且页面可直接访问',
+            }), 400
+
+        try:
+            if root_fragment:
+                imported = convert_feishu_root_fragment_to_news_payload(
+                    root_fragment,
+                    page_url=final_url,
+                    page_title=extract_html_title_text(page_html),
+                )
+            else:
+                imported = convert_feishu_client_vars_payload_to_news_payload(
+                    client_vars_payload or {},
+                    page_url=final_url,
+                    page_title=extract_html_title_text(page_html),
+                    page_html=page_html,
+                )
+        except Exception as exc:
+            log_import_failure(
+                'parse_failed',
+                source_url=source_url,
+                final_url=final_url,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            return jsonify({'success': False, 'message': '飞书正文解析失败，请检查链接后重试'}), 400
+
+        content_html = str(imported.get('content_html') or '').strip()
+        if not content_html:
+            log_import_failure('empty_content_html', source_url=source_url, final_url=final_url)
+            return jsonify({'success': False, 'message': '未解析到可用正文内容'}), 400
+
+        image_url, summary = derive_news_cover_and_summary(content_html, '', '')
+        image_url = sanitize_news_image_url(image_url) or '/assets/images/logo.png'
+        summary = normalize_news_plain_text(summary, max_length=220)
+
+        imported_image_count = int(imported.get('imported_image_count') or 0)
+        image_failed_count = int(imported.get('image_failed_count') or 0)
+        image_seen_count = int(imported.get('image_seen_count') or 0)
+        warnings = [str(item) for item in (imported.get('warnings') or []) if str(item).strip()]
+
+        if image_seen_count > 0:
+            message = f'导入完成，成功转存 {imported_image_count} 张图片'
+        else:
+            message = '导入完成'
+        if image_failed_count > 0:
+            message += f'，另有 {image_failed_count} 张图片未成功转存'
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'source_url': final_url,
+            'title': normalize_news_plain_text(imported.get('title', ''), max_length=200),
+            'date': normalize_news_plain_text(imported.get('date', ''), max_length=80),
+            'category': 'enterprise',
+            'image_url': image_url,
+            'summary': summary,
+            'content_html': content_html,
+            'imported_image_count': imported_image_count,
+            'image_failed_count': image_failed_count,
+            'image_seen_count': image_seen_count,
+            'warnings': warnings,
+        })
+
+    @app.route('/api/news/image/import', methods=['POST'])
+    @login_required
+    def import_news_image_from_url():
+        def log_import_failure(reason: str, **details):
+            parts = [f"reason={reason}"]
+            for key, value in details.items():
+                if value in (None, '', b''):
+                    continue
+                parts.append(f"{key}={value!r}")
+            app.logger.warning("news image import failed | %s", ' | '.join(parts))
+
+        data = request.json or {}
+        source_url = (data.get('url') or '').strip()
+        if not source_url:
+            log_import_failure('missing_url')
+            return jsonify({'success': False, 'message': '缂哄皯鍥剧墖閾炬帴'}), 400
         ok, reason, safe_source_url = _dep('validate_safe_remote_fetch_url')(source_url)
         if not ok:
+            log_import_failure(
+                'validate_safe_remote_fetch_url',
+                source_url=source_url,
+                safe_source_url=safe_source_url,
+                message=reason,
+            )
             return jsonify({'success': False, 'message': reason}), 400
 
         parsed = urlparse(safe_source_url)
@@ -1809,26 +3158,65 @@ body {
             if _dep('requests_support'):
                 resp = _dep('requests_module').get(safe_source_url, timeout=20, allow_redirects=False)
                 if 300 <= resp.status_code < 400:
-                    return jsonify({'success': False, 'message': '图片链接不支持重定向，请使用最终地址'}), 400
+                    log_import_failure(
+                        'redirect_not_supported',
+                        source_url=source_url,
+                        safe_source_url=safe_source_url,
+                        status_code=resp.status_code,
+                        location=resp.headers.get('Location', ''),
+                    )
+                    return jsonify({'success': False, 'message': '鍥剧墖閾炬帴涓嶆敮鎸侀噸瀹氬悜锛岃浣跨敤鏈€缁堝湴鍧€'}), 400
                 resp.raise_for_status()
                 content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
                 content = resp.content or b''
             elif _dep('httpx_support'):
                 resp = _dep('httpx_module').get(safe_source_url, timeout=20.0, follow_redirects=False)
                 if 300 <= resp.status_code < 400:
-                    return jsonify({'success': False, 'message': '图片链接不支持重定向，请使用最终地址'}), 400
+                    log_import_failure(
+                        'redirect_not_supported',
+                        source_url=source_url,
+                        safe_source_url=safe_source_url,
+                        status_code=resp.status_code,
+                        location=resp.headers.get('Location', ''),
+                    )
+                    return jsonify({'success': False, 'message': '鍥剧墖閾炬帴涓嶆敮鎸侀噸瀹氬悜锛岃浣跨敤鏈€缁堝湴鍧€'}), 400
                 resp.raise_for_status()
                 content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
                 content = resp.content or b''
             else:
-                return jsonify({'success': False, 'message': '服务端缺少下载客户端依赖'}), 500
-        except Exception:
-            return jsonify({'success': False, 'message': '图片下载失败，请检查链接是否可访问'}), 400
+                log_import_failure(
+                    'no_http_client_dependency',
+                    source_url=source_url,
+                    safe_source_url=safe_source_url,
+                )
+                return jsonify({'success': False, 'message': '鏈嶅姟绔己灏戜笅杞藉鎴风渚濊禆'}), 500
+        except Exception as exc:
+            log_import_failure(
+                'download_failed',
+                source_url=source_url,
+                safe_source_url=safe_source_url,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            return jsonify({'success': False, 'message': '鍥剧墖涓嬭浇澶辫触锛岃妫€鏌ラ摼鎺ユ槸鍚﹀彲璁块棶'}), 400
 
         if len(content) == 0:
-            return jsonify({'success': False, 'message': '图片内容为空'}), 400
+            log_import_failure(
+                'empty_content',
+                source_url=source_url,
+                safe_source_url=safe_source_url,
+                content_type=content_type,
+            )
+            return jsonify({'success': False, 'message': '鍥剧墖鍐呭涓虹┖'}), 400
         if len(content) > 15 * 1024 * 1024:
-            return jsonify({'success': False, 'message': '图片过大（最大15MB）'}), 400
+            log_import_failure(
+                'image_too_large',
+                source_url=source_url,
+                safe_source_url=safe_source_url,
+                content_type=content_type,
+                content_length=len(content),
+            )
+            return jsonify({'success': False, 'message': '图片过大（最大 15MB）'}), 400
 
         ext = _dep('validate_image_bytes')(
             str(parsed.path or ''),
@@ -1837,18 +3225,27 @@ body {
             allowed_extensions=_dep('allowed_news_image_extensions'),
         )
         if ext not in _dep('allowed_news_image_extensions'):
-            return jsonify({'success': False, 'message': '链接内容不是受支持的图片格式'}), 400
+            log_import_failure(
+                'unsupported_image_format',
+                source_url=source_url,
+                safe_source_url=safe_source_url,
+                content_type=content_type,
+                content_length=len(content),
+                parsed_path=str(parsed.path or ''),
+                detected_ext=ext,
+            )
+            return jsonify({'success': False, 'message': '閾炬帴鍐呭涓嶆槸鍙楁敮鎸佺殑鍥剧墖鏍煎紡'}), 400
 
         filename = f"{uuid.uuid4().hex}{ext}"
         file_path = _dep('news_uploads_dir') / filename
         file_path.write_bytes(content)
-        return jsonify({'success': True, 'url': f'/media/news/{filename}'})
+        return jsonify({'success': True, 'url': build_news_asset_url(filename)})
 
     @app.route('/api/news/image/upload', methods=['POST'])
     @login_required
     def upload_news_image_file():
         if 'file' not in request.files:
-            return jsonify({'success': False, 'message': '没有上传文件'}), 400
+            return jsonify({'success': False, 'message': '娌℃湁涓婁紶鏂囦欢'}), 400
 
         file = request.files['file']
         if not file or not file.filename:
@@ -1856,7 +3253,7 @@ body {
 
         ext = _dep('validate_uploaded_image_extension')(file, allowed_extensions=_dep('allowed_news_image_extensions'))
         if not ext:
-            return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF'}), 400
+            return jsonify({'success': False, 'message': '浠呮敮鎸?PNG/JPG/JPEG/WEBP/GIF'}), 400
 
         saved_name = f"{uuid.uuid4().hex}{ext}"
         save_path = _dep('news_uploads_dir') / saved_name
@@ -1867,12 +3264,16 @@ body {
                 save_path.unlink()
             except Exception:
                 pass
-            return jsonify({'success': False, 'message': '图片过大（最大15MB）'}), 400
+            return jsonify({'success': False, 'message': '图片过大（最大 15MB）'}), 400
 
-        return jsonify({'success': True, 'url': f'/media/news/{saved_name}'})
+        return jsonify({'success': True, 'url': build_news_asset_url(saved_name)})
 
     @app.route('/media/news/<path:filename>')
     def serve_news_media(filename):
-        response = send_from_directory(_dep('news_uploads_dir'), filename)
+        resolved = resolve_news_asset_file(filename)
+        if resolved is None:
+            return jsonify({'success': False, 'message': '图片不存在'}), 404
+        response = send_from_directory(str(resolved.parent), resolved.name)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
+

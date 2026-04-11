@@ -4,11 +4,20 @@
     var ROOT_ID = 'mc-nav-root';
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
+    var NAV_READY_EVENT = 'mc-nav:ready';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
-    var NAV_ASSET_VERSION = '20260402a';
+    var NAV_ASSET_VERSION = '20260411a';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
+    }
+
+    function onDomReady(callback) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', callback, { once: true });
+            return;
+        }
+        callback();
     }
 
     function getProfile(root) {
@@ -64,6 +73,23 @@
         return fetchText('/assets/partials/nav-' + profile + '.html?v=' + NAV_ASSET_VERSION).then(function (html) {
             root.innerHTML = html;
         });
+    }
+
+    function dispatchNavReady(root, profile) {
+        var detail = { profile: profile, rootId: ROOT_ID };
+        if (root && root.id) {
+            detail.rootId = root.id;
+        }
+
+        var event;
+        if (typeof window.CustomEvent === 'function') {
+            event = new CustomEvent(NAV_READY_EVENT, { detail: detail });
+        } else {
+            event = document.createEvent('CustomEvent');
+            event.initCustomEvent(NAV_READY_EVENT, false, false, detail);
+        }
+
+        document.dispatchEvent(event);
     }
 
     function bindCommonInteractions(root) {
@@ -986,7 +1012,7 @@
 
         var root = getRoot();
         if (!root) {
-            bindStandaloneProductData();
+            onDomReady(bindStandaloneProductData);
             return;
         }
         var profile = getProfile(root);
@@ -996,6 +1022,7 @@
         injectPartial(root, profile)
             .then(function () {
                 bindCommonInteractions(root);
+                dispatchNavReady(root, profile);
                 if (profile === 'gas') return bindGasDynamicData();
                 if (profile === 'bio') return bindBioDynamicData();
                 return Promise.resolve();
@@ -1004,13 +1031,13 @@
                 console.error('[nav-loader] failed:', err);
             })
             .finally(function () {
-                bindStandaloneProductData();
+                onDomReady(bindStandaloneProductData);
             });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', boot);
-    } else {
+    if (getRoot()) {
         boot();
+    } else {
+        onDomReady(boot);
     }
 })();

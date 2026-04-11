@@ -6,30 +6,93 @@
 (function () {
     'use strict';
 
+    const NAV_READY_EVENT = 'mc-nav:ready';
     // 配置：每个分类显示的新闻数量
     const NEWS_COUNT_PER_CATEGORY = 4;
+    const PANEL_WAIT_TIMEOUT_MS = 5000;
+    const PANEL_WAIT_INTERVAL_MS = 120;
 
     // 新闻分类配置
     const CATEGORIES = {
         enterprise: {
             panelId: 'panel-news-enterprise',
             title: '最新企业新闻',
-            moreLink: 'pages/news/news.html#enterprise',
+            moreLink: '/pages/news/news.html#enterprise',
             moreLinkText: '查看更多企业新闻'
         },
         industry: {
             panelId: 'panel-news-industry',
             title: '行业动态前沿',
-            moreLink: 'pages/news/news.html#industry',
+            moreLink: '/pages/news/news.html#industry',
             moreLinkText: '查看更多行业动态'
         },
         science: {
             panelId: 'panel-news-science',
             title: '传感器科普知识',
-            moreLink: 'pages/news/news.html#science',
+            moreLink: '/pages/news/news.html#science',
             moreLinkText: '查看更多科普知识'
         }
     };
+
+    let pendingLoadPromise = null;
+
+    function hasNewsPanels() {
+        return Object.keys(CATEGORIES).some(category => {
+            const config = CATEGORIES[category];
+            return Boolean(config && document.getElementById(config.panelId));
+        });
+    }
+
+    function normalizeUrl(url, fallback = '#') {
+        const value = String(url || '').trim();
+        if (!value) {
+            return fallback;
+        }
+        if (/^(?:[a-z]+:)?\/\//i.test(value) || value.startsWith('/') || value.startsWith('#')) {
+            return value;
+        }
+        return `/${value.replace(/^\.?\//, '')}`;
+    }
+
+    function waitForNewsPanels() {
+        if (hasNewsPanels()) {
+            return Promise.resolve(true);
+        }
+
+        return new Promise(resolve => {
+            const startedAt = Date.now();
+            let intervalId = null;
+            let observer = null;
+
+            function finish(found) {
+                if (intervalId) {
+                    window.clearInterval(intervalId);
+                }
+                if (observer) {
+                    observer.disconnect();
+                }
+                resolve(found);
+            }
+
+            function check() {
+                if (hasNewsPanels()) {
+                    finish(true);
+                    return;
+                }
+                if (Date.now() - startedAt >= PANEL_WAIT_TIMEOUT_MS) {
+                    finish(false);
+                }
+            }
+
+            if (window.MutationObserver && document.documentElement) {
+                observer = new MutationObserver(check);
+                observer.observe(document.documentElement, { childList: true, subtree: true });
+            }
+
+            intervalId = window.setInterval(check, PANEL_WAIT_INTERVAL_MS);
+            check();
+        });
+    }
 
     /**
      * 从后端 API 获取新闻数据
@@ -52,8 +115,8 @@
      */
     function createNewsItemHTML(news) {
         return `
-      <a href="${news.link}" style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
-        <img src="${news.image}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news" onerror="this.src='/cdn_assets/images/common/f1dcc87cdcca.png'">
+      <a href="${normalizeUrl(news.link)}" style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+        <img src="${normalizeUrl(news.image, '/cdn_assets/images/common/f1dcc87cdcca.png')}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news" onerror="this.src='/cdn_assets/images/common/f1dcc87cdcca.png'">
         <div>
           <h4 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
             ${news.title}
@@ -105,6 +168,13 @@
      * 初始化
      */
     async function init() {
+        document.addEventListener(NAV_READY_EVENT, event => {
+            if (event && event.detail && event.detail.profile && event.detail.profile !== 'home') {
+                return;
+            }
+            loadNews();
+        });
+
         // 等待 DOM 加载完成
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', loadNews);
@@ -114,10 +184,28 @@
     }
 
     async function loadNews() {
-        const newsData = await fetchNewsData();
-        if (newsData) {
-            updateNewsPanels(newsData);
-            console.log('News preview updated successfully from API');
+        if (pendingLoadPromise) {
+            return pendingLoadPromise;
+        }
+
+        pendingLoadPromise = (async () => {
+            const panelsReady = await waitForNewsPanels();
+            if (!panelsReady) {
+                console.warn('News preview panels were not found before timeout');
+                return;
+            }
+
+            const newsData = await fetchNewsData();
+            if (newsData) {
+                updateNewsPanels(newsData);
+                console.log('News preview updated successfully from API');
+            }
+        })();
+
+        try {
+            await pendingLoadPromise;
+        } finally {
+            pendingLoadPromise = null;
         }
     }
 
