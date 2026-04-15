@@ -3262,14 +3262,87 @@ def register_admin_routes(
         """获取当前版本、构建信息与最近更新记录。"""
         return jsonify(build_admin_changelog_payload(project_root=project_root))
 
+    def _split_admin_log_path_list(raw_value):
+        if not raw_value:
+            return []
+        return [item.strip() for item in re.split(r'[\r\n,]+', raw_value) if item.strip()]
+
+    def _resolve_admin_log_candidates(env_key, default_relative_paths):
+        raw_value = os.environ.get(env_key, '').strip()
+        raw_paths = _split_admin_log_path_list(raw_value) if raw_value else list(default_relative_paths)
+        resolved = []
+        seen = set()
+        for raw_path in raw_paths:
+            path_obj = Path(raw_path)
+            if not path_obj.is_absolute():
+                path_obj = Path(project_root) / raw_path
+            normalized = str(path_obj)
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            resolved.append(path_obj)
+        return resolved
+
+    def _tail_admin_log_files(paths, lines):
+        chunks = []
+        for path_obj in paths:
+            try:
+                if not path_obj.exists() or not path_obj.is_file():
+                    continue
+                with path_obj.open('r', encoding='utf-8', errors='replace') as f:
+                    all_lines = f.readlines()
+                tail_lines = all_lines[-lines:] if all_lines else []
+                content = ''.join(tail_lines).strip()
+                if not content:
+                    continue
+                try:
+                    label = os.path.relpath(str(path_obj), project_root)
+                except Exception:
+                    label = str(path_obj)
+                chunks.append(f'[{label}]\n{content}')
+            except Exception:
+                continue
+        if not chunks:
+            return None
+        return '\n\n'.join(chunks)
+
+    def _clear_admin_log_files(paths):
+        cleared = 0
+        for path_obj in paths:
+            try:
+                if not path_obj.exists() or not path_obj.is_file():
+                    continue
+                path_obj.write_text('', encoding='utf-8')
+                cleared += 1
+            except Exception:
+                continue
+        return cleared
+
     @app.route('/api/admin/docker-logs')
     @login_required
     def admin_docker_logs():
-        """获取两个后端容器的 Docker 日志；Docker 不可用时回退到本地日志文件。"""
-        container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
-        container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
+        """获取两个后端容器的日志；Docker 不可用时回退到共享日志文件。"""
+        container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website')
+        container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-gateway')
         lines = request.args.get('lines', default=200, type=int)
         lines = max(10, min(lines, 1000))
+        app_log_candidates = _resolve_admin_log_candidates(
+            'DOCKER_LOG_FALLBACK_APP_FILES',
+            (
+                'data/logs/gunicorn-error.log',
+                'data/logs/gunicorn-access.log',
+                'data/logs/app.log',
+                'data/app.log',
+                'app.log',
+            ),
+        )
+        nginx_log_candidates = _resolve_admin_log_candidates(
+            'DOCKER_LOG_FALLBACK_NGINX_FILES',
+            (
+                'data/logs/nginx/error.log',
+                'data/logs/nginx/access.log',
+            ),
+        )
 
         def get_container_logs(container_name):
             try:
@@ -3292,41 +3365,22 @@ def register_admin_routes(
             except Exception as e:
                 return f'获取日志失败: {str(e)}'
 
-        def get_local_log_lines():
-            try:
-                log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
-                if not log_file:
-                    log_file = os.path.join(project_root, 'data', 'app.log')
-                if not os.path.exists(log_file):
-                    fallback = os.path.join(project_root, 'app.log')
-                    if os.path.exists(fallback):
-                        log_file = fallback
-                    else:
-                        return None
-                with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
-                    all_lines = f.readlines()
-                tail_lines = all_lines[-lines:] if all_lines else []
-                return ''.join(tail_lines).strip() or None
-            except Exception:
-                return None
-
         logs1 = get_container_logs(container1_name)
         logs2 = get_container_logs(container2_name)
 
-        is_docker_available = logs1 is not None and logs2 is not None
-
         if logs1 is None:
-            local_logs = get_local_log_lines()
+            local_logs = _tail_admin_log_files(app_log_candidates, lines)
             if local_logs:
-                logs1 = f'[本地开发模式] Flask 应用日志:\n{local_logs}'
+                logs1 = f'[文件日志回退] 应用服务日志:\n{local_logs}'
             else:
-                logs1 = '暂无日志记录（当前为本地开发模式，日志文件尚未生成）'
+                logs1 = '暂无应用服务日志记录（当前环境无法直接执行 docker logs，且未找到可读取的应用日志文件）'
 
         if logs2 is None:
-            if is_docker_available:
-                logs2 = '暂无 Nginx 日志记录'
+            local_logs = _tail_admin_log_files(nginx_log_candidates, lines)
+            if local_logs:
+                logs2 = f'[文件日志回退] 网关服务日志:\n{local_logs}'
             else:
-                logs2 = '[本地开发模式] Nginx 日志仅在 Docker 部署时可用'
+                logs2 = '暂无网关服务日志记录（当前环境无法直接执行 docker logs，且未找到可读取的网关日志文件）'
 
         return jsonify({
             'container1': {
@@ -3342,57 +3396,38 @@ def register_admin_routes(
     @app.route('/api/admin/docker-logs/clear', methods=['POST'])
     @login_required
     def admin_docker_logs_clear():
-        """清理 Docker 容器日志或本地日志文件。"""
+        """清理后台日志页可见的共享日志文件。"""
         try:
             data = request.get_json() or {}
             container = data.get('container', 'all')
-            
-            def clear_container_logs(container_name):
-                try:
-                    subprocess.run(
-                        ['docker', 'logs', '--truncate', container_name],
-                        capture_output=True,
-                        timeout=10,
-                    )
-                    return True
-                except Exception:
-                    return False
-            
-            def clear_local_log():
-                try:
-                    log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
-                    if not log_file:
-                        log_file = os.path.join(project_root, 'data', 'app.log')
-                    if os.path.exists(log_file):
-                        open(log_file, 'w').close()
-                        return True
-                    fallback = os.path.join(project_root, 'app.log')
-                    if os.path.exists(fallback):
-                        open(fallback, 'w').close()
-                        return True
-                    return False
-                except Exception:
-                    return False
-            
-            container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
-            container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
-            
-            docker_available = True
-            try:
-                subprocess.run(['docker', 'ps'], capture_output=True, timeout=5)
-            except FileNotFoundError:
-                docker_available = False
-            except Exception:
-                docker_available = False
-            
-            if docker_available:
-                if container == 'all' or container == 'container1':
-                    clear_container_logs(container1_name)
-                if container == 'all' or container == 'container2':
-                    clear_container_logs(container2_name)
-            else:
-                clear_local_log()
-            
+
+            app_log_candidates = _resolve_admin_log_candidates(
+                'DOCKER_LOG_FALLBACK_APP_FILES',
+                (
+                    'data/logs/gunicorn-error.log',
+                    'data/logs/gunicorn-access.log',
+                    'data/logs/app.log',
+                    'data/app.log',
+                    'app.log',
+                ),
+            )
+            nginx_log_candidates = _resolve_admin_log_candidates(
+                'DOCKER_LOG_FALLBACK_NGINX_FILES',
+                (
+                    'data/logs/nginx/error.log',
+                    'data/logs/nginx/access.log',
+                ),
+            )
+
+            cleared = 0
+            if container == 'all' or container == 'container1':
+                cleared += _clear_admin_log_files(app_log_candidates)
+            if container == 'all' or container == 'container2':
+                cleared += _clear_admin_log_files(nginx_log_candidates)
+
+            if cleared <= 0:
+                return jsonify({'success': False, 'message': '未找到可清除的日志文件'}), 404
+
             return jsonify({'success': True, 'message': '日志已清除'})
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500

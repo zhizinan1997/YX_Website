@@ -900,7 +900,7 @@ determine_deploy_kind_and_strategy() {
 
 prepare_directories_and_network() {
   phase "准备目录和 Docker 网络"
-  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$DATA_DIR/logs" "$DATA_DIR/logs/nginx"
 
   if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
     info "Docker 网络已存在：$NETWORK_NAME"
@@ -1027,6 +1027,10 @@ recreate_containers() {
     -e "CDN_ENABLED=$CDN_ENABLED_VAL"
     -e "TURNSTILE_ENABLED=$TURNSTILE_ENABLED_VAL"
     -e "ALLOW_WEAK_ADMIN_PASSWORDS=$ALLOW_WEAK_ADMIN_PASSWORDS_VAL"
+    -e "DOCKER_CONTAINER_1_NAME=$WEBSITE_CONTAINER"
+    -e "DOCKER_CONTAINER_2_NAME=$GATEWAY_CONTAINER"
+    -e "DOCKER_LOG_FALLBACK_APP_FILES=/app/data/logs/gunicorn-error.log,/app/data/logs/gunicorn-access.log,/app/data/logs/app.log"
+    -e "DOCKER_LOG_FALLBACK_NGINX_FILES=/app/data/logs/nginx/error.log,/app/data/logs/nginx/access.log"
     -v "$DATA_DIR:/app/data"
     -v "$PAGES_DIR:/app/pages"
     -v "$CDN_ASSETS_DIR:/app/cdn_assets"
@@ -1064,6 +1068,7 @@ recreate_containers() {
   info "网站容器挂载：$DATA_DIR -> /app/data"
   info "网站容器挂载：$PAGES_DIR -> /app/pages"
   info "网站容器挂载：$CDN_ASSETS_DIR -> /app/cdn_assets"
+  info "网站/网关共享日志目录：$DATA_DIR/logs"
 
   set +e
   WEBSITE_CONTAINER_ID="$("${website_cmd[@]}" 2>&1)"
@@ -1091,12 +1096,14 @@ recreate_containers() {
     --network "$NETWORK_NAME"
     -p "127.0.0.1:${MAIN_PORT}:80"
     -p "127.0.0.1:${CDN_PORT}:81"
+    -v "$DATA_DIR/logs/nginx:/var/log/nginx"
     "$GATEWAY_IMAGE"
   )
 
   info "正在启动网关容器：$GATEWAY_CONTAINER"
   info "网关容器端口映射：127.0.0.1:${MAIN_PORT} -> 80"
   info "网关容器端口映射：127.0.0.1:${CDN_PORT} -> 81"
+  info "网关容器挂载：$DATA_DIR/logs/nginx -> /var/log/nginx"
 
   set +e
   GATEWAY_CONTAINER_ID="$("${gateway_cmd[@]}" 2>&1)"
