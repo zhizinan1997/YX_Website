@@ -24,6 +24,60 @@
     padding-left: 18px;
 }
 
+body.admin2-root.sidebar-collapsed .sidebar-menu {
+    padding-inline: 12px;
+}
+
+body.admin2-root.sidebar-collapsed .sidebar-section {
+    margin-bottom: 4px;
+}
+
+body.admin2-root.sidebar-collapsed .sidebar-section-label {
+    display: none;
+}
+
+body.admin2-root.sidebar-collapsed .sidebar-menu-group-items {
+    display: none;
+}
+
+body.admin2-root.sidebar-collapsed .menu-item,
+body.admin2-root.sidebar-collapsed .sidebar-menu-group-toggle {
+    width: 100%;
+    min-height: 46px;
+    margin: 4px 0;
+    padding: 13px 0;
+    justify-content: center;
+    gap: 0;
+}
+
+body.admin2-root.sidebar-collapsed .sidebar-menu-group-items .menu-item {
+    margin-left: 0;
+    padding-left: 0;
+}
+
+body.admin2-root.sidebar-collapsed .menu-item-label,
+body.admin2-root.sidebar-collapsed .menu-item > span,
+body.admin2-root.sidebar-collapsed .sidebar-menu-group-toggle > span,
+body.admin2-root.sidebar-collapsed .beta-badge {
+    display: none;
+}
+
+body.admin2-root.sidebar-collapsed .menu-item i,
+body.admin2-root.sidebar-collapsed .sidebar-menu-group-toggle > i:first-child {
+    width: 20px;
+    margin: 0;
+    text-align: center;
+}
+
+body.admin2-root.sidebar-collapsed .sidebar-footer {
+    padding: 12px 14px;
+}
+
+body.admin2-root.sidebar-collapsed .sidebar-toggle-btn {
+    padding: 10px 0;
+    gap: 0;
+}
+
 .admin2-root .sidebar-footer {
     position: relative;
     border-top-color: rgba(255, 255, 255, 0.08);
@@ -157,7 +211,7 @@
 }
 
 .admin2-root .account-menu-panel {
-    border-radius: 18px;
+    border-radius: 8px;
     border-color: var(--admin2-border);
     box-shadow: 0 18px 44px rgba(11, 32, 59, 0.16);
 }

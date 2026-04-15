@@ -26,6 +26,7 @@
         let turnstileToken = '';
         let turnstileScriptPromise = null;
         let emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
+        let loginAuthMode = 'email_code';
         let pendingLoginId = '';
         let pendingLoginEmailMasked = '';
         let loginEmailCodeCountdown = 0;
@@ -165,21 +166,42 @@
         function updateTopbarAccountDisplay() {
             const usernameEl = document.getElementById('topbarUsername');
             const menuUsernameEl = document.getElementById('accountMenuUsername');
+            const menuEmailEl = document.getElementById('accountMenuEmail');
             const menuRoleEl = document.getElementById('accountMenuRole');
             const menuPermissionsEl = document.getElementById('accountMenuPermissions');
+            const lastLoginTimeEl = document.getElementById('accountMenuLastLoginTime');
+            const lastLoginIpEl = document.getElementById('accountMenuLastLoginIp');
+            const lastLoginLocationEl = document.getElementById('accountMenuLastLoginLocation');
 
             const name = String(currentAdminAuth.username || '').trim();
+            const email = String(currentAdminAuth.email || currentAdminAuth.email_masked || '').trim();
+            const lastLoginAt = String(currentAdminAuth.last_login_at || '').trim();
+            const lastLoginIp = String(currentAdminAuth.last_login_ip || '').trim();
+            const lastLoginLocation = String(currentAdminAuth.last_login_location || '').trim();
             if (usernameEl) {
                 usernameEl.textContent = name || '管理员';
             }
             if (menuUsernameEl) {
                 menuUsernameEl.textContent = name || '管理员';
             }
+            if (menuEmailEl) {
+                menuEmailEl.textContent = email ? `绑定邮箱：${email}` : '绑定邮箱：未绑定';
+                menuEmailEl.classList.toggle('is-empty', !email);
+            }
             if (menuRoleEl) {
                 menuRoleEl.textContent = currentAdminAuth.is_super_admin ? '超级管理员' : '子账号';
             }
             if (menuPermissionsEl) {
                 renderAccountMenuPermissions(menuPermissionsEl);
+            }
+            if (lastLoginTimeEl) {
+                lastLoginTimeEl.textContent = lastLoginAt ? formatLoginTime(lastLoginAt) : '首次登录';
+            }
+            if (lastLoginIpEl) {
+                lastLoginIpEl.textContent = lastLoginIp || '-';
+            }
+            if (lastLoginLocationEl) {
+                lastLoginLocationEl.textContent = lastLoginLocation || '未知';
             }
         }
 
@@ -736,6 +758,7 @@
             const collapsed = document.body.classList.contains('sidebar-collapsed');
             textEl.textContent = collapsed ? '显示侧边栏' : '折叠侧边栏';
             btnEl.setAttribute('aria-label', textEl.textContent);
+            btnEl.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
             btnEl.title = textEl.textContent;
         }
 
@@ -776,7 +799,14 @@
                 is_super_admin: safe.is_super_admin === true,
                 permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : [],
                 email: String(safe.email || ''),
-                email_verified: safe.email_verified === true
+                email_masked: String(safe.email_masked || ''),
+                email_verified: safe.email_verified === true,
+                last_login_at: String(safe.last_login_at || ''),
+                last_login_ip: String(safe.last_login_ip || ''),
+                last_login_location: String(safe.last_login_location || ''),
+                current_login_at: String(safe.current_login_at || ''),
+                current_login_ip: String(safe.current_login_ip || ''),
+                current_login_location: String(safe.current_login_location || '')
             };
             bindingRequiredState = safe.binding_required === true;
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
@@ -829,6 +859,11 @@
         function toggleSidebarMenuGroup(groupKey) {
             const group = getSidebarMenuGroup(groupKey);
             if (!group || group.style.display === 'none') return;
+            if (document.body.classList.contains('sidebar-collapsed') && !isMobileAdminViewport()) {
+                setSidebarCollapsed(false, true);
+                setSidebarMenuGroupOpen(groupKey, true);
+                return;
+            }
             const opened = group.classList.contains('is-open');
             setSidebarMenuGroupOpen(groupKey, !opened);
         }
@@ -1223,12 +1258,15 @@
             const submitBtn = document.getElementById('loginSubmitBtn');
             const codeWrap = document.getElementById('loginEmailCodeWrap');
             const emailEnabled = emailAuthAdminConfig.email_auth_enabled === true;
+            const emailAvailable = emailEnabled && emailAuthAdminConfig.smtp_ready !== false;
             const inCodeStep = emailEnabled && !!pendingLoginId;
-            const sendDisabled = (turnstilePublicConfig.enabled && !turnstileToken) || emailAuthAdminConfig.smtp_ready === false;
+            const isQuickEmailMode = loginAuthMode === 'email_code';
+            const canUseEmailCode = emailAvailable;
+            const needsTurnstile = turnstilePublicConfig.enabled && !turnstileToken;
             if (sendBtn) {
-                sendBtn.style.display = inCodeStep ? '' : 'none';
-                sendBtn.disabled = inCodeStep ? (loginEmailCodeCountdown > 0 || emailAuthAdminConfig.smtp_ready === false) : true;
-                if (inCodeStep) {
+                sendBtn.style.display = (isQuickEmailMode || inCodeStep) ? '' : 'none';
+                sendBtn.disabled = !canUseEmailCode || needsTurnstile || loginEmailCodeCountdown > 0 || (!isQuickEmailMode && !inCodeStep);
+                if (isQuickEmailMode || inCodeStep) {
                     sendBtn.textContent = emailAuthAdminConfig.smtp_ready === false
                         ? '邮箱验证暂不可用'
                         : (loginEmailCodeCountdown > 0 ? `重新发送（${loginEmailCodeCountdown}s）` : '发送邮箱验证码');
@@ -1236,12 +1274,71 @@
             }
             if (submitBtn) {
                 submitBtn.style.display = '';
-                submitBtn.textContent = inCodeStep ? '验证并登录' : '登 录';
-                submitBtn.disabled = !!(turnstilePublicConfig.enabled && !turnstileToken);
+                if (isQuickEmailMode) {
+                    submitBtn.textContent = '验证并登录';
+                    submitBtn.disabled = !inCodeStep;
+                } else {
+                    submitBtn.textContent = inCodeStep ? '验证并登录' : (emailAvailable ? '下一步：邮箱验证' : '登 录');
+                    submitBtn.disabled = !!needsTurnstile;
+                }
             }
             if (codeWrap) {
                 codeWrap.style.display = inCodeStep ? 'block' : 'none';
             }
+        }
+
+        function getLoginModeLabel(mode = loginAuthMode) {
+            if (mode === 'account_password') return '用户名/邮箱登录';
+            if (mode === 'username_password') return '用户名 + 密码';
+            if (mode === 'email_password') return '邮箱 + 密码';
+            return '邮箱验证码快捷登录';
+        }
+
+        function setLoginAuthMode(mode, options = {}) {
+            const nextMode = ['email_code', 'account_password', 'username_password', 'email_password'].includes(mode) ? mode : 'email_code';
+            const emailAvailable = emailAuthAdminConfig.email_auth_enabled === true && emailAuthAdminConfig.smtp_ready !== false;
+            loginAuthMode = nextMode;
+            if (!options.keepPending) {
+                resetPendingLoginState({
+                    hint: nextMode === 'email_code'
+                        ? '验证码将发送到已验证安全邮箱。'
+                        : (emailAvailable ? '账号密码验证通过后，可发送邮箱验证码。' : '邮箱验证暂不可用，账号密码校验通过后将直接登录。')
+                });
+            }
+
+            const subtitle = document.getElementById('loginSubtitle');
+            const methodSwitch = document.querySelector('.login-method-switch');
+            const emailWrap = document.getElementById('loginEmailWrap');
+            const usernameWrap = document.getElementById('loginUsernameWrap');
+            const passwordWrap = document.getElementById('loginPasswordWrap');
+            const emailInput = document.getElementById('loginEmail');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const quickBtn = document.getElementById('loginModeEmailCodeBtn');
+            const accountBtn = document.getElementById('loginModeAccountBtn');
+
+            if (subtitle) {
+                subtitle.textContent = nextMode === 'account_password'
+                    ? (emailAvailable ? '请输入用户名或已验证邮箱和密码，通过邮箱验证码后进入后台。' : '邮箱验证暂不可用，请使用用户名/邮箱和密码登录。')
+                    : (nextMode === 'username_password'
+                        ? '请输入用户名和密码，通过邮箱验证码后进入后台。'
+                    : (nextMode === 'email_password'
+                        ? '请输入已验证邮箱和密码，通过邮箱验证码后进入后台。'
+                        : '仅授权管理员可访问，请使用已验证邮箱快捷登录。'));
+            }
+            if (methodSwitch) methodSwitch.style.display = emailAvailable ? '' : 'none';
+            if (emailWrap) emailWrap.style.display = (nextMode === 'username_password' || nextMode === 'account_password') ? 'none' : 'block';
+            if (usernameWrap) usernameWrap.style.display = (nextMode === 'username_password' || nextMode === 'account_password') ? 'block' : 'none';
+            if (passwordWrap) passwordWrap.style.display = nextMode === 'email_code' ? 'none' : 'block';
+
+            if (emailInput) emailInput.required = !(nextMode === 'username_password' || nextMode === 'account_password');
+            if (usernameInput) usernameInput.required = nextMode === 'username_password' || nextMode === 'account_password';
+            if (passwordInput) passwordInput.required = nextMode !== 'email_code';
+
+            if (quickBtn) quickBtn.hidden = nextMode === 'email_code' || !emailAvailable;
+            if (accountBtn) accountBtn.classList.toggle('active', nextMode === 'account_password');
+
+            updateLoginActionState();
         }
 
         function stopLoginCodeTimer() {
@@ -1283,7 +1380,39 @@
             } catch (_) {
                 emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
             }
-            updateLoginActionState();
+            const emailAvailable = emailAuthAdminConfig.email_auth_enabled === true && emailAuthAdminConfig.smtp_ready !== false;
+            if (!emailAvailable && loginAuthMode === 'email_code') {
+                setLoginAuthMode('account_password');
+                return;
+            }
+            setLoginAuthMode(loginAuthMode, { keepPending: true });
+        }
+
+        function getLoginEmailValue() {
+            return String(document.getElementById('loginEmail')?.value || '').trim();
+        }
+
+        function getLoginDisplayName() {
+            if (loginAuthMode === 'username_password' || loginAuthMode === 'account_password') {
+                return String(document.getElementById('username')?.value || '').trim();
+            }
+            return getLoginEmailValue();
+        }
+
+        function getPasswordLoginPayload() {
+            const payload = {
+                login_method: loginAuthMode,
+                password: document.getElementById('password')?.value || '',
+                turnstileToken: turnstileToken
+            };
+            if (loginAuthMode === 'account_password') {
+                payload.account = document.getElementById('username')?.value || '';
+            } else if (loginAuthMode === 'email_password') {
+                payload.email = getLoginEmailValue();
+            } else {
+                payload.username = document.getElementById('username')?.value || '';
+            }
+            return payload;
         }
 
         async function handleLoginStart() {
@@ -1291,6 +1420,11 @@
             const turnstileErr = document.getElementById('loginTurnstileError');
             if (err) err.textContent = '';
             if (turnstileErr) turnstileErr.textContent = '';
+
+            if (loginAuthMode === 'email_code') {
+                await sendLoginEmailCode();
+                return true;
+            }
 
             if (turnstilePublicConfig.enabled && !turnstileToken) {
                 if (turnstileErr) turnstileErr.textContent = '请先完成人机验证';
@@ -1309,11 +1443,7 @@
             const res = await fetch('/admin/login/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: document.getElementById('username').value,
-                    password: document.getElementById('password').value,
-                    turnstileToken: turnstileToken
-                })
+                body: JSON.stringify(getPasswordLoginPayload())
             });
             const data = await parseJsonSafe(res);
             if (!res.ok || !data.success) {
@@ -1335,8 +1465,7 @@
             }
 
             if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
-                const username = document.getElementById('username').value;
-                showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
+                showLastLoginToast(getLoginDisplayName(), data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
             }
             await checkLoginStatus();
             return true;
@@ -1344,13 +1473,56 @@
 
         async function sendLoginEmailCode() {
             const err = document.getElementById('loginError');
+            const turnstileErr = document.getElementById('loginTurnstileError');
             if (err) err.textContent = '';
+            if (turnstileErr) turnstileErr.textContent = '';
             const sendBtn = document.getElementById('loginSendCodeBtn');
             if (sendBtn) sendBtn.disabled = true;
             try {
                 if (!pendingLoginId) {
-                    if (err) err.textContent = '请先点击“登录”进入邮箱验证步骤。';
-                    updateLoginActionState();
+                    if (loginAuthMode !== 'email_code') {
+                        if (err) err.textContent = '请先完成账号密码验证，再发送邮箱验证码。';
+                        updateLoginActionState();
+                        return;
+                    }
+                    const email = getLoginEmailValue();
+                    if (!email) {
+                        if (err) err.textContent = '请输入已验证安全邮箱。';
+                        updateLoginActionState();
+                        return;
+                    }
+                    if (turnstilePublicConfig.enabled && !turnstileToken) {
+                        if (turnstileErr) turnstileErr.textContent = '请先完成人机验证';
+                        updateLoginActionState();
+                        return;
+                    }
+                    const preflight = await runIpPreflight();
+                    if (!preflight.allowed) {
+                        updateLoginActionState();
+                        return;
+                    }
+                    await new Promise(r => setTimeout(r, 800));
+                    closeIpPreflightModal();
+
+                    const startRes = await fetch('/admin/login/email-code/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, turnstileToken: turnstileToken })
+                    });
+                    const startData = await parseJsonSafe(startRes);
+                    if (!startRes.ok || !startData.success) {
+                        const reason = String(startData.message || `发送失败（HTTP ${startRes.status || '-'}）`);
+                        if (err) err.textContent = reason;
+                        showLoginFailModal(reason);
+                        resetPendingLoginState();
+                        resetLoginTurnstile();
+                        return;
+                    }
+                    pendingLoginId = String(startData.pending_login_id || '');
+                    pendingLoginEmailMasked = String(startData.email_masked || '');
+                    const hintEl = document.getElementById('loginEmailHint');
+                    if (hintEl) hintEl.textContent = `验证码已发送到 ${pendingLoginEmailMasked || '已验证邮箱'}。`;
+                    startLoginCodeTimer(Number(startData.resend_after || 60));
                     return;
                 }
                 const res = await fetch('/admin/login/send-email-code', {
@@ -1400,8 +1572,7 @@
                 const data = await parseJsonSafe(res);
                 if (res.ok && data.success) {
                     if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
-                        const username = document.getElementById('username').value;
-                        showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
+                        showLastLoginToast(getLoginDisplayName(), data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
                     }
                     resetPendingLoginState();
                     await checkLoginStatus();
@@ -1426,6 +1597,21 @@
                 await sendLoginEmailCode();
             });
         }
+
+        document.querySelectorAll('[data-login-mode]').forEach((btn) => {
+            if (btn.dataset.bound === '1') return;
+            btn.dataset.bound = '1';
+            btn.addEventListener('click', () => {
+                const nextMode = String(btn.dataset.loginMode || '').trim();
+                const err = document.getElementById('loginError');
+                const turnstileErr = document.getElementById('loginTurnstileError');
+                if (err) err.textContent = '';
+                if (turnstileErr) turnstileErr.textContent = '';
+                setLoginAuthMode(nextMode);
+            });
+        });
+
+        setLoginAuthMode('email_code', { keepPending: true });
 
         const loginForm = document.getElementById('loginForm');
         if (loginForm && loginForm.dataset.loginBound !== '1') {

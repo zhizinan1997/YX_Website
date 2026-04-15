@@ -238,7 +238,7 @@ def _format_file_size(size_bytes) -> str:
         return ''
     if value <= 0:
         return ''
-    units = ('B', 'KB', 'MB', 'GB')
+    units = ('字节', '千字节', '兆字节', '吉字节')
     size = float(value)
     unit = units[0]
     for candidate in units:
@@ -246,8 +246,8 @@ def _format_file_size(size_bytes) -> str:
         if size < 1024 or candidate == units[-1]:
             break
         size /= 1024
-    if unit == 'B':
-        return f'{int(size)} {unit}'
+    if unit == '字节':
+        return f'{int(size)}{unit}'
     return f'{size:.1f} {unit}'
 
 
@@ -257,16 +257,16 @@ def _build_notification_subject(message: dict) -> str:
         job_title = _normalize_whitespace(message.get('job_title') or message.get('job_id') or '')
         applicant_name = _normalize_whitespace(message.get('name', ''))
         suffix = job_title or applicant_name or '新应聘'
-        return f'官网新应聘通知 | {suffix}'
+        return f'官网新应聘通知｜{suffix}'
     title = _normalize_whitespace(message.get('title', ''))
     suffix = title or _normalize_whitespace(message.get('name', '')) or '新留言'
-    return f'官网新留言通知 | {suffix}'
+    return f'官网新留言通知｜{suffix}'
 
 
 def _build_notification_rows(message: dict) -> list[tuple[str, str]]:
     message_type = str((message or {}).get('message_type') or '').strip().lower()
     common_rows = [
-        ('消息 ID', _normalize_whitespace(message.get('id', '')) or '未生成'),
+        ('消息编号', _normalize_whitespace(message.get('id', '')) or '未生成'),
         ('提交时间', _normalize_whitespace(message.get('timestamp', '')) or '未知'),
         ('姓名', _normalize_whitespace(message.get('name', '')) or '匿名'),
         ('电话', _normalize_whitespace(message.get('phone', '')) or '未填写'),
@@ -292,35 +292,143 @@ def _build_notification_rows(message: dict) -> list[tuple[str, str]]:
             ('自我陈述', _summarize_text(message.get('self_statement', ''), 140)),
         ]
     return common_rows + [
-        ('消息类型', '在线留言 / 页面反馈'),
+        ('消息类型', '在线留言或页面反馈'),
         ('标题', _normalize_whitespace(message.get('title', '')) or '无标题'),
-        ('QQ', _normalize_whitespace(message.get('qq', '')) or '未填写'),
+        ('联系账号', _normalize_whitespace(message.get('qq', '')) or '未填写'),
         ('留言摘要', _summarize_text(message.get('content', ''), 180)),
     ]
 
 
+def _render_summary_item(label: str, value: str) -> str:
+    return (
+        '<td style="width:50%;padding:6px;vertical-align:top;">'
+        '<div style="padding:16px 18px;border-radius:18px;background:rgba(255,255,255,0.76);'
+        'border:1px solid rgba(18,61,113,0.08);box-shadow:inset 0 1px 0 rgba(255,255,255,0.9);">'
+        f'<div style="font-size:12px;letter-spacing:0.8px;color:#5d708b;">{html_escape(label)}</div>'
+        f'<div style="margin-top:8px;font-size:18px;line-height:1.45;font-weight:800;color:#0d2d56;">{html_escape(value)}</div>'
+        '</div></td>'
+    )
+
+
+def _render_detail_row(label: str, value: str) -> str:
+    return (
+        '<tr>'
+        '<td style="padding:12px 14px;border-bottom:1px solid rgba(18,61,113,0.08);'
+        'font-size:13px;line-height:1.7;color:#5d708b;width:126px;vertical-align:top;">'
+        f'{html_escape(label)}</td>'
+        '<td style="padding:12px 14px;border-bottom:1px solid rgba(18,61,113,0.08);'
+        'font-size:14px;line-height:1.8;color:#10233d;vertical-align:top;">'
+        f'{html_escape(value)}</td>'
+        '</tr>'
+    )
+
+
+def _render_notification_brand_email(*, eyebrow: str, title: str, intro: str, highlight_html: str, note_lines):
+    notes = ''.join(
+        f'<li style="margin:0 0 8px;">{html_escape(str(line or ""))}</li>'
+        for line in (note_lines or [])
+        if str(line or '').strip()
+    )
+    return f"""
+    <div style="margin:0;padding:0;background:linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);">
+      <div style="width:100%;margin:0;font-family:'Microsoft YaHei',Arial,sans-serif;color:#10233d;background:
+        radial-gradient(circle at top right, rgba(39,199,217,0.22) 0, rgba(39,199,217,0) 28%),
+        radial-gradient(circle at left center, rgba(18,61,113,0.08) 0, rgba(18,61,113,0) 32%),
+        linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);
+      ">
+        <div style="position:relative;overflow:hidden;background:
+          radial-gradient(circle at 78% 26%, rgba(39,199,217,0.34) 0, rgba(39,199,217,0) 18%),
+          radial-gradient(circle at 12% 18%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 20%),
+          linear-gradient(135deg,#08192d 0%,#123d71 55%,#1d6f99 76%,#27c7d9 100%);
+          border-radius:0;padding:44px 44px 102px;color:#ffffff;box-shadow:inset 0 -1px 0 rgba(255,255,255,0.08);">
+          <div style="position:absolute;right:-78px;top:-66px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.08);"></div>
+          <div style="position:absolute;right:74px;bottom:28px;width:132px;height:132px;border-radius:50%;background:rgba(39,199,217,0.16);filter:blur(2px);"></div>
+          <div style="position:relative;z-index:1;display:inline-block;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.24);font-size:12px;letter-spacing:1.4px;box-shadow:0 10px 24px rgba(8,25,45,0.18);">
+            元芯传感后台
+          </div>
+          <div style="position:relative;z-index:1;margin-top:24px;font-size:14px;line-height:1.8;color:rgba(255,255,255,0.78);">{html_escape(eyebrow)}</div>
+          <h1 style="position:relative;z-index:1;margin:12px 0 0;font-size:34px;line-height:1.18;font-weight:800;color:#ffffff;text-shadow:0 10px 28px rgba(8,25,45,0.25);">{html_escape(title)}</h1>
+          <div style="position:relative;z-index:1;margin-top:16px;width:88px;height:4px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,0.92) 0%,rgba(39,199,217,0.92) 100%);"></div>
+        </div>
+        <div style="position:relative;z-index:2;margin-top:-54px;background:
+          linear-gradient(180deg,rgba(255,255,255,0.96) 0%,#ffffff 100%);
+          border-top-left-radius:34px;border-top-right-radius:34px;padding:40px 44px 34px;
+          box-shadow:0 28px 90px rgba(8,25,45,0.14), inset 0 1px 0 rgba(255,255,255,0.85);">
+          <p style="margin:0 0 20px;font-size:17px;line-height:1.9;color:#10233d;">{html_escape(intro)}</p>
+          <div style="margin:24px 0;padding:30px 28px;border-radius:28px;background:
+            radial-gradient(circle at top center, rgba(255,255,255,0.72) 0, rgba(255,255,255,0) 34%),
+            linear-gradient(180deg,rgba(39,199,217,0.18) 0%,rgba(18,61,113,0.06) 100%);
+            border:1px solid rgba(39,199,217,0.30);box-shadow:inset 0 1px 0 rgba(255,255,255,0.8), 0 16px 36px rgba(18,61,113,0.08);">
+            {highlight_html}
+          </div>
+          <div style="padding:22px 24px;border-radius:24px;background:linear-gradient(180deg,#f9fcff 0%,#f1f7fd 100%);border:1px solid rgba(18,61,113,0.08);box-shadow:inset 0 1px 0 rgba(255,255,255,0.9);">
+            <div style="margin:0 0 12px;font-size:14px;font-weight:700;letter-spacing:0.4px;color:#123d71;">处理提示</div>
+            <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:#5d708b;">
+              {notes}
+            </ul>
+          </div>
+        </div>
+        <div style="padding:22px 24px 32px;text-align:center;font-size:12px;line-height:1.9;color:#5d708b;background:#ffffff;">
+          <div style="font-weight:700;color:#123d71;">元芯传感官网</div>
+          <div>本邮件由官网消息通知系统自动发送，请勿直接回复。</div>
+        </div>
+      </div>
+    </div>
+    """
+
+
 def _build_notification_email(message: dict) -> tuple[str, str, str]:
     message_type = str((message or {}).get('message_type') or '').strip().lower()
-    heading = '收到新的应聘投递' if message_type == 'job_application' else '收到新的网站留言'
-    rows = _build_notification_rows(message)
-    html_rows = ''.join(
-        (
-            '<tr>'
-            f'<td style="padding:8px 12px;border:1px solid #dbe3ee;background:#f6f9fc;width:110px;">{html_escape(label)}</td>'
-            f'<td style="padding:8px 12px;border:1px solid #dbe3ee;">{html_escape(value)}</td>'
-            '</tr>'
-        )
-        for label, value in rows
+    is_job_application = message_type == 'job_application'
+    heading = '收到新的应聘投递' if is_job_application else '收到新的网站留言'
+    eyebrow = '官网表单消息提醒'
+    intro = (
+        '官网招聘表单刚收到一份新的应聘资料，系统已保存到后台留言中心。以下是便于管理员快速判断的摘要信息。'
+        if is_job_application
+        else '官网留言或页面反馈表单刚收到一条新的用户提交，系统已保存到后台留言中心。以下是便于管理员快速判断的摘要信息。'
     )
-    html_body = (
-        '<div style="font-family:Arial,Microsoft YaHei,sans-serif;line-height:1.7;color:#1f2937;">'
-        f'<h2 style="margin:0 0 12px;color:#123d71;">{html_escape(heading)}</h2>'
-        '<p style="margin:0 0 16px;">官网公开表单刚收到一条新的提交，以下为摘要信息：</p>'
-        '<table style="border-collapse:collapse;width:100%;max-width:760px;">'
-        f'{html_rows}'
-        '</table>'
-        '<p style="margin:16px 0 0;color:#5b6472;">完整内容请登录后台留言系统查看。</p>'
-        '</div>'
+    rows = _build_notification_rows(message)
+    row_map = {label: value for label, value in rows}
+    summary_cells = [
+        _render_summary_item('提交类型', row_map.get('消息类型', '新消息')),
+        _render_summary_item('提交人', row_map.get('姓名', '匿名')),
+        _render_summary_item('联系电话', row_map.get('电话', '未填写')),
+        _render_summary_item('提交时间', row_map.get('提交时间', '未知')),
+    ]
+    summary_rows = ''.join(
+        f'<tr>{summary_cells[index]}{summary_cells[index + 1]}</tr>'
+        for index in range(0, len(summary_cells), 2)
+    )
+    primary_label = '应聘摘要' if is_job_application else '留言摘要'
+    primary_text = (
+        row_map.get('自我陈述', '未填写')
+        if is_job_application
+        else row_map.get('留言摘要', '未填写')
+    )
+    detail_rows = ''.join(_render_detail_row(label, value) for label, value in rows)
+    highlight_html = f'''
+      <div style="font-size:12px;letter-spacing:1.2px;color:#5d708b;text-align:center;">消息快速概览</div>
+      <table style="margin-top:12px;width:100%;border-collapse:separate;border-spacing:0;">{summary_rows}</table>
+      <div style="margin:18px 0 0;padding:20px 22px;border-radius:22px;background:#ffffff;border:1px solid rgba(39,199,217,0.24);box-shadow:0 12px 28px rgba(18,61,113,0.07);">
+        <div style="font-size:12px;letter-spacing:1px;color:#5d708b;">{html_escape(primary_label)}</div>
+        <div style="margin-top:10px;font-size:16px;line-height:1.9;color:#10233d;">{html_escape(primary_text)}</div>
+      </div>
+      <div style="margin:18px 0 0;border-radius:22px;overflow:hidden;background:rgba(255,255,255,0.82);border:1px solid rgba(18,61,113,0.10);">
+        <table style="width:100%;border-collapse:collapse;">
+          {detail_rows}
+        </table>
+      </div>
+    '''
+    html_body = _render_notification_brand_email(
+        eyebrow=eyebrow,
+        title=heading,
+        intro=intro,
+        highlight_html=highlight_html,
+        note_lines=[
+            '完整留言、反馈或简历文件请登录后台留言系统查看。',
+            '如果需要回访，请优先核对用户留下的电话和邮箱信息。',
+            '本邮件只展示摘要信息，请不要在邮件中转发敏感简历内容。',
+        ],
     )
     text_lines = ['官网公开表单收到新的提交，摘要如下：']
     text_lines.extend(f'{label}: {value}' for label, value in rows)

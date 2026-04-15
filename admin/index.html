@@ -18,42 +18,78 @@
     <div id="loginPage" class="login-page">
         <canvas id="loginBgCanvas" class="login-bg-canvas" aria-hidden="true"></canvas>
         <div class="login-bg-noise" aria-hidden="true"></div>
-        <div class="login-box">
-            <div class="login-logo">
-                <i class="fas fa-shield-alt"></i> 元芯传感管理后台
-            </div>
-            <p class="login-subtitle">仅授权管理员可访问，请使用账号密码登录。</p>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>用户名</label>
-                    <input type="text" id="username" class="form-control" placeholder="请输入用户名" required>
+        <div class="login-shell">
+            <section class="login-hero" aria-label="元芯传感管理后台">
+                <a class="login-home-pill" href="/">
+                    <i class="fas fa-chevron-left"></i>
+                    返回网站首页
+                </a>
+                <div class="login-hero-copy">
+                    <div class="login-kicker">MetaChip Admin</div>
+                    <h1>元芯传感管理后台</h1>
+                    <p>使用已验证邮箱继续。安全核验会保护每一次关键访问。</p>
                 </div>
-                <div class="form-group">
-                    <label>密码</label>
-                    <input type="password" id="password" class="form-control" placeholder="请输入密码" required>
+                <div class="login-product-stage" aria-hidden="true">
+                    <img src="/cdn_assets/images/products/8af0484df7b2.png" alt="" class="login-product-image" loading="eager">
+                    <div class="login-product-note">
+                        <span>Security</span>
+                        <strong>12 小时防护策略</strong>
+                    </div>
                 </div>
-                <div id="loginTurnstileWrap" class="form-group" style="display:none;">
-                    <label>人机验证</label>
-                    <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
-                    <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
+            </section>
+            <div class="login-box">
+                <div class="login-logo">
+                    <div class="login-brand-word" aria-label="元芯传感">
+                        <span class="login-brand-symbol">M</span>
+                        <span>元芯传感</span>
+                    </div>
+                    <span>账号登录</span>
                 </div>
-                <div class="form-group" id="loginEmailCodeWrap" style="display:none;">
-                    <label>邮箱验证码</label>
-                    <input type="text" id="loginEmailCode" class="form-control" placeholder="请输入 6 位邮箱验证码" inputmode="numeric" maxlength="6">
-                    <div class="form-hint" id="loginEmailHint">验证码将发送到已绑定安全邮箱。</div>
+                <p class="login-subtitle" id="loginSubtitle">仅授权管理员可访问，请使用已验证邮箱快捷登录。</p>
+                <form id="loginForm">
+                    <div class="form-group" id="loginEmailWrap">
+                        <label>邮箱</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="请输入已验证安全邮箱" autocomplete="email" required>
+                    </div>
+                    <div class="form-group" id="loginUsernameWrap" style="display:none;">
+                        <label>用户名/邮箱</label>
+                        <input type="text" id="username" class="form-control" placeholder="请输入用户名或已验证邮箱" autocomplete="username">
+                    </div>
+                    <div class="form-group" id="loginPasswordWrap" style="display:none;">
+                        <label>密码</label>
+                        <input type="password" id="password" class="form-control" placeholder="请输入密码" autocomplete="current-password">
+                    </div>
+                    <div id="loginTurnstileWrap" class="form-group" style="display:none;">
+                        <label>人机验证</label>
+                        <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
+                        <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
+                    </div>
+                    <div class="form-group" id="loginEmailCodeWrap" style="display:none;">
+                        <label>邮箱验证码</label>
+                        <input type="text" id="loginEmailCode" class="form-control" placeholder="请输入 6 位邮箱验证码" inputmode="numeric" maxlength="6">
+                        <div class="form-hint" id="loginEmailHint">验证码将发送到已绑定安全邮箱。</div>
+                    </div>
+                    <div class="login-action-row">
+                        <button type="button" id="loginSendCodeBtn" class="btn-primary">发送邮箱验证码</button>
+                        <button type="submit" id="loginSubmitBtn" class="btn-primary">验证并登录</button>
+                    </div>
+                    <div id="loginError" class="error-message"></div>
+                </form>
+                <div class="login-method-switch" aria-label="其他登录方式">
+                    <div class="login-method-title">其他登录方式</div>
+                    <div class="login-method-actions">
+                        <button type="button" class="login-method-btn" id="loginModeAccountBtn" data-login-mode="account_password">
+                            用户名/邮箱登录
+                        </button>
+                        <button type="button" class="login-method-btn login-method-back" id="loginModeEmailCodeBtn" data-login-mode="email_code" hidden>
+                            返回邮箱快捷登录
+                        </button>
+                    </div>
                 </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button type="button" id="loginSendCodeBtn" class="btn-primary" style="flex:1 1 220px;">发送邮箱验证码</button>
-                    <button type="submit" id="loginSubmitBtn" class="btn-primary" style="flex:1 1 180px;">验证并登录</button>
+                <div class="login-security-tip">
+                    <i class="fas fa-shield-virus"></i>
+                    <span>同一 IP 在 12 小时内失败 3 次将被封禁 12 小时</span>
                 </div>
-                <div id="loginError" class="error-message"></div>
-            </form>
-            <div class="login-security-tip">
-                <i class="fas fa-shield-virus"></i>
-                <span>同一 IP 在 12 小时内失败 3 次将被封禁 12 小时</span>
-            </div>
-            <div class="login-foot-link">
-                <a href="/">← 返回网站首页</a>
             </div>
         </div>
     </div>
@@ -187,7 +223,8 @@
                 </div>
             </div>
             <div class="sidebar-footer">
-                <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()">
+                <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()"
+                    aria-label="折叠侧边栏" aria-pressed="false">
                     <i class="fas fa-bars"></i>
                     <span id="sidebarToggleText">折叠侧边栏</span>
                 </button>
@@ -222,11 +259,27 @@
                         <div class="account-menu-panel" id="accountMenuPanel" hidden>
                             <div class="account-menu-info">
                                 <div class="account-username" id="accountMenuUsername"></div>
+                                <div class="account-email" id="accountMenuEmail"></div>
                                 <div class="account-role" id="accountMenuRole"></div>
                             </div>
                             <div class="account-menu-permissions">
                                 <div class="account-menu-permissions-title">功能权限</div>
                                 <div class="account-menu-permissions-list" id="accountMenuPermissions"></div>
+                            </div>
+                            <div class="account-menu-login-meta">
+                                <div class="account-menu-login-title">上次登录</div>
+                                <div class="account-menu-login-row">
+                                    <span>时间</span>
+                                    <strong id="accountMenuLastLoginTime">首次登录</strong>
+                                </div>
+                                <div class="account-menu-login-row">
+                                    <span>IP</span>
+                                    <strong id="accountMenuLastLoginIp">-</strong>
+                                </div>
+                                <div class="account-menu-login-row">
+                                    <span>物理地址</span>
+                                    <strong id="accountMenuLastLoginLocation">未知</strong>
+                                </div>
                             </div>
                             <button type="button" class="account-menu-item" onclick="logoutFromAccountMenu(event)">
                                 <i class="fas fa-sign-out-alt"></i>
