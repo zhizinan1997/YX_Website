@@ -5,7 +5,7 @@
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
     var NAV_READY_EVENT = 'mc-nav:ready';
-    var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
+    var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260415a';
     var NAV_ASSET_VERSION = '20260411a';
 
     function getRoot() {

@@ -1,7 +1,7 @@
 (function () {
   var ROOT_ID = 'mc-footer-root';
   var CSS_ID = 'mc-footer-component-css';
-  var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js';
+  var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260415a';
 
   function ensureStylesheet() {
     if (document.getElementById(CSS_ID)) return;
