@@ -45,11 +45,19 @@ import os
 import re
 import threading
 import time
+from html import escape as html_escape
 from pathlib import Path
 from urllib.parse import quote, unquote
 
 from flask import jsonify, request, send_file
 from werkzeug.utils import secure_filename
+
+from app.routes.admin import (
+    _get_email_auth_settings,
+    _load_admin_users,
+    _normalize_email,
+    _send_smtp_mail,
+)
 
 # 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
@@ -157,6 +165,233 @@ def build_resume_download_url(message: dict) -> str:
     if not extract_resume_storage_name(message):
         return ''
     return f'/api/messages/{quote(message_id)}/resume'
+
+
+def _normalize_whitespace(value: str) -> str:
+    return re.sub(r'\s+', ' ', str(value or '')).strip()
+
+
+def _sanitize_download_filename_part(value: str, *, limit: int = 40) -> str:
+    text = _normalize_whitespace(value)
+    if not text:
+        return ''
+    text = re.sub(r'[\x00-\x1f\\/:*?"<>|]+', '_', text)
+    text = text.strip(' .-_')
+    if not text:
+        return ''
+    return text[:limit].rstrip(' .-_')
+
+
+def _infer_resume_extension(message: dict, resume_name: str = '') -> str:
+    allowed_extensions = {str(item).lower() for item in (_dep('allowed_resume_extensions') or set())}
+    candidates = [
+        resume_name,
+        message.get('resume_filename'),
+        message.get('resume_stored_filename'),
+        message.get('resume_url'),
+    ]
+    for candidate in candidates:
+        text = str(candidate or '').strip()
+        if not text:
+            continue
+        ext = Path(text).suffix.lower()
+        if ext in allowed_extensions:
+            return ext
+        normalized = text.lower().lstrip('.')
+        if f'.{normalized}' in allowed_extensions:
+            return f'.{normalized}'
+        match = re.search(r'(pdf|docx|doc)$', normalized)
+        if match:
+            inferred = f".{match.group(1)}"
+            if inferred in allowed_extensions:
+                return inferred
+    return ''
+
+
+def build_resume_download_name(message: dict, resume_name: str = '') -> str:
+    ext = _infer_resume_extension(message, resume_name)
+    name = _sanitize_download_filename_part(message.get('name'))
+    contact = _sanitize_download_filename_part(message.get('phone') or message.get('email'))
+    job_title = _sanitize_download_filename_part(message.get('job_title') or message.get('job_id'))
+    parts = [part for part in (name, contact, job_title) if part]
+    if parts:
+        base_name = '-'.join(parts)
+    else:
+        fallback = _sanitize_download_filename_part(message.get('id'), limit=24) or 'resume'
+        base_name = f'candidate-{fallback}'
+    return f'{base_name}{ext}'
+
+
+def _summarize_text(value: str, limit: int = 120) -> str:
+    normalized = _normalize_whitespace(value)
+    if not normalized:
+        return '未填写'
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: max(1, limit - 1)].rstrip() + '…'
+
+
+def _format_file_size(size_bytes) -> str:
+    try:
+        value = int(size_bytes or 0)
+    except Exception:
+        return ''
+    if value <= 0:
+        return ''
+    units = ('B', 'KB', 'MB', 'GB')
+    size = float(value)
+    unit = units[0]
+    for candidate in units:
+        unit = candidate
+        if size < 1024 or candidate == units[-1]:
+            break
+        size /= 1024
+    if unit == 'B':
+        return f'{int(size)} {unit}'
+    return f'{size:.1f} {unit}'
+
+
+def _build_notification_subject(message: dict) -> str:
+    message_type = str((message or {}).get('message_type') or '').strip().lower()
+    if message_type == 'job_application':
+        job_title = _normalize_whitespace(message.get('job_title') or message.get('job_id') or '')
+        applicant_name = _normalize_whitespace(message.get('name', ''))
+        suffix = job_title or applicant_name or '新应聘'
+        return f'官网新应聘通知 | {suffix}'
+    title = _normalize_whitespace(message.get('title', ''))
+    suffix = title or _normalize_whitespace(message.get('name', '')) or '新留言'
+    return f'官网新留言通知 | {suffix}'
+
+
+def _build_notification_rows(message: dict) -> list[tuple[str, str]]:
+    message_type = str((message or {}).get('message_type') or '').strip().lower()
+    common_rows = [
+        ('消息 ID', _normalize_whitespace(message.get('id', '')) or '未生成'),
+        ('提交时间', _normalize_whitespace(message.get('timestamp', '')) or '未知'),
+        ('姓名', _normalize_whitespace(message.get('name', '')) or '匿名'),
+        ('电话', _normalize_whitespace(message.get('phone', '')) or '未填写'),
+        ('邮箱', _normalize_whitespace(message.get('email', '')) or '未填写'),
+    ]
+    if message_type == 'job_application':
+        resume_name = _normalize_whitespace(message.get('resume_filename', '')) or '未上传'
+        resume_size = _format_file_size(message.get('resume_size_bytes'))
+        if resume_size:
+            resume_name = f'{resume_name}（{resume_size}）'
+        return common_rows + [
+            ('消息类型', '应聘投递'),
+            ('岗位', _normalize_whitespace(message.get('job_title') or message.get('job_id') or '') or '未填写'),
+            ('年龄', _normalize_whitespace(message.get('age', '')) or '未填写'),
+            ('性别', _normalize_whitespace(message.get('gender', '')) or '未填写'),
+            ('学历', _normalize_whitespace(message.get('education', '')) or '未填写'),
+            ('毕业院校', _normalize_whitespace(message.get('school', '')) or '未填写'),
+            ('住址', _normalize_whitespace(message.get('address', '')) or '未填写'),
+            ('民族', _normalize_whitespace(message.get('ethnicity', '')) or '未填写'),
+            ('简历文件', resume_name),
+            ('工作经历摘要', _summarize_text(message.get('work_experience', ''), 140)),
+            ('项目经历摘要', _summarize_text(message.get('project_experience', ''), 140)),
+            ('自我陈述', _summarize_text(message.get('self_statement', ''), 140)),
+        ]
+    return common_rows + [
+        ('消息类型', '在线留言 / 页面反馈'),
+        ('标题', _normalize_whitespace(message.get('title', '')) or '无标题'),
+        ('QQ', _normalize_whitespace(message.get('qq', '')) or '未填写'),
+        ('留言摘要', _summarize_text(message.get('content', ''), 180)),
+    ]
+
+
+def _build_notification_email(message: dict) -> tuple[str, str, str]:
+    message_type = str((message or {}).get('message_type') or '').strip().lower()
+    heading = '收到新的应聘投递' if message_type == 'job_application' else '收到新的网站留言'
+    rows = _build_notification_rows(message)
+    html_rows = ''.join(
+        (
+            '<tr>'
+            f'<td style="padding:8px 12px;border:1px solid #dbe3ee;background:#f6f9fc;width:110px;">{html_escape(label)}</td>'
+            f'<td style="padding:8px 12px;border:1px solid #dbe3ee;">{html_escape(value)}</td>'
+            '</tr>'
+        )
+        for label, value in rows
+    )
+    html_body = (
+        '<div style="font-family:Arial,Microsoft YaHei,sans-serif;line-height:1.7;color:#1f2937;">'
+        f'<h2 style="margin:0 0 12px;color:#123d71;">{html_escape(heading)}</h2>'
+        '<p style="margin:0 0 16px;">官网公开表单刚收到一条新的提交，以下为摘要信息：</p>'
+        '<table style="border-collapse:collapse;width:100%;max-width:760px;">'
+        f'{html_rows}'
+        '</table>'
+        '<p style="margin:16px 0 0;color:#5b6472;">完整内容请登录后台留言系统查看。</p>'
+        '</div>'
+    )
+    text_lines = ['官网公开表单收到新的提交，摘要如下：']
+    text_lines.extend(f'{label}: {value}' for label, value in rows)
+    text_lines.append('完整内容请登录后台留言系统查看。')
+    return _build_notification_subject(message), html_body, '\n'.join(text_lines)
+
+
+def _collect_admin_notification_recipients(config: dict) -> list[str]:
+    recipients: list[str] = []
+    seen: set[str] = set()
+
+    def _append(email_value: str):
+        normalized = _normalize_email(email_value)
+        if not normalized or normalized in seen:
+            return
+        seen.add(normalized)
+        recipients.append(normalized)
+
+    notice_email = _normalize_email((config or {}).get('smtp_notice_email', ''))
+    if notice_email:
+        _append(notice_email)
+
+    admin_users_file = _dep('messages_dir').parent / 'admin_users.json'
+    users_data = _load_admin_users(admin_users_file)
+    for user in users_data.get('users', []):
+        if not isinstance(user, dict):
+            continue
+        if user.get('enabled', True) is False:
+            continue
+        if not bool(user.get('email_verified', False)):
+            continue
+        _append(user.get('email', ''))
+    return recipients
+
+
+def _notify_admins_about_message(message: dict, logger):
+    try:
+        config = _dep('get_config')() or {}
+        smtp_settings = _get_email_auth_settings(config)
+        recipients = _collect_admin_notification_recipients(config)
+        if not recipients:
+            logger.info('Skip admin message notification: no recipients configured')
+            return
+        if not smtp_settings.get('configured'):
+            logger.info('Skip admin message notification: SMTP not configured')
+            return
+        if smtp_settings.get('expired'):
+            logger.info('Skip admin message notification: SMTP password expired')
+            return
+        subject, html_body, text_body = _build_notification_email(message)
+        for recipient in recipients:
+            _send_smtp_mail(
+                smtp_settings,
+                to_email=recipient,
+                subject=subject,
+                html_body=html_body,
+                text_body=text_body,
+            )
+    except Exception as exc:
+        logger.warning('Failed to send admin message notification: %s', exc)
+
+
+def _start_admin_notification(message: dict, logger):
+    payload = dict(message or {})
+    thread = threading.Thread(
+        target=_notify_admins_about_message,
+        args=(payload, logger),
+        name='contact-message-admin-email',
+        daemon=True,
+    )
+    thread.start()
 
 
 def get_messages_meta():
@@ -332,6 +567,7 @@ def register_contact_message_routes(
 
         filepath = _dep('messages_dir') / f"{message['id']}.json"
         filepath.write_text(json.dumps(message, ensure_ascii=False, indent=2), encoding='utf-8')
+        _start_admin_notification(message, app.logger)
         return jsonify({
             'success': True,
             'message': '留言提交成功！我们会尽快回复您。',
@@ -443,7 +679,7 @@ def register_contact_message_routes(
         if not resume_path.exists() or not resume_path.is_file():
             return jsonify({'success': False, 'message': '简历文件不存在'}), 404
 
-        download_name = secure_filename(str(msg.get('resume_filename') or '')) or resume_name
+        download_name = build_resume_download_name(msg, resume_name) or resume_name
         response = send_file(
             resume_path,
             as_attachment=True,
@@ -544,6 +780,7 @@ def register_contact_message_routes(
             'self_statement': cleaned['self_statement'],
             'resume_filename': safe_name,
             'resume_stored_filename': saved_name,
+            'resume_size_bytes': size,
             'resume_url': f'/api/messages/{message_id}/resume',
             'is_read': False,
             'timestamp': now.isoformat(),
@@ -552,6 +789,7 @@ def register_contact_message_routes(
 
         filepath = _dep('messages_dir') / f'{message_id}.json'
         filepath.write_text(json.dumps(message, ensure_ascii=False, indent=2), encoding='utf-8')
+        _start_admin_notification(message, app.logger)
         return jsonify({
             'success': True,
             'message': '应聘信息提交成功，我们会尽快联系您。',

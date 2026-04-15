@@ -19,6 +19,8 @@
     // DOM Elements
     let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton, suggestionTrack, resizeHandle;
     let hideWindowTimer = null;
+    let lastTouchToggleAt = 0;
+    let ignoreOutsideClickUntil = 0;
     let isResizing = false;
     let resizeStartX = 0;
     let resizeStartWidth = 0;
@@ -205,7 +207,25 @@
 
     function bindEvents() {
         // Toggle chat window
-        chatbotTrigger.addEventListener('click', toggleChatWindow);
+        chatbotTrigger.addEventListener('touchend', (e) => {
+            if (!e.cancelable) return;
+            e.preventDefault();
+            e.stopPropagation();
+            lastTouchToggleAt = Date.now();
+            ignoreOutsideClickUntil = Date.now() + 500;
+            toggleChatWindow();
+        }, { passive: false });
+
+        chatbotTrigger.addEventListener('click', (e) => {
+            // iOS/Android may emit synthetic click after touchend.
+            if (Date.now() - lastTouchToggleAt < 700) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            ignoreOutsideClickUntil = Date.now() + 300;
+            toggleChatWindow();
+        });
         document.getElementById('chatbotMinimize').addEventListener('click', minimizeChatWindow);
         document.getElementById('chatbotClose').addEventListener('click', closeChatWindow);
         chatbotWindow.addEventListener('wheel', handleChatWindowWheel, { passive: false });
@@ -257,6 +277,7 @@
         // Close on outside click
         document.addEventListener('click', (e) => {
             if (!chatbotWindow.classList.contains('open')) return;
+            if (Date.now() < ignoreOutsideClickUntil) return;
 
             const eventPath = typeof e.composedPath === 'function' ? e.composedPath() : null;
             const clickedInsideChatbot = Array.isArray(eventPath)

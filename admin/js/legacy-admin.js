@@ -1223,25 +1223,24 @@
             const submitBtn = document.getElementById('loginSubmitBtn');
             const codeWrap = document.getElementById('loginEmailCodeWrap');
             const emailEnabled = emailAuthAdminConfig.email_auth_enabled === true;
+            const inCodeStep = emailEnabled && !!pendingLoginId;
             const sendDisabled = (turnstilePublicConfig.enabled && !turnstileToken) || emailAuthAdminConfig.smtp_ready === false;
             if (sendBtn) {
-                sendBtn.style.display = emailEnabled ? '' : 'none';
-                sendBtn.disabled = emailEnabled ? sendDisabled : true;
-                if (emailEnabled) {
+                sendBtn.style.display = inCodeStep ? '' : 'none';
+                sendBtn.disabled = inCodeStep ? (loginEmailCodeCountdown > 0 || emailAuthAdminConfig.smtp_ready === false) : true;
+                if (inCodeStep) {
                     sendBtn.textContent = emailAuthAdminConfig.smtp_ready === false
                         ? '邮箱验证暂不可用'
                         : (loginEmailCodeCountdown > 0 ? `重新发送（${loginEmailCodeCountdown}s）` : '发送邮箱验证码');
                 }
             }
             if (submitBtn) {
-                submitBtn.style.display = emailEnabled ? '' : '';
-                submitBtn.textContent = emailEnabled ? '验证并登录' : '登 录';
-                submitBtn.disabled = emailEnabled
-                    ? (!pendingLoginId || emailAuthAdminConfig.smtp_ready === false)
-                    : !!(turnstilePublicConfig.enabled && !turnstileToken);
+                submitBtn.style.display = '';
+                submitBtn.textContent = inCodeStep ? '验证并登录' : '登 录';
+                submitBtn.disabled = !!(turnstilePublicConfig.enabled && !turnstileToken);
             }
             if (codeWrap) {
-                codeWrap.style.display = emailEnabled && pendingLoginId ? 'block' : 'none';
+                codeWrap.style.display = inCodeStep ? 'block' : 'none';
             }
         }
 
@@ -1330,7 +1329,7 @@
                 pendingLoginId = String(data.pending_login_id || '');
                 pendingLoginEmailMasked = String(data.email_masked || '');
                 const hintEl = document.getElementById('loginEmailHint');
-                if (hintEl) hintEl.textContent = `验证码将发送到 ${pendingLoginEmailMasked || '已绑定邮箱'}。`;
+                if (hintEl) hintEl.textContent = `请点击“发送邮箱验证码”，验证码将发送到 ${pendingLoginEmailMasked || '已绑定邮箱'}。`;
                 updateLoginActionState();
                 return true;
             }
@@ -1350,11 +1349,9 @@
             if (sendBtn) sendBtn.disabled = true;
             try {
                 if (!pendingLoginId) {
-                    const started = await handleLoginStart();
-                    if (!started || !pendingLoginId) {
-                        updateLoginActionState();
-                        return;
-                    }
+                    if (err) err.textContent = '请先点击“登录”进入邮箱验证步骤。';
+                    updateLoginActionState();
+                    return;
                 }
                 const res = await fetch('/admin/login/send-email-code', {
                     method: 'POST',
@@ -1435,7 +1432,7 @@
             loginForm.dataset.loginBound = '1';
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                if (emailAuthAdminConfig.email_auth_enabled) {
+                if (emailAuthAdminConfig.email_auth_enabled && pendingLoginId) {
                     await verifyLoginEmailCode();
                 } else {
                     await handleLoginStart();
@@ -3378,7 +3375,7 @@
 
             renderGuidesForView(viewName);
 
-            const isEditable = canEditView(viewName);
+            const isEditable = viewName === 'settings' ? true : canEditView(viewName);
             applyReadOnlyMode(viewName, !isEditable);
 
             if (isMobileAdminViewport()) {
@@ -3422,6 +3419,7 @@
                 editableSelectors.forEach(selector => {
                     view.querySelectorAll(selector).forEach(el => {
                         if (!el.classList.contains('read-only-safe') &&
+                            !el.closest('#emailBindingCard') &&
                             !el.closest('.read-only-banner')) {
                             el.dataset.originalDisabled = el.disabled || '';
                             el.dataset.originalReadOnly = el.readOnly || '';
@@ -3443,7 +3441,7 @@
                 view.querySelectorAll('[onclick]').forEach(el => {
                     const onclick = el.getAttribute('onclick') || '';
                     const isAction = onclick.match(/save|delete|edit|update|create|remove|add/i);
-                    if (isAction && !el.classList.contains('read-only-safe')) {
+                    if (isAction && !el.classList.contains('read-only-safe') && !el.closest('#emailBindingCard')) {
                         el.dataset.originalOnclick = onclick;
                         el.removeAttribute('onclick');
                         el.classList.add('read-only-disabled');

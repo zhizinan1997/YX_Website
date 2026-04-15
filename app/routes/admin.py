@@ -479,7 +479,7 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
     if p.startswith('/api/admin/subaccounts') or p.startswith('/admin/change-password'):
         return 'settings'
     if p.startswith('/api/admin/account/email-binding'):
-        return 'settings'
+        return None
     if p.startswith('/api/admin/email-auth'):
         return 'site-settings'
     if p.startswith('/api/admin/security/turnstile') or p.startswith('/api/cdn/'):
@@ -795,6 +795,128 @@ def _build_smtp_notice_content(remaining_days: int, expires_at: str):
     </div>
     """
     text_body = f'SMTP 授权码预计还剩 {remaining_days} 天到期，到期时间：{expires_at or "未知"}。请尽快更新后台 SMTP 授权码。'
+    return html_body, text_body
+
+
+def _build_login_email_subject_v2():
+    return '\u5143\u82af\u9a8c\u8bc1\u7801'
+
+
+def _render_brand_email_v2(*, eyebrow: str, title: str, intro: str, highlight_html: str, note_lines):
+    notes = ''.join(
+        f'<li style="margin:0 0 8px;">{line}</li>'
+        for line in (note_lines or [])
+        if str(line or '').strip()
+    )
+    return f"""
+    <div style="margin:0;padding:0;background:linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);">
+      <div style="width:100%;margin:0;font-family:'Microsoft YaHei',Arial,sans-serif;color:#10233d;background:
+        radial-gradient(circle at top right, rgba(39,199,217,0.22) 0, rgba(39,199,217,0) 28%),
+        radial-gradient(circle at left center, rgba(18,61,113,0.08) 0, rgba(18,61,113,0) 32%),
+        linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);
+      ">
+        <div style="position:relative;overflow:hidden;background:
+          radial-gradient(circle at 78% 26%, rgba(39,199,217,0.34) 0, rgba(39,199,217,0) 18%),
+          radial-gradient(circle at 12% 18%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 20%),
+          linear-gradient(135deg,#08192d 0%,#123d71 55%,#1d6f99 76%,#27c7d9 100%);
+          border-radius:0;padding:44px 44px 102px;color:#ffffff;box-shadow:inset 0 -1px 0 rgba(255,255,255,0.08);">
+          <div style="position:absolute;right:-78px;top:-66px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.08);"></div>
+          <div style="position:absolute;right:74px;bottom:28px;width:132px;height:132px;border-radius:50%;background:rgba(39,199,217,0.16);filter:blur(2px);"></div>
+          <div style="position:relative;z-index:1;display:inline-block;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.24);font-size:12px;letter-spacing:1.4px;box-shadow:0 10px 24px rgba(8,25,45,0.18);">
+            元芯传感后台
+          </div>
+          <div style="position:relative;z-index:1;margin-top:24px;font-size:14px;line-height:1.8;color:rgba(255,255,255,0.78);">{eyebrow}</div>
+          <h1 style="position:relative;z-index:1;margin:12px 0 0;font-size:34px;line-height:1.18;font-weight:800;color:#ffffff;text-shadow:0 10px 28px rgba(8,25,45,0.25);">{title}</h1>
+          <div style="position:relative;z-index:1;margin-top:16px;width:88px;height:4px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,0.92) 0%,rgba(39,199,217,0.92) 100%);"></div>
+        </div>
+        <div style="position:relative;z-index:2;margin-top:-54px;background:
+          linear-gradient(180deg,rgba(255,255,255,0.96) 0%,#ffffff 100%);
+          border-top-left-radius:34px;border-top-right-radius:34px;padding:40px 44px 34px;
+          box-shadow:0 28px 90px rgba(8,25,45,0.14), inset 0 1px 0 rgba(255,255,255,0.85);">
+          <p style="margin:0 0 20px;font-size:17px;line-height:1.9;color:#10233d;">{intro}</p>
+          <div style="margin:24px 0;padding:30px 28px;border-radius:28px;background:
+            radial-gradient(circle at top center, rgba(255,255,255,0.72) 0, rgba(255,255,255,0) 34%),
+            linear-gradient(180deg,rgba(39,199,217,0.18) 0%,rgba(18,61,113,0.06) 100%);
+            border:1px solid rgba(39,199,217,0.30);box-shadow:inset 0 1px 0 rgba(255,255,255,0.8), 0 16px 36px rgba(18,61,113,0.08);">
+            {highlight_html}
+          </div>
+          <div style="padding:22px 24px;border-radius:24px;background:linear-gradient(180deg,#f9fcff 0%,#f1f7fd 100%);border:1px solid rgba(18,61,113,0.08);box-shadow:inset 0 1px 0 rgba(255,255,255,0.9);">
+            <div style="margin:0 0 12px;font-size:14px;font-weight:700;letter-spacing:0.4px;color:#123d71;">安全提示</div>
+            <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.9;color:#5d708b;">
+              {notes}
+            </ul>
+          </div>
+        </div>
+        <div style="padding:22px 24px 32px;text-align:center;font-size:12px;line-height:1.9;color:#5d708b;background:#ffffff;">
+          <div style="font-weight:700;color:#123d71;">\u5143\u82af\u4f20\u611f YX Website</div>
+          <div>\u672c\u90ae\u4ef6\u7531\u540e\u53f0\u5b89\u5168\u7cfb\u7edf\u81ea\u52a8\u53d1\u9001\uff0c\u8bf7\u52ff\u76f4\u63a5\u56de\u590d\u3002</div>
+        </div>
+      </div>
+    </div>
+    """
+
+
+def _build_login_email_content_v2(username: str, code: str):
+    safe_username = _normalize_username(username) or '\u7ba1\u7406\u5458'
+    html_body = _render_brand_email_v2(
+        eyebrow='\u7ba1\u7406\u5458\u767b\u5f55\u90ae\u7bb1\u9a8c\u8bc1',
+        title='\u540e\u53f0\u767b\u5f55\u9a8c\u8bc1\u7801',
+        intro=f'\u8d26\u53f7 <strong style="color:#123d71;">{safe_username}</strong> \u6b63\u5728\u767b\u5f55\u7ba1\u7406\u540e\u53f0\uff0c\u8bf7\u4f7f\u7528\u4e0b\u65b9\u9a8c\u8bc1\u7801\u5b8c\u6210\u5b89\u5168\u6821\u9a8c\u3002',
+        highlight_html=f'''
+          <div style="font-size:12px;letter-spacing:1.2px;color:#5d708b;text-align:center;">登录验证码</div>
+          <div style="margin-top:16px;font-size:40px;line-height:1;font-weight:800;letter-spacing:12px;color:#0d2d56;text-align:center;text-shadow:0 8px 20px rgba(18,61,113,0.10);">{code}</div>
+          <div style="margin:16px auto 0;width:72px;height:3px;border-radius:999px;background:linear-gradient(90deg,rgba(18,61,113,0.18) 0%,rgba(39,199,217,0.9) 100%);"></div>
+          <div style="margin-top:14px;font-size:14px;line-height:1.8;color:#5d708b;text-align:center;">\u9a8c\u8bc1\u7801 5 \u5206\u949f\u5185\u6709\u6548</div>
+        ''',
+        note_lines=[
+            '\u8bf7\u5728 5 \u5206\u949f\u5185\u5b8c\u6210\u9a8c\u8bc1\uff0c\u4e14\u4e0d\u8981\u5c06\u9a8c\u8bc1\u7801\u900f\u9732\u7ed9\u4ed6\u4eba\u3002',
+            '\u82e5\u975e\u672c\u4eba\u64cd\u4f5c\uff0c\u8bf7\u7acb\u5373\u4fee\u6539\u540e\u53f0\u5bc6\u7801\uff0c\u5e76\u68c0\u67e5\u8d26\u53f7\u5b89\u5168\u3002',
+        ],
+    )
+    text_body = f'\u8d26\u53f7 {safe_username} \u6b63\u5728\u767b\u5f55\u7ba1\u7406\u540e\u53f0\uff0c\u672c\u6b21\u9a8c\u8bc1\u7801\uff1a{code}\uff0c5 \u5206\u949f\u5185\u6709\u6548\u3002'
+    return html_body, text_body
+
+
+def _build_binding_email_content_v2(username: str, code: str):
+    safe_username = _normalize_username(username) or '\u7ba1\u7406\u5458'
+    html_body = _render_brand_email_v2(
+        eyebrow='\u5b89\u5168\u90ae\u7bb1\u7ed1\u5b9a',
+        title='\u90ae\u7bb1\u7ed1\u5b9a\u9a8c\u8bc1\u7801',
+        intro=f'\u8d26\u53f7 <strong style="color:#123d71;">{safe_username}</strong> \u6b63\u5728\u7ed1\u5b9a\u540e\u53f0\u5b89\u5168\u90ae\u7bb1\uff0c\u5b8c\u6210\u9a8c\u8bc1\u540e\u53ef\u7528\u4e8e\u540e\u7eed\u767b\u5f55\u4e8c\u6b21\u6821\u9a8c\u3002',
+        highlight_html=f'''
+          <div style="font-size:12px;letter-spacing:1.2px;color:#5d708b;text-align:center;">绑定验证码</div>
+          <div style="margin-top:16px;font-size:40px;line-height:1;font-weight:800;letter-spacing:12px;color:#0d2d56;text-align:center;text-shadow:0 8px 20px rgba(18,61,113,0.10);">{code}</div>
+          <div style="margin:16px auto 0;width:72px;height:3px;border-radius:999px;background:linear-gradient(90deg,rgba(18,61,113,0.18) 0%,rgba(39,199,217,0.9) 100%);"></div>
+          <div style="margin-top:14px;font-size:14px;line-height:1.8;color:#5d708b;text-align:center;">\u9a8c\u8bc1\u7801 5 \u5206\u949f\u5185\u6709\u6548</div>
+        ''',
+        note_lines=[
+            '\u5b8c\u6210\u7ed1\u5b9a\u540e\uff0c\u540e\u7eed\u540e\u53f0\u767b\u5f55\u5c06\u901a\u8fc7\u90ae\u7bb1\u9a8c\u8bc1\u7801\u8fdb\u884c\u4e8c\u6b21\u6821\u9a8c\u3002',
+            '\u82e5\u8fd9\u4e0d\u662f\u4f60\u7684\u64cd\u4f5c\uff0c\u8bf7\u7acb\u5373\u4fee\u6539\u540e\u53f0\u5bc6\u7801\u5e76\u8054\u7cfb\u7ba1\u7406\u5458\u3002',
+        ],
+    )
+    text_body = f'\u8d26\u53f7 {safe_username} \u6b63\u5728\u7ed1\u5b9a\u540e\u53f0\u5b89\u5168\u90ae\u7bb1\uff0c\u672c\u6b21\u9a8c\u8bc1\u7801\uff1a{code}\uff0c5 \u5206\u949f\u5185\u6709\u6548\u3002'
+    return html_body, text_body
+
+
+def _build_smtp_notice_content_v2(remaining_days: int, expires_at: str):
+    safe_expires_at = expires_at or '\u672a\u77e5'
+    day_label = f'{remaining_days} \u5929' if remaining_days >= 0 else '\u5df2\u8fc7\u671f'
+    html_body = _render_brand_email_v2(
+        eyebrow='SMTP / 163 \u90ae\u7bb1\u6388\u6743\u7801\u63d0\u9192',
+        title='SMTP \u6388\u6743\u7801\u5373\u5c06\u5230\u671f',
+        intro=f'\u540e\u53f0\u5f53\u524d\u4f7f\u7528\u7684 SMTP \u6388\u6743\u7801\u5269\u4f59\u6709\u6548\u65f6\u95f4\u4e3a <strong style="color:#123d71;">{day_label}</strong>\uff0c\u4e3a\u4e86\u907f\u514d\u7ba1\u7406\u5458\u65e0\u6cd5\u6536\u5230\u767b\u5f55\u9a8c\u8bc1\u90ae\u4ef6\uff0c\u8bf7\u5c3d\u5feb\u66f4\u65b0\u5bc6\u94a5\u3002',
+        highlight_html=f'''
+          <div style="font-size:12px;letter-spacing:1.2px;color:#5d708b;text-align:center;">SMTP 密钥状态</div>
+          <div style="margin-top:16px;font-size:34px;line-height:1.2;font-weight:800;color:#0d2d56;text-align:center;text-shadow:0 8px 20px rgba(18,61,113,0.10);">{day_label}</div>
+          <div style="margin:16px auto 0;width:72px;height:3px;border-radius:999px;background:linear-gradient(90deg,rgba(18,61,113,0.18) 0%,rgba(39,199,217,0.9) 100%);"></div>
+          <div style="margin-top:14px;font-size:14px;line-height:1.8;color:#5d708b;text-align:center;">\u9884\u8ba1\u5230\u671f\u65f6\u95f4\uff1a{safe_expires_at}</div>
+        ''',
+        note_lines=[
+            '\u8bf7\u524d\u5f80\u540e\u53f0\u300c\u7ad9\u70b9\u8bbe\u7f6e\u300d\u66f4\u65b0 163 \u90ae\u7bb1\u6388\u6743\u7801\uff0c\u5e76\u786e\u8ba4\u6d4b\u8bd5\u90ae\u4ef6\u53d1\u9001\u6b63\u5e38\u3002',
+            '\u66f4\u65b0\u5bc6\u94a5\u540e\uff0c\u7cfb\u7edf\u4f1a\u81ea\u52a8\u91cd\u65b0\u8ba1\u7b97 180 \u5929\u7684\u6709\u6548\u671f\u3002',
+        ],
+    )
+    text_body = f'SMTP \u6388\u6743\u7801\u9884\u8ba1\u8fd8\u5269 {day_label}\uff0c\u9884\u8ba1\u5230\u671f\u65f6\u95f4\uff1a{safe_expires_at}\u3002\u8bf7\u5c3d\u5feb\u66f4\u65b0\u540e\u53f0 SMTP \u6388\u6743\u7801\u3002'
     return html_body, text_body
 
 
@@ -1304,11 +1426,11 @@ def _send_pending_login_code(root: Path, *, pending_login_id: str, email: str, s
         state['pending_logins'][pending_key] = item
         _save_email_auth_state(state_file, state)
 
-    html_body, text_body = _build_login_email_content(username, code_to_send)
+    html_body, text_body = _build_login_email_content_v2(username, code_to_send)
     _send_smtp_mail(
         smtp_settings,
         to_email=email,
-        subject=_build_login_email_subject(),
+        subject=_build_login_email_subject_v2(),
         html_body=html_body,
         text_body=text_body,
     )
@@ -1395,11 +1517,11 @@ def _send_binding_code(root: Path, *, username: str, email: str, smtp_settings):
         }
         _save_email_auth_state(state_file, state)
 
-    html_body, text_body = _build_binding_email_content(normalized_username, code)
+    html_body, text_body = _build_binding_email_content_v2(normalized_username, code)
     _send_smtp_mail(
         smtp_settings,
         to_email=normalized_email,
-        subject='后台邮箱绑定验证码',
+        subject='元芯验证码',
         html_body=html_body,
         text_body=text_body,
     )
@@ -1477,7 +1599,7 @@ def _maybe_send_smtp_expiry_notice(*, root: Path, get_config):
             _save_email_auth_state(state_file, state)
     if not should_send:
         return
-    html_body, text_body = _build_smtp_notice_content(remaining_days, settings.get('smtp_password_expires_at', ''))
+    html_body, text_body = _build_smtp_notice_content_v2(remaining_days, settings.get('smtp_password_expires_at', ''))
     _send_smtp_mail(
         settings,
         to_email=notice_email,
