@@ -10841,9 +10841,15 @@
                     <option value="industry" ${selected === 'industry' ? 'selected' : ''}>行业动态</option>
                     <option value="science" ${selected === 'science' ? 'selected' : ''}>科普知识</option>
                 `;
-                listEl.innerHTML = items.map(item => `
-                    <div class="file-item" style="align-items: flex-start;">
-                        <div class="file-info">
+                listEl.innerHTML = items.map((item, index) => `
+                    <div class="file-item" style="align-items: flex-start; gap: 12px;">
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:6px; min-width:52px; padding-top:2px;">
+                            <span style="font-size:12px; color:#64748b;">排序</span>
+                            <button class="btn-sm" style="width:42px; padding:6px 0;" onclick="reorderNewsItem('${item.link}', 'up')" ${index === 0 ? 'disabled' : ''}>↑</button>
+                            <button class="btn-sm" style="width:42px; padding:6px 0;" onclick="reorderNewsItem('${item.link}', 'down')" ${index === items.length - 1 ? 'disabled' : ''}>↓</button>
+                            <span style="font-size:12px; color:#94a3b8;">#${item.order || (index + 1)}</span>
+                        </div>
+                        <div class="file-info" style="flex:1; min-width:0;">
                             <img src="${item.image || ''}" alt="news" style="width: 72px; height: 46px; object-fit: cover; border-radius: 6px;">
                             <div>
                                 <div style="font-weight: 600;">${escapeHtml(item.title || '')}</div>
@@ -10872,6 +10878,24 @@
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#dc3545;">加载失败</div>';
             }
+        }
+
+        async function reorderNewsItem(link, direction) {
+            if (!link) return;
+            try {
+                const res = await fetch('/api/news/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link, direction })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.message || '排序失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+            loadNewsList();
         }
 
         async function quickUpdateNewsCategory(link, category) {

@@ -2072,6 +2072,84 @@ def dedupe_news_cards(content: str, filename: str):
     return ''.join(out), removed
 
 
+def extract_news_card_matches(content: str):
+    """Return all news card regex matches in display order."""
+    pattern = re.compile(
+        r'<a\b[^>]*class\s*=\s*["\'][^"\']*\bvs-card\b[^"\']*["\'][^>]*>.*?</a>',
+        re.DOTALL | re.IGNORECASE,
+    )
+    return list(pattern.finditer(content or ''))
+
+
+def rebuild_news_cards_block(cards, *, items_per_page: int = 9) -> str:
+    """Rebuild the news cards block with page markers for readability."""
+    if not cards:
+        return ''
+
+    parts = []
+    for index, card in enumerate(cards):
+        if index % items_per_page == 0:
+            page_no = (index // items_per_page) + 1
+            if parts:
+                parts.append('\n')
+            parts.append(f'                    <!-- Page {page_no} Items -->\n\n')
+        parts.append(card.strip())
+        parts.append('\n\n')
+    return ''.join(parts).rstrip() + '\n'
+
+
+def replace_news_cards_block(content: str, cards) -> str | None:
+    """Replace the full news card area in news.html while preserving surrounding layout."""
+    card_matches = extract_news_card_matches(content)
+    if not card_matches:
+        return None
+
+    first_match = card_matches[0]
+    last_match = card_matches[-1]
+    marker_pattern = re.compile(r'^\s*<!--\s*Page\s+\d+\s+Items\s*-->\s*$', re.IGNORECASE | re.MULTILINE)
+    marker_matches = [match for match in marker_pattern.finditer(content) if match.start() < first_match.start()]
+    block_start = marker_matches[-1].start() if marker_matches else first_match.start()
+    block_end = last_match.end()
+    rebuilt_block = rebuild_news_cards_block(cards)
+    return content[:block_start] + rebuilt_block + content[block_end:]
+
+
+def reorder_news_card(news_html_path: Path, filename: str, direction: str):
+    """Move a news card up or down in news.html."""
+    if direction not in {'up', 'down'}:
+        return False, '排序方向不合法', 400
+    if not news_html_path.exists():
+        return False, 'news.html 不存在', 404
+
+    content = news_html_path.read_text(encoding='utf-8')
+    card_matches = extract_news_card_matches(content)
+    if not card_matches:
+        return False, '未找到资讯卡片列表', 404
+
+    cards = [match.group(0) for match in card_matches]
+    target_pattern = re.compile(
+        rf'href\s*=\s*["\'][^"\']*{re.escape(filename)}[^"\']*["\']',
+        re.IGNORECASE,
+    )
+    current_index = next((index for index, card in enumerate(cards) if target_pattern.search(card)), -1)
+    if current_index < 0:
+        return False, '未找到对应资讯卡片', 404
+
+    target_index = current_index - 1 if direction == 'up' else current_index + 1
+    if target_index < 0 or target_index >= len(cards):
+        return False, '当前资讯已在最边缘，无法继续移动', 400
+
+    card_html = cards.pop(current_index)
+    cards.insert(target_index, card_html)
+
+    replaced = replace_news_cards_block(content, cards)
+    if replaced is None:
+        return False, '资讯列表重排失败', 500
+
+    news_html_path.write_text(replaced, encoding='utf-8')
+    return True, '', 200
+
+
 def get_hidden_news_links():
     """Load hidden news links."""
     default_config = {'hidden_links': []}
@@ -2235,8 +2313,9 @@ def get_all_news_items():
     parser.feed(content)
 
     hidden_links = get_hidden_news_links()
-    for item in parser.items:
+    for index, item in enumerate(parser.items, start=1):
         item['hidden'] = item.get('link') in hidden_links
+        item['order'] = index
     return parser.items
 
 
@@ -2668,6 +2747,22 @@ def register_news_content_routes(
         card_html = card_html[:open_tag_match.start()] + open_tag + card_html[open_tag_match.end():]
         content = content[:card_match.start()] + card_html + content[card_match.end():]
         news_index.write_text(content, encoding='utf-8')
+        return jsonify({'success': True})
+
+    @app.route('/api/news/reorder', methods=['POST'])
+    @login_required
+    def reorder_news():
+        data = request.json or {}
+        link = (data.get('link') or '').strip()
+        direction = (data.get('direction') or '').strip().lower()
+
+        if not link:
+            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
+
+        filename = Path(link).name
+        success, message, status_code = reorder_news_card(_news_index_path(), filename, direction)
+        if not success:
+            return jsonify({'success': False, 'message': message}), status_code
         return jsonify({'success': True})
 
     @app.route('/api/news/delete', methods=['POST'])

@@ -6,6 +6,7 @@
     var NAV_CSS_ID = 'mc-nav-component-css';
     var NAV_READY_EVENT = 'mc-nav:ready';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260415a';
+    var NEWS_PREVIEW_SCRIPT_SRC = '/assets/js/news-preview-loader.js?v=20260411a';
     var NAV_ASSET_VERSION = '20260411a';
 
     function getRoot() {
@@ -65,6 +66,18 @@
         if (exists) return;
         var script = document.createElement('script');
         script.src = CHATBOT_SCRIPT_SRC;
+        script.defer = true;
+        document.body.appendChild(script);
+    }
+
+    function ensureNewsPreviewScript() {
+        var exists = Array.prototype.some.call(document.getElementsByTagName('script'), function (s) {
+            var src = s.getAttribute('src') || '';
+            return src.indexOf('news-preview-loader.js') !== -1;
+        });
+        if (exists) return;
+        var script = document.createElement('script');
+        script.src = NEWS_PREVIEW_SCRIPT_SRC;
         script.defer = true;
         document.body.appendChild(script);
     }
@@ -1021,6 +1034,7 @@
 
         injectPartial(root, profile)
             .then(function () {
+                if (profile === 'home') ensureNewsPreviewScript();
                 bindCommonInteractions(root);
                 dispatchNavReady(root, profile);
                 if (profile === 'gas') return bindGasDynamicData();

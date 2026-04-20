@@ -6,6 +6,11 @@
 (function () {
     'use strict';
 
+    if (window.__mcNewsPreviewLoaderInitialized) {
+        return;
+    }
+    window.__mcNewsPreviewLoaderInitialized = true;
+
     const NAV_READY_EVENT = 'mc-nav:ready';
     // 配置：每个分类显示的新闻数量
     const NEWS_COUNT_PER_CATEGORY = 4;
