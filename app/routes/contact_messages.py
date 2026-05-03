@@ -436,7 +436,7 @@ def _build_notification_email(message: dict) -> tuple[str, str, str]:
     return _build_notification_subject(message), html_body, '\n'.join(text_lines)
 
 
-def _collect_admin_notification_recipients(config: dict) -> list[str]:
+def _collect_admin_notification_recipients(message: dict) -> list[str]:
     recipients: list[str] = []
     seen: set[str] = set()
 
@@ -447,18 +447,19 @@ def _collect_admin_notification_recipients(config: dict) -> list[str]:
         seen.add(normalized)
         recipients.append(normalized)
 
-    notice_email = _normalize_email((config or {}).get('smtp_notice_email', ''))
-    if notice_email:
-        _append(notice_email)
-
     admin_users_file = _dep('messages_dir').parent / 'admin_users.json'
     users_data = _load_admin_users(admin_users_file)
+    message_type = str((message or {}).get('message_type') or '').strip().lower()
+    is_job_application = message_type == 'job_application'
     for user in users_data.get('users', []):
         if not isinstance(user, dict):
             continue
         if user.get('enabled', True) is False:
             continue
         if not bool(user.get('email_verified', False)):
+            continue
+        wants_notification = bool(user.get('notify_job_email', False)) if is_job_application else bool(user.get('notify_message_email', False))
+        if not wants_notification:
             continue
         _append(user.get('email', ''))
     return recipients
@@ -468,7 +469,7 @@ def _notify_admins_about_message(message: dict, logger):
     try:
         config = _dep('get_config')() or {}
         smtp_settings = _get_email_auth_settings(config)
-        recipients = _collect_admin_notification_recipients(config)
+        recipients = _collect_admin_notification_recipients(message)
         if not recipients:
             logger.info('Skip admin message notification: no recipients configured')
             return

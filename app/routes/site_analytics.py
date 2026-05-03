@@ -704,6 +704,396 @@ def _analytics_day_key(ts: int) -> str:
     return dt.strftime('%Y-%m-%d')
 
 
+def _analytics_local_datetime(ts: int) -> datetime:
+    return datetime.fromtimestamp(int(ts), tz=timezone.utc).astimezone(BEIJING_TZ)
+
+
+def _analytics_parse_local_date(raw_value):
+    text = str(raw_value or '').strip()
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', text):
+        return None
+    try:
+        parsed = datetime.strptime(text, '%Y-%m-%d').date()
+    except Exception:
+        return None
+    if parsed.strftime('%Y-%m-%d') != text:
+        return None
+    return parsed
+
+
+def _analytics_format_local_date(value) -> str:
+    return value.strftime('%Y-%m-%d')
+
+
+def _analytics_granularity_label(granularity: str) -> str:
+    label_map = {
+        'year': '按年显示',
+        'month': '按月显示',
+        'week': '按周显示',
+        'day': '按天显示',
+        'hour': '按小时显示',
+    }
+    return label_map.get(str(granularity or '').strip().lower(), '按天显示')
+
+
+def _analytics_bucket_key_for_date(local_date, granularity: str) -> str:
+    granularity_key = str(granularity or '').strip().lower()
+    if granularity_key == 'day':
+        return local_date.strftime('%Y-%m-%d')
+    if granularity_key == 'week':
+        iso_info = local_date.isocalendar()
+        return f'{iso_info.year}-W{iso_info.week:02d}'
+    if granularity_key == 'month':
+        return local_date.strftime('%Y-%m')
+    if granularity_key == 'year':
+        return local_date.strftime('%Y')
+    raise ValueError('invalid granularity')
+
+
+def _analytics_bucket_end_for_date(local_date, granularity: str):
+    granularity_key = str(granularity or '').strip().lower()
+    if granularity_key == 'day':
+        return local_date
+    if granularity_key == 'week':
+        return local_date + timedelta(days=max(0, 6 - local_date.weekday()))
+    if granularity_key == 'month':
+        if local_date.month == 12:
+            next_month = local_date.replace(year=local_date.year + 1, month=1, day=1)
+        else:
+            next_month = local_date.replace(month=local_date.month + 1, day=1)
+        return next_month - timedelta(days=1)
+    if granularity_key == 'year':
+        return local_date.replace(month=12, day=31)
+    raise ValueError('invalid granularity')
+
+
+def _analytics_bucket_seed(label: str, bucket_start, bucket_end):
+    return {
+        'label': label,
+        'bucket_start': _analytics_format_local_date(bucket_start),
+        'bucket_end': _analytics_format_local_date(bucket_end),
+        'pageviews': 0,
+        'conversions': 0,
+        'events': 0,
+        'visitors': set(),
+        'sessions': set(),
+    }
+
+
+def _analytics_build_range_buckets(start_date, end_date, granularity: str):
+    bucket_keys = []
+    buckets = {}
+    cursor = start_date
+    while cursor <= end_date:
+        bucket_key = _analytics_bucket_key_for_date(cursor, granularity)
+        bucket_end = min(_analytics_bucket_end_for_date(cursor, granularity), end_date)
+        bucket_keys.append(bucket_key)
+        buckets[bucket_key] = _analytics_bucket_seed(bucket_key, cursor, bucket_end)
+        cursor = bucket_end + timedelta(days=1)
+    return bucket_keys, buckets
+
+
+def _build_site_analytics_report_from_buckets(
+    *,
+    since_ts: int,
+    bucket_keys,
+    buckets,
+    resolve_bucket_key,
+    range_meta,
+    until_ts_exclusive=None,
+):
+    sessions = {}
+    pages = {}
+    event_counter = {}
+    visitor_set = set()
+    recent_events = []
+
+    records = _iter_site_analytics_records()
+    for item in records:
+        ts = _analytics_to_int(item.get('ts'), default=0)
+        if ts < since_ts:
+            continue
+        if until_ts_exclusive is not None and ts >= until_ts_exclusive:
+            continue
+
+        local_dt = _analytics_local_datetime(ts)
+        bucket_key = resolve_bucket_key(ts, local_dt)
+        if bucket_key not in buckets:
+            continue
+
+        event_type = _analytics_clean_text(item.get('event_type'), max_length=24).lower()
+        event_name = _analytics_clean_text(item.get('event_name'), max_length=SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH).lower()
+        page_path = _analytics_normalize_path(item.get('page_path') or '/')
+        page_title = _analytics_clean_text(item.get('page_title'), max_length=120)
+        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
+        province = _analytics_extract_record_province(item)
+        country = _analytics_extract_record_country(item)
+        ip_addr = _analytics_clean_text(item.get('ip'), max_length=45)
+        visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64)
+        session_id = _analytics_clean_id(item.get('session_id'), max_length=64)
+        if not visitor_id:
+            visitor_id = 'anonymous'
+        if not session_id:
+            session_id = f'anon_{visitor_id}_{_analytics_day_key(ts)}'
+
+        visitor_set.add(visitor_id)
+        buckets[bucket_key]['visitors'].add(visitor_id)
+        buckets[bucket_key]['sessions'].add(session_id)
+
+        sess = sessions.get(session_id)
+        if not sess:
+            sess = {
+                'session_id': session_id,
+                'visitor_id': visitor_id,
+                'first_ts': ts,
+                'last_ts': ts,
+                'pageviews': 0,
+                'conversions': 0,
+                'reported_duration_sec': 0,
+                'source': source,
+                'device': device,
+                'os': os_name,
+                'province': province,
+                'country': country,
+                'ip': ip_addr,
+            }
+            sessions[session_id] = sess
+        else:
+            sess['first_ts'] = min(sess['first_ts'], ts)
+            sess['last_ts'] = max(sess['last_ts'], ts)
+            if sess.get('source') in {'', 'direct', 'internal', 'unknown'} and source not in {'', 'unknown'}:
+                sess['source'] = source
+            if sess.get('device') in {'', 'unknown'} and device not in {'', 'unknown'}:
+                sess['device'] = device
+            if sess.get('os') in {'', 'unknown'} and os_name not in {'', 'unknown'}:
+                sess['os'] = os_name
+            if not sess.get('province') and province:
+                sess['province'] = province
+            if not sess.get('country') and country:
+                sess['country'] = country
+            if not sess.get('ip') and ip_addr:
+                sess['ip'] = ip_addr
+
+        if event_type == 'pageview':
+            sess['pageviews'] += 1
+            buckets[bucket_key]['pageviews'] += 1
+
+            page_stats = pages.get(page_path)
+            if not page_stats:
+                page_stats = {
+                    'path': page_path,
+                    'title': page_title,
+                    'pageviews': 0,
+                    'visitors': set(),
+                    'sessions': set(),
+                }
+                pages[page_path] = page_stats
+            page_stats['pageviews'] += 1
+            page_stats['visitors'].add(visitor_id)
+            page_stats['sessions'].add(session_id)
+            if not page_stats.get('title') and page_title:
+                page_stats['title'] = page_title
+
+            if _analytics_is_conversion_page(page_path):
+                sess['conversions'] += 1
+                buckets[bucket_key]['conversions'] += 1
+
+        elif event_type == 'event':
+            buckets[bucket_key]['events'] += 1
+            if event_name:
+                event_counter[event_name] = event_counter.get(event_name, 0) + 1
+            if _analytics_is_conversion_event(event_name):
+                sess['conversions'] += 1
+                buckets[bucket_key]['conversions'] += 1
+
+        elif event_type == 'session_end':
+            reported_duration = max(0, _analytics_to_int(item.get('session_duration_sec'), default=0))
+            sess['reported_duration_sec'] = max(sess.get('reported_duration_sec', 0), reported_duration)
+
+        event_label = event_name or event_type or 'event'
+        recent_events.append({
+            'timestamp': local_dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'type': event_type or 'event',
+            'name': event_label,
+            'path': page_path,
+            'source': source or '-',
+            'device': device or '-',
+        })
+
+    recent_events = recent_events[-25:]
+
+    tracked_sessions = [item for item in sessions.values() if int(item.get('pageviews') or 0) > 0]
+    total_sessions = len(tracked_sessions)
+    total_pageviews = sum(int(item.get('pageviews') or 0) for item in tracked_sessions)
+    total_conversions = sum(int(item.get('conversions') or 0) for item in tracked_sessions)
+    conversion_sessions = sum(1 for item in tracked_sessions if int(item.get('conversions') or 0) > 0)
+    bounce_sessions = sum(1 for item in tracked_sessions if int(item.get('pageviews') or 0) <= 1)
+
+    total_duration = 0
+    for item in tracked_sessions:
+        observed_duration = max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0))
+        reported_duration = max(0, int(item.get('reported_duration_sec') or 0))
+        duration_sec = max(observed_duration, reported_duration)
+        duration_sec = min(duration_sec, 12 * 3600)
+        total_duration += duration_sec
+
+    avg_session_duration_sec = (total_duration / total_sessions) if total_sessions else 0.0
+    bounce_rate = (bounce_sessions * 100.0 / total_sessions) if total_sessions else 0.0
+    conversion_rate = (conversion_sessions * 100.0 / total_sessions) if total_sessions else 0.0
+
+    source_counter = {}
+    device_counter = {}
+    os_counter = {}
+    province_counter = {}
+    continent_counter = {}
+    country_counter = {}
+    for item in tracked_sessions:
+        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
+        province = _analytics_clean_text(item.get('province'), max_length=32)
+        country = _analytics_clean_text(item.get('country'), max_length=64)
+        source_counter[source] = source_counter.get(source, 0) + 1
+        device_counter[device] = device_counter.get(device, 0) + 1
+        os_counter[os_name] = os_counter.get(os_name, 0) + 1
+        if province:
+            province_counter[province] = province_counter.get(province, 0) + 1
+        continent_key = _analytics_resolve_continent_from_country(country)
+        if country and country != '中国' and continent_key:
+            continent_counter[continent_key] = continent_counter.get(continent_key, 0) + 1
+        if country:
+            country_counter[country] = country_counter.get(country, 0) + 1
+
+    source_rows = [
+        {
+            'source': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in source_counter.items()
+    ]
+    source_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    device_rows = [
+        {
+            'device': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in device_counter.items()
+    ]
+    device_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    os_rows = [
+        {
+            'os': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in os_counter.items()
+    ]
+    os_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    province_rows = [
+        {
+            'province': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in province_counter.items()
+    ]
+    province_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    overseas_sessions = sum(continent_counter.values())
+    continent_rows = [
+        {
+            'continent_key': key,
+            'continent': _ANALYTICS_CONTINENT_LABELS.get(key, key),
+            'sessions': value,
+            'ratio': round((value * 100.0 / overseas_sessions), 2) if overseas_sessions else 0.0,
+        }
+        for key, value in continent_counter.items()
+    ]
+    continent_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    country_rows = [
+        {
+            'country': key,
+            'sessions': value,
+            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        }
+        for key, value in country_counter.items()
+    ]
+    country_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    china_map_data = [
+        {
+            'name': item['province'],
+            'value': item['sessions'],
+        }
+        for item in province_rows
+    ]
+
+    top_pages = []
+    for path_key, stats in pages.items():
+        top_pages.append({
+            'path': path_key,
+            'title': stats.get('title') or '',
+            'pageviews': int(stats.get('pageviews') or 0),
+            'unique_visitors': len(stats.get('visitors', set())),
+            'sessions': len(stats.get('sessions', set())),
+        })
+    top_pages.sort(key=lambda item: item['pageviews'], reverse=True)
+    top_pages = top_pages[:12]
+
+    top_events = [{'name': name, 'count': count} for name, count in event_counter.items()]
+    top_events.sort(key=lambda item: item['count'], reverse=True)
+    top_events = top_events[:12]
+
+    trend = []
+    for bucket_key in bucket_keys:
+        row = buckets.get(bucket_key, {})
+        trend.append({
+            'date': str(row.get('label') or bucket_key),
+            'label': str(row.get('label') or bucket_key),
+            'bucket_start': str(row.get('bucket_start') or ''),
+            'bucket_end': str(row.get('bucket_end') or ''),
+            'pageviews': int(row.get('pageviews') or 0),
+            'unique_visitors': len(row.get('visitors', set())),
+            'sessions': len(row.get('sessions', set())),
+            'conversions': int(row.get('conversions') or 0),
+            'events': int(row.get('events') or 0),
+        })
+
+    return {
+        **(range_meta or {}),
+        'generated_at': datetime.now(BEIJING_TZ).isoformat(timespec='seconds'),
+        'summary': {
+            'pageviews': total_pageviews,
+            'unique_visitors': len(visitor_set),
+            'sessions': total_sessions,
+            'avg_session_duration_sec': round(avg_session_duration_sec, 2),
+            'bounce_rate': round(bounce_rate, 2),
+            'conversion_events': total_conversions,
+            'conversion_sessions': conversion_sessions,
+            'conversion_rate': round(conversion_rate, 2),
+        },
+        'source_breakdown': source_rows,
+        'device_breakdown': device_rows,
+        'os_breakdown': os_rows,
+        'province_breakdown': province_rows,
+        'continent_breakdown': continent_rows,
+        'country_breakdown': country_rows,
+        'china_map_data': china_map_data,
+        'top_pages': top_pages,
+        'top_events': top_events,
+        'trend': trend,
+        'recent_events': recent_events,
+    }
+
+
 def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, request_ip: str):
     if not isinstance(raw_event, dict):
         return None
@@ -1154,6 +1544,124 @@ def build_site_analytics_report(range_days=30):
 
 
 # 路由注册入口。
+def build_site_analytics_report(range_days=30, start_date=None, end_date=None, granularity='day'):
+    start_date_raw = str(start_date or '').strip()
+    end_date_raw = str(end_date or '').strip()
+    granularity_key = str(granularity or 'day').strip().lower() or 'day'
+
+    if start_date_raw or end_date_raw:
+        if not start_date_raw or not end_date_raw:
+            raise ValueError('开始日期和结束日期必须同时填写')
+        if granularity_key not in {'year', 'month', 'week', 'day'}:
+            raise ValueError('显示粒度无效')
+
+        start_date_value = _analytics_parse_local_date(start_date_raw)
+        end_date_value = _analytics_parse_local_date(end_date_raw)
+        if not start_date_value or not end_date_value:
+            raise ValueError('日期格式无效，必须为 YYYY-MM-DD')
+        if start_date_value > end_date_value:
+            raise ValueError('开始日期不能晚于结束日期')
+
+        bucket_keys, buckets = _analytics_build_range_buckets(start_date_value, end_date_value, granularity_key)
+        start_dt_local = datetime.combine(start_date_value, datetime.min.time(), tzinfo=BEIJING_TZ)
+        end_dt_exclusive_local = datetime.combine(end_date_value + timedelta(days=1), datetime.min.time(), tzinfo=BEIJING_TZ)
+        since_ts = int(start_dt_local.astimezone(timezone.utc).timestamp())
+        until_ts_exclusive = int(end_dt_exclusive_local.astimezone(timezone.utc).timestamp())
+
+        return _build_site_analytics_report_from_buckets(
+            since_ts=since_ts,
+            until_ts_exclusive=until_ts_exclusive,
+            bucket_keys=bucket_keys,
+            buckets=buckets,
+            resolve_bucket_key=lambda _ts, local_dt: _analytics_bucket_key_for_date(local_dt.date(), granularity_key),
+            range_meta={
+                'range_key': f'{granularity_key}:{start_date_raw}:{end_date_raw}',
+                'range_label': f'{start_date_raw} 至 {end_date_raw} · {_analytics_granularity_label(granularity_key)}',
+                'granularity': granularity_key,
+                'start_date': start_date_raw,
+                'end_date': end_date_raw,
+            },
+        )
+
+    now_local = datetime.now(BEIJING_TZ)
+    range_raw = str(range_days or '').strip().lower()
+    is_last_24h = range_raw in {'24h', 'last24h', '24hour', '24hours'}
+
+    bucket_keys = []
+    buckets = {}
+    range_days_value = 30
+    range_key = '30d'
+    range_label = '最近 30 天'
+    report_granularity = 'day'
+
+    if is_last_24h:
+        range_days_value = 1
+        range_key = '24h'
+        range_label = '最近24小时'
+        report_granularity = 'hour'
+        current_hour = now_local.replace(minute=0, second=0, microsecond=0)
+        start_hour = current_hour - timedelta(hours=23)
+        since_ts = int(start_hour.astimezone(timezone.utc).timestamp())
+        for idx in range(24):
+            point = start_hour + timedelta(hours=idx)
+            bucket_key = point.strftime('%Y-%m-%d %H:00')
+            bucket_keys.append(bucket_key)
+            buckets[bucket_key] = {
+                'label': bucket_key,
+                'bucket_start': bucket_key,
+                'bucket_end': bucket_key,
+                'pageviews': 0,
+                'conversions': 0,
+                'events': 0,
+                'visitors': set(),
+                'sessions': set(),
+            }
+
+        def resolve_bucket_key(_ts: int, local_dt: datetime) -> str:
+            return local_dt.strftime('%Y-%m-%d %H:00')
+
+        report_start_date = start_hour.date()
+        report_end_date = current_hour.date()
+    else:
+        try:
+            days = int(range_days)
+        except Exception:
+            days = 30
+        if days not in (7, 30, 90, 180):
+            days = 30
+        range_days_value = days
+        range_key = f'{days}d'
+        range_label = f'最近 {days} 天'
+
+        report_start_date = now_local.date() - timedelta(days=days - 1)
+        report_end_date = now_local.date()
+        start_dt_local = datetime.combine(report_start_date, datetime.min.time(), tzinfo=BEIJING_TZ)
+        since_ts = int(start_dt_local.astimezone(timezone.utc).timestamp())
+        for idx in range(days):
+            bucket_date = report_start_date + timedelta(days=idx)
+            bucket_key = bucket_date.strftime('%Y-%m-%d')
+            bucket_keys.append(bucket_key)
+            buckets[bucket_key] = _analytics_bucket_seed(bucket_key, bucket_date, bucket_date)
+
+        def resolve_bucket_key(_ts: int, local_dt: datetime) -> str:
+            return local_dt.strftime('%Y-%m-%d')
+
+    return _build_site_analytics_report_from_buckets(
+        since_ts=since_ts,
+        bucket_keys=bucket_keys,
+        buckets=buckets,
+        resolve_bucket_key=resolve_bucket_key,
+        range_meta={
+            'range_days': range_days_value,
+            'range_key': range_key,
+            'range_label': range_label,
+            'granularity': report_granularity,
+            'start_date': _analytics_format_local_date(report_start_date),
+            'end_date': _analytics_format_local_date(report_end_date),
+        },
+    )
+
+
 def register_site_analytics_routes(
     app,
     *,
@@ -1206,7 +1714,18 @@ def register_site_analytics_routes(
     def get_site_reports_admin():
         """获取后台仪表盘使用的站点统计报表。"""
         range_days = request.args.get('range_days', 30)
-        report = build_site_analytics_report(range_days=range_days)
+        start_date = request.args.get('start_date', '')
+        end_date = request.args.get('end_date', '')
+        granularity = request.args.get('granularity', 'day')
+        try:
+            report = build_site_analytics_report(
+                range_days=range_days,
+                start_date=start_date,
+                end_date=end_date,
+                granularity=granularity,
+            )
+        except ValueError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 400
         return jsonify({'success': True, **report})
 
 

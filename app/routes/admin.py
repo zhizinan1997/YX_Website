@@ -559,6 +559,8 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
     email_bound_at = str((user or {}).get('email_bound_at', '') or '').strip()
     email_verified = bool(email and (user or {}).get('email_verified', False))
     two_factor_enabled = True if (user or {}).get('two_factor_enabled', True) is not False else False
+    notify_message_email = bool((user or {}).get('notify_message_email', False))
+    notify_job_email = bool((user or {}).get('notify_job_email', False))
     return {
         'username': username,
         'password_hash': password_hash,
@@ -574,6 +576,8 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
         'email_bound_at': email_bound_at,
         'email_verified': email_verified,
         'two_factor_enabled': two_factor_enabled,
+        'notify_message_email': notify_message_email,
+        'notify_job_email': notify_job_email,
     }
 
 
@@ -592,6 +596,8 @@ def _public_user_profile(user):
         'email_verified': bool(record.get('email_verified', False)),
         'email_bound_at': str(record.get('email_bound_at') or ''),
         'two_factor_enabled': record.get('two_factor_enabled', True) is not False,
+        'notify_message_email': bool(record.get('notify_message_email', False)),
+        'notify_job_email': bool(record.get('notify_job_email', False)),
     }
 
 
@@ -2992,6 +2998,8 @@ def register_admin_routes(
         password = str(data.get('password', '') or '')
         enabled = bool(data.get('enabled', True))
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
+        notify_message_email = bool(data.get('notify_message_email', False))
+        notify_job_email = bool(data.get('notify_job_email', False))
 
         if not USERNAME_RULE.match(username):
             return jsonify({'success': False, 'message': '用户名需为 3 到 32 位，仅支持字母、数字、下划线、点和短横线。'}), 400
@@ -3015,6 +3023,8 @@ def register_admin_routes(
                 'role': 'sub_admin',
                 'enabled': enabled,
                 'permissions': permissions,
+                'notify_message_email': notify_message_email,
+                'notify_job_email': notify_job_email,
                 'created_at': now_iso,
                 'updated_at': now_iso,
                 'last_login_at': '',
@@ -3043,6 +3053,8 @@ def register_admin_routes(
         enabled = bool(data.get('enabled', True))
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
         reset_password = str(data.get('password', '') or '')
+        notify_message_email = bool(data.get('notify_message_email', False))
+        notify_job_email = bool(data.get('notify_job_email', False))
 
         if not permissions:
             return jsonify({'success': False, 'message': '请至少选择 1 项权限。'}), 400
@@ -3064,6 +3076,8 @@ def register_admin_routes(
             updated = dict(target_user)
             updated['enabled'] = enabled
             updated['permissions'] = permissions
+            updated['notify_message_email'] = notify_message_email
+            updated['notify_job_email'] = notify_job_email
             if reset_password:
                 updated['password_hash'] = _hash_password(reset_password)
             updated['updated_at'] = now_iso

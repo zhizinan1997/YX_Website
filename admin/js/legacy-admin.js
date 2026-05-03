@@ -58,7 +58,9 @@
             is_super_admin: false,
             permissions: []
         };
-        let siteReportsRangeKey = '30';
+        let siteReportsStartDate = '';
+        let siteReportsEndDate = '';
+        let siteReportsGranularity = 'day';
         let siteReportsLoading = false;
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
@@ -2730,9 +2732,9 @@
                 note: '因此转化率不等于“转化事件 ÷ UV”，也不等于“转化事件 ÷ 会话数”。如果你想看每次访问平均产生多少转化，要单独看转化事件总数。'
             },
             trend: {
-                title: '每日趋势',
-                meaning: '趋势图用于观察流量变化；最近24小时按小时聚合，其余范围按天聚合。',
-                formula: '24h：每小时聚合 PV/UV；7/30/90/180天：按天聚合 PV/UV'
+                title: '趋势图',
+                meaning: '趋势图用于观察流量变化，可按年、月、周、天四种粒度聚合 PV 和 UV。',
+                formula: '年/月/周/天：按所选粒度聚合 PV/UV；所有桶都仅统计所选起止日期范围内的数据'
             },
             source: {
                 title: '来源',
@@ -2946,6 +2948,123 @@
             return `自定义事件(${name})`;
         }
 
+        function getSiteReportGranularityLabel(granularity) {
+            const key = String(granularity || '').trim().toLowerCase();
+            const labelMap = {
+                year: '按年显示',
+                month: '按月显示',
+                week: '按周显示',
+                day: '按天显示',
+                hour: '按小时显示'
+            };
+            return labelMap[key] || '按天显示';
+        }
+
+        function getSiteReportTrendTitle(granularity) {
+            const key = String(granularity || '').trim().toLowerCase();
+            const titleMap = {
+                year: '按年趋势',
+                month: '按月趋势',
+                week: '按周趋势',
+                day: '按天趋势',
+                hour: '按小时趋势'
+            };
+            return titleMap[key] || '按天趋势';
+        }
+
+        function getBeijingDateString(date = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(date);
+            const valueMap = {};
+            parts.forEach((part) => {
+                if (part.type !== 'literal') valueMap[part.type] = part.value;
+            });
+            return `${valueMap.year || '1970'}-${valueMap.month || '01'}-${valueMap.day || '01'}`;
+        }
+
+        function shiftIsoDate(dateText, deltaDays) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateText || '').trim());
+            if (!match) return '';
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const baseTs = Date.UTC(year, month - 1, day);
+            const shifted = new Date(baseTs + (Number(deltaDays || 0) * 86400000));
+            return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`;
+        }
+
+        function isValidIsoDate(dateText) {
+            const text = String(dateText || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+            const ts = Date.parse(`${text}T00:00:00Z`);
+            if (!Number.isFinite(ts)) return false;
+            return shiftIsoDate(text, 0) === text;
+        }
+
+        function syncSiteReportDateInputLimits() {
+            const startEl = document.getElementById('siteReportStartDate');
+            const endEl = document.getElementById('siteReportEndDate');
+            if (!startEl || !endEl) return;
+            startEl.max = String(endEl.value || '').trim();
+            endEl.min = String(startEl.value || '').trim();
+        }
+
+        function ensureSiteReportFiltersInitialized() {
+            const startEl = document.getElementById('siteReportStartDate');
+            const endEl = document.getElementById('siteReportEndDate');
+            const granularityEl = document.getElementById('siteReportGranularity');
+            if (!startEl || !endEl || !granularityEl) return;
+
+            if (!isValidIsoDate(siteReportsEndDate)) {
+                siteReportsEndDate = getBeijingDateString();
+            }
+            if (!isValidIsoDate(siteReportsStartDate)) {
+                siteReportsStartDate = shiftIsoDate(siteReportsEndDate, -29);
+            }
+            if (!siteReportsGranularity) {
+                siteReportsGranularity = 'day';
+            }
+
+            if (!isValidIsoDate(String(startEl.value || '').trim())) {
+                startEl.value = siteReportsStartDate;
+            } else {
+                siteReportsStartDate = String(startEl.value || '').trim();
+            }
+            if (!isValidIsoDate(String(endEl.value || '').trim())) {
+                endEl.value = siteReportsEndDate;
+            } else {
+                siteReportsEndDate = String(endEl.value || '').trim();
+            }
+            const currentGranularity = String(granularityEl.value || '').trim().toLowerCase();
+            if (['year', 'month', 'week', 'day'].includes(currentGranularity)) {
+                siteReportsGranularity = currentGranularity;
+            } else {
+                granularityEl.value = siteReportsGranularity;
+            }
+            syncSiteReportDateInputLimits();
+        }
+
+        function updateSiteReportTrendHeading(granularity) {
+            const trendWrap = document.getElementById('siteReportTrend');
+            const heading = trendWrap ? trendWrap.previousElementSibling : null;
+            if (!heading) return;
+            const titleText = getSiteReportTrendTitle(granularity);
+            const firstNode = heading.firstChild;
+            if (firstNode && firstNode.nodeType === Node.TEXT_NODE) {
+                firstNode.textContent = titleText;
+                return;
+            }
+            if (firstNode && firstNode.nodeType === Node.ELEMENT_NODE && firstNode.tagName === 'SPAN') {
+                firstNode.textContent = titleText;
+                return;
+            }
+            heading.insertBefore(document.createTextNode(titleText), heading.firstChild);
+        }
+
         function setSiteReportsLoading(isLoading) {
             siteReportsLoading = !!isLoading;
             const btn = document.getElementById('siteReportRefreshBtn');
@@ -2971,9 +3090,10 @@
             setText('siteReportConversionRate', formatSiteReportPercent(safe.conversion_rate));
         }
 
-        function renderSiteReportTrend(rows) {
+        function renderSiteReportTrend(rows, meta = {}) {
             const wrap = document.getElementById('siteReportTrend');
             if (!wrap) return;
+            updateSiteReportTrendHeading(meta.granularity || 'day');
             const items = Array.isArray(rows) ? rows : [];
             if (!items.length) {
                 wrap.innerHTML = '<div class="no-data">暂无趋势数据</div>';
@@ -2981,6 +3101,9 @@
             }
             const prepared = items.map((item) => ({
                 date: String(item?.date || ''),
+                label: String(item?.label || item?.date || ''),
+                bucketStart: String(item?.bucket_start || item?.date || ''),
+                bucketEnd: String(item?.bucket_end || item?.date || ''),
                 pv: Math.max(0, Number(item?.pageviews || 0)),
                 uv: Math.max(0, Number(item?.unique_visitors || 0)),
             }));
@@ -3017,7 +3140,7 @@
                 const shouldShow = isFirst || isLast || (idx % labelStep === 0);
                 if (!shouldShow) return '';
                 const x = toX(idx);
-                const label = item.date.length >= 5 ? item.date.slice(5) : item.date;
+                const label = item.label || item.date;
                 return `<text class="site-report-line-label" x="${x.toFixed(2)}" y="${(height - 10).toFixed(2)}" text-anchor="middle">${escapeHtml(label)}</text>`;
             }).join('');
 
@@ -3030,13 +3153,13 @@
                 : '';
 
             const lastItem = prepared[prepared.length - 1] || { date: '-', pv: 0, uv: 0 };
-            const lastLabel = lastItem.date.length >= 5 ? lastItem.date.slice(5) : lastItem.date;
-            const summary = `最近一天(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
+            const lastLabel = lastItem.label || lastItem.date || '-';
+            const summary = `最后一组(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
 
             const tooltipId = 'siteReportTrendTooltip';
             wrap.innerHTML = `
                 <div class="site-report-line-wrap" style="position:relative;">
-                    <svg class="site-report-line-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="每日趋势折线图">
+                    <svg class="site-report-line-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="站点趋势折线图">
                         ${gridLines.join('')}
                         <line class="site-report-line-axis" x1="${padding.left}" y1="${(padding.top + plotHeight).toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${(padding.top + plotHeight).toFixed(2)}"></line>
                         <polyline class="site-report-line-pv" points="${pvPoints}"></polyline>
@@ -3072,8 +3195,12 @@
                     }
                 });
                 const item = prepared[closestIdx];
+                const rangeText = (item.bucketStart && item.bucketEnd && item.bucketStart !== item.bucketEnd)
+                    ? `${item.bucketStart} 至 ${item.bucketEnd}`
+                    : (item.bucketStart || item.bucketEnd || item.date);
                 tooltip.innerHTML = `
-                    <div class="site-report-line-tooltip-date">${escapeHtml(item.date)}</div>
+                    <div class="site-report-line-tooltip-date">${escapeHtml(item.label || item.date)}</div>
+                    <div class="site-report-line-tooltip-date">${escapeHtml(rangeText)}</div>
                     <div class="site-report-line-tooltip-pv"><span>PV</span><span>${formatSiteReportNumber(item.pv)}</span></div>
                     <div class="site-report-line-tooltip-uv"><span>UV</span><span>${formatSiteReportNumber(item.uv)}</span></div>
                 `;
@@ -3310,7 +3437,10 @@
             };
 
             renderSiteReportKpis(data.summary || {});
-            renderSiteReportTrend(data.trend || []);
+            renderSiteReportTrend(data.trend || [], {
+                granularity: data.granularity || siteReportsGranularity,
+                rangeLabel: data.range_label || ''
+            });
 
             const sourceBody = document.getElementById('siteReportSourceBody');
             const sourceRows = Array.isArray(data.source_breakdown) ? data.source_breakdown : [];
@@ -3423,11 +3553,11 @@
 
             const updatedEl = document.getElementById('siteReportLastUpdated');
             if (updatedEl) {
-                const rawRangeKey = String(data.range_key || siteReportsRangeKey || '30').trim();
+                if (isValidIsoDate(data.start_date)) siteReportsStartDate = String(data.start_date);
+                if (isValidIsoDate(data.end_date)) siteReportsEndDate = String(data.end_date);
+                if (String(data.granularity || '').trim()) siteReportsGranularity = String(data.granularity).trim();
                 const rangeLabel = String(data.range_label || '').trim()
-                    || (rawRangeKey === '24h'
-                        ? '最近24小时'
-                        : `最近 ${Number(data.range_days || rawRangeKey || 30)} 天`);
+                    || `${siteReportsStartDate} 至 ${siteReportsEndDate} · ${getSiteReportGranularityLabel(siteReportsGranularity)}`;
                 const generatedAt = formatChangelogTime(data.generated_at) || String(data.generated_at || '-');
                 updatedEl.textContent = `统计范围：${rangeLabel} · 数据更新时间：${generatedAt}`;
             }
@@ -3435,11 +3565,10 @@
 
         async function loadSiteReports(manual = false) {
             if (siteReportsLoading) return;
-            const rangeEl = document.getElementById('siteReportRangeDays');
-            if (rangeEl) {
-                const value = String(rangeEl.value || '').trim();
-                siteReportsRangeKey = value || '30';
-            }
+            ensureSiteReportFiltersInitialized();
+            const startEl = document.getElementById('siteReportStartDate');
+            const endEl = document.getElementById('siteReportEndDate');
+            const granularityEl = document.getElementById('siteReportGranularity');
 
             const msgEl = document.getElementById('siteReportMsg');
             if (msgEl) {
@@ -3447,9 +3576,46 @@
                 msgEl.textContent = '';
             }
 
+            const startDate = String(startEl?.value || '').trim();
+            const endDate = String(endEl?.value || '').trim();
+            const granularity = String(granularityEl?.value || 'day').trim().toLowerCase() || 'day';
+            const validGranularities = new Set(['year', 'month', 'week', 'day']);
+            syncSiteReportDateInputLimits();
+
+            let validationError = '';
+            if (!startDate || !endDate) {
+                validationError = '请选择完整的开始日期和结束日期';
+            } else if (!isValidIsoDate(startDate) || !isValidIsoDate(endDate)) {
+                validationError = '日期格式无效，请重新选择日期';
+            } else if (startDate > endDate) {
+                validationError = '开始日期不能晚于结束日期';
+            } else if (!validGranularities.has(granularity)) {
+                validationError = '显示粒度无效，请重新选择';
+            }
+
+            if (validationError) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = validationError;
+                }
+                if (manual) {
+                    showGlobalAlert(validationError);
+                }
+                return;
+            }
+
+            siteReportsStartDate = startDate;
+            siteReportsEndDate = endDate;
+            siteReportsGranularity = granularity;
+
             setSiteReportsLoading(true);
             try {
-                const res = await fetch(`/api/admin/site-reports?range_days=${encodeURIComponent(siteReportsRangeKey)}`, { cache: 'no-store' });
+                const params = new URLSearchParams({
+                    start_date: siteReportsStartDate,
+                    end_date: siteReportsEndDate,
+                    granularity: siteReportsGranularity
+                });
+                const res = await fetch(`/api/admin/site-reports?${params.toString()}`, { cache: 'no-store' });
                 const data = await parseJsonSafe(res);
                 if (!res.ok || data.success !== true) {
                     throw new Error(String(data.message || `加载报表失败（HTTP ${res.status || '-'}）`));
@@ -12861,6 +13027,8 @@
         function fillSubAccountEditForm(target) {
             const enabledEl = document.getElementById('subEditEnabled');
             const pwdEl = document.getElementById('subEditPassword');
+            const notifyMessageEl = document.getElementById('subEditNotifyMessageEmail');
+            const notifyJobEl = document.getElementById('subEditNotifyJobEmail');
             const msgEl = document.getElementById('subEditMsg');
             if (msgEl) {
                 msgEl.textContent = '';
@@ -12869,11 +13037,15 @@
             if (!target) {
                 if (enabledEl) enabledEl.checked = true;
                 if (pwdEl) pwdEl.value = '';
+                if (notifyMessageEl) notifyMessageEl.checked = false;
+                if (notifyJobEl) notifyJobEl.checked = false;
                 renderPermissionGrid('subEditPermissionsGrid', []);
                 return;
             }
             if (enabledEl) enabledEl.checked = target.enabled !== false;
             if (pwdEl) pwdEl.value = '';
+            if (notifyMessageEl) notifyMessageEl.checked = target.notify_message_email === true;
+            if (notifyJobEl) notifyJobEl.checked = target.notify_job_email === true;
             renderPermissionGrid('subEditPermissionsGrid', Array.isArray(target.permissions) ? target.permissions : []);
         }
 
@@ -12920,7 +13092,7 @@
                 countEl.textContent = String(subAccountsCache.length || 0);
             }
             if (!subAccountsCache.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无子账号</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">暂无子账号</td></tr>';
                 return;
             }
 
@@ -12937,12 +13109,18 @@
                 const updateText = item.updated_at ? (formatChangelogTime(item.updated_at) || item.updated_at) : '-';
                 const statusText = enabled ? '启用' : '禁用';
                 const statusColor = enabled ? '#16a34a' : '#dc2626';
+                const notifyMessageText = item.notify_message_email === true ? '接收' : '关闭';
+                const notifyMessageColor = item.notify_message_email === true ? '#16a34a' : '#64748b';
+                const notifyJobText = item.notify_job_email === true ? '接收' : '关闭';
+                const notifyJobColor = item.notify_job_email === true ? '#16a34a' : '#64748b';
 
                 return `
                     <tr>
                         <td>${escapeHtml(username)}</td>
                         <td><span style="font-weight:700; color:${statusColor};">${statusText}</span></td>
                         <td title="${escapeHtml(permissionText)}" style="max-width: 360px;">${escapeHtml(permissionText)}</td>
+                        <td><span style="font-weight:700; color:${notifyMessageColor};">${notifyMessageText}</span></td>
+                        <td><span style="font-weight:700; color:${notifyJobColor};">${notifyJobText}</span></td>
                         <td>${escapeHtml(loginText)}</td>
                         <td>${escapeHtml(updateText)}</td>
                         <td>
@@ -13026,6 +13204,8 @@
                 const username = String(document.getElementById('subCreateUsername')?.value || '').trim();
                 const password = String(document.getElementById('subCreatePassword')?.value || '');
                 const enabled = !!document.getElementById('subCreateEnabled')?.checked;
+                const notifyMessageEmail = !!document.getElementById('subCreateNotifyMessageEmail')?.checked;
+                const notifyJobEmail = !!document.getElementById('subCreateNotifyJobEmail')?.checked;
                 const permissions = readPermissionGrid('subCreatePermissionsGrid');
 
                 if (msg) {
@@ -13046,7 +13226,14 @@
                     const res = await fetch('/api/admin/subaccounts', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password, enabled, permissions })
+                        body: JSON.stringify({
+                            username,
+                            password,
+                            enabled,
+                            permissions,
+                            notify_message_email: notifyMessageEmail,
+                            notify_job_email: notifyJobEmail
+                        })
                     });
                     const data = await parseJsonSafe(res);
                     if (!res.ok || !data.success) {
@@ -13092,6 +13279,8 @@
 
                 const enabled = !!document.getElementById('subEditEnabled')?.checked;
                 const password = String(document.getElementById('subEditPassword')?.value || '');
+                const notifyMessageEmail = !!document.getElementById('subEditNotifyMessageEmail')?.checked;
+                const notifyJobEmail = !!document.getElementById('subEditNotifyJobEmail')?.checked;
                 const permissions = readPermissionGrid('subEditPermissionsGrid');
                 if (permissions.length === 0) {
                     if (msg) {
@@ -13113,7 +13302,9 @@
                         body: JSON.stringify({
                             enabled,
                             permissions,
-                            password
+                            password,
+                            notify_message_email: notifyMessageEmail,
+                            notify_job_email: notifyJobEmail
                         })
                     });
                     const data = await parseJsonSafe(res);

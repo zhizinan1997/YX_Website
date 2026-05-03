@@ -2501,6 +2501,19 @@
                                     <label>权限（逐项勾选）</label>
                                     <div id="subCreatePermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
                                 </div>
+                                <div class="form-group">
+                                    <label>邮件提醒</label>
+                                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px;">
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subCreateNotifyMessageEmail">
+                                            <span>留言推送邮件</span>
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subCreateNotifyJobEmail">
+                                            <span>应聘推送邮件</span>
+                                        </label>
+                                    </div>
+                                </div>
                                 <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">添加子账号</button>
                                 <div id="subCreateMsg" class="error-message" style="color:#28a745;"></div>
                             </form>
@@ -2518,6 +2531,8 @@
                                             <th>用户名</th>
                                             <th>状态</th>
                                             <th>权限</th>
+                                            <th>留言推送</th>
+                                            <th>应聘推送</th>
                                             <th>最近登录</th>
                                             <th>更新时间</th>
                                             <th>操作</th>
@@ -2525,7 +2540,7 @@
                                     </thead>
                                     <tbody id="subAccountsListBody">
                                         <tr>
-                                            <td colspan="6" class="no-data">暂无子账号</td>
+                                            <td colspan="8" class="no-data">暂无子账号</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -2551,6 +2566,19 @@
                                 <div class="form-group">
                                     <label>权限（逐项勾选）</label>
                                     <div id="subEditPermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label>邮件提醒</label>
+                                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px;">
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subEditNotifyMessageEmail">
+                                            <span>留言推送邮件</span>
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subEditNotifyJobEmail">
+                                            <span>应聘推送邮件</span>
+                                        </label>
+                                    </div>
                                 </div>
                                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                                     <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">保存账号设置</button>
@@ -2736,15 +2764,26 @@
                                 <div class="form-hint">基础分析 + 完整分析：PV/UV、来源、设备、会话、跳出率、转化与事件趋势，中国按省/海外按洲地图，并集中查看历史登录日志</div>
                             </div>
                             <div class="site-report-actions">
-                                <label for="siteReportRangeDays" class="site-report-label">时间范围</label>
-                                <select id="siteReportRangeDays" class="form-control site-report-range-select"
-                                    onchange="loadSiteReports(true)">
-                                    <option value="24h">最近24小时</option>
-                                    <option value="7">最近 7 天</option>
-                                    <option value="30" selected>最近 30 天</option>
-                                    <option value="90">最近 90 天</option>
-                                    <option value="180">最近 180 天</option>
-                                </select>
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportStartDate" class="site-report-label">开始日期</label>
+                                    <input type="date" id="siteReportStartDate" class="form-control site-report-filter-control site-report-date-input"
+                                        onchange="loadSiteReports()">
+                                </div>
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportEndDate" class="site-report-label">结束日期</label>
+                                    <input type="date" id="siteReportEndDate" class="form-control site-report-filter-control site-report-date-input"
+                                        onchange="loadSiteReports()">
+                                </div>
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportGranularity" class="site-report-label">显示粒度</label>
+                                    <select id="siteReportGranularity" class="form-control site-report-filter-control site-report-granularity-select"
+                                        onchange="loadSiteReports()">
+                                        <option value="year">按年显示</option>
+                                        <option value="month">按月显示</option>
+                                        <option value="week">按周显示</option>
+                                        <option value="day" selected>按天显示</option>
+                                    </select>
+                                </div>
                                 <button type="button" class="btn-primary site-report-refresh-btn" id="siteReportRefreshBtn"
                                     onclick="loadSiteReports(true)">
                                     <i class="fas fa-sync-alt"></i> 刷新报表

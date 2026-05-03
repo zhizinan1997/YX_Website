@@ -3189,16 +3189,33 @@
             flex-wrap: wrap;
         }
 
+        .site-report-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 152px;
+        }
+
         .site-report-label {
             font-size: 13px;
             color: #4b5563;
             font-weight: 600;
         }
 
+        .site-report-filter-control,
         .site-report-range-select {
             width: 140px;
             min-width: 120px;
             padding: 9px 10px;
+        }
+
+        .site-report-date-input {
+            width: 170px;
+            min-width: 170px;
+        }
+
+        .site-report-granularity-select {
+            width: 140px;
         }
 
         .site-report-refresh-btn {
@@ -3805,8 +3822,15 @@
                 width: 100%;
             }
 
+            .site-report-filter-group {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .site-report-filter-control,
             .site-report-range-select {
                 width: 100%;
+                min-width: 0;
             }
 
             .site-report-refresh-btn {
