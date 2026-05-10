@@ -2972,6 +2972,68 @@
             return titleMap[key] || '按天趋势';
         }
 
+        function formatSiteReportTrendFullDate(dateText) {
+            const text = String(dateText || '').trim();
+            const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+            if (!match) return text;
+            return `${match[1]}/${match[2]}/${match[3]}`;
+        }
+
+        function formatSiteReportTrendAxisLabel(item, granularity) {
+            const key = String(granularity || 'day').trim().toLowerCase();
+            const start = String(item?.bucketStart || item?.bucket_start || item?.date || '').trim();
+            const end = String(item?.bucketEnd || item?.bucket_end || item?.date || '').trim();
+            const label = String(item?.label || item?.date || '').trim();
+
+            if (key === 'week') {
+                const startFull = formatSiteReportTrendFullDate(start);
+                const endFull = formatSiteReportTrendFullDate(end);
+                if (startFull && endFull) return startFull === endFull ? startFull : `${startFull}-${endFull}`;
+                return label;
+            }
+            if (key === 'month') return start ? start.slice(0, 7) : label;
+            if (key === 'year') return start ? start.slice(0, 4) : label;
+            if (key === 'day') return start ? start.slice(5) : label;
+            return label;
+        }
+
+        function buildSiteReportTrendYAxis(maxValue, desiredTicks = 4) {
+            const safeMax = Math.max(0, Number(maxValue) || 0);
+            if (safeMax <= 0) {
+                return { max: 1, step: 1, ticks: [1, 0] };
+            }
+
+            const targetTicks = Math.max(1, Number(desiredTicks) || 4);
+            const rawStep = safeMax / targetTicks;
+            const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+            const candidates = [1, 2, 2.5, 5, 10].map((factor) => factor * magnitude);
+            let step = candidates[0];
+            let bestDiff = Infinity;
+
+            candidates.forEach((candidate) => {
+                const diff = Math.abs(candidate - rawStep);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    step = candidate;
+                }
+            });
+
+            const chartMax = Math.ceil(safeMax / step) * step;
+            const ticks = [];
+            for (let value = chartMax; value > 0; value -= step) {
+                ticks.push(value);
+            }
+            ticks.push(0);
+            return { max: chartMax, step, ticks };
+        }
+
+        function formatSiteReportTrendTickValue(value) {
+            const num = Number(value || 0);
+            if (!Number.isFinite(num)) return '0';
+            if (Number.isInteger(num)) return formatSiteReportNumber(num);
+            return num.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+        }
+
         function getBeijingDateString(date = new Date()) {
             const parts = new Intl.DateTimeFormat('en-US', {
                 timeZone: 'Asia/Shanghai',
@@ -3093,7 +3155,8 @@
         function renderSiteReportTrend(rows, meta = {}) {
             const wrap = document.getElementById('siteReportTrend');
             if (!wrap) return;
-            updateSiteReportTrendHeading(meta.granularity || 'day');
+            const granularity = String(meta.granularity || 'day').trim().toLowerCase() || 'day';
+            updateSiteReportTrendHeading(granularity);
             const items = Array.isArray(rows) ? rows : [];
             if (!items.length) {
                 wrap.innerHTML = '<div class="no-data">暂无趋势数据</div>';
@@ -3106,12 +3169,25 @@
                 bucketEnd: String(item?.bucket_end || item?.date || ''),
                 pv: Math.max(0, Number(item?.pageviews || 0)),
                 uv: Math.max(0, Number(item?.unique_visitors || 0)),
+                axisLabel: formatSiteReportTrendAxisLabel(item, granularity),
             }));
             const maxValue = Math.max(1, ...prepared.map(item => Math.max(item.pv, item.uv)));
+            const yAxis = buildSiteReportTrendYAxis(maxValue, 4);
+            const chartMax = Math.max(1, Number(yAxis.max) || 1);
 
-            const width = Math.max(920, prepared.length * 40);
-            const height = 240;
-            const padding = { left: 8, right: 4, top: 16, bottom: 34 };
+            const height = 340;
+            const padding = { left: 52, right: 18, top: 22, bottom: 52 };
+            const wrapRect = wrap.getBoundingClientRect ? wrap.getBoundingClientRect() : { width: 0 };
+            const wrapStyle = window.getComputedStyle ? window.getComputedStyle(wrap) : null;
+            const wrapPaddingX = wrapStyle
+                ? ((parseFloat(wrapStyle.paddingLeft) || 0) + (parseFloat(wrapStyle.paddingRight) || 0))
+                : 0;
+            const availableWidth = Math.max(720, Math.floor((wrapRect.width || wrap.clientWidth || 0) - wrapPaddingX));
+            const maxLabelChars = Math.max(5, ...prepared.map(item => (item.axisLabel || item.label || '').length));
+            const slotBaseMap = { year: 88, month: 96, week: 190, day: 64, hour: 72 };
+            const slotWidth = Math.max(slotBaseMap[granularity] || 72, Math.min(220, (maxLabelChars * 8) + 28));
+            const dataWidth = padding.left + padding.right + (Math.max(1, prepared.length - 1) * slotWidth);
+            const width = Math.ceil(Math.max(availableWidth, dataWidth));
             const plotWidth = Math.max(1, width - padding.left - padding.right);
             const plotHeight = Math.max(1, height - padding.top - padding.bottom);
 
@@ -3119,47 +3195,46 @@
                 if (prepared.length <= 1) return padding.left + plotWidth / 2;
                 return padding.left + (idx / (prepared.length - 1)) * plotWidth;
             };
-            const toY = (value) => padding.top + ((maxValue - value) / maxValue) * plotHeight;
+            const toY = (value) => padding.top + ((chartMax - value) / chartMax) * plotHeight;
 
             const pvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.pv).toFixed(2)}`).join(' ');
             const uvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.uv).toFixed(2)}`).join(' ');
 
             const gridLines = [];
-            for (let i = 0; i <= 4; i += 1) {
-                const ratio = i / 4;
-                const y = padding.top + ratio * plotHeight;
-                const val = Math.round(maxValue * (1 - ratio));
+            const yTicks = Array.isArray(yAxis.ticks) && yAxis.ticks.length ? yAxis.ticks : [chartMax, 0];
+            yTicks.forEach((tickValue) => {
+                const y = toY(Number(tickValue) || 0);
                 gridLines.push(`<line class="site-report-line-grid" x1="${padding.left}" y1="${y.toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${y.toFixed(2)}"></line>`);
-                gridLines.push(`<text class="site-report-line-y-label" x="${(padding.left - 6).toFixed(2)}" y="${(y + 3).toFixed(2)}" text-anchor="end">${escapeHtml(formatSiteReportNumber(val))}</text>`);
-            }
+                gridLines.push(`<text class="site-report-line-y-label" x="${(padding.left - 10).toFixed(2)}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatSiteReportTrendTickValue(tickValue))}</text>`);
+            });
 
-            const labelStep = Math.max(1, Math.ceil(prepared.length / 10));
+            const labelStep = prepared.length <= 10 ? 1 : Math.max(1, Math.ceil(prepared.length / 8));
             const xLabels = prepared.map((item, idx) => {
                 const isLast = idx === prepared.length - 1;
                 const isFirst = idx === 0;
                 const shouldShow = isFirst || isLast || (idx % labelStep === 0);
                 if (!shouldShow) return '';
                 const x = toX(idx);
-                const label = item.label || item.date;
+                const label = item.axisLabel || item.label || item.date;
                 return `<text class="site-report-line-label" x="${x.toFixed(2)}" y="${(height - 10).toFixed(2)}" text-anchor="middle">${escapeHtml(label)}</text>`;
             }).join('');
 
             const drawPoints = prepared.length <= 60;
             const pvDots = drawPoints
-                ? prepared.map((item, idx) => `<circle class="site-report-line-point-pv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.pv).toFixed(2)}" r="2.4"></circle>`).join('')
+                ? prepared.map((item, idx) => `<circle class="site-report-line-point-pv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.pv).toFixed(2)}" r="3.8"></circle>`).join('')
                 : '';
             const uvDots = drawPoints
-                ? prepared.map((item, idx) => `<circle class="site-report-line-point-uv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.uv).toFixed(2)}" r="2.2"></circle>`).join('')
+                ? prepared.map((item, idx) => `<circle class="site-report-line-point-uv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.uv).toFixed(2)}" r="3.4"></circle>`).join('')
                 : '';
 
-            const lastItem = prepared[prepared.length - 1] || { date: '-', pv: 0, uv: 0 };
-            const lastLabel = lastItem.label || lastItem.date || '-';
+            const lastItem = prepared[prepared.length - 1] || { date: '-', axisLabel: '-', pv: 0, uv: 0 };
+            const lastLabel = lastItem.axisLabel || lastItem.label || lastItem.date || '-';
             const summary = `最后一组(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
 
             const tooltipId = 'siteReportTrendTooltip';
             wrap.innerHTML = `
                 <div class="site-report-line-wrap" style="position:relative;">
-                    <svg class="site-report-line-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="站点趋势折线图">
+                    <svg class="site-report-line-svg" width="${width}" height="${height}" style="width:${width}px;" viewBox="0 0 ${width} ${height}" role="img" aria-label="站点趋势折线图">
                         ${gridLines.join('')}
                         <line class="site-report-line-axis" x1="${padding.left}" y1="${(padding.top + plotHeight).toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${(padding.top + plotHeight).toFixed(2)}"></line>
                         <polyline class="site-report-line-pv" points="${pvPoints}"></polyline>
@@ -3181,6 +3256,7 @@
             const tooltip = document.getElementById(tooltipId);
 
             svg.addEventListener('mousemove', (e) => {
+                const lineWrap = svg.closest('.site-report-line-wrap');
                 const svgRect = svg.getBoundingClientRect();
                 const scaleX = svgRect.width / width;
                 const scaleY = svgRect.height / height;
@@ -3199,7 +3275,7 @@
                     ? `${item.bucketStart} 至 ${item.bucketEnd}`
                     : (item.bucketStart || item.bucketEnd || item.date);
                 tooltip.innerHTML = `
-                    <div class="site-report-line-tooltip-date">${escapeHtml(item.label || item.date)}</div>
+                    <div class="site-report-line-tooltip-date">${escapeHtml(item.axisLabel || item.label || item.date)}</div>
                     <div class="site-report-line-tooltip-date">${escapeHtml(rangeText)}</div>
                     <div class="site-report-line-tooltip-pv"><span>PV</span><span>${formatSiteReportNumber(item.pv)}</span></div>
                     <div class="site-report-line-tooltip-uv"><span>UV</span><span>${formatSiteReportNumber(item.uv)}</span></div>
@@ -3209,8 +3285,12 @@
                     const tooltipRect = tooltip.getBoundingClientRect();
                     const tooltipWidth = tooltipRect.width;
                     const tooltipHeight = tooltipRect.height;
-                    let left = e.clientX - svgRect.left - tooltipWidth / 2;
-                    left = Math.max(0, Math.min(left, svgRect.width - tooltipWidth));
+                    const scrollLeft = lineWrap ? lineWrap.scrollLeft : 0;
+                    const viewportWidth = lineWrap ? lineWrap.clientWidth : svgRect.width;
+                    let left = (toX(closestIdx) * scaleX) - (tooltipWidth / 2);
+                    const minLeft = scrollLeft + 4;
+                    const maxLeft = Math.max(minLeft, scrollLeft + viewportWidth - tooltipWidth - 4);
+                    left = Math.max(minLeft, Math.min(left, maxLeft));
                     let top = (toY(item.pv) * scaleY) - tooltipHeight - 8;
                     top = Math.max(0, Math.min(top, svgRect.height - tooltipHeight));
                     tooltip.style.left = `${left}px`;

@@ -3239,6 +3239,7 @@
         }
 
         .site-report-line-wrap {
+            position: relative;
             width: 100%;
             overflow-x: auto;
             overflow-y: hidden;
@@ -3263,26 +3264,28 @@
         }
 
         .site-report-line-svg {
-            width: 100%;
-            height: 280px;
+            width: auto;
+            min-width: 100%;
+            max-width: none;
+            height: 340px;
             display: block;
         }
 
         .site-report-line-grid {
             stroke: #e2e8f0;
-            stroke-width: 1;
+            stroke-width: 1.2;
             stroke-dasharray: 4 4;
         }
 
         .site-report-line-axis {
             stroke: #94a3b8;
-            stroke-width: 1.5;
+            stroke-width: 1.75;
         }
 
         .site-report-line-pv {
             fill: none;
             stroke: #3b82f6;
-            stroke-width: 3;
+            stroke-width: 3.75;
             stroke-linecap: round;
             stroke-linejoin: round;
             filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
@@ -3291,7 +3294,7 @@
         .site-report-line-uv {
             fill: none;
             stroke: #10b981;
-            stroke-width: 3;
+            stroke-width: 3.75;
             stroke-linecap: round;
             stroke-linejoin: round;
             filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
@@ -3306,13 +3309,13 @@
         .site-report-line-point-pv {
             fill: #ffffff;
             stroke: #3b82f6;
-            stroke-width: 2.5;
-            r: 5;
+            stroke-width: 2.75;
+            r: 6;
         }
 
         .site-report-line-point-pv:hover,
         .site-report-line-point-pv.highlight {
-            r: 8;
+            r: 9;
             fill: #3b82f6;
             filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
         }
@@ -3320,27 +3323,27 @@
         .site-report-line-point-uv {
             fill: #ffffff;
             stroke: #10b981;
-            stroke-width: 2.5;
-            r: 5;
+            stroke-width: 2.75;
+            r: 6;
         }
 
         .site-report-line-point-uv:hover,
         .site-report-line-point-uv.highlight {
-            r: 8;
+            r: 9;
             fill: #10b981;
             filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
         }
 
         .site-report-line-label {
-            font-size: 11px;
+            font-size: 12px;
             fill: #64748b;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .site-report-line-y-label {
-            font-size: 11px;
+            font-size: 12px;
             fill: #64748b;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .site-report-line-legend {
@@ -3387,8 +3390,8 @@
 
         .site-report-line-summary {
             margin-top: 10px;
-            font-weight: 600;
-            font-size: 13px;
+            font-weight: 700;
+            font-size: 14px;
             color: #475569;
             padding: 8px 14px;
             background: linear-gradient(135deg, #f8fafc, #f1f5f9);
@@ -3842,7 +3845,7 @@
             }
 
             .site-report-line-svg {
-                height: 220px;
+                height: 280px;
             }
 
             .site-report-pagination {
