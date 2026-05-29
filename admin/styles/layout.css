@@ -22,7 +22,9 @@
 
 .admin2-root .sidebar-header {
     position: relative;
-    height: 76px;
+    height: var(--admin2-sidebar-header-height);
+    min-height: var(--admin2-sidebar-header-height);
+    flex: 0 0 var(--admin2-sidebar-header-height);
     padding: 0 22px;
     border-bottom-color: rgba(255, 255, 255, 0.08);
     color: #f4fbff;
@@ -71,8 +73,38 @@
 }
 
 @media (max-width: 1024px) {
+    .admin2-root .dashboard {
+        position: relative;
+    }
+
     .admin2-root .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: min(82vw, 320px);
+        max-width: 320px;
+        height: 100dvh;
+        z-index: 1300;
+        transform: translateX(-110%);
+        transition: transform 0.24s ease, box-shadow 0.24s ease;
         box-shadow: none;
+    }
+
+    body.admin2-root.mobile-sidebar-open .sidebar {
+        transform: translateX(0);
+        box-shadow: 0 20px 44px rgba(2, 6, 23, 0.36);
+    }
+
+    body.admin2-root.mobile-sidebar-open .sidebar-overlay {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .admin2-root .main-content {
+        width: 100%;
+        min-width: 0;
     }
 
     .admin2-root .content-area {
@@ -81,5 +113,31 @@
 
     .admin2-root .top-bar {
         padding: 12px 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin2-root .top-bar {
+        height: 64px;
+        min-height: 64px;
+        flex-wrap: nowrap;
+        gap: 10px;
+        padding: 0 16px;
+    }
+
+    .admin2-root .top-bar-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .admin2-root .top-bar-actions {
+        flex: 0 0 auto;
+        margin-left: auto;
+        gap: 0;
+    }
+
+    .admin2-root .version-badge,
+    .admin2-root .top-home-btn {
+        display: none;
     }
 }

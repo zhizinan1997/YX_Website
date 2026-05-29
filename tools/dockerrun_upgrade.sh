@@ -558,6 +558,39 @@ backup_dir_if_exists() {
   fi
 }
 
+backup_existing_content_before_update() {
+  if [[ "$DEPLOY_KIND" != "update" ]]; then
+    return 0
+  fi
+
+  local backup_root="$YX_ROOT/backups/pre-upgrade-$(date '+%Y%m%d-%H%M%S')"
+  phase "Backing up existing customer content before upgrade"
+  backup_dir_if_exists "$DATA_DIR" "$backup_root" "data"
+  backup_dir_if_exists "$PAGES_DIR" "$backup_root" "pages"
+  backup_dir_if_exists "$CDN_ASSETS_DIR" "$backup_root" "cdn_assets"
+  backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn"
+  if [[ -f "$DATA_DIR/config.json" ]]; then
+    mkdir -p "$backup_root/config"
+    cp -p "$DATA_DIR/config.json" "$backup_root/config/config.json"
+    info "Backed up legacy config: $backup_root/config/config.json"
+  fi
+}
+
+disable_legacy_cdn_redirect_config() {
+  local config_file="$DATA_DIR/config.json"
+  [[ -f "$config_file" ]] || return 0
+
+  local migration_dir="$YX_ROOT/backups/cdn-config-migration-$(date '+%Y%m%d-%H%M%S')"
+  mkdir -p "$migration_dir"
+  cp -p "$config_file" "$migration_dir/config.json"
+  info "Backed up CDN redirect config before disabling legacy redirects: $migration_dir/config.json"
+
+  if grep -q '"cdn_enabled"[[:space:]]*:[[:space:]]*true' "$config_file"; then
+    sed -i 's/"cdn_enabled"[[:space:]]*:[[:space:]]*true/"cdn_enabled": false/g' "$config_file"
+    info "Disabled legacy cdn_enabled flag; ESA should cache /cdn_assets on the main domain."
+  fi
+}
+
 reset_host_content_from_image() {
   local backup_root="$1"
 
@@ -720,6 +753,8 @@ resolve_basic_runtime_values() {
   info "CDN_ENABLED=${CDN_ENABLED_VAL}（来源：${value_source}）"
 
   pick_value CDN_DOMAIN "" CDN_DOMAIN_VAL value_source
+  CDN_ENABLED_VAL=false
+  info "CDN dedicated domain redirects are deprecated; /cdn_assets is served on the main site domain for ESA caching."
   info "CDN_DOMAIN=${CDN_DOMAIN_VAL:-<未设置>}（来源：${value_source}）"
 
   pick_value TURNSTILE_ENABLED false TURNSTILE_ENABLED_VAL value_source
@@ -900,7 +935,7 @@ determine_deploy_kind_and_strategy() {
 
 prepare_directories_and_network() {
   phase "准备目录和 Docker 网络"
-  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$DATA_DIR/logs"
 
   if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
     info "Docker 网络已存在：$NETWORK_NAME"
@@ -931,7 +966,6 @@ pull_with_timeout() {
 pull_latest_images() {
   phase "拉取最新镜像"
   pull_with_timeout "$WEBSITE_IMAGE" "网站"
-  pull_with_timeout "$GATEWAY_IMAGE" "网关"
 }
 
 prepare_content_for_fresh_or_reset() {
@@ -1018,6 +1052,7 @@ recreate_containers() {
     --restart unless-stopped
     --network "$NETWORK_NAME"
     --network-alias "$WEBSITE_CONTAINER"
+    -p "127.0.0.1:${MAIN_PORT}:8000"
     -e "APP_ENV=$APP_ENV_VAL"
     -e "SECRET_KEY=$SECRET_KEY_VAL"
     -e "PUBLIC_BASE_URL=$PUBLIC_BASE_URL_VAL"
@@ -1027,6 +1062,8 @@ recreate_containers() {
     -e "CDN_ENABLED=$CDN_ENABLED_VAL"
     -e "TURNSTILE_ENABLED=$TURNSTILE_ENABLED_VAL"
     -e "ALLOW_WEAK_ADMIN_PASSWORDS=$ALLOW_WEAK_ADMIN_PASSWORDS_VAL"
+    -e "DOCKER_CONTAINER_1_NAME=$WEBSITE_CONTAINER"
+    -e "DOCKER_LOG_FALLBACK_APP_FILES=/app/data/logs/gunicorn-error.log,/app/data/logs/gunicorn-access.log,/app/data/logs/app.log"
     -v "$DATA_DIR:/app/data"
     -v "$PAGES_DIR:/app/pages"
     -v "$CDN_ASSETS_DIR:/app/cdn_assets"
@@ -1064,6 +1101,7 @@ recreate_containers() {
   info "网站容器挂载：$DATA_DIR -> /app/data"
   info "网站容器挂载：$PAGES_DIR -> /app/pages"
   info "网站容器挂载：$CDN_ASSETS_DIR -> /app/cdn_assets"
+  info "网站/网关共享日志目录：$DATA_DIR/logs"
 
   set +e
   WEBSITE_CONTAINER_ID="$("${website_cmd[@]}" 2>&1)"
@@ -1084,47 +1122,13 @@ recreate_containers() {
     info "已将网站容器连接到 bridge 网络。"
   fi
 
-  gateway_cmd=(
-    docker run -d
-    --name "$GATEWAY_CONTAINER"
-    --restart unless-stopped
-    --network "$NETWORK_NAME"
-    -p "127.0.0.1:${MAIN_PORT}:80"
-    -p "127.0.0.1:${CDN_PORT}:81"
-    "$GATEWAY_IMAGE"
-  )
-
-  info "正在启动网关容器：$GATEWAY_CONTAINER"
-  info "网关容器端口映射：127.0.0.1:${MAIN_PORT} -> 80"
-  info "网关容器端口映射：127.0.0.1:${CDN_PORT} -> 81"
-
-  set +e
-  GATEWAY_CONTAINER_ID="$("${gateway_cmd[@]}" 2>&1)"
-  local gw_exit=$?
-  set -e
-
-  if (( gw_exit != 0 )); then
-    warn "新网关容器启动失败（退出码：$gw_exit）：$GATEWAY_CONTAINER_ID"
-    docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
-    rollback_containers "$has_old_website" "$has_old_gateway"
-    die "新网关容器启动失败，已回滚到旧版本。请检查镜像和配置。"
-  fi
-  success "网关容器启动成功，容器 ID：${GATEWAY_CONTAINER_ID:0:12}"
-
-  # 同时连接 bridge 网络，确保端口映射和域名访问正常
-  if ! docker network connect bridge "$GATEWAY_CONTAINER" 2>/dev/null; then
-    info "网关容器已在 bridge 网络中，跳过。"
-  else
-    info "已将网关容器连接到 bridge 网络。"
-  fi
-
-  # 等待容器初始化稳定
+  info "Gateway container is deprecated in single-domain ESA deployments and will not be restarted."
   info "等待容器初始化（3 秒）..."
   sleep 3
 
   # 验证新容器是否稳定运行
   local rollback_needed=false
-  for c in "$WEBSITE_CONTAINER" "$GATEWAY_CONTAINER"; do
+  for c in "$WEBSITE_CONTAINER"; do
     if ! docker ps --filter "name=^/${c}$" --format '{{.Names}}' | grep -qx "$c"; then
       warn "容器 '$c' 启动后未能稳定运行。最近日志："
       docker logs --tail 20 "$c" 2>&1 || true
@@ -1135,7 +1139,6 @@ recreate_containers() {
   if [[ "$rollback_needed" == "true" ]]; then
     warn "新容器未能稳定运行，正在回滚到旧版本..."
     docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
-    docker rm -f "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
     rollback_containers "$has_old_website" "$has_old_gateway"
     die "新容器启动后崩溃，已回滚到旧版本。请查看上方日志排查原因。"
   fi
@@ -1155,7 +1158,7 @@ recreate_containers() {
 
 verify_containers() {
   phase "验证容器运行状态"
-  for c in "$WEBSITE_CONTAINER" "$GATEWAY_CONTAINER"; do
+  for c in "$WEBSITE_CONTAINER"; do
     if ! docker ps --filter "name=^/${c}$" --format '{{.Names}}' | grep -qx "$c"; then
       die "容器 '$c' 未正常运行，请执行 docker logs $c 查看原因。"
     fi
@@ -1223,9 +1226,7 @@ show_help() {
   WEBSITE_CONTAINER=yx-website
   GATEWAY_CONTAINER=yx-gateway
   WEBSITE_IMAGE=ghcr.io/zhizinan1997/yx_website:latest
-  GATEWAY_IMAGE=ghcr.io/zhizinan1997/yx-gateway:latest
   MAIN_PORT=2026
-  CDN_PORT=2027
   CLEAN_OLD_IMAGES=true
   DEPLOY_STRATEGY=smart|reset|reset-keep-data
   ALLOW_WEAK_ADMIN_PASSWORDS=true|false
@@ -1254,9 +1255,7 @@ NETWORK_NAME="${NETWORK_NAME:-yx-net}"
 WEBSITE_CONTAINER="${WEBSITE_CONTAINER:-yx-website}"
 GATEWAY_CONTAINER="${GATEWAY_CONTAINER:-yx-gateway}"
 WEBSITE_IMAGE="${WEBSITE_IMAGE:-ghcr.io/zhizinan1997/yx_website:latest}"
-GATEWAY_IMAGE="${GATEWAY_IMAGE:-ghcr.io/zhizinan1997/yx-gateway:latest}"
 MAIN_PORT="${MAIN_PORT:-2026}"
-CDN_PORT="${CDN_PORT:-2027}"
 CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
 
 DATA_DIR="$YX_ROOT/data"
@@ -1307,12 +1306,12 @@ fi
 phase "开始执行站点部署脚本"
 info "脚本目标目录：$YX_ROOT"
 info "网站镜像：$WEBSITE_IMAGE"
-info "网关镜像：$GATEWAY_IMAGE"
 info "主站端口：$MAIN_PORT"
-info "CDN 端口：$CDN_PORT"
+info "CDN 专用入口已废弃；/cdn_assets 会走主站端口并交给 ESA 缓存。"
 
 load_existing_state
 determine_deploy_kind_and_strategy
+backup_existing_content_before_update
 resolve_basic_runtime_values
 resolve_secret_key
 resolve_public_base_url
@@ -1327,6 +1326,7 @@ else
   prepare_content_for_smart_update
 fi
 
+disable_legacy_cdn_redirect_config
 resolve_admin_bootstrap_if_needed
 validate_hidden_admin_runtime_values
 
@@ -1345,7 +1345,7 @@ if [[ "$DEPLOY_KIND" == "update" ]]; then
   info "本次更新策略：$DEPLOY_STRATEGY_MODE"
 fi
 success "主站入口：http://127.0.0.1:${MAIN_PORT}"
-success "CDN 入口：http://127.0.0.1:${CDN_PORT}"
+success "CDN 素材入口已合并到主站：/cdn_assets/"
 if has_regular_files "$DATA_CONFLICTS_DIR"; then
   warn "检测到 data 合并冲突，请检查：$DATA_CONFLICTS_DIR"
 fi

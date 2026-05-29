@@ -6,6 +6,12 @@
 (function () {
     'use strict';
 
+    // Guard against duplicate script injection from page templates and loader scripts.
+    if (window.__METACHIP_CHATBOT_INITIALIZED__) {
+        return;
+    }
+    window.__METACHIP_CHATBOT_INITIALIZED__ = true;
+
     const CHATBOT_MIN_WIDTH = 360;
     const CHATBOT_DESKTOP_DEFAULT_WIDTH = 460;
     const CHATBOT_MOBILE_BREAKPOINT = 480;

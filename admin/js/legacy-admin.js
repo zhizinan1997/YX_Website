@@ -26,6 +26,7 @@
         let turnstileToken = '';
         let turnstileScriptPromise = null;
         let emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
+        let loginAuthMode = 'email_code';
         let pendingLoginId = '';
         let pendingLoginEmailMasked = '';
         let loginEmailCodeCountdown = 0;
@@ -57,7 +58,9 @@
             is_super_admin: false,
             permissions: []
         };
-        let siteReportsRangeKey = '30';
+        let siteReportsStartDate = '';
+        let siteReportsEndDate = '';
+        let siteReportsGranularity = 'day';
         let siteReportsLoading = false;
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
@@ -165,21 +168,42 @@
         function updateTopbarAccountDisplay() {
             const usernameEl = document.getElementById('topbarUsername');
             const menuUsernameEl = document.getElementById('accountMenuUsername');
+            const menuEmailEl = document.getElementById('accountMenuEmail');
             const menuRoleEl = document.getElementById('accountMenuRole');
             const menuPermissionsEl = document.getElementById('accountMenuPermissions');
+            const lastLoginTimeEl = document.getElementById('accountMenuLastLoginTime');
+            const lastLoginIpEl = document.getElementById('accountMenuLastLoginIp');
+            const lastLoginLocationEl = document.getElementById('accountMenuLastLoginLocation');
 
             const name = String(currentAdminAuth.username || '').trim();
+            const email = String(currentAdminAuth.email || currentAdminAuth.email_masked || '').trim();
+            const lastLoginAt = String(currentAdminAuth.last_login_at || '').trim();
+            const lastLoginIp = String(currentAdminAuth.last_login_ip || '').trim();
+            const lastLoginLocation = String(currentAdminAuth.last_login_location || '').trim();
             if (usernameEl) {
                 usernameEl.textContent = name || '管理员';
             }
             if (menuUsernameEl) {
                 menuUsernameEl.textContent = name || '管理员';
             }
+            if (menuEmailEl) {
+                menuEmailEl.textContent = email ? `绑定邮箱：${email}` : '绑定邮箱：未绑定';
+                menuEmailEl.classList.toggle('is-empty', !email);
+            }
             if (menuRoleEl) {
                 menuRoleEl.textContent = currentAdminAuth.is_super_admin ? '超级管理员' : '子账号';
             }
             if (menuPermissionsEl) {
                 renderAccountMenuPermissions(menuPermissionsEl);
+            }
+            if (lastLoginTimeEl) {
+                lastLoginTimeEl.textContent = lastLoginAt ? formatLoginTime(lastLoginAt) : '首次登录';
+            }
+            if (lastLoginIpEl) {
+                lastLoginIpEl.textContent = lastLoginIp || '-';
+            }
+            if (lastLoginLocationEl) {
+                lastLoginLocationEl.textContent = lastLoginLocation || '未知';
             }
         }
 
@@ -736,6 +760,7 @@
             const collapsed = document.body.classList.contains('sidebar-collapsed');
             textEl.textContent = collapsed ? '显示侧边栏' : '折叠侧边栏';
             btnEl.setAttribute('aria-label', textEl.textContent);
+            btnEl.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
             btnEl.title = textEl.textContent;
         }
 
@@ -776,7 +801,14 @@
                 is_super_admin: safe.is_super_admin === true,
                 permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : [],
                 email: String(safe.email || ''),
-                email_verified: safe.email_verified === true
+                email_masked: String(safe.email_masked || ''),
+                email_verified: safe.email_verified === true,
+                last_login_at: String(safe.last_login_at || ''),
+                last_login_ip: String(safe.last_login_ip || ''),
+                last_login_location: String(safe.last_login_location || ''),
+                current_login_at: String(safe.current_login_at || ''),
+                current_login_ip: String(safe.current_login_ip || ''),
+                current_login_location: String(safe.current_login_location || '')
             };
             bindingRequiredState = safe.binding_required === true;
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
@@ -829,6 +861,11 @@
         function toggleSidebarMenuGroup(groupKey) {
             const group = getSidebarMenuGroup(groupKey);
             if (!group || group.style.display === 'none') return;
+            if (document.body.classList.contains('sidebar-collapsed') && !isMobileAdminViewport()) {
+                setSidebarCollapsed(false, true);
+                setSidebarMenuGroupOpen(groupKey, true);
+                return;
+            }
             const opened = group.classList.contains('is-open');
             setSidebarMenuGroupOpen(groupKey, !opened);
         }
@@ -1223,12 +1260,15 @@
             const submitBtn = document.getElementById('loginSubmitBtn');
             const codeWrap = document.getElementById('loginEmailCodeWrap');
             const emailEnabled = emailAuthAdminConfig.email_auth_enabled === true;
+            const emailAvailable = emailEnabled && emailAuthAdminConfig.smtp_ready !== false;
             const inCodeStep = emailEnabled && !!pendingLoginId;
-            const sendDisabled = (turnstilePublicConfig.enabled && !turnstileToken) || emailAuthAdminConfig.smtp_ready === false;
+            const isQuickEmailMode = loginAuthMode === 'email_code';
+            const canUseEmailCode = emailAvailable;
+            const needsTurnstile = turnstilePublicConfig.enabled && !turnstileToken;
             if (sendBtn) {
-                sendBtn.style.display = inCodeStep ? '' : 'none';
-                sendBtn.disabled = inCodeStep ? (loginEmailCodeCountdown > 0 || emailAuthAdminConfig.smtp_ready === false) : true;
-                if (inCodeStep) {
+                sendBtn.style.display = (isQuickEmailMode || inCodeStep) ? '' : 'none';
+                sendBtn.disabled = !canUseEmailCode || needsTurnstile || loginEmailCodeCountdown > 0 || (!isQuickEmailMode && !inCodeStep);
+                if (isQuickEmailMode || inCodeStep) {
                     sendBtn.textContent = emailAuthAdminConfig.smtp_ready === false
                         ? '邮箱验证暂不可用'
                         : (loginEmailCodeCountdown > 0 ? `重新发送（${loginEmailCodeCountdown}s）` : '发送邮箱验证码');
@@ -1236,12 +1276,71 @@
             }
             if (submitBtn) {
                 submitBtn.style.display = '';
-                submitBtn.textContent = inCodeStep ? '验证并登录' : '登 录';
-                submitBtn.disabled = !!(turnstilePublicConfig.enabled && !turnstileToken);
+                if (isQuickEmailMode) {
+                    submitBtn.textContent = '验证并登录';
+                    submitBtn.disabled = !inCodeStep;
+                } else {
+                    submitBtn.textContent = inCodeStep ? '验证并登录' : (emailAvailable ? '下一步：邮箱验证' : '登 录');
+                    submitBtn.disabled = !!needsTurnstile;
+                }
             }
             if (codeWrap) {
                 codeWrap.style.display = inCodeStep ? 'block' : 'none';
             }
+        }
+
+        function getLoginModeLabel(mode = loginAuthMode) {
+            if (mode === 'account_password') return '用户名/邮箱登录';
+            if (mode === 'username_password') return '用户名 + 密码';
+            if (mode === 'email_password') return '邮箱 + 密码';
+            return '邮箱验证码快捷登录';
+        }
+
+        function setLoginAuthMode(mode, options = {}) {
+            const nextMode = ['email_code', 'account_password', 'username_password', 'email_password'].includes(mode) ? mode : 'email_code';
+            const emailAvailable = emailAuthAdminConfig.email_auth_enabled === true && emailAuthAdminConfig.smtp_ready !== false;
+            loginAuthMode = nextMode;
+            if (!options.keepPending) {
+                resetPendingLoginState({
+                    hint: nextMode === 'email_code'
+                        ? '验证码将发送到已验证安全邮箱。'
+                        : (emailAvailable ? '账号密码验证通过后，可发送邮箱验证码。' : '邮箱验证暂不可用，账号密码校验通过后将直接登录。')
+                });
+            }
+
+            const subtitle = document.getElementById('loginSubtitle');
+            const methodSwitch = document.querySelector('.login-method-switch');
+            const emailWrap = document.getElementById('loginEmailWrap');
+            const usernameWrap = document.getElementById('loginUsernameWrap');
+            const passwordWrap = document.getElementById('loginPasswordWrap');
+            const emailInput = document.getElementById('loginEmail');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const quickBtn = document.getElementById('loginModeEmailCodeBtn');
+            const accountBtn = document.getElementById('loginModeAccountBtn');
+
+            if (subtitle) {
+                subtitle.textContent = nextMode === 'account_password'
+                    ? (emailAvailable ? '请输入用户名或已验证邮箱和密码，通过邮箱验证码后进入后台。' : '邮箱验证暂不可用，请使用用户名/邮箱和密码登录。')
+                    : (nextMode === 'username_password'
+                        ? '请输入用户名和密码，通过邮箱验证码后进入后台。'
+                    : (nextMode === 'email_password'
+                        ? '请输入已验证邮箱和密码，通过邮箱验证码后进入后台。'
+                        : '仅授权管理员可访问，请使用已验证邮箱快捷登录。'));
+            }
+            if (methodSwitch) methodSwitch.style.display = emailAvailable ? '' : 'none';
+            if (emailWrap) emailWrap.style.display = (nextMode === 'username_password' || nextMode === 'account_password') ? 'none' : 'block';
+            if (usernameWrap) usernameWrap.style.display = (nextMode === 'username_password' || nextMode === 'account_password') ? 'block' : 'none';
+            if (passwordWrap) passwordWrap.style.display = nextMode === 'email_code' ? 'none' : 'block';
+
+            if (emailInput) emailInput.required = !(nextMode === 'username_password' || nextMode === 'account_password');
+            if (usernameInput) usernameInput.required = nextMode === 'username_password' || nextMode === 'account_password';
+            if (passwordInput) passwordInput.required = nextMode !== 'email_code';
+
+            if (quickBtn) quickBtn.hidden = nextMode === 'email_code' || !emailAvailable;
+            if (accountBtn) accountBtn.classList.toggle('active', nextMode === 'account_password');
+
+            updateLoginActionState();
         }
 
         function stopLoginCodeTimer() {
@@ -1283,7 +1382,39 @@
             } catch (_) {
                 emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
             }
-            updateLoginActionState();
+            const emailAvailable = emailAuthAdminConfig.email_auth_enabled === true && emailAuthAdminConfig.smtp_ready !== false;
+            if (!emailAvailable && loginAuthMode === 'email_code') {
+                setLoginAuthMode('account_password');
+                return;
+            }
+            setLoginAuthMode(loginAuthMode, { keepPending: true });
+        }
+
+        function getLoginEmailValue() {
+            return String(document.getElementById('loginEmail')?.value || '').trim();
+        }
+
+        function getLoginDisplayName() {
+            if (loginAuthMode === 'username_password' || loginAuthMode === 'account_password') {
+                return String(document.getElementById('username')?.value || '').trim();
+            }
+            return getLoginEmailValue();
+        }
+
+        function getPasswordLoginPayload() {
+            const payload = {
+                login_method: loginAuthMode,
+                password: document.getElementById('password')?.value || '',
+                turnstileToken: turnstileToken
+            };
+            if (loginAuthMode === 'account_password') {
+                payload.account = document.getElementById('username')?.value || '';
+            } else if (loginAuthMode === 'email_password') {
+                payload.email = getLoginEmailValue();
+            } else {
+                payload.username = document.getElementById('username')?.value || '';
+            }
+            return payload;
         }
 
         async function handleLoginStart() {
@@ -1291,6 +1422,11 @@
             const turnstileErr = document.getElementById('loginTurnstileError');
             if (err) err.textContent = '';
             if (turnstileErr) turnstileErr.textContent = '';
+
+            if (loginAuthMode === 'email_code') {
+                await sendLoginEmailCode();
+                return true;
+            }
 
             if (turnstilePublicConfig.enabled && !turnstileToken) {
                 if (turnstileErr) turnstileErr.textContent = '请先完成人机验证';
@@ -1309,11 +1445,7 @@
             const res = await fetch('/admin/login/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: document.getElementById('username').value,
-                    password: document.getElementById('password').value,
-                    turnstileToken: turnstileToken
-                })
+                body: JSON.stringify(getPasswordLoginPayload())
             });
             const data = await parseJsonSafe(res);
             if (!res.ok || !data.success) {
@@ -1335,8 +1467,7 @@
             }
 
             if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
-                const username = document.getElementById('username').value;
-                showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
+                showLastLoginToast(getLoginDisplayName(), data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
             }
             await checkLoginStatus();
             return true;
@@ -1344,13 +1475,56 @@
 
         async function sendLoginEmailCode() {
             const err = document.getElementById('loginError');
+            const turnstileErr = document.getElementById('loginTurnstileError');
             if (err) err.textContent = '';
+            if (turnstileErr) turnstileErr.textContent = '';
             const sendBtn = document.getElementById('loginSendCodeBtn');
             if (sendBtn) sendBtn.disabled = true;
             try {
                 if (!pendingLoginId) {
-                    if (err) err.textContent = '请先点击“登录”进入邮箱验证步骤。';
-                    updateLoginActionState();
+                    if (loginAuthMode !== 'email_code') {
+                        if (err) err.textContent = '请先完成账号密码验证，再发送邮箱验证码。';
+                        updateLoginActionState();
+                        return;
+                    }
+                    const email = getLoginEmailValue();
+                    if (!email) {
+                        if (err) err.textContent = '请输入已验证安全邮箱。';
+                        updateLoginActionState();
+                        return;
+                    }
+                    if (turnstilePublicConfig.enabled && !turnstileToken) {
+                        if (turnstileErr) turnstileErr.textContent = '请先完成人机验证';
+                        updateLoginActionState();
+                        return;
+                    }
+                    const preflight = await runIpPreflight();
+                    if (!preflight.allowed) {
+                        updateLoginActionState();
+                        return;
+                    }
+                    await new Promise(r => setTimeout(r, 800));
+                    closeIpPreflightModal();
+
+                    const startRes = await fetch('/admin/login/email-code/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, turnstileToken: turnstileToken })
+                    });
+                    const startData = await parseJsonSafe(startRes);
+                    if (!startRes.ok || !startData.success) {
+                        const reason = String(startData.message || `发送失败（HTTP ${startRes.status || '-'}）`);
+                        if (err) err.textContent = reason;
+                        showLoginFailModal(reason);
+                        resetPendingLoginState();
+                        resetLoginTurnstile();
+                        return;
+                    }
+                    pendingLoginId = String(startData.pending_login_id || '');
+                    pendingLoginEmailMasked = String(startData.email_masked || '');
+                    const hintEl = document.getElementById('loginEmailHint');
+                    if (hintEl) hintEl.textContent = `验证码已发送到 ${pendingLoginEmailMasked || '已验证邮箱'}。`;
+                    startLoginCodeTimer(Number(startData.resend_after || 60));
                     return;
                 }
                 const res = await fetch('/admin/login/send-email-code', {
@@ -1400,8 +1574,7 @@
                 const data = await parseJsonSafe(res);
                 if (res.ok && data.success) {
                     if (data.last_login_at || data.last_login_ip || data.current_login_ip) {
-                        const username = document.getElementById('username').value;
-                        showLastLoginToast(username, data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
+                        showLastLoginToast(getLoginDisplayName(), data.last_login_at, data.last_login_ip, data.current_login_at, data.current_login_ip);
                     }
                     resetPendingLoginState();
                     await checkLoginStatus();
@@ -1426,6 +1599,21 @@
                 await sendLoginEmailCode();
             });
         }
+
+        document.querySelectorAll('[data-login-mode]').forEach((btn) => {
+            if (btn.dataset.bound === '1') return;
+            btn.dataset.bound = '1';
+            btn.addEventListener('click', () => {
+                const nextMode = String(btn.dataset.loginMode || '').trim();
+                const err = document.getElementById('loginError');
+                const turnstileErr = document.getElementById('loginTurnstileError');
+                if (err) err.textContent = '';
+                if (turnstileErr) turnstileErr.textContent = '';
+                setLoginAuthMode(nextMode);
+            });
+        });
+
+        setLoginAuthMode('email_code', { keepPending: true });
 
         const loginForm = document.getElementById('loginForm');
         if (loginForm && loginForm.dataset.loginBound !== '1') {
@@ -1762,11 +1950,17 @@
 
             const container1 = data.container1 || {};
             const container2 = data.container2 || {};
+            const singleContainer = !!data.single_container;
 
             const tab1Label = document.getElementById('dockerLogsTab1Label');
             const tab2Label = document.getElementById('dockerLogsTab2Label');
             if (tab1Label) tab1Label.textContent = container1.name || '应用服务';
             if (tab2Label) tab2Label.textContent = container2.name || 'Nginx 服务';
+            const tab2 = document.querySelector('.docker-logs-tab[data-tab="container2"]');
+            const content2 = document.getElementById('dockerLogsContent2');
+            if (tab2) tab2.hidden = singleContainer;
+            if (content2) content2.hidden = singleContainer;
+            if (singleContainer) switchDockerLogsTab('container1');
 
             const title1 = document.getElementById('dockerLogsTitle1');
             const title2 = document.getElementById('dockerLogsTitle2');
@@ -1774,7 +1968,7 @@
             if (title2) title2.textContent = `${container2.name || 'Nginx 服务'} 日志`;
 
             renderDockerLogContent('1', container1.logs || '暂无日志');
-            renderDockerLogContent('2', container2.logs || '暂无日志');
+            if (!singleContainer) renderDockerLogContent('2', container2.logs || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -1812,6 +2006,7 @@
             
             const container1 = dockerLogsData.container1 || {};
             const container2 = dockerLogsData.container2 || {};
+            const singleContainer = !!dockerLogsData.single_container;
             
             let logs1 = container1.logs || '';
             let logs2 = container2.logs || '';
@@ -1827,7 +2022,7 @@
             }
             
             renderDockerLogContent('1', logs1 || '暂无日志');
-            renderDockerLogContent('2', logs2 || '暂无日志');
+            if (!singleContainer) renderDockerLogContent('2', logs2 || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -2544,9 +2739,9 @@
                 note: '因此转化率不等于“转化事件 ÷ UV”，也不等于“转化事件 ÷ 会话数”。如果你想看每次访问平均产生多少转化，要单独看转化事件总数。'
             },
             trend: {
-                title: '每日趋势',
-                meaning: '趋势图用于观察流量变化；最近24小时按小时聚合，其余范围按天聚合。',
-                formula: '24h：每小时聚合 PV/UV；7/30/90/180天：按天聚合 PV/UV'
+                title: '趋势图',
+                meaning: '趋势图用于观察流量变化，可按年、月、周、天四种粒度聚合 PV 和 UV。',
+                formula: '年/月/周/天：按所选粒度聚合 PV/UV；所有桶都仅统计所选起止日期范围内的数据'
             },
             source: {
                 title: '来源',
@@ -2760,6 +2955,185 @@
             return `自定义事件(${name})`;
         }
 
+        function getSiteReportGranularityLabel(granularity) {
+            const key = String(granularity || '').trim().toLowerCase();
+            const labelMap = {
+                year: '按年显示',
+                month: '按月显示',
+                week: '按周显示',
+                day: '按天显示',
+                hour: '按小时显示'
+            };
+            return labelMap[key] || '按天显示';
+        }
+
+        function getSiteReportTrendTitle(granularity) {
+            const key = String(granularity || '').trim().toLowerCase();
+            const titleMap = {
+                year: '按年趋势',
+                month: '按月趋势',
+                week: '按周趋势',
+                day: '按天趋势',
+                hour: '按小时趋势'
+            };
+            return titleMap[key] || '按天趋势';
+        }
+
+        function formatSiteReportTrendFullDate(dateText) {
+            const text = String(dateText || '').trim();
+            const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+            if (!match) return text;
+            return `${match[1]}/${match[2]}/${match[3]}`;
+        }
+
+        function formatSiteReportTrendAxisLabel(item, granularity) {
+            const key = String(granularity || 'day').trim().toLowerCase();
+            const start = String(item?.bucketStart || item?.bucket_start || item?.date || '').trim();
+            const end = String(item?.bucketEnd || item?.bucket_end || item?.date || '').trim();
+            const label = String(item?.label || item?.date || '').trim();
+
+            if (key === 'week') {
+                const startFull = formatSiteReportTrendFullDate(start);
+                const endFull = formatSiteReportTrendFullDate(end);
+                if (startFull && endFull) return startFull === endFull ? startFull : `${startFull}-${endFull}`;
+                return label;
+            }
+            if (key === 'month') return start ? start.slice(0, 7) : label;
+            if (key === 'year') return start ? start.slice(0, 4) : label;
+            if (key === 'day') return start ? start.slice(5) : label;
+            return label;
+        }
+
+        function buildSiteReportTrendYAxis(maxValue, desiredTicks = 4) {
+            const safeMax = Math.max(0, Number(maxValue) || 0);
+            if (safeMax <= 0) {
+                return { max: 1, step: 1, ticks: [1, 0] };
+            }
+
+            const targetTicks = Math.max(1, Number(desiredTicks) || 4);
+            const rawStep = safeMax / targetTicks;
+            const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+            const candidates = [1, 2, 2.5, 5, 10].map((factor) => factor * magnitude);
+            let step = candidates[0];
+            let bestDiff = Infinity;
+
+            candidates.forEach((candidate) => {
+                const diff = Math.abs(candidate - rawStep);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    step = candidate;
+                }
+            });
+
+            const chartMax = Math.ceil(safeMax / step) * step;
+            const ticks = [];
+            for (let value = chartMax; value > 0; value -= step) {
+                ticks.push(value);
+            }
+            ticks.push(0);
+            return { max: chartMax, step, ticks };
+        }
+
+        function formatSiteReportTrendTickValue(value) {
+            const num = Number(value || 0);
+            if (!Number.isFinite(num)) return '0';
+            if (Number.isInteger(num)) return formatSiteReportNumber(num);
+            return num.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+        }
+
+        function getBeijingDateString(date = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(date);
+            const valueMap = {};
+            parts.forEach((part) => {
+                if (part.type !== 'literal') valueMap[part.type] = part.value;
+            });
+            return `${valueMap.year || '1970'}-${valueMap.month || '01'}-${valueMap.day || '01'}`;
+        }
+
+        function shiftIsoDate(dateText, deltaDays) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateText || '').trim());
+            if (!match) return '';
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const baseTs = Date.UTC(year, month - 1, day);
+            const shifted = new Date(baseTs + (Number(deltaDays || 0) * 86400000));
+            return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`;
+        }
+
+        function isValidIsoDate(dateText) {
+            const text = String(dateText || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+            const ts = Date.parse(`${text}T00:00:00Z`);
+            if (!Number.isFinite(ts)) return false;
+            return shiftIsoDate(text, 0) === text;
+        }
+
+        function syncSiteReportDateInputLimits() {
+            const startEl = document.getElementById('siteReportStartDate');
+            const endEl = document.getElementById('siteReportEndDate');
+            if (!startEl || !endEl) return;
+            startEl.max = String(endEl.value || '').trim();
+            endEl.min = String(startEl.value || '').trim();
+        }
+
+        function ensureSiteReportFiltersInitialized() {
+            const startEl = document.getElementById('siteReportStartDate');
+            const endEl = document.getElementById('siteReportEndDate');
+            const granularityEl = document.getElementById('siteReportGranularity');
+            if (!startEl || !endEl || !granularityEl) return;
+
+            if (!isValidIsoDate(siteReportsEndDate)) {
+                siteReportsEndDate = getBeijingDateString();
+            }
+            if (!isValidIsoDate(siteReportsStartDate)) {
+                siteReportsStartDate = shiftIsoDate(siteReportsEndDate, -29);
+            }
+            if (!siteReportsGranularity) {
+                siteReportsGranularity = 'day';
+            }
+
+            if (!isValidIsoDate(String(startEl.value || '').trim())) {
+                startEl.value = siteReportsStartDate;
+            } else {
+                siteReportsStartDate = String(startEl.value || '').trim();
+            }
+            if (!isValidIsoDate(String(endEl.value || '').trim())) {
+                endEl.value = siteReportsEndDate;
+            } else {
+                siteReportsEndDate = String(endEl.value || '').trim();
+            }
+            const currentGranularity = String(granularityEl.value || '').trim().toLowerCase();
+            if (['year', 'month', 'week', 'day'].includes(currentGranularity)) {
+                siteReportsGranularity = currentGranularity;
+            } else {
+                granularityEl.value = siteReportsGranularity;
+            }
+            syncSiteReportDateInputLimits();
+        }
+
+        function updateSiteReportTrendHeading(granularity) {
+            const trendWrap = document.getElementById('siteReportTrend');
+            const heading = trendWrap ? trendWrap.previousElementSibling : null;
+            if (!heading) return;
+            const titleText = getSiteReportTrendTitle(granularity);
+            const firstNode = heading.firstChild;
+            if (firstNode && firstNode.nodeType === Node.TEXT_NODE) {
+                firstNode.textContent = titleText;
+                return;
+            }
+            if (firstNode && firstNode.nodeType === Node.ELEMENT_NODE && firstNode.tagName === 'SPAN') {
+                firstNode.textContent = titleText;
+                return;
+            }
+            heading.insertBefore(document.createTextNode(titleText), heading.firstChild);
+        }
+
         function setSiteReportsLoading(isLoading) {
             siteReportsLoading = !!isLoading;
             const btn = document.getElementById('siteReportRefreshBtn');
@@ -2785,9 +3159,11 @@
             setText('siteReportConversionRate', formatSiteReportPercent(safe.conversion_rate));
         }
 
-        function renderSiteReportTrend(rows) {
+        function renderSiteReportTrend(rows, meta = {}) {
             const wrap = document.getElementById('siteReportTrend');
             if (!wrap) return;
+            const granularity = String(meta.granularity || 'day').trim().toLowerCase() || 'day';
+            updateSiteReportTrendHeading(granularity);
             const items = Array.isArray(rows) ? rows : [];
             if (!items.length) {
                 wrap.innerHTML = '<div class="no-data">暂无趋势数据</div>';
@@ -2795,14 +3171,30 @@
             }
             const prepared = items.map((item) => ({
                 date: String(item?.date || ''),
+                label: String(item?.label || item?.date || ''),
+                bucketStart: String(item?.bucket_start || item?.date || ''),
+                bucketEnd: String(item?.bucket_end || item?.date || ''),
                 pv: Math.max(0, Number(item?.pageviews || 0)),
                 uv: Math.max(0, Number(item?.unique_visitors || 0)),
+                axisLabel: formatSiteReportTrendAxisLabel(item, granularity),
             }));
             const maxValue = Math.max(1, ...prepared.map(item => Math.max(item.pv, item.uv)));
+            const yAxis = buildSiteReportTrendYAxis(maxValue, 4);
+            const chartMax = Math.max(1, Number(yAxis.max) || 1);
 
-            const width = Math.max(920, prepared.length * 40);
-            const height = 240;
-            const padding = { left: 8, right: 4, top: 16, bottom: 34 };
+            const height = 340;
+            const padding = { left: 52, right: 18, top: 22, bottom: 52 };
+            const wrapRect = wrap.getBoundingClientRect ? wrap.getBoundingClientRect() : { width: 0 };
+            const wrapStyle = window.getComputedStyle ? window.getComputedStyle(wrap) : null;
+            const wrapPaddingX = wrapStyle
+                ? ((parseFloat(wrapStyle.paddingLeft) || 0) + (parseFloat(wrapStyle.paddingRight) || 0))
+                : 0;
+            const availableWidth = Math.max(720, Math.floor((wrapRect.width || wrap.clientWidth || 0) - wrapPaddingX));
+            const maxLabelChars = Math.max(5, ...prepared.map(item => (item.axisLabel || item.label || '').length));
+            const slotBaseMap = { year: 88, month: 96, week: 190, day: 64, hour: 72 };
+            const slotWidth = Math.max(slotBaseMap[granularity] || 72, Math.min(220, (maxLabelChars * 8) + 28));
+            const dataWidth = padding.left + padding.right + (Math.max(1, prepared.length - 1) * slotWidth);
+            const width = Math.ceil(Math.max(availableWidth, dataWidth));
             const plotWidth = Math.max(1, width - padding.left - padding.right);
             const plotHeight = Math.max(1, height - padding.top - padding.bottom);
 
@@ -2810,47 +3202,46 @@
                 if (prepared.length <= 1) return padding.left + plotWidth / 2;
                 return padding.left + (idx / (prepared.length - 1)) * plotWidth;
             };
-            const toY = (value) => padding.top + ((maxValue - value) / maxValue) * plotHeight;
+            const toY = (value) => padding.top + ((chartMax - value) / chartMax) * plotHeight;
 
             const pvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.pv).toFixed(2)}`).join(' ');
             const uvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.uv).toFixed(2)}`).join(' ');
 
             const gridLines = [];
-            for (let i = 0; i <= 4; i += 1) {
-                const ratio = i / 4;
-                const y = padding.top + ratio * plotHeight;
-                const val = Math.round(maxValue * (1 - ratio));
+            const yTicks = Array.isArray(yAxis.ticks) && yAxis.ticks.length ? yAxis.ticks : [chartMax, 0];
+            yTicks.forEach((tickValue) => {
+                const y = toY(Number(tickValue) || 0);
                 gridLines.push(`<line class="site-report-line-grid" x1="${padding.left}" y1="${y.toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${y.toFixed(2)}"></line>`);
-                gridLines.push(`<text class="site-report-line-y-label" x="${(padding.left - 6).toFixed(2)}" y="${(y + 3).toFixed(2)}" text-anchor="end">${escapeHtml(formatSiteReportNumber(val))}</text>`);
-            }
+                gridLines.push(`<text class="site-report-line-y-label" x="${(padding.left - 10).toFixed(2)}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatSiteReportTrendTickValue(tickValue))}</text>`);
+            });
 
-            const labelStep = Math.max(1, Math.ceil(prepared.length / 10));
+            const labelStep = prepared.length <= 10 ? 1 : Math.max(1, Math.ceil(prepared.length / 8));
             const xLabels = prepared.map((item, idx) => {
                 const isLast = idx === prepared.length - 1;
                 const isFirst = idx === 0;
                 const shouldShow = isFirst || isLast || (idx % labelStep === 0);
                 if (!shouldShow) return '';
                 const x = toX(idx);
-                const label = item.date.length >= 5 ? item.date.slice(5) : item.date;
+                const label = item.axisLabel || item.label || item.date;
                 return `<text class="site-report-line-label" x="${x.toFixed(2)}" y="${(height - 10).toFixed(2)}" text-anchor="middle">${escapeHtml(label)}</text>`;
             }).join('');
 
             const drawPoints = prepared.length <= 60;
             const pvDots = drawPoints
-                ? prepared.map((item, idx) => `<circle class="site-report-line-point-pv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.pv).toFixed(2)}" r="2.4"></circle>`).join('')
+                ? prepared.map((item, idx) => `<circle class="site-report-line-point-pv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.pv).toFixed(2)}" r="3.8"></circle>`).join('')
                 : '';
             const uvDots = drawPoints
-                ? prepared.map((item, idx) => `<circle class="site-report-line-point-uv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.uv).toFixed(2)}" r="2.2"></circle>`).join('')
+                ? prepared.map((item, idx) => `<circle class="site-report-line-point-uv" cx="${toX(idx).toFixed(2)}" cy="${toY(item.uv).toFixed(2)}" r="3.4"></circle>`).join('')
                 : '';
 
-            const lastItem = prepared[prepared.length - 1] || { date: '-', pv: 0, uv: 0 };
-            const lastLabel = lastItem.date.length >= 5 ? lastItem.date.slice(5) : lastItem.date;
-            const summary = `最近一天(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
+            const lastItem = prepared[prepared.length - 1] || { date: '-', axisLabel: '-', pv: 0, uv: 0 };
+            const lastLabel = lastItem.axisLabel || lastItem.label || lastItem.date || '-';
+            const summary = `最后一组(${lastLabel})：PV ${formatSiteReportNumber(lastItem.pv)}，UV ${formatSiteReportNumber(lastItem.uv)}`;
 
             const tooltipId = 'siteReportTrendTooltip';
             wrap.innerHTML = `
                 <div class="site-report-line-wrap" style="position:relative;">
-                    <svg class="site-report-line-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="每日趋势折线图">
+                    <svg class="site-report-line-svg" width="${width}" height="${height}" style="width:${width}px;" viewBox="0 0 ${width} ${height}" role="img" aria-label="站点趋势折线图">
                         ${gridLines.join('')}
                         <line class="site-report-line-axis" x1="${padding.left}" y1="${(padding.top + plotHeight).toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${(padding.top + plotHeight).toFixed(2)}"></line>
                         <polyline class="site-report-line-pv" points="${pvPoints}"></polyline>
@@ -2872,6 +3263,7 @@
             const tooltip = document.getElementById(tooltipId);
 
             svg.addEventListener('mousemove', (e) => {
+                const lineWrap = svg.closest('.site-report-line-wrap');
                 const svgRect = svg.getBoundingClientRect();
                 const scaleX = svgRect.width / width;
                 const scaleY = svgRect.height / height;
@@ -2886,8 +3278,12 @@
                     }
                 });
                 const item = prepared[closestIdx];
+                const rangeText = (item.bucketStart && item.bucketEnd && item.bucketStart !== item.bucketEnd)
+                    ? `${item.bucketStart} 至 ${item.bucketEnd}`
+                    : (item.bucketStart || item.bucketEnd || item.date);
                 tooltip.innerHTML = `
-                    <div class="site-report-line-tooltip-date">${escapeHtml(item.date)}</div>
+                    <div class="site-report-line-tooltip-date">${escapeHtml(item.axisLabel || item.label || item.date)}</div>
+                    <div class="site-report-line-tooltip-date">${escapeHtml(rangeText)}</div>
                     <div class="site-report-line-tooltip-pv"><span>PV</span><span>${formatSiteReportNumber(item.pv)}</span></div>
                     <div class="site-report-line-tooltip-uv"><span>UV</span><span>${formatSiteReportNumber(item.uv)}</span></div>
                 `;
@@ -2896,8 +3292,12 @@
                     const tooltipRect = tooltip.getBoundingClientRect();
                     const tooltipWidth = tooltipRect.width;
                     const tooltipHeight = tooltipRect.height;
-                    let left = e.clientX - svgRect.left - tooltipWidth / 2;
-                    left = Math.max(0, Math.min(left, svgRect.width - tooltipWidth));
+                    const scrollLeft = lineWrap ? lineWrap.scrollLeft : 0;
+                    const viewportWidth = lineWrap ? lineWrap.clientWidth : svgRect.width;
+                    let left = (toX(closestIdx) * scaleX) - (tooltipWidth / 2);
+                    const minLeft = scrollLeft + 4;
+                    const maxLeft = Math.max(minLeft, scrollLeft + viewportWidth - tooltipWidth - 4);
+                    left = Math.max(minLeft, Math.min(left, maxLeft));
                     let top = (toY(item.pv) * scaleY) - tooltipHeight - 8;
                     top = Math.max(0, Math.min(top, svgRect.height - tooltipHeight));
                     tooltip.style.left = `${left}px`;
@@ -3124,7 +3524,10 @@
             };
 
             renderSiteReportKpis(data.summary || {});
-            renderSiteReportTrend(data.trend || []);
+            renderSiteReportTrend(data.trend || [], {
+                granularity: data.granularity || siteReportsGranularity,
+                rangeLabel: data.range_label || ''
+            });
 
             const sourceBody = document.getElementById('siteReportSourceBody');
             const sourceRows = Array.isArray(data.source_breakdown) ? data.source_breakdown : [];
@@ -3237,11 +3640,11 @@
 
             const updatedEl = document.getElementById('siteReportLastUpdated');
             if (updatedEl) {
-                const rawRangeKey = String(data.range_key || siteReportsRangeKey || '30').trim();
+                if (isValidIsoDate(data.start_date)) siteReportsStartDate = String(data.start_date);
+                if (isValidIsoDate(data.end_date)) siteReportsEndDate = String(data.end_date);
+                if (String(data.granularity || '').trim()) siteReportsGranularity = String(data.granularity).trim();
                 const rangeLabel = String(data.range_label || '').trim()
-                    || (rawRangeKey === '24h'
-                        ? '最近24小时'
-                        : `最近 ${Number(data.range_days || rawRangeKey || 30)} 天`);
+                    || `${siteReportsStartDate} 至 ${siteReportsEndDate} · ${getSiteReportGranularityLabel(siteReportsGranularity)}`;
                 const generatedAt = formatChangelogTime(data.generated_at) || String(data.generated_at || '-');
                 updatedEl.textContent = `统计范围：${rangeLabel} · 数据更新时间：${generatedAt}`;
             }
@@ -3249,11 +3652,10 @@
 
         async function loadSiteReports(manual = false) {
             if (siteReportsLoading) return;
-            const rangeEl = document.getElementById('siteReportRangeDays');
-            if (rangeEl) {
-                const value = String(rangeEl.value || '').trim();
-                siteReportsRangeKey = value || '30';
-            }
+            ensureSiteReportFiltersInitialized();
+            const startEl = document.getElementById('siteReportStartDate');
+            const endEl = document.getElementById('siteReportEndDate');
+            const granularityEl = document.getElementById('siteReportGranularity');
 
             const msgEl = document.getElementById('siteReportMsg');
             if (msgEl) {
@@ -3261,9 +3663,46 @@
                 msgEl.textContent = '';
             }
 
+            const startDate = String(startEl?.value || '').trim();
+            const endDate = String(endEl?.value || '').trim();
+            const granularity = String(granularityEl?.value || 'day').trim().toLowerCase() || 'day';
+            const validGranularities = new Set(['year', 'month', 'week', 'day']);
+            syncSiteReportDateInputLimits();
+
+            let validationError = '';
+            if (!startDate || !endDate) {
+                validationError = '请选择完整的开始日期和结束日期';
+            } else if (!isValidIsoDate(startDate) || !isValidIsoDate(endDate)) {
+                validationError = '日期格式无效，请重新选择日期';
+            } else if (startDate > endDate) {
+                validationError = '开始日期不能晚于结束日期';
+            } else if (!validGranularities.has(granularity)) {
+                validationError = '显示粒度无效，请重新选择';
+            }
+
+            if (validationError) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = validationError;
+                }
+                if (manual) {
+                    showGlobalAlert(validationError);
+                }
+                return;
+            }
+
+            siteReportsStartDate = startDate;
+            siteReportsEndDate = endDate;
+            siteReportsGranularity = granularity;
+
             setSiteReportsLoading(true);
             try {
-                const res = await fetch(`/api/admin/site-reports?range_days=${encodeURIComponent(siteReportsRangeKey)}`, { cache: 'no-store' });
+                const params = new URLSearchParams({
+                    start_date: siteReportsStartDate,
+                    end_date: siteReportsEndDate,
+                    granularity: siteReportsGranularity
+                });
+                const res = await fetch(`/api/admin/site-reports?${params.toString()}`, { cache: 'no-store' });
                 const data = await parseJsonSafe(res);
                 if (!res.ok || data.success !== true) {
                     throw new Error(String(data.message || `加载报表失败（HTTP ${res.status || '-'}）`));
@@ -10655,9 +11094,15 @@
                     <option value="industry" ${selected === 'industry' ? 'selected' : ''}>行业动态</option>
                     <option value="science" ${selected === 'science' ? 'selected' : ''}>科普知识</option>
                 `;
-                listEl.innerHTML = items.map(item => `
-                    <div class="file-item" style="align-items: flex-start;">
-                        <div class="file-info">
+                listEl.innerHTML = items.map((item, index) => `
+                    <div class="file-item" style="align-items: flex-start; gap: 12px;">
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:6px; min-width:52px; padding-top:2px;">
+                            <span style="font-size:12px; color:#64748b;">排序</span>
+                            <button class="btn-sm" style="width:42px; padding:6px 0;" onclick="reorderNewsItem('${item.link}', 'up')" ${index === 0 ? 'disabled' : ''}>↑</button>
+                            <button class="btn-sm" style="width:42px; padding:6px 0;" onclick="reorderNewsItem('${item.link}', 'down')" ${index === items.length - 1 ? 'disabled' : ''}>↓</button>
+                            <span style="font-size:12px; color:#94a3b8;">#${item.order || (index + 1)}</span>
+                        </div>
+                        <div class="file-info" style="flex:1; min-width:0;">
                             <img src="${item.image || ''}" alt="news" style="width: 72px; height: 46px; object-fit: cover; border-radius: 6px;">
                             <div>
                                 <div style="font-weight: 600;">${escapeHtml(item.title || '')}</div>
@@ -10686,6 +11131,24 @@
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align:center; padding: 20px; color:#dc3545;">加载失败</div>';
             }
+        }
+
+        async function reorderNewsItem(link, direction) {
+            if (!link) return;
+            try {
+                const res = await fetch('/api/news/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link, direction })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.message || '排序失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+            loadNewsList();
         }
 
         async function quickUpdateNewsCategory(link, category) {
@@ -12231,7 +12694,7 @@
             const statusEl = document.getElementById('cdnStatusText');
             if (!statusEl) return;
             if (!enabled) {
-                statusEl.textContent = '当前状态：已关闭';
+                statusEl.textContent = '当前状态：单域名 ESA 模式，旧 CDN 跳转已停用';
                 statusEl.style.color = '#666';
                 return;
             }
@@ -12253,9 +12716,10 @@
             try {
                 const res = await fetch('/api/cdn/settings', { cache: 'no-store' });
                 const data = await res.json();
-                enabledEl.checked = data.cdn_enabled === true;
+                enabledEl.checked = false;
+                enabledEl.disabled = true;
                 domainEl.value = data.cdn_domain || '';
-                updateCdnStatusText(enabledEl.checked, domainEl.value.trim());
+                updateCdnStatusText(false, domainEl.value.trim());
             } catch (e) {
                 updateCdnStatusText(false, '');
                 if (msgEl) {
@@ -12317,7 +12781,7 @@
                 const btn = e.target.querySelector('button[type="submit"]');
                 const msg = document.getElementById('cdnSettingsMsg');
                 const testMsg = document.getElementById('cdnTestMsg');
-                const enabled = !!document.getElementById('cdnEnabled')?.checked;
+                const enabled = false;
                 const domainInput = document.getElementById('cdnDomain');
                 const domain = normalizeCdnDomainInput(domainInput?.value || '');
 
@@ -12327,11 +12791,6 @@
                 }
                 if (testMsg) {
                     testMsg.textContent = '';
-                }
-
-                if (enabled && !domain) {
-                    if (msg) msg.textContent = '启用加速时必须填写 CDN 域名';
-                    return;
                 }
 
                 if (domainInput) domainInput.value = domain;
@@ -12349,7 +12808,7 @@
                     if (res.ok && data.success) {
                         if (msg) {
                             msg.style.color = '#28a745';
-                            msg.textContent = 'CDN 设置保存成功';
+                            msg.textContent = '兼容配置已保存；/cdn_assets 仍走主站域名，由 ESA 缓存';
                         }
                         const saved = data.settings || {};
                         updateCdnStatusText(saved.cdn_enabled === true, saved.cdn_domain || '');
@@ -12651,6 +13110,8 @@
         function fillSubAccountEditForm(target) {
             const enabledEl = document.getElementById('subEditEnabled');
             const pwdEl = document.getElementById('subEditPassword');
+            const notifyMessageEl = document.getElementById('subEditNotifyMessageEmail');
+            const notifyJobEl = document.getElementById('subEditNotifyJobEmail');
             const msgEl = document.getElementById('subEditMsg');
             if (msgEl) {
                 msgEl.textContent = '';
@@ -12659,11 +13120,15 @@
             if (!target) {
                 if (enabledEl) enabledEl.checked = true;
                 if (pwdEl) pwdEl.value = '';
+                if (notifyMessageEl) notifyMessageEl.checked = false;
+                if (notifyJobEl) notifyJobEl.checked = false;
                 renderPermissionGrid('subEditPermissionsGrid', []);
                 return;
             }
             if (enabledEl) enabledEl.checked = target.enabled !== false;
             if (pwdEl) pwdEl.value = '';
+            if (notifyMessageEl) notifyMessageEl.checked = target.notify_message_email === true;
+            if (notifyJobEl) notifyJobEl.checked = target.notify_job_email === true;
             renderPermissionGrid('subEditPermissionsGrid', Array.isArray(target.permissions) ? target.permissions : []);
         }
 
@@ -12710,7 +13175,7 @@
                 countEl.textContent = String(subAccountsCache.length || 0);
             }
             if (!subAccountsCache.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无子账号</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">暂无子账号</td></tr>';
                 return;
             }
 
@@ -12727,12 +13192,18 @@
                 const updateText = item.updated_at ? (formatChangelogTime(item.updated_at) || item.updated_at) : '-';
                 const statusText = enabled ? '启用' : '禁用';
                 const statusColor = enabled ? '#16a34a' : '#dc2626';
+                const notifyMessageText = item.notify_message_email === true ? '接收' : '关闭';
+                const notifyMessageColor = item.notify_message_email === true ? '#16a34a' : '#64748b';
+                const notifyJobText = item.notify_job_email === true ? '接收' : '关闭';
+                const notifyJobColor = item.notify_job_email === true ? '#16a34a' : '#64748b';
 
                 return `
                     <tr>
                         <td>${escapeHtml(username)}</td>
                         <td><span style="font-weight:700; color:${statusColor};">${statusText}</span></td>
                         <td title="${escapeHtml(permissionText)}" style="max-width: 360px;">${escapeHtml(permissionText)}</td>
+                        <td><span style="font-weight:700; color:${notifyMessageColor};">${notifyMessageText}</span></td>
+                        <td><span style="font-weight:700; color:${notifyJobColor};">${notifyJobText}</span></td>
                         <td>${escapeHtml(loginText)}</td>
                         <td>${escapeHtml(updateText)}</td>
                         <td>
@@ -12816,6 +13287,8 @@
                 const username = String(document.getElementById('subCreateUsername')?.value || '').trim();
                 const password = String(document.getElementById('subCreatePassword')?.value || '');
                 const enabled = !!document.getElementById('subCreateEnabled')?.checked;
+                const notifyMessageEmail = !!document.getElementById('subCreateNotifyMessageEmail')?.checked;
+                const notifyJobEmail = !!document.getElementById('subCreateNotifyJobEmail')?.checked;
                 const permissions = readPermissionGrid('subCreatePermissionsGrid');
 
                 if (msg) {
@@ -12836,7 +13309,14 @@
                     const res = await fetch('/api/admin/subaccounts', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password, enabled, permissions })
+                        body: JSON.stringify({
+                            username,
+                            password,
+                            enabled,
+                            permissions,
+                            notify_message_email: notifyMessageEmail,
+                            notify_job_email: notifyJobEmail
+                        })
                     });
                     const data = await parseJsonSafe(res);
                     if (!res.ok || !data.success) {
@@ -12882,6 +13362,8 @@
 
                 const enabled = !!document.getElementById('subEditEnabled')?.checked;
                 const password = String(document.getElementById('subEditPassword')?.value || '');
+                const notifyMessageEmail = !!document.getElementById('subEditNotifyMessageEmail')?.checked;
+                const notifyJobEmail = !!document.getElementById('subEditNotifyJobEmail')?.checked;
                 const permissions = readPermissionGrid('subEditPermissionsGrid');
                 if (permissions.length === 0) {
                     if (msg) {
@@ -12903,7 +13385,9 @@
                         body: JSON.stringify({
                             enabled,
                             permissions,
-                            password
+                            password,
+                            notify_message_email: notifyMessageEmail,
+                            notify_job_email: notifyJobEmail
                         })
                     });
                     const data = await parseJsonSafe(res);

@@ -39,9 +39,9 @@
 """
 
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
-from flask import Response, jsonify, redirect, request, send_from_directory, stream_with_context
+from flask import Response, jsonify, request, send_from_directory, stream_with_context
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 _CDN_ASSETS_DIR = APP_ROOT / 'cdn_assets'
@@ -119,10 +119,12 @@ def get_cdn_settings() -> dict:
     """从配置中读取 CDN 加速设置。"""
     config = _GET_CONFIG() or {}
     domain = normalize_cdn_domain(str(config.get('cdn_domain') or ''))
-    enabled = bool(config.get('cdn_enabled', False)) and bool(domain)
+    legacy_enabled = bool(config.get('cdn_enabled', False)) and bool(domain)
     return {
-        'cdn_enabled': enabled,
+        'cdn_enabled': False,
         'cdn_domain': domain,
+        'legacy_cdn_enabled': legacy_enabled,
+        'cdn_redirect_deprecated': True,
     }
 
 
@@ -274,18 +276,15 @@ def register_media_delivery_routes(
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
 
         data = request.json or {}
-        enabled = bool(data.get('cdn_enabled', False))
         domain = normalize_cdn_domain(str(data.get('cdn_domain') or ''))
 
-        if enabled and not domain:
-            return jsonify({'success': False, 'message': '启用加速时必须填写有效 CDN 域名'}), 400
         if domain:
             ok, reason, _ = _VALIDATE_SAFE_REMOTE_FETCH_URL(f'{domain}/')
             if not ok:
                 return jsonify({'success': False, 'message': reason or 'CDN 域名不安全'}), 400
 
         _UPDATE_CONFIG({
-            'cdn_enabled': enabled,
+            'cdn_enabled': False,
             'cdn_domain': domain,
         })
         return jsonify({'success': True, 'message': 'CDN 设置已保存', 'settings': get_cdn_settings()})
@@ -403,35 +402,11 @@ def register_media_delivery_routes(
         return response
 
     @app.route('/cdn_assets/<path:asset_path>', methods=['GET', 'HEAD'])
-    def serve_cdn_asset_with_redirect(asset_path):
-        """主站 CDN 资源入口；开启 CDN 时重定向到 CDN 域名，未开启时回源本地文件。"""
+    def serve_cdn_asset(asset_path):
+        """Serve /cdn_assets locally; ESA caches this path on the main domain."""
         relative_path = str(asset_path or '').lstrip('/')
         if not relative_path:
             return jsonify({'error': '文件路径不能为空'}), 400
-
-        settings = get_cdn_settings()
-        cdn_domain = str(settings.get('cdn_domain') or '').strip()
-        cdn_enabled = bool(settings.get('cdn_enabled', False)) and bool(cdn_domain)
-        cdn_entry_request = str(request.headers.get('X-YX-CDN-Entry') or '').strip() == '1'
-
-        if cdn_enabled and not cdn_entry_request:
-            forwarded_host = _FIRST_FORWARDED_VALUE(request.headers.get('X-Forwarded-Host', ''))
-            current_host = (forwarded_host or request.host or '').strip().lower()
-            cdn_host = (urlparse(cdn_domain).netloc or '').strip().lower()
-
-            # 避免同主机重定向造成循环。
-            if cdn_host and current_host != cdn_host:
-                target = f"{cdn_domain}/cdn_assets/{quote(relative_path, safe='/')}"
-                raw_qs = (request.query_string or b'').decode('utf-8', errors='ignore').strip()
-                if raw_qs:
-                    target = f'{target}?{raw_qs}'
-                response = redirect(target, code=302)
-                # 后台切换 CDN 开关时，避免命中陈旧缓存。
-                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-                response.headers['Pragma'] = 'no-cache'
-                response.headers['Expires'] = '0'
-                response.headers['Vary'] = 'Host'
-                return response
 
         response = send_from_directory(str(_CDN_ASSETS_DIR), relative_path)
         response.headers['Cache-Control'] = _MEDIA_IMMUTABLE_CACHE_CONTROL

@@ -1,34 +1,28 @@
-{
+﻿{
   "items": [
     {
       "name": "氢能源产业链",
-      "url": "/pages/solutions/industry-hydrogen.html",
-      "image": "/cdn_assets/images/common/81cab4116fe4.png"
+      "url": "/pages/solutions/industry-hydrogen.html"
     },
     {
       "name": "智慧电力安全",
-      "url": "/pages/solutions/industry-power-safety.html",
-      "image": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1920"
+      "url": "/pages/solutions/industry-power-safety.html"
     },
     {
       "name": "工业检漏监测",
-      "url": "/pages/solutions/industry-leak-detection.html",
-      "image": "https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=1920"
+      "url": "/pages/solutions/industry-leak-detection.html"
     },
     {
       "name": "绿色能源存储",
-      "url": "/pages/solutions/industry-energy-storage.html",
-      "image": "/cdn_assets/images/solutions/energy-storage-thermal-runaway-warning.jpg"
+      "url": "/pages/solutions/industry-energy-storage.html"
     },
     {
       "name": "大气环境监测",
-      "url": "/pages/solutions/industry-environment.html",
-      "image": "/cdn_assets/images/solutions/environment-gas-monitoring-solution.jpg"
+      "url": "/pages/solutions/industry-environment.html"
     },
     {
-      "name": "定制化行业",
-      "url": "/pages/solutions/custom-solutions.html",
-      "image": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/4c435ba5cf12.webp"
+      "name": "石油化工",
+      "url": "/pages/gassensing/cases/case-5-chemical-plant.html"
     }
   ]
 }

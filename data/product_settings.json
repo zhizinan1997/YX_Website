@@ -166,7 +166,7 @@
     "hidden": true
   },
   "macbook_air": {
-    "hidden": true
+    "hidden": false
   },
   "模板": {
     "hidden": true
@@ -249,13 +249,13 @@
     ]
   },
   "mc_hha_01": {
-    "isNew": true,
+    "isNew": false,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_hla_01": {
-    "isNew": true,
+    "isNew": false,
     "industryCategories": [
       "hydrogen"
     ]
@@ -273,12 +273,18 @@
   },
   "mc_ld_r1": {
     "displayName": "MC-LD-R1型冷媒泄漏检漏仪",
+    "hidden": false,
     "cardTitle": "MC-LD-R1型冷媒泄漏检漏仪",
+    "cardImage": "/cdn_assets/images/gassensing/a5616561db97.webp",
     "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。"
   },
   "mc_gd_01": {
     "displayName": "MC-GD-01型可燃气体检漏仪",
-    "isNew": true
+    "isNew": true,
+    "industryCategories": [
+      "hydrogen",
+      "leak"
+    ]
   },
   "mc_ol_w1": {
     "displayName": "MC-OL-W1在线式露点分析仪"

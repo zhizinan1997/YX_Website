@@ -1,32 +1,44 @@
 {
   "items": [
     {
-      "id": "ddb59346-ecaa-4f73-a406-9824fd823192",
-      "url": "https://storage.hnmetachip.cn/1.mp4"
+      "id": "ead30049-2a60-4ce6-8421-e5997ae38648",
+      "url": "https://storage.hnmetachip.cn/video/6.webm"
     },
     {
-      "id": "d9ad64a9-fb59-4f62-9021-5cb5ce53fb8d",
-      "url": "https://storage.hnmetachip.cn/2.mp4"
+      "id": "1c25edf6-2c6b-4ee0-af71-e8d4e6f02d48",
+      "url": "https://storage.hnmetachip.cn/video/4.webm"
     },
     {
-      "id": "b6f7e2e3-9aec-4eec-b84f-11b6596acd52",
-      "url": "https://storage.hnmetachip.cn/3.mp4"
+      "id": "349300d1-24a6-45c8-bb88-c6dee66e0a08",
+      "url": "https://storage.hnmetachip.cn/video/5.webm"
     },
     {
-      "id": "5ddcdc56-839f-45f8-b7e8-05964a1b498e",
-      "url": "https://storage.hnmetachip.cn/4.mp4"
+      "id": "3f86be1c-a0c8-4cc5-adf7-d4247224e777",
+      "url": "https://storage.hnmetachip.cn/video/1.webm"
+    },
+    {
+      "id": "9ffa596b-794f-4e0b-9238-4686a0a9eef5",
+      "url": "https://storage.hnmetachip.cn/video/2.webm"
+    },
+    {
+      "id": "621db21f-5879-4668-990c-959e7fb720e7",
+      "url": "https://storage.hnmetachip.cn/video/3.webm"
+    },
+    {
+      "id": "97d1b195-151e-440f-9ce6-d199c77c7629",
+      "url": "https://storage.hnmetachip.cn/video/7.webm"
     }
   ],
   "products": [
-    "mc_wd_wearable_alarm",
-    "hum_sniffer",
-    "mcs_iot_platform"
+    "mc_pa_h1",
+    "mc_ld_ph2",
+    "mc_pdr_01"
   ],
   "cases": [
     {
-      "id": "case-1-truck.html",
-      "customSubtitle": "测试副标题",
-      "customTitle": "测试主标题"
+      "id": "case-5-chemical-plant.html",
+      "customSubtitle": "",
+      "customTitle": ""
     },
     {
       "id": "case-10-liquid-h2.html",
@@ -57,8 +69,8 @@
   "news": [],
   "measurementProducts": {
     "measurement-environment-hydrogen": [
-      "mc_hla_01",
       "mc_ld_h2",
+      "mc_la_h1",
       "mc_wd_01",
       "mc_hp_1_0"
     ],

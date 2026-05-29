@@ -64,7 +64,14 @@ from functools import wraps
 from pathlib import Path
 from urllib.parse import urlparse
 
-from flask import Response, jsonify, request, send_from_directory, stream_with_context
+from flask import (
+    Response,
+    jsonify,
+    request,
+    send_from_directory,
+    session,
+    stream_with_context,
+)
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
@@ -183,6 +190,28 @@ def _dep(name):
     if value is None and name not in _DEPS:
         raise RuntimeError(f"AI chatbot dependency not configured: {name}")
     return value
+
+
+def _current_admin_has_chatbot_access() -> bool:
+    if not bool(session.get("admin_logged_in")):
+        return False
+    if bool(session.get("admin_is_super_admin", False)):
+        return True
+
+    raw_permissions = session.get("admin_permissions", [])
+    if not isinstance(raw_permissions, (list, tuple, set)):
+        return False
+
+    for item in raw_permissions:
+        if str(item or "").strip() == "chatbot":
+            return True
+    return False
+
+
+def _require_chatbot_admin_api():
+    if _current_admin_has_chatbot_access():
+        return None
+    return jsonify({"success": False, "message": "当前账号没有 AI 与知识库 权限"}), 403
 
 
 def reset_knowledge_cache():
@@ -843,6 +872,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/history", methods=["GET"])
     @login_required
     def chatbot_history():
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         try:
             page = int(request.args.get("page") or "1")
         except (TypeError, ValueError):
@@ -895,6 +927,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/knowledge", methods=["GET"])
     @login_required
     def list_knowledge_files():
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         files = []
         for pdf_path in sorted(_dep("knowledge_dir").glob("*.pdf")):
             stat = pdf_path.stat()
@@ -910,6 +945,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/knowledge/upload", methods=["POST"])
     @login_required
     def upload_knowledge_file():
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         files = []
         if "file" in request.files:
             files.extend(request.files.getlist("file"))
@@ -994,6 +1032,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/knowledge/<filename>/download", methods=["GET"])
     @login_required
     def download_knowledge_file(filename):
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         filepath = _dep("knowledge_dir") / filename
         if not filepath.exists() or not filepath.is_file():
             return jsonify({"success": False, "message": "文件不存在"}), 404
@@ -1009,6 +1050,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/knowledge/<filename>", methods=["DELETE"])
     @login_required
     def delete_knowledge_file(filename):
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         safe_name = Path(filename).name
         if safe_name != filename or ".." in filename:
             return jsonify({"success": False, "message": "文件名不合法"}), 400
@@ -1025,6 +1069,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/config", methods=["GET"])
     @login_required
     def get_chatbot_config_api():
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         config = get_chatbot_config()
         if config["api_key"]:
             config["api_key"] = (
@@ -1037,7 +1084,7 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/config", methods=["POST"])
     @login_required
     def update_chatbot_config():
-        denied = _dep("require_super_admin_api")()
+        denied = _require_chatbot_admin_api()
         if denied:
             return denied
         data = request.json or {}
@@ -1069,6 +1116,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/rate-limit/config", methods=["GET"])
     @login_required
     def get_rate_limit_config():
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         return jsonify(
             {
                 "success": True,
@@ -1079,7 +1129,7 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/rate-limit/config", methods=["POST"])
     @login_required
     def update_rate_limit_config():
-        denied = _dep("require_super_admin_api")()
+        denied = _require_chatbot_admin_api()
         if denied:
             return denied
         data = request.json or {}
@@ -1111,6 +1161,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/chatbot/rate-limit/stats", methods=["GET"])
     @login_required
     def get_rate_limit_stats():
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         _clean_rate_limit_storage()
         with _rate_limit_lock:
             total_keys = len(_rate_limit_storage)
@@ -1134,6 +1187,9 @@ def register_ai_chatbot_routes(
     @app.route("/api/product-ai/config", methods=["GET"])
     @login_required
     def get_product_ai_config_api():
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
         config = get_product_page_ai_config()
         if config["api_key"]:
             config["api_key"] = (
@@ -1146,7 +1202,7 @@ def register_ai_chatbot_routes(
     @app.route("/api/product-ai/config", methods=["POST"])
     @login_required
     def update_product_ai_config():
-        denied = _dep("require_super_admin_api")()
+        denied = _require_chatbot_admin_api()
         if denied:
             return denied
         data = request.json or {}

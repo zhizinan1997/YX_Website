@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260510-trend">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
     <link rel="stylesheet" href="/admin/styles/components.css">
@@ -18,42 +18,78 @@
     <div id="loginPage" class="login-page">
         <canvas id="loginBgCanvas" class="login-bg-canvas" aria-hidden="true"></canvas>
         <div class="login-bg-noise" aria-hidden="true"></div>
-        <div class="login-box">
-            <div class="login-logo">
-                <i class="fas fa-shield-alt"></i> 元芯传感管理后台
-            </div>
-            <p class="login-subtitle">仅授权管理员可访问，请使用账号密码登录。</p>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>用户名</label>
-                    <input type="text" id="username" class="form-control" placeholder="请输入用户名" required>
+        <div class="login-shell">
+            <section class="login-hero" aria-label="元芯传感管理后台">
+                <a class="login-home-pill" href="/">
+                    <i class="fas fa-chevron-left"></i>
+                    返回网站首页
+                </a>
+                <div class="login-hero-copy">
+                    <div class="login-kicker">MetaChip Admin</div>
+                    <h1>元芯传感管理后台</h1>
+                    <p>使用已验证邮箱继续。安全核验会保护每一次关键访问。</p>
                 </div>
-                <div class="form-group">
-                    <label>密码</label>
-                    <input type="password" id="password" class="form-control" placeholder="请输入密码" required>
+                <div class="login-product-stage" aria-hidden="true">
+                    <img src="/cdn_assets/images/products/8af0484df7b2.png" alt="" class="login-product-image" loading="eager">
+                    <div class="login-product-note">
+                        <span>Security</span>
+                        <strong>12 小时防护策略</strong>
+                    </div>
                 </div>
-                <div id="loginTurnstileWrap" class="form-group" style="display:none;">
-                    <label>人机验证</label>
-                    <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
-                    <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
+            </section>
+            <div class="login-box">
+                <div class="login-logo">
+                    <div class="login-brand-word" aria-label="元芯传感">
+                        <span class="login-brand-symbol">M</span>
+                        <span>元芯传感</span>
+                    </div>
+                    <span>账号登录</span>
                 </div>
-                <div class="form-group" id="loginEmailCodeWrap" style="display:none;">
-                    <label>邮箱验证码</label>
-                    <input type="text" id="loginEmailCode" class="form-control" placeholder="请输入 6 位邮箱验证码" inputmode="numeric" maxlength="6">
-                    <div class="form-hint" id="loginEmailHint">验证码将发送到已绑定安全邮箱。</div>
+                <p class="login-subtitle" id="loginSubtitle">仅授权管理员可访问，请使用已验证邮箱快捷登录。</p>
+                <form id="loginForm">
+                    <div class="form-group" id="loginEmailWrap">
+                        <label>邮箱</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="请输入已验证安全邮箱" autocomplete="email" required>
+                    </div>
+                    <div class="form-group" id="loginUsernameWrap" style="display:none;">
+                        <label>用户名/邮箱</label>
+                        <input type="text" id="username" class="form-control" placeholder="请输入用户名或已验证邮箱" autocomplete="username">
+                    </div>
+                    <div class="form-group" id="loginPasswordWrap" style="display:none;">
+                        <label>密码</label>
+                        <input type="password" id="password" class="form-control" placeholder="请输入密码" autocomplete="current-password">
+                    </div>
+                    <div id="loginTurnstileWrap" class="form-group" style="display:none;">
+                        <label>人机验证</label>
+                        <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
+                        <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
+                    </div>
+                    <div class="form-group" id="loginEmailCodeWrap" style="display:none;">
+                        <label>邮箱验证码</label>
+                        <input type="text" id="loginEmailCode" class="form-control" placeholder="请输入 6 位邮箱验证码" inputmode="numeric" maxlength="6">
+                        <div class="form-hint" id="loginEmailHint">验证码将发送到已绑定安全邮箱。</div>
+                    </div>
+                    <div class="login-action-row">
+                        <button type="button" id="loginSendCodeBtn" class="btn-primary">发送邮箱验证码</button>
+                        <button type="submit" id="loginSubmitBtn" class="btn-primary">验证并登录</button>
+                    </div>
+                    <div id="loginError" class="error-message"></div>
+                </form>
+                <div class="login-method-switch" aria-label="其他登录方式">
+                    <div class="login-method-title">其他登录方式</div>
+                    <div class="login-method-actions">
+                        <button type="button" class="login-method-btn" id="loginModeAccountBtn" data-login-mode="account_password">
+                            用户名/邮箱登录
+                        </button>
+                        <button type="button" class="login-method-btn login-method-back" id="loginModeEmailCodeBtn" data-login-mode="email_code" hidden>
+                            返回邮箱快捷登录
+                        </button>
+                    </div>
                 </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button type="button" id="loginSendCodeBtn" class="btn-primary" style="flex:1 1 220px;">发送邮箱验证码</button>
-                    <button type="submit" id="loginSubmitBtn" class="btn-primary" style="flex:1 1 180px;">验证并登录</button>
+                <div class="login-security-tip">
+                    <i class="fas fa-shield-virus"></i>
+                    <span>同一 IP 在 12 小时内失败 3 次将被封禁 12 小时</span>
                 </div>
-                <div id="loginError" class="error-message"></div>
-            </form>
-            <div class="login-security-tip">
-                <i class="fas fa-shield-virus"></i>
-                <span>同一 IP 在 12 小时内失败 3 次将被封禁 12 小时</span>
-            </div>
-            <div class="login-foot-link">
-                <a href="/">← 返回网站首页</a>
             </div>
         </div>
     </div>
@@ -187,7 +223,8 @@
                 </div>
             </div>
             <div class="sidebar-footer">
-                <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()">
+                <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()"
+                    aria-label="折叠侧边栏" aria-pressed="false">
                     <i class="fas fa-bars"></i>
                     <span id="sidebarToggleText">折叠侧边栏</span>
                 </button>
@@ -222,11 +259,27 @@
                         <div class="account-menu-panel" id="accountMenuPanel" hidden>
                             <div class="account-menu-info">
                                 <div class="account-username" id="accountMenuUsername"></div>
+                                <div class="account-email" id="accountMenuEmail"></div>
                                 <div class="account-role" id="accountMenuRole"></div>
                             </div>
                             <div class="account-menu-permissions">
                                 <div class="account-menu-permissions-title">功能权限</div>
                                 <div class="account-menu-permissions-list" id="accountMenuPermissions"></div>
+                            </div>
+                            <div class="account-menu-login-meta">
+                                <div class="account-menu-login-title">上次登录</div>
+                                <div class="account-menu-login-row">
+                                    <span>时间</span>
+                                    <strong id="accountMenuLastLoginTime">首次登录</strong>
+                                </div>
+                                <div class="account-menu-login-row">
+                                    <span>IP</span>
+                                    <strong id="accountMenuLastLoginIp">-</strong>
+                                </div>
+                                <div class="account-menu-login-row">
+                                    <span>物理地址</span>
+                                    <strong id="accountMenuLastLoginLocation">未知</strong>
+                                </div>
                             </div>
                             <button type="button" class="account-menu-item" onclick="logoutFromAccountMenu(event)">
                                 <i class="fas fa-sign-out-alt"></i>
@@ -2448,6 +2501,19 @@
                                     <label>权限（逐项勾选）</label>
                                     <div id="subCreatePermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
                                 </div>
+                                <div class="form-group">
+                                    <label>邮件提醒</label>
+                                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px;">
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subCreateNotifyMessageEmail">
+                                            <span>留言推送邮件</span>
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subCreateNotifyJobEmail">
+                                            <span>应聘推送邮件</span>
+                                        </label>
+                                    </div>
+                                </div>
                                 <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">添加子账号</button>
                                 <div id="subCreateMsg" class="error-message" style="color:#28a745;"></div>
                             </form>
@@ -2465,6 +2531,8 @@
                                             <th>用户名</th>
                                             <th>状态</th>
                                             <th>权限</th>
+                                            <th>留言推送</th>
+                                            <th>应聘推送</th>
                                             <th>最近登录</th>
                                             <th>更新时间</th>
                                             <th>操作</th>
@@ -2472,7 +2540,7 @@
                                     </thead>
                                     <tbody id="subAccountsListBody">
                                         <tr>
-                                            <td colspan="6" class="no-data">暂无子账号</td>
+                                            <td colspan="8" class="no-data">暂无子账号</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -2499,6 +2567,19 @@
                                     <label>权限（逐项勾选）</label>
                                     <div id="subEditPermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
                                 </div>
+                                <div class="form-group">
+                                    <label>邮件提醒</label>
+                                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px;">
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subEditNotifyMessageEmail">
+                                            <span>留言推送邮件</span>
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap:8px;">
+                                            <input type="checkbox" id="subEditNotifyJobEmail">
+                                            <span>应聘推送邮件</span>
+                                        </label>
+                                    </div>
+                                </div>
                                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                                     <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">保存账号设置</button>
                                     <button type="button" class="btn-primary" id="subDeleteBtn"
@@ -2515,43 +2596,42 @@
                 <!-- Site Settings View -->
                 <div id="view-site-settings" class="view-section">
                     <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">CDN 加速设置</h3>
+                        <h3 class="section-header">ESA 缓存设置</h3>
                         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                            开启后主站访问 <code>/cdn_assets/</code> 会返回 <code>302</code> 到 CDN 域名，客户端将直接从 CDN 拉取素材资源。
+                            当前版本使用主站单域名输出 <code>/cdn_assets/</code>，由阿里云 ESA 按路径缓存；独立 CDN 域名跳转已停用。
                         </p>
                         <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:18px; color:#2f3b4f; font-size:13px; line-height:1.75;">
                             <div style="font-weight:700; color:#0f2f5f; margin-bottom:6px;">运维操作指南（上线/回滚）</div>
                             <ol style="margin:0 0 0 18px; padding:0;">
-                                <li>准备阶段：确认 <code>cdn_assets/</code> 已更新，CDN 域名证书正常，源站回源规则已指向当前网关。</li>
-                                <li>填写域名：在“CDN 域名”中填写 <code>https://cdn.example.com</code>（不要带路径）。</li>
-                                <li>连通检测：点击“测试连通性”，建议检测结果为 <code>200</code> 或 <code>206</code>。</li>
-                                <li>启用加速：勾选“启用 CDN 加速”并保存，主站 <code>/cdn_assets/*</code> 将返回 <code>302</code> 到 CDN 域名。</li>
-                                <li>上线验收：抽检首页、产品、新闻、关于页；重点验证大图、视频首帧与 Range 播放。</li>
-                                <li>故障回滚：取消勾选“启用 CDN 加速”并保存，立即恢复主站本地资源链路。</li>
+                                <li>准备阶段：确认 <code>cdn_assets/</code> 已更新，主站域名已接入阿里云 ESA。</li>
+                                <li>ESA 规则：对 <code>/cdn_assets/*</code>、<code>/assets/*</code>、图片、视频、字体、CSS、JS 设置长缓存。</li>
+                                <li>绕过缓存：对 <code>/admin/*</code>、<code>/api/*</code>、登录相关接口设置绕过缓存。</li>
+                                <li>资源验收：访问主站 <code>/cdn_assets/*</code> 应返回 <code>200</code>，不应返回旧版 CDN 跳转 <code>302</code>。</li>
+                                <li>页面验收：抽检首页、产品、新闻、关于页；重点验证大图、视频首帧与 Range 播放。</li>
+                                <li>故障回滚：在 ESA 中临时绕过相关缓存规则，源站仍保持主站本地资源链路。</li>
                                 <li>变更留痕：记录操作人、时间、CDN 域名、测试结果和回滚动作，便于审计。</li>
                             </ol>
                             <div style="font-weight:700; color:#0f2f5f; margin:10px 0 6px;">后端逻辑说明（给运维/开发）</div>
                             <ol style="margin:0 0 0 18px; padding:0;">
                                 <li><code>GET /api/cdn/settings</code>：读取当前加速开关与域名（需登录）。</li>
-                                <li><code>POST /api/cdn/settings</code>：保存 <code>cdn_enabled</code>、<code>cdn_domain</code> 到 <code>data/config.json</code>。</li>
-                                <li>域名规范化：后端会规范为 <code>http(s)://host[:port]</code>，自动剔除路径和多余斜杠。</li>
-                                <li><code>POST /api/cdn/test</code>：对样例资源执行 <code>HEAD</code> 与 <code>Range GET</code> 连通性检测。</li>
-                                <li><code>GET /cdn_assets/&lt;path&gt;</code>：开启时返回 <code>302</code> 到 <code>cdn_domain</code>，关闭时回落到主站本地资源。</li>
-                                <li><code>/api/cdn/switch-header</code>：保留兼容接口，用于读取当前开关状态。</li>
+                                <li><code>POST /api/cdn/settings</code>：保留旧配置兼容，但 <code>cdn_enabled</code> 会被保存为 <code>false</code>。</li>
+                                <li><code>POST /api/cdn/test</code>：仅作为旧 CDN 域名连通性诊断工具保留。</li>
+                                <li><code>GET /cdn_assets/&lt;path&gt;</code>：始终从主站本地资源直出，供 ESA 缓存。</li>
+                                <li><code>/api/cdn/switch-header</code>：保留兼容接口，固定返回关闭状态。</li>
                             </ol>
                         </div>
                         <form id="cdnSettingsForm">
                             <div class="form-group">
                                 <label style="display: flex; align-items: center; gap: 10px;">
                                     <input type="checkbox" id="cdnEnabled">
-                                    <span>启用 CDN 加速</span>
+                                    <span>旧版独立 CDN 跳转（已停用）</span>
                                 </label>
                             </div>
                             <div class="form-group">
-                                <label>CDN 域名</label>
+                                <label>旧 CDN 域名（兼容记录）</label>
                                 <input type="text" id="cdnDomain" class="form-control"
                                     placeholder="https://cdn.example.com">
-                                <div class="form-hint">仅填写域名，路径会自动拼接为 <code>/cdn_assets/...</code></div>
+                                <div class="form-hint">新版单域名 ESA 部署不会使用该域名跳转，保留此项仅便于查看旧配置。</div>
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                                 <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存设置</button>
@@ -2683,15 +2763,26 @@
                                 <div class="form-hint">基础分析 + 完整分析：PV/UV、来源、设备、会话、跳出率、转化与事件趋势，中国按省/海外按洲地图，并集中查看历史登录日志</div>
                             </div>
                             <div class="site-report-actions">
-                                <label for="siteReportRangeDays" class="site-report-label">时间范围</label>
-                                <select id="siteReportRangeDays" class="form-control site-report-range-select"
-                                    onchange="loadSiteReports(true)">
-                                    <option value="24h">最近24小时</option>
-                                    <option value="7">最近 7 天</option>
-                                    <option value="30" selected>最近 30 天</option>
-                                    <option value="90">最近 90 天</option>
-                                    <option value="180">最近 180 天</option>
-                                </select>
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportStartDate" class="site-report-label">开始日期</label>
+                                    <input type="date" id="siteReportStartDate" class="form-control site-report-filter-control site-report-date-input"
+                                        onchange="loadSiteReports()">
+                                </div>
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportEndDate" class="site-report-label">结束日期</label>
+                                    <input type="date" id="siteReportEndDate" class="form-control site-report-filter-control site-report-date-input"
+                                        onchange="loadSiteReports()">
+                                </div>
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportGranularity" class="site-report-label">显示粒度</label>
+                                    <select id="siteReportGranularity" class="form-control site-report-filter-control site-report-granularity-select"
+                                        onchange="loadSiteReports()">
+                                        <option value="year">按年显示</option>
+                                        <option value="month">按月显示</option>
+                                        <option value="week">按周显示</option>
+                                        <option value="day" selected>按天显示</option>
+                                    </select>
+                                </div>
                                 <button type="button" class="btn-primary site-report-refresh-btn" id="siteReportRefreshBtn"
                                     onclick="loadSiteReports(true)">
                                     <i class="fas fa-sync-alt"></i> 刷新报表
@@ -3208,7 +3299,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <div class="docker-logs-hero-left">
                                 <div class="docker-logs-kicker">Docker 日志</div>
                                 <h3 class="docker-logs-title">后端日志</h3>
-                                <p class="docker-logs-subtitle">查看 Docker 容器运行日志，支持两个后端服务。</p>
+                                <p class="docker-logs-subtitle">查看网站应用容器运行日志。</p>
                             </div>
                             <button type="button" class="docker-logs-refresh-btn" id="dockerLogsRefreshBtn"
                                 onclick="loadDockerLogs(true)">
@@ -3221,7 +3312,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                 <i class="fas fa-box"></i> <span id="dockerLogsTab1Label">应用服务</span>
                             </button>
                             <button type="button" class="docker-logs-tab" data-tab="container2" onclick="switchDockerLogsTab('container2')">
-                                <i class="fas fa-box"></i> <span id="dockerLogsTab2Label">Nginx 服务</span>
+                                <i class="fas fa-box"></i> <span id="dockerLogsTab2Label">旧版网关</span>
                             </button>
                         </div>
 
@@ -3255,7 +3346,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         <div id="dockerLogsContent2" class="docker-logs-content">
                             <div id="dockerLogsOutput2" class="docker-logs-output" style="display:none;">
                                 <div class="docker-logs-output-header">
-                                    <span class="docker-logs-output-title" id="dockerLogsTitle2">Nginx 服务日志</span>
+                                    <span class="docker-logs-output-title" id="dockerLogsTitle2">旧版网关日志</span>
                                 </div>
                                 <div class="docker-logs-output-body" id="dockerLogsBody2"></div>
                             </div>
@@ -3289,7 +3380,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script src="/admin/js/components/shell.js"></script>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
-    <script src="/admin/js/legacy-admin.js"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260510-trend"></script>
     <script src="/admin/js/app.js"></script>
 </body>
 </html>

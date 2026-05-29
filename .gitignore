@@ -27,6 +27,7 @@ archive/
 .pytest_cache/
 .coverage
 htmlcov/
+node_modules/
 
 # Runtime generated files
 /data/.flask_secret_key

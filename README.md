@@ -31,11 +31,9 @@
 │   └── rate_limits.json   # IP限流记录
 ├── pages/                  # 网站各页面
 ├── cdn_assets/             # 统一素材目录（图片/视频）
-├── gateway/                # Nginx 网关（主站/CDN 双域名分流）
 ├── tools/                  # 维护脚本
 ├── server.py               # Flask 后端服务器
 ├── Dockerfile              # Docker 构建文件
-├── docker-compose.yml      # Docker Compose 配置
 ├── requirements.txt        # Python依赖
 └── README.md               # 项目说明
 ```
@@ -122,54 +120,36 @@ bash /root/yxwebsite/dockerrun_upgrade.sh --help
 
 说明：
 
-- `2026` 为主站入口，`2027` 为 CDN 专用入口。
-- 域名绑定通过 DNS/反向代理完成（主站域名指向 `2026`，CDN 域名指向 `2027`）。
-- `yx-website` 不映射宿主机端口，仅通过 Docker 网络供 `yx-gateway` 反向代理访问。
+- `2026` 为主站入口，直接映射到 `yx-website:8000`。
+- 域名绑定通过阿里云 ESA 与宿主机 Nginx/宝塔反向代理完成，主站域名指向 `http://127.0.0.1:2026`。
 - `yx-website` 在生产环境必须提供 `SECRET_KEY` 和 `PUBLIC_BASE_URL`。
 - 首次部署时还必须提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 作为超级管理员初始化凭据；如果 `/app/data/admin_users.json` 中已经存在超级管理员，则后续重启可省略这两个变量。
 - 如确需允许首次初始化时使用弱密码，可显式传入 `ALLOW_WEAK_ADMIN_PASSWORDS=true`；默认仍为 `false`。
-- 你的部署拓扑是 `宿主机 Nginx -> gateway -> website`，因此建议固定使用 `TRUST_PROXY_HEADERS=true`。
+- 你的部署拓扑是 `用户 -> 阿里云 ESA -> 宿主机 Nginx/宝塔 -> yx-website`，因此建议固定使用 `TRUST_PROXY_HEADERS=true`。
 - HTTPS 域名场景建议固定设置 `SESSION_COOKIE_SECURE=true`。
 - `pages` 目录也建议持久化挂载到宿主机；后台创建或编辑新闻、产品页时会直接写入该目录，不挂载会在重建容器后丢失。
 - `data` 目录除了客户数据外，也承载后台改过的站点配置、导航配置、首页模块配置等；一旦挂载到宿主机，镜像内默认 `data` 文件会被遮蔽，所以首次部署和每次升级都建议使用上面的升级脚本来同步。
-- `cdn_assets` 不再需要宿主机挂载：`website` 直接使用镜像内置素材，`gateway` 的主站入口与 CDN 入口都会转发到 `website` 统一处理。
+- `cdn_assets` 继续挂载到宿主机以兼容客户自定义素材与备份；访问路径保持 `/cdn_assets/...`，由 ESA 在主站域名下按路径缓存。
 - `update_logs` 也不再需要宿主机挂载；后台默认读取镜像内自带的更新日志。
-- `MAIN_DOMAIN/CDN_DOMAIN` 不是容器启动必填项。
+- `MAIN_DOMAIN/CDN_DOMAIN` 不是容器启动必填项；新版 ESA 单域名部署不再需要单独 CDN 域名。
 - `website` 镜像仍然是 `cdn_assets` 与默认 `pages` 的来源；其中 `pages` 因为要给后台写入，所以保留宿主机挂载。
 - 空目录挂载会覆盖镜像内文件并导致 `404`/内容缺失或默认配置缺失，因此首次切换前请先把 `data` 与 `pages` 从镜像同步到宿主机目录。
 - 升级镜像时，建议始终使用上面的升级脚本；它会自动处理“镜像新增默认 data/pages 文件”和“宿主机已修改内容”的合并问题。
 
-### 宝塔 Nginx 反代（适配双域名）
+### 宝塔 Nginx 反代（ESA 单域名）
 
 - 主站域名（如 `test.hnmetachip.cn`）反代到：`http://127.0.0.1:2026`
-- CDN 域名（如 `cdn.hnmetachip.cn`）反代到：`http://127.0.0.1:2027`
-- 两个站点都要保持 `Host` 透传（默认即可）。
-- 建议关闭宝塔“反向代理缓存”，至少对 `/cdn_assets/` 关闭，避免历史 `404/302` 被宿主机缓存导致误判。
+- 只需要配置一个站点域名，并保持 `Host` 透传（默认即可）。
+- 建议让宝塔反代层不做缓存，把缓存策略统一放在阿里云 ESA。
 
-可在对应站点反代 `location` 中加入：
+可在宝塔反代 `location` 中加入：
 
 ```nginx
 proxy_no_cache 1;
 proxy_cache_bypass 1;
 ```
 
-### Docker Compose
-
-项目根目录下已包含 `docker-compose.yml`，默认会启动两个服务：
-
-- `website`：Flask 应用（仅容器内暴露 `8000`）
-- `gateway`：统一入口网关（主站与 CDN 分流）
-
-默认端口映射：
-
-- 主站入口：`${MAIN_PORT:-8000} -> gateway:80`
-- CDN 入口：`${CDN_PORT:-8001} -> gateway:81`
-
-启动：
-
-```bash
-docker compose up -d
-```
+### Docker 部署
 
 建议在 `.env` 中至少提供这些变量：
 
@@ -183,8 +163,7 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=
 ADMIN_PASSWORD=
 ALLOW_WEAK_ADMIN_PASSWORDS=false
-MAIN_PORT=8000
-CDN_PORT=8001
+MAIN_PORT=2026
 ```
 
 说明：
@@ -192,9 +171,9 @@ CDN_PORT=8001
 - `SECRET_KEY`、`PUBLIC_BASE_URL` 是生产启动必填项。
 - 首次部署时必须提供 `ADMIN_PASSWORD_HASH` 或 `ADMIN_PASSWORD`；已有持久化管理员数据后可移除。
 - 如必须允许 `admin123` 这类弱密码初始化，可额外设置 `ALLOW_WEAK_ADMIN_PASSWORDS=true`。
-- `docker-compose.yml` 默认只持久化 `data/` 与 `pages/`；`cdn_assets/` 和 `update_logs/` 会直接使用镜像内内容。
+- 部署脚本默认持久化 `data/`、`pages/` 与 `cdn_assets/`，以兼容客户后台编辑、上传素材和升级备份。
 - 如果你也使用宿主机挂载 `data/`，请注意镜像内默认 `data` 文件同样会被遮蔽；升级时也需要采用和上面相同的同步思路，否则新增默认配置可能不会自动进入宿主机目录。
-- Turnstile、CDN 等业务配置仍可在 Admin 界面内调整。
+- Turnstile 等业务配置仍可在 Admin 界面内调整；旧版 CDN 域名配置仅保留兼容，不再触发 `/cdn_assets/` 跳转。
 
 ### 手动 Docker Run（高级用户 / 排障用）
 
@@ -203,25 +182,26 @@ CDN_PORT=8001
 
 ```bash
 # 1) 准备目录与网络
-mkdir -p /root/yxwebsite/data /root/yxwebsite/pages
+mkdir -p /root/yxwebsite/data /root/yxwebsite/pages /root/yxwebsite/cdn_assets
 docker network create yx-net || true
 
 # 2) 拉取镜像
 docker pull ghcr.io/zhizinan1997/yx_website:latest
-docker pull ghcr.io/zhizinan1997/yx-gateway:latest
 
-# 3) 首次部署时，先把镜像内的 data/pages 导出到宿主机
+# 3) 首次部署时，先把镜像内的 data/pages/cdn_assets 导出到宿主机
 docker create --name yx-website-seed ghcr.io/zhizinan1997/yx_website:latest
 docker cp yx-website-seed:/app/data/. /root/yxwebsite/data/
 docker cp yx-website-seed:/app/pages/. /root/yxwebsite/pages/
+docker cp yx-website-seed:/app/cdn_assets/. /root/yxwebsite/cdn_assets/
 docker rm -f yx-website-seed
 
-# 4) 启动网站容器
+# 4) 启动网站容器；宿主机 Nginx/宝塔反代到 http://127.0.0.1:2026
 docker run -d \
   --name yx-website \
   --restart unless-stopped \
   --network yx-net \
   --network-alias yx-website \
+  -p 127.0.0.1:2026:8000 \
   -e APP_ENV=production \
   -e SECRET_KEY='replace-with-a-random-secret-key-at-least-32-chars' \
   -e PUBLIC_BASE_URL='https://your-domain.example.com' \
@@ -230,36 +210,21 @@ docker run -d \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
   -e ALLOW_WEAK_ADMIN_PASSWORDS=false \
+  -e CDN_ENABLED=false \
   -v /root/yxwebsite/data:/app/data \
   -v /root/yxwebsite/pages:/app/pages \
+  -v /root/yxwebsite/cdn_assets:/app/cdn_assets \
   ghcr.io/zhizinan1997/yx_website:latest
-
-# 4.1) 将网站容器同时连接到 bridge 网络（避免域名 502）
-docker network connect bridge yx-website
-
-# 5) 启动网关容器
-docker run -d \
-  --name yx-gateway \
-  --restart unless-stopped \
-  --network yx-net \
-  --log-opt max-size=10m \
-  --log-opt max-file=3 \
-  -p 127.0.0.1:2026:80 \
-  -p 127.0.0.1:2027:81 \
-  ghcr.io/zhizinan1997/yx-gateway:latest
-
-# 5.1) 将网关容器同时连接到 bridge 网络（避免域名 502）
-docker network connect bridge yx-gateway
 ```
 
-## 📡 CDN 加速开关
+## 📡 ESA 缓存建议
 
-- 后台“站点设置”中新增 `CDN 加速设置`：
-  - `cdn_enabled`：是否开启
-  - `cdn_domain`：如 `https://cdn.example.com`
-- 代码中的资源路径仍保持 `/cdn_assets/...`，无需批量改源码。
-- 开启后主站 `/cdn_assets/*` 会返回 `302` 到 `cdn_domain`，客户端将直接从 CDN 域名拉取资源（主站只承担轻量重定向流量）。
-- 关闭后主站 `/cdn_assets/*` 恢复本地直出。
+- 阿里云 ESA 只接管主站一个域名即可，代码中的资源路径保持 `/cdn_assets/...`。
+- `/cdn_assets/*`、`/assets/*`：建议长缓存；如果文件名带 hash，可设置更长 TTL。
+- 图片、视频、字体、CSS、JS：建议长缓存。
+- `/admin/*`、`/api/*`、登录相关接口：建议绕过缓存。
+- HTML 页面：建议短缓存或遵循源站。
+- 从旧双域名方案切换期间，不要缓存历史 `302`。
 
 ## 🔐 Admin 登录防机器人（Turnstile）
 

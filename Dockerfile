@@ -12,7 +12,8 @@ FROM python:3.11-alpine
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/deps
+    PYTHONPATH=/app/deps \
+    FLASK_LOG_FILE=/app/data/logs/app.log
 
 # Copy installed packages
 COPY --from=builder /deps /app/deps
@@ -41,6 +42,7 @@ RUN mkdir -p \
     /app/data/resumes \
     /app/data/news_uploads \
     /app/data/h2_home_videos \
+    /app/data/logs \
     /app/data/product_cards/uploads \
     /app/data/hero/uploads \
     /app/data/hero/derived \
@@ -48,4 +50,4 @@ RUN mkdir -p \
 
 EXPOSE 8000
 
-CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "server:app"]
+CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "--access-logfile", "/app/data/logs/gunicorn-access.log", "--error-logfile", "/app/data/logs/gunicorn-error.log", "--capture-output", "--log-level", "info", "server:app"]

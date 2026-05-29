@@ -1,3 +1,7 @@
 {
-  "ids": []
+  "ids": [
+    "industry-power-safety",
+    "industry-energy-storage",
+    "industry-environment"
+  ]
 }

@@ -559,6 +559,8 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
     email_bound_at = str((user or {}).get('email_bound_at', '') or '').strip()
     email_verified = bool(email and (user or {}).get('email_verified', False))
     two_factor_enabled = True if (user or {}).get('two_factor_enabled', True) is not False else False
+    notify_message_email = bool((user or {}).get('notify_message_email', False))
+    notify_job_email = bool((user or {}).get('notify_job_email', False))
     return {
         'username': username,
         'password_hash': password_hash,
@@ -574,6 +576,8 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
         'email_bound_at': email_bound_at,
         'email_verified': email_verified,
         'two_factor_enabled': two_factor_enabled,
+        'notify_message_email': notify_message_email,
+        'notify_job_email': notify_job_email,
     }
 
 
@@ -592,6 +596,8 @@ def _public_user_profile(user):
         'email_verified': bool(record.get('email_verified', False)),
         'email_bound_at': str(record.get('email_bound_at') or ''),
         'two_factor_enabled': record.get('two_factor_enabled', True) is not False,
+        'notify_message_email': bool(record.get('notify_message_email', False)),
+        'notify_job_email': bool(record.get('notify_job_email', False)),
     }
 
 
@@ -672,6 +678,10 @@ def _clear_admin_session(sess):
         'admin_session_ttl',
         'admin_session_schema',
         'admin_binding_required',
+        'admin_previous_login_at',
+        'admin_previous_login_ip',
+        'admin_current_login_at',
+        'admin_current_login_ip',
     ):
         sess.pop(key, None)
     _clear_pending_login_session(sess)
@@ -1144,11 +1154,15 @@ def _prune_login_attempts(state, now_ts: int):
         blocked_until = int(item.get('blocked_until', 0) or 0)
         if blocked_until <= now_ts:
             blocked_until = 0
-        if not failures and blocked_until <= 0:
+        delay_until = int(item.get('delay_until', 0) or 0)
+        if delay_until <= now_ts:
+            delay_until = 0
+        if not failures and blocked_until <= 0 and delay_until <= 0:
             to_delete.append(ip)
         else:
             item['failures'] = failures
             item['blocked_until'] = blocked_until
+            item['delay_until'] = delay_until
             ips[ip] = item
     for ip in to_delete:
         ips.pop(ip, None)
@@ -1178,15 +1192,12 @@ def _get_login_delay_seconds(state, ip_addr: str, now_ts: int) -> int:
     """根据连续失败次数返回所需延迟秒数；无需延迟时返回 0。"""
     ips = state.get('ips') if isinstance(state, dict) else {}
     item = ips.get(ip_addr, {}) if isinstance(ips.get(ip_addr), dict) else {}
-    failures = [int(ts) for ts in item.get('failures', []) if isinstance(ts, (int, float)) and now_ts - int(ts) <= LOGIN_FAIL_WINDOW_SECONDS]
     delay_until = int(item.get('delay_until', 0) or 0)
     if delay_until > now_ts:
         return delay_until - now_ts
-    failure_count = len(failures)
-    if failure_count == 1 and LOGIN_DELAY_SECONDS[0] > 0:
-        return LOGIN_DELAY_SECONDS[0]
-    if failure_count >= 2 and LOGIN_DELAY_SECONDS[1] > 0:
-        return LOGIN_DELAY_SECONDS[1]
+    if delay_until:
+        item['delay_until'] = 0
+        ips[ip_addr] = item
     return 0
 
 
@@ -2142,6 +2153,10 @@ def register_admin_routes(
         prev_last_login_at, prev_last_login_ip, current_login_at = _save_login_success(
             root, get_config, update_config, login_username, ip_addr
         )
+        session['admin_previous_login_at'] = prev_last_login_at
+        session['admin_previous_login_ip'] = prev_last_login_ip
+        session['admin_current_login_at'] = current_login_at
+        session['admin_current_login_ip'] = ip_addr
         append_admin_login_log(
             operation='admin_login',
             success=True,
@@ -2160,7 +2175,16 @@ def register_admin_routes(
 
     def _perform_login_start():
         data = request.form if request.form else request.get_json(silent=True) or {}
+        login_method = str(data.get('login_method', '') or data.get('loginMethod', '') or 'username_password').strip()
+        if login_method not in {'username_password', 'email_password', 'account_password'}:
+            login_method = 'username_password'
+        account = str(data.get('account', '') or '').strip()
         username = str(data.get('username', '') or '').strip()
+        email = _normalize_email(data.get('email', ''))
+        if login_method == 'account_password':
+            username = account
+            if '@' in account:
+                email = _normalize_email(account)
         password = str(data.get('password', '') or '')
         turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
         ip_addr = _get_request_ip(request)
@@ -2172,17 +2196,21 @@ def register_admin_routes(
 
         with ADMIN_USERS_LOCK:
             users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
-            login_user, _ = _find_user(users_data, username)
+            if login_method == 'email_password' or (login_method == 'account_password' and '@' in username):
+                login_user = _find_user_by_email(users_data, email)
+            else:
+                login_user, _ = _find_user(users_data, username)
             if login_user is not None:
                 login_user = dict(login_user)
 
         is_hidden_admin = _is_hidden_admin_record(login_user)
+        login_identifier = email if login_method == 'email_password' else username
         country_allowed, country_reason = _is_ip_country_allowed(ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code)
         if not country_allowed:
             append_admin_login_log(
                 operation='admin_login',
                 success=False,
-                username=username,
+                username=login_identifier,
                 detail=country_reason,
                 hidden_account=is_hidden_admin,
             )
@@ -2206,10 +2234,45 @@ def register_admin_routes(
         user_enabled = bool(login_user and login_user.get('enabled', True))
         user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
         password_ok = bool(login_user) and user_enabled and _verify_password(user_password_hash, password)
-        credentials_ok = bool(turnstile_ok and password_ok)
+        email_login_verified = not (login_method == 'email_password' or (login_method == 'account_password' and '@' in username)) or _has_verified_email(login_user)
+        credentials_ok = bool(turnstile_ok and password_ok and email_login_verified)
         login_username = _normalize_username((login_user or {}).get('username', '') or username)
 
-        if not username and not password:
+        if login_method == 'account_password':
+            if not username and not password:
+                fail_reason = '用户名/邮箱和密码不能为空。'
+            elif not username:
+                fail_reason = '请输入用户名或邮箱。'
+            elif '@' in username and not email:
+                fail_reason = '请输入有效的邮箱地址。'
+            elif not password:
+                fail_reason = '请输入密码。'
+            elif turnstile_settings['enabled'] and not turnstile_ok:
+                fail_reason = turnstile_fail_reason or '人机验证失败，请重试。'
+            elif login_user and not user_enabled:
+                fail_reason = '该账号已被停用，请联系管理员。'
+            elif password_ok and not email_login_verified:
+                fail_reason = '该邮箱尚未完成安全验证，请使用用户名登录后绑定安全邮箱。'
+            else:
+                fail_reason = '账号或密码错误。'
+        elif login_method == 'email_password':
+            if not email and not password:
+                fail_reason = '邮箱和密码不能为空。'
+            elif not email:
+                fail_reason = '请输入邮箱。'
+            elif '@' not in email:
+                fail_reason = '请输入有效的邮箱地址。'
+            elif not password:
+                fail_reason = '请输入密码。'
+            elif turnstile_settings['enabled'] and not turnstile_ok:
+                fail_reason = turnstile_fail_reason or '人机验证失败，请重试。'
+            elif login_user and not user_enabled:
+                fail_reason = '该账号已被停用，请联系管理员。'
+            elif password_ok and not email_login_verified:
+                fail_reason = '该邮箱尚未完成安全验证，请使用用户名登录后绑定安全邮箱。'
+            else:
+                fail_reason = '邮箱或密码错误。'
+        elif not username and not password:
             fail_reason = '用户名和密码不能为空。'
         elif not username:
             fail_reason = '请输入用户名。'
@@ -2247,8 +2310,9 @@ def register_admin_routes(
                 _reset_login_attempts_for_ip(attempts_state, ip_addr)
                 _save_login_attempts(attempts_file, attempts_state)
             else:
-                _set_login_delay(attempts_state, ip_addr, now_ts)
                 is_blocked_now, blocked_until, _remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
+                if not is_blocked_now:
+                    _set_login_delay(attempts_state, ip_addr, now_ts)
                 _save_login_attempts(attempts_file, attempts_state)
                 if is_blocked_now:
                     blocked_at = _format_blocked_until(blocked_until)
@@ -2257,23 +2321,22 @@ def register_admin_routes(
                     failed_detail = f'{fail_reason}；已封禁至 {blocked_at or blocked_until}'
                 else:
                     failed_payload = {'success': False, 'message': f'{fail_reason} 已触发延迟保护，请稍后再试。'}
-                    failed_status = 400 if fail_reason != '用户名或密码错误。' else 401
+                    failed_status = 401 if fail_reason in {'用户名或密码错误。', '邮箱或密码错误。', '账号或密码错误。'} else 400
                     failed_detail = f'{fail_reason}；已触发延迟保护'
 
         if failed_payload is not None:
             append_admin_login_log(
                 operation='admin_login',
                 success=False,
-                username=username,
+                username=login_identifier,
                 detail=failed_detail,
                 hidden_account=is_hidden_admin,
             )
             return jsonify(failed_payload), failed_status
 
-        if smtp_settings['enabled'] and not _smtp_ready_for_email_auth(smtp_settings):
-            return jsonify({'success': False, 'message': '邮箱验证已启用，但 SMTP 配置不可用或已过期，请联系管理员更新。'}), 503
+        email_verification_available = bool(smtp_settings['enabled'] and _smtp_ready_for_email_auth(smtp_settings))
 
-        if smtp_settings['enabled'] and _has_verified_email(login_user):
+        if email_verification_available and _has_verified_email(login_user):
             pending_login_id = _create_pending_login(root, login_username, ip_addr)
             _set_pending_login_session(session, pending_login_id=pending_login_id, username=login_username, ip_addr=ip_addr)
             return jsonify({
@@ -2287,13 +2350,153 @@ def register_admin_routes(
         return _finalize_login_success(
             login_user,
             ip_addr,
-            binding_required=bool(smtp_settings['enabled'] and not _has_verified_email(login_user)),
-            detail_suffix='凭据校验通过；已进入后台' + ('；需绑定安全邮箱' if smtp_settings['enabled'] and not _has_verified_email(login_user) else ''),
+            binding_required=bool(email_verification_available and not _has_verified_email(login_user)),
+            detail_suffix='凭据校验通过；已进入后台' + ('；需绑定安全邮箱' if email_verification_available and not _has_verified_email(login_user) else ''),
         )
 
     @app.route('/admin/login/start', methods=['POST'])
     def admin_login_start():
         return _perform_login_start()
+
+    @app.route('/admin/login/email-code/send', methods=['POST'])
+    def admin_login_email_code_send():
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        email = _normalize_email(data.get('email', ''))
+        turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
+        ip_addr = _get_request_ip(request)
+        now_ts = int(time.time())
+        attempts_file = _get_login_attempts_file(root)
+        config = get_config() or {}
+        turnstile_settings = _get_turnstile_settings(config)
+        smtp_settings = _get_email_auth_settings(config)
+
+        if not email:
+            return jsonify({'success': False, 'message': '请输入已验证安全邮箱。'}), 400
+        if '@' not in email:
+            return jsonify({'success': False, 'message': '请输入有效的邮箱地址。'}), 400
+        if not smtp_settings['enabled'] or not _smtp_ready_for_email_auth(smtp_settings):
+            return jsonify({'success': False, 'message': '邮箱验证快捷登录暂不可用，请联系管理员。'}), 503
+
+        country_allowed, country_reason = _is_ip_country_allowed(ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code)
+        if not country_allowed:
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=email,
+                detail=country_reason,
+                hidden_account=False,
+            )
+            return jsonify({'success': False, 'message': country_reason}), 403
+
+        turnstile_ok = True
+        turnstile_fail_reason = ''
+        if turnstile_settings['enabled']:
+            if not turnstile_token:
+                turnstile_ok = False
+                turnstile_fail_reason = '请先完成人机验证。'
+            else:
+                turnstile_ok, detail = _verify_turnstile_token(
+                    secret_key=turnstile_settings['secret_key'],
+                    token=turnstile_token,
+                    remote_ip=ip_addr,
+                )
+                if not turnstile_ok:
+                    turnstile_fail_reason = detail or '人机验证失败，请重试。'
+
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            login_user = _find_user_by_email(users_data, email)
+            if login_user is not None:
+                login_user = dict(login_user)
+
+        is_hidden_admin = _is_hidden_admin_record(login_user)
+        user_enabled = bool(login_user and login_user.get('enabled', True))
+        email_ok = bool(login_user and user_enabled and _has_verified_email(login_user))
+        credentials_ok = bool(turnstile_ok and email_ok)
+
+        if turnstile_settings['enabled'] and not turnstile_ok:
+            fail_reason = turnstile_fail_reason or '人机验证失败，请重试。'
+        elif login_user and not user_enabled:
+            fail_reason = '该账号已被停用，请联系管理员。'
+        else:
+            fail_reason = '该邮箱未绑定后台账号或尚未完成验证。'
+
+        failed_payload = None
+        failed_status = 401
+        failed_detail = ''
+        with LOGIN_ATTEMPTS_LOCK:
+            attempts_state = _load_login_attempts(attempts_file)
+            _prune_login_attempts(attempts_state, now_ts)
+            ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
+            blocked_until = int(ip_item.get('blocked_until', 0) or 0) if isinstance(ip_item, dict) else 0
+            delay_seconds = _get_login_delay_seconds(attempts_state, ip_addr, now_ts)
+            if blocked_until > now_ts:
+                _save_login_attempts(attempts_file, attempts_state)
+                blocked_at = _format_blocked_until(blocked_until)
+                failed_payload = {'success': False, 'message': f'当前登录 IP 已被封禁至 {blocked_at}，请稍后再试。'}
+                failed_status = 429
+                failed_detail = f'IP 已封禁至 {blocked_at or blocked_until}'
+            elif delay_seconds > 0:
+                wait_hint = f'{delay_seconds // 60}m {delay_seconds % 60}s' if delay_seconds >= 60 else f'{delay_seconds}s'
+                failed_payload = {'success': False, 'message': f'失败次数过多，请等待 {wait_hint} 后再试。'}
+                failed_status = 429
+                failed_detail = f'登录已触发延迟保护，等待 {wait_hint}'
+                _save_login_attempts(attempts_file, attempts_state)
+            elif credentials_ok:
+                _reset_login_attempts_for_ip(attempts_state, ip_addr)
+                _save_login_attempts(attempts_file, attempts_state)
+            else:
+                is_blocked_now, blocked_until, _remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
+                if not is_blocked_now:
+                    _set_login_delay(attempts_state, ip_addr, now_ts)
+                _save_login_attempts(attempts_file, attempts_state)
+                if is_blocked_now:
+                    blocked_at = _format_blocked_until(blocked_until)
+                    failed_payload = {'success': False, 'message': f'{fail_reason} 同一 IP 在 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，已封禁至 {blocked_at}。'}
+                    failed_status = 429
+                    failed_detail = f'{fail_reason}；已封禁至 {blocked_at or blocked_until}'
+                else:
+                    failed_payload = {'success': False, 'message': f'{fail_reason} 已触发延迟保护，请稍后再试。'}
+                    failed_status = 400 if fail_reason != '该邮箱未绑定后台账号或尚未完成验证。' else 401
+                    failed_detail = f'{fail_reason}；已触发延迟保护'
+
+        if failed_payload is not None:
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=email,
+                detail=failed_detail,
+                hidden_account=is_hidden_admin,
+            )
+            return jsonify(failed_payload), failed_status
+
+        login_username = _normalize_username((login_user or {}).get('username', ''))
+        pending_login_id = _create_pending_login(root, login_username, ip_addr)
+        _set_pending_login_session(session, pending_login_id=pending_login_id, username=login_username, ip_addr=ip_addr)
+        try:
+            ok, message, payload = _send_pending_login_code(
+                root,
+                pending_login_id=pending_login_id,
+                email=(login_user or {}).get('email', ''),
+                smtp_settings=smtp_settings,
+            )
+        except Exception as exc:
+            _delete_pending_login(root, pending_login_id)
+            _clear_pending_login_session(session)
+            return jsonify({'success': False, 'message': f'验证码邮件发送失败：{exc}'}), 400
+        if not ok:
+            _delete_pending_login(root, pending_login_id)
+            _clear_pending_login_session(session)
+            return jsonify({'success': False, 'message': message, **payload}), 400
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'pending_login_id': pending_login_id,
+            **payload,
+        })
 
     @app.route('/admin/login/send-email-code', methods=['POST'])
     def admin_login_send_email_code():
@@ -2569,8 +2772,9 @@ def register_admin_routes(
                 _reset_login_attempts_for_ip(attempts_state, ip_addr)
                 _save_login_attempts(attempts_file, attempts_state)
             else:
-                _set_login_delay(attempts_state, ip_addr, now_ts)
                 is_blocked_now, blocked_until, remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
+                if not is_blocked_now:
+                    _set_login_delay(attempts_state, ip_addr, now_ts)
                 _save_login_attempts(attempts_file, attempts_state)
                 if is_blocked_now:
                     blocked_at = _format_blocked_until(blocked_until)
@@ -2628,6 +2832,10 @@ def register_admin_routes(
                 user_ref['updated_at'] = current_login_at
                 users_data['users'][idx] = user_ref
                 _save_admin_users(users_file, users_data)
+        session['admin_previous_login_at'] = prev_last_login_at
+        session['admin_previous_login_ip'] = prev_last_login_ip
+        session['admin_current_login_at'] = current_login_at
+        session['admin_current_login_ip'] = ip_addr
 
         append_admin_login_log(
             operation='admin_login',
@@ -2790,6 +2998,8 @@ def register_admin_routes(
         password = str(data.get('password', '') or '')
         enabled = bool(data.get('enabled', True))
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
+        notify_message_email = bool(data.get('notify_message_email', False))
+        notify_job_email = bool(data.get('notify_job_email', False))
 
         if not USERNAME_RULE.match(username):
             return jsonify({'success': False, 'message': '用户名需为 3 到 32 位，仅支持字母、数字、下划线、点和短横线。'}), 400
@@ -2813,6 +3023,8 @@ def register_admin_routes(
                 'role': 'sub_admin',
                 'enabled': enabled,
                 'permissions': permissions,
+                'notify_message_email': notify_message_email,
+                'notify_job_email': notify_job_email,
                 'created_at': now_iso,
                 'updated_at': now_iso,
                 'last_login_at': '',
@@ -2841,6 +3053,8 @@ def register_admin_routes(
         enabled = bool(data.get('enabled', True))
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
         reset_password = str(data.get('password', '') or '')
+        notify_message_email = bool(data.get('notify_message_email', False))
+        notify_job_email = bool(data.get('notify_job_email', False))
 
         if not permissions:
             return jsonify({'success': False, 'message': '请至少选择 1 项权限。'}), 400
@@ -2862,6 +3076,8 @@ def register_admin_routes(
             updated = dict(target_user)
             updated['enabled'] = enabled
             updated['permissions'] = permissions
+            updated['notify_message_email'] = notify_message_email
+            updated['notify_job_email'] = notify_job_email
             if reset_password:
                 updated['password_hash'] = _hash_password(reset_password)
             updated['updated_at'] = now_iso
@@ -2967,6 +3183,15 @@ def register_admin_routes(
         is_super_admin = bool(str(user.get('role') or '') == 'super_admin')
         is_hidden_admin = _is_hidden_admin_record(user)
         permissions = _normalize_permissions(user.get('permissions', []), is_super_admin=is_super_admin)
+        current_login_at = str(session.get('admin_current_login_at') or user.get('last_login_at') or '')
+        current_login_ip = str(session.get('admin_current_login_ip') or user.get('last_login_ip') or '')
+        previous_login_at = str(session.get('admin_previous_login_at') or '')
+        previous_login_ip = str(session.get('admin_previous_login_ip') or '')
+        has_previous_login_state = 'admin_previous_login_at' in session or 'admin_previous_login_ip' in session
+        display_last_login_at = previous_login_at if has_previous_login_state else str(user.get('last_login_at') or '')
+        display_last_login_ip = previous_login_ip if has_previous_login_state else str(user.get('last_login_ip') or '')
+        display_last_login_location = _resolve_ip_location(display_last_login_ip) if display_last_login_ip else ''
+        current_login_location = _resolve_ip_location(current_login_ip) if current_login_ip else ''
         session['admin_is_super_admin'] = is_super_admin
         session['admin_is_hidden'] = is_hidden_admin
         session['admin_permissions'] = permissions
@@ -2981,8 +3206,12 @@ def register_admin_routes(
             'binding_required': bool(session.get('admin_binding_required', False)),
             'permissions': permissions,
             'permission_catalog': ADMIN_PERMISSION_CATALOG,
-            'last_login_at': str(user.get('last_login_at') or ''),
-            'last_login_ip': str(user.get('last_login_ip') or ''),
+            'last_login_at': display_last_login_at,
+            'last_login_ip': display_last_login_ip,
+            'last_login_location': display_last_login_location,
+            'current_login_at': current_login_at,
+            'current_login_ip': current_login_ip,
+            'current_login_location': current_login_location,
             'email': _normalize_email(user.get('email', '')),
             'email_masked': _mask_email_address(user.get('email', '')),
             'email_verified': bool(user.get('email_verified', False)),
@@ -3047,15 +3276,79 @@ def register_admin_routes(
         """获取当前版本、构建信息与最近更新记录。"""
         return jsonify(build_admin_changelog_payload(project_root=project_root))
 
+    def _split_admin_log_path_list(raw_value):
+        if not raw_value:
+            return []
+        return [item.strip() for item in re.split(r'[\r\n,]+', raw_value) if item.strip()]
+
+    def _resolve_admin_log_candidates(env_key, default_relative_paths):
+        raw_value = os.environ.get(env_key, '').strip()
+        raw_paths = _split_admin_log_path_list(raw_value) if raw_value else list(default_relative_paths)
+        resolved = []
+        seen = set()
+        for raw_path in raw_paths:
+            path_obj = Path(raw_path)
+            if not path_obj.is_absolute():
+                path_obj = Path(project_root) / raw_path
+            normalized = str(path_obj)
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            resolved.append(path_obj)
+        return resolved
+
+    def _tail_admin_log_files(paths, lines):
+        chunks = []
+        for path_obj in paths:
+            try:
+                if not path_obj.exists() or not path_obj.is_file():
+                    continue
+                with path_obj.open('r', encoding='utf-8', errors='replace') as f:
+                    all_lines = f.readlines()
+                tail_lines = all_lines[-lines:] if all_lines else []
+                content = ''.join(tail_lines).strip()
+                if not content:
+                    continue
+                try:
+                    label = os.path.relpath(str(path_obj), project_root)
+                except Exception:
+                    label = str(path_obj)
+                chunks.append(f'[{label}]\n{content}')
+            except Exception:
+                continue
+        if not chunks:
+            return None
+        return '\n\n'.join(chunks)
+
+    def _clear_admin_log_files(paths):
+        cleared = 0
+        for path_obj in paths:
+            try:
+                if not path_obj.exists() or not path_obj.is_file():
+                    continue
+                path_obj.write_text('', encoding='utf-8')
+                cleared += 1
+            except Exception:
+                continue
+        return cleared
+
     @app.route('/api/admin/docker-logs')
     @login_required
     def admin_docker_logs():
-        """获取两个后端容器的 Docker 日志；Docker 不可用时回退到本地日志文件。"""
-        container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
-        container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
+        """获取网站应用容器日志；Docker 不可用时回退到本地日志文件。"""
+        container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website')
         lines = request.args.get('lines', default=200, type=int)
         lines = max(10, min(lines, 1000))
-
+        app_log_candidates = _resolve_admin_log_candidates(
+            'DOCKER_LOG_FALLBACK_APP_FILES',
+            (
+                'data/logs/gunicorn-error.log',
+                'data/logs/gunicorn-access.log',
+                'data/logs/app.log',
+                'data/app.log',
+                'app.log',
+            ),
+        )
         def get_container_logs(container_name):
             try:
                 result = subprocess.run(
@@ -3077,107 +3370,48 @@ def register_admin_routes(
             except Exception as e:
                 return f'获取日志失败: {str(e)}'
 
-        def get_local_log_lines():
-            try:
-                log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
-                if not log_file:
-                    log_file = os.path.join(project_root, 'data', 'app.log')
-                if not os.path.exists(log_file):
-                    fallback = os.path.join(project_root, 'app.log')
-                    if os.path.exists(fallback):
-                        log_file = fallback
-                    else:
-                        return None
-                with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
-                    all_lines = f.readlines()
-                tail_lines = all_lines[-lines:] if all_lines else []
-                return ''.join(tail_lines).strip() or None
-            except Exception:
-                return None
-
         logs1 = get_container_logs(container1_name)
-        logs2 = get_container_logs(container2_name)
-
-        is_docker_available = logs1 is not None and logs2 is not None
 
         if logs1 is None:
-            local_logs = get_local_log_lines()
+            local_logs = _tail_admin_log_files(app_log_candidates, lines)
             if local_logs:
-                logs1 = f'[本地开发模式] Flask 应用日志:\n{local_logs}'
+                logs1 = f'[文件日志回退] 应用服务日志:\n{local_logs}'
             else:
-                logs1 = '暂无日志记录（当前为本地开发模式，日志文件尚未生成）'
-
-        if logs2 is None:
-            if is_docker_available:
-                logs2 = '暂无 Nginx 日志记录'
-            else:
-                logs2 = '[本地开发模式] Nginx 日志仅在 Docker 部署时可用'
+                logs1 = '暂无应用服务日志记录（当前环境无法直接执行 docker logs，且未找到可读取的应用日志文件）'
 
         return jsonify({
+            'single_container': True,
             'container1': {
                 'name': container1_name,
                 'logs': logs1
-            },
-            'container2': {
-                'name': container2_name,
-                'logs': logs2
             }
         })
 
     @app.route('/api/admin/docker-logs/clear', methods=['POST'])
     @login_required
     def admin_docker_logs_clear():
-        """清理 Docker 容器日志或本地日志文件。"""
+        """清理后台日志页可见的共享日志文件。"""
         try:
             data = request.get_json() or {}
             container = data.get('container', 'all')
-            
-            def clear_container_logs(container_name):
-                try:
-                    subprocess.run(
-                        ['docker', 'logs', '--truncate', container_name],
-                        capture_output=True,
-                        timeout=10,
-                    )
-                    return True
-                except Exception:
-                    return False
-            
-            def clear_local_log():
-                try:
-                    log_file = os.environ.get('FLASK_LOG_FILE', '').strip()
-                    if not log_file:
-                        log_file = os.path.join(project_root, 'data', 'app.log')
-                    if os.path.exists(log_file):
-                        open(log_file, 'w').close()
-                        return True
-                    fallback = os.path.join(project_root, 'app.log')
-                    if os.path.exists(fallback):
-                        open(fallback, 'w').close()
-                        return True
-                    return False
-                except Exception:
-                    return False
-            
-            container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website-app')
-            container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-website-nginx')
-            
-            docker_available = True
-            try:
-                subprocess.run(['docker', 'ps'], capture_output=True, timeout=5)
-            except FileNotFoundError:
-                docker_available = False
-            except Exception:
-                docker_available = False
-            
-            if docker_available:
-                if container == 'all' or container == 'container1':
-                    clear_container_logs(container1_name)
-                if container == 'all' or container == 'container2':
-                    clear_container_logs(container2_name)
-            else:
-                clear_local_log()
-            
+
+            app_log_candidates = _resolve_admin_log_candidates(
+                'DOCKER_LOG_FALLBACK_APP_FILES',
+                (
+                    'data/logs/gunicorn-error.log',
+                    'data/logs/gunicorn-access.log',
+                    'data/logs/app.log',
+                    'data/app.log',
+                    'app.log',
+                ),
+            )
+            cleared = 0
+            if container == 'all' or container == 'container1':
+                cleared += _clear_admin_log_files(app_log_candidates)
+
+            if cleared <= 0:
+                return jsonify({'success': False, 'message': '未找到可清除的日志文件'}), 404
+
             return jsonify({'success': True, 'message': '日志已清除'})
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500

@@ -1,0 +1,30 @@
+{
+  "latestReleases": [
+    {
+      "name": "MC-LD-H2 氢气泄漏检测仪",
+      "url": "../gassensing/mc_ld_h2.html"
+    },
+    {
+      "name": "MC-HLA-01 固定式氢气报警器",
+      "url": "../gassensing/mc_hla_01.html"
+    },
+    {
+      "name": "MC-HHA-01 手持式氢气报警器",
+      "url": "../gassensing/mc_hha_01.html"
+    },
+    {
+      "name": "MC-WD-01 可穿戴氢气报警器",
+      "url": "../gassensing/mc_wd_01.html"
+    }
+  ],
+  "applicationAreas": [
+    {
+      "name": "加氢站安全监测",
+      "url": "../solutions/industry-hydrogen.html"
+    },
+    {
+      "name": "燃料电池车辆",
+      "url": "../solutions/hydrogen.html"
+    }
+  ]
+}

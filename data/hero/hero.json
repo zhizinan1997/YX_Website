@@ -1,4 +1,59 @@
 {
-  "interval_seconds": 3,
-  "items": []
+  "interval_seconds": 4,
+  "items": [
+    {
+      "id": "url_1775399144767_ccb0675caa5828",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/1.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144767_16f3829c4ec76",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/2.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144767_741437c41ba73",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/5.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144768_f084b79d766fe8",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/10.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144767_968ac19b2ef6a8",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/3.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144767_24a4a6ca172f08",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/4.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144767_d33a09cc97926",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/6.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144767_0bb8330272f2a",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/7.webp",
+      "source": "url"
+    },
+    {
+      "id": "url_1775399144767_2fff6072fd5b48",
+      "type": "image",
+      "url": "https://storage.hnmetachip.cn/image/8.webp",
+      "source": "url"
+    }
+  ]
 }
