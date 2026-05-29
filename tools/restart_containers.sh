@@ -6,13 +6,11 @@ log() {
 }
 
 WEBSITE_CONTAINER="${WEBSITE_CONTAINER:-yx-website}"
-GATEWAY_CONTAINER="${GATEWAY_CONTAINER:-yx-gateway}"
 
 log "开始重启 Docker 容器"
 log "网站容器: $WEBSITE_CONTAINER"
-log "网关容器: $GATEWAY_CONTAINER"
 
-for container in "$WEBSITE_CONTAINER" "$GATEWAY_CONTAINER"; do
+for container in "$WEBSITE_CONTAINER"; do
   if docker container inspect "$container" >/dev/null 2>&1; then
     log "正在重启容器: $container"
     docker restart "$container"

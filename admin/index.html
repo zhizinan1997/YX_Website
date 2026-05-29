@@ -2596,43 +2596,42 @@
                 <!-- Site Settings View -->
                 <div id="view-site-settings" class="view-section">
                     <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">CDN 加速设置</h3>
+                        <h3 class="section-header">ESA 缓存设置</h3>
                         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                            开启后主站访问 <code>/cdn_assets/</code> 会返回 <code>302</code> 到 CDN 域名，客户端将直接从 CDN 拉取素材资源。
+                            当前版本使用主站单域名输出 <code>/cdn_assets/</code>，由阿里云 ESA 按路径缓存；独立 CDN 域名跳转已停用。
                         </p>
                         <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:18px; color:#2f3b4f; font-size:13px; line-height:1.75;">
                             <div style="font-weight:700; color:#0f2f5f; margin-bottom:6px;">运维操作指南（上线/回滚）</div>
                             <ol style="margin:0 0 0 18px; padding:0;">
-                                <li>准备阶段：确认 <code>cdn_assets/</code> 已更新，CDN 域名证书正常，源站回源规则已指向当前网关。</li>
-                                <li>填写域名：在“CDN 域名”中填写 <code>https://cdn.example.com</code>（不要带路径）。</li>
-                                <li>连通检测：点击“测试连通性”，建议检测结果为 <code>200</code> 或 <code>206</code>。</li>
-                                <li>启用加速：勾选“启用 CDN 加速”并保存，主站 <code>/cdn_assets/*</code> 将返回 <code>302</code> 到 CDN 域名。</li>
-                                <li>上线验收：抽检首页、产品、新闻、关于页；重点验证大图、视频首帧与 Range 播放。</li>
-                                <li>故障回滚：取消勾选“启用 CDN 加速”并保存，立即恢复主站本地资源链路。</li>
+                                <li>准备阶段：确认 <code>cdn_assets/</code> 已更新，主站域名已接入阿里云 ESA。</li>
+                                <li>ESA 规则：对 <code>/cdn_assets/*</code>、<code>/assets/*</code>、图片、视频、字体、CSS、JS 设置长缓存。</li>
+                                <li>绕过缓存：对 <code>/admin/*</code>、<code>/api/*</code>、登录相关接口设置绕过缓存。</li>
+                                <li>资源验收：访问主站 <code>/cdn_assets/*</code> 应返回 <code>200</code>，不应返回旧版 CDN 跳转 <code>302</code>。</li>
+                                <li>页面验收：抽检首页、产品、新闻、关于页；重点验证大图、视频首帧与 Range 播放。</li>
+                                <li>故障回滚：在 ESA 中临时绕过相关缓存规则，源站仍保持主站本地资源链路。</li>
                                 <li>变更留痕：记录操作人、时间、CDN 域名、测试结果和回滚动作，便于审计。</li>
                             </ol>
                             <div style="font-weight:700; color:#0f2f5f; margin:10px 0 6px;">后端逻辑说明（给运维/开发）</div>
                             <ol style="margin:0 0 0 18px; padding:0;">
                                 <li><code>GET /api/cdn/settings</code>：读取当前加速开关与域名（需登录）。</li>
-                                <li><code>POST /api/cdn/settings</code>：保存 <code>cdn_enabled</code>、<code>cdn_domain</code> 到 <code>data/config.json</code>。</li>
-                                <li>域名规范化：后端会规范为 <code>http(s)://host[:port]</code>，自动剔除路径和多余斜杠。</li>
-                                <li><code>POST /api/cdn/test</code>：对样例资源执行 <code>HEAD</code> 与 <code>Range GET</code> 连通性检测。</li>
-                                <li><code>GET /cdn_assets/&lt;path&gt;</code>：开启时返回 <code>302</code> 到 <code>cdn_domain</code>，关闭时回落到主站本地资源。</li>
-                                <li><code>/api/cdn/switch-header</code>：保留兼容接口，用于读取当前开关状态。</li>
+                                <li><code>POST /api/cdn/settings</code>：保留旧配置兼容，但 <code>cdn_enabled</code> 会被保存为 <code>false</code>。</li>
+                                <li><code>POST /api/cdn/test</code>：仅作为旧 CDN 域名连通性诊断工具保留。</li>
+                                <li><code>GET /cdn_assets/&lt;path&gt;</code>：始终从主站本地资源直出，供 ESA 缓存。</li>
+                                <li><code>/api/cdn/switch-header</code>：保留兼容接口，固定返回关闭状态。</li>
                             </ol>
                         </div>
                         <form id="cdnSettingsForm">
                             <div class="form-group">
                                 <label style="display: flex; align-items: center; gap: 10px;">
                                     <input type="checkbox" id="cdnEnabled">
-                                    <span>启用 CDN 加速</span>
+                                    <span>旧版独立 CDN 跳转（已停用）</span>
                                 </label>
                             </div>
                             <div class="form-group">
-                                <label>CDN 域名</label>
+                                <label>旧 CDN 域名（兼容记录）</label>
                                 <input type="text" id="cdnDomain" class="form-control"
                                     placeholder="https://cdn.example.com">
-                                <div class="form-hint">仅填写域名，路径会自动拼接为 <code>/cdn_assets/...</code></div>
+                                <div class="form-hint">新版单域名 ESA 部署不会使用该域名跳转，保留此项仅便于查看旧配置。</div>
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                                 <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存设置</button>
@@ -3300,7 +3299,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <div class="docker-logs-hero-left">
                                 <div class="docker-logs-kicker">Docker 日志</div>
                                 <h3 class="docker-logs-title">后端日志</h3>
-                                <p class="docker-logs-subtitle">查看 Docker 容器运行日志，支持两个后端服务。</p>
+                                <p class="docker-logs-subtitle">查看网站应用容器运行日志。</p>
                             </div>
                             <button type="button" class="docker-logs-refresh-btn" id="dockerLogsRefreshBtn"
                                 onclick="loadDockerLogs(true)">
@@ -3313,7 +3312,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                 <i class="fas fa-box"></i> <span id="dockerLogsTab1Label">应用服务</span>
                             </button>
                             <button type="button" class="docker-logs-tab" data-tab="container2" onclick="switchDockerLogsTab('container2')">
-                                <i class="fas fa-box"></i> <span id="dockerLogsTab2Label">Nginx 服务</span>
+                                <i class="fas fa-box"></i> <span id="dockerLogsTab2Label">旧版网关</span>
                             </button>
                         </div>
 
@@ -3347,7 +3346,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                         <div id="dockerLogsContent2" class="docker-logs-content">
                             <div id="dockerLogsOutput2" class="docker-logs-output" style="display:none;">
                                 <div class="docker-logs-output-header">
-                                    <span class="docker-logs-output-title" id="dockerLogsTitle2">Nginx 服务日志</span>
+                                    <span class="docker-logs-output-title" id="dockerLogsTitle2">旧版网关日志</span>
                                 </div>
                                 <div class="docker-logs-output-body" id="dockerLogsBody2"></div>
                             </div>

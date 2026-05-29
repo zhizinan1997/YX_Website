@@ -4,9 +4,9 @@
       "id": "electrolysis_online_leak",
       "relatedProductIds": [
         "mc_ol_h1",
-        "mc_ld_h2",
-        "mc_hla_01",
-        "mc_pgd_01"
+        "mc_pgd_01",
+        "mc_la_h1",
+        "mc_od_h1"
       ]
     },
     {
@@ -97,24 +97,6 @@
         "mc_wd_01",
         "mc_ld_h2",
         "mc_td_01"
-      ]
-    },
-    {
-      "id": "energy_storage_thermal_runaway_warning",
-      "relatedProductIds": [
-        "mc_hla_01",
-        "mc_ld_h2",
-        "mc_ld_ph2",
-        "mc_pgd_01"
-      ]
-    },
-    {
-      "id": "environment_gas_monitoring",
-      "relatedProductIds": [
-        "mc_gd_01",
-        "mc_pgd_01",
-        "mc_pdr_01",
-        "mc_tm_01"
       ]
     }
   ]

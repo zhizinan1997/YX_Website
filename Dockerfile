@@ -43,7 +43,6 @@ RUN mkdir -p \
     /app/data/news_uploads \
     /app/data/h2_home_videos \
     /app/data/logs \
-    /app/data/logs/nginx \
     /app/data/product_cards/uploads \
     /app/data/hero/uploads \
     /app/data/hero/derived \

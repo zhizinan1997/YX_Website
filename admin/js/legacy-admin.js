@@ -1950,11 +1950,17 @@
 
             const container1 = data.container1 || {};
             const container2 = data.container2 || {};
+            const singleContainer = !!data.single_container;
 
             const tab1Label = document.getElementById('dockerLogsTab1Label');
             const tab2Label = document.getElementById('dockerLogsTab2Label');
             if (tab1Label) tab1Label.textContent = container1.name || '应用服务';
             if (tab2Label) tab2Label.textContent = container2.name || 'Nginx 服务';
+            const tab2 = document.querySelector('.docker-logs-tab[data-tab="container2"]');
+            const content2 = document.getElementById('dockerLogsContent2');
+            if (tab2) tab2.hidden = singleContainer;
+            if (content2) content2.hidden = singleContainer;
+            if (singleContainer) switchDockerLogsTab('container1');
 
             const title1 = document.getElementById('dockerLogsTitle1');
             const title2 = document.getElementById('dockerLogsTitle2');
@@ -1962,7 +1968,7 @@
             if (title2) title2.textContent = `${container2.name || 'Nginx 服务'} 日志`;
 
             renderDockerLogContent('1', container1.logs || '暂无日志');
-            renderDockerLogContent('2', container2.logs || '暂无日志');
+            if (!singleContainer) renderDockerLogContent('2', container2.logs || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -2000,6 +2006,7 @@
             
             const container1 = dockerLogsData.container1 || {};
             const container2 = dockerLogsData.container2 || {};
+            const singleContainer = !!dockerLogsData.single_container;
             
             let logs1 = container1.logs || '';
             let logs2 = container2.logs || '';
@@ -2015,7 +2022,7 @@
             }
             
             renderDockerLogContent('1', logs1 || '暂无日志');
-            renderDockerLogContent('2', logs2 || '暂无日志');
+            if (!singleContainer) renderDockerLogContent('2', logs2 || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -12687,7 +12694,7 @@
             const statusEl = document.getElementById('cdnStatusText');
             if (!statusEl) return;
             if (!enabled) {
-                statusEl.textContent = '当前状态：已关闭';
+                statusEl.textContent = '当前状态：单域名 ESA 模式，旧 CDN 跳转已停用';
                 statusEl.style.color = '#666';
                 return;
             }
@@ -12709,9 +12716,10 @@
             try {
                 const res = await fetch('/api/cdn/settings', { cache: 'no-store' });
                 const data = await res.json();
-                enabledEl.checked = data.cdn_enabled === true;
+                enabledEl.checked = false;
+                enabledEl.disabled = true;
                 domainEl.value = data.cdn_domain || '';
-                updateCdnStatusText(enabledEl.checked, domainEl.value.trim());
+                updateCdnStatusText(false, domainEl.value.trim());
             } catch (e) {
                 updateCdnStatusText(false, '');
                 if (msgEl) {
@@ -12773,7 +12781,7 @@
                 const btn = e.target.querySelector('button[type="submit"]');
                 const msg = document.getElementById('cdnSettingsMsg');
                 const testMsg = document.getElementById('cdnTestMsg');
-                const enabled = !!document.getElementById('cdnEnabled')?.checked;
+                const enabled = false;
                 const domainInput = document.getElementById('cdnDomain');
                 const domain = normalizeCdnDomainInput(domainInput?.value || '');
 
@@ -12783,11 +12791,6 @@
                 }
                 if (testMsg) {
                     testMsg.textContent = '';
-                }
-
-                if (enabled && !domain) {
-                    if (msg) msg.textContent = '启用加速时必须填写 CDN 域名';
-                    return;
                 }
 
                 if (domainInput) domainInput.value = domain;
@@ -12805,7 +12808,7 @@
                     if (res.ok && data.success) {
                         if (msg) {
                             msg.style.color = '#28a745';
-                            msg.textContent = 'CDN 设置保存成功';
+                            msg.textContent = '兼容配置已保存；/cdn_assets 仍走主站域名，由 ESA 缓存';
                         }
                         const saved = data.settings || {};
                         updateCdnStatusText(saved.cdn_enabled === true, saved.cdn_domain || '');

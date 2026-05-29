@@ -3335,9 +3335,8 @@ def register_admin_routes(
     @app.route('/api/admin/docker-logs')
     @login_required
     def admin_docker_logs():
-        """获取两个后端容器的日志；Docker 不可用时回退到共享日志文件。"""
+        """获取网站应用容器日志；Docker 不可用时回退到本地日志文件。"""
         container1_name = os.environ.get('DOCKER_CONTAINER_1_NAME', 'yx-website')
-        container2_name = os.environ.get('DOCKER_CONTAINER_2_NAME', 'yx-gateway')
         lines = request.args.get('lines', default=200, type=int)
         lines = max(10, min(lines, 1000))
         app_log_candidates = _resolve_admin_log_candidates(
@@ -3350,14 +3349,6 @@ def register_admin_routes(
                 'app.log',
             ),
         )
-        nginx_log_candidates = _resolve_admin_log_candidates(
-            'DOCKER_LOG_FALLBACK_NGINX_FILES',
-            (
-                'data/logs/nginx/error.log',
-                'data/logs/nginx/access.log',
-            ),
-        )
-
         def get_container_logs(container_name):
             try:
                 result = subprocess.run(
@@ -3380,7 +3371,6 @@ def register_admin_routes(
                 return f'获取日志失败: {str(e)}'
 
         logs1 = get_container_logs(container1_name)
-        logs2 = get_container_logs(container2_name)
 
         if logs1 is None:
             local_logs = _tail_admin_log_files(app_log_candidates, lines)
@@ -3389,21 +3379,11 @@ def register_admin_routes(
             else:
                 logs1 = '暂无应用服务日志记录（当前环境无法直接执行 docker logs，且未找到可读取的应用日志文件）'
 
-        if logs2 is None:
-            local_logs = _tail_admin_log_files(nginx_log_candidates, lines)
-            if local_logs:
-                logs2 = f'[文件日志回退] 网关服务日志:\n{local_logs}'
-            else:
-                logs2 = '暂无网关服务日志记录（当前环境无法直接执行 docker logs，且未找到可读取的网关日志文件）'
-
         return jsonify({
+            'single_container': True,
             'container1': {
                 'name': container1_name,
                 'logs': logs1
-            },
-            'container2': {
-                'name': container2_name,
-                'logs': logs2
             }
         })
 
@@ -3425,19 +3405,9 @@ def register_admin_routes(
                     'app.log',
                 ),
             )
-            nginx_log_candidates = _resolve_admin_log_candidates(
-                'DOCKER_LOG_FALLBACK_NGINX_FILES',
-                (
-                    'data/logs/nginx/error.log',
-                    'data/logs/nginx/access.log',
-                ),
-            )
-
             cleared = 0
             if container == 'all' or container == 'container1':
                 cleared += _clear_admin_log_files(app_log_candidates)
-            if container == 'all' or container == 'container2':
-                cleared += _clear_admin_log_files(nginx_log_candidates)
 
             if cleared <= 0:
                 return jsonify({'success': False, 'message': '未找到可清除的日志文件'}), 404

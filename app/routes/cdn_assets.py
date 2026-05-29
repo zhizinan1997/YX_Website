@@ -117,9 +117,12 @@ def get_cdn_settings():
 
     try:
         config = json.loads(config_file.read_text(encoding='utf-8'))
+        legacy_enabled = bool(config.get('cdn_enabled', False))
         return {
-            'cdn_enabled': bool(config.get('cdn_enabled', False)),
-            'cdn_domain': str(config.get('cdn_domain') or '').strip().rstrip('/')
+            'cdn_enabled': False,
+            'cdn_domain': str(config.get('cdn_domain') or '').strip().rstrip('/'),
+            'legacy_cdn_enabled': legacy_enabled,
+            'cdn_redirect_deprecated': True,
         }
     except Exception:
         return {'cdn_enabled': False, 'cdn_domain': ''}
@@ -149,9 +152,6 @@ def _safe_subpath(base: Path, subpath: str) -> Path | None:
 def _build_file_url(relative_to_cdn: str) -> str:
     """构建素材文件的完整访问地址。"""
     cdn_path = f'/cdn_assets/{relative_to_cdn}'
-    settings = get_cdn_settings()
-    if settings.get('cdn_enabled') and settings.get('cdn_domain'):
-        return f"{settings['cdn_domain']}{cdn_path}"
     return cdn_path
 
 
