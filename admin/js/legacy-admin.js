@@ -977,6 +977,43 @@
             }
         }
 
+        function getUnreadMessageCount(messages, stats = {}) {
+            if (stats.unread_count !== undefined && stats.unread_count !== null && Number.isFinite(Number(stats.unread_count))) {
+                return Math.max(0, Number(stats.unread_count) || 0);
+            }
+            const total = Number(stats.total_count);
+            const read = Number(stats.read_count);
+            if (Number.isFinite(total) && Number.isFinite(read)) {
+                return Math.max(0, total - read);
+            }
+            if (!Array.isArray(messages)) return 0;
+            return messages.reduce((count, msg) => count + (msg && !msg.is_read ? 1 : 0), 0);
+        }
+
+        function setMessagesUnreadIndicator(unreadCount) {
+            const dot = document.getElementById('messagesUnreadDot');
+            const item = document.querySelector('.menu-item[data-view="messages"]');
+            if (!dot || !item) return;
+            const count = Math.max(0, Number(unreadCount) || 0);
+            dot.hidden = count <= 0;
+            item.classList.toggle('has-unread-messages', count > 0);
+            item.title = count > 0 ? `有 ${count} 条未读留言` : '';
+            dot.setAttribute('aria-label', count > 0 ? `有 ${count} 条未读留言` : '无未读留言');
+        }
+
+        async function refreshMessagesUnreadIndicator() {
+            try {
+                const res = await fetch('/api/messages', { cache: 'no-store' });
+                if (!res.ok) return;
+                const payload = await res.json();
+                const messages = Array.isArray(payload) ? payload : (payload.messages || []);
+                const stats = (payload && !Array.isArray(payload)) ? (payload.stats || {}) : {};
+                setMessagesUnreadIndicator(getUnreadMessageCount(messages, stats));
+            } catch (_) {
+                // Keep the previous indicator state when the lightweight refresh fails.
+            }
+        }
+
         // --- Auth Functions ---
         const TURNSTILE_LOAD_TIMEOUT_MS = 30000;
 
@@ -1653,6 +1690,7 @@
                         setAdminAuthFromCheck(data);
                         applySidebarPermissions();
                         syncSubAccountManageVisibility();
+                        refreshMessagesUnreadIndicator();
                         if (bindingRequiredState) {
                             switchView('settings');
                         }
@@ -1754,6 +1792,7 @@
             applySidebarPermissions();
             syncSubAccountManageVisibility();
             startAdminSessionWatcher();
+            refreshMessagesUnreadIndicator();
             switchView(bindingRequiredState ? 'settings' : getPreferredInitialView());
         }
 
@@ -3796,7 +3835,6 @@
             if (viewName === 'jobs') loadJobsAdmin();
             if (viewName === 'chatbot') loadChatbotConfig();
             if (viewName === 'site-settings') {
-                loadCdnSettings();
                 loadTurnstileAdminConfig();
                 loadEmailAuthSettings();
             }
@@ -12390,6 +12428,7 @@
                 document.getElementById('todayCount').textContent = Number(stats.today_count ?? 0) || 0;
                 document.getElementById('readCount').textContent = Number(stats.read_count ?? 0) || 0;
                 document.getElementById('deletedCount').textContent = Number(stats.deleted_count ?? 0) || 0;
+                setMessagesUnreadIndicator(getUnreadMessageCount(messages, stats));
 
             } catch (e) {
                 if (feedbackTbody) feedbackTbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败</td></tr>';
@@ -12680,147 +12719,6 @@
                     msg.textContent = '网络错误，恢复失败';
                 }
             }
-        }
-
-        function normalizeCdnDomainInput(rawValue) {
-            const raw = String(rawValue || '').trim();
-            if (!raw) return '';
-            if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, '');
-            if (raw.startsWith('//')) return (`https:${raw}`).replace(/\/+$/, '');
-            return (`https://${raw}`).replace(/\/+$/, '');
-        }
-
-        function updateCdnStatusText(enabled, domain) {
-            const statusEl = document.getElementById('cdnStatusText');
-            if (!statusEl) return;
-            if (!enabled) {
-                statusEl.textContent = '当前状态：单域名 ESA 模式，旧 CDN 跳转已停用';
-                statusEl.style.color = '#666';
-                return;
-            }
-            statusEl.textContent = `当前状态：已开启（${domain || '未设置域名'}）`;
-            statusEl.style.color = domain ? '#2e7d32' : '#d97706';
-        }
-
-        async function loadCdnSettings() {
-            const enabledEl = document.getElementById('cdnEnabled');
-            const domainEl = document.getElementById('cdnDomain');
-            const msgEl = document.getElementById('cdnSettingsMsg');
-            if (!enabledEl || !domainEl) return;
-
-            if (msgEl) {
-                msgEl.textContent = '';
-                msgEl.style.color = '#28a745';
-            }
-
-            try {
-                const res = await fetch('/api/cdn/settings', { cache: 'no-store' });
-                const data = await res.json();
-                enabledEl.checked = false;
-                enabledEl.disabled = true;
-                domainEl.value = data.cdn_domain || '';
-                updateCdnStatusText(false, domainEl.value.trim());
-            } catch (e) {
-                updateCdnStatusText(false, '');
-                if (msgEl) {
-                    msgEl.style.color = '#dc3545';
-                    msgEl.textContent = 'CDN 设置加载失败';
-                }
-            }
-        }
-
-        async function testCdnConnection() {
-            const domainEl = document.getElementById('cdnDomain');
-            const msgEl = document.getElementById('cdnTestMsg');
-            if (!domainEl || !msgEl) return;
-
-            const domain = normalizeCdnDomainInput(domainEl.value);
-            if (!domain) {
-                msgEl.style.color = '#dc3545';
-                msgEl.textContent = '请先输入 CDN 域名';
-                return;
-            }
-
-            msgEl.style.color = '#666';
-            msgEl.textContent = '连通性检测中...';
-
-            try {
-                const res = await fetch('/api/cdn/test', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cdn_domain: domain })
-                });
-                const data = await res.json();
-                const result = data.result || {};
-                if (res.ok && data.success) {
-                    const codeText = [result.head_status, result.get_status].filter(Boolean).join(' / ');
-                    msgEl.style.color = '#28a745';
-                    msgEl.textContent = `连通成功（状态码: ${codeText || 'ok'}）`;
-                } else {
-                    msgEl.style.color = '#dc3545';
-                    msgEl.textContent = data.message || result.error || '连通失败';
-                }
-            } catch (e) {
-                msgEl.style.color = '#dc3545';
-                msgEl.textContent = '网络错误，检测失败';
-            }
-        }
-
-        const cdnEnabledEl = document.getElementById('cdnEnabled');
-        if (cdnEnabledEl) {
-            cdnEnabledEl.addEventListener('change', function () {
-                const domain = document.getElementById('cdnDomain')?.value.trim() || '';
-                updateCdnStatusText(this.checked, domain);
-            });
-        }
-
-        const cdnSettingsForm = document.getElementById('cdnSettingsForm');
-        if (cdnSettingsForm) {
-            cdnSettingsForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const btn = e.target.querySelector('button[type="submit"]');
-                const msg = document.getElementById('cdnSettingsMsg');
-                const testMsg = document.getElementById('cdnTestMsg');
-                const enabled = false;
-                const domainInput = document.getElementById('cdnDomain');
-                const domain = normalizeCdnDomainInput(domainInput?.value || '');
-
-                if (msg) {
-                    msg.textContent = '';
-                    msg.style.color = '#dc3545';
-                }
-                if (testMsg) {
-                    testMsg.textContent = '';
-                }
-
-                if (domainInput) domainInput.value = domain;
-                if (btn) btn.disabled = true;
-                try {
-                    const res = await fetch('/api/cdn/settings', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            cdn_enabled: enabled,
-                            cdn_domain: domain
-                        })
-                    });
-                    const data = await res.json();
-                    if (res.ok && data.success) {
-                        if (msg) {
-                            msg.style.color = '#28a745';
-                            msg.textContent = '兼容配置已保存；/cdn_assets 仍走主站域名，由 ESA 缓存';
-                        }
-                        const saved = data.settings || {};
-                        updateCdnStatusText(saved.cdn_enabled === true, saved.cdn_domain || '');
-                    } else if (msg) {
-                        msg.textContent = data.message || '保存失败';
-                    }
-                } catch (err) {
-                    if (msg) msg.textContent = '网络错误，保存失败';
-                } finally {
-                    if (btn) btn.disabled = false;
-                }
-            });
         }
 
         function updateTurnstileStatusText(enabled, siteKey) {

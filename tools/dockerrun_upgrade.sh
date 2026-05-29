@@ -965,6 +965,10 @@ pull_with_timeout() {
 
 pull_latest_images() {
   phase "拉取最新镜像"
+  if bool_true "${SKIP_IMAGE_PULL:-false}"; then
+    info "SKIP_IMAGE_PULL=true，跳过镜像拉取，使用本机已有镜像：$WEBSITE_IMAGE"
+    return 0
+  fi
   pull_with_timeout "$WEBSITE_IMAGE" "网站"
 }
 
@@ -1228,6 +1232,7 @@ show_help() {
   WEBSITE_IMAGE=ghcr.io/zhizinan1997/yx_website:latest
   MAIN_PORT=2026
   CLEAN_OLD_IMAGES=true
+  SKIP_IMAGE_PULL=true|false
   DEPLOY_STRATEGY=smart|reset|reset-keep-data
   ALLOW_WEAK_ADMIN_PASSWORDS=true|false
   NO_COLOR=1                # 关闭彩色终端输出
