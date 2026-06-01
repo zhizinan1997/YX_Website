@@ -12,6 +12,8 @@
             'gas-related': ['h2-home', 'products', 'hydrogen-solutions'],
             'bio-related': ['bio-products']
         };
+        const MESSAGE_CENTER_PREVIEW_LIMIT = 5;
+        const MESSAGE_CENTER_CACHE_TTL_MS = 60 * 1000;
         let adminLoginLogsPage = 1;
         let adminLoginLogsTotalPages = 1;
         let adminLoginLogsPageSize = ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE;
@@ -26,6 +28,18 @@
         let turnstileToken = '';
         let turnstileScriptPromise = null;
         let emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
+        let adminLoginGeoConfig = {
+            enabled: true,
+            continents: {},
+            countries: {}
+        };
+        let adminLoginGeoCatalog = { continents: [] };
+        let adminLoginGeoDisplayNames = null;
+        let adminLoginGeoDisplayNamesEn = null;
+        let adminLoginGeoCountryMetaCache = new Map();
+        let adminLoginGeoSelectedContinentKey = '';
+        let adminLoginGeoSelectedCountryContinentKey = '';
+        let adminLoginGeoSelectedCountryCode = '';
         let loginAuthMode = 'email_code';
         let pendingLoginId = '';
         let pendingLoginEmailMasked = '';
@@ -49,14 +63,19 @@
             { key: 'site-settings', label: '站点设置' },
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
-            { key: 'changelog', label: '更新日志' },
-            { key: 'docker-logs', label: '后端日志' }
+            { key: 'log-records', label: '日志记录' }
         ];
+        let pendingKnowledgeFiles = [];
         let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
         let currentAdminAuth = {
             username: '',
             is_super_admin: false,
             permissions: []
+        };
+        let messageCenterState = {
+            messages: [],
+            stats: {},
+            lastFetchedAt: 0
         };
         let siteReportsStartDate = '';
         let siteReportsEndDate = '';
@@ -256,6 +275,212 @@
             }
         }
 
+        function normalizeMessagesPayload(payload) {
+            const messages = Array.isArray(payload) ? payload : (Array.isArray(payload?.messages) ? payload.messages : []);
+            const stats = (payload && !Array.isArray(payload) && payload.stats && typeof payload.stats === 'object')
+                ? payload.stats
+                : {};
+            return { messages, stats };
+        }
+
+        function formatMessageCenterBadgeCount(count) {
+            const value = Math.max(0, Number(count) || 0);
+            return value > 99 ? '99+' : String(value);
+        }
+
+        function getMessageCenterSummary(messages, stats = {}) {
+            const items = Array.isArray(messages) ? messages : [];
+            const unreadItems = [];
+            let unreadFeedbackCount = 0;
+            let unreadResumeCount = 0;
+
+            items.forEach(msg => {
+                if (!msg || msg.is_read) return;
+                unreadItems.push(msg);
+                if (msg.message_type === 'job_application') unreadResumeCount += 1;
+                else unreadFeedbackCount += 1;
+            });
+
+            const unreadTotal = getUnreadMessageCount(items, stats);
+            const previewItems = (unreadItems.length ? unreadItems : items).slice(0, MESSAGE_CENTER_PREVIEW_LIMIT);
+            return {
+                unreadTotal,
+                unreadFeedbackCount,
+                unreadResumeCount,
+                previewItems,
+                previewTitle: unreadItems.length ? '优先处理的未读消息' : '最近消息'
+            };
+        }
+
+        function getMessageCenterItemType(msg) {
+            if (msg && msg.message_type === 'job_application') {
+                return { label: '简历投递', icon: 'far fa-file-alt' };
+            }
+            return { label: '留言消息', icon: 'far fa-envelope' };
+        }
+
+        function getMessageCenterItemTitle(msg) {
+            if (!msg) return '消息';
+            const name = String(msg.name || '').trim() || '匿名访客';
+            if (msg.message_type === 'job_application') {
+                const jobTitle = String(msg.job_title || msg.job_id || '').trim() || '招聘岗位';
+                return `${name} 投递了 ${jobTitle}`;
+            }
+            const title = String(msg.title || '').trim();
+            const content = String(msg.content || '').trim();
+            if (title) return title;
+            if (content) return content.length > 56 ? `${content.slice(0, 56)}...` : content;
+            return `${name} 提交了新留言`;
+        }
+
+        function getMessageCenterItemMeta(msg) {
+            if (!msg) return '';
+            const parts = [];
+            const name = String(msg.name || '').trim();
+            const phone = String(msg.phone || '').trim();
+            const email = String(msg.email || '').trim();
+            if (name) parts.push(name);
+            if (msg.message_type === 'job_application') {
+                const jobTitle = String(msg.job_title || msg.job_id || '').trim();
+                if (jobTitle) parts.push(jobTitle);
+            }
+            if (phone) parts.push(phone);
+            else if (email) parts.push(email);
+            return parts.join(' · ');
+        }
+
+        function buildMessageCenterItemMarkup(msg) {
+            const typeMeta = getMessageCenterItemType(msg);
+            const title = getMessageCenterItemTitle(msg);
+            const meta = getMessageCenterItemMeta(msg);
+            const time = formatLoginTime(String(msg?.timestamp || ''));
+            return `
+                <div class="message-center-item ${msg && !msg.is_read ? 'is-unread' : ''}">
+                    <div class="message-center-item-head">
+                        <span class="message-center-item-type">
+                            <i class="${typeMeta.icon}"></i>
+                            ${escapeHtml(typeMeta.label)}
+                        </span>
+                        <span class="message-center-item-time">${escapeHtml(time || '-')}</span>
+                    </div>
+                    <div class="message-center-item-title">${escapeHtml(title)}</div>
+                    <div class="message-center-item-meta">${escapeHtml(meta || '暂无补充信息')}</div>
+                    ${msg && !msg.is_read ? '<span class="message-center-item-status">未读</span>' : ''}
+                </div>
+            `;
+        }
+
+        function renderMessageCenterPanel() {
+            const totalEl = document.getElementById('messageCenterUnreadTotal');
+            const feedbackEl = document.getElementById('messageCenterFeedbackUnreadCount');
+            const resumeEl = document.getElementById('messageCenterResumeUnreadCount');
+            const listTitleEl = document.getElementById('messageCenterListTitle');
+            const listEl = document.getElementById('messageCenterList');
+            if (!totalEl || !feedbackEl || !resumeEl || !listTitleEl || !listEl) return;
+
+            const summary = getMessageCenterSummary(messageCenterState.messages, messageCenterState.stats);
+            totalEl.textContent = String(summary.unreadTotal);
+            feedbackEl.textContent = String(summary.unreadFeedbackCount);
+            resumeEl.textContent = String(summary.unreadResumeCount);
+            listTitleEl.textContent = summary.previewTitle;
+
+            if (!summary.previewItems.length) {
+                listEl.innerHTML = '<div class="message-center-empty">暂无站内消息</div>';
+                return;
+            }
+
+            listEl.innerHTML = summary.previewItems.map(buildMessageCenterItemMarkup).join('');
+        }
+
+        function setMessageCenterLoadingState(message = '加载中...') {
+            const listEl = document.getElementById('messageCenterList');
+            const listTitleEl = document.getElementById('messageCenterListTitle');
+            if (listTitleEl) listTitleEl.textContent = '最新消息';
+            if (listEl) {
+                listEl.innerHTML = `<div class="message-center-empty">${escapeHtml(message)}</div>`;
+            }
+        }
+
+        function setMessageCenterData(messages, stats = {}) {
+            messageCenterState.messages = Array.isArray(messages) ? messages : [];
+            messageCenterState.stats = stats && typeof stats === 'object' ? stats : {};
+            messageCenterState.lastFetchedAt = Date.now();
+            const summary = getMessageCenterSummary(messageCenterState.messages, messageCenterState.stats);
+            setMessagesUnreadIndicator(summary.unreadTotal);
+            renderMessageCenterPanel();
+            return summary;
+        }
+
+        async function fetchMessagesData(options = {}) {
+            const fetchOptions = {};
+            if (options.noStore) fetchOptions.cache = 'no-store';
+            const res = await fetch('/api/messages', fetchOptions);
+            if (!res.ok) {
+                throw new Error(`加载消息失败 (${res.status})`);
+            }
+            const payload = await res.json();
+            const { messages, stats } = normalizeMessagesPayload(payload);
+            setMessageCenterData(messages, stats);
+            return { messages, stats };
+        }
+
+        function closeMessageCenter() {
+            const wrap = document.getElementById('messageCenter');
+            const panel = document.getElementById('messageCenterPanel');
+            const trigger = document.getElementById('messageCenterTrigger');
+            if (wrap) wrap.classList.remove('is-open');
+            if (panel) panel.hidden = true;
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
+
+        async function openMessageCenter() {
+            const wrap = document.getElementById('messageCenter');
+            const panel = document.getElementById('messageCenterPanel');
+            const trigger = document.getElementById('messageCenterTrigger');
+            if (wrap) wrap.classList.add('is-open');
+            if (panel) panel.hidden = false;
+            if (trigger) trigger.setAttribute('aria-expanded', 'true');
+            closeAccountMenu();
+
+            if (!messageCenterState.lastFetchedAt) {
+                setMessageCenterLoadingState();
+            } else {
+                renderMessageCenterPanel();
+            }
+
+            if (!messageCenterState.lastFetchedAt || (Date.now() - messageCenterState.lastFetchedAt) > MESSAGE_CENTER_CACHE_TTL_MS) {
+                try {
+                    await fetchMessagesData({ noStore: true });
+                } catch (_) {
+                    if (!messageCenterState.lastFetchedAt) {
+                        setMessageCenterLoadingState('消息概览加载失败，请稍后重试');
+                    }
+                }
+            }
+        }
+
+        async function toggleMessageCenter(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const panel = document.getElementById('messageCenterPanel');
+            if (!panel || panel.hidden) {
+                await openMessageCenter();
+            } else {
+                closeMessageCenter();
+            }
+        }
+
+        function openMessagesViewFromCenter(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            closeMessageCenter();
+            switchView('messages');
+        }
+
         function closeAccountMenu() {
             const wrap = document.getElementById('accountMenu');
             const panel = document.getElementById('accountMenuPanel');
@@ -272,6 +497,7 @@
             if (wrap) wrap.classList.add('is-open');
             if (panel) panel.hidden = false;
             if (trigger) trigger.setAttribute('aria-expanded', 'true');
+            closeMessageCenter();
             updateTopbarAccountDisplay();
         }
 
@@ -654,6 +880,10 @@
         checkLoginStatus();
         loadVersionBadge();
         document.addEventListener('click', (event) => {
+            const messageCenterWrap = document.getElementById('messageCenter');
+            if (messageCenterWrap && !messageCenterWrap.contains(event.target)) {
+                closeMessageCenter();
+            }
             const wrap = document.getElementById('accountMenu');
             if (!wrap) return;
             if (!wrap.contains(event.target)) {
@@ -662,6 +892,7 @@
         });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
+                closeMessageCenter();
                 closeAccountMenu();
                 closeMobileSidebar();
             }
@@ -993,22 +1224,32 @@
         function setMessagesUnreadIndicator(unreadCount) {
             const dot = document.getElementById('messagesUnreadDot');
             const item = document.querySelector('.menu-item[data-view="messages"]');
-            if (!dot || !item) return;
             const count = Math.max(0, Number(unreadCount) || 0);
-            dot.hidden = count <= 0;
-            item.classList.toggle('has-unread-messages', count > 0);
-            item.title = count > 0 ? `有 ${count} 条未读留言` : '';
-            dot.setAttribute('aria-label', count > 0 ? `有 ${count} 条未读留言` : '无未读留言');
+            const trigger = document.getElementById('messageCenterTrigger');
+            const badge = document.getElementById('messageCenterUnreadBadge');
+            const label = count > 0 ? `有 ${count} 条未读站内消息` : '无未读站内消息';
+
+            if (dot && item) {
+                dot.hidden = count <= 0;
+                item.classList.toggle('has-unread-messages', count > 0);
+                item.title = count > 0 ? label : '';
+                dot.setAttribute('aria-label', label);
+            }
+
+            if (trigger) {
+                trigger.classList.toggle('has-unread', count > 0);
+                trigger.setAttribute('aria-label', label);
+                trigger.title = count > 0 ? label : '站内消息';
+            }
+            if (badge) {
+                badge.hidden = count <= 0;
+                badge.textContent = formatMessageCenterBadgeCount(count);
+            }
         }
 
         async function refreshMessagesUnreadIndicator() {
             try {
-                const res = await fetch('/api/messages', { cache: 'no-store' });
-                if (!res.ok) return;
-                const payload = await res.json();
-                const messages = Array.isArray(payload) ? payload : (payload.messages || []);
-                const stats = (payload && !Array.isArray(payload)) ? (payload.stats || {}) : {};
-                setMessagesUnreadIndicator(getUnreadMessageCount(messages, stats));
+                await fetchMessagesData({ noStore: true });
             } catch (_) {
                 // Keep the previous indicator state when the lightweight refresh fails.
             }
@@ -1154,11 +1395,10 @@
                 const res = await fetch('/api/changelog/latest');
                 const data = await res.json();
                 const version = data?.version || '?.?.?';
-                const buildTime = data?.build_time || '';
                 badge.innerHTML = `
-                    <span class="version-label">版本号：</span><span class="version-number">${version}</span><span class="version-sep">|</span><span class="version-label">构建时间：</span><span class="version-time">${buildTime}</span>
+                    <span class="version-label">版本号：</span><span class="version-number">${version}</span>
                 `;
-                badge.title = `最新版本：${version}${buildTime ? '，更新时间：' + buildTime : ''}`;
+                badge.title = `最新版本：${version}`;
             } catch (e) {
                 badge.innerHTML = '<span class="version-label">版本号：</span><span class="version-number">?.?.?</span>';
             }
@@ -1239,7 +1479,7 @@
                 <div class="ip-preflight-detail" style="text-align:left;">
                     <div class="ip-preflight-warn">
                         <div class="warn-title"><i class="fas fa-triangle-exclamation"></i> 禁止登录</div>
-                        您的 IP <span class="ip-addr">${ip}</span> 归属地为 <span class="ip-location">${location}</span>，不在管理后台允许登录列表中，已被禁止登录。
+                        您的 IP <span class="ip-addr">${ip}</span> 归属地为 <span class="ip-location">${location}</span>，不符合当前后台地域访问规则，已被禁止登录。
                         <br><br>
                         <span style="color:#7f1d1d;font-weight:600;">⚠ 您的登录 IP 已被记录在系统中！</span>
                     </div>
@@ -3770,6 +4010,9 @@
 
         // --- Navigation ---
         function switchView(viewName, options = {}) {
+            if (viewName === 'changelog' || viewName === 'docker-logs') {
+                viewName = 'log-records';
+            }
             const persist = options && options.persist !== false;
             const hashSync = !options || options.hash !== false;
             if (bindingRequiredState && viewName !== 'settings') {
@@ -3811,8 +4054,7 @@
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'cdn-assets': 'CDN 素材',
-                'changelog': '更新日志',
-                'docker-logs': '后端日志'
+                'log-records': '日志记录'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
 
@@ -3835,6 +4077,7 @@
             if (viewName === 'jobs') loadJobsAdmin();
             if (viewName === 'chatbot') loadChatbotConfig();
             if (viewName === 'site-settings') {
+                loadAdminLoginGeoSettings();
                 loadTurnstileAdminConfig();
                 loadEmailAuthSettings();
             }
@@ -3846,8 +4089,10 @@
                 if (!bindingRequiredState) loadSubAccounts();
                 loadEmailBindingStatus();
             }
-            if (viewName === 'changelog') loadChangelog();
-            if (viewName === 'docker-logs') loadDockerLogs();
+            if (viewName === 'log-records') {
+                loadChangelog();
+                loadDockerLogs();
+            }
             if (viewName === 'cdn-assets') loadCdnAssets();
 
             renderGuidesForView(viewName);
@@ -12310,9 +12555,12 @@
 
             try {
                 const res = await fetch('/api/messages');
+                if (!res.ok) {
+                    throw new Error(`加载消息失败 (${res.status})`);
+                }
                 const payload = await res.json();
-                const messages = Array.isArray(payload) ? payload : (payload.messages || []);
-                const stats = (payload && !Array.isArray(payload)) ? (payload.stats || {}) : {};
+                const { messages, stats } = normalizeMessagesPayload(payload);
+                setMessageCenterData(messages, stats);
 
                 const feedbackItems = [];
                 const jobItems = [];
@@ -12428,7 +12676,6 @@
                 document.getElementById('todayCount').textContent = Number(stats.today_count ?? 0) || 0;
                 document.getElementById('readCount').textContent = Number(stats.read_count ?? 0) || 0;
                 document.getElementById('deletedCount').textContent = Number(stats.deleted_count ?? 0) || 0;
-                setMessagesUnreadIndicator(getUnreadMessageCount(messages, stats));
 
             } catch (e) {
                 if (feedbackTbody) feedbackTbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败</td></tr>';
@@ -12663,6 +12910,243 @@
             }
         }
 
+        function getAdminLoginGeoDisplayNameObjects() {
+            if (adminLoginGeoDisplayNames === null) {
+                try {
+                    adminLoginGeoDisplayNames = typeof Intl !== 'undefined' && Intl.DisplayNames
+                        ? new Intl.DisplayNames(['zh-Hans-CN', 'zh-CN', 'en'], { type: 'region' })
+                        : null;
+                } catch (e) {
+                    adminLoginGeoDisplayNames = null;
+                }
+            }
+            if (adminLoginGeoDisplayNamesEn === null) {
+                try {
+                    adminLoginGeoDisplayNamesEn = typeof Intl !== 'undefined' && Intl.DisplayNames
+                        ? new Intl.DisplayNames(['en'], { type: 'region' })
+                        : null;
+                } catch (e) {
+                    adminLoginGeoDisplayNamesEn = null;
+                }
+            }
+            return {
+                zh: adminLoginGeoDisplayNames,
+                en: adminLoginGeoDisplayNamesEn
+            };
+        }
+
+        function getAdminLoginGeoCountryMeta(code) {
+            const safeCode = String(code || '').trim().toUpperCase();
+            if (!safeCode) {
+                return { label: '', labelEn: '', searchText: '' };
+            }
+            if (adminLoginGeoCountryMetaCache.has(safeCode)) {
+                return adminLoginGeoCountryMetaCache.get(safeCode);
+            }
+            const displayNames = getAdminLoginGeoDisplayNameObjects();
+            let label = safeCode;
+            let labelEn = safeCode;
+            try {
+                const zhName = displayNames.zh ? String(displayNames.zh.of(safeCode) || '').trim() : '';
+                const enName = displayNames.en ? String(displayNames.en.of(safeCode) || '').trim() : '';
+                if (zhName && zhName.toUpperCase() !== safeCode) label = zhName;
+                if (enName && enName.toUpperCase() !== safeCode) labelEn = enName;
+                if (label === safeCode && labelEn && labelEn !== safeCode) label = labelEn;
+            } catch (e) {
+                // Keep ISO code fallback.
+            }
+            const meta = {
+                label,
+                labelEn,
+                searchText: `${label} ${labelEn} ${safeCode}`.toLowerCase()
+            };
+            adminLoginGeoCountryMetaCache.set(safeCode, meta);
+            return meta;
+        }
+
+        function normalizeAdminLoginGeoCatalog(rawCatalog = {}) {
+            const rawContinents = Array.isArray(rawCatalog.continents) ? rawCatalog.continents : [];
+            return {
+                continents: rawContinents.map((item) => ({
+                    key: String(item?.key || '').trim(),
+                    label: String(item?.label || item?.key || '').trim(),
+                    countries: Array.isArray(item?.countries)
+                        ? item.countries.map(code => String(code || '').trim().toUpperCase()).filter(Boolean)
+                        : []
+                })).filter(item => item.key)
+            };
+        }
+
+        function normalizeAdminLoginGeoConfig(rawConfig = {}, catalog = adminLoginGeoCatalog) {
+            const continents = {};
+            (Array.isArray(catalog.continents) ? catalog.continents : []).forEach((continent) => {
+                const rawValue = String(rawConfig?.continents?.[continent.key] || '').trim().toLowerCase();
+                continents[continent.key] = rawValue === 'allow' ? 'allow' : 'deny';
+            });
+            const countries = {};
+            const rawCountries = rawConfig && typeof rawConfig.countries === 'object' ? rawConfig.countries : {};
+            Object.entries(rawCountries || {}).forEach(([rawCode, rawValue]) => {
+                const code = String(rawCode || '').trim().toUpperCase();
+                const value = String(rawValue || '').trim().toLowerCase();
+                if (!code) return;
+                if (value === 'allow' || value === 'deny') {
+                    countries[code] = value;
+                }
+            });
+            return {
+                enabled: rawConfig?.enabled !== false,
+                continents,
+                countries
+            };
+        }
+
+        function updateAdminLoginGeoStatusText() {
+            const statusEl = document.getElementById('adminLoginGeoStatusText');
+            if (!statusEl) return;
+            if (!adminLoginGeoConfig.enabled) {
+                statusEl.textContent = '当前状态：已关闭';
+                statusEl.style.color = '#666';
+                return;
+            }
+            const continentAllows = Object.values(adminLoginGeoConfig.continents || {}).filter(v => v === 'allow').length;
+            const countryAllows = Object.values(adminLoginGeoConfig.countries || {}).filter(v => v === 'allow').length;
+            const countryDenies = Object.values(adminLoginGeoConfig.countries || {}).filter(v => v === 'deny').length;
+            statusEl.textContent = `当前状态：已启用；允许大洲 ${continentAllows} 个，国家单独允许 ${countryAllows} 个，单独禁止 ${countryDenies} 个`;
+            statusEl.style.color = '#2e7d32';
+        }
+
+        function getAdminLoginGeoContinents() {
+            return Array.isArray(adminLoginGeoCatalog.continents) ? adminLoginGeoCatalog.continents : [];
+        }
+
+        function getAdminLoginGeoContinentByKey(continentKey) {
+            return getAdminLoginGeoContinents().find(item => item.key === continentKey) || null;
+        }
+
+        function getAdminLoginGeoCountriesForContinent(continentKey) {
+            const continent = getAdminLoginGeoContinentByKey(continentKey);
+            return continent && Array.isArray(continent.countries) ? [...continent.countries] : [];
+        }
+
+        function sortAdminLoginGeoCountryCodes(codes) {
+            return [...codes].sort((a, b) => {
+                const nameA = getAdminLoginGeoCountryMeta(a).label;
+                const nameB = getAdminLoginGeoCountryMeta(b).label;
+                return nameA.localeCompare(nameB, 'zh-CN');
+            });
+        }
+
+        function ensureAdminLoginGeoSelections() {
+            const continents = getAdminLoginGeoContinents();
+            if (!continents.length) {
+                adminLoginGeoSelectedContinentKey = '';
+                adminLoginGeoSelectedCountryContinentKey = '';
+                adminLoginGeoSelectedCountryCode = '';
+                return;
+            }
+            const continentKeys = continents.map(item => item.key);
+            if (!continentKeys.includes(adminLoginGeoSelectedContinentKey)) {
+                adminLoginGeoSelectedContinentKey = continentKeys[0];
+            }
+            if (!continentKeys.includes(adminLoginGeoSelectedCountryContinentKey)) {
+                adminLoginGeoSelectedCountryContinentKey = continentKeys[0];
+            }
+            const countryCodes = sortAdminLoginGeoCountryCodes(
+                getAdminLoginGeoCountriesForContinent(adminLoginGeoSelectedCountryContinentKey)
+            );
+            if (!countryCodes.includes(adminLoginGeoSelectedCountryCode)) {
+                adminLoginGeoSelectedCountryCode = countryCodes[0] || '';
+            }
+        }
+
+        function renderAdminLoginGeoContinentControls() {
+            const continentSelect = document.getElementById('adminLoginGeoContinentSelect');
+            const policySelect = document.getElementById('adminLoginGeoContinentPolicy');
+            const hintEl = document.getElementById('adminLoginGeoContinentHint');
+            if (!continentSelect || !policySelect || !hintEl) return;
+            const continents = getAdminLoginGeoContinents();
+            continentSelect.innerHTML = continents.map((continent) => (
+                `<option value="${escapeHtml(continent.key)}">${escapeHtml(continent.label)}</option>`
+            )).join('');
+            continentSelect.value = adminLoginGeoSelectedContinentKey;
+            const continent = getAdminLoginGeoContinentByKey(adminLoginGeoSelectedContinentKey);
+            const policy = adminLoginGeoConfig.continents?.[adminLoginGeoSelectedContinentKey] === 'allow' ? 'allow' : 'deny';
+            policySelect.value = policy;
+            hintEl.textContent = continent
+                ? `${continent.label}共 ${Array.isArray(continent.countries) ? continent.countries.length : 0} 个国家或地区，当前默认规则：${policy === 'allow' ? '允许登录' : '禁止登录'}。`
+                : '请选择一个大洲后设置默认规则。';
+        }
+
+        function renderAdminLoginGeoCountryControls() {
+            const continentFilterSelect = document.getElementById('adminLoginGeoCountryContinentFilter');
+            const countrySelect = document.getElementById('adminLoginGeoCountrySelect');
+            const policySelect = document.getElementById('adminLoginGeoCountryPolicy');
+            const hintEl = document.getElementById('adminLoginGeoCountryHint');
+            if (!continentFilterSelect || !countrySelect || !policySelect || !hintEl) return;
+            const continents = getAdminLoginGeoContinents();
+            continentFilterSelect.innerHTML = continents.map((continent) => (
+                `<option value="${escapeHtml(continent.key)}">${escapeHtml(continent.label)}</option>`
+            )).join('');
+            continentFilterSelect.value = adminLoginGeoSelectedCountryContinentKey;
+
+            const countryCodes = sortAdminLoginGeoCountryCodes(
+                getAdminLoginGeoCountriesForContinent(adminLoginGeoSelectedCountryContinentKey)
+            );
+            countrySelect.innerHTML = countryCodes.map((code) => {
+                const meta = getAdminLoginGeoCountryMeta(code);
+                const label = `${meta.label} (${code})`;
+                return `<option value="${escapeHtml(code)}">${escapeHtml(label)}</option>`;
+            }).join('');
+            countrySelect.value = adminLoginGeoSelectedCountryCode;
+
+            const continent = getAdminLoginGeoContinentByKey(adminLoginGeoSelectedCountryContinentKey);
+            const countryMeta = getAdminLoginGeoCountryMeta(adminLoginGeoSelectedCountryCode);
+            const continentPolicy = adminLoginGeoConfig.continents?.[adminLoginGeoSelectedCountryContinentKey] === 'allow' ? 'allow' : 'deny';
+            const policy = adminLoginGeoConfig.countries?.[adminLoginGeoSelectedCountryCode] || 'inherit';
+            policySelect.value = policy;
+
+            const policyLabel = policy === 'allow'
+                ? '允许登录'
+                : (policy === 'deny' ? '禁止登录' : `跟随${continent ? continent.label : '所属大洲'}（${continentPolicy === 'allow' ? '允许登录' : '禁止登录'}）`);
+            hintEl.textContent = adminLoginGeoSelectedCountryCode
+                ? `${countryMeta.label} 当前规则：${policyLabel}。`
+                : '请选择一个国家或地区后设置覆盖规则。';
+        }
+
+        function renderAdminLoginGeoSettings() {
+            ensureAdminLoginGeoSelections();
+            const enabledEl = document.getElementById('adminLoginGeoEnabled');
+            if (enabledEl) enabledEl.checked = adminLoginGeoConfig.enabled !== false;
+            renderAdminLoginGeoContinentControls();
+            renderAdminLoginGeoCountryControls();
+            updateAdminLoginGeoStatusText();
+        }
+
+        async function loadAdminLoginGeoSettings() {
+            const msgEl = document.getElementById('adminLoginGeoSettingsMsg');
+            if (msgEl) {
+                msgEl.textContent = '';
+                msgEl.style.color = '#28a745';
+            }
+            try {
+                const res = await fetch('/api/admin/security/login-geo', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || '加载失败');
+                }
+                adminLoginGeoCatalog = normalizeAdminLoginGeoCatalog(data.catalog || {});
+                adminLoginGeoConfig = normalizeAdminLoginGeoConfig(data.config || {}, adminLoginGeoCatalog);
+                ensureAdminLoginGeoSelections();
+                renderAdminLoginGeoSettings();
+            } catch (e) {
+                updateAdminLoginGeoStatusText();
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = '后台登录地域规则加载失败';
+                }
+            }
+        }
+
         // --- Settings Logic ---
         function downloadFullBackup() {
             window.open('/api/backup/download', '_blank');
@@ -12760,6 +13244,117 @@
                     msgEl.textContent = '登录验证设置加载失败';
                 }
             }
+        }
+
+        const adminLoginGeoContinentSelectEl = document.getElementById('adminLoginGeoContinentSelect');
+        if (adminLoginGeoContinentSelectEl && adminLoginGeoContinentSelectEl.dataset.bound !== '1') {
+            adminLoginGeoContinentSelectEl.dataset.bound = '1';
+            adminLoginGeoContinentSelectEl.addEventListener('change', function () {
+                adminLoginGeoSelectedContinentKey = String(this.value || '').trim();
+                renderAdminLoginGeoContinentControls();
+            });
+        }
+
+        const adminLoginGeoContinentPolicyEl = document.getElementById('adminLoginGeoContinentPolicy');
+        if (adminLoginGeoContinentPolicyEl && adminLoginGeoContinentPolicyEl.dataset.bound !== '1') {
+            adminLoginGeoContinentPolicyEl.dataset.bound = '1';
+            adminLoginGeoContinentPolicyEl.addEventListener('change', function () {
+                const continentKey = String(document.getElementById('adminLoginGeoContinentSelect')?.value || '').trim();
+                if (!continentKey) return;
+                adminLoginGeoConfig.continents = adminLoginGeoConfig.continents || {};
+                adminLoginGeoConfig.continents[continentKey] = String(this.value || '').trim() === 'allow' ? 'allow' : 'deny';
+                renderAdminLoginGeoContinentControls();
+                renderAdminLoginGeoCountryControls();
+                updateAdminLoginGeoStatusText();
+            });
+        }
+
+        const adminLoginGeoCountryContinentFilterEl = document.getElementById('adminLoginGeoCountryContinentFilter');
+        if (adminLoginGeoCountryContinentFilterEl && adminLoginGeoCountryContinentFilterEl.dataset.bound !== '1') {
+            adminLoginGeoCountryContinentFilterEl.dataset.bound = '1';
+            adminLoginGeoCountryContinentFilterEl.addEventListener('change', function () {
+                adminLoginGeoSelectedCountryContinentKey = String(this.value || '').trim();
+                ensureAdminLoginGeoSelections();
+                renderAdminLoginGeoCountryControls();
+            });
+        }
+
+        const adminLoginGeoCountrySelectEl = document.getElementById('adminLoginGeoCountrySelect');
+        if (adminLoginGeoCountrySelectEl && adminLoginGeoCountrySelectEl.dataset.bound !== '1') {
+            adminLoginGeoCountrySelectEl.dataset.bound = '1';
+            adminLoginGeoCountrySelectEl.addEventListener('change', function () {
+                adminLoginGeoSelectedCountryCode = String(this.value || '').trim().toUpperCase();
+                renderAdminLoginGeoCountryControls();
+            });
+        }
+
+        const adminLoginGeoCountryPolicyEl = document.getElementById('adminLoginGeoCountryPolicy');
+        if (adminLoginGeoCountryPolicyEl && adminLoginGeoCountryPolicyEl.dataset.bound !== '1') {
+            adminLoginGeoCountryPolicyEl.dataset.bound = '1';
+            adminLoginGeoCountryPolicyEl.addEventListener('change', function () {
+                const countryCode = String(document.getElementById('adminLoginGeoCountrySelect')?.value || '').trim().toUpperCase();
+                if (!countryCode) return;
+                const nextValue = String(this.value || '').trim().toLowerCase();
+                adminLoginGeoConfig.countries = adminLoginGeoConfig.countries || {};
+                if (nextValue === 'allow' || nextValue === 'deny') {
+                    adminLoginGeoConfig.countries[countryCode] = nextValue;
+                } else {
+                    delete adminLoginGeoConfig.countries[countryCode];
+                }
+                renderAdminLoginGeoCountryControls();
+                updateAdminLoginGeoStatusText();
+            });
+        }
+
+        const adminLoginGeoEnabledEl = document.getElementById('adminLoginGeoEnabled');
+        if (adminLoginGeoEnabledEl && adminLoginGeoEnabledEl.dataset.bound !== '1') {
+            adminLoginGeoEnabledEl.dataset.bound = '1';
+            adminLoginGeoEnabledEl.addEventListener('change', function () {
+                adminLoginGeoConfig.enabled = this.checked === true;
+                updateAdminLoginGeoStatusText();
+            });
+        }
+
+        const adminLoginGeoSettingsForm = document.getElementById('adminLoginGeoSettingsForm');
+        if (adminLoginGeoSettingsForm && adminLoginGeoSettingsForm.dataset.bound !== '1') {
+            adminLoginGeoSettingsForm.dataset.bound = '1';
+            adminLoginGeoSettingsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button[type="submit"]');
+                const msg = document.getElementById('adminLoginGeoSettingsMsg');
+                if (msg) {
+                    msg.textContent = '';
+                    msg.style.color = '#dc3545';
+                }
+                if (btn) btn.disabled = true;
+                try {
+                    const res = await fetch('/api/admin/security/login-geo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            enabled: adminLoginGeoConfig.enabled !== false,
+                            continents: adminLoginGeoConfig.continents || {},
+                            countries: adminLoginGeoConfig.countries || {}
+                        })
+                    });
+                    const data = await parseJsonSafe(res);
+                    if (!res.ok || !data.success) {
+                        if (msg) msg.textContent = data.message || '保存失败';
+                        return;
+                    }
+                    adminLoginGeoCatalog = normalizeAdminLoginGeoCatalog(data.catalog || adminLoginGeoCatalog);
+                    adminLoginGeoConfig = normalizeAdminLoginGeoConfig(data.config || adminLoginGeoConfig, adminLoginGeoCatalog);
+                    renderAdminLoginGeoSettings();
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = data.message || '地域规则保存成功';
+                    }
+                } catch (e) {
+                    if (msg) msg.textContent = '网络错误，保存失败';
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
         }
 
         const turnstileEnabledEl = document.getElementById('turnstileEnabled');
@@ -13523,60 +14118,80 @@
 
         // --- Knowledge Base Logic ---
         async function loadKnowledgeFiles() {
+            const textInput = document.getElementById('knowledgeTextInput');
+            const statusEl = document.getElementById('knowledgeTextStatus');
             const listEl = document.getElementById('knowledgeFileList');
+            const pendingListEl = document.getElementById('knowledgePendingFileList');
+            if (!textInput || !listEl) return;
+
             listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">加载中...</div>';
+            if (pendingListEl && !pendingKnowledgeFiles.length) {
+                pendingListEl.innerHTML = '';
+            }
 
             try {
                 const res = await fetch('/api/chatbot/knowledge');
                 const data = await res.json();
 
-                // Show warning if PDF support is not available
                 document.getElementById('pdfSupportWarning').style.display = data.pdf_support ? 'none' : 'block';
+                textInput.value = data.text_content || '';
 
-                if (data.files.length === 0) {
-                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无知识库文件</div>';
-                    return;
+                if (statusEl) {
+                    if (data.text_size > 0) {
+                        const modifiedText = data.text_modified ? `，最后更新：${formatDateTime(data.text_modified)}` : '';
+                        statusEl.textContent = `当前已保存文本知识库 ${formatFileSize(data.text_size)}${modifiedText}`;
+                    } else {
+                        statusEl.textContent = '当前未保存文本知识库内容';
+                    }
                 }
 
-                listEl.innerHTML = data.files.map(file => `
-                    <div class="file-item">
-                        <div class="file-info">
-                            <i class="fas fa-file-pdf"></i>
-                            <div>
-                                <div style="font-weight: 500;">${escapeHtml(file.name)}</div>
-                                <div class="file-meta">${formatFileSize(file.size)} · ${formatDate(file.modified)}</div>
+                if (!Array.isArray(data.files) || data.files.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无知识库文件</div>';
+                } else {
+                    listEl.innerHTML = data.files.map(file => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <i class="fas fa-file-pdf"></i>
+                                <div>
+                                    <div style="font-weight: 500;">${escapeHtml(file.name)}</div>
+                                    <div class="file-meta">${formatFileSize(file.size)} · ${formatDateTime(file.modified)}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="btn-sm knowledge-download-btn" data-filename="${escapeAttr(file.name)}">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
+                                <button type="button" class="btn-sm btn-danger knowledge-delete-btn" data-filename="${escapeAttr(file.name)}">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
                             </div>
                         </div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button type="button" class="btn-sm knowledge-download-btn" data-filename="${escapeAttr(file.name)}">
-                                <i class="fas fa-download"></i> 下载
-                            </button>
-                            <button type="button" class="btn-sm btn-danger knowledge-delete-btn" data-filename="${escapeAttr(file.name)}">
-                                <i class="fas fa-trash"></i> 删除
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
+                    `).join('');
 
-                listEl.querySelectorAll('.knowledge-download-btn').forEach(btn => {
-                    btn.addEventListener('click', () => downloadKnowledgeFile(btn.dataset.filename || ''));
-                });
-                listEl.querySelectorAll('.knowledge-delete-btn').forEach(btn => {
-                    btn.addEventListener('click', () => deleteKnowledgeFile(btn.dataset.filename || ''));
-                });
+                    listEl.querySelectorAll('.knowledge-download-btn').forEach(btn => {
+                        btn.addEventListener('click', () => downloadKnowledgeFile(btn.dataset.filename || ''));
+                    });
+                    listEl.querySelectorAll('.knowledge-delete-btn').forEach(btn => {
+                        btn.addEventListener('click', () => deleteKnowledgeFile(btn.dataset.filename || ''));
+                    });
+                }
+
+                renderPendingKnowledgeFiles();
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
             }
         }
 
         function formatFileSize(bytes) {
+            if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
-        function formatDate(isoString) {
-            return isoString.split('T')[0];
+        function formatDateTime(isoString) {
+            if (!isoString) return '-';
+            return String(isoString).replace('T', ' ').slice(0, 16);
         }
 
         async function deleteKnowledgeFile(filename) {
@@ -13599,93 +14214,165 @@
             window.open(`/api/chatbot/knowledge/${encodeURIComponent(filename)}/download`, '_blank');
         }
 
-        // File upload handling
-        const uploadZone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
+        function setKnowledgeUploadMessage(message, type = 'success') {
+            const msgEl = document.getElementById('knowledgeUploadMsg');
+            if (!msgEl) return;
+            msgEl.textContent = message || '';
+            msgEl.style.color = type === 'error' ? '#dc3545' : (type === 'warning' ? '#c05621' : '#28a745');
+        }
 
-        uploadZone.addEventListener('click', () => fileInput.click());
-
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) uploadKnowledgeFiles(files);
-        });
-
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                uploadKnowledgeFiles(fileInput.files);
+        function renderPendingKnowledgeFiles() {
+            const pendingListEl = document.getElementById('knowledgePendingFileList');
+            if (!pendingListEl) return;
+            if (!pendingKnowledgeFiles.length) {
+                pendingListEl.innerHTML = '';
+                return;
             }
-        });
 
-        async function uploadKnowledgeFiles(fileList) {
+            pendingListEl.innerHTML = `
+                <div style="margin-bottom: 10px; color: #666; font-size: 13px;">待保存 PDF 文件（${pendingKnowledgeFiles.length}）</div>
+                ${pendingKnowledgeFiles.map((file, index) => `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <i class="fas fa-file-pdf"></i>
+                            <div>
+                                <div style="font-weight: 500;">${escapeHtml(file.name)}</div>
+                                <div class="file-meta">${formatFileSize(file.size)}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn-sm btn-danger knowledge-pending-remove-btn" data-index="${index}">
+                                <i class="fas fa-times"></i> 移除
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+
+            pendingListEl.querySelectorAll('.knowledge-pending-remove-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = Number(btn.dataset.index);
+                    if (!Number.isInteger(index)) return;
+                    pendingKnowledgeFiles.splice(index, 1);
+                    renderPendingKnowledgeFiles();
+                });
+            });
+        }
+
+        function addPendingKnowledgeFiles(fileList) {
             const files = Array.from(fileList || []);
             if (!files.length) return;
 
-            const pdfFiles = files.filter(file => file && file.name && file.name.toLowerCase().endsWith('.pdf'));
-            if (!pdfFiles.length) {
-                alert('只支持 PDF 文件');
-                return;
-            }
-            if (pdfFiles.length !== files.length) {
-                alert('已自动跳过非 PDF 文件，仅上传 PDF。');
-            }
+            const added = [];
+            const skipped = [];
+            files.forEach(file => {
+                if (!file || !file.name) return;
+                if (!file.name.toLowerCase().endsWith('.pdf')) {
+                    skipped.push(`${file.name} 不是 PDF 文件`);
+                    return;
+                }
+                const exists = pendingKnowledgeFiles.some(item =>
+                    item.name === file.name
+                    && item.size === file.size
+                    && item.lastModified === file.lastModified
+                );
+                if (exists) {
+                    skipped.push(`${file.name} 已在待上传列表中`);
+                    return;
+                }
+                added.push(file);
+            });
 
+            if (added.length) {
+                pendingKnowledgeFiles = pendingKnowledgeFiles.concat(added);
+                renderPendingKnowledgeFiles();
+                setKnowledgeUploadMessage(`已加入 ${added.length} 个待保存 PDF 文件`, 'success');
+            }
+            if (skipped.length) {
+                setKnowledgeUploadMessage(skipped.join('；'), added.length ? 'warning' : 'error');
+            }
+        }
+
+        async function saveKnowledgeBase() {
+            const textInput = document.getElementById('knowledgeTextInput');
+            const fileInput = document.getElementById('knowledgeFileInput');
+            const saveBtn = document.getElementById('knowledgeSaveBtn');
             const progress = document.getElementById('uploadProgress');
-            const progressLabel = progress.querySelector('span');
+            const progressLabel = progress ? progress.querySelector('span') : null;
+            if (!textInput || !saveBtn || !progress) return;
+
+            setKnowledgeUploadMessage('');
             progress.style.display = 'block';
+            saveBtn.disabled = true;
+            if (progressLabel) {
+                progressLabel.textContent = pendingKnowledgeFiles.length ? '正在保存文本与 PDF...' : '正在保存文本...';
+            }
 
             try {
-                const failed = [];
+                const formData = new FormData();
+                formData.append('knowledge_text', textInput.value || '');
+                pendingKnowledgeFiles.forEach(file => formData.append('files', file));
 
-                for (let i = 0; i < pdfFiles.length; i++) {
-                    const file = pdfFiles[i];
-                    if (progressLabel) {
-                        progressLabel.textContent = `正在上传 (${i + 1}/${pdfFiles.length})：${file.name}`;
-                    }
+                const res = await fetch('/api/chatbot/knowledge/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
 
-                    const formData = new FormData();
-                    formData.append('file', file);
-
-                    const res = await fetch('/api/chatbot/knowledge/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const data = await res.json();
-
-                    if (!res.ok || !data.success) {
-                        failed.push(`${file.name}：${data.message || '上传失败'}`);
-                    }
+                if (!res.ok || !data.success) {
+                    const details = Array.isArray(data.failed) && data.failed.length
+                        ? `：${data.failed.map(item => `${item.filename || '文本'} ${item.message}`).join('；')}`
+                        : '';
+                    setKnowledgeUploadMessage(`${data.message || '保存失败'}${details}`, 'error');
+                    return;
                 }
 
-                if (progressLabel) {
-                    progressLabel.textContent = `上传完成，共 ${pdfFiles.length} 个文件`;
-                }
-
+                pendingKnowledgeFiles = [];
                 await loadKnowledgeFiles();
-
-                if (failed.length) {
-                    alert(`部分文件上传失败：\n${failed.join('\n')}`);
-                }
+                if (fileInput) fileInput.value = '';
+                setKnowledgeUploadMessage(data.message || '知识库保存成功', data.partial_success ? 'warning' : 'success');
             } catch (e) {
-                alert('上传失败: 网络错误');
+                setKnowledgeUploadMessage('保存失败：网络错误', 'error');
             } finally {
                 progress.style.display = 'none';
                 if (progressLabel) {
-                    progressLabel.textContent = '正在上传...';
+                    progressLabel.textContent = '正在保存...';
                 }
-                fileInput.value = '';
+                saveBtn.disabled = false;
             }
+        }
+
+        // File upload handling
+        const knowledgeUploadZone = document.getElementById('knowledgeUploadZone');
+        const knowledgeFileInput = document.getElementById('knowledgeFileInput');
+        const knowledgeSaveBtn = document.getElementById('knowledgeSaveBtn');
+
+        if (knowledgeUploadZone && knowledgeFileInput) {
+            knowledgeUploadZone.addEventListener('click', () => knowledgeFileInput.click());
+
+            knowledgeUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                knowledgeUploadZone.classList.add('dragover');
+            });
+
+            knowledgeUploadZone.addEventListener('dragleave', () => {
+                knowledgeUploadZone.classList.remove('dragover');
+            });
+
+            knowledgeUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                knowledgeUploadZone.classList.remove('dragover');
+                addPendingKnowledgeFiles(e.dataTransfer.files);
+            });
+
+            knowledgeFileInput.addEventListener('change', () => {
+                addPendingKnowledgeFiles(knowledgeFileInput.files);
+                knowledgeFileInput.value = '';
+            });
+        }
+
+        if (knowledgeSaveBtn) {
+            knowledgeSaveBtn.addEventListener('click', saveKnowledgeBase);
         }
     
         function copyToClipboard(text) {

@@ -259,6 +259,8 @@ def register_all_routes(app):
         requests_module=requests if REQUESTS_SUPPORT else None,
         httpx_support=HTTPX_SUPPORT,
         httpx_module=httpx if HTTPX_SUPPORT else None,
+        get_gassensing_products_with_settings=get_gassensing_products_with_settings,
+        get_biosensing_products_with_settings_data=get_biosensing_products_with_settings_data,
     )
 
     # 公开表单与统计接口依赖公开站点，放在 API 注册靠前位置。
@@ -437,6 +439,8 @@ def register_all_routes(app):
         requests_module=requests if REQUESTS_SUPPORT else None,
         httpx_support=HTTPX_SUPPORT,
         httpx_module=httpx if HTTPX_SUPPORT else None,
+        get_gassensing_products_with_settings=get_gassensing_products_with_settings,
+        get_biosensing_products_with_settings_data=get_biosensing_products_with_settings_data,
     )
 
     register_news_content_routes(

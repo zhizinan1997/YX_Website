@@ -173,6 +173,8 @@ def register_media_delivery_routes(
     requests_module,
     httpx_support,
     httpx_module,
+    get_gassensing_products_with_settings=None,
+    get_biosensing_products_with_settings_data=None,
 ):
     """注册 CDN 设置、媒体代理和公开资源分发相关路由。"""
     global _CDN_ASSETS_DIR, _HERO_CONFIG_FILE, _MEDIA_IMMUTABLE_CACHE_CONTROL

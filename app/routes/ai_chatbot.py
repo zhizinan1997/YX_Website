@@ -66,6 +66,7 @@ from urllib.parse import urlparse
 
 from flask import (
     Response,
+    current_app,
     jsonify,
     request,
     send_from_directory,
@@ -88,6 +89,8 @@ _knowledge_cache = {
 }
 _knowledge_lock = threading.Lock()
 _conversation_log_lock = threading.Lock()
+
+MANUAL_KNOWLEDGE_FILENAME = "_manual_knowledge.txt"
 
 _rate_limit_storage = defaultdict(list)
 _rate_limit_lock = threading.Lock()
@@ -128,7 +131,10 @@ CHATBOT_SYSTEM_PROMPT = """你是元芯传感的智能客服助手。你的职�
 5. 语气要亲切、自然，像真实人工客服，体现耐心和服务感，但不要过度夸张或过分口语化。
 6. 可根据语境加入 1 到 2 个贴切的 emoji 来表达友好、感谢、关心等情绪，例如 🙂、😊、🙏，但不要堆砌，不要影响专业感。
 7. 当用户咨询产品、方案、合作、价格、打样、售后等问题时，尽量给出更完整、可执行的答复，而不是只给一句概括。
-8. 请用专业、友好的语气回答问题。如果遇到不确定的问题，请说明当前无法完全确认的部分，并引导用户联系我们的销售团队。"""
+8. 请用专业、友好的语气回答问题。如果遇到不确定的问题，请说明当前无法完全确认的部分，并引导用户联系我们的销售团队。
+9. 不要编造官网页面“技术升级、维护中、暂时无法访问、没有页面”等状态；只有系统明确告知页面不可访问时才可这样说。
+10. 每轮回答都要优先依据系统提供的“官网站内检索结果”；如果系统提供了站内检索结果或推荐页面，必须承认官网已有这些内容，并引导用户点击回答下方的推荐入口。
+11. 如果系统说明没有检索到完全匹配页面，只能说“暂未在官网检索到完全匹配页面”，不要猜测官网页面状态。"""
 
 PRODUCT_AI_SYSTEM_PROMPT = """你是“元芯传感产品页编程助手”，负责根据后台给定的产品资料生成可发布的页面内容。
 
@@ -161,6 +167,8 @@ def configure_ai_chatbot(
     requests_module,
     httpx_support,
     httpx_module,
+    get_gassensing_products_with_settings,
+    get_biosensing_products_with_settings_data,
 ):
     """配置 AI 聊天机器人模块的共享依赖。"""
     _DEPS.clear()
@@ -181,6 +189,8 @@ def configure_ai_chatbot(
             "requests_module": requests_module,
             "httpx_support": bool(httpx_support),
             "httpx_module": httpx_module,
+            "get_gassensing_products_with_settings": get_gassensing_products_with_settings,
+            "get_biosensing_products_with_settings_data": get_biosensing_products_with_settings_data,
         }
     )
 
@@ -219,6 +229,41 @@ def reset_knowledge_cache():
         _knowledge_cache["content"] = ""
         _knowledge_cache["last_updated"] = 0
         _knowledge_cache["files"] = []
+
+
+def _manual_knowledge_path() -> Path:
+    return _dep("knowledge_dir") / MANUAL_KNOWLEDGE_FILENAME
+
+
+def load_manual_knowledge_text() -> str:
+    path = _manual_knowledge_path()
+    if not path.exists() or not path.is_file():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+def save_manual_knowledge_text(text: str) -> dict:
+    path = _manual_knowledge_path()
+    content = str(text or "")
+    trimmed = content.strip()
+    try:
+        if trimmed:
+            path.write_text(content, encoding="utf-8")
+            stat = path.stat()
+            return {
+                "saved": True,
+                "cleared": False,
+                "size": stat.st_size,
+                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            }
+        if path.exists():
+            path.unlink()
+        return {"saved": False, "cleared": True, "size": 0, "modified": ""}
+    finally:
+        reset_knowledge_cache()
 
 
 def get_chatbot_system_prompt():
@@ -376,27 +421,40 @@ def get_product_page_ai_config():
 
 
 def load_knowledge_base():
-    """从 PDF 文件加载并缓存知识库内容。"""
+    """从手工录入文本与 PDF 文件加载并缓存知识库内容。"""
     knowledge_dir = _dep("knowledge_dir")
     pdf_support = _dep("pdf_support")
     pypdf2_module = _dep("pypdf2_module")
+    manual_path = _manual_knowledge_path()
 
     with _knowledge_lock:
         pdf_files = list(knowledge_dir.glob("*.pdf"))
-        current_files = sorted([f.name for f in pdf_files])
-        current_mtime = max([f.stat().st_mtime for f in pdf_files]) if pdf_files else 0
+        tracked_files = [f.name for f in pdf_files]
+        tracked_mtimes = [f.stat().st_mtime for f in pdf_files]
+        if manual_path.exists() and manual_path.is_file():
+            tracked_files.append(manual_path.name)
+            tracked_mtimes.append(manual_path.stat().st_mtime)
+        current_files = sorted(tracked_files)
+        current_mtime = max(tracked_mtimes) if tracked_mtimes else 0
 
         if (
             _knowledge_cache["files"] == current_files
             and _knowledge_cache["last_updated"] >= current_mtime
-            and _knowledge_cache["content"]
         ):
             return _knowledge_cache["content"]
 
-        if not pdf_support or pypdf2_module is None:
-            return ""
-
         knowledge_text = []
+        manual_text = load_manual_knowledge_text().strip()
+        if manual_text:
+            knowledge_text.append("\n--- 来自手工录入知识库 ---\n")
+            knowledge_text.append(manual_text)
+
+        if not pdf_support or pypdf2_module is None:
+            _knowledge_cache["content"] = "\n".join(knowledge_text)
+            _knowledge_cache["last_updated"] = current_mtime
+            _knowledge_cache["files"] = current_files
+            return _knowledge_cache["content"]
+
         for pdf_path in pdf_files:
             try:
                 with open(pdf_path, "rb") as fh:
@@ -546,6 +604,29 @@ def call_openai_api_sync(messages):
         return None, f"API调用失败: {str(exc)}"
 
 
+def _extract_chat_stream_text(chunk_obj):
+    if not isinstance(chunk_obj, dict):
+        return ""
+    choices = chunk_obj.get("choices") or []
+    if not choices:
+        return ""
+    delta = choices[0].get("delta") or {}
+    content = delta.get("content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                text = item.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "".join(parts)
+    return ""
+
+
 def call_openai_api_stream(messages):
     """调用兼容大模型接口规范的流式接口。"""
     config = get_chatbot_config()
@@ -556,6 +637,7 @@ def call_openai_api_stream(messages):
     headers = {
         "Authorization": f"Bearer {config['api_key']}",
         "Content-Type": "application/json",
+        "Accept": "text/event-stream",
     }
     payload = {
         "model": config["model"],
@@ -567,69 +649,1023 @@ def call_openai_api_stream(messages):
     requests_module = _dep("requests_module")
     httpx_support = _dep("httpx_support")
     httpx_module = _dep("httpx_module")
-
-    if httpx_support and httpx_module is not None:
-
-        def gen_httpx():
-            try:
-                with httpx_module.Client(timeout=60.0) as client:
-                    with client.stream(
-                        "POST", api_url, json=payload, headers=headers
-                    ) as response:
-                        if response.status_code != 200:
-                            yield None, f"API错误: {response.status_code}"
-                            return
-                        for line in response.iter_lines():
-                            if line.startswith("data: "):
-                                data = line[6:]
-                                if data == "[DONE]":
-                                    break
-                                try:
-                                    chunk = json.loads(data)
-                                    if "choices" in chunk and chunk["choices"]:
-                                        delta = chunk["choices"][0].get("delta", {})
-                                        content = delta.get("content", "")
-                                        if content:
-                                            yield content, None
-                                except json.JSONDecodeError:
-                                    continue
-            except Exception as exc:
-                yield None, f"API调用失败: {str(exc)}"
-
-        return gen_httpx()
+    connect_timeout = 20
+    read_timeout = 300
 
     if requests_support and requests_module is not None:
 
         def gen_requests():
             try:
                 response = requests_module.post(
-                    api_url, json=payload, headers=headers, stream=True, timeout=60
+                    api_url,
+                    json=payload,
+                    headers=headers,
+                    stream=True,
+                    timeout=(connect_timeout, read_timeout),
                 )
                 if response.status_code != 200:
-                    yield None, f"API错误: {response.status_code}"
+                    detail = (response.text or "").strip()
+                    if detail:
+                        detail = detail[:500]
+                    yield None, f"API错误: {response.status_code}{(' - ' + detail) if detail else ''}"
                     return
                 for line in response.iter_lines():
-                    if line:
-                        line = line.decode("utf-8")
-                        if line.startswith("data: "):
-                            data = line[6:]
-                            if data == "[DONE]":
-                                break
-                            try:
-                                chunk = json.loads(data)
-                                if "choices" in chunk and chunk["choices"]:
-                                    delta = chunk["choices"][0].get("delta", {})
-                                    content = delta.get("content", "")
-                                    if content:
-                                        yield content, None
-                            except json.JSONDecodeError:
-                                continue
+                    if not line:
+                        continue
+                    line = line.decode("utf-8", errors="ignore")
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    text = _extract_chat_stream_text(chunk)
+                    if text:
+                        yield text, None
             except Exception as exc:
                 yield None, f"API调用失败: {str(exc)}"
 
         return gen_requests()
 
+    if httpx_support and httpx_module is not None:
+
+        def gen_httpx():
+            try:
+                timeout_obj = httpx_module.Timeout(
+                    connect=connect_timeout,
+                    read=read_timeout,
+                    write=60,
+                    pool=60,
+                )
+                with httpx_module.Client(timeout=timeout_obj) as client:
+                    with client.stream(
+                        "POST", api_url, json=payload, headers=headers
+                    ) as response:
+                        if response.status_code != 200:
+                            detail = (response.text or "").strip()
+                            if detail:
+                                detail = detail[:500]
+                            yield None, f"API错误: {response.status_code}{(' - ' + detail) if detail else ''}"
+                            return
+                        for line in response.iter_lines():
+                            if not line:
+                                continue
+                            if isinstance(line, bytes):
+                                line = line.decode("utf-8", errors="ignore")
+                            if not line.startswith("data: "):
+                                continue
+                            data = line[6:].strip()
+                            if data == "[DONE]":
+                                break
+                            try:
+                                chunk = json.loads(data)
+                            except json.JSONDecodeError:
+                                continue
+                            text = _extract_chat_stream_text(chunk)
+                            if text:
+                                yield text, None
+            except Exception as exc:
+                yield None, f"API调用失败: {str(exc)}"
+
+        return gen_httpx()
+
     return None, "缺少HTTP客户端库(requests或httpx)"
+
+
+CHAT_RECOMMENDATION_KEYWORDS = {
+    "product": ("产品", "型号", "参数", "选型", "检测", "传感器", "报警器", "模块", "检测仪", "量程", "推荐"),
+    "solution": ("方案", "场景", "应用", "行业", "部署", "工况", "解决", "系统"),
+    "custom": ("定制", "定制化", "开发", "特殊需求", "开发需求", "非标", "客制化", "微纳加工", "工艺定制", "芯片定制", "封装"),
+    "contact": ("联系", "电话", "邮箱", "地址", "售后", "对接", "客服"),
+    "quote": ("报价", "价格", "采购", "打样", "样机", "多少钱", "费用"),
+}
+RECOMMENDATION_CTA_LABELS = {
+    "product": "查看产品",
+    "solution": "查看方案",
+    "custom": "查看定制服务",
+    "contact": "联系咨询",
+    "overview": "查看详情",
+}
+RECOMMENDATION_PAGE_TYPE_WEIGHT = {
+    "product": 90,
+    "solution": 70,
+    "custom": 95,
+    "contact": 55,
+    "overview": 45,
+    "other": 0,
+}
+CHAT_SEARCH_FALLBACK_QUERIES = {
+    "product": "产品 传感器 模块 检测仪 报警器 参数 量程",
+    "solution": "解决方案 行业 氢能 电力 环境 储能 检漏 定制化",
+    "custom": "定制服务 定制化 特殊开发 微纳加工 芯片定制 封装测试",
+    "contact": "联系 电话 邮箱 留言 售后",
+    "quote": "报价 价格 采购 样机 打样 联系",
+}
+CHAT_SEARCH_BANNED_PAGE_TYPES = {"news", "career", "about", "other"}
+CHAT_SPECIFIC_QUERY_STOP_PHRASES = (
+    "你们", "我们", "官网", "网站", "这个", "那个", "有没有", "是否有", "有没有相关",
+    "可以", "能不能", "能做吗", "发给我看看", "给我看看", "哪里", "在哪", "哪些",
+    "什么", "怎么", "如何", "介绍", "一下", "相关", "页面", "界面", "入口", "服务",
+    "产品", "型号", "参数", "选型", "检测", "传感器", "报警器", "模块", "检测仪",
+    "量程", "推荐", "方案", "解决方案", "场景", "应用", "行业", "部署", "工况",
+    "解决", "系统", "联系", "电话", "邮箱", "地址", "售后", "对接", "客服",
+    "报价", "价格", "采购", "打样", "样机", "多少钱", "费用", "特殊", "需求",
+    "的", "吗", "呢",
+)
+CHAT_VERIFIED_FALLBACK_PAGES = {
+    "product": [
+        {
+            "title": "气体传感产品总览",
+            "url": "/pages/gassensing/all-products.html",
+            "type": "overview",
+            "snippet": "查看气体传感器、检测模块、报警器与分析仪产品。",
+            "_score": 210,
+        },
+        {
+            "title": "生物传感",
+            "url": "/pages/biosensing/",
+            "type": "overview",
+            "snippet": "查看碳基生物传感平台、检测芯片与相关产品。",
+            "_score": 180,
+        },
+    ],
+    "solution": [
+        {
+            "title": "解决方案",
+            "url": "/pages/solutions/solutions-index.html",
+            "type": "overview",
+            "snippet": "元芯传感行业解决方案总览，覆盖氢能、电力、环境、储能、检漏与定制化传感场景。",
+            "_score": 250,
+        },
+        {
+            "title": "氢能源产业链解决方案",
+            "url": "/pages/solutions/industry-hydrogen.html",
+            "type": "solution",
+            "snippet": "面向制氢、储氢、运氢、加氢与用氢环节的氢安全监测方案。",
+            "_score": 220,
+        },
+        {
+            "title": "智慧电力安全解决方案",
+            "url": "/pages/solutions/industry-power-safety.html",
+            "type": "solution",
+            "snippet": "面向电力设备与变压器油中氢监测的安全预警方案。",
+            "_score": 205,
+        },
+        {
+            "title": "工业检漏监测解决方案",
+            "url": "/pages/solutions/industry-leak-detection.html",
+            "type": "solution",
+            "snippet": "面向工业管线、设备密封性与示踪检漏的监测方案。",
+            "_score": 195,
+        },
+        {
+            "title": "环境气体监测解决方案",
+            "url": "/pages/solutions/industry-environment.html",
+            "type": "solution",
+            "snippet": "面向环境气体连续监测、风险预警与数据化管理的解决方案。",
+            "_score": 185,
+        },
+        {
+            "title": "储能锂电池热失控预警解决方案",
+            "url": "/pages/solutions/industry-energy-storage.html",
+            "type": "solution",
+            "snippet": "面向储能电站与锂电池安全的早期气体预警方案。",
+            "_score": 175,
+        },
+        {
+            "title": "定制化传感解决方案",
+            "url": "/pages/solutions/custom-solutions.html",
+            "type": "solution",
+            "snippet": "针对特殊应用场景提供量身定制的生物与化学传感方案。",
+            "_score": 165,
+        },
+    ],
+    "custom": [
+        {
+            "title": "定制服务",
+            "url": "/pages/customization/",
+            "type": "custom",
+            "snippet": "从传感器芯片到定制仪表的一站式解决方案，支持按应用需求定制开发。",
+            "_score": 260,
+        },
+        {
+            "title": "半导体器件与微纳工艺定制化服务",
+            "url": "/pages/customization/semiconductor_device_customization.html",
+            "type": "custom",
+            "snippet": "覆盖气敏芯片设计、MEMS微热板加工、敏感薄膜沉积、封装测试等全链条定制服务。",
+            "_score": 240,
+        },
+        {
+            "title": "生物传感芯片定制服务",
+            "url": "/pages/biosensing/custom_bio_sensor_chip.html",
+            "type": "custom",
+            "snippet": "基于碳基/氧化物半导体 MEMS 平台，提供芯片结构设计、表面修饰到封装测试的一站式定制。",
+            "_score": 215,
+        },
+    ],
+    "contact": [
+        {
+            "title": "联系我们",
+            "url": "/pages/contact/contact.html",
+            "type": "contact",
+            "snippet": "获取产品咨询、报价、方案支持与售后服务。",
+            "_score": 999,
+        },
+        {
+            "title": "在线留言",
+            "url": "/pages/contact/feedback.html",
+            "type": "contact",
+            "snippet": "提交需求、报价咨询、样机申请与售后问题。",
+            "_score": 900,
+        },
+    ],
+}
+
+
+def _normalize_chat_text(value) -> str:
+    return str(value or "").strip()
+
+
+def _extract_ascii_tokens(text: str) -> list[str]:
+    seen = set()
+    output = []
+    for token in re.findall(r"[A-Za-z0-9][A-Za-z0-9_.-]{1,}", str(text or "")):
+        key = token.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(key)
+    return output
+
+
+def _infer_page_context(page_url: str, page_title: str = "") -> str:
+    combined = f"{page_url} {page_title}".lower()
+    if "/pages/biosensing/" in combined:
+        return "biosensing"
+    if "/pages/gassensing/" in combined or "/pages/measurement/" in combined:
+        return "gassensing"
+    if "/pages/solutions/" in combined:
+        return "solutions"
+    return ""
+
+
+def _sanitize_recommendation_url(url: str) -> str:
+    return _dep("sanitize_public_link_url")(_normalize_chat_text(url), default="")
+
+
+def _url_is_verified_public_page(url: str) -> bool:
+    value = _sanitize_recommendation_url(url)
+    if not value:
+        return False
+    if value.startswith(("http://", "https://", "//")):
+        return False
+    if value == "/":
+        return True
+    path = value.split("?", 1)[0].split("#", 1)[0]
+    helpers = current_app.extensions.get("yx_public_site_search", {})
+    resolve_page = helpers.get("resolve_page")
+    if callable(resolve_page):
+        try:
+            return bool(resolve_page(path))
+        except Exception:
+            pass
+    try:
+        root = Path(current_app.root_path).resolve()
+        # Flask root_path is pinned to the repo root in this app.
+        normalized = path.strip("/")
+        if not normalized:
+            return True
+        candidates = [root / normalized]
+        if path.endswith("/"):
+            candidates.append(root / normalized / "index.html")
+        if not normalized.endswith(".html"):
+            candidates.append(root / f"{normalized}.html")
+            candidates.append(root / normalized / "index.html")
+        for candidate in candidates:
+            candidate = candidate.resolve()
+            if root in candidate.parents or candidate == root:
+                if candidate.is_file():
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _detect_recommendation_intent(user_message: str) -> dict:
+    text = _normalize_chat_text(user_message)
+    hits = {}
+    for intent, keywords in CHAT_RECOMMENDATION_KEYWORDS.items():
+        hits[intent] = [word for word in keywords if word in text]
+
+    explicit_keywords = {
+        "product": ["产品", "型号", "参数", "选型", "检测", "传感器", "报警器", "模块", "检测仪", "量程", "推荐", "芯片", "器件"],
+        "solution": ["方案", "场景", "应用", "行业", "部署", "工况", "解决", "系统"],
+        "custom": ["定制", "定制化", "开发", "特殊需求", "开发需求", "非标", "客制化", "微纳加工", "工艺定制", "芯片定制", "封装", "专门做", "能做吗"],
+        "contact": ["联系", "电话", "邮箱", "地址", "售后", "对接", "客服"],
+        "quote": ["报价", "价格", "采购", "打样", "样机", "多少钱", "费用"],
+    }
+    for intent, keywords in explicit_keywords.items():
+        bucket = hits.setdefault(intent, [])
+        for word in keywords:
+            if word in text and word not in bucket:
+                bucket.append(word)
+
+    primary = ""
+    for candidate in ("quote", "contact", "custom", "solution", "product"):
+        if hits.get(candidate):
+            primary = candidate
+            break
+
+    return {
+        "primary": primary,
+        "should_recommend": bool(primary),
+        "hits": hits,
+        "ascii_tokens": _extract_ascii_tokens(text),
+    }
+
+
+def _classify_recommendation_url(url: str) -> str:
+    path = _normalize_chat_text(url).lower()
+    if not path:
+        return "other"
+    if "/pages/contact/" in path:
+        return "contact"
+    if (
+        "/pages/customization/" in path
+        or path in {"/pages/solutions/custom-solutions.html", "/pages/biosensing/custom_bio_sensor_chip.html"}
+        or "/pages/research/micro-nano.html" in path
+        or "/pages/about/micro-nano.html" in path
+    ):
+        return "custom"
+    if path in {
+        "/pages/gassensing/all-products.html",
+        "/pages/biosensing/",
+        "/pages/biosensing/index.html",
+        "/pages/solutions/solutions-index.html",
+    }:
+        return "overview"
+    if "/pages/solutions/" in path or "/pages/gassensing/cases/" in path:
+        return "solution"
+    if "/pages/gassensing/" in path or "/pages/biosensing/" in path:
+        return "product"
+    return "other"
+
+
+def _candidate_matches_context(url: str, page_context: str) -> bool:
+    path = _normalize_chat_text(url).lower()
+    if not page_context:
+        return False
+    if page_context == "gassensing":
+        return "/pages/gassensing/" in path or "/pages/measurement/" in path or "/pages/solutions/" in path
+    if page_context == "biosensing":
+        return "/pages/biosensing/" in path or "/pages/customization/" in path or "custom-solutions" in path
+    if page_context == "solutions":
+        return "/pages/solutions/" in path
+    return False
+
+
+def _candidate_title(item: dict) -> str:
+    return (
+        _normalize_chat_text(item.get("title"))
+        or _normalize_chat_text(item.get("cardTitle"))
+        or _normalize_chat_text(item.get("displayName"))
+        or _normalize_chat_text(item.get("shortName"))
+        or _normalize_chat_text(item.get("name"))
+        or _normalize_chat_text(item.get("id"))
+    )
+
+
+def _candidate_snippet(item: dict) -> str:
+    return (
+        _normalize_chat_text(item.get("snippet"))
+        or _normalize_chat_text(item.get("cardSummary"))
+        or _normalize_chat_text(item.get("description"))
+    )[:180]
+
+
+def _build_product_public_url(product: dict) -> str:
+    product_id = _normalize_chat_text(product.get("id"))
+    if not product_id or product_id in {"index", "all-products"}:
+        return ""
+    if product_id.startswith("../customization/"):
+        slug = product_id.replace("../customization/", "").strip("/")
+        return f"/pages/customization/{slug}.html"
+    if product_id.startswith("../biosensing/"):
+        slug = product_id.replace("../biosensing/", "").strip("/")
+        return f"/pages/biosensing/{slug}.html"
+    return f"/pages/gassensing/{product_id}.html"
+
+
+def _score_structured_product(product: dict, user_message: str, intent: dict, page_context: str) -> int:
+    title = _candidate_title(product)
+    snippet = _candidate_snippet(product)
+    categories = " ".join([str(item) for item in product.get("categories", []) if item])
+    industry = " ".join([str(item) for item in product.get("industryCategories", []) if item])
+    combined = f"{title} {snippet} {categories} {industry} {_normalize_chat_text(product.get('id'))}".lower()
+    score = 0
+    query = _normalize_chat_text(user_message).lower()
+    if query and query in combined:
+        score += 90
+    for token in intent.get("ascii_tokens", []):
+        if token in combined:
+            score += 35
+    for words in intent.get("hits", {}).values():
+        for word in words:
+            if word.lower() in combined:
+                score += 18
+    if intent.get("primary") == "product":
+        score += 22
+    if intent.get("primary") == "custom":
+        if any(word in combined for word in ("定制", "custom", "微纳", "开发", "封装")):
+            score += 55
+        else:
+            score += 12
+    if intent.get("primary") in {"quote", "contact"}:
+        score += 10
+    if _candidate_matches_context(_build_product_public_url(product), page_context):
+        score += 24
+    if any(category in {"sensor", "module", "detector", "alarm", "system", "iot", "service"} for category in product.get("categories", [])):
+        score += 8
+    return score
+
+
+def _build_contact_recommendation() -> dict:
+    item = dict(CHAT_VERIFIED_FALLBACK_PAGES["contact"][0])
+    item["cta_label"] = RECOMMENDATION_CTA_LABELS["contact"]
+    return item
+
+
+def _recommendation_intent_label(intent: dict) -> str:
+    labels = {
+        "product": "产品咨询",
+        "solution": "方案咨询",
+        "custom": "定制开发",
+        "contact": "联系咨询",
+        "quote": "报价采购",
+    }
+    return labels.get(intent.get("primary") or "", "通用咨询")
+
+
+def _build_custom_recommendation_candidates(user_message: str, page_url: str, page_title: str, intent: dict) -> list[dict]:
+    page_context = _infer_page_context(page_url, page_title)
+    custom_pages = [dict(item) for item in CHAT_VERIFIED_FALLBACK_PAGES["custom"]]
+    custom_pages.append(
+        {
+            "title": "定制化传感解决方案",
+            "url": "/pages/solutions/custom-solutions.html",
+            "type": "solution",
+            "snippet": "面向特殊应用场景提供量身定制的生物与化学传感方案。",
+            "_score": 225,
+        }
+    )
+    custom_pages.append(
+        {
+            "title": "传感器微纳加工",
+            "url": "/pages/research/micro-nano.html",
+            "type": "custom",
+            "snippet": "支持微纳图形、叉指电极、MEMS结构等高灵活性加工服务。",
+            "_score": 190,
+        }
+    )
+    query = _normalize_chat_text(user_message).lower()
+    preferred = "bio" if page_context == "biosensing" or any(word in query for word in ("生物", "芯片", "微流控", "修饰")) else ""
+    for item in custom_pages:
+        text = f"{item['title']} {item['snippet']} {item['url']}".lower()
+        for words in intent.get("hits", {}).values():
+            for word in words:
+                if word.lower() in text:
+                    item["_score"] += 20
+        if preferred == "bio" and "/pages/biosensing/" in item["url"]:
+            item["_score"] += 45
+        elif page_context == "gassensing" and "/pages/customization/" in item["url"]:
+            item["_score"] += 35
+        elif page_context == "solutions" and "/pages/solutions/" in item["url"]:
+            item["_score"] += 35
+        item["cta_label"] = RECOMMENDATION_CTA_LABELS.get(item["type"], RECOMMENDATION_CTA_LABELS["overview"])
+    return custom_pages
+
+
+def _build_solution_recommendation_candidates(user_message: str, page_url: str, page_title: str, intent: dict) -> list[dict]:
+    page_context = _infer_page_context(page_url, page_title)
+    query = _normalize_chat_text(user_message).lower()
+    solution_pages = [dict(item) for item in CHAT_VERIFIED_FALLBACK_PAGES["solution"]]
+    keyword_weights = (
+        (("氢", "氢能", "加氢", "制氢"), "industry-hydrogen", 70),
+        (("电力", "变压器", "油中氢"), "industry-power-safety", 70),
+        (("检漏", "泄漏", "示踪"), "industry-leak-detection", 70),
+        (("环境", "空气", "监测"), "industry-environment", 60),
+        (("储能", "锂电", "电池", "热失控"), "industry-energy-storage", 70),
+        (("定制", "特殊", "非标"), "custom-solutions", 55),
+    )
+    for item in solution_pages:
+        url = item["url"]
+        for words, marker, weight in keyword_weights:
+            if marker in url and any(word in query for word in words):
+                item["_score"] += weight
+        if page_context == "solutions" and "/pages/solutions/" in url:
+            item["_score"] += 35
+        item["cta_label"] = RECOMMENDATION_CTA_LABELS.get(item["type"], RECOMMENDATION_CTA_LABELS["overview"])
+    return solution_pages
+
+
+def _load_public_search_results(query: str, limit: int = 12) -> list[dict]:
+    try:
+        helpers = current_app.extensions.get("yx_public_site_search", {})
+        search_pages = helpers.get("search_pages")
+        if callable(search_pages):
+            return list(search_pages(query, limit)) if query else []
+    except Exception:
+        return []
+    return []
+
+
+def _build_search_first_query(user_message: str, page_title: str, intent: dict) -> str:
+    text = _normalize_chat_text(user_message)
+    terms = []
+    for words in intent.get("hits", {}).values():
+        for word in words:
+            if word not in terms:
+                terms.append(word)
+    fallback = CHAT_SEARCH_FALLBACK_QUERIES.get(intent.get("primary") or "", "")
+    parts = [text]
+    if terms:
+        parts.append(" ".join(terms[:6]))
+    if fallback:
+        parts.append(fallback)
+    return " ".join([part for part in parts if part]).strip()
+
+
+def _specific_query_terms(user_message: str, intent: dict) -> list[str]:
+    text = _normalize_chat_text(user_message)
+    cleaned = text
+    for phrase in CHAT_SPECIFIC_QUERY_STOP_PHRASES:
+        cleaned = cleaned.replace(phrase, " ")
+    for words in intent.get("hits", {}).values():
+        for word in words:
+            cleaned = cleaned.replace(word, " ")
+    tokens = []
+    seen = set()
+    for token in re.findall(r"[\u4e00-\u9fff]{2,}|[A-Za-z0-9][A-Za-z0-9_.-]{1,}", cleaned):
+        key = token.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        tokens.append(key)
+    return tokens[:6]
+
+
+def _candidate_matches_specific_terms(item: dict, terms: list[str]) -> bool:
+    if not terms:
+        return True
+    combined = " ".join([
+        _normalize_chat_text(item.get("title")),
+        _normalize_chat_text(item.get("snippet")),
+        _normalize_chat_text(item.get("url")),
+    ]).lower()
+    return any(term.lower() in combined for term in terms)
+
+
+def _search_result_to_recommendation(item: dict, *, intent: dict, page_context: str) -> dict:
+    url = _sanitize_recommendation_url(item.get("url"))
+    page_type = item.get("page_type") or _classify_recommendation_url(url)
+    if page_type in CHAT_SEARCH_BANNED_PAGE_TYPES:
+        return {}
+    primary = intent.get("primary") or ""
+    custom_hits = intent.get("hits", {}).get("custom") or []
+    if primary == "solution" and page_type == "custom" and not custom_hits:
+        return {}
+    if primary == "product" and page_type in {"custom", "solution"}:
+        return {}
+    if not _url_is_verified_public_page(url):
+        return {}
+    score = int(item.get("score") or 0)
+    score += RECOMMENDATION_PAGE_TYPE_WEIGHT.get(page_type, 0)
+    if _candidate_matches_context(url, page_context):
+        score += 28
+    if primary == "product" and page_type == "product":
+        score += 35
+    elif primary == "solution" and page_type in {"solution", "overview"}:
+        score += 35
+    elif primary == "custom" and page_type in {"custom", "solution"}:
+        score += 55 if page_type == "custom" else 24
+    elif primary in {"contact", "quote"} and page_type == "contact":
+        score += 45
+    return {
+        "title": _candidate_title(item),
+        "url": url,
+        "type": "custom" if page_type == "custom" else page_type,
+        "snippet": _candidate_snippet(item),
+        "cta_label": RECOMMENDATION_CTA_LABELS.get(page_type, RECOMMENDATION_CTA_LABELS["overview"]),
+        "_score": score,
+        "_source": "site_search",
+        "_business_line": item.get("business_line", ""),
+    }
+
+
+def _build_search_first_recommendations(user_message: str, page_url: str, page_title: str, intent: dict) -> list[dict]:
+    page_context = _infer_page_context(page_url, page_title)
+    query = _build_search_first_query(user_message, page_title, intent)
+    specific_terms = _specific_query_terms(user_message, intent)
+    candidates = []
+    for item in _load_public_search_results(query, limit=18):
+        candidate = _search_result_to_recommendation(item, intent=intent, page_context=page_context)
+        if candidate and _candidate_matches_specific_terms(candidate, specific_terms):
+            candidates.append(candidate)
+    return candidates
+
+
+def _verified_fallback_candidates(primary: str) -> list[dict]:
+    key = "contact" if primary == "quote" else primary
+    candidates = []
+    for item in CHAT_VERIFIED_FALLBACK_PAGES.get(key, []):
+        candidate = dict(item)
+        candidate["url"] = _sanitize_recommendation_url(candidate.get("url"))
+        if not _url_is_verified_public_page(candidate.get("url")):
+            continue
+        candidate["cta_label"] = RECOMMENDATION_CTA_LABELS.get(candidate.get("type"), RECOMMENDATION_CTA_LABELS["overview"])
+        candidates.append(candidate)
+    return candidates
+
+
+def _build_search_recommendations(user_message: str, page_url: str, page_title: str, intent: dict) -> list[dict]:
+    page_context = _infer_page_context(page_url, page_title)
+    query = _normalize_chat_text(user_message)
+    search_query = query
+    if intent.get("primary") == "custom":
+        custom_terms = []
+        for word in ("定制化", "定制服务", "特殊开发", "开发需求", "非标", "微纳加工", "芯片定制", "封装测试"):
+            if word in query and word not in custom_terms:
+                custom_terms.append(word)
+        search_query = " ".join(custom_terms) or f"{query} 定制服务 微纳加工"
+    results = []
+    for item in _load_public_search_results(search_query, limit=12):
+        url = _normalize_chat_text(item.get("url"))
+        page_type = _classify_recommendation_url(url)
+        if page_type in CHAT_SEARCH_BANNED_PAGE_TYPES:
+            continue
+        if intent.get("primary") == "solution" and page_type == "custom" and not (intent.get("hits", {}).get("custom") or []):
+            continue
+        if intent.get("primary") == "product" and page_type in {"custom", "solution"}:
+            continue
+        if not _url_is_verified_public_page(url):
+            continue
+        score = int(item.get("score") or 0)
+        score += RECOMMENDATION_PAGE_TYPE_WEIGHT.get(page_type, 0)
+        if _candidate_matches_context(url, page_context):
+            score += 28
+        if query and query.lower() in _normalize_chat_text(item.get("title")).lower():
+            score += 16
+        if intent.get("primary") == "product" and page_type == "product":
+            score += 22
+        if intent.get("primary") == "solution" and page_type == "solution":
+            score += 22
+        if intent.get("primary") == "custom" and page_type in {"custom", "solution"}:
+            score += 55 if page_type == "custom" else 24
+        if intent.get("primary") in {"contact", "quote"} and page_type == "contact":
+            score += 40
+        if intent.get("primary") == "solution" and page_type == "product":
+            score += 8
+        results.append(
+            {
+                "title": _candidate_title(item),
+                "url": _sanitize_recommendation_url(url),
+                "type": page_type,
+                "snippet": _candidate_snippet(item),
+                "cta_label": RECOMMENDATION_CTA_LABELS.get(page_type, RECOMMENDATION_CTA_LABELS["overview"]),
+                "_score": score,
+            }
+        )
+    return results
+
+
+def _build_structured_product_recommendations(user_message: str, page_url: str, page_title: str, intent: dict) -> list[dict]:
+    page_context = _infer_page_context(page_url, page_title)
+    candidates = []
+    product_sources = []
+    try:
+        product_sources.extend(_dep("get_gassensing_products_with_settings")() or [])
+    except Exception:
+        pass
+    try:
+        product_sources.extend(_dep("get_biosensing_products_with_settings_data")() or [])
+    except Exception:
+        pass
+
+    for product in product_sources:
+        if product.get("hidden"):
+            continue
+        url = _sanitize_recommendation_url(_build_product_public_url(product))
+        if not url:
+            continue
+        if not _url_is_verified_public_page(url):
+            continue
+        score = _score_structured_product(product, user_message, intent, page_context)
+        if score < 45:
+            continue
+        page_type = _classify_recommendation_url(url)
+        candidates.append(
+            {
+                "title": _candidate_title(product),
+                "url": url,
+                "type": "custom" if page_type == "custom" else "product",
+                "snippet": _candidate_snippet(product),
+                "cta_label": RECOMMENDATION_CTA_LABELS["custom"] if page_type == "custom" else RECOMMENDATION_CTA_LABELS["product"],
+                "_score": score,
+            }
+        )
+    return candidates
+
+
+def _merge_recommendation_candidates(
+    intent: dict,
+    search_candidates: list[dict],
+    product_candidates: list[dict],
+    custom_candidates: list[dict] | None = None,
+    solution_candidates: list[dict] | None = None,
+) -> list[dict]:
+    primary = intent.get("primary") or ""
+    merged = {}
+
+    def remember(item: dict):
+        url = _sanitize_recommendation_url(item.get("url"))
+        if not url:
+            return
+        if not _url_is_verified_public_page(url):
+            return
+        item = dict(item)
+        item["url"] = url
+        existing = merged.get(url)
+        if not existing or item.get("_score", 0) > existing.get("_score", 0):
+            merged[url] = item
+
+    for item in search_candidates:
+        remember(item)
+    for item in product_candidates:
+        remember(item)
+    if primary not in {"custom", "solution"}:
+        for item in custom_candidates or []:
+            remember(item)
+    if primary == "custom":
+        for item in custom_candidates or []:
+            remember(item)
+    if primary == "solution":
+        for item in solution_candidates or []:
+            remember(item)
+
+    if primary in {"contact", "quote"}:
+        remember(_build_contact_recommendation())
+
+    items = list(merged.values())
+    if not items:
+        return []
+
+    for item in items:
+        item_type = item.get("type", "other")
+        if primary == "product" and item_type == "product":
+            item["_score"] += 35
+        elif primary == "solution" and item_type == "solution":
+            item["_score"] += 35
+        elif primary == "solution" and item_type == "overview":
+            item["_score"] += 30
+        elif primary == "custom" and item_type == "custom":
+            item["_score"] += 55
+        elif primary == "custom" and item_type == "solution":
+            item["_score"] += 24
+        elif primary in {"contact", "quote"} and item_type == "contact":
+            item["_score"] += 45
+        elif primary == "solution" and item_type == "product":
+            item["_score"] += 8
+        elif primary == "product" and item_type == "solution":
+            item["_score"] += 6
+
+    items.sort(key=lambda entry: entry.get("_score", 0), reverse=True)
+
+    output = []
+    product_count = 0
+    solution_count = 0
+    for item in items:
+        item_type = item.get("type", "other")
+        if item_type == "product":
+            if primary == "solution" and product_count >= 2:
+                continue
+            if primary != "solution" and product_count >= 3:
+                continue
+            product_count += 1
+        elif item_type == "solution":
+            if primary == "solution" and solution_count >= 2:
+                continue
+            solution_count += 1
+        elif item_type == "overview":
+            if primary not in {"solution", "contact", "quote"} and len(output) >= 2:
+                continue
+        if len(output) >= 3:
+            break
+        output.append(
+            {
+                "title": item.get("title", ""),
+                "url": item.get("url", ""),
+                "type": item_type,
+                "snippet": item.get("snippet", ""),
+                "cta_label": item.get("cta_label") or RECOMMENDATION_CTA_LABELS.get(item_type, RECOMMENDATION_CTA_LABELS["overview"]),
+            }
+        )
+    return output
+
+
+def build_chat_recommendation_context(user_message: str, page_url: str, page_title: str) -> dict:
+    intent = _detect_recommendation_intent(user_message)
+    search_first_candidates = _build_search_first_recommendations(user_message, page_url, page_title, intent)
+    specific_terms = _specific_query_terms(user_message, intent)
+    allow_intent_fallbacks = not specific_terms or bool(search_first_candidates)
+    search_candidates = _build_search_recommendations(user_message, page_url, page_title, intent)
+    if specific_terms:
+        search_candidates = [
+            item for item in search_candidates
+            if _candidate_matches_specific_terms(item, specific_terms)
+        ]
+    product_candidates = _build_structured_product_recommendations(user_message, page_url, page_title, intent)
+    if specific_terms:
+        product_candidates = [
+            item for item in product_candidates
+            if _candidate_matches_specific_terms(item, specific_terms)
+        ]
+    custom_candidates = (
+        _build_custom_recommendation_candidates(user_message, page_url, page_title, intent)
+        if intent.get("primary") == "custom" and allow_intent_fallbacks
+        else []
+    )
+    solution_candidates = (
+        _build_solution_recommendation_candidates(user_message, page_url, page_title, intent)
+        if intent.get("primary") == "solution" and allow_intent_fallbacks
+        else []
+    )
+    fallback_candidates = _verified_fallback_candidates(intent.get("primary") or "")
+    if not intent.get("primary") or not allow_intent_fallbacks:
+        fallback_candidates = []
+    recommendations = _merge_recommendation_candidates(
+        intent,
+        search_first_candidates + search_candidates,
+        product_candidates,
+        custom_candidates + fallback_candidates,
+        solution_candidates,
+    )
+    if intent.get("primary") in {"contact", "quote"}:
+        fallback = _build_contact_recommendation()
+        if not recommendations:
+            recommendations = [{
+                "title": fallback["title"],
+                "url": fallback["url"],
+                "type": fallback["type"],
+                "snippet": fallback["snippet"],
+                "cta_label": fallback["cta_label"],
+            }]
+    return {
+        "intent": intent,
+        "query": _build_search_first_query(user_message, page_title, intent),
+        "search_result_count": len(search_first_candidates),
+        "site_candidates": search_first_candidates,
+        "recommendations": recommendations,
+    }
+
+
+def build_chat_recommendations(user_message: str, page_url: str, page_title: str) -> list[dict]:
+    return build_chat_recommendation_context(user_message, page_url, page_title).get("recommendations") or []
+
+
+def build_agent_query_tokens(user_message: str, page_title: str, intent: dict | None = None) -> list[str]:
+    intent = intent or _detect_recommendation_intent(user_message)
+    keywords = []
+    for words in intent.get("hits", {}).values():
+        for word in words:
+            if word not in keywords:
+                keywords.append(word)
+    if not keywords:
+        primary = intent.get("primary") or ""
+        fallback = CHAT_SEARCH_FALLBACK_QUERIES.get(primary, "")
+        keywords = [word for word in fallback.split() if word][:3] or _extract_ascii_tokens(user_message)[:3]
+
+    query_tokens = []
+    if page_title:
+        query_tokens.append(page_title[:18])
+    query_tokens.extend(keywords[:3])
+    if not query_tokens:
+        query_tokens.append("站内知识")
+    return query_tokens[:4]
+
+
+def build_agent_runtime_context(user_message: str, page_url: str, page_title: str) -> dict:
+    recommendation_context = build_chat_recommendation_context(
+        user_message=user_message,
+        page_url=page_url,
+        page_title=page_title,
+    )
+    intent = recommendation_context.get("intent") or _detect_recommendation_intent(user_message)
+    recommendations = recommendation_context.get("recommendations") or []
+    return {
+        "intent": intent,
+        "query_tokens": build_agent_query_tokens(user_message, page_title, intent),
+        "search_query": recommendation_context.get("query", ""),
+        "search_result_count": recommendation_context.get("search_result_count", 0),
+        "specific_terms": _specific_query_terms(user_message, intent),
+        "site_candidates": recommendation_context.get("site_candidates", []),
+        "recommendations": recommendations,
+    }
+
+
+def build_agent_status_updates(
+    user_message: str,
+    page_url: str,
+    page_title: str,
+    recommendations: list[dict],
+    runtime_context: dict | None = None,
+) -> list[dict]:
+    runtime_context = runtime_context or {}
+    intent = runtime_context.get("intent") or _detect_recommendation_intent(user_message)
+    query_tokens = runtime_context.get("query_tokens") or build_agent_query_tokens(user_message, page_title, intent)
+    found_count = runtime_context.get("search_result_count")
+    if found_count is None:
+        found_count = len(recommendations)
+
+    updates = [
+        {"label": "元芯AI正在分析您的问题", "detail": "结合当前页面与历史对话判断意图"},
+        {"label": "已理解您的问题", "detail": f"识别意图：{_recommendation_intent_label(intent)}"},
+        {"label": "检索关键词", "detail": " / ".join(query_tokens[:4])},
+        {"label": "开始检索官网", "detail": f"找到 {found_count} 个页面，筛选出 {len(recommendations)} 个推荐入口"},
+    ]
+    if page_url:
+        updates.insert(2, {"label": "结合当前页面上下文", "detail": page_url[:80]})
+    return updates
+
+
+def build_agent_completion_status(recommendations: list[dict]) -> dict:
+    if recommendations:
+        return {
+            "label": "已完成答案整理",
+            "detail": f"同步生成 {len(recommendations)} 个推荐入口",
+        }
+    return {
+        "label": "已完成答案整理",
+        "detail": "官网未命中完全匹配入口，正在输出保守回复",
+    }
+
+
+def build_site_search_prompt_context(runtime_context: dict) -> str:
+    recommendations = runtime_context.get("recommendations") or []
+    candidates = runtime_context.get("site_candidates") or []
+    search_query = _normalize_chat_text(runtime_context.get("search_query"))
+    result_count = int(runtime_context.get("search_result_count") or 0)
+    items = [
+        item for item in recommendations
+        if _normalize_chat_text(item.get("title")) and _normalize_chat_text(item.get("url"))
+    ][:3]
+    source_items = [
+        item for item in candidates
+        if _normalize_chat_text(item.get("title")) and _normalize_chat_text(item.get("url"))
+    ][:5]
+    rows = []
+    for idx, item in enumerate(source_items or items, 1):
+        title = _normalize_chat_text(item.get("title"))
+        url = _normalize_chat_text(item.get("url"))
+        snippet = _normalize_chat_text(item.get("snippet"))
+        item_type = _normalize_chat_text(item.get("type")) or "overview"
+        row = f"{idx}. [{item_type}] {title} - {url}"
+        if snippet:
+            row += f"：{snippet}"
+        rows.append(row)
+    recommendation_rows = []
+    for idx, item in enumerate(items, 1):
+        recommendation_rows.append(f"{idx}. {item.get('title', '')} - {item.get('url', '')}")
+
+    if rows:
+        return (
+            "本轮回答必须基于以下官网站内检索结果和知识库内容。"
+            "这些 URL 均已由后端校验为真实官网页面，可作为用户入口；"
+            "禁止声称官网页面维护中、技术升级、暂时无法访问、没有页面或无法打开。"
+            "如果用户询问官网是否有相关界面/页面，必须明确回答“官网有相关页面”，并引导点击回答下方推荐入口。"
+            "不要把完整链接堆进正文，前端会在回答下方单独展示推荐入口。\n"
+            f"检索词：{search_query or '站内知识'}\n"
+            f"检索命中：{result_count} 个页面\n"
+            "官网检索结果：\n" + "\n".join(rows)
+            + ("\n推荐入口：\n" + "\n".join(recommendation_rows) if recommendation_rows else "")
+        )
+    return (
+        "本轮已执行官网站内检索，但没有找到完全匹配的官网页面。"
+        "回答时必须说明“暂未在官网检索到完全匹配页面”，可以基于公司知识库给出保守建议并引导联系咨询；"
+        "如果用户询问的是某个具体产品、具体场景或具体方案，不要把泛化产品/方案页面说成已经匹配该具体需求；"
+        "禁止编造官网页面、URL、维护中、技术升级、暂时无法访问或没有页面等状态。"
+        f"\n检索词：{search_query or '站内知识'}"
+    )
+
+
+def build_recommendation_prompt_context(recommendations: list[dict]) -> str:
+    return build_site_search_prompt_context({
+        "recommendations": recommendations,
+        "site_candidates": recommendations,
+        "search_result_count": len(recommendations or []),
+    })
 
 
 
@@ -653,6 +1689,8 @@ def register_ai_chatbot_routes(
     requests_module,
     httpx_support,
     httpx_module,
+    get_gassensing_products_with_settings,
+    get_biosensing_products_with_settings_data,
 ):
     """注册聊天机器人、知识库与配置相关路由，并完成共享依赖注入。"""
     configure_ai_chatbot(
@@ -671,6 +1709,8 @@ def register_ai_chatbot_routes(
         requests_module=requests_module,
         httpx_support=httpx_support,
         httpx_module=httpx_module,
+        get_gassensing_products_with_settings=get_gassensing_products_with_settings,
+        get_biosensing_products_with_settings_data=get_biosensing_products_with_settings_data,
     )
 
     @app.route("/api/chatbot/chat", methods=["POST"])
@@ -747,6 +1787,14 @@ def register_ai_chatbot_routes(
             except Exception as exc:
                 app.logger.warning("failed to record chatbot conversation log: %s", exc)
 
+        def emit_status_payload(status_item):
+            return f"data: {json.dumps({'status': status_item}, ensure_ascii=False)}\n\n"
+
+        def emit_recommendations_payload(recommendations):
+            if not recommendations:
+                return ""
+            return f"data: {json.dumps({'recommendations': recommendations}, ensure_ascii=False)}\n\n"
+
         def build_local_fallback_reply(text):
             q = str(text or "").strip()
             q_l = q.lower()
@@ -760,11 +1808,13 @@ def register_ai_chatbot_routes(
                 return "您可以通过在线留言提交需求，我们会安排技术与销售跟进：[在线留言](/pages/contact/feedback.html#feedbackForm)。"
             if has_any("介绍", "公司", "元芯"):
                 return "元芯传感专注于气体传感与检测技术，覆盖传感器、检测模组与行业应用方案。如果您告诉我应用场景，我可以继续给出更具体的产品建议。"
+            if has_any("定制", "定制化", "特殊需求", "开发需求", "非标", "客制化", "微纳加工"):
+                return "可以的，元芯传感支持传感器芯片、微纳工艺、封装测试与定制仪表开发。您可以先查看定制服务入口：[定制服务](/pages/customization/)，也可以进一步查看[半导体器件与微纳工艺定制化服务](/pages/customization/semiconductor_device_customization.html)。"
             if has_any("产品", "传感器", "氢气", "型号"):
                 return "您可以先查看气体传感产品总览页，按场景筛选型号：[查看全部产品](/pages/gassensing/all-products.html)。"
             if has_any("方案", "行业", "应用", "解决"):
                 return "行业方案可以从这里进入：[解决方案中心](/pages/solutions/solutions-index.html)。如果您告知工况（温湿度、量程、安装方式），我可以继续细化建议。"
-            return "抱歉，智能对话服务当前连接不稳定。建议先在“在线留言”提交问题，我们会尽快人工回复：[在线留言](/pages/contact/feedback.html#feedbackForm)。"
+            return "暂未在官网检索到完全匹配页面。建议您通过在线留言提交具体需求，我们会尽快人工回复：[在线留言](/pages/contact/feedback.html#feedbackForm)。"
 
         fallback_reply = build_local_fallback_reply(user_message)
         use_stream = httpx_support or (
@@ -776,17 +1826,56 @@ def register_ai_chatbot_routes(
             def generate():
                 sent_any_content = False
                 reply_parts = []
+                recommendations = []
                 try:
+                    yield emit_status_payload(
+                        {"label": "元芯AI正在分析您的问题", "detail": "结合当前页面与历史对话判断意图"}
+                    )
+                    runtime_context = build_agent_runtime_context(
+                        user_message=user_message,
+                        page_url=page_url,
+                        page_title=page_title,
+                    )
+                    recommendations = runtime_context.get("recommendations") or []
+                    recommendation_context = build_site_search_prompt_context(runtime_context)
+                    if recommendation_context:
+                        messages.insert(-1, {"role": "system", "content": recommendation_context})
+                    intent = runtime_context.get("intent") or {}
+                    query_tokens = runtime_context.get("query_tokens") or ["站内知识"]
+                    found_count = runtime_context.get("search_result_count", len(recommendations))
+                    yield emit_status_payload(
+                        {"label": "已理解您的问题", "detail": f"识别意图：{_recommendation_intent_label(intent)}"}
+                    )
+                    if page_url:
+                        yield emit_status_payload(
+                            {"label": "结合当前页面上下文", "detail": page_url[:80]}
+                        )
+                    yield emit_status_payload(
+                        {"label": "检索关键词", "detail": " / ".join(query_tokens[:4])}
+                    )
+                    yield emit_status_payload(
+                        {"label": "开始检索官网", "detail": f"找到 {found_count} 个页面，筛选出 {len(recommendations)} 个推荐入口"}
+                    )
+                    generation_detail = "基于官网检索结果组织回复" if recommendations else "未命中完全匹配页面，按保守策略回复"
+                    yield emit_status_payload(
+                        {"label": "正在生成回答", "detail": generation_detail}
+                    )
                     stream = call_openai_api(messages, stream=True)
                     if isinstance(stream, tuple):
                         _, error = stream
                         app.logger.warning("chatbot stream init failed: %s", error)
+                        yield emit_status_payload(
+                            {"label": "流式通道暂不可用", "detail": "正在切换为备用回答通道"}
+                        )
                         sync_response, sync_error = call_openai_api(
                             messages, stream=False
                         )
                         if not sync_error and sync_response:
                             record_chatbot_reply(sync_response, "ai_sync_fallback")
+                            yield emit_status_payload(build_agent_completion_status(recommendations))
                             yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
+                            if recommendations:
+                                yield emit_recommendations_payload(recommendations)
                             yield "data: [DONE]\n\n"
                             return
                         app.logger.warning(
@@ -794,13 +1883,21 @@ def register_ai_chatbot_routes(
                             sync_error,
                         )
                         record_chatbot_reply(fallback_reply, "local_fallback")
+                        yield emit_status_payload(
+                            {"label": "已切换为本地兜底回复", "detail": "外部模型暂时不可用"}
+                        )
                         yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
+                        if recommendations:
+                            yield emit_recommendations_payload(recommendations)
                         yield "data: [DONE]\n\n"
                         return
                     for chunk, err in stream:
                         if err:
                             app.logger.warning("chatbot stream chunk failed: %s", err)
                             if not sent_any_content:
+                                yield emit_status_payload(
+                                    {"label": "流式输出中断", "detail": "正在切换为备用回答通道"}
+                                )
                                 sync_response, sync_error = call_openai_api(
                                     messages, stream=False
                                 )
@@ -808,7 +1905,10 @@ def register_ai_chatbot_routes(
                                     record_chatbot_reply(
                                         sync_response, "ai_sync_fallback"
                                     )
+                                    yield emit_status_payload(build_agent_completion_status(recommendations))
                                     yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
+                                    if recommendations:
+                                        yield emit_recommendations_payload(recommendations)
                                     yield "data: [DONE]\n\n"
                                     return
                                 app.logger.warning(
@@ -827,7 +1927,12 @@ def register_ai_chatbot_routes(
                                 if sent_any_content
                                 else "local_fallback",
                             )
+                            yield emit_status_payload(
+                                {"label": "已补充兜底回复", "detail": "模型输出中断，已自动补齐答复"}
+                            )
                             yield f"data: {json.dumps({'content': fallback_content}, ensure_ascii=False)}\n\n"
+                            if recommendations:
+                                yield emit_recommendations_payload(recommendations)
                             yield "data: [DONE]\n\n"
                             return
                         sent_any_content = True
@@ -835,16 +1940,28 @@ def register_ai_chatbot_routes(
                         yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
                     if not sent_any_content:
                         record_chatbot_reply(fallback_reply, "local_fallback")
+                        yield emit_status_payload(
+                            {"label": "已切换为本地兜底回复", "detail": "未收到模型有效输出"}
+                        )
                         yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
                     else:
                         record_chatbot_reply("".join(reply_parts), "ai")
+                    yield emit_status_payload(build_agent_completion_status(recommendations))
+                    if recommendations:
+                        yield emit_recommendations_payload(recommendations)
                     yield "data: [DONE]\n\n"
                 except Exception as exc:
                     app.logger.exception("chatbot stream exception: %s", exc)
+                    yield emit_status_payload(
+                        {"label": "回答过程出现波动", "detail": "正在尝试恢复并继续回答"}
+                    )
                     sync_response, sync_error = call_openai_api(messages, stream=False)
                     if not sync_error and sync_response:
                         record_chatbot_reply(sync_response, "ai_sync_fallback")
+                        yield emit_status_payload(build_agent_completion_status(recommendations))
                         yield f"data: {json.dumps({'content': sync_response}, ensure_ascii=False)}\n\n"
+                        if recommendations:
+                            yield emit_recommendations_payload(recommendations)
                         yield "data: [DONE]\n\n"
                         return
                     app.logger.warning(
@@ -852,7 +1969,12 @@ def register_ai_chatbot_routes(
                         sync_error,
                     )
                     record_chatbot_reply(fallback_reply, "local_fallback")
+                    yield emit_status_payload(
+                        {"label": "已切换为本地兜底回复", "detail": "服务暂时异常，已自动改用兜底方案"}
+                    )
                     yield f"data: {json.dumps({'content': fallback_reply}, ensure_ascii=False)}\n\n"
+                    if recommendations:
+                        yield emit_recommendations_payload(recommendations)
                     yield "data: [DONE]\n\n"
 
             return Response(
@@ -861,13 +1983,46 @@ def register_ai_chatbot_routes(
                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
             )
 
+        runtime_context = build_agent_runtime_context(
+            user_message=user_message,
+            page_url=page_url,
+            page_title=page_title,
+        )
+        recommendations = runtime_context.get("recommendations") or []
+        recommendation_context = build_site_search_prompt_context(runtime_context)
+        if recommendation_context:
+            messages.insert(-1, {"role": "system", "content": recommendation_context})
+        status_updates = build_agent_status_updates(
+            user_message=user_message,
+            page_url=page_url,
+            page_title=page_title,
+            recommendations=recommendations,
+            runtime_context=runtime_context,
+        )
+
         response, error = call_openai_api(messages, stream=False)
         if error:
             app.logger.warning("chatbot non-stream failed: %s", error)
             record_chatbot_reply(fallback_reply, "local_fallback")
-            return jsonify({"success": True, "response": fallback_reply})
+            return jsonify(
+                {
+                    "success": True,
+                    "response": fallback_reply,
+                    "recommendations": recommendations,
+                    "status_updates": status_updates + [
+                        {"label": "已切换为本地兜底回复", "detail": "外部模型暂时不可用"}
+                    ],
+                }
+            )
         record_chatbot_reply(response, "ai")
-        return jsonify({"success": True, "response": response})
+        return jsonify(
+            {
+                "success": True,
+                "response": response,
+                "recommendations": recommendations,
+                "status_updates": status_updates + [build_agent_completion_status(recommendations)],
+            }
+        )
 
     @app.route("/api/chatbot/history", methods=["GET"])
     @login_required
@@ -940,7 +2095,26 @@ def register_ai_chatbot_routes(
                     "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
                 }
             )
-        return jsonify({"files": files, "pdf_support": _dep("pdf_support")})
+        manual_text = load_manual_knowledge_text()
+        manual_path = _manual_knowledge_path()
+        manual_modified = ""
+        manual_size = 0
+        if manual_path.exists() and manual_path.is_file():
+            try:
+                stat = manual_path.stat()
+                manual_size = stat.st_size
+                manual_modified = datetime.fromtimestamp(stat.st_mtime).isoformat()
+            except Exception:
+                manual_size = len(manual_text.encode("utf-8"))
+        return jsonify(
+            {
+                "files": files,
+                "pdf_support": _dep("pdf_support"),
+                "text_content": manual_text,
+                "text_size": manual_size,
+                "text_modified": manual_modified,
+            }
+        )
 
     @app.route("/api/chatbot/knowledge/upload", methods=["POST"])
     @login_required
@@ -948,6 +2122,8 @@ def register_ai_chatbot_routes(
         denied = _require_chatbot_admin_api()
         if denied:
             return denied
+        text_present = "knowledge_text" in request.form
+        manual_text = request.form.get("knowledge_text", "") if text_present else None
         files = []
         if "file" in request.files:
             files.extend(request.files.getlist("file"))
@@ -955,79 +2131,94 @@ def register_ai_chatbot_routes(
             files.extend(request.files.getlist("files"))
 
         files = [file for file in files if file and file.filename]
-        if not files:
-            return jsonify({"success": False, "message": "没有上传文件"}), 400
+        if not files and manual_text is None:
+            return jsonify({"success": False, "message": "没有可保存的知识库内容"}), 400
 
         uploaded = []
         failed = []
+        manual_result = None
 
-        for file in files:
-            if not file.filename:
-                failed.append({"filename": "", "message": "文件名为空"})
-                continue
-            if not file.filename.lower().endswith(".pdf"):
-                failed.append({"filename": file.filename, "message": "只支持PDF文件"})
-                continue
-            if not _dep("validate_uploaded_pdf")(file):
-                failed.append(
-                    {"filename": file.filename, "message": "PDF 文件格式无效"}
-                )
-                continue
-
-            filename = re.sub(r"[^\w\u4e00-\u9fff\-_.]", "_", file.filename)
-            filepath = _dep("knowledge_dir") / filename
+        if text_present:
             try:
-                file.save(str(filepath))
-                uploaded.append(filename)
+                manual_result = save_manual_knowledge_text(manual_text)
             except Exception as exc:
                 failed.append(
-                    {"filename": file.filename, "message": f"上传失败: {str(exc)}"}
+                    {
+                        "filename": MANUAL_KNOWLEDGE_FILENAME,
+                        "message": f"知识库文本保存失败: {str(exc)}",
+                    }
                 )
+
+        pdf_supported = _dep("pdf_support") and _dep("pypdf2_module") is not None
+        if files and not pdf_supported:
+            for file in files:
+                failed.append(
+                    {
+                        "filename": file.filename or "",
+                        "message": "服务器未安装 PyPDF2，暂不支持 PDF 上传",
+                    }
+                )
+        else:
+            for file in files:
+                if not file.filename:
+                    failed.append({"filename": "", "message": "文件名不能为空"})
+                    continue
+                if not file.filename.lower().endswith(".pdf"):
+                    failed.append({"filename": file.filename, "message": "只支持 PDF 文件"})
+                    continue
+                if not _dep("validate_uploaded_pdf")(file):
+                    failed.append(
+                        {"filename": file.filename, "message": "PDF 文件格式无效"}
+                    )
+                    continue
+
+                filename = re.sub(r"[^\w\u4e00-\u9fff\-_.]", "_", file.filename)
+                filepath = _dep("knowledge_dir") / filename
+                try:
+                    file.save(str(filepath))
+                    uploaded.append(filename)
+                except Exception as exc:
+                    failed.append(
+                        {"filename": file.filename, "message": f"上传失败: {str(exc)}"}
+                    )
 
         if uploaded:
             reset_knowledge_cache()
 
-        if not uploaded:
-            message = failed[0]["message"] if len(failed) == 1 else "上传失败"
-            return jsonify(
-                {
-                    "success": False,
-                    "message": message,
-                    "uploaded": [],
-                    "failed": failed,
-                }
-            ), 400
+        success_parts = []
+        if manual_result is not None:
+            if manual_result.get("saved"):
+                success_parts.append("知识库文本已保存")
+            elif manual_result.get("cleared"):
+                success_parts.append("知识库文本已清空")
+            else:
+                success_parts.append("知识库文本已更新")
+        if uploaded:
+            success_parts.append(f"已上传 {len(uploaded)} 个 PDF 文件")
 
+        response = {
+            "success": True,
+            "filename": uploaded[0] if uploaded else "",
+            "text_saved": bool(manual_result and manual_result.get("saved")),
+            "text_cleared": bool(manual_result and manual_result.get("cleared")),
+            "text_modified": (manual_result or {}).get("modified", ""),
+            "text_size": (manual_result or {}).get("size", 0),
+            "uploaded": uploaded,
+            "failed": failed,
+        }
+
+        if not success_parts:
+            response["success"] = False
+            response["message"] = failed[0]["message"] if len(failed) == 1 else "知识库保存失败"
+            response["uploaded"] = []
+            return jsonify(response), 400
+
+        response["message"] = "，".join(success_parts)
         if failed:
-            return jsonify(
-                {
-                    "success": True,
-                    "partial_success": True,
-                    "message": f"成功上传 {len(uploaded)} 个文件，失败 {len(failed)} 个",
-                    "filename": uploaded[0],
-                    "uploaded": uploaded,
-                    "failed": failed,
-                }
-            )
+            response["partial_success"] = True
+            response["message"] = f'{response["message"]}，{len(failed)} 个项目处理失败'
 
-        if len(uploaded) == 1:
-            return jsonify(
-                {
-                    "success": True,
-                    "message": f"文件 {uploaded[0]} 上传成功",
-                    "filename": uploaded[0],
-                    "uploaded": uploaded,
-                }
-            )
-
-        return jsonify(
-            {
-                "success": True,
-                "message": f"成功上传 {len(uploaded)} 个文件",
-                "filename": uploaded[0],
-                "uploaded": uploaded,
-            }
-        )
+        return jsonify(response)
 
     @app.route("/api/chatbot/knowledge/<filename>/download", methods=["GET"])
     @login_required

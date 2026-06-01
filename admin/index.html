@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260510-trend">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260530-message-center">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
     <link rel="stylesheet" href="/admin/styles/components.css?v=20260529-unread-dot">
@@ -207,17 +207,11 @@
                 <div class="menu-item" data-view="settings" onclick="switchView('settings')">
                     <i class="fas fa-cog"></i> 账号设置
                 </div>
-                <div class="menu-item" data-view="backup" onclick="switchView('backup')">
-                    <i class="fas fa-database"></i> 备份恢复
-                </div>
                 <div class="menu-item" data-view="cdn-assets" onclick="switchView('cdn-assets')">
                     <i class="fas fa-cloud-upload-alt"></i> CDN 素材
                 </div>
-                <div class="menu-item" data-view="changelog" onclick="switchView('changelog')">
-                    <i class="fas fa-clipboard-list"></i> 更新日志
-                </div>
-                <div class="menu-item" data-view="docker-logs" onclick="switchView('docker-logs')">
-                    <i class="fas fa-server"></i> 后端日志
+                <div class="menu-item" data-view="log-records" onclick="switchView('log-records')">
+                    <i class="fas fa-clipboard-list"></i> 日志记录
                 </div>
                 <div class="menu-item" id="sidebarLogoutItem" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
@@ -250,6 +244,46 @@
                         <i class="fas fa-external-link-alt"></i>
                         官网首页
                     </a>
+                    <div class="message-center" id="messageCenter">
+                        <button type="button" class="message-center-trigger" id="messageCenterTrigger"
+                            onclick="toggleMessageCenter(event)" aria-haspopup="menu" aria-expanded="false"
+                            aria-label="站内消息">
+                            <i class="far fa-bell"></i>
+                            <span class="message-center-label">站内消息</span>
+                            <span class="message-center-unread-badge" id="messageCenterUnreadBadge" hidden>0</span>
+                        </button>
+                        <div class="message-center-panel" id="messageCenterPanel" hidden>
+                            <div class="message-center-panel-header">
+                                <div>
+                                    <div class="message-center-panel-kicker">Message Center</div>
+                                    <div class="message-center-panel-title">站内消息概览</div>
+                                </div>
+                                <div class="message-center-panel-total">
+                                    <span>未读</span>
+                                    <strong id="messageCenterUnreadTotal">0</strong>
+                                </div>
+                            </div>
+                            <div class="message-center-summary">
+                                <div class="message-center-summary-card">
+                                    <span class="message-center-summary-label">未读留言</span>
+                                    <strong id="messageCenterFeedbackUnreadCount">0</strong>
+                                </div>
+                                <div class="message-center-summary-card">
+                                    <span class="message-center-summary-label">未读简历</span>
+                                    <strong id="messageCenterResumeUnreadCount">0</strong>
+                                </div>
+                            </div>
+                            <div class="message-center-list-wrap">
+                                <div class="message-center-list-title" id="messageCenterListTitle">最新消息</div>
+                                <div class="message-center-list" id="messageCenterList">
+                                    <div class="message-center-empty">加载中...</div>
+                                </div>
+                            </div>
+                            <button type="button" class="message-center-footer-btn" onclick="openMessagesViewFromCenter(event)">
+                                查看全部消息
+                            </button>
+                        </div>
+                    </div>
                     <div class="account-menu" id="accountMenu">
                         <button type="button" class="account-menu-trigger" id="accountMenuTrigger"
                             onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false">
@@ -2330,28 +2364,45 @@
                         <div class="card" style="padding: 30px;">
                             <h3 class="section-header">知识库文件管理</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                上传 PDF 文档作为智能客服的知识库。支持一次选择多个文件，系统会逐个上传并用于回答用户问题。
+                                支持直接录入知识库文本，也支持同时上传多个 PDF 文档。保存后，智能客服会综合使用文本与文档内容回答问题。
                             </p>
 
                             <div id="pdfSupportWarning" class="chat-error" style="display: none; margin-bottom: 20px;">
                                 <i class="fas fa-exclamation-triangle"></i>
-                                服务器未安装 PyPDF2，PDF 解析功能不可用。请安装：`pip install PyPDF2`
+                                服务器未安装 PyPDF2，当前仅可保存文本知识库，PDF 上传将不可用。
                             </div>
 
-                            <div class="file-upload-zone" id="uploadZone">
+                            <div class="form-group" style="margin-bottom: 18px;">
+                                <label for="knowledgeTextInput">知识库文本</label>
+                                <textarea id="knowledgeTextInput" rows="10" class="form-control"
+                                    style="min-height: 220px; resize: vertical;"
+                                    placeholder="可直接输入产品说明、常见问答、服务政策等知识库内容。"></textarea>
+                                <div id="knowledgeTextStatus" class="form-hint" style="margin-top: 8px;"></div>
+                            </div>
+
+                            <div class="file-upload-zone" id="knowledgeUploadZone">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放 PDF 文件到此处</div>
-                                <div style="font-size: 13px; color: #888;">或点击选择多个 PDF 文件</div>
-                                <input type="file" id="fileInput" accept=".pdf" multiple style="display: none;">
+                                <div style="font-size: 13px; color: #888;">或点击选择多个 PDF 文件，保存时将与文本内容一起提交</div>
+                                <input type="file" id="knowledgeFileInput" accept=".pdf" multiple style="display: none;">
                             </div>
+
+                            <div id="knowledgePendingFileList" class="file-list" style="margin-top: 15px;"></div>
 
                             <div id="uploadProgress" style="display: none; margin-top: 15px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fas fa-spinner fa-spin"></i>
-                                    <span>正在上传...</span>
+                                    <span>正在保存...</span>
                                 </div>
                             </div>
 
+                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 18px;">
+                                <button type="button" id="knowledgeSaveBtn" class="btn-primary"
+                                    style="width: auto; padding: 12px 28px;">保存知识库</button>
+                                <div id="knowledgeUploadMsg" class="error-message" style="margin: 0;"></div>
+                            </div>
+
+                            <h4 style="margin: 24px 0 12px; font-size: 16px; color: #333;">已上传 PDF 文件</h4>
                             <div class="file-list" id="knowledgeFileList">
                                 <!-- Files will be loaded here -->
                             </div>
@@ -2596,6 +2647,58 @@
 
                 <!-- Site Settings View -->
                 <div id="view-site-settings" class="view-section">
+                    <div class="card" style="padding: 30px;">
+                        <h3 class="section-header">后台登录地域限制</h3>
+                        <p style="margin-bottom: 20px; color: #666; font-size: 14px; line-height: 1.75;">
+                            按大洲设置后台登录的默认允许/禁止规则，并可继续细化到每个国家或地区。
+                            国家规则默认跟随所属大洲；当你单独改成“允许”或“禁止”时，会覆盖大洲默认值。
+                        </p>
+                        <form id="adminLoginGeoSettingsForm">
+                            <div class="form-group">
+                                <label style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="adminLoginGeoEnabled">
+                                    <span>启用后台登录地域限制</span>
+                                </label>
+                                <div class="form-hint" style="margin-top: 8px;">
+                                    关闭后，公网 IP 不再按地域拦截；本机回环地址、内网地址和保留地址始终放行。
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>大洲默认规则</label>
+                                <div style="display:grid; gap:12px;">
+                                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+                                        <select id="adminLoginGeoContinentSelect" class="form-control"></select>
+                                        <select id="adminLoginGeoContinentPolicy" class="form-control">
+                                            <option value="allow">允许登录</option>
+                                            <option value="deny">禁止登录</option>
+                                        </select>
+                                    </div>
+                                    <div id="adminLoginGeoContinentHint" class="form-hint">请选择一个大洲后设置默认规则。</div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>国家 / 地区覆盖规则</label>
+                                <div style="display:grid; gap:12px;">
+                                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+                                        <select id="adminLoginGeoCountryContinentFilter" class="form-control"></select>
+                                        <select id="adminLoginGeoCountrySelect" class="form-control"></select>
+                                        <select id="adminLoginGeoCountryPolicy" class="form-control">
+                                            <option value="inherit">跟随所在大洲</option>
+                                            <option value="allow">允许登录</option>
+                                            <option value="deny">禁止登录</option>
+                                        </select>
+                                    </div>
+                                    <div id="adminLoginGeoCountryHint" class="form-hint">默认跟随大洲规则，单独设置后会覆盖该大洲的默认值。</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                <button type="submit" class="btn-primary" style="width:auto; padding:12px 30px;">保存地域规则</button>
+                                <span id="adminLoginGeoStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
+                            </div>
+                            <div id="adminLoginGeoSettingsMsg" class="error-message" style="color:#28a745;"></div>
+                        </form>
+                    </div>
+
                     <div class="card" style="padding: 30px;">
                         <h3 class="section-header">登录人机验证（Cloudflare Turnstile）</h3>
                         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
@@ -3208,8 +3311,8 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     <div id="cdnPreviewContent" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:60px 40px 40px;" onclick="event.stopPropagation()"></div>
                 </div>
 
-                <!-- Changelog View -->
-                <div id="view-changelog" class="view-section">
+                <!-- Log Records View -->
+                <div id="view-log-records" class="view-section">
                     <div class="card changelog-card">
                         <div class="changelog-hero">
                             <div>
@@ -3242,10 +3345,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <ul class="changelog-updates" id="changelogUpdates"></ul>
                         </div>
                     </div>
-                </div>
-
-                <!-- Docker Logs View -->
-                <div id="view-docker-logs" class="view-section">
                     <div class="card docker-logs-card">
                         <div class="docker-logs-hero">
                             <div class="docker-logs-hero-left">
@@ -3332,7 +3431,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script src="/admin/js/components/shell.js"></script>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260529-unread-dot"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260530-message-center"></script>
     <script src="/admin/js/app.js"></script>
 </body>
 </html>
