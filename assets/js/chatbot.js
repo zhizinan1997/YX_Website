@@ -850,7 +850,7 @@
     function createAgentStatusQueue(typingEl, statusUpdates) {
         const queue = [];
         let running = false;
-        let idleResolver = null;
+        let flushed = false;
 
         const run = async () => {
             if (running) return;
@@ -858,27 +858,34 @@
             while (queue.length) {
                 const status = queue.shift();
                 statusUpdates.push(status);
+                // 正文已开始流式输出后进入 flushed：状态只并入摘要，不再逐条动画/等待。
+                if (flushed) continue;
                 appendAgentStatusStep(typingEl, status);
                 await delay(AGENT_STATUS_MIN_VISIBLE_MS);
             }
             running = false;
-            if (idleResolver) {
-                idleResolver();
-                idleResolver = null;
-            }
         };
 
         return {
             push(status) {
                 if (!status || !status.label) return;
+                // 已进入 flushed（正文在流式输出）后，新状态直接并入摘要，
+                // 不再排队等待 run() 里可能尚未结束的上一条延时。
+                if (flushed) {
+                    statusUpdates.push(status);
+                    return;
+                }
                 queue.push(status);
                 run();
             },
+            // 正文一旦开始流式输出就立即结束状态动画：把尚未展示的状态直接并入摘要并立即返回，
+            // 不再等待每条状态的最小展示时间——否则会阻塞读取循环，导致模型输出被缓冲后一次性渲染（看起来不流式）。
             drain() {
-                if (!running && !queue.length) return Promise.resolve();
-                return new Promise(resolve => {
-                    idleResolver = resolve;
-                });
+                flushed = true;
+                while (queue.length) {
+                    statusUpdates.push(queue.shift());
+                }
+                return Promise.resolve();
             }
         };
     }
