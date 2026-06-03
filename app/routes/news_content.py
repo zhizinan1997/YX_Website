@@ -1,56 +1,7 @@
 ﻿"""
-鏂伴椈鍐呭绠＄悊璺敱妯″潡銆?
+新闻内容管理路由模块。
 
-鏈ā鍧楁彁渚涙柊闂昏祫璁殑瀹屾暣绠＄悊鍔熻兘锛屽寘鎷細
-1. 鏂伴椈鍒楄〃API
-2. 鏂囩珷瑙ｆ瀽鍜屾覆鏌?
-3. Markdown鏀寔
-4. 灏侀潰鍥剧墖绠＄悊
-5. 鍏紑鍐呭杈撳嚭
-6. 鍚庡彴缂栬緫鎺ュ彛
-
-涓昏鍔熻兘锛?
-1. 鏂伴椈鍒楄〃API
-   - 鎸夊垎绫荤瓫閫?
-   - 鍒嗛〉鏌ヨ
-   - 缃《鏂伴椈澶勭悊
-   - 鍙戝竷鏃堕棿鎺掑簭
-
-2. 鏂囩珷瑙ｆ瀽
-   - HTML鍐呭瑙ｆ瀽
-   - Markdown娓叉煋
-   - 鍏冩暟鎹彁鍙栵紙鏍囬銆佹憳瑕併€佸彂甯冩椂闂寸瓑锛?
-   - 杩滅▼鍥剧墖澶勭悊
-
-3. 灏侀潰鍥剧墖
-   - 鍥剧墖涓婁紶楠岃瘉
-   - 鐩稿璺緞杞崲
-   - 杩滅▼鍥剧墖鑾峰彇鍜岀紦瀛?
-
-4. HTML瀹夊叏娓呮礂
-   - 鐧藉悕鍗曟爣绛捐繃婊?
-   - 鍗遍櫓鏍囩绉婚櫎
-   - 灞炴€ф竻鐞?
-   - XSS闃叉姢
-
-5. 鍚庡彴绠＄悊
-   - 鏂伴椈鍒楄〃绠＄悊
-   - 鍒嗙被璁剧疆
-   - 缃《绠＄悊
-   - 鍒犻櫎鍔熻兘
-
-6. 鍏紑杈撳嚭
-   - 瀹夊叏鐨勫唴瀹规竻娲?
-   - 鐩稿URL澶勭悊
-   - 鏃ユ湡鏍煎紡鍖?
-
-瀹夊叏鐗规€э細
-- HTML鐧藉悕鍗曟満鍒?
-- 鍗遍櫓鏍囩杩囨护锛坰cript銆乮frame銆乫orm绛夛級
-- JavaScript浼崗璁睆钄?
-- 杩滅▼URL楠岃瘉
-
-浣滆€咃細鍏冭姱浼犳劅鎶€鏈洟闃?
+提供资讯列表、文章解析、富文本清洗、封面图片处理、公开内容输出和后台编辑接口。
 """
 
 from __future__ import annotations
@@ -60,6 +11,7 @@ import binascii
 import html
 import json
 import re
+import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -92,6 +44,38 @@ REMOTE_BROWSER_HEADERS = {
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
     'Cache-Control': 'no-cache',
     'Pragma': 'no-cache',
+}
+NEWS_WRITE_LOCK = threading.RLock()
+NEWS_STYLE_SAFE_PROPERTIES = {
+    'color',
+    'font-size',
+    'line-height',
+    'text-indent',
+    'margin-top',
+    'margin-bottom',
+    'text-align',
+    'width',
+    'height',
+    'max-width',
+    'display',
+    'margin',
+    'margin-left',
+    'margin-right',
+}
+NEWS_LENGTH_STYLE_RE = re.compile(r'^(?:0|[1-9]\d{0,3})(?:\.\d{1,2})?(?:px|em|rem|%)$', re.I)
+NEWS_NUMBER_STYLE_RE = re.compile(r'^(?:0|[1-9]\d?)(?:\.\d{1,2})?$')
+NEWS_COLOR_STYLE_RE = re.compile(
+    r'^(?:#[0-9a-f]{3}|#[0-9a-f]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$',
+    re.I,
+)
+NEWS_STYLE_KEYWORD_VALUES = {
+    'text-align': {'left', 'right', 'center', 'justify'},
+    'display': {'block', 'inline', 'inline-block'},
+    'height': {'auto'},
+    'max-width': {'100%'},
+    'margin': {'0 auto'},
+    'margin-left': {'auto'},
+    'margin-right': {'auto'},
 }
 
 def now_beijing():
@@ -415,16 +399,16 @@ def normalize_imported_news_date(raw_text: str) -> str:
     return ''
 
 def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, timeout: float = 20.0,
-                             headers: dict | None = None) -> dict:
+                             headers: dict | None = None, session=None) -> dict:
     safe_headers = {str(key): str(value) for key, value in (headers or {}).items() if key and value}
     raw_source_url = (source_url or '').strip()
     if not raw_source_url:
-        raise RemoteFetchError('缂哄皯杩滅▼鍦板潃', reason='missing_url')
+        raise RemoteFetchError('缺少远程地址', reason='missing_url')
 
     ok, reason, safe_source_url = _dep('validate_safe_remote_fetch_url')(raw_source_url)
     if not ok:
         raise RemoteFetchError(
-            reason or '杩滅▼鍦板潃鏍￠獙澶辫触',
+            reason or '远程地址校验失败',
             reason='validate_safe_remote_fetch_url',
             source_url=raw_source_url,
             safe_source_url=safe_source_url,
@@ -432,7 +416,8 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
 
     try:
         if _dep('requests_support'):
-            response = _dep('requests_module').get(
+            requests_client = session if session is not None else _dep('requests_module')
+            response = requests_client.get(
                 safe_source_url,
                 timeout=timeout,
                 allow_redirects=allow_redirects,
@@ -441,7 +426,7 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
             status_code = int(response.status_code)
             if not allow_redirects and 300 <= status_code < 400:
                 raise RemoteFetchError(
-                    '閾炬帴鍙戠敓閲嶅畾鍚戯紝璇锋敼鐢ㄦ渶缁堝湴鍧€',
+                    '链接发生重定向，请使用最终图片地址',
                     reason='redirect_not_supported',
                     source_url=raw_source_url,
                     safe_source_url=safe_source_url,
@@ -461,7 +446,8 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
                 'text': response.text or '',
             }
         if _dep('httpx_support'):
-            response = _dep('httpx_module').get(
+            httpx_client = session if session is not None else _dep('httpx_module')
+            response = httpx_client.get(
                 safe_source_url,
                 timeout=timeout,
                 follow_redirects=allow_redirects,
@@ -470,7 +456,7 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
             status_code = int(response.status_code)
             if not allow_redirects and 300 <= status_code < 400:
                 raise RemoteFetchError(
-                    '閾炬帴鍙戠敓閲嶅畾鍚戯紝璇锋敼鐢ㄦ渶缁堝湴鍧€',
+                    '链接发生重定向，请使用最终图片地址',
                     reason='redirect_not_supported',
                     source_url=raw_source_url,
                     safe_source_url=safe_source_url,
@@ -493,7 +479,7 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
         raise
     except Exception as exc:
         raise RemoteFetchError(
-            '杩滅▼鍐呭涓嬭浇澶辫触锛岃纭閾炬帴鍙叕寮€璁块棶',
+            '远程内容下载失败，请确认链接可公开访问',
             reason='download_failed',
             source_url=raw_source_url,
             safe_source_url=safe_source_url,
@@ -502,17 +488,19 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
         ) from exc
 
     raise RemoteFetchError(
-        '鏈嶅姟绔己灏戜笅杞藉鎴风渚濊禆',
+        '服务端缺少下载客户端依赖',
         reason='no_http_client_dependency',
         source_url=raw_source_url,
         safe_source_url=safe_source_url,
     )
 
 
-def import_news_image_url_to_asset(source_url: str, *, cache: dict | None = None) -> tuple[str, bool]:
+def import_news_image_url_to_asset(source_url: str, *, cache: dict | None = None,
+                                   session=None, referer: str = '',
+                                   allow_redirects: bool = False) -> tuple[str, bool]:
     raw_source_url = str(source_url or '').strip()
     if not raw_source_url:
-        raise RemoteFetchError('缂哄皯鍥剧墖閾炬帴', reason='missing_url')
+        raise RemoteFetchError('缺少图片链接', reason='missing_url')
 
     normalized_existing = normalize_legacy_news_asset_url(raw_source_url)
     if normalized_existing.startswith('/cdn_assets/news/'):
@@ -521,14 +509,29 @@ def import_news_image_url_to_asset(source_url: str, *, cache: dict | None = None
     if cache is not None and raw_source_url in cache:
         return cache[raw_source_url], False
 
-    fetched = fetch_remote_url_content(raw_source_url, allow_redirects=False, timeout=20.0)
+    # 当复用分享页会话或带 Referer 时（飞书图片转存场景），模拟浏览器加载图片的请求头，
+    # 否则飞书 stream 下载接口会以 401 Login Required 拒绝。
+    image_headers = None
+    if session is not None or referer:
+        image_headers = dict(REMOTE_BROWSER_HEADERS)
+        image_headers['Accept'] = 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+        if referer:
+            image_headers['Referer'] = referer
+
+    fetched = fetch_remote_url_content(
+        raw_source_url,
+        allow_redirects=allow_redirects,
+        timeout=20.0,
+        headers=image_headers,
+        session=session,
+    )
     content = fetched.get('content') or b''
     content_type = str(fetched.get('content_type') or '').strip().lower()
     final_url = str(fetched.get('final_url') or raw_source_url)
     parsed = urlparse(final_url)
 
     if len(content) == 0:
-        raise RemoteFetchError('鍥剧墖鍐呭涓虹┖', reason='empty_content', source_url=raw_source_url)
+        raise RemoteFetchError('图片内容为空', reason='empty_content', source_url=raw_source_url)
     if len(content) > 15 * 1024 * 1024:
         raise RemoteFetchError(
             '图片过大（最大 15MB）',
@@ -545,7 +548,7 @@ def import_news_image_url_to_asset(source_url: str, *, cache: dict | None = None
     )
     if ext not in _dep('allowed_news_image_extensions'):
         raise RemoteFetchError(
-            '閾炬帴鍐呭涓嶆槸鍙楁敮鎸佺殑鍥剧墖鏍煎紡',
+            '链接内容不是受支持的图片格式',
             reason='unsupported_image_format',
             source_url=raw_source_url,
             content_type=content_type,
@@ -765,7 +768,13 @@ def render_feishu_image_node(node: dict, state: dict, *, parent_node: dict | Non
             local_url = candidate
             break
         try:
-            local_url, created = import_news_image_url_to_asset(candidate, cache=state.setdefault('image_cache', {}))
+            local_url, created = import_news_image_url_to_asset(
+                candidate,
+                cache=state.setdefault('image_cache', {}),
+                session=state.get('http_session'),
+                referer=state.get('image_referer', ''),
+                allow_redirects=True,
+            )
             if created:
                 state['imported_image_count'] = int(state.get('imported_image_count') or 0) + 1
             break
@@ -925,7 +934,8 @@ def render_feishu_block_node(node: dict, state: dict, *, parent_node: dict | Non
     return f'<p>{inner}</p>' if normalize_news_plain_text(inner, max_length=0) else ''
 
 
-def convert_feishu_root_fragment_to_news_payload(root_fragment: str, *, page_url: str = '', page_title: str = '') -> dict:
+def convert_feishu_root_fragment_to_news_payload(root_fragment: str, *, page_url: str = '', page_title: str = '',
+                                                 http_session=None, image_referer: str = '') -> dict:
     tree = build_simple_html_tree(root_fragment or '')
     root_node = next(
         (
@@ -948,6 +958,8 @@ def convert_feishu_root_fragment_to_news_payload(root_fragment: str, *, page_url
         'imported_image_count': 0,
         'image_seen_count': 0,
         'image_failed_count': 0,
+        'http_session': http_session,
+        'image_referer': image_referer or page_url,
     }
     content_parts = [
         render_feishu_block_node(child, state, parent_node=root_node)
@@ -1041,7 +1053,13 @@ def render_feishu_client_vars_image_block(block_id: str, block_data: dict, state
             local_url = candidate
             break
         try:
-            local_url, created = import_news_image_url_to_asset(candidate, cache=state.setdefault('image_cache', {}))
+            local_url, created = import_news_image_url_to_asset(
+                candidate,
+                cache=state.setdefault('image_cache', {}),
+                session=state.get('http_session'),
+                referer=state.get('image_referer', ''),
+                allow_redirects=True,
+            )
             if created:
                 state['imported_image_count'] = int(state.get('imported_image_count') or 0) + 1
             break
@@ -1075,6 +1093,8 @@ def convert_feishu_client_vars_payload_to_news_payload(
     page_url: str = '',
     page_title: str = '',
     page_html: str = '',
+    http_session=None,
+    image_referer: str = '',
 ) -> dict:
     state = {
         'page_url': page_url,
@@ -1087,6 +1107,8 @@ def convert_feishu_client_vars_payload_to_news_payload(
         'image_failed_count': 0,
         'page_image_candidate_groups': collect_feishu_page_image_candidate_groups(page_html, page_url=page_url),
         'page_image_candidate_index': 0,
+        'http_session': http_session,
+        'image_referer': image_referer or page_url,
     }
 
     data = dict(client_vars_data or {})
@@ -1201,12 +1223,12 @@ def convert_feishu_client_vars_payload_to_news_payload(
         'image_seen_count': int(state.get('image_seen_count') or 0),
     }
 
-# 妯″潡绾т緷璧栧鍣紝鍦?configure/register 闃舵涓€娆℃€ф敞鍏ャ€?
+# 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 
 
 
-# 渚濊禆娉ㄥ叆閰嶇疆鍏ュ彛銆?
+# 依赖注入配置入口。
 def configure_news_content(
     *,
     pages_dir,
@@ -1383,6 +1405,44 @@ def sanitize_news_image_url(raw_url: str) -> str:
     return normalize_legacy_news_asset_url(safe_url)
 
 
+def sanitize_news_style_attribute(raw_style: str, tag_name: str = '') -> str:
+    """Keep only the inline styles produced by the admin news editor."""
+    value = str(raw_style or '').strip()
+    if not value:
+        return ''
+
+    tag = str(tag_name or '').lower()
+    cleaned = []
+    for raw_part in value.split(';'):
+        if ':' not in raw_part:
+            continue
+        raw_name, raw_value = raw_part.split(':', 1)
+        name = raw_name.strip().lower()
+        style_value = re.sub(r'\s+', ' ', raw_value.strip()).lower()
+        if name not in NEWS_STYLE_SAFE_PROPERTIES or not style_value:
+            continue
+        if any(token in style_value for token in ('expression', 'javascript:', 'vbscript:', 'data:', 'url(', '@import', '<', '>')):
+            continue
+
+        ok = False
+        if name == 'color':
+            ok = bool(NEWS_COLOR_STYLE_RE.match(style_value))
+        elif name in {'font-size', 'text-indent', 'margin-top', 'margin-bottom', 'width'}:
+            ok = bool(NEWS_LENGTH_STYLE_RE.match(style_value))
+        elif name == 'line-height':
+            ok = bool(NEWS_NUMBER_STYLE_RE.match(style_value) or NEWS_LENGTH_STYLE_RE.match(style_value))
+        elif name in NEWS_STYLE_KEYWORD_VALUES:
+            ok = style_value in NEWS_STYLE_KEYWORD_VALUES[name]
+
+        if not ok:
+            continue
+        if tag == 'img' and name not in {'width', 'height', 'max-width', 'display', 'margin', 'margin-left', 'margin-right'}:
+            continue
+        cleaned.append((name, style_value))
+
+    return ';'.join(f'{name}:{style_value}' for name, style_value in cleaned)
+
+
 def sanitize_news_html_fragment(fragment: str) -> str:
     from html.parser import HTMLParser
 
@@ -1415,6 +1475,11 @@ def sanitize_news_html_fragment(fragment: str) -> str:
                 return
 
             cleaned_attrs = []
+            raw_style = ''
+            for name, raw_value in attrs:
+                if str(name or '').lower() == 'style':
+                    raw_style = str(raw_value or '')
+                    break
             if tag_name == 'a':
                 href = ''
                 rel_tokens = set()
@@ -1510,6 +1575,17 @@ def sanitize_news_html_fragment(fragment: str) -> str:
                         digits = re.sub(r'[^0-9]', '', str(raw_value or ''))
                         if digits:
                             cleaned_attrs.append((attr_name, digits[:2]))
+
+            if tag_name in {
+                'p', 'div', 'span', 'font',
+                'strong', 'b', 'em', 'i', 'u', 's',
+                'li', 'blockquote',
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'td', 'th', 'img',
+            }:
+                safe_style = sanitize_news_style_attribute(raw_style, tag_name)
+                if safe_style:
+                    cleaned_attrs.append(('style', safe_style))
 
             self._append_start(tag_name, cleaned_attrs)
 
@@ -1778,8 +1854,10 @@ def build_news_article_html(title, date, image_url, content_html):
             margin-bottom: 20px;
         }}
         .article-content img {{
+            width: 60%;
             max-width: 100%;
             height: auto;
+            object-fit: contain;
             border-radius: 8px;
             margin: 24px auto; display: block;
         }}
@@ -2023,25 +2101,91 @@ def derive_news_cover_and_summary(content_html: str, image_url: str = '', summar
     return final_image, final_summary
 
 
+def atomic_write_text(path: Path, content: str):
+    """Write text through a sibling temp file, then replace atomically."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f'.{path.name}.{uuid.uuid4().hex}.tmp')
+    try:
+        tmp_path.write_text(content, encoding='utf-8')
+        tmp_path.replace(path)
+    finally:
+        try:
+            if tmp_path.exists():
+                tmp_path.unlink()
+        except Exception:
+            pass
+
+
+def news_link_variants(link: str) -> set[str]:
+    value = str(link or '').strip()
+    filename = Path(value).name
+    variants = {value} if value else set()
+    if filename:
+        variants.update({
+            filename,
+            f'/pages/news/{filename}',
+            f'pages/news/{filename}',
+            f'../../pages/news/{filename}',
+            f'../news/{filename}',
+        })
+    return {item for item in variants if item}
+
+
+def card_hidden_state_from_html(card_html: str, default: bool = False) -> bool:
+    match = re.search(r'data-hidden\s*=\s*["\'](true|false)["\']', card_html or '', re.I)
+    if not match:
+        return bool(default)
+    return match.group(1).lower() == 'true'
+
+
+def remove_news_link_from_configs(link: str):
+    variants = news_link_variants(link)
+    if not variants:
+        return
+
+    featured = get_featured_news_config()
+    links = featured.get('links', []) if isinstance(featured, dict) else []
+    if isinstance(links, list):
+        kept = [item for item in links if str(item or '').strip() not in variants]
+        if kept != links:
+            save_featured_news_config({'links': kept})
+
+    h2_config = _dep('get_h2_home_config')()
+    news_items = h2_config.get('news', []) if isinstance(h2_config, dict) else []
+    if isinstance(news_items, list):
+        kept_news = [
+            item for item in news_items
+            if not (isinstance(item, dict) and str(item.get('link') or '').strip() in variants)
+        ]
+        if kept_news != news_items:
+            updated = dict(h2_config)
+            updated['news'] = kept_news[:3]
+            atomic_write_text(_dep('h2_home_file'), json.dumps(updated, ensure_ascii=False, indent=2))
+
+
+def build_content_with_inserted_news_card(content: str, card_html: str) -> str | None:
+    marker = "<!-- Page 1 Items -->"
+    idx = content.find(marker)
+    if idx != -1:
+        insert_pos = idx + len(marker)
+        return content[:insert_pos] + "\n" + card_html + content[insert_pos:]
+    fallback = "</div>\n            </div>\n        </section>"
+    idx = content.find(fallback)
+    if idx != -1:
+        return content[:idx] + card_html + "\n" + content[idx:]
+    return None
+
+
 def insert_news_card(news_html_path: Path, card_html: str) -> bool:
     """Insert a news card into news.html after the page marker."""
     if not news_html_path.exists():
         return False
     content = news_html_path.read_text(encoding='utf-8')
-    marker = "<!-- Page 1 Items -->"
-    idx = content.find(marker)
-    if idx != -1:
-        insert_pos = idx + len(marker)
-        content = content[:insert_pos] + "\n" + card_html + content[insert_pos:]
-        news_html_path.write_text(content, encoding='utf-8')
-        return True
-    fallback = "</div>\n            </div>\n        </section>"
-    idx = content.find(fallback)
-    if idx != -1:
-        content = content[:idx] + card_html + "\n" + content[idx:]
-        news_html_path.write_text(content, encoding='utf-8')
-        return True
-    return False
+    updated = build_content_with_inserted_news_card(content, card_html)
+    if updated is None:
+        return False
+    atomic_write_text(news_html_path, updated)
+    return True
 
 
 def build_news_card_regex(filename: str):
@@ -2146,7 +2290,7 @@ def reorder_news_card(news_html_path: Path, filename: str, direction: str):
     if replaced is None:
         return False, '资讯列表重排失败', 500
 
-    news_html_path.write_text(replaced, encoding='utf-8')
+    atomic_write_text(news_html_path, replaced)
     return True, '', 200
 
 
@@ -2162,7 +2306,7 @@ def get_hidden_news_links():
                 return set([link for link in links if isinstance(link, str)])
         except Exception:
             pass
-    news_visibility_file.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(news_visibility_file, json.dumps(default_config, indent=2, ensure_ascii=False))
     return set()
 
 
@@ -2173,7 +2317,7 @@ def save_hidden_news_links(links):
         if link and isinstance(link, str):
             cleaned.append(link)
     data = {'hidden_links': cleaned}
-    _dep('news_visibility_file').write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(_dep('news_visibility_file'), json.dumps(data, indent=2, ensure_ascii=False))
     return set(cleaned)
 
 
@@ -2188,7 +2332,7 @@ def get_featured_news_config():
                 return config
         except Exception:
             pass
-    news_featured_file.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(news_featured_file, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
 
@@ -2207,7 +2351,7 @@ def save_featured_news_config(new_config):
         seen.add(link)
         normalized.append(link)
     saved = {'links': normalized[:3]}
-    _dep('news_featured_file').write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(_dep('news_featured_file'), json.dumps(saved, indent=2, ensure_ascii=False))
     return saved
 
 
@@ -2362,7 +2506,7 @@ def save_h2_home_news(items):
         'news': cleaned[:3],
         'measurementProducts': existing.get('measurementProducts', {}),
     }
-    _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(_dep('h2_home_file'), json.dumps(saved, ensure_ascii=False, indent=2))
     return saved
 
 
@@ -2503,7 +2647,7 @@ def register_news_content_routes(
     def get_product_related_news():
         product_id = (request.args.get('id') or '').strip()
         if not product_id:
-            return jsonify({'success': False, 'message': '缂哄皯浜у搧ID'}), 400
+            return jsonify({'success': False, 'message': '缺少产品 ID'}), 400
 
         all_items = [item for item in get_all_news_items() if not item.get('hidden')]
         normalized_items = []
@@ -2647,19 +2791,37 @@ def register_news_content_routes(
         image_url = sanitize_news_image_url(image_url) or '/assets/images/logo.png'
         summary = normalize_news_plain_text(summary, max_length=220)
 
-        news_dir = _news_dir()
-        news_dir.mkdir(parents=True, exist_ok=True)
-        news_id = get_next_news_id()
-        filename = f'news_show.aspx_id_{news_id}.html'
-        filepath = news_dir / filename
         article_html = build_news_article_html(title, date, image_url, content_html)
-        filepath.write_text(article_html, encoding='utf-8')
+        with NEWS_WRITE_LOCK:
+            news_dir = _news_dir()
+            news_dir.mkdir(parents=True, exist_ok=True)
+            news_index = news_dir / 'news.html'
+            if not news_index.exists():
+                return jsonify({'success': False, 'message': 'news.html 不存在，无法更新资讯列表', 'reason': 'index_missing'}), 500
 
-        card_html = build_news_card_html(filename, category, division, image_url, date, title, summary, hidden=False)
-        news_index = news_dir / 'news.html'
-        inserted = insert_news_card(news_index, card_html)
-        if not inserted:
-            return jsonify({'success': False, 'message': '宸插垱寤鸿祫璁紝浣嗘湭鑳芥洿鏂?news.html'}), 500
+            news_id = get_next_news_id()
+            filename = f'news_show.aspx_id_{news_id}.html'
+            filepath = news_dir / filename
+            if filepath.exists():
+                return jsonify({'success': False, 'message': '资讯编号冲突，请稍后重试', 'reason': 'id_conflict'}), 409
+
+            card_html = build_news_card_html(filename, category, division, image_url, date, title, summary, hidden=False)
+            index_content = news_index.read_text(encoding='utf-8')
+            updated_index = build_content_with_inserted_news_card(index_content, card_html)
+            if updated_index is None:
+                return jsonify({'success': False, 'message': '无法更新 news.html 中的资讯列表', 'reason': 'index_update_failed'}), 500
+
+            try:
+                atomic_write_text(filepath, article_html)
+                atomic_write_text(news_index, updated_index)
+            except Exception as exc:
+                try:
+                    if filepath.exists():
+                        filepath.unlink()
+                except Exception:
+                    pass
+                app.logger.exception('create news failed: %s', exc)
+                return jsonify({'success': False, 'message': '生成资讯失败，请稍后重试', 'reason': 'write_failed'}), 500
 
         return jsonify({'success': True, 'filename': filename, 'link': f'/pages/news/{filename}'})
 
@@ -2670,38 +2832,39 @@ def register_news_content_routes(
         link = (data.get('link') or '').strip()
         hidden = bool(data.get('hidden'))
         if not link:
-            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
+            return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
 
-        hidden_links = get_hidden_news_links()
-        if hidden:
-            hidden_links.add(link)
-        else:
-            hidden_links.discard(link)
-        save_hidden_news_links(hidden_links)
+        with NEWS_WRITE_LOCK:
+            hidden_links = get_hidden_news_links()
+            if hidden:
+                hidden_links.update(news_link_variants(link))
+            else:
+                hidden_links.difference_update(news_link_variants(link))
+            save_hidden_news_links(hidden_links)
 
-        news_index = _news_index_path()
-        if news_index.exists():
-            content = news_index.read_text(encoding='utf-8')
-            filename = Path(link).name
-            card_pattern = build_news_card_regex(filename)
-            card_match = card_pattern.search(content)
-            if card_match:
-                card_html = card_match.group(0)
-                open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
-                if open_tag_match:
-                    open_tag = open_tag_match.group(0)
-                    if 'data-hidden=' in open_tag:
-                        open_tag = re.sub(
-                            r'data-hidden\s*=\s*["\'](true|false)["\']',
-                            f'data-hidden="{str(hidden).lower()}"',
-                            open_tag,
-                            flags=re.IGNORECASE,
-                        )
-                    else:
-                        open_tag = open_tag[:-1] + f' data-hidden="{str(hidden).lower()}">'
-                    card_html = card_html[:open_tag_match.start()] + open_tag + card_html[open_tag_match.end():]
-                    content = content[:card_match.start()] + card_html + content[card_match.end():]
-            news_index.write_text(content, encoding='utf-8')
+            news_index = _news_index_path()
+            if news_index.exists():
+                content = news_index.read_text(encoding='utf-8')
+                filename = Path(link).name
+                card_pattern = build_news_card_regex(filename)
+                card_match = card_pattern.search(content)
+                if card_match:
+                    card_html = card_match.group(0)
+                    open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
+                    if open_tag_match:
+                        open_tag = open_tag_match.group(0)
+                        if 'data-hidden=' in open_tag:
+                            open_tag = re.sub(
+                                r'data-hidden\s*=\s*["\'](true|false)["\']',
+                                f'data-hidden="{str(hidden).lower()}"',
+                                open_tag,
+                                flags=re.IGNORECASE,
+                            )
+                        else:
+                            open_tag = open_tag[:-1] + f' data-hidden="{str(hidden).lower()}">'
+                        card_html = card_html[:open_tag_match.start()] + open_tag + card_html[open_tag_match.end():]
+                        content = content[:card_match.start()] + card_html + content[card_match.end():]
+                atomic_write_text(news_index, content)
 
         return jsonify({'success': True})
 
@@ -2713,7 +2876,7 @@ def register_news_content_routes(
         category = (data.get('category') or '').strip()
 
         if not link:
-            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
+            return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
         if category not in {'enterprise', 'industry', 'science'}:
             return jsonify({'success': False, 'message': '分类不合法'}), 400
 
@@ -2722,31 +2885,32 @@ def register_news_content_routes(
         if not news_index.exists():
             return jsonify({'success': False, 'message': 'news.html 不存在'}), 404
 
-        content = news_index.read_text(encoding='utf-8')
-        card_pattern = build_news_card_regex(filename)
-        card_match = card_pattern.search(content)
-        if not card_match:
-            return jsonify({'success': False, 'message': '未找到对应资讯卡片'}), 404
+        with NEWS_WRITE_LOCK:
+            content = news_index.read_text(encoding='utf-8')
+            card_pattern = build_news_card_regex(filename)
+            card_match = card_pattern.search(content)
+            if not card_match:
+                return jsonify({'success': False, 'message': '未找到对应资讯卡片'}), 404
 
-        card_html = card_match.group(0)
-        open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
-        if not open_tag_match:
-            return jsonify({'success': False, 'message': '鍗＄墖鏍煎紡寮傚父'}), 500
+            card_html = card_match.group(0)
+            open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
+            if not open_tag_match:
+                return jsonify({'success': False, 'message': '资讯卡片格式异常'}), 500
 
-        open_tag = open_tag_match.group(0)
-        if 'data-category=' in open_tag:
-            open_tag = re.sub(
-                r'data-category\s*=\s*["\'][^"\']*["\']',
-                f'data-category="{category}"',
-                open_tag,
-                flags=re.IGNORECASE,
-            )
-        else:
-            open_tag = open_tag[:-1] + f' data-category="{category}">'
+            open_tag = open_tag_match.group(0)
+            if 'data-category=' in open_tag:
+                open_tag = re.sub(
+                    r'data-category\s*=\s*["\'][^"\']*["\']',
+                    f'data-category="{category}"',
+                    open_tag,
+                    flags=re.IGNORECASE,
+                )
+            else:
+                open_tag = open_tag[:-1] + f' data-category="{category}">'
 
-        card_html = card_html[:open_tag_match.start()] + open_tag + card_html[open_tag_match.end():]
-        content = content[:card_match.start()] + card_html + content[card_match.end():]
-        news_index.write_text(content, encoding='utf-8')
+            card_html = card_html[:open_tag_match.start()] + open_tag + card_html[open_tag_match.end():]
+            content = content[:card_match.start()] + card_html + content[card_match.end():]
+            atomic_write_text(news_index, content)
         return jsonify({'success': True})
 
     @app.route('/api/news/reorder', methods=['POST'])
@@ -2757,10 +2921,11 @@ def register_news_content_routes(
         direction = (data.get('direction') or '').strip().lower()
 
         if not link:
-            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
+            return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
 
         filename = Path(link).name
-        success, message, status_code = reorder_news_card(_news_index_path(), filename, direction)
+        with NEWS_WRITE_LOCK:
+            success, message, status_code = reorder_news_card(_news_index_path(), filename, direction)
         if not success:
             return jsonify({'success': False, 'message': message}), status_code
         return jsonify({'success': True})
@@ -2771,28 +2936,29 @@ def register_news_content_routes(
         data = request.json or {}
         link = (data.get('link') or '').strip()
         if not link:
-            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
+            return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
 
-        filename = Path(link).name
-        news_dir = _news_dir()
-        filepath = news_dir / filename
-        if filepath.exists():
-            try:
-                filepath.unlink()
-            except Exception:
-                pass
+        with NEWS_WRITE_LOCK:
+            filename = Path(link).name
+            news_dir = _news_dir()
+            filepath = news_dir / filename
+            if filepath.exists():
+                try:
+                    filepath.unlink()
+                except Exception:
+                    pass
 
-        news_index = news_dir / 'news.html'
-        if news_index.exists():
-            content = news_index.read_text(encoding='utf-8')
-            pattern = build_news_card_regex(filename)
-            content, _ = pattern.subn('', content)
-            news_index.write_text(content, encoding='utf-8')
+            news_index = news_dir / 'news.html'
+            if news_index.exists():
+                content = news_index.read_text(encoding='utf-8')
+                pattern = build_news_card_regex(filename)
+                content, _ = pattern.subn('', content)
+                atomic_write_text(news_index, content)
 
-        hidden_links = get_hidden_news_links()
-        if link in hidden_links:
-            hidden_links.discard(link)
+            hidden_links = get_hidden_news_links()
+            hidden_links.difference_update(news_link_variants(link))
             save_hidden_news_links(hidden_links)
+            remove_news_link_from_configs(link)
 
         return jsonify({'success': True})
 
@@ -2811,7 +2977,7 @@ def register_news_content_routes(
         content_is_html = bool(data.get('content_is_html', False))
 
         if not link:
-            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
+            return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
         if not title or not date or not category or not division or not content:
             return jsonify({'success': False, 'message': '请填写标题、日期、分类、归属事业部和正文'}), 400
         if category not in {'enterprise', 'industry', 'science'}:
@@ -2826,23 +2992,29 @@ def register_news_content_routes(
         filename = Path(link).name
         news_dir = _news_dir()
         filepath = news_dir / filename
-        if not filepath.exists():
-            return jsonify({'success': False, 'message': '资讯文件不存在'}), 404
-
         article_html = build_news_article_html(title, date, image_url, content_html)
-        filepath.write_text(article_html, encoding='utf-8')
+        with NEWS_WRITE_LOCK:
+            if not filepath.exists():
+                return jsonify({'success': False, 'message': '资讯文件不存在'}), 404
 
-        news_index = news_dir / 'news.html'
-        if news_index.exists():
-            content_text = news_index.read_text(encoding='utf-8')
-            card_html = build_news_card_html(filename, category, division, image_url, date, title, summary, hidden=False)
-            pattern = build_news_card_regex(filename)
-            content_text, count = pattern.subn(card_html, content_text, count=1)
-            if count:
-                content_text, _ = dedupe_news_cards(content_text, filename)
-                news_index.write_text(content_text, encoding='utf-8')
-            else:
-                insert_news_card(news_index, card_html)
+            news_index = news_dir / 'news.html'
+            hidden_links = get_hidden_news_links()
+            existing_hidden = any(variant in hidden_links for variant in news_link_variants(link))
+            if news_index.exists():
+                content_text = news_index.read_text(encoding='utf-8')
+                existing_card_match = build_news_card_regex(filename).search(content_text)
+                if existing_card_match:
+                    existing_hidden = card_hidden_state_from_html(existing_card_match.group(0), existing_hidden)
+            card_html = build_news_card_html(filename, category, division, image_url, date, title, summary, hidden=existing_hidden)
+            atomic_write_text(filepath, article_html)
+            if news_index.exists():
+                pattern = build_news_card_regex(filename)
+                content_text, count = pattern.subn(card_html, content_text, count=1)
+                if count:
+                    content_text, _ = dedupe_news_cards(content_text, filename)
+                    atomic_write_text(news_index, content_text)
+                else:
+                    insert_news_card(news_index, card_html)
 
         return jsonify({'success': True, 'link': link})
 
@@ -2851,7 +3023,7 @@ def register_news_content_routes(
     def get_news_detail():
         link = request.args.get('link', '').strip()
         if not link:
-            return jsonify({'success': False, 'message': '缂哄皯璧勮閾炬帴'}), 400
+            return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
         filename = Path(link).name
         filepath = _news_dir() / filename
         detail = parse_news_article_html(filepath)
@@ -2979,14 +3151,14 @@ body {
                 return value
             value = re.sub(r'^\s*```(?:html|markdown)?\s*', '', value, flags=re.IGNORECASE)
             value = re.sub(r'\s*```\s*$', '', value)
-            value = re.sub(r'^\s*(?:鏂伴椈鏍囬|鏍囬)\s*[锛?].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
-            value = re.sub(r'^\s*鎽樿\s*[锛?].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
-            value = re.sub(r'^\s*姝ｆ枃\s*[锛?]\s*', '', value, flags=re.IGNORECASE)
+            value = re.sub(r'^\s*(?:新闻标题|标题)\s*[:：].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
+            value = re.sub(r'^\s*摘要\s*[:：].*?(?:\n|<br\s*/?>)+', '', value, flags=re.IGNORECASE)
+            value = re.sub(r'^\s*正文\s*[:：]\s*', '', value, flags=re.IGNORECASE)
 
             if is_html:
-                value = re.sub(r'^\s*<p>\s*(?:鏂伴椈鏍囬|鏍囬)\s*[锛?].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
-                value = re.sub(r'^\s*<p>\s*鎽樿\s*[锛?].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
-                value = re.sub(r'^\s*<p>\s*姝ｆ枃\s*[锛?]\s*</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
+                value = re.sub(r'^\s*<p>\s*(?:新闻标题|标题)\s*[:：].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
+                value = re.sub(r'^\s*<p>\s*摘要\s*[:：].*?</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
+                value = re.sub(r'^\s*<p>\s*正文\s*[:：]\s*</p>\s*', '', value, flags=re.IGNORECASE | re.DOTALL)
             return value.strip()
 
         config = _dep('get_chatbot_config')()
@@ -3073,129 +3245,149 @@ body {
             log_import_failure('unsupported_host', source_url=source_url, hostname=hostname)
             return jsonify({'success': False, 'message': '目前仅支持飞书分享链接导入'}), 400
 
+        # 复用同一个会话：先加载分享页拿到飞书匿名会话 Cookie，再带着它下载正文图片，
+        # 否则图片 stream 接口会以 401 Login Required 拒绝。
+        session = None
+        if _dep('requests_support'):
+            session = _dep('requests_module').Session()
+        elif _dep('httpx_support'):
+            session = _dep('httpx_module').Client(follow_redirects=True)
+
         try:
-            fetched = fetch_remote_url_content(
-                source_url,
-                allow_redirects=True,
-                timeout=25.0,
-                headers=REMOTE_BROWSER_HEADERS,
-            )
-        except RemoteFetchError as exc:
-            log_import_failure(exc.reason, source_url=source_url, **exc.details)
-            status_code = 500 if exc.reason == 'no_http_client_dependency' else 400
-            return jsonify({'success': False, 'message': exc.message}), status_code
+            try:
+                fetched = fetch_remote_url_content(
+                    source_url,
+                    allow_redirects=True,
+                    timeout=25.0,
+                    headers=REMOTE_BROWSER_HEADERS,
+                    session=session,
+                )
+            except RemoteFetchError as exc:
+                log_import_failure(exc.reason, source_url=source_url, **exc.details)
+                status_code = 500 if exc.reason == 'no_http_client_dependency' else 400
+                return jsonify({'success': False, 'message': exc.message}), status_code
 
-        final_url = str(fetched.get('final_url') or source_url).strip()
-        ok, reason, _safe_final_url = _dep('validate_safe_remote_fetch_url')(final_url)
-        final_hostname = str(urlparse(final_url).hostname or '').strip().lower()
-        if not ok or not is_feishu_like_hostname(final_hostname):
-            log_import_failure(
-                'unsafe_final_url',
-                source_url=source_url,
-                final_url=final_url,
-                message=reason,
-            )
-            return jsonify({'success': False, 'message': '分享链接重定向到了不受支持的地址'}), 400
+            final_url = str(fetched.get('final_url') or source_url).strip()
+            ok, reason, _safe_final_url = _dep('validate_safe_remote_fetch_url')(final_url)
+            final_hostname = str(urlparse(final_url).hostname or '').strip().lower()
+            if not ok or not is_feishu_like_hostname(final_hostname):
+                log_import_failure(
+                    'unsafe_final_url',
+                    source_url=source_url,
+                    final_url=final_url,
+                    message=reason,
+                )
+                return jsonify({'success': False, 'message': '分享链接重定向到了不受支持的地址'}), 400
 
-        page_html = str(fetched.get('text') or '')
-        if not page_html.strip():
-            page_html = (fetched.get('content') or b'').decode('utf-8', errors='replace')
-        if not page_html.strip():
-            log_import_failure('empty_page', source_url=source_url, final_url=final_url)
-            return jsonify({'success': False, 'message': '飞书分享页内容为空'}), 400
-        if is_feishu_login_page_html(page_html):
-            log_import_failure(
-                'login_page_returned',
-                source_url=source_url,
-                final_url=final_url,
-                page_title=extract_html_title_text(page_html),
-            )
-            return jsonify({
-                'success': False,
-                'message': '该飞书链接当前返回的是登录页，不是文档正文。通常是未开启公开分享，或必须登录飞书后才能访问；请把分享权限改为可直接访问后重试。',
-            }), 400
+            page_html = str(fetched.get('text') or '')
+            if not page_html.strip():
+                page_html = (fetched.get('content') or b'').decode('utf-8', errors='replace')
+            if not page_html.strip():
+                log_import_failure('empty_page', source_url=source_url, final_url=final_url)
+                return jsonify({'success': False, 'message': '飞书分享页内容为空'}), 400
+            if is_feishu_login_page_html(page_html):
+                log_import_failure(
+                    'login_page_returned',
+                    source_url=source_url,
+                    final_url=final_url,
+                    page_title=extract_html_title_text(page_html),
+                )
+                return jsonify({
+                    'success': False,
+                    'message': '该飞书链接当前返回的是登录页，不是文档正文。通常是未开启公开分享，或必须登录飞书后才能访问；请把分享权限改为可直接访问后重试。',
+                }), 400
 
-        root_fragment = extract_first_html_element_by_attr(
-            page_html,
-            tag_name='div',
-            attr_name='data-lark-html-role',
-            attr_value='root',
-        )
-        if not root_fragment:
             root_fragment = extract_first_html_element_by_attr(
                 page_html,
                 tag_name='div',
-                attr_name='data-docx-has-block-data',
-                attr_value='true',
+                attr_name='data-lark-html-role',
+                attr_value='root',
             )
-        client_vars_payload = extract_feishu_client_vars_payload(page_html)
-        if not root_fragment and not client_vars_payload:
-            log_import_failure('root_fragment_not_found', source_url=source_url, final_url=final_url)
-            return jsonify({
-                'success': False,
-                'message': '未在分享页中解析到正文，请确认该飞书链接已开启分享且页面可直接访问',
-            }), 400
-
-        try:
-            if root_fragment:
-                imported = convert_feishu_root_fragment_to_news_payload(
-                    root_fragment,
-                    page_url=final_url,
-                    page_title=extract_html_title_text(page_html),
+            if not root_fragment:
+                root_fragment = extract_first_html_element_by_attr(
+                    page_html,
+                    tag_name='div',
+                    attr_name='data-docx-has-block-data',
+                    attr_value='true',
                 )
+            client_vars_payload = extract_feishu_client_vars_payload(page_html)
+            if not root_fragment and not client_vars_payload:
+                log_import_failure('root_fragment_not_found', source_url=source_url, final_url=final_url)
+                return jsonify({
+                    'success': False,
+                    'message': '未在分享页中解析到正文，请确认该飞书链接已开启分享且页面可直接访问',
+                }), 400
+
+            try:
+                if root_fragment:
+                    imported = convert_feishu_root_fragment_to_news_payload(
+                        root_fragment,
+                        page_url=final_url,
+                        page_title=extract_html_title_text(page_html),
+                        http_session=session,
+                        image_referer=final_url,
+                    )
+                else:
+                    imported = convert_feishu_client_vars_payload_to_news_payload(
+                        client_vars_payload or {},
+                        page_url=final_url,
+                        page_title=extract_html_title_text(page_html),
+                        page_html=page_html,
+                        http_session=session,
+                        image_referer=final_url,
+                    )
+            except Exception as exc:
+                log_import_failure(
+                    'parse_failed',
+                    source_url=source_url,
+                    final_url=final_url,
+                    error_type=type(exc).__name__,
+                    error=str(exc),
+                )
+                return jsonify({'success': False, 'message': '飞书正文解析失败，请检查链接后重试'}), 400
+
+            content_html = str(imported.get('content_html') or '').strip()
+            if not content_html:
+                log_import_failure('empty_content_html', source_url=source_url, final_url=final_url)
+                return jsonify({'success': False, 'message': '未解析到可用正文内容'}), 400
+
+            image_url, summary = derive_news_cover_and_summary(content_html, '', '')
+            image_url = sanitize_news_image_url(image_url) or '/assets/images/logo.png'
+            summary = normalize_news_plain_text(summary, max_length=220)
+
+            imported_image_count = int(imported.get('imported_image_count') or 0)
+            image_failed_count = int(imported.get('image_failed_count') or 0)
+            image_seen_count = int(imported.get('image_seen_count') or 0)
+            warnings = [str(item) for item in (imported.get('warnings') or []) if str(item).strip()]
+
+            if image_seen_count > 0:
+                message = f'导入完成，成功转存 {imported_image_count} 张图片'
             else:
-                imported = convert_feishu_client_vars_payload_to_news_payload(
-                    client_vars_payload or {},
-                    page_url=final_url,
-                    page_title=extract_html_title_text(page_html),
-                    page_html=page_html,
-                )
-        except Exception as exc:
-            log_import_failure(
-                'parse_failed',
-                source_url=source_url,
-                final_url=final_url,
-                error_type=type(exc).__name__,
-                error=str(exc),
-            )
-            return jsonify({'success': False, 'message': '飞书正文解析失败，请检查链接后重试'}), 400
+                message = '导入完成'
+            if image_failed_count > 0:
+                message += f'，另有 {image_failed_count} 张图片未成功转存'
 
-        content_html = str(imported.get('content_html') or '').strip()
-        if not content_html:
-            log_import_failure('empty_content_html', source_url=source_url, final_url=final_url)
-            return jsonify({'success': False, 'message': '未解析到可用正文内容'}), 400
-
-        image_url, summary = derive_news_cover_and_summary(content_html, '', '')
-        image_url = sanitize_news_image_url(image_url) or '/assets/images/logo.png'
-        summary = normalize_news_plain_text(summary, max_length=220)
-
-        imported_image_count = int(imported.get('imported_image_count') or 0)
-        image_failed_count = int(imported.get('image_failed_count') or 0)
-        image_seen_count = int(imported.get('image_seen_count') or 0)
-        warnings = [str(item) for item in (imported.get('warnings') or []) if str(item).strip()]
-
-        if image_seen_count > 0:
-            message = f'导入完成，成功转存 {imported_image_count} 张图片'
-        else:
-            message = '导入完成'
-        if image_failed_count > 0:
-            message += f'，另有 {image_failed_count} 张图片未成功转存'
-
-        return jsonify({
-            'success': True,
-            'message': message,
-            'source_url': final_url,
-            'title': normalize_news_plain_text(imported.get('title', ''), max_length=200),
-            'date': normalize_news_plain_text(imported.get('date', ''), max_length=80),
-            'category': 'enterprise',
-            'image_url': image_url,
-            'summary': summary,
-            'content_html': content_html,
-            'imported_image_count': imported_image_count,
-            'image_failed_count': image_failed_count,
-            'image_seen_count': image_seen_count,
-            'warnings': warnings,
-        })
+            return jsonify({
+                'success': True,
+                'message': message,
+                'source_url': final_url,
+                'title': normalize_news_plain_text(imported.get('title', ''), max_length=200),
+                'date': normalize_news_plain_text(imported.get('date', ''), max_length=80),
+                'category': 'enterprise',
+                'image_url': image_url,
+                'summary': summary,
+                'content_html': content_html,
+                'imported_image_count': imported_image_count,
+                'image_failed_count': image_failed_count,
+                'image_seen_count': image_seen_count,
+                'warnings': warnings,
+            })
+        finally:
+            if session is not None:
+                try:
+                    session.close()
+                except Exception:
+                    pass
 
     @app.route('/api/news/image/import', methods=['POST'])
     @login_required
@@ -3212,7 +3404,7 @@ body {
         source_url = (data.get('url') or '').strip()
         if not source_url:
             log_import_failure('missing_url')
-            return jsonify({'success': False, 'message': '缂哄皯鍥剧墖閾炬帴'}), 400
+            return jsonify({'success': False, 'message': '缺少图片链接', 'reason': 'missing_url'}), 400
         ok, reason, safe_source_url = _dep('validate_safe_remote_fetch_url')(source_url)
         if not ok:
             log_import_failure(
@@ -3238,7 +3430,7 @@ body {
                         status_code=resp.status_code,
                         location=resp.headers.get('Location', ''),
                     )
-                    return jsonify({'success': False, 'message': '鍥剧墖閾炬帴涓嶆敮鎸侀噸瀹氬悜锛岃浣跨敤鏈€缁堝湴鍧€'}), 400
+                    return jsonify({'success': False, 'message': '图片链接不支持重定向，请使用最终图片地址', 'reason': 'redirect_not_supported'}), 400
                 resp.raise_for_status()
                 content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
                 content = resp.content or b''
@@ -3252,7 +3444,7 @@ body {
                         status_code=resp.status_code,
                         location=resp.headers.get('Location', ''),
                     )
-                    return jsonify({'success': False, 'message': '鍥剧墖閾炬帴涓嶆敮鎸侀噸瀹氬悜锛岃浣跨敤鏈€缁堝湴鍧€'}), 400
+                    return jsonify({'success': False, 'message': '图片链接不支持重定向，请使用最终图片地址', 'reason': 'redirect_not_supported'}), 400
                 resp.raise_for_status()
                 content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
                 content = resp.content or b''
@@ -3262,7 +3454,7 @@ body {
                     source_url=source_url,
                     safe_source_url=safe_source_url,
                 )
-                return jsonify({'success': False, 'message': '鏈嶅姟绔己灏戜笅杞藉鎴风渚濊禆'}), 500
+                return jsonify({'success': False, 'message': '服务端缺少下载客户端依赖', 'reason': 'no_http_client_dependency'}), 500
         except Exception as exc:
             log_import_failure(
                 'download_failed',
@@ -3271,7 +3463,7 @@ body {
                 error_type=type(exc).__name__,
                 error=str(exc),
             )
-            return jsonify({'success': False, 'message': '鍥剧墖涓嬭浇澶辫触锛岃妫€鏌ラ摼鎺ユ槸鍚﹀彲璁块棶'}), 400
+            return jsonify({'success': False, 'message': '图片下载失败，请检查链接是否可访问', 'reason': 'download_failed'}), 400
 
         if len(content) == 0:
             log_import_failure(
@@ -3280,7 +3472,7 @@ body {
                 safe_source_url=safe_source_url,
                 content_type=content_type,
             )
-            return jsonify({'success': False, 'message': '鍥剧墖鍐呭涓虹┖'}), 400
+            return jsonify({'success': False, 'message': '图片内容为空', 'reason': 'empty_content'}), 400
         if len(content) > 15 * 1024 * 1024:
             log_import_failure(
                 'image_too_large',
@@ -3307,7 +3499,7 @@ body {
                 parsed_path=str(parsed.path or ''),
                 detected_ext=ext,
             )
-            return jsonify({'success': False, 'message': '閾炬帴鍐呭涓嶆槸鍙楁敮鎸佺殑鍥剧墖鏍煎紡'}), 400
+            return jsonify({'success': False, 'message': '链接内容不是受支持的图片格式', 'reason': 'unsupported_image_format'}), 400
 
         filename = f"{uuid.uuid4().hex}{ext}"
         file_path = _dep('news_uploads_dir') / filename
@@ -3318,7 +3510,7 @@ body {
     @login_required
     def upload_news_image_file():
         if 'file' not in request.files:
-            return jsonify({'success': False, 'message': '娌℃湁涓婁紶鏂囦欢'}), 400
+            return jsonify({'success': False, 'message': '没有上传文件', 'reason': 'missing_file'}), 400
 
         file = request.files['file']
         if not file or not file.filename:
@@ -3326,7 +3518,7 @@ body {
 
         ext = _dep('validate_uploaded_image_extension')(file, allowed_extensions=_dep('allowed_news_image_extensions'))
         if not ext:
-            return jsonify({'success': False, 'message': '浠呮敮鎸?PNG/JPG/JPEG/WEBP/GIF'}), 400
+            return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF 图片', 'reason': 'unsupported_image_format'}), 400
 
         saved_name = f"{uuid.uuid4().hex}{ext}"
         save_path = _dep('news_uploads_dir') / saved_name
@@ -3349,4 +3541,3 @@ body {
         response = send_from_directory(str(resolved.parent), resolved.name)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
-

@@ -485,7 +485,7 @@ def ensure_required_runtime_config():
         raise RuntimeError('生产环境安全配置不完整：' + '；'.join(errors))
 
 NEWS_SAFE_HTML_TAGS = {
-    'p', 'br', 'div', 'span',
+    'p', 'br', 'div', 'span', 'font',
     'strong', 'b', 'em', 'i', 'u', 's', 'sup', 'sub',
     'ul', 'ol', 'li',
     'dl', 'dt', 'dd',
@@ -531,6 +531,22 @@ def get_config():
         'turnstile_enabled': env_bool('TURNSTILE_ENABLED', False),
         'turnstile_site_key': (os.environ.get('TURNSTILE_SITE_KEY') or '').strip(),
         'turnstile_secret_key': (os.environ.get('TURNSTILE_SECRET_KEY') or '').strip(),
+        'admin_login_geo_enabled': env_bool('ADMIN_LOGIN_GEO_ENABLED', True),
+        'admin_login_geo_continents': {
+            'asia': 'allow',
+            'europe': 'deny',
+            'africa': 'deny',
+            'north-america': 'deny',
+            'south-america': 'deny',
+            'oceania': 'deny',
+            'antarctica': 'deny',
+        },
+        'admin_login_geo_countries': {
+            'CN': 'allow',
+            'HK': 'allow',
+            'MO': 'allow',
+            'TW': 'allow',
+        },
         'email_auth_enabled': env_bool('EMAIL_AUTH_ENABLED', False),
         'smtp_host': (os.environ.get('SMTP_HOST') or '').strip(),
         'smtp_port': int((os.environ.get('SMTP_PORT') or '465').strip() or '465'),
@@ -575,4 +591,3 @@ def update_config(new_config):
     config.update(new_config)
     CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding='utf-8')
     return config
-

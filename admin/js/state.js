@@ -14,8 +14,7 @@
         'settings': '账号设置',
         'backup': '备份恢复',
         'cdn-assets': 'CDN 素材',
-        'changelog': '更新日志',
-        'docker-logs': '后端日志'
+        'log-records': '日志记录'
     };
 
     const shellSections = [
@@ -23,7 +22,7 @@
         { label: '内容运营', items: [{ type: 'view', key: 'home' }, { type: 'view', key: 'news-create' }, { type: 'view', key: 'jobs' }, { type: 'view', key: 'site-settings' }] },
         { label: '产品与方案', items: [{ type: 'group', key: 'gas-related' }, { type: 'group', key: 'bio-related' }] },
         { label: 'AI 与知识库', items: [{ type: 'view', key: 'chatbot' }] },
-        { label: '系统', items: [{ type: 'view', key: 'settings' }, { type: 'view', key: 'backup' }, { type: 'view', key: 'cdn-assets' }, { type: 'view', key: 'changelog' }, { type: 'view', key: 'docker-logs' }, { type: 'selector', key: '#sidebarLogoutItem' }] }
+        { label: '系统', items: [{ type: 'view', key: 'settings' }, { type: 'view', key: 'cdn-assets' }, { type: 'view', key: 'log-records' }, { type: 'selector', key: '#sidebarLogoutItem' }] }
     ];
 
     window.Admin2State = {

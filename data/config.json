@@ -10,6 +10,22 @@
   "turnstile_enabled": false,
   "turnstile_site_key": "0x4AAAAAACwKu-2HPFYY3XaB",
   "turnstile_secret_key": "0x4AAAAAACwKuxfpGhJXKGtu1PhTl9ANq24",
+  "admin_login_geo_enabled": true,
+  "admin_login_geo_continents": {
+    "asia": "allow",
+    "europe": "deny",
+    "africa": "deny",
+    "north-america": "deny",
+    "south-america": "deny",
+    "oceania": "deny",
+    "antarctica": "deny"
+  },
+  "admin_login_geo_countries": {
+    "CN": "allow",
+    "HK": "allow",
+    "MO": "allow",
+    "TW": "allow"
+  },
   "email_auth_enabled": false,
   "smtp_host": "",
   "smtp_port": 465,

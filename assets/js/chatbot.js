@@ -15,6 +15,7 @@
     const CHATBOT_MIN_WIDTH = 360;
     const CHATBOT_DESKTOP_DEFAULT_WIDTH = 460;
     const CHATBOT_MOBILE_BREAKPOINT = 480;
+    const AGENT_STATUS_MIN_VISIBLE_MS = 1000;
 
     // 会话ID（每次页面加载时生成新的）
     let sessionId = generateSessionId();
@@ -490,8 +491,8 @@
         appendMessage('user', message);
         conversationHistory.push({ role: 'user', content: message });
 
-        // Show typing indicator
-        const typingEl = showTypingIndicator();
+        // Show agent status indicator
+        const typingEl = showAgentStatusIndicator();
 
         // Disable input while processing
         setInputEnabled(false);
@@ -515,10 +516,8 @@
                 signal: controller.signal
             });
 
-            // Remove typing indicator
-            removeTypingIndicator(typingEl);
-
             if (!response.ok) {
+                removeTypingIndicator(typingEl);
                 throw new Error(`HTTP ${response.status}`);
             }
 
@@ -527,12 +526,16 @@
 
             if (contentType && contentType.includes('text/event-stream')) {
                 // Handle streaming response
-                await handleStreamingResponse(response);
+                await handleStreamingResponse(response, typingEl);
             } else {
                 // Handle regular JSON response
                 const data = await response.json();
                 if (data.success) {
-                    appendMessage('bot', data.response);
+                    removeTypingIndicator(typingEl);
+                    appendMessage('bot', data.response, false, data.recommendations || []);
+                    if (Array.isArray(data.status_updates) && data.status_updates.length) {
+                        prependAgentStatusSummary(messagesContainer.lastElementChild, data.status_updates);
+                    }
                     conversationHistory.push({ role: 'assistant', content: data.response });
                 } else {
                     appendError(data.message || '抱歉，出现了一些问题。');
@@ -553,13 +556,31 @@
         }
     }
 
-    async function handleStreamingResponse(response) {
+    async function handleStreamingResponse(response, initialStatusIndicatorEl = null) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let botMessage = '';
         let messageEl = null;
         let hasError = false;
         let buffer = '';
+        let recommendations = [];
+        let statusUpdates = [];
+        let statusIndicatorEl = initialStatusIndicatorEl || document.querySelector('.typing-message:last-child');
+        const statusQueue = createAgentStatusQueue(statusIndicatorEl, statusUpdates);
+
+        async function ensureMessageElement() {
+            if (messageEl) return messageEl;
+            if (statusIndicatorEl) {
+                await statusQueue.drain();
+                removeTypingIndicator(statusIndicatorEl);
+                statusIndicatorEl = null;
+            }
+            messageEl = appendMessage('bot', botMessage, true, recommendations);
+            if (statusUpdates.length) {
+                prependAgentStatusSummary(messageEl, statusUpdates);
+            }
+            return messageEl;
+        }
 
         try {
             while (true) {
@@ -585,19 +606,35 @@
                             continue;
                         }
 
+                        if (parsed.status) {
+                            statusQueue.push(parsed.status);
+                            if (messageEl) {
+                                prependAgentStatusSummary(messageEl, statusUpdates);
+                            }
+                            continue;
+                        }
+
                         if (parsed.content) {
                             botMessage += parsed.content;
                             if (!messageEl) {
-                                messageEl = appendMessage('bot', botMessage, true);
+                                await ensureMessageElement();
                             } else {
                                 updateMessageContent(messageEl, botMessage);
+                            }
+                            continue;
+                        }
+
+                        if (Array.isArray(parsed.recommendations)) {
+                            recommendations = parsed.recommendations;
+                            if (messageEl) {
+                                updateMessageRecommendations(messageEl, recommendations);
                             }
                         }
                     } catch (e) {
                         // Not JSON, might be plain text
                         botMessage += data;
                         if (!messageEl) {
-                            messageEl = appendMessage('bot', botMessage, true);
+                            await ensureMessageElement();
                         } else {
                             updateMessageContent(messageEl, botMessage);
                         }
@@ -607,23 +644,37 @@
         } catch (e) {
             console.error('Streaming error:', e);
             hasError = true;
+            if (statusIndicatorEl) {
+                await statusQueue.drain();
+                removeTypingIndicator(statusIndicatorEl);
+            }
             appendError('流式响应中断，请稍后重试。');
         }
 
         if (botMessage) {
+            if (messageEl && recommendations.length) {
+                updateMessageRecommendations(messageEl, recommendations);
+            }
             conversationHistory.push({ role: 'assistant', content: botMessage });
         } else if (!hasError) {
+            if (statusIndicatorEl) {
+                await statusQueue.drain();
+                removeTypingIndicator(statusIndicatorEl);
+            }
             appendError('未收到有效回复，请稍后重试。');
         }
     }
 
-    function appendMessage(type, content, returnEl = false) {
+    function appendMessage(type, content, returnEl = false, recommendations = []) {
         const messageHTML = `
             <div class="chat-message ${type}">
                 <div class="message-avatar">
                     <i class="fas fa-${type === 'bot' ? 'robot' : 'user'}"></i>
                 </div>
-                <div class="message-content">${formatMessage(content)}</div>
+                <div class="message-body">
+                    <div class="message-content">${formatMessage(content)}</div>
+                    ${type === 'bot' ? `<div class="chatbot-recommendations" ${recommendations.length ? '' : 'hidden'}>${renderRecommendationCards(recommendations)}</div>` : ''}
+                </div>
             </div>
         `;
 
@@ -640,6 +691,79 @@
         if (contentEl) {
             contentEl.innerHTML = formatMessage(content);
             scrollToBottom();
+        }
+    }
+
+    function updateMessageRecommendations(messageEl, recommendations) {
+        const container = messageEl.querySelector('.chatbot-recommendations');
+        if (!container) return;
+        const cards = Array.isArray(recommendations) ? recommendations.filter(item => item && item.url && item.title) : [];
+        if (!cards.length) {
+            container.hidden = true;
+            container.innerHTML = '';
+            return;
+        }
+        container.hidden = false;
+        container.innerHTML = renderRecommendationCards(cards);
+        scrollToBottom();
+    }
+
+    function prependAgentStatusSummary(messageEl, statusUpdates) {
+        if (!messageEl || !Array.isArray(statusUpdates) || !statusUpdates.length) return;
+        const body = messageEl.querySelector('.message-body');
+        if (!body) return;
+        const html = renderAgentStatusSummary(statusUpdates);
+        const existing = body.querySelector('.chatbot-agent-summary');
+        if (existing) {
+            const template = document.createElement('template');
+            template.innerHTML = html.trim();
+            existing.replaceWith(template.content.firstElementChild);
+            return;
+        }
+        body.insertAdjacentHTML('afterbegin', html);
+    }
+
+    function renderRecommendationCards(recommendations) {
+        const cards = Array.isArray(recommendations) ? recommendations.filter(item => item && item.url && item.title) : [];
+        if (!cards.length) return '';
+        return `
+            <div class="chatbot-recommendations-title">你可能感兴趣</div>
+            <div class="chatbot-recommendation-links">
+                ${cards.map(item => `
+                    <a class="chatbot-recommendation-link" href="${escapeAttr(item.url)}" target="_blank" rel="noopener">
+                        <span class="chatbot-recommendation-type">${escapeHtml(mapRecommendationTypeLabel(item.type || 'overview'))}</span>
+                        <span class="chatbot-recommendation-name">${escapeHtml(item.title || '')}</span>
+                    </a>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function renderAgentStatusSummary(statusUpdates) {
+        const steps = Array.isArray(statusUpdates) ? statusUpdates.filter(item => item && item.label) : [];
+        if (!steps.length) return '';
+        const latest = steps[steps.length - 1];
+        return `
+            <div class="chatbot-agent-summary is-refreshing">
+                <span class="chatbot-agent-summary-title">Agent</span>
+                <span class="chatbot-agent-summary-label">${escapeHtml(latest.label || '')}</span>
+                ${latest.detail ? `<span class="chatbot-agent-summary-detail">${escapeHtml(latest.detail || '')}</span>` : ''}
+            </div>
+        `;
+    }
+
+    function mapRecommendationTypeLabel(type) {
+        switch (String(type || '').trim()) {
+            case 'product':
+                return '产品';
+            case 'solution':
+                return '方案';
+            case 'custom':
+                return '定制';
+            case 'contact':
+                return '联系';
+            default:
+                return '推荐';
         }
     }
 
@@ -715,40 +839,82 @@
         return div.innerHTML;
     }
 
-    function showTypingIndicator() {
+    function escapeAttr(text) {
+        return escapeHtml(text).replace(/"/g, '&quot;');
+    }
+
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function createAgentStatusQueue(typingEl, statusUpdates) {
+        const queue = [];
+        let running = false;
+        let idleResolver = null;
+
+        const run = async () => {
+            if (running) return;
+            running = true;
+            while (queue.length) {
+                const status = queue.shift();
+                statusUpdates.push(status);
+                appendAgentStatusStep(typingEl, status);
+                await delay(AGENT_STATUS_MIN_VISIBLE_MS);
+            }
+            running = false;
+            if (idleResolver) {
+                idleResolver();
+                idleResolver = null;
+            }
+        };
+
+        return {
+            push(status) {
+                if (!status || !status.label) return;
+                queue.push(status);
+                run();
+            },
+            drain() {
+                if (!running && !queue.length) return Promise.resolve();
+                return new Promise(resolve => {
+                    idleResolver = resolve;
+                });
+            }
+        };
+    }
+
+    function showAgentStatusIndicator() {
         const typingHTML = `
             <div class="chat-message bot typing-message">
                 <div class="message-avatar">
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="typing-indicator">
-                    <div class="typing-status" aria-live="polite"></div>
-                    <div class="typing-dots" aria-hidden="true">
-                        <span></span>
-                        <span></span>
-                        <span></span>
+                    <div class="agent-status-list" aria-live="polite">
+                        <div class="agent-status-item is-refreshing">
+                            <div class="agent-status-label">元芯AI正在准备处理您的问题</div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         messagesContainer.insertAdjacentHTML('beforeend', typingHTML);
         scrollToBottom();
-        const typingEl = messagesContainer.lastElementChild;
-        const statusEl = typingEl && typingEl.querySelector('.typing-status');
-        if (statusEl) {
-            let idx = 0;
-            statusEl.textContent = WAITING_STATUS_MESSAGES[idx];
-            const timer = setInterval(() => {
-                if (!typingEl || !typingEl.isConnected) {
-                    clearInterval(timer);
-                    return;
-                }
-                idx = (idx + 1) % WAITING_STATUS_MESSAGES.length;
-                statusEl.textContent = WAITING_STATUS_MESSAGES[idx];
-            }, 1400);
-            typingEl._statusTimer = timer;
-        }
-        return typingEl;
+        return messagesContainer.lastElementChild;
+    }
+
+    function appendAgentStatusStep(typingEl, status) {
+        if (!typingEl || !status || !status.label) return;
+        const listEl = typingEl.querySelector('.agent-status-list');
+        if (!listEl) return;
+        const detail = status.detail ? `<div class="agent-status-detail">${escapeHtml(status.detail)}</div>` : '';
+        listEl.innerHTML = `
+            <div class="agent-status-item is-refreshing">
+                <div class="agent-status-label">${escapeHtml(status.label || '')}</div>
+                ${detail}
+            </div>
+        `;
+        scrollToBottom();
     }
 
     function removeTypingIndicator(typingEl) {

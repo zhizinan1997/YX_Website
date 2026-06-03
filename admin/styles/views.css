@@ -1009,6 +1009,258 @@
             gap: 12px;
         }
 
+        .message-center {
+            position: relative;
+        }
+
+        .message-center-trigger {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #d4dbe6;
+            background: #fff;
+            color: #1f3655;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .message-center-trigger:hover {
+            border-color: #9fb3d1;
+            background: #f5f9ff;
+        }
+
+        .message-center-trigger.has-unread {
+            border-color: rgba(220, 38, 38, 0.18);
+            box-shadow: 0 10px 24px rgba(220, 38, 38, 0.08);
+        }
+
+        .message-center-label {
+            white-space: nowrap;
+        }
+
+        .message-center-unread-badge {
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 20px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(220, 38, 38, 0.24);
+        }
+
+        .message-center-panel {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            width: min(380px, calc(100vw - 24px));
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 18px 42px rgba(15, 35, 66, 0.16);
+            padding: 14px;
+            z-index: 22;
+        }
+
+        .message-center-panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .message-center-panel-kicker {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .message-center-panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #16365f;
+        }
+
+        .message-center-panel-total {
+            min-width: 72px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+            color: #be123c;
+            text-align: center;
+        }
+
+        .message-center-panel-total span {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            opacity: 0.85;
+        }
+
+        .message-center-panel-total strong {
+            display: block;
+            margin-top: 2px;
+            font-size: 22px;
+            line-height: 1.1;
+        }
+
+        .message-center-summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .message-center-summary-card {
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+            border: 1px solid #d9e6f5;
+        }
+
+        .message-center-summary-label {
+            display: block;
+            font-size: 12px;
+            color: #5d708b;
+            margin-bottom: 6px;
+        }
+
+        .message-center-summary-card strong {
+            display: block;
+            font-size: 20px;
+            color: #123d71;
+            line-height: 1.1;
+        }
+
+        .message-center-list-wrap {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 14px;
+        }
+
+        .message-center-list-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #5b6f8d;
+            margin-bottom: 10px;
+        }
+
+        .message-center-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message-center-item {
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            background: #f8fbff;
+        }
+
+        .message-center-item.is-unread {
+            border-color: #fecdd3;
+            background: linear-gradient(180deg, #fff7f7 0%, #fff1f2 100%);
+        }
+
+        .message-center-item-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .message-center-item-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #123d71;
+        }
+
+        .message-center-item-type i {
+            color: #0ea5b7;
+        }
+
+        .message-center-item-time {
+            font-size: 12px;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .message-center-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #17345c;
+            margin-bottom: 4px;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .message-center-item-meta {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .message-center-item-status {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(220, 38, 38, 0.08);
+            color: #dc2626;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .message-center-empty {
+            padding: 20px 12px;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: #64748b;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .message-center-footer-btn {
+            width: 100%;
+            margin-top: 14px;
+            border: none;
+            border-radius: 12px;
+            padding: 11px 12px;
+            background: linear-gradient(135deg, #143d73 0%, #1b5ea0 48%, #27c7d9 100%);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 14px 28px rgba(20, 61, 115, 0.16);
+        }
+
+        .message-center-footer-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(20, 61, 115, 0.2);
+        }
+
         .top-home-btn {
             display: inline-flex;
             align-items: center;
@@ -1057,16 +1309,6 @@
         .version-badge .version-number {
             font-weight: 700;
             color: #2563eb;
-        }
-
-        .version-badge .version-time {
-            opacity: 0.7;
-            font-size: 11px;
-        }
-
-        .version-badge .version-sep {
-            margin: 0 6px;
-            opacity: 0.4;
         }
 
         .account-menu {
@@ -1449,11 +1691,13 @@
                 font-size: 12px;
             }
 
+            .message-center-trigger,
             .account-menu-trigger {
                 padding: 7px 10px;
                 font-size: 13px;
             }
 
+            .message-center-label,
             #topbarUsername {
                 display: none;
             }
@@ -3864,56 +4108,148 @@
             margin-top: 5px;
         }
 
-        .news-feishu-import-disabled-panel {
+        .news-create-form {
+            display: grid;
+            grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        #newsCreateForm .form-control {
+            min-width: 0;
+        }
+
+        .news-submit-actions {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 14px;
-            border: 1px solid #d4d8de;
-            border-radius: 8px;
-            background: linear-gradient(180deg, #f3f4f6, #eceef2);
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
         }
 
-        .news-feishu-import-disabled-title {
-            color: #5f6775;
-            font-size: 14px;
+        .news-list-item {
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .news-list-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .news-feishu-import--featured {
+            grid-column: 1 / -1;
+            margin-bottom: 4px;
+            padding: 18px 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(39, 199, 217, 0.45);
+            background: linear-gradient(135deg, rgba(18, 61, 113, 0.06), rgba(39, 199, 217, 0.12));
+            box-shadow: 0 10px 24px rgba(20, 61, 115, 0.10);
+        }
+
+        .news-feishu-import-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .news-feishu-import-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            font-size: 18px;
+            color: #fff;
+            background: linear-gradient(135deg, #143d73 0%, #1b5ea0 48%, #27c7d9 100%);
+            box-shadow: 0 8px 18px rgba(20, 61, 115, 0.22);
+        }
+
+        .news-feishu-import-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
             font-weight: 700;
+            color: var(--admin2-primary, #123d71);
         }
 
-        .news-feishu-import-disabled-row {
+        .news-feishu-import-recommend {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            color: #fff;
+            background: linear-gradient(135deg, #17935f, #27c7d9);
+            box-shadow: 0 4px 10px rgba(23, 147, 95, 0.26);
+        }
+
+        .news-feishu-import-subtitle {
+            margin-top: 3px;
+            font-size: 13px;
+            color: var(--admin2-text-muted, #5d708b);
+        }
+
+        .news-feishu-import-row {
             display: flex;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
         }
 
-        .news-feishu-import-disabled-panel .form-control:disabled {
-            background: #e4e7ec;
-            color: #7a8391;
-            border-color: #cfd5de;
-            cursor: not-allowed;
-            box-shadow: none;
+        .news-feishu-import-row .form-control {
+            flex: 1 1 360px;
         }
 
-        .news-feishu-import-disabled-panel .form-control:disabled::placeholder {
-            color: #8d95a1;
+        .btn-feishu-import {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: none;
+            padding: 11px 22px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            background: linear-gradient(135deg, #143d73 0%, #1b5ea0 48%, #27c7d9 100%);
+            box-shadow: 0 12px 24px rgba(20, 61, 115, 0.22);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
         }
 
-        .news-feishu-import-disabled-panel .btn-sm:disabled {
-            background: #d8dde6;
-            color: #7a8391;
-            border-color: #c7ced9;
-            cursor: not-allowed;
-            opacity: 1;
-            box-shadow: none;
+        .btn-feishu-import:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(20, 61, 115, 0.28);
         }
 
-        .news-feishu-import-disabled-hint {
-            margin-top: 0;
-            color: #7b8390;
+        .btn-feishu-import:disabled {
+            opacity: 0.6;
+            cursor: progress;
+            transform: none;
         }
 
-        .news-feishu-import-msg-hidden {
+        .news-feishu-import-hint {
+            margin-top: 10px;
+            color: var(--admin2-text-muted, #5d708b);
+        }
+
+        .news-feishu-import-msg {
+            margin-top: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .news-feishu-import-msg:empty {
             display: none;
         }
 
@@ -3991,6 +4327,9 @@
         }
 
         @media (max-width: 900px) {
+            .news-create-form {
+                grid-template-columns: 1fr;
+            }
 
             .news-toolbar-control.short,
             .news-toolbar-control.medium,
@@ -4255,6 +4594,21 @@
         }
 
         @media (max-width: 640px) {
+            .news-list-item {
+                flex-direction: column;
+            }
+
+            .news-list-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .news-submit-actions .btn-primary,
+            .news-submit-actions .btn-sm {
+                width: 100% !important;
+                justify-content: center;
+            }
+
             .news-image-process-banner {
                 padding: 10px 12px;
                 gap: 10px;

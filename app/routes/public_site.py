@@ -60,6 +60,367 @@ from flask import Response, jsonify, redirect, request, send_file, send_from_dir
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
+
+class PublicSiteTextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.text_parts = []
+        self.skip_tags = {'script', 'style', 'nav', 'header', 'footer', 'noscript'}
+        self.skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.skip_tags:
+            self.skip_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag in self.skip_tags and self.skip_depth > 0:
+            self.skip_depth -= 1
+
+    def handle_data(self, data):
+        if self.skip_depth == 0:
+            text = data.strip()
+            if text and len(text) > 1:
+                self.text_parts.append(text)
+
+    def get_text(self):
+        return ' '.join(self.text_parts)
+
+
+def extract_public_text_from_html(html_content):
+    try:
+        parser = PublicSiteTextExtractor()
+        parser.feed(html_content)
+        return parser.get_text()
+    except Exception:
+        return ''
+
+
+def extract_public_title_from_html(html_content):
+    title_match = re.search(r'<title[^>]*>([^<]+)</title>', html_content, re.IGNORECASE)
+    if title_match:
+        return title_match.group(1).strip()
+    h1_match = re.search(r'<h1[^>]*>([^<]+)</h1>', html_content, re.IGNORECASE)
+    if h1_match:
+        return h1_match.group(1).strip()
+    return ''
+
+
+def strip_public_html_markup(raw_html: str) -> str:
+    text = html.unescape(str(raw_html or '').replace('\u00a0', ' '))
+    text = re.sub(r'(?is)<(script|style|svg|noscript).*?>.*?</\1>', ' ', text)
+    text = re.sub(r'(?is)<br\s*/?>', ' ', text)
+    text = re.sub(r'(?is)<[^>]+>', ' ', text)
+    text = re.sub(r'[\r\n\t]+', ' ', text)
+    text = re.sub(r'\s{2,}', ' ', text).strip()
+    return text
+
+
+def extract_public_heading_from_html(html_content):
+    h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', html_content or '', re.IGNORECASE | re.DOTALL)
+    if h1_match:
+        return strip_public_html_markup(h1_match.group(1))
+    return ''
+
+
+def canonical_public_search_url(rel_path: str) -> str:
+    normalized = str(rel_path or '').replace('\\', '/').lstrip('/')
+    if not normalized or normalized == 'index.html':
+        return '/'
+    if normalized.endswith('/index.html'):
+        return '/' + normalized[:-10].rstrip('/') + '/'
+    return '/' + normalized
+
+
+def classify_public_search_page(url: str) -> str:
+    path = str(url or '').lower()
+    if path in {'/', '/index.html'}:
+        return 'home'
+    if '/pages/contact/' in path:
+        return 'contact'
+    if '/pages/customization/' in path or path in {
+        '/pages/solutions/custom-solutions.html',
+        '/pages/biosensing/custom_bio_sensor_chip.html',
+        '/pages/research/micro-nano.html',
+        '/pages/about/micro-nano.html',
+    }:
+        return 'custom'
+    if path in {
+        '/pages/gassensing/all-products.html',
+        '/pages/biosensing/',
+        '/pages/biosensing/index.html',
+        '/pages/solutions/solutions-index.html',
+    }:
+        return 'overview'
+    if '/pages/solutions/' in path or '/pages/gassensing/cases/' in path:
+        return 'solution'
+    if '/pages/gassensing/' in path or '/pages/biosensing/' in path or '/pages/measurement/' in path:
+        return 'product'
+    if '/pages/news/' in path:
+        return 'news'
+    if '/pages/careers/' in path:
+        return 'career'
+    if '/pages/about/' in path or '/pages/honors/' in path:
+        return 'about'
+    if '/pages/research/' in path or '/pages/services/' in path:
+        return 'service'
+    return 'other'
+
+
+def infer_public_search_business_line(url: str, title: str = '', content: str = '') -> str:
+    combined = f'{url} {title} {content[:500]}'.lower()
+    if '/pages/biosensing/' in combined or '生物' in combined or 'bio' in combined:
+        return 'biosensing'
+    if '/pages/gassensing/' in combined or '/pages/measurement/' in combined or '氢' in combined or '气体' in combined or 'gas' in combined:
+        return 'gassensing'
+    if '/pages/solutions/' in combined or '方案' in combined:
+        return 'solutions'
+    if '/pages/customization/' in combined or '定制' in combined:
+        return 'customization'
+    return ''
+
+
+def build_public_search_keywords(title: str, heading: str, content: str, url: str) -> list[str]:
+    combined = f'{title} {heading} {content[:1200]} {url}'.lower()
+    keywords = []
+    seen = set()
+    for term in PUBLIC_SEARCH_KEY_TERMS:
+        term_lower = term.lower()
+        if term_lower in combined and term_lower not in seen:
+            seen.add(term_lower)
+            keywords.append(term_lower)
+    for token in re.findall(r'[A-Za-z0-9][A-Za-z0-9_.-]{1,}', combined):
+        key = token.lower()
+        if key not in seen:
+            seen.add(key)
+            keywords.append(key)
+    return keywords[:30]
+
+
+def build_public_search_page(root: Path, file_path: Path, html_content: str, rel_path: str) -> dict:
+    title = extract_public_title_from_html(html_content)
+    heading = extract_public_heading_from_html(html_content)
+    text = extract_public_text_from_html(html_content)
+    url = canonical_public_search_url(rel_path)
+    page_type = classify_public_search_page(url)
+    return {
+        'url': url,
+        'title': title or heading or Path(rel_path).stem or '首页',
+        'h1': heading,
+        'content': text[:5000],
+        'summary': text[:260],
+        'path': str(rel_path).replace('\\', '/'),
+        'page_type': page_type,
+        'business_line': infer_public_search_business_line(url, title, text),
+        'keywords': build_public_search_keywords(title, heading, text, url),
+        'file_exists': bool(file_path and Path(file_path).is_file()),
+    }
+
+
+def build_public_search_index(root: Path):
+    root = Path(root)
+    pages_dir = root / 'pages'
+    index_file = root / 'index.html'
+    pages = []
+
+    if index_file.exists():
+        try:
+            content = index_file.read_text(encoding='utf-8')
+            pages.append(build_public_search_page(root, index_file, content, 'index.html'))
+        except Exception:
+            pass
+
+    if pages_dir.exists():
+        for html_file in pages_dir.rglob('*.html'):
+            if 'admin' in str(html_file).lower():
+                continue
+            try:
+                content = html_file.read_text(encoding='utf-8')
+                rel_path = html_file.relative_to(root)
+                pages.append(build_public_search_page(root, html_file, content, str(rel_path)))
+            except Exception as exc:
+                print(f'Error indexing {html_file}: {exc}')
+                continue
+
+    return pages
+
+
+PUBLIC_SEARCH_KEY_TERMS = (
+    '定制化', '定制服务', '定制方案', '特殊开发', '开发需求', '特殊需求', '非标',
+    '客制化', '微纳加工', '工艺定制', '芯片定制', '器件定制', '封装测试',
+    '定制', '开发', '需求', '产品', '型号', '参数', '选型', '方案', '解决方案',
+    '应用', '行业', '场景', '部署', '工况', '联系', '电话', '邮箱', '售后',
+    '报价', '价格', '采购', '打样', '样机', '传感器', '传感', '检测', '检测仪',
+    '模块', '报警器', '芯片', '器件', '气体', '氢气', '氧气', '氮气', '甲烷',
+    '生物', '碳基', '半导体', 'MEMS', 'OEM',
+)
+
+PUBLIC_SEARCH_QUERY_EXPANSIONS = {
+    'solution': {
+        'triggers': ('方案', '解决方案', '行业', '应用场景'),
+        'terms': ('解决方案', '行业', '氢能', '电力', '环境', '储能', '检漏', '定制化'),
+    },
+    'product': {
+        'triggers': ('产品', '型号', '传感器', '模块', '检测仪', '报警器', '选型'),
+        'terms': ('产品', '传感器', '模块', '检测仪', '报警器', '参数', '量程'),
+    },
+    'custom': {
+        'triggers': ('定制', '定制化', '特殊开发', '开发需求', '非标', '微纳加工'),
+        'terms': ('定制服务', '定制化', '特殊开发', '微纳加工', '芯片定制', '封装测试'),
+    },
+    'contact': {
+        'triggers': ('联系', '电话', '邮箱', '地址', '售后', '客服', '报价', '价格', '采购'),
+        'terms': ('联系', '电话', '邮箱', '留言', '报价', '售后'),
+    },
+}
+
+PUBLIC_SEARCH_DEFAULT_EXCLUDED_TYPES = {'news', 'career', 'about'}
+PUBLIC_SEARCH_EXPLICIT_TYPE_TERMS = {
+    'news': ('新闻', '资讯', '动态', '文章'),
+    'career': ('招聘', '职位', '工作', '加入'),
+    'about': ('公司介绍', '关于我们', '荣誉', '发展历程', '企业文化'),
+}
+PUBLIC_SEARCH_PAGE_TYPE_WEIGHT = {
+    'product': 90,
+    'custom': 90,
+    'solution': 82,
+    'overview': 70,
+    'contact': 65,
+    'service': 45,
+    'home': 25,
+    'news': 5,
+    'career': 0,
+    'about': 0,
+    'other': 0,
+}
+
+
+def tokenize_public_search_query(query):
+    query_lower = str(query or '').strip().lower()
+    if not query_lower:
+        return []
+    tokens = []
+    seen = set()
+
+    def add_token(token):
+        token = str(token or '').strip().lower()
+        if len(token) < 2 or token in seen:
+            return
+        seen.add(token)
+        tokens.append(token)
+
+    for word in re.split(r'[\s,，。；;、/\\|]+', query_lower):
+        add_token(word)
+    for term in PUBLIC_SEARCH_KEY_TERMS:
+        term_lower = term.lower()
+        if term_lower in query_lower:
+            add_token(term_lower)
+    for expansion in PUBLIC_SEARCH_QUERY_EXPANSIONS.values():
+        if any(trigger.lower() in query_lower for trigger in expansion['triggers']):
+            for term in expansion['terms']:
+                add_token(term)
+    return tokens
+
+
+def public_search_allows_page_type(query_lower: str, page_type: str) -> bool:
+    if page_type not in PUBLIC_SEARCH_DEFAULT_EXCLUDED_TYPES:
+        return True
+    explicit_terms = PUBLIC_SEARCH_EXPLICIT_TYPE_TERMS.get(page_type, ())
+    return any(term.lower() in query_lower for term in explicit_terms)
+
+
+def build_public_search_snippet(content: str, terms: list[str]) -> str:
+    content = str(content or '')
+    content_lower = content.lower()
+    for term in terms:
+        term = str(term or '').lower()
+        if len(term) < 2:
+            continue
+        idx = content_lower.find(term)
+        if idx == -1:
+            continue
+        start = max(0, idx - 50)
+        end = min(len(content), idx + len(term) + 120)
+        snippet = content[start:end]
+        if start > 0:
+            snippet = '...' + snippet
+        if end < len(content):
+            snippet += '...'
+        return snippet
+    return (content[:180] + '...') if len(content) > 180 else content
+
+
+def search_public_pages(query, pages, limit=20):
+    if not query:
+        return []
+
+    query_lower = str(query or '').strip().lower()
+    if not query_lower:
+        return []
+
+    query_terms = tokenize_public_search_query(query_lower)
+    results = []
+    for page in pages or []:
+        if not page.get('file_exists', True):
+            continue
+        score = 0
+        snippet = ''
+        title = page.get('title', '')
+        heading = page.get('h1', '')
+        content = page.get('content', '')
+        keywords = page.get('keywords') or []
+        page_type = page.get('page_type') or classify_public_search_page(page.get('url', ''))
+        title_lower = title.lower()
+        heading_lower = heading.lower()
+        content_lower = content.lower()
+        keyword_text = ' '.join([str(item) for item in keywords]).lower()
+
+        if not public_search_allows_page_type(query_lower, page_type):
+            continue
+
+        if query_lower in title_lower:
+            score += 100
+            snippet = title
+        if query_lower in heading_lower:
+            score += 80
+            snippet = heading or snippet
+
+        if query_lower in content_lower:
+            score += 50
+            snippet = build_public_search_snippet(content, [query_lower])
+
+        for word in query_terms:
+            if word in title_lower:
+                score += 36
+                if not snippet:
+                    snippet = title
+            if word in heading_lower:
+                score += 30
+                if not snippet:
+                    snippet = heading
+            if word in keyword_text:
+                score += 18
+            if word in content_lower:
+                score += 10
+                if not snippet:
+                    snippet = build_public_search_snippet(content, [word])
+
+        score += PUBLIC_SEARCH_PAGE_TYPE_WEIGHT.get(page_type, 0)
+
+        if score > 0:
+            results.append({
+                'url': page.get('url', ''),
+                'title': title,
+                'h1': heading,
+                'snippet': snippet or page.get('summary') or build_public_search_snippet(content, query_terms),
+                'score': score,
+                'page_type': page_type,
+                'business_line': page.get('business_line', ''),
+                'keywords': keywords,
+            })
+
+    results.sort(key=lambda item: item['score'], reverse=True)
+    return results[:limit]
+
 def now_beijing():
     """返回北京时间对应的当前时间。"""
     return datetime.now(BEIJING_TZ)
@@ -181,13 +542,7 @@ def register_public_site_routes(
         return attrs
 
     def strip_html_markup(raw_html: str) -> str:
-        text = html.unescape(str(raw_html or '').replace('\u00a0', ' '))
-        text = re.sub(r'(?is)<(script|style|svg|noscript).*?>.*?</\1>', ' ', text)
-        text = re.sub(r'(?is)<br\s*/?>', ' ', text)
-        text = re.sub(r'(?is)<[^>]+>', ' ', text)
-        text = re.sub(r'[\r\n\t]+', ' ', text)
-        text = re.sub(r'\s{2,}', ' ', text).strip()
-        return text
+        return strip_public_html_markup(raw_html)
 
     def extract_html_title(html_body: str) -> str:
         match = re.search(r'(?is)<title\b[^>]*>(.*?)</title>', html_body or '')
@@ -219,8 +574,7 @@ def register_public_site_routes(
         return ''
 
     def extract_primary_heading(html_body: str) -> str:
-        match = re.search(r'(?is)<h1\b[^>]*>(.*?)</h1>', html_body or '')
-        return strip_html_markup(match.group(1) if match else '')
+        return extract_public_heading_from_html(html_body)
 
     def looks_like_noise_description(text: str) -> bool:
         candidate = str(text or '').strip()
@@ -603,46 +957,11 @@ def register_public_site_routes(
             pass
         return response
 
-    class TextExtractor(HTMLParser):
-        def __init__(self):
-            super().__init__()
-            self.text_parts = []
-            self.skip_tags = {'script', 'style', 'nav', 'header', 'footer', 'noscript'}
-            self.skip_depth = 0
-
-        def handle_starttag(self, tag, attrs):
-            if tag in self.skip_tags:
-                self.skip_depth += 1
-
-        def handle_endtag(self, tag):
-            if tag in self.skip_tags and self.skip_depth > 0:
-                self.skip_depth -= 1
-
-        def handle_data(self, data):
-            if self.skip_depth == 0:
-                text = data.strip()
-                if text and len(text) > 1:
-                    self.text_parts.append(text)
-
-        def get_text(self):
-            return ' '.join(self.text_parts)
-
     def extract_text_from_html(html_content):
-        try:
-            parser = TextExtractor()
-            parser.feed(html_content)
-            return parser.get_text()
-        except Exception:
-            return ''
+        return extract_public_text_from_html(html_content)
 
     def extract_title_from_html(html_content):
-        title_match = re.search(r'<title[^>]*>([^<]+)</title>', html_content, re.IGNORECASE)
-        if title_match:
-            return title_match.group(1).strip()
-        h1_match = re.search(r'<h1[^>]*>([^<]+)</h1>', html_content, re.IGNORECASE)
-        if h1_match:
-            return h1_match.group(1).strip()
-        return ''
+        return extract_public_title_from_html(html_content)
 
     def build_search_index():
         with search_lock:
@@ -653,14 +972,7 @@ def register_public_site_routes(
             if index_file.exists():
                 try:
                     content = index_file.read_text(encoding='utf-8')
-                    title = extract_title_from_html(content)
-                    text = extract_text_from_html(content)
-                    pages.append({
-                        'url': '/',
-                        'title': title or '首页',
-                        'content': text[:2000],
-                        'path': 'index.html',
-                    })
+                    pages.append(build_public_search_page(root, index_file, content, 'index.html'))
                 except Exception:
                     pass
 
@@ -669,16 +981,8 @@ def register_public_site_routes(
                     continue
                 try:
                     content = html_file.read_text(encoding='utf-8')
-                    title = extract_title_from_html(content)
-                    text = extract_text_from_html(content)
                     rel_path = html_file.relative_to(root)
-                    url = '/' + str(rel_path).replace('\\', '/')
-                    pages.append({
-                        'url': url,
-                        'title': title or html_file.stem,
-                        'content': text[:2000],
-                        'path': str(rel_path),
-                    })
+                    pages.append(build_public_search_page(root, html_file, content, str(rel_path)))
                 except Exception as exc:
                     print(f'Error indexing {html_file}: {exc}')
                     continue
@@ -691,51 +995,12 @@ def register_public_site_routes(
         if not search_index['pages'] or time.time() - search_index['last_updated'] > 300:
             build_search_index()
 
-        if not query:
-            return []
+        return search_public_pages(query, search_index['pages'], limit)
 
-        query_lower = query.lower()
-        results = []
-        for page in search_index['pages']:
-            score = 0
-            snippet = ''
-            title = page.get('title', '')
-            content = page.get('content', '')
-            title_lower = title.lower()
-            content_lower = content.lower()
-
-            if query_lower in title_lower:
-                score += 100
-                snippet = title
-
-            if query_lower in content_lower:
-                score += 50
-                idx = content_lower.find(query_lower)
-                start = max(0, idx - 50)
-                end = min(len(content), idx + len(query) + 100)
-                snippet = content[start:end]
-                if start > 0:
-                    snippet = '...' + snippet
-                if end < len(content):
-                    snippet = snippet + '...'
-
-            for word in query_lower.split():
-                if len(word) >= 2:
-                    if word in title_lower:
-                        score += 30
-                    if word in content_lower:
-                        score += 10
-
-            if score > 0:
-                results.append({
-                    'url': page['url'],
-                    'title': title,
-                    'snippet': snippet or (content[:150] + '...' if content else ''),
-                    'score': score,
-                })
-
-        results.sort(key=lambda item: item['score'], reverse=True)
-        return results[:limit]
+    app.extensions.setdefault('yx_public_site_search', {})
+    app.extensions['yx_public_site_search']['search_pages'] = search_pages
+    app.extensions['yx_public_site_search']['build_search_index'] = build_search_index
+    app.extensions['yx_public_site_search']['resolve_page'] = canonical_public_path_for_request
 
     @app.route('/api/search')
     def api_search():

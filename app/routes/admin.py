@@ -89,6 +89,15 @@ from urllib.request import Request, urlopen
 import ssl
 
 from flask import jsonify, make_response, request, send_from_directory, session
+from app.admin_geo import (
+    ADMIN_GEO_CONTINENTS,
+    build_admin_login_geo_catalog_payload,
+    build_admin_login_geo_settings_payload,
+    extract_admin_login_geo_updates,
+    get_country_continent_key,
+    is_country_code_allowed,
+    normalize_admin_login_geo_settings,
+)
 from app.request_security import get_request_client_ip, is_same_origin_request
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -112,7 +121,6 @@ except Exception:
     ADMIN_SESSION_MAX_AGE_SECONDS = 7200
 ADMIN_SESSION_SCHEMA_VERSION = 4
 LOGIN_DELAY_SECONDS = [60, 180]
-ALLOWED_LOGIN_COUNTRIES = {'CN', 'HK', 'MO', 'TW'}
 EMAIL_CODE_LENGTH = 6
 EMAIL_CODE_EXPIRES_SECONDS = 300
 EMAIL_CODE_RESEND_COOLDOWN_SECONDS = 60
@@ -136,9 +144,8 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'site-settings', 'label': '站点设置'},
     {'key': 'settings', 'label': '账号设置'},
     {'key': 'backup', 'label': '备份恢复'},
-    {'key': 'changelog', 'label': '更新日志'},
     {'key': 'cdn-assets', 'label': 'CDN 素材'},
-    {'key': 'docker-logs', 'label': '后端日志'},
+    {'key': 'log-records', 'label': '日志记录'},
 ]
 ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
 USERNAME_RULE = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
@@ -171,8 +178,12 @@ def _normalize_permissions(raw_permissions, is_super_admin: bool = False):
         return list(ADMIN_PERMISSION_KEYS)
     output = []
     source = raw_permissions if isinstance(raw_permissions, (list, tuple, set)) else []
+    legacy_permission_map = {
+        'changelog': 'log-records',
+        'docker-logs': 'log-records',
+    }
     for item in source:
-        key = str(item or '').strip()
+        key = legacy_permission_map.get(str(item or '').strip(), str(item or '').strip())
         if key in ADMIN_PERMISSION_KEYS and key not in output:
             output.append(key)
     return output
@@ -482,14 +493,16 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return None
     if p.startswith('/api/admin/email-auth'):
         return 'site-settings'
+    if p.startswith('/api/admin/security/login-geo'):
+        return 'site-settings'
     if p.startswith('/api/admin/security/turnstile') or p.startswith('/api/cdn/'):
         return 'site-settings'
     if p.startswith('/api/admin/site-reports'):
         return 'site-reports'
     if p.startswith('/api/admin/changelog'):
-        return 'changelog'
+        return 'log-records'
     if p.startswith('/api/admin/docker-logs'):
-        return 'docker-logs'
+        return 'log-records'
     if p.startswith('/api/cdn/assets'):
         return 'cdn-assets'
     if p.startswith('/api/backup/'):
@@ -1261,8 +1274,8 @@ def _parse_bool(raw, default: bool = False) -> bool:
     return default
 
 
-def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_country_code_func) -> tuple:
-    """检查 IP 所属国家是否在允许列表中，返回（是否允许，原因）。"""
+def _is_ip_country_allowed(ip: str, geo_settings: dict, resolve_country_code_func) -> tuple:
+    """检查登录 IP 是否符合后台地域访问规则。"""
     if not ip:
         return True, ''
     try:
@@ -1274,15 +1287,25 @@ def _is_ip_country_allowed(ip: str, allowed_countries: set, resolve_country_code
         return True, ''
     country_code = resolve_country_code_func(ip)
     if not country_code:
-        return False, '无法获取IP归属地，已拒绝登录'
-    if country_code not in allowed_countries:
+        if not normalize_admin_login_geo_settings(geo_settings).get('enabled', True):
+            return True, ''
+        return False, '无法获取 IP 归属地，已拒绝登录'
+    if not is_country_code_allowed(country_code, geo_settings):
         location = ''
         try:
             from app.admin_audit import resolve_ip_location
             location = resolve_ip_location(ip)
         except Exception:
             location = ''
-        return False, f'您的登录IP归属地({location})被禁止登录'
+        continent_key = get_country_continent_key(country_code)
+        continent_label = ''
+        for continent in ADMIN_GEO_CONTINENTS:
+            if continent['key'] == continent_key:
+                continent_label = continent['label']
+                break
+        location_suffix = f'({location})' if location else ''
+        continent_suffix = f'，所属大洲：{continent_label}' if continent_label else ''
+        return False, f'您的登录 IP 归属地{location_suffix}{continent_suffix}被禁止登录'
     return True, ''
 
 
@@ -1981,17 +2004,48 @@ def register_admin_routes(
     def admin_ip_preflight():
         """登录前 IP 预检：返回客户端 IP、归属地和是否允许登录。"""
         ip_addr = _get_request_ip(request)
+        config = get_config() or {}
+        geo_settings = normalize_admin_login_geo_settings(config)
         location = _resolve_ip_location(ip_addr)
         country_code = _resolve_ip_country_code(ip_addr)
         allowed, reason = _is_ip_country_allowed(
-            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code
+            ip_addr, geo_settings, _resolve_ip_country_code
         )
         return jsonify({
             'ip': ip_addr,
             'location': location,
             'country_code': country_code,
+            'continent_key': get_country_continent_key(country_code),
             'allowed': allowed,
             'reason': reason,
+        })
+
+    @app.route('/api/admin/security/login-geo', methods=['GET'])
+    @login_required
+    def admin_login_geo_config():
+        config = get_config() or {}
+        return jsonify({
+            'success': True,
+            'config': build_admin_login_geo_settings_payload(config),
+            'catalog': build_admin_login_geo_catalog_payload(),
+        })
+
+    @app.route('/api/admin/security/login-geo', methods=['POST'])
+    @login_required
+    def admin_login_geo_config_update():
+        if not _is_super_admin_session(session):
+            return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+
+        data = request.get_json(silent=True) or {}
+        updates = extract_admin_login_geo_updates(data)
+        update_config(updates)
+        return jsonify({
+            'success': True,
+            'message': '后台登录地域访问规则已保存。',
+            'config': build_admin_login_geo_settings_payload(get_config() or {}),
+            'catalog': build_admin_login_geo_catalog_payload(),
         })
 
     @app.route('/api/admin/security/turnstile/public', methods=['GET'])
@@ -2191,6 +2245,7 @@ def register_admin_routes(
         now_ts = int(time.time())
         attempts_file = _get_login_attempts_file(root)
         config = get_config() or {}
+        geo_settings = normalize_admin_login_geo_settings(config)
         turnstile_settings = _get_turnstile_settings(config)
         smtp_settings = _get_email_auth_settings(config)
 
@@ -2205,7 +2260,7 @@ def register_admin_routes(
 
         is_hidden_admin = _is_hidden_admin_record(login_user)
         login_identifier = email if login_method == 'email_password' else username
-        country_allowed, country_reason = _is_ip_country_allowed(ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code)
+        country_allowed, country_reason = _is_ip_country_allowed(ip_addr, geo_settings, _resolve_ip_country_code)
         if not country_allowed:
             append_admin_login_log(
                 operation='admin_login',
@@ -2369,6 +2424,7 @@ def register_admin_routes(
         now_ts = int(time.time())
         attempts_file = _get_login_attempts_file(root)
         config = get_config() or {}
+        geo_settings = normalize_admin_login_geo_settings(config)
         turnstile_settings = _get_turnstile_settings(config)
         smtp_settings = _get_email_auth_settings(config)
 
@@ -2379,7 +2435,7 @@ def register_admin_routes(
         if not smtp_settings['enabled'] or not _smtp_ready_for_email_auth(smtp_settings):
             return jsonify({'success': False, 'message': '邮箱验证快捷登录暂不可用，请联系管理员。'}), 503
 
-        country_allowed, country_reason = _is_ip_country_allowed(ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code)
+        country_allowed, country_reason = _is_ip_country_allowed(ip_addr, geo_settings, _resolve_ip_country_code)
         if not country_allowed:
             append_admin_login_log(
                 operation='admin_login',
@@ -2674,6 +2730,7 @@ def register_admin_routes(
         root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
         attempts_file = _get_login_attempts_file(root)
         config = get_config() or {}
+        geo_settings = normalize_admin_login_geo_settings(config)
         turnstile_settings = _get_turnstile_settings(config)
 
         with ADMIN_USERS_LOCK:
@@ -2685,7 +2742,7 @@ def register_admin_routes(
         is_hidden_admin = _is_hidden_admin_record(login_user)
 
         country_allowed, country_reason = _is_ip_country_allowed(
-            ip_addr, ALLOWED_LOGIN_COUNTRIES, _resolve_ip_country_code
+            ip_addr, geo_settings, _resolve_ip_country_code
         )
         if not country_allowed:
             append_admin_login_log(

@@ -24,6 +24,44 @@
     padding-left: 18px;
 }
 
+.admin2-root .menu-unread-dot {
+    position: absolute;
+    top: 9px;
+    right: 12px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.62);
+    animation: menuUnreadPulse 1.6s ease-out infinite;
+}
+
+.admin2-root .menu-unread-dot[hidden] {
+    display: none;
+}
+
+@keyframes menuUnreadPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.62);
+        transform: scale(1);
+    }
+
+    72% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        transform: scale(1.08);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        transform: scale(1);
+    }
+}
+
+body.admin2-root.sidebar-collapsed .menu-unread-dot {
+    top: 8px;
+    right: 13px;
+}
+
 body.admin2-root.sidebar-collapsed .sidebar-menu {
     padding-inline: 12px;
 }
@@ -59,6 +97,14 @@ body.admin2-root.sidebar-collapsed .menu-item-label,
 body.admin2-root.sidebar-collapsed .menu-item > span,
 body.admin2-root.sidebar-collapsed .sidebar-menu-group-toggle > span,
 body.admin2-root.sidebar-collapsed .beta-badge {
+    display: none;
+}
+
+body.admin2-root.sidebar-collapsed .menu-item > .menu-unread-dot {
+    display: block;
+}
+
+body.admin2-root.sidebar-collapsed .menu-item > .menu-unread-dot[hidden] {
     display: none;
 }
 
