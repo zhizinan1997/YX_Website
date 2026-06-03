@@ -193,7 +193,7 @@
                 </div>
                 <div class="menu-item" data-view="news-create" onclick="switchView('news-create')">
                     <i class="fas fa-pen-nib"></i>
-                    <span class="menu-item-label">添加资讯 <span class="beta-badge">测试版</span></span>
+                    <span class="menu-item-label">添加资讯</span>
                 </div>
                 <div class="menu-item" data-view="jobs" onclick="switchView('jobs')">
                     <i class="fas fa-briefcase"></i> 招聘信息
@@ -1698,13 +1698,29 @@
                 <!-- News Create View -->
                 <div id="view-news-create" class="view-section">
                     <div class="card" style="padding: 30px;">
-                        <h3 class="section-header" style="display:flex; align-items:center; gap:8px;">添加资讯 <span
-                                class="beta-badge">测试版</span></h3>
+                        <h3 class="section-header">添加资讯</h3>
                         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
                             填写后将自动生成统一风格的资讯页面，并写入 <code>pages/news/</code>。
                         </p>
 
-                        <form id="newsCreateForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <form id="newsCreateForm" class="news-create-form">
+                            <div class="news-feishu-import news-feishu-import--featured">
+                                <div class="news-feishu-import-head">
+                                    <span class="news-feishu-import-icon" aria-hidden="true"><i class="fas fa-bolt"></i></span>
+                                    <div class="news-feishu-import-head-text">
+                                        <div class="news-feishu-import-title">飞书链接一键导入 <span class="news-feishu-import-recommend">推荐</span></div>
+                                        <div class="news-feishu-import-subtitle">粘贴已开启分享的飞书文档链接，自动填充标题、日期、正文与图片</div>
+                                    </div>
+                                </div>
+                                <div class="news-feishu-import-row">
+                                    <input type="text" id="newsFeishuImportUrl" class="form-control"
+                                        placeholder="粘贴飞书分享链接（需开启「获得链接的人可阅读」）">
+                                    <button type="button" id="newsFeishuImportBtn" class="btn-feishu-import"
+                                        onclick="importNewsFromFeishuUrl()"><i class="fas fa-cloud-download-alt"></i> 一键导入</button>
+                                </div>
+                                <div class="form-hint news-feishu-import-hint">也可在下方手动填写或复制粘贴正文。</div>
+                                <div id="newsFeishuImportMsg" class="news-feishu-import-msg" role="status" aria-live="polite"></div>
+                            </div>
                             <div>
                                 <div class="form-group">
                                     <label>标题</label>
@@ -1743,22 +1759,6 @@
                             </div>
 
                             <div>
-                                <div class="form-group news-feishu-import-disabled">
-                                    <label>飞书链接导入</label>
-                                    <div class="news-feishu-import-disabled-panel" aria-disabled="true">
-                                        <div class="news-feishu-import-disabled-title">功能尚不完善，持续开发中</div>
-                                        <div class="news-feishu-import-disabled-row">
-                                            <input type="text" id="newsFeishuImportUrl" class="form-control"
-                                                style="flex:1 1 360px;"
-                                                placeholder="功能尚不完善，持续开发中" disabled>
-                                            <button type="button" id="newsFeishuImportBtn" class="btn-sm"
-                                                onclick="importNewsFromFeishuUrl()" disabled>飞书链接导入</button>
-                                        </div>
-                                        <div class="form-hint news-feishu-import-disabled-hint">当前请先使用复制粘贴正文的方式导入内容。</div>
-                                    </div>
-                                    <div id="newsFeishuImportMsg" class="news-feishu-import-msg-hidden"
-                                        aria-hidden="true"></div>
-                                </div>
                                 <div class="form-group">
                                     <div id="newsImageProcessMsg" class="news-image-process-banner is-hidden"
                                         role="status" aria-live="polite" aria-hidden="true"></div>
@@ -1916,7 +1916,7 @@
                                             <button type="button" class="btn-sm"
                                                 onclick="triggerNewsImageUpload()">上传图片文件</button>
                                             <input type="file" id="newsImageFileInput"
-                                                accept=".png,.jpg,.jpeg,.webp,.gif,.svg" style="display:none;"
+                                                accept=".png,.jpg,.jpeg,.webp,.gif" style="display:none;"
                                                 onchange="uploadNewsImageFile(this)">
                                             <input type="text" id="newsInsertImageUrl"
                                                 class="form-control news-toolbar-control long"
@@ -1960,7 +1960,7 @@
                                     </label>
                                     <span style="font-size: 13px; color:#666;">富文本编辑（保存为 HTML）</span>
                                 </div>
-                                <div style="display:flex; gap:12px; align-items:center;">
+                                <div class="news-submit-actions">
                                     <button type="submit" id="newsSubmitBtn" class="btn-primary"
                                         style="width: auto; padding: 10px 24px;">生成资讯</button>
                                     <button type="button" id="newsCancelEdit" class="btn-sm btn-danger"

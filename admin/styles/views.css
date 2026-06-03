@@ -4108,56 +4108,148 @@
             margin-top: 5px;
         }
 
-        .news-feishu-import-disabled-panel {
+        .news-create-form {
+            display: grid;
+            grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        #newsCreateForm .form-control {
+            min-width: 0;
+        }
+
+        .news-submit-actions {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 14px;
-            border: 1px solid #d4d8de;
-            border-radius: 8px;
-            background: linear-gradient(180deg, #f3f4f6, #eceef2);
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
         }
 
-        .news-feishu-import-disabled-title {
-            color: #5f6775;
-            font-size: 14px;
+        .news-list-item {
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .news-list-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .news-feishu-import--featured {
+            grid-column: 1 / -1;
+            margin-bottom: 4px;
+            padding: 18px 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(39, 199, 217, 0.45);
+            background: linear-gradient(135deg, rgba(18, 61, 113, 0.06), rgba(39, 199, 217, 0.12));
+            box-shadow: 0 10px 24px rgba(20, 61, 115, 0.10);
+        }
+
+        .news-feishu-import-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .news-feishu-import-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            font-size: 18px;
+            color: #fff;
+            background: linear-gradient(135deg, #143d73 0%, #1b5ea0 48%, #27c7d9 100%);
+            box-shadow: 0 8px 18px rgba(20, 61, 115, 0.22);
+        }
+
+        .news-feishu-import-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
             font-weight: 700;
+            color: var(--admin2-primary, #123d71);
         }
 
-        .news-feishu-import-disabled-row {
+        .news-feishu-import-recommend {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            color: #fff;
+            background: linear-gradient(135deg, #17935f, #27c7d9);
+            box-shadow: 0 4px 10px rgba(23, 147, 95, 0.26);
+        }
+
+        .news-feishu-import-subtitle {
+            margin-top: 3px;
+            font-size: 13px;
+            color: var(--admin2-text-muted, #5d708b);
+        }
+
+        .news-feishu-import-row {
             display: flex;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
         }
 
-        .news-feishu-import-disabled-panel .form-control:disabled {
-            background: #e4e7ec;
-            color: #7a8391;
-            border-color: #cfd5de;
-            cursor: not-allowed;
-            box-shadow: none;
+        .news-feishu-import-row .form-control {
+            flex: 1 1 360px;
         }
 
-        .news-feishu-import-disabled-panel .form-control:disabled::placeholder {
-            color: #8d95a1;
+        .btn-feishu-import {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: none;
+            padding: 11px 22px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            background: linear-gradient(135deg, #143d73 0%, #1b5ea0 48%, #27c7d9 100%);
+            box-shadow: 0 12px 24px rgba(20, 61, 115, 0.22);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
         }
 
-        .news-feishu-import-disabled-panel .btn-sm:disabled {
-            background: #d8dde6;
-            color: #7a8391;
-            border-color: #c7ced9;
-            cursor: not-allowed;
-            opacity: 1;
-            box-shadow: none;
+        .btn-feishu-import:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(20, 61, 115, 0.28);
         }
 
-        .news-feishu-import-disabled-hint {
-            margin-top: 0;
-            color: #7b8390;
+        .btn-feishu-import:disabled {
+            opacity: 0.6;
+            cursor: progress;
+            transform: none;
         }
 
-        .news-feishu-import-msg-hidden {
+        .news-feishu-import-hint {
+            margin-top: 10px;
+            color: var(--admin2-text-muted, #5d708b);
+        }
+
+        .news-feishu-import-msg {
+            margin-top: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .news-feishu-import-msg:empty {
             display: none;
         }
 
@@ -4235,6 +4327,9 @@
         }
 
         @media (max-width: 900px) {
+            .news-create-form {
+                grid-template-columns: 1fr;
+            }
 
             .news-toolbar-control.short,
             .news-toolbar-control.medium,
@@ -4499,6 +4594,21 @@
         }
 
         @media (max-width: 640px) {
+            .news-list-item {
+                flex-direction: column;
+            }
+
+            .news-list-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .news-submit-actions .btn-primary,
+            .news-submit-actions .btn-sm {
+                width: 100% !important;
+                justify-content: center;
+            }
+
             .news-image-process-banner {
                 padding: 10px 12px;
                 gap: 10px;

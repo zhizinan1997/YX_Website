@@ -12,7 +12,7 @@
   "turnstile_secret_key": "0x4AAAAAACwKuxfpGhJXKGtu1PhTl9ANq24",
   "admin_login_geo_enabled": true,
   "admin_login_geo_continents": {
-    "asia": "deny",
+    "asia": "allow",
     "europe": "deny",
     "africa": "deny",
     "north-america": "deny",

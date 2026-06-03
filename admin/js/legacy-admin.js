@@ -10278,6 +10278,8 @@
         let aiTypesetPending = false;
         let aiTypesetBeforeHtml = '';
         let newsPreviewBridgeBound = false;
+        let isSubmittingNews = false;
+        let newsPreviewRequestSeq = 0;
         let newsImageProcessingPromise = Promise.resolve({ imported: 0, failed: 0, total: 0 });
         const newsEditorEl = document.getElementById('newsContentEditor');
         const newsSourceEl = document.getElementById('newsContent');
@@ -10286,6 +10288,34 @@
         function updateAiTypesetActionVisibility() {
             if (!newsAiActionsEl) return;
             newsAiActionsEl.style.display = aiTypesetPending ? 'flex' : 'none';
+        }
+
+        function getNewsSubmitButton() {
+            return document.getElementById('newsSubmitBtn');
+        }
+
+        function setNewsSubmitState(isBusy) {
+            const btn = getNewsSubmitButton();
+            if (!btn) return;
+            btn.disabled = !!isBusy;
+            btn.textContent = isBusy
+                ? (editingNewsLink ? '正在保存...' : '正在生成...')
+                : (editingNewsLink ? '保存修改' : '生成资讯');
+        }
+
+        function resetNewsCreateFormFields(options = {}) {
+            const { keepStatus = false } = options;
+            if (newsCreateForm) newsCreateForm.reset();
+            setNewsEditorHtml('');
+            switchNewsEditorMode('visual');
+            newsEditorSavedRange = null;
+            setNewsImageProcessMessage('', '#666');
+            const createMsg = document.getElementById('newsCreateMsg');
+            const createLink = document.getElementById('newsCreateLink');
+            if (!keepStatus) {
+                if (createMsg) createMsg.textContent = '';
+                if (createLink) createLink.textContent = '';
+            }
         }
 
         function bindNewsPreviewBridge() {
@@ -10598,10 +10628,6 @@
         async function importNewsFromFeishuUrl() {
             const input = document.getElementById('newsFeishuImportUrl');
             const button = document.getElementById('newsFeishuImportBtn');
-            if (input?.disabled || button?.disabled) {
-                setNewsFeishuImportMessage('功能尚不完善，持续开发中', '#888');
-                return;
-            }
             const rawUrl = String(input?.value || '').trim();
             if (!rawUrl) {
                 setNewsFeishuImportMessage('请先粘贴飞书共享链接', '#dc3545');
@@ -11285,6 +11311,7 @@
         if (newsCreateForm) {
             newsCreateForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (isSubmittingNews) return;
                 const msg = document.getElementById('newsCreateMsg');
                 const linkEl = document.getElementById('newsCreateLink');
                 if (msg) msg.textContent = '';
@@ -11309,15 +11336,17 @@
                     return;
                 }
 
-                if (!await ensureNewsImagesReadyForSubmit()) {
-                    if (msg) {
-                        msg.style.color = '#dc3545';
-                        msg.textContent = '请先等待正文图片转换完成';
-                    }
-                    return;
-                }
-
+                isSubmittingNews = true;
+                setNewsSubmitState(true);
                 try {
+                    if (!await ensureNewsImagesReadyForSubmit()) {
+                        if (msg) {
+                            msg.style.color = '#dc3545';
+                            msg.textContent = '请先处理正文里未转换成功的图片，再发布资讯';
+                        }
+                        return;
+                    }
+
                     const endpoint = editingNewsLink ? '/api/news/update' : '/api/news/create';
                     if (editingNewsLink) payload.link = editingNewsLink;
                     const res = await fetch(endpoint, {
@@ -11325,37 +11354,42 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    const data = await res.json();
+                    const data = await parseJsonSafe(res);
                     if (data.success) {
+                        const wasEditing = !!editingNewsLink;
+                        const resultLink = data.link || editingNewsLink;
+                        editingNewsLink = '';
                         if (msg) {
                             msg.style.color = '#28a745';
-                            msg.textContent = editingNewsLink ? '✓ 修改成功' : '✓ 生成成功';
+                            msg.textContent = wasEditing ? '✓ 修改成功' : '✓ 生成成功';
                         }
-                        if (linkEl && data.link) {
-                            const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                        if (linkEl && resultLink) {
+                            const stamped = `${resultLink}${resultLink.includes('?') ? '&' : '?'}t=${Date.now()}`;
                             linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
                         }
-                        newsCreateForm.reset();
-                        setNewsEditorHtml('');
-                        switchNewsEditorMode('visual');
+                        const cancelBtn = document.getElementById('newsCancelEdit');
+                        if (cancelBtn) cancelBtn.style.display = 'none';
                         aiTypesetPending = false;
                         aiTypesetBeforeHtml = '';
                         updateAiTypesetActionVisibility();
-                        cancelNewsEdit();
+                        resetNewsCreateFormFields({ keepStatus: true });
                         updateNewsPreview();
                         loadFeaturedNews();
                         loadNewsList();
                     } else {
                         if (msg) {
                             msg.style.color = '#dc3545';
-                            msg.textContent = data.message || '生成失败';
+                            msg.textContent = data.message || (editingNewsLink ? '保存失败' : '生成失败');
                         }
                     }
                 } catch (e) {
                     if (msg) {
                         msg.style.color = '#dc3545';
-                        msg.textContent = '网络错误';
+                        msg.textContent = e?.message || '网络错误，请检查登录状态和服务连接';
                     }
+                } finally {
+                    isSubmittingNews = false;
+                    setNewsSubmitState(false);
                 }
             });
         }
@@ -11378,7 +11412,7 @@
                     <option value="science" ${selected === 'science' ? 'selected' : ''}>科普知识</option>
                 `;
                 listEl.innerHTML = items.map((item, index) => `
-                    <div class="file-item" style="align-items: flex-start; gap: 12px;">
+                    <div class="file-item news-list-item">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:6px; min-width:52px; padding-top:2px;">
                             <span style="font-size:12px; color:#64748b;">排序</span>
                             <button class="btn-sm" style="width:42px; padding:6px 0;" onclick="reorderNewsItem('${item.link}', 'up')" ${index === 0 ? 'disabled' : ''}>↑</button>
@@ -11402,7 +11436,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div style="display:flex; gap:8px; align-items:center;">
+                        <div class="news-list-actions">
                             <button class="btn-sm" onclick="editNewsItem('${item.link}')">编辑</button>
                             <button class="btn-sm btn-danger" onclick="deleteNewsItem('${item.link}')">删除</button>
                             <button class="btn-sm" onclick="toggleNewsVisibility('${item.link}', ${item.hidden ? 'false' : 'true'})">
@@ -11476,7 +11510,7 @@
                 aiTypesetPending = false;
                 aiTypesetBeforeHtml = '';
                 updateAiTypesetActionVisibility();
-                document.getElementById('newsSubmitBtn').textContent = '保存修改';
+                setNewsSubmitState(false);
                 document.getElementById('newsCancelEdit').style.display = 'inline-flex';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 updateNewsPreview();
@@ -11487,13 +11521,15 @@
 
         function cancelNewsEdit() {
             editingNewsLink = '';
-            const btn = document.getElementById('newsSubmitBtn');
             const cancelBtn = document.getElementById('newsCancelEdit');
-            if (btn) btn.textContent = '生成资讯';
             if (cancelBtn) cancelBtn.style.display = 'none';
             aiTypesetPending = false;
             aiTypesetBeforeHtml = '';
             updateAiTypesetActionVisibility();
+            isSubmittingNews = false;
+            setNewsSubmitState(false);
+            resetNewsCreateFormFields();
+            updateNewsPreview();
         }
 
         async function deleteNewsItem(link) {
@@ -11542,6 +11578,7 @@
         }
 
         async function updateNewsPreview() {
+            const requestSeq = ++newsPreviewRequestSeq;
             const title = document.getElementById('newsTitle')?.value.trim() || '标题预览';
             const date = document.getElementById('newsDate')?.value || '';
             const image = document.getElementById('newsImage')?.value.trim();
@@ -11563,11 +11600,15 @@
                         content_is_html: true
                     })
                 });
-                const data = await res.json();
+                const data = await parseJsonSafe(res);
+                if (requestSeq !== newsPreviewRequestSeq) return;
                 if (data.success) {
                     frameEl.srcdoc = data.page_html || '';
+                } else {
+                    frameEl.srcdoc = `<!doctype html><html><body style="font-family:sans-serif;padding:24px;color:#666;">预览生成失败：${escapeHtml(data.message || '接口返回异常')}</body></html>`;
                 }
             } catch (e) {
+                if (requestSeq !== newsPreviewRequestSeq) return;
                 frameEl.srcdoc = '<!doctype html><html><body style="font-family:sans-serif;padding:24px;color:#666;">预览加载失败</body></html>';
             }
         }

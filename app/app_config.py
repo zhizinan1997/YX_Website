@@ -485,7 +485,7 @@ def ensure_required_runtime_config():
         raise RuntimeError('生产环境安全配置不完整：' + '；'.join(errors))
 
 NEWS_SAFE_HTML_TAGS = {
-    'p', 'br', 'div', 'span',
+    'p', 'br', 'div', 'span', 'font',
     'strong', 'b', 'em', 'i', 'u', 's', 'sup', 'sub',
     'ul', 'ol', 'li',
     'dl', 'dt', 'dd',
@@ -591,4 +591,3 @@ def update_config(new_config):
     config.update(new_config)
     CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding='utf-8')
     return config
-
