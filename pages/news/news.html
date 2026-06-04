@@ -126,77 +126,168 @@
             padding-left: 5px;
         }
 
-        /* Hero Section */
-        .vs-hero-v2 {
+        /* News page */
+        .news-hero {
             position: relative;
-            background: linear-gradient(135deg, rgba(0, 31, 63, 0.9) 0%, rgba(0, 31, 63, 0.7) 100%), url('/cdn_assets/images/common/9c304decb2f6.jpg') center/cover;
-            height: 50vh;
-            min-height: 400px;
+            background:
+                linear-gradient(90deg, rgba(0, 40, 72, 0.92) 0%, rgba(0, 55, 100, 0.78) 47%, rgba(0, 161, 223, 0.32) 100%),
+                url('/cdn_assets/images/common/9c304decb2f6.jpg') center/cover;
+            min-height: 340px;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
+            align-items: flex-end;
+            text-align: left;
             color: white;
-            padding: 0 20px;
+            padding: 118px 0 54px;
+            overflow: hidden;
+        }
+
+        .news-hero__inner {
+            width: 100%;
         }
 
         .vs-hero-v2__title {
-            font-size: 48px;
+            font-size: 44px;
             font-weight: 700;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
+            letter-spacing: 0;
+            text-align: left;
         }
 
         .vs-hero-v2__subtitle {
-            font-size: 20px;
-            max-width: 800px;
-            line-height: 1.6;
-            opacity: 0.9;
+            font-size: 18px;
+            max-width: 720px;
+            line-height: 1.75;
+            color: rgba(255, 255, 255, 0.86);
+            text-align: left;
         }
 
-        /* News specific styles */
-        .vs-news-meta {
-            color: var(--color-text-muted);
-            font-size: 14px;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
-
-        .vs-pagination {
+        .news-hero__meta {
             display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 60px;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
         }
 
-        .vs-pagination a,
-        .vs-pagination span {
-            padding: 10px 16px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            color: var(--color-text-main);
-            text-decoration: none;
-            transition: all 0.3s;
+        .news-hero__pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            padding: 0 14px;
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            backdrop-filter: blur(8px);
+        }
+
+        .news-hero__pill strong {
+            color: #ffffff;
+            font-size: 18px;
+            margin: 0 4px;
+        }
+
+        .news-board {
+            background: #f5f8fb;
+            padding: 42px 0 76px;
+        }
+
+        .news-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .news-toolbar__title {
+            color: var(--color-primary);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: 0;
+        }
+
+        .news-toolbar__desc {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .news-toolbar .vs-filter-tabs {
+            display: inline-flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 0;
+            padding: 6px;
+            border: 1px solid #dde7f0;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(0, 55, 100, 0.06);
+        }
+
+        .news-toolbar .vs-filter-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 38px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: 6px;
+            color: #475569;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
             cursor: pointer;
         }
 
-        .vs-pagination a:hover,
-        .vs-pagination .current {
+        .news-toolbar .vs-filter-btn:hover {
+            color: var(--color-primary);
+            background: #eef6fb;
+        }
+
+        .news-toolbar .vs-filter-btn.active {
+            color: #ffffff;
             background: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
         }
 
-        .vs-pagination .disabled {
-            background: #f8f8f8;
-            color: #ccc;
-            cursor: not-allowed;
+        .news-tab-count {
+            min-width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            background: #e6eef6;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
         }
 
-        /* Hide news items by default for JS filtering */
+        .vs-filter-btn.active .news-tab-count {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+        }
+
+        #newsGrid.vs-product-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 24px;
+            align-items: stretch;
+        }
+
         .vs-card[data-category] {
             display: none;
+            min-width: 0;
+            overflow: hidden;
+            border: 1px solid #dfe8f1;
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--color-text-main);
+            box-shadow: 0 10px 28px rgba(0, 40, 72, 0.06);
             opacity: 0;
+            transition: border-color 0.24s ease, box-shadow 0.24s ease, transform 0.24s ease;
         }
 
         .vs-card[data-hidden="true"] {
@@ -205,7 +296,249 @@
 
         .vs-card[data-category].visible {
             display: flex;
+            flex-direction: column;
             opacity: 1;
+        }
+
+        .vs-card[data-category]:hover {
+            border-color: rgba(0, 161, 223, 0.45);
+            box-shadow: 0 18px 42px rgba(0, 40, 72, 0.12);
+            transform: translateY(-4px);
+        }
+
+        .vs-card[data-category] .vs-card__img-wrapper {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            height: auto;
+            padding: 0;
+            background: #e9f0f6;
+            overflow: hidden;
+        }
+
+        .vs-card[data-category] .vs-card__img-wrapper img {
+            width: 100%;
+            height: 100%;
+            max-height: none;
+            object-fit: cover;
+            display: block;
+        }
+
+        .vs-card[data-category] .vs-card__content {
+            padding: 22px;
+            gap: 12px;
+        }
+
+        .vs-news-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 0;
+            font-weight: 600;
+        }
+
+        .news-card__category,
+        .news-card__division {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 0 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .news-card__category {
+            background: #e8f4fb;
+            color: #006d99;
+        }
+
+        .news-card__category--enterprise {
+            background: #fff2e9;
+            color: #b84c08;
+        }
+
+        .news-card__category--industry {
+            background: #e8f4fb;
+            color: #006d99;
+        }
+
+        .news-card__category--science {
+            background: #eef7ed;
+            color: #327a38;
+        }
+
+        .news-card__division {
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .vs-card[data-category] .vs-card__title {
+            display: -webkit-box;
+            min-height: 56px;
+            margin: 0;
+            overflow: hidden;
+            color: #10243c;
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.4;
+            letter-spacing: 0;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .vs-card[data-category] .vs-card__desc {
+            display: -webkit-box;
+            margin: 0;
+            overflow: hidden;
+            color: #5f6f82;
+            font-size: 14px;
+            line-height: 1.75;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .vs-card[data-category] .vs-link-arrow {
+            margin-top: auto;
+            padding-top: 4px;
+            color: var(--color-primary);
+        }
+
+        .vs-card[data-category].visible.is-featured {
+            display: grid;
+            grid-column: 1 / -1;
+            grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
+            min-height: 390px;
+        }
+
+        .vs-card[data-category].is-featured .vs-card__img-wrapper {
+            aspect-ratio: auto;
+            min-height: 390px;
+        }
+
+        .vs-card[data-category].is-featured .vs-card__content {
+            padding: 40px;
+            justify-content: center;
+        }
+
+        .vs-card[data-category].is-featured .vs-card__title {
+            min-height: 0;
+            font-size: 30px;
+            line-height: 1.35;
+        }
+
+        .vs-card[data-category].is-featured .vs-card__desc {
+            color: #475569;
+            font-size: 16px;
+            line-height: 1.85;
+            -webkit-line-clamp: 4;
+        }
+
+        .vs-card[data-category].is-featured .vs-link-arrow {
+            width: fit-content;
+            min-height: 42px;
+            padding: 0 16px;
+            border: 1px solid rgba(0, 55, 100, 0.18);
+            border-radius: 6px;
+            background: #f7fbfe;
+        }
+
+        .vs-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 44px;
+        }
+
+        .vs-pagination a,
+        .vs-pagination span {
+            min-width: 40px;
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 14px;
+            border: 1px solid #d9e4ee;
+            border-radius: 6px;
+            color: #475569;
+            background: #ffffff;
+            text-decoration: none;
+            transition: all 0.24s;
+            cursor: pointer;
+        }
+
+        .vs-pagination a:hover,
+        .vs-pagination span:not(.disabled):hover,
+        .vs-pagination .current {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .vs-pagination .disabled {
+            background: #eef2f6;
+            color: #a7b3c0;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 1100px) {
+            .news-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .news-toolbar .vs-filter-tabs {
+                justify-content: flex-start;
+            }
+
+            #newsGrid.vs-product-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .vs-card[data-category].visible.is-featured {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-card[data-category].is-featured .vs-card__img-wrapper {
+                aspect-ratio: 16 / 9;
+                min-height: 0;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .news-hero {
+                min-height: 300px;
+                padding: 104px 0 42px;
+            }
+
+            .vs-hero-v2__title {
+                font-size: 34px;
+            }
+
+            .vs-hero-v2__subtitle {
+                font-size: 16px;
+            }
+
+            .news-board {
+                padding: 28px 0 54px;
+            }
+
+            #newsGrid.vs-product-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-card[data-category].is-featured .vs-card__content,
+            .vs-card[data-category] .vs-card__content {
+                padding: 20px;
+            }
+
+            .vs-card[data-category].is-featured .vs-card__title {
+                font-size: 24px;
+            }
         }
     </style>
   <!-- Site Search -->
@@ -230,26 +563,33 @@
 
     <main>
         <!-- Hero Section -->
-        <section class="vs-hero-v2">
-            <h1 class="vs-hero-v2__title">行业资讯</h1>
-            <p class="vs-hero-v2__subtitle">掌握元芯传感最新动态，洞悉行业前沿技术。</p>
-        </section>
-
-        <!-- News Filter -->
-        <div class="vs-section" style="padding-bottom: 20px;">
-            <div class="vs-container">
-                <div class="vs-filter-tabs" style="justify-content: center; margin-bottom: 40px;" id="categoryTabs">
-                    <span class="vs-filter-btn active" data-category="all">所有新闻</span>
-                    <span class="vs-filter-btn" data-category="enterprise">企业新闻</span>
-                    <span class="vs-filter-btn" data-category="industry">行业动态</span>
-                    <span class="vs-filter-btn" data-category="science">科普知识</span>
+        <section class="vs-hero-v2 news-hero">
+            <div class="vs-container news-hero__inner">
+                <h1 class="vs-hero-v2__title">新闻资讯</h1>
+                <p class="vs-hero-v2__subtitle">聚焦元芯传感最新动态、氢安全场景和碳基传感技术观察。</p>
+                <div class="news-hero__meta">
+                    <span class="news-hero__pill">已发布 <strong id="newsTotalCount">--</strong> 篇资讯</span>
+                    <span class="news-hero__pill">最新更新 <strong id="newsLatestDate">--</strong></span>
                 </div>
             </div>
-        </div>
+        </section>
 
         <!-- News Grid -->
-        <section class="vs-section" style="padding-top: 0;">
+        <section class="news-board">
             <div class="vs-container">
+                <div class="news-toolbar">
+                    <div>
+                        <h2 class="news-toolbar__title">最新动态</h2>
+                        <p class="news-toolbar__desc">企业动态、行业观察与技术科普集中呈现。</p>
+                    </div>
+                    <div class="vs-filter-tabs" id="categoryTabs">
+                        <span class="vs-filter-btn active" data-category="all">所有新闻</span>
+                        <span class="vs-filter-btn" data-category="enterprise">企业新闻</span>
+                        <span class="vs-filter-btn" data-category="industry">行业动态</span>
+                        <span class="vs-filter-btn" data-category="science">科普知识</span>
+                    </div>
+                </div>
+
                 <div class="vs-product-grid" id="newsGrid">
                     <!-- Page 1 Items -->
 
@@ -777,11 +1117,77 @@
     <script>
         let currentPage = 1;
         let currentCategory = 'all';
-        const itemsPerPage = 9;
+        const itemsPerPage = 10;
+        const categoryLabels = {
+            all: '所有新闻',
+            enterprise: '企业新闻',
+            industry: '行业动态',
+            science: '科普知识'
+        };
+
+        function getCardDate(card) {
+            const metaText = card.querySelector('.vs-news-meta')?.textContent || '';
+            const match = metaText.match(/\d{4}-\d{2}-\d{2}/);
+            return match ? match[0] : '';
+        }
 
         function getActiveCards() {
             return Array.from(document.querySelectorAll('.vs-card[data-category]'))
                 .filter(card => String(card.dataset.hidden || '').toLowerCase() !== 'true');
+        }
+
+        function enhanceNewsCards() {
+            getActiveCards().forEach(card => {
+                card.classList.add('news-card');
+                if (card.dataset.newsEnhanced === 'true') return;
+
+                const meta = card.querySelector('.vs-news-meta');
+                const category = card.dataset.category || 'enterprise';
+                const division = (card.dataset.division || '').trim();
+
+                if (meta) {
+                    const categoryTag = document.createElement('span');
+                    categoryTag.className = `news-card__category news-card__category--${category}`;
+                    categoryTag.textContent = categoryLabels[category] || '企业新闻';
+                    meta.insertBefore(categoryTag, meta.firstChild);
+
+                    if (division) {
+                        const divisionTag = document.createElement('span');
+                        divisionTag.className = 'news-card__division';
+                        divisionTag.textContent = division;
+                        meta.appendChild(divisionTag);
+                    }
+                }
+
+                card.dataset.newsEnhanced = 'true';
+            });
+        }
+
+        function updateNewsOverview() {
+            const activeCards = getActiveCards();
+            const totalEl = document.getElementById('newsTotalCount');
+            const latestEl = document.getElementById('newsLatestDate');
+
+            if (totalEl) totalEl.textContent = String(activeCards.length);
+            if (latestEl) latestEl.textContent = getCardDate(activeCards[0]) || '--';
+        }
+
+        function updateCategoryTabs() {
+            const activeCards = getActiveCards();
+            const counts = activeCards.reduce((acc, card) => {
+                const category = card.dataset.category || 'enterprise';
+                acc.all += 1;
+                acc[category] = (acc[category] || 0) + 1;
+                return acc;
+            }, { all: 0, enterprise: 0, industry: 0, science: 0 });
+
+            document.querySelectorAll('#categoryTabs .vs-filter-btn').forEach(btn => {
+                const category = btn.dataset.category || 'all';
+                if (!btn.dataset.baseLabel) {
+                    btn.dataset.baseLabel = categoryLabels[category] || btn.textContent.trim();
+                }
+                btn.innerHTML = `${btn.dataset.baseLabel}<span class="news-tab-count">${counts[category] || 0}</span>`;
+            });
         }
 
         function filterAndPaginate(shouldScroll = false) {
@@ -789,7 +1195,7 @@
             const activeCards = getActiveCards();
             const visibleCards = [];
 
-            allCards.forEach(card => card.classList.remove('visible'));
+            allCards.forEach(card => card.classList.remove('visible', 'is-featured'));
 
             activeCards.forEach(card => {
                 if (currentCategory === 'all' || card.dataset.category === currentCategory) {
@@ -805,6 +1211,9 @@
             visibleCards.forEach((card, index) => {
                 if (index >= startIndex && index < endIndex) {
                     card.classList.add('visible');
+                    if (index === startIndex) {
+                        card.classList.add('is-featured');
+                    }
                 }
             });
 
@@ -885,6 +1294,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            enhanceNewsCards();
+            updateNewsOverview();
+            updateCategoryTabs();
             filterAndPaginate(false);
 
             document.querySelectorAll('#categoryTabs .vs-filter-btn').forEach(btn => {
