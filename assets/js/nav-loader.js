@@ -5,7 +5,7 @@
     var PROFILE_ATTR = 'data-nav-profile';
     var NAV_CSS_ID = 'mc-nav-component-css';
     var NAV_READY_EVENT = 'mc-nav:ready';
-    var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260415a';
+    var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260604i';
     var NEWS_PREVIEW_SCRIPT_SRC = '/assets/js/news-preview-loader.js?v=20260411a';
     var NAV_ASSET_VERSION = '20260411a';
 
