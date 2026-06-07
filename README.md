@@ -9,14 +9,16 @@
 - 🏢 企业展示：产品中心、解决方案、新闻资讯、关于我们
 - 💬 在线留言：访客可提交咨询，支持 IP 限流防刷
 - 🛡️ 管理后台：查看留言、修改管理员密码
+- 📈 独立监测站：`check.hnmetachip.cn` 实时监测主站关键页面、同域资源和访问延迟
 - 🐳 一键部署：Docker 容器化，GitHub Actions 自动构建
 
 ## 🛠️ 技术栈
 
 - **后端**: Python 3.11, Flask, Gunicorn
+- **监测站**: Flask, Playwright, Chromium, SQLite
 - **前端**: HTML5, CSS3, JavaScript (jQuery), ArtDialog
 - **部署**: Docker, GitHub Actions
-- **数据**: JSON 文件存储 (本地)
+- **数据**: JSON 文件存储、SQLite 监测数据
 
 ## 📂 目录结构
 
@@ -29,12 +31,16 @@
 │   ├── messages/          # 留言数据 (JSON)
 │   ├── config.json        # 管理员账号配置
 │   └── rate_limits.json   # IP限流记录
+├── check_app/              # check.hnmetachip.cn 独立监测站
 ├── pages/                  # 网站各页面
 ├── cdn_assets/             # 统一素材目录（图片/视频）
+├── docs/                   # 项目和部署文档
 ├── tools/                  # 维护脚本
 ├── server.py               # Flask 后端服务器
 ├── Dockerfile              # Docker 构建文件
+├── Dockerfile.check        # 监测站 Docker 构建文件
 ├── requirements.txt        # Python依赖
+├── requirements.check.txt  # 监测站 Python 依赖
 └── README.md               # 项目说明
 ```
 
@@ -73,9 +79,46 @@ python3 server.py
 
 开发服务器默认运行在 **8000** 端口，支持热重载（debug 模式）。
 
+### 本地启动监测站
+
+`check_app/` 是独立 Flask 服务，不并入主站进程。首次本地运行需要安装监测站依赖和浏览器：
+
+```bash
+pip3 install -r requirements.check.txt
+python3 -m playwright install chromium
+```
+
+启动本地预览服务：
+
+```bash
+CHECK_SCHEDULER_ENABLED=false \
+CHECK_DEV_LOGIN_ENABLED=true \
+CHECK_DEV_LOGIN_EMAIL=local-admin@check.local \
+CHECK_MAIN_DATA_DIR=./data \
+CHECK_DATA_DIR=./check_data \
+PORT=8058 \
+python3 -m check_app.app
+```
+
+访问地址：
+
+- **监测看板**: <http://localhost:8058>
+- **监测后台**: <http://localhost:8058/admin>
+
+本地没有主站发信配置和已验证管理员邮箱时，可使用后台登录页的“本地预览登录”。生产环境默认关闭本地预览登录，后台只允许主站已启用且已验证邮箱的管理员登录。
+
 ---
 
 ## 🚀 Docker 部署
+
+### 版本发布镜像
+
+创建 GitHub Release 时，`.github/workflows/docker-publish.yml` 会同时构建并推送两个镜像：
+
+- **主站镜像**: `ghcr.io/zhizinan1997/yx_website:<版本号>` 与 `latest`
+- **监测站镜像**: `ghcr.io/zhizinan1997/yx_website-check:<版本号>` 与 `latest`
+
+监测站镜像使用 `Dockerfile.check` 构建，主站镜像使用 `Dockerfile` 构建。
 
 ### 首选：一键脚本部署 / 升级
 
@@ -217,6 +260,37 @@ docker run -d \
   ghcr.io/zhizinan1997/yx_website:latest
 ```
 
+### check.hnmetachip.cn 独立监测站
+
+监测站使用独立镜像和独立容器部署，不依赖主站容器存活。它只读挂载主站 `data/`，从主站配置中同步发信配置、人机验证配置和已验证管理员邮箱；自身监测数据写入 `check_data/`。
+
+```bash
+mkdir -p /root/yxwebsite/check_data
+docker network create yx-net || true
+
+docker pull ghcr.io/zhizinan1997/yx_website-check:latest
+
+docker run -d \
+  --name yx-check-site \
+  --restart unless-stopped \
+  --network yx-net \
+  -p 127.0.0.1:2028:8000 \
+  -e CHECK_SECRET_KEY='replace-with-a-random-secret-at-least-32-chars' \
+  -e CHECK_MAIN_DATA_DIR=/app/main_data \
+  -e CHECK_DATA_DIR=/app/check_data \
+  -v /root/yxwebsite/data:/app/main_data:ro \
+  -v /root/yxwebsite/check_data:/app/check_data \
+  ghcr.io/zhizinan1997/yx_website-check:latest
+```
+
+宝塔或 Nginx 将 `check.hnmetachip.cn` 反代到：
+
+```text
+http://127.0.0.1:2028
+```
+
+监测站默认每小时使用真实浏览器访问关键页面；异常后 1 分钟复测，仍异常则 2 分钟后再次复测，第三次仍异常时通过主站发信配置向已验证管理员邮箱发送告警。完整部署说明见 [docs/check_site.md](docs/check_site.md)。
+
 ## 📡 ESA 缓存建议
 
 - 阿里云 ESA 只接管主站一个域名即可，代码中的资源路径保持 `/cdn_assets/...`。
@@ -233,6 +307,7 @@ docker run -d \
   - `Site Key`（前端）
   - `Secret Key`（服务端）
 - 登录页会在启用后自动展示人机验证。
+- `check.hnmetachip.cn/admin` 会读取同一份主站配置，启用后同样要求完成人机验证。
 - 无需修改阿里云域名解析；仅需服务器可访问 Cloudflare 验签接口。
 
 ## ⚙️ 管理后台

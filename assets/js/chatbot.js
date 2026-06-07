@@ -16,6 +16,9 @@
     const CHATBOT_DESKTOP_DEFAULT_WIDTH = 460;
     const CHATBOT_MOBILE_BREAKPOINT = 480;
     const AGENT_STATUS_MIN_VISIBLE_MS = 1000;
+    const TYPEWRITER_DELAY_MS = 18;
+    const CHATBOT_REQUEST_TIMEOUT_MS = 90000;
+    const RECOMMENDATIONS_REVEAL_DELAY_MS = 520;
 
     // 会话ID（每次页面加载时生成新的）
     let sessionId = generateSessionId();
@@ -43,12 +46,6 @@
         '如何获取产品报价',
         '售后和技术支持怎么联系',
         '可以提供测试样机吗'
-    ];
-
-    const WAITING_STATUS_MESSAGES = [
-        '元芯AI已收到您的问题',
-        '元芯AI正在努力Thinking',
-        '...'
     ];
 
     // Initialize when DOM is ready
@@ -364,7 +361,9 @@
         const triggerRect = chatbotTrigger.getBoundingClientRect();
         const gap = window.innerWidth <= 480 ? 12 : 14;
         const viewportPadding = window.innerWidth <= 480 ? 10 : 16;
-        const right = Math.max(viewportPadding, window.innerWidth - triggerRect.right);
+        const right = isMobileViewport()
+            ? viewportPadding
+            : Math.max(viewportPadding, window.innerWidth - triggerRect.right);
         const bottom = Math.max(viewportPadding, window.innerHeight - triggerRect.top + gap);
         const availableHeight = Math.max(320, triggerRect.top - gap - viewportPadding);
 
@@ -498,7 +497,7 @@
         setInputEnabled(false);
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), CHATBOT_REQUEST_TIMEOUT_MS);
 
         try {
             const response = await fetch('/api/chatbot/chat', {
@@ -518,7 +517,8 @@
 
             if (!response.ok) {
                 removeTypingIndicator(typingEl);
-                throw new Error(`HTTP ${response.status}`);
+                appendError(await getResponseErrorMessage(response));
+                return;
             }
 
             // Check if it's a streaming response
@@ -531,13 +531,18 @@
                 // Handle regular JSON response
                 const data = await response.json();
                 if (data.success) {
-                    removeTypingIndicator(typingEl);
-                    appendMessage('bot', data.response, false, data.recommendations || []);
+                    const replyText = data.response || '';
+                    const recommendations = data.recommendations || [];
+                    const botEl = prepareThinkingMessageForAnswer(typingEl, data.status_updates || [])
+                        || appendMessage('bot', '', true);
                     if (Array.isArray(data.status_updates) && data.status_updates.length) {
-                        prependAgentStatusSummary(messagesContainer.lastElementChild, data.status_updates);
+                        compactAgentStatusPanel(botEl, data.status_updates);
                     }
-                    conversationHistory.push({ role: 'assistant', content: data.response });
+                    await renderMessageWithTypewriter(botEl, replyText);
+                    await revealMessageRecommendations(botEl, recommendations);
+                    conversationHistory.push({ role: 'assistant', content: replyText });
                 } else {
+                    removeTypingIndicator(typingEl);
                     appendError(data.message || '抱歉，出现了一些问题。');
                 }
             }
@@ -556,6 +561,45 @@
         }
     }
 
+    async function getResponseErrorMessage(response) {
+        const fallbackMessages = {
+            400: '请求内容有误，请重新输入。',
+            401: '当前会话未授权，请刷新页面后重试。',
+            403: '当前请求暂时无法处理。',
+            429: '请求过于频繁，请稍后再试。',
+            500: '服务暂时开小差了，请稍后再试。',
+            503: '智能客服暂时不可用，请稍后再试。'
+        };
+        let data = null;
+        try {
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = (await response.text()).trim();
+                if (text) {
+                    return text.slice(0, 120);
+                }
+            }
+        } catch (error) {
+            data = null;
+        }
+
+        if (data && data.rate_limit === 'ip_per_day') {
+            return '今日智能客服请求次数已达上限，请稍后再试。';
+        }
+        if (data && data.rate_limit === 'ip_per_minute') {
+            return data.message ? String(data.message) : '请求过于频繁，请稍后再试。';
+        }
+        if (data && data.message) {
+            return String(data.message);
+        }
+        if (data && data.error) {
+            return String(data.error);
+        }
+        return fallbackMessages[response.status] || `请求失败（${response.status}），请稍后再试。`;
+    }
+
     async function handleStreamingResponse(response, initialStatusIndicatorEl = null) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -567,17 +611,20 @@
         let statusUpdates = [];
         let statusIndicatorEl = initialStatusIndicatorEl || document.querySelector('.typing-message:last-child');
         const statusQueue = createAgentStatusQueue(statusIndicatorEl, statusUpdates);
+        let contentRenderer = null;
 
         async function ensureMessageElement() {
             if (messageEl) return messageEl;
             if (statusIndicatorEl) {
                 await statusQueue.drain();
-                removeTypingIndicator(statusIndicatorEl);
+                messageEl = prepareThinkingMessageForAnswer(statusIndicatorEl, statusUpdates);
                 statusIndicatorEl = null;
+            } else {
+                messageEl = appendMessage('bot', '', true);
             }
-            messageEl = appendMessage('bot', botMessage, true, recommendations);
+            contentRenderer = createTypewriterRenderer(messageEl);
             if (statusUpdates.length) {
-                prependAgentStatusSummary(messageEl, statusUpdates);
+                compactAgentStatusPanel(messageEl, statusUpdates);
             }
             return messageEl;
         }
@@ -609,7 +656,7 @@
                         if (parsed.status) {
                             statusQueue.push(parsed.status);
                             if (messageEl) {
-                                prependAgentStatusSummary(messageEl, statusUpdates);
+                                compactAgentStatusPanel(messageEl, statusUpdates);
                             }
                             continue;
                         }
@@ -618,26 +665,21 @@
                             botMessage += parsed.content;
                             if (!messageEl) {
                                 await ensureMessageElement();
-                            } else {
-                                updateMessageContent(messageEl, botMessage);
                             }
+                            contentRenderer.append(parsed.content);
                             continue;
                         }
 
                         if (Array.isArray(parsed.recommendations)) {
                             recommendations = parsed.recommendations;
-                            if (messageEl) {
-                                updateMessageRecommendations(messageEl, recommendations);
-                            }
                         }
                     } catch (e) {
                         // Not JSON, might be plain text
                         botMessage += data;
                         if (!messageEl) {
                             await ensureMessageElement();
-                        } else {
-                            updateMessageContent(messageEl, botMessage);
                         }
+                        contentRenderer.append(data);
                     }
                 }
             }
@@ -652,8 +694,11 @@
         }
 
         if (botMessage) {
+            if (contentRenderer) {
+                await contentRenderer.idle();
+            }
             if (messageEl && recommendations.length) {
-                updateMessageRecommendations(messageEl, recommendations);
+                await revealMessageRecommendations(messageEl, recommendations);
             }
             conversationHistory.push({ role: 'assistant', content: botMessage });
         } else if (!hasError) {
@@ -665,7 +710,7 @@
         }
     }
 
-    function appendMessage(type, content, returnEl = false, recommendations = []) {
+    function appendMessage(type, content, returnEl = false) {
         const messageHTML = `
             <div class="chat-message ${type}">
                 <div class="message-avatar">
@@ -673,7 +718,6 @@
                 </div>
                 <div class="message-body">
                     <div class="message-content">${formatMessage(content)}</div>
-                    ${type === 'bot' ? `<div class="chatbot-recommendations" ${recommendations.length ? '' : 'hidden'}>${renderRecommendationCards(recommendations)}</div>` : ''}
                 </div>
             </div>
         `;
@@ -689,23 +733,136 @@
     function updateMessageContent(messageEl, content) {
         const contentEl = messageEl.querySelector('.message-content');
         if (contentEl) {
+            contentEl.hidden = false;
             contentEl.innerHTML = formatMessage(content);
             scrollToBottom();
         }
     }
 
+    async function renderMessageWithTypewriter(messageEl, content) {
+        const renderer = createTypewriterRenderer(messageEl);
+        renderer.append(content || '');
+        await renderer.idle();
+    }
+
+    function createTypewriterRenderer(messageEl) {
+        let targetText = '';
+        let renderedLength = 0;
+        let running = false;
+        let idleResolvers = [];
+
+        const resolveIdle = () => {
+            const resolvers = idleResolvers;
+            idleResolvers = [];
+            resolvers.forEach(resolve => resolve());
+        };
+
+        const getStepSize = () => {
+            const remaining = targetText.length - renderedLength;
+            if (remaining > 280) return 18;
+            if (remaining > 120) return 10;
+            if (remaining > 40) return 5;
+            return 2;
+        };
+
+        const pump = async () => {
+            if (running) return;
+            running = true;
+            while (renderedLength < targetText.length) {
+                renderedLength = Math.min(targetText.length, renderedLength + getStepSize());
+                updateMessageContent(messageEl, targetText.slice(0, renderedLength));
+                await delay(TYPEWRITER_DELAY_MS);
+            }
+            running = false;
+            resolveIdle();
+        };
+
+        return {
+            append(text) {
+                if (!text) return;
+                targetText += String(text);
+                pump();
+            },
+            idle() {
+                if (!running && renderedLength >= targetText.length) {
+                    return Promise.resolve();
+                }
+                return new Promise(resolve => idleResolvers.push(resolve));
+            }
+        };
+    }
+
+    function findMessageRecommendationPanel(messageEl) {
+        const nextEl = messageEl ? messageEl.nextElementSibling : null;
+        if (nextEl && nextEl.classList.contains('recommendations-message')) {
+            return nextEl;
+        }
+        return null;
+    }
+
+    function ensureMessageRecommendationPanel(messageEl) {
+        if (!messageEl) return null;
+        const existingPanel = findMessageRecommendationPanel(messageEl);
+        if (existingPanel) return existingPanel;
+
+        const panelHTML = `
+            <div class="chat-message bot recommendations-message">
+                <div class="message-avatar message-avatar-spacer" aria-hidden="true"></div>
+                <div class="message-body">
+                    <div class="chatbot-recommendations" hidden></div>
+                </div>
+            </div>
+        `;
+        messageEl.insertAdjacentHTML('afterend', panelHTML);
+        return messageEl.nextElementSibling;
+    }
+
+    function removeMessageRecommendationPanel(messageEl) {
+        const panel = findMessageRecommendationPanel(messageEl);
+        if (panel) panel.remove();
+    }
+
     function updateMessageRecommendations(messageEl, recommendations) {
-        const container = messageEl.querySelector('.chatbot-recommendations');
-        if (!container) return;
         const cards = Array.isArray(recommendations) ? recommendations.filter(item => item && item.url && item.title) : [];
         if (!cards.length) {
-            container.hidden = true;
-            container.innerHTML = '';
+            removeMessageRecommendationPanel(messageEl);
             return;
         }
+        const panel = ensureMessageRecommendationPanel(messageEl);
+        const container = panel ? panel.querySelector('.chatbot-recommendations') : null;
+        if (!container) return;
+        container.classList.remove('is-entering', 'is-visible');
         container.hidden = false;
         container.innerHTML = renderRecommendationCards(cards);
         scrollToBottom();
+    }
+
+    async function revealMessageRecommendations(messageEl, recommendations) {
+        const cards = Array.isArray(recommendations) ? recommendations.filter(item => item && item.url && item.title) : [];
+        if (!cards.length) {
+            updateMessageRecommendations(messageEl, []);
+            return;
+        }
+
+        await delay(RECOMMENDATIONS_REVEAL_DELAY_MS);
+        const panel = ensureMessageRecommendationPanel(messageEl);
+        const container = panel ? panel.querySelector('.chatbot-recommendations') : null;
+        if (!container) return;
+        container.innerHTML = renderRecommendationCards(cards);
+        container.hidden = false;
+        panel.classList.remove('is-visible');
+        panel.classList.add('is-entering');
+        scrollToBottom();
+
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    panel.classList.add('is-visible');
+                    scrollToBottom();
+                    resolve();
+                });
+            });
+        });
     }
 
     function prependAgentStatusSummary(messageEl, statusUpdates) {
@@ -723,6 +880,45 @@
         body.insertAdjacentHTML('afterbegin', html);
     }
 
+    function prepareThinkingMessageForAnswer(typingEl, statusUpdates = []) {
+        if (!typingEl) return null;
+        clearThinkingTimers(typingEl);
+        typingEl.classList.remove('typing-message');
+        typingEl.classList.add('has-agent-status');
+        compactAgentStatusPanel(typingEl, statusUpdates);
+        return typingEl;
+    }
+
+    function compactAgentStatusPanel(messageEl, statusUpdates = []) {
+        if (!messageEl) return;
+        const fallbackStatus = [{ label: '正在生成回答', detail: '已完成问题理解与站内检索' }];
+        const updates = Array.isArray(statusUpdates) && statusUpdates.length ? statusUpdates : fallbackStatus;
+        const html = renderAgentStatusSummary(updates);
+        if (!html) return;
+
+        const template = document.createElement('template');
+        template.innerHTML = html.trim();
+        const summaryEl = template.content.firstElementChild;
+        if (!summaryEl) return;
+
+        const existingSummary = messageEl.querySelector('.chatbot-agent-summary');
+        if (existingSummary) {
+            existingSummary.replaceWith(summaryEl);
+            return;
+        }
+
+        const livePanel = messageEl.querySelector('.typing-indicator');
+        if (livePanel) {
+            livePanel.replaceWith(summaryEl);
+            return;
+        }
+
+        const body = messageEl.querySelector('.message-body');
+        if (body) {
+            body.insertAdjacentElement('afterbegin', summaryEl);
+        }
+    }
+
     function renderRecommendationCards(recommendations) {
         const cards = Array.isArray(recommendations) ? recommendations.filter(item => item && item.url && item.title) : [];
         if (!cards.length) return '';
@@ -731,12 +927,17 @@
             <div class="chatbot-recommendation-links">
                 ${cards.map(item => `
                     <a class="chatbot-recommendation-link" href="${escapeAttr(item.url)}" target="_blank" rel="noopener">
-                        <span class="chatbot-recommendation-type">${escapeHtml(mapRecommendationTypeLabel(item.type || 'overview'))}</span>
-                        <span class="chatbot-recommendation-name">${escapeHtml(item.title || '')}</span>
+                        <span class="chatbot-recommendation-name">${escapeHtml(cleanRecommendationTitle(item.title || ''))}</span>
                     </a>
                 `).join('')}
             </div>
         `;
+    }
+
+    function cleanRecommendationTitle(title) {
+        return String(title || '')
+            .replace(/\s*-\s*元芯传感\s*$/i, '')
+            .trim();
     }
 
     function renderAgentStatusSummary(statusUpdates) {
@@ -745,7 +946,7 @@
         const latest = steps[steps.length - 1];
         return `
             <div class="chatbot-agent-summary is-refreshing">
-                <span class="chatbot-agent-summary-title">Agent</span>
+                <span class="chatbot-agent-summary-title">思考</span>
                 <span class="chatbot-agent-summary-label">${escapeHtml(latest.label || '')}</span>
                 ${latest.detail ? `<span class="chatbot-agent-summary-detail">${escapeHtml(latest.detail || '')}</span>` : ''}
             </div>
@@ -850,7 +1051,7 @@
     function createAgentStatusQueue(typingEl, statusUpdates) {
         const queue = [];
         let running = false;
-        let idleResolver = null;
+        let flushed = false;
 
         const run = async () => {
             if (running) return;
@@ -858,71 +1059,138 @@
             while (queue.length) {
                 const status = queue.shift();
                 statusUpdates.push(status);
+                // 正文已开始流式输出后进入 flushed：状态只并入摘要，不再逐条动画/等待。
+                if (flushed) continue;
                 appendAgentStatusStep(typingEl, status);
                 await delay(AGENT_STATUS_MIN_VISIBLE_MS);
             }
             running = false;
-            if (idleResolver) {
-                idleResolver();
-                idleResolver = null;
-            }
         };
 
         return {
             push(status) {
                 if (!status || !status.label) return;
+                // 已进入 flushed（正文在流式输出）后，新状态直接并入摘要，
+                // 不再排队等待 run() 里可能尚未结束的上一条延时。
+                if (flushed) {
+                    statusUpdates.push(status);
+                    return;
+                }
                 queue.push(status);
                 run();
             },
+            // 正文一旦开始流式输出就立即结束状态动画：把尚未展示的状态直接并入摘要并立即返回，
+            // 不再等待每条状态的最小展示时间——否则会阻塞读取循环，导致模型输出被缓冲后一次性渲染（看起来不流式）。
             drain() {
-                if (!running && !queue.length) return Promise.resolve();
-                return new Promise(resolve => {
-                    idleResolver = resolve;
-                });
+                flushed = true;
+                while (queue.length) {
+                    statusUpdates.push(queue.shift());
+                }
+                return Promise.resolve();
             }
         };
     }
 
+    function renderAgentStatusStep(label, detail = '', state = 'is-active') {
+        const detailHtml = detail ? `<div class="agent-status-detail">${escapeHtml(detail)}</div>` : '';
+        return `
+            <div class="agent-status-item ${state}">
+                <span class="agent-status-icon" aria-hidden="true"></span>
+                <div class="agent-status-copy">
+                    <div class="agent-status-label">${escapeHtml(label || '')}</div>
+                    ${detailHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    function setAgentStatusItemState(item, state) {
+        if (!item) return;
+        item.classList.remove('is-active', 'is-complete', 'is-pending', 'is-refreshing');
+        item.classList.add(state);
+    }
+
+    function activateDefaultThinkingStep(typingEl, index) {
+        if (!typingEl) return;
+        const items = Array.from(typingEl.querySelectorAll('.agent-status-item'));
+        items.forEach((item, itemIndex) => {
+            if (itemIndex < index) {
+                setAgentStatusItemState(item, 'is-complete');
+            } else if (itemIndex === index) {
+                setAgentStatusItemState(item, 'is-active');
+                item.classList.add('is-refreshing');
+            } else {
+                setAgentStatusItemState(item, 'is-pending');
+            }
+        });
+        scrollToBottom();
+    }
+
+    function clearThinkingTimers(typingEl) {
+        if (!typingEl || !Array.isArray(typingEl._statusTimers)) return;
+        typingEl._statusTimers.forEach(timer => clearTimeout(timer));
+        typingEl._statusTimers = [];
+    }
+
     function showAgentStatusIndicator() {
         const typingHTML = `
-            <div class="chat-message bot typing-message">
+            <div class="chat-message bot typing-message agent-thinking-message">
                 <div class="message-avatar">
                     <i class="fas fa-robot"></i>
                 </div>
-                <div class="typing-indicator">
-                    <div class="agent-status-list" aria-live="polite">
-                        <div class="agent-status-item is-refreshing">
-                            <div class="agent-status-label">元芯AI正在准备处理您的问题</div>
+                <div class="message-body">
+                    <div class="typing-indicator">
+                        <div class="agent-thinking-header">
+                            <span>思考中</span>
+                            <span class="agent-thinking-pulse" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </div>
+                        <div class="agent-status-list" aria-live="polite">
+                            ${renderAgentStatusStep('正在阅读请求', '', 'is-active')}
+                            ${renderAgentStatusStep('正在优化回复', '', 'is-pending')}
                         </div>
                     </div>
+                    <div class="message-content" hidden></div>
                 </div>
             </div>
         `;
         messagesContainer.insertAdjacentHTML('beforeend', typingHTML);
+        const typingEl = messagesContainer.lastElementChild;
+        typingEl._statusTimers = [
+            setTimeout(() => activateDefaultThinkingStep(typingEl, 1), 700),
+            setTimeout(() => appendAgentStatusStep(typingEl, { label: '正在整理答案' }, { keepTimers: true }), 1800)
+        ];
         scrollToBottom();
-        return messagesContainer.lastElementChild;
+        return typingEl;
     }
 
-    function appendAgentStatusStep(typingEl, status) {
+    function appendAgentStatusStep(typingEl, status, options = {}) {
         if (!typingEl || !status || !status.label) return;
         const listEl = typingEl.querySelector('.agent-status-list');
         if (!listEl) return;
-        const detail = status.detail ? `<div class="agent-status-detail">${escapeHtml(status.detail)}</div>` : '';
-        listEl.innerHTML = `
-            <div class="agent-status-item is-refreshing">
-                <div class="agent-status-label">${escapeHtml(status.label || '')}</div>
-                ${detail}
-            </div>
-        `;
+        if (!options.keepTimers) {
+            clearThinkingTimers(typingEl);
+        }
+        listEl.querySelectorAll('.agent-status-item.is-pending').forEach(item => item.remove());
+        listEl.querySelectorAll('.agent-status-item.is-active').forEach(item => {
+            setAgentStatusItemState(item, 'is-complete');
+        });
+        listEl.insertAdjacentHTML(
+            'beforeend',
+            renderAgentStatusStep(status.label || '', status.detail || '', 'is-active is-refreshing')
+        );
+        while (listEl.children.length > 5) {
+            listEl.firstElementChild.remove();
+        }
         scrollToBottom();
     }
 
     function removeTypingIndicator(typingEl) {
         if (!typingEl) return;
-        if (typingEl._statusTimer) {
-            clearInterval(typingEl._statusTimer);
-            typingEl._statusTimer = null;
-        }
+        clearThinkingTimers(typingEl);
         typingEl.remove();
     }
 

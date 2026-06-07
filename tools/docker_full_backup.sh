@@ -16,13 +16,12 @@ require_cmd() {
 
 BACKUP_ROOT="${BACKUP_ROOT:-/湖南元芯传感官网每日自动备份}"
 WEBSITE_CONTAINER="${WEBSITE_CONTAINER:-yx-website}"
-GATEWAY_CONTAINER="${GATEWAY_CONTAINER:-yx-gateway}"
-KEEP_COUNT="${KEEP_COUNT:-2}"
 DATE_TIME="$(date '+%Y-%m-%d_%H-%M-%S')"
 BACKUP_DIR="${BACKUP_ROOT}/${DATE_TIME}"
 LOG_FILE="${BACKUP_DIR}/backup.log"
 BACKUP_STATUS=0
-CONTAINERS=("$WEBSITE_CONTAINER" "$GATEWAY_CONTAINER")
+# 单域名 ESA 部署已不再使用 gateway 容器，默认只备份网站容器。
+CONTAINERS=("$WEBSITE_CONTAINER")
 
 require_cmd docker
 require_cmd tar
@@ -35,16 +34,15 @@ mkdir -p "$BACKUP_DIR"
 log "starting docker full backup"
 log "backup root: $BACKUP_ROOT"
 log "backup dir: $BACKUP_DIR"
-log "keep count: $KEEP_COUNT"
+log "old backup cleanup: enabled; previous backups will be removed after a successful run"
+log "containers: ${CONTAINERS[*]}"
 
 for container in "${CONTAINERS[@]}"; do
   log "processing container: $container"
 
   if ! docker container inspect "$container" >/dev/null 2>&1; then
-    log "container not found, skipping: $container"
-    if [[ "$container" == "$WEBSITE_CONTAINER" ]]; then
-      BACKUP_STATUS=1
-    fi
+    log "container not found: $container"
+    BACKUP_STATUS=1
     continue
   fi
 
@@ -91,19 +89,17 @@ else
 fi
 
 if [[ "$BACKUP_STATUS" -eq 0 ]]; then
-  mapfile -t old_backups < <(
-    find "$BACKUP_ROOT" -mindepth 2 -maxdepth 2 -name 'backup_success.flag' -printf '%T@ %h\n' 2>/dev/null \
-      | sort -n \
-      | head -n -"${KEEP_COUNT}" \
-      | cut -d' ' -f2-
-  )
-
-  for old_backup in "${old_backups[@]}"; do
+  log "backup succeeded; removing previous backup directories"
+  while IFS= read -r old_backup; do
     [[ -n "$old_backup" ]] || continue
+    [[ "$old_backup" != "$BACKUP_DIR" ]] || continue
+    [[ "$old_backup" != "$BACKUP_ROOT" ]] || continue
     [[ -d "$old_backup" ]] || continue
-    log "removing old backup: $old_backup"
+    log "removing previous backup: $old_backup"
     rm -rf "$old_backup"
-  done
+  done < <(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+else
+  log "backup failed; previous backups retained"
 fi
 
 log "docker full backup task finished"

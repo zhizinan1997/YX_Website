@@ -40,6 +40,7 @@ node_modules/
 /data/site_analytics_events.jsonl
 data/admin_users.json
 data/site_analytics_events.jsonl
+/check_data/
 
 # Local scratch conversion artifacts
 /mp4/
