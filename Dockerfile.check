@@ -1,17 +1,17 @@
-FROM python:3.11-slim
+FROM mcr.microsoft.com/playwright/python:v1.46.0-jammy
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     CHECK_MAIN_DATA_DIR=/app/main_data \
     CHECK_DATA_DIR=/app/check_data \
     CHECK_SCHEDULER_ENABLED=true
 
 COPY requirements.check.txt /app/requirements.check.txt
-RUN pip install --no-cache-dir -r /app/requirements.check.txt \
-    && python -m playwright install --with-deps chromium
+RUN pip install --no-cache-dir -r /app/requirements.check.txt
 
 COPY check_app /app/check_app
 
