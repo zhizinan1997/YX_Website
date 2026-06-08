@@ -90,6 +90,10 @@
         let siteReportsEndDate = '';
         let siteReportsGranularity = 'day';
         let siteReportsLoading = false;
+        let siteReportsAiLoading = false;
+        let siteAiReportListLoading = false;
+        let siteAiReportListCache = null;
+        let siteAiReportLastText = '';
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
         const SITE_REPORT_COUNTRY_PAGE_SIZE = 8;
@@ -948,6 +952,7 @@
                 closeMessageCenter();
                 closeAccountMenu();
                 closeMobileSidebar();
+                closeSiteAiReportListModal();
             }
         });
         window.addEventListener('resize', () => {
@@ -3297,6 +3302,7 @@
             const key = String(granularity || '').trim().toLowerCase();
             const labelMap = {
                 year: '按年显示',
+                quarter: '按季度显示',
                 month: '按月显示',
                 week: '按周显示',
                 day: '按天显示',
@@ -3309,6 +3315,7 @@
             const key = String(granularity || '').trim().toLowerCase();
             const titleMap = {
                 year: '按年趋势',
+                quarter: '按季度趋势',
                 month: '按月趋势',
                 week: '按周趋势',
                 day: '按天趋势',
@@ -3336,6 +3343,7 @@
                 if (startFull && endFull) return startFull === endFull ? startFull : `${startFull}-${endFull}`;
                 return label;
             }
+            if (key === 'quarter') return label || (start ? start.slice(0, 4) : '');
             if (key === 'month') return start ? start.slice(0, 7) : label;
             if (key === 'year') return start ? start.slice(0, 4) : label;
             if (key === 'day') return start ? start.slice(5) : label;
@@ -3447,7 +3455,7 @@
                 siteReportsEndDate = String(endEl.value || '').trim();
             }
             const currentGranularity = String(granularityEl.value || '').trim().toLowerCase();
-            if (['year', 'month', 'week', 'day'].includes(currentGranularity)) {
+            if (['year', 'quarter', 'month', 'week', 'day'].includes(currentGranularity)) {
                 siteReportsGranularity = currentGranularity;
             } else {
                 granularityEl.value = siteReportsGranularity;
@@ -3529,7 +3537,7 @@
                 : 0;
             const availableWidth = Math.max(720, Math.floor((wrapRect.width || wrap.clientWidth || 0) - wrapPaddingX));
             const maxLabelChars = Math.max(5, ...prepared.map(item => (item.axisLabel || item.label || '').length));
-            const slotBaseMap = { year: 88, month: 96, week: 190, day: 64, hour: 72 };
+            const slotBaseMap = { year: 88, quarter: 104, month: 96, week: 190, day: 64, hour: 72 };
             const slotWidth = Math.max(slotBaseMap[granularity] || 72, Math.min(220, (maxLabelChars * 8) + 28));
             const dataWidth = padding.left + padding.right + (Math.max(1, prepared.length - 1) * slotWidth);
             const width = Math.ceil(Math.max(availableWidth, dataWidth));
@@ -3988,6 +3996,438 @@
             }
         }
 
+        function setSiteReportsAiLoading(isLoading) {
+            siteReportsAiLoading = !!isLoading;
+            const btn = document.getElementById('siteReportAiBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-spinner fa-spin"></i> 生成中...'
+                : '<i class="fas fa-magic"></i> AI生成报告';
+        }
+
+        function getSiteAiReportPeriodLabel(period) {
+            const labelMap = {
+                week: '周报',
+                month: '月报',
+                quarter: '季报',
+                year: '年报'
+            };
+            return labelMap[String(period || '').trim().toLowerCase()] || '运营报告';
+        }
+
+        function formatSiteAiReportMetricValue(metricKey, value) {
+            if (metricKey === 'avg_session_duration_sec') return formatSiteReportDuration(value);
+            if (metricKey === 'bounce_rate' || metricKey === 'conversion_rate') return formatSiteReportPercent(value);
+            return formatSiteReportNumber(value);
+        }
+
+        function formatSiteAiReportChange(item) {
+            const rate = item && item.change_rate;
+            if (rate === null || typeof rate === 'undefined') {
+                const current = Number(item?.current || 0);
+                return current > 0 ? '新增' : '持平';
+            }
+            const num = Number(rate || 0);
+            if (!Number.isFinite(num) || num === 0) return '持平';
+            return `${num > 0 ? '+' : ''}${num.toFixed(2)}%`;
+        }
+
+        function renderSiteAiReportSummary(data) {
+            const wrap = document.getElementById('siteAiReportSummary');
+            if (!wrap) return;
+            const comparison = data && typeof data.comparison === 'object' ? data.comparison : {};
+            const keys = ['pageviews', 'unique_visitors', 'sessions', 'bounce_rate', 'conversion_events', 'conversion_rate'];
+            const cards = keys.map((key) => {
+                const item = comparison[key] || {};
+                const label = String(item.label || key);
+                const change = Number(item.change || 0);
+                const className = change > 0 ? 'is-up' : (change < 0 ? 'is-down' : 'is-flat');
+                return `
+                    <div class="site-ai-report-kpi ${className}">
+                        <div class="site-ai-report-kpi-label">${escapeHtml(label)}</div>
+                        <div class="site-ai-report-kpi-value">${escapeHtml(formatSiteAiReportMetricValue(key, item.current))}</div>
+                        <div class="site-ai-report-kpi-change">环比 ${escapeHtml(formatSiteAiReportChange(item))}</div>
+                    </div>
+                `;
+            }).join('');
+            wrap.innerHTML = cards;
+        }
+
+        function formatSiteAiReportText(text) {
+            const raw = String(text || '').trim();
+            if (!raw) return '<div class="no-data">暂无报告内容</div>';
+            const blocks = raw.split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
+            return blocks.map((block) => {
+                const clean = escapeHtml(block.replace(/\*\*/g, ''));
+                if (/^#{1,3}\s+/.test(block)) {
+                    return `<h4>${escapeHtml(block.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, ''))}</h4>`;
+                }
+                if (/^[-*]\s+/m.test(block)) {
+                    const items = block.split(/\n/).map(line => line.trim()).filter(Boolean).map((line) => {
+                        return `<li>${escapeHtml(line.replace(/^[-*]\s+/, '').replace(/\*\*/g, ''))}</li>`;
+                    }).join('');
+                    return `<ul>${items}</ul>`;
+                }
+                if (/^\d+\.\s+/m.test(block)) {
+                    const items = block.split(/\n/).map(line => line.trim()).filter(Boolean).map((line) => {
+                        return `<li>${escapeHtml(line.replace(/^\d+\.\s+/, '').replace(/\*\*/g, ''))}</li>`;
+                    }).join('');
+                    return `<ol>${items}</ol>`;
+                }
+                if (block.length <= 28 && !/[。；;]$/.test(block)) {
+                    return `<h4>${clean}</h4>`;
+                }
+                return `<p>${clean.replace(/\n/g, '<br>')}</p>`;
+            }).join('');
+        }
+
+        function renderSiteAiReport(data) {
+            const card = document.getElementById('siteAiReportCard');
+            const metaEl = document.getElementById('siteAiReportMeta');
+            const contentEl = document.getElementById('siteAiReportContent');
+            const copyBtn = document.getElementById('siteAiReportCopyBtn');
+            if (!card || !contentEl) return;
+
+            const currentRange = data?.current_range?.label || '';
+            const previousRange = data?.previous_range?.label || '';
+            const periodLabel = data?.period_label || getSiteAiReportPeriodLabel(data?.period);
+            const generatedAt = formatChangelogTime(data?.generated_at) || String(data?.generated_at || '-');
+            if (metaEl) {
+                metaEl.textContent = `${periodLabel} · 当前周期：${currentRange || '-'} · 环比周期：${previousRange || '-'} · 生成时间：${generatedAt}`;
+            }
+            renderSiteAiReportSummary(data || {});
+            siteAiReportLastText = String(data?.report || '').trim();
+            contentEl.innerHTML = formatSiteAiReportText(siteAiReportLastText);
+            if (copyBtn) copyBtn.disabled = !siteAiReportLastText;
+            card.style.display = '';
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function groupSiteAiReports(reports) {
+            const grouped = { year: [], quarter: [], month: [], week: [] };
+            (Array.isArray(reports) ? reports : []).forEach((item) => {
+                const key = String(item?.period || '').trim().toLowerCase();
+                if (Object.prototype.hasOwnProperty.call(grouped, key)) {
+                    grouped[key].push(item);
+                }
+            });
+            return grouped;
+        }
+
+        function setSiteAiReportListLoading(isLoading) {
+            siteAiReportListLoading = !!isLoading;
+            const btn = document.getElementById('siteAiReportListRefreshBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-spinner fa-spin"></i> 加载中...'
+                : '<i class="fas fa-sync-alt"></i> 刷新清单';
+        }
+
+        function getSiteAiReportListRows(data) {
+            if (Array.isArray(data?.reports)) return data.reports;
+            if (data?.grouped && typeof data.grouped === 'object') {
+                return ['year', 'quarter', 'month', 'week'].flatMap(key => Array.isArray(data.grouped[key]) ? data.grouped[key] : []);
+            }
+            return [];
+        }
+
+        function formatSiteAiReportListRange(item) {
+            const current = item?.current_range && typeof item.current_range === 'object' ? item.current_range : {};
+            const previous = item?.previous_range && typeof item.previous_range === 'object' ? item.previous_range : {};
+            const currentLabel = String(current.label || '').trim()
+                || [current.start_date, current.end_date].filter(Boolean).join(' 至 ');
+            const previousLabel = String(previous.label || '').trim()
+                || [previous.start_date, previous.end_date].filter(Boolean).join(' 至 ');
+            return {
+                current: currentLabel || '-',
+                previous: previousLabel || '-'
+            };
+        }
+
+        function renderSiteAiReportListMetricPills(item) {
+            const comparison = item?.comparison && typeof item.comparison === 'object' ? item.comparison : {};
+            const keys = ['pageviews', 'unique_visitors', 'conversion_events'];
+            return keys.map((key) => {
+                const metric = comparison[key] && typeof comparison[key] === 'object' ? comparison[key] : {};
+                const labelMap = {
+                    pageviews: 'PV',
+                    unique_visitors: 'UV',
+                    conversion_events: '转化'
+                };
+                return `
+                    <span class="site-ai-report-list-pill">
+                        ${escapeHtml(labelMap[key] || key)}
+                        <strong>${escapeHtml(formatSiteAiReportMetricValue(key, metric.current))}</strong>
+                        <em>${escapeHtml(formatSiteAiReportChange(metric))}</em>
+                    </span>
+                `;
+            }).join('');
+        }
+
+        function renderSiteAiReportListItem(item) {
+            const id = String(item?.id || '').trim();
+            const title = String(item?.title || `${getSiteAiReportPeriodLabel(item?.period)}网站运营报告`).trim();
+            const periodLabel = String(item?.period_label || getSiteAiReportPeriodLabel(item?.period)).trim();
+            const generatedAt = formatChangelogTime(item?.generated_at) || String(item?.generated_at || '-');
+            const ranges = formatSiteAiReportListRange(item);
+            const downloadDisabled = id ? '' : ' disabled';
+            return `
+                <article class="site-ai-report-list-item">
+                    <div class="site-ai-report-list-item-head">
+                        <span class="site-ai-report-list-badge">${escapeHtml(periodLabel)}</span>
+                        <span class="site-ai-report-list-time">${escapeHtml(generatedAt)}</span>
+                    </div>
+                    <h4 title="${escapeAttr(title)}">${escapeHtml(title)}</h4>
+                    <div class="site-ai-report-list-range">当前：${escapeHtml(ranges.current)}</div>
+                    <div class="site-ai-report-list-range">环比：${escapeHtml(ranges.previous)}</div>
+                    <div class="site-ai-report-list-pills">${renderSiteAiReportListMetricPills(item)}</div>
+                    <button type="button" class="site-ai-report-download-btn" data-site-ai-download-id="${escapeAttr(id)}"
+                        onclick="downloadSiteAiReportPdf('${escapeAttr(id)}')"${downloadDisabled}>
+                        <i class="fas fa-file-pdf"></i> 下载 PDF
+                    </button>
+                </article>
+            `;
+        }
+
+        function renderSiteAiReportList(data) {
+            const contentEl = document.getElementById('siteAiReportListContent');
+            const metaEl = document.getElementById('siteAiReportListMeta');
+            if (!contentEl) return;
+            const reports = getSiteAiReportListRows(data);
+            const grouped = data?.grouped && typeof data.grouped === 'object'
+                ? data.grouped
+                : groupSiteAiReports(reports);
+            const total = reports.length;
+            if (metaEl) {
+                metaEl.textContent = total
+                    ? `共 ${total} 份已生成报告，可下载渲染后的 PDF`
+                    : '暂无已生成报告，生成一次 AI 报告后会自动出现在这里';
+            }
+            const columns = [
+                { key: 'year', label: '年报', icon: 'fas fa-calendar-alt' },
+                { key: 'quarter', label: '季报', icon: 'fas fa-chart-pie' },
+                { key: 'month', label: '月报', icon: 'far fa-calendar-check' },
+                { key: 'week', label: '周报', icon: 'fas fa-calendar-week' }
+            ];
+            contentEl.innerHTML = `
+                <div class="site-ai-report-list-grid">
+                    ${columns.map((column) => {
+                        const rows = Array.isArray(grouped[column.key]) ? grouped[column.key] : [];
+                        return `
+                            <section class="site-ai-report-list-column">
+                                <div class="site-ai-report-list-column-head">
+                                    <span><i class="${column.icon}"></i> ${escapeHtml(column.label)}</span>
+                                    <strong>${rows.length}</strong>
+                                </div>
+                                <div class="site-ai-report-list-items">
+                                    ${rows.length ? rows.map(renderSiteAiReportListItem).join('') : '<div class="site-ai-report-list-empty">暂无报告</div>'}
+                                </div>
+                            </section>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function mergeSiteAiReportIntoCache(record) {
+            if (!record || typeof record !== 'object' || !record.id) return;
+            const reports = getSiteAiReportListRows(siteAiReportListCache);
+            const nextReports = [record, ...reports.filter(item => String(item?.id || '') !== String(record.id))];
+            siteAiReportListCache = {
+                success: true,
+                reports: nextReports,
+                grouped: groupSiteAiReports(nextReports),
+                total: nextReports.length
+            };
+            const modal = document.getElementById('siteAiReportListModal');
+            if (modal && !modal.hidden) renderSiteAiReportList(siteAiReportListCache);
+        }
+
+        function openSiteAiReportListModal() {
+            const modal = document.getElementById('siteAiReportListModal');
+            if (!modal) return;
+            modal.hidden = false;
+            if (siteAiReportListCache) {
+                renderSiteAiReportList(siteAiReportListCache);
+            } else {
+                const contentEl = document.getElementById('siteAiReportListContent');
+                if (contentEl) {
+                    contentEl.innerHTML = '<div class="site-ai-report-list-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载报告清单...</div>';
+                }
+                loadSiteAiReportList();
+            }
+        }
+
+        function closeSiteAiReportListModal() {
+            const modal = document.getElementById('siteAiReportListModal');
+            if (modal) modal.hidden = true;
+        }
+
+        async function loadSiteAiReportList(manual = false) {
+            if (siteAiReportListLoading) return;
+            setSiteAiReportListLoading(true);
+            try {
+                const res = await fetch('/api/admin/site-reports/ai-reports?limit=120', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `加载报告清单失败（HTTP ${res.status || '-'}）`));
+                }
+                const reports = getSiteAiReportListRows(data);
+                siteAiReportListCache = {
+                    ...data,
+                    reports,
+                    grouped: data.grouped && typeof data.grouped === 'object' ? data.grouped : groupSiteAiReports(reports),
+                    total: reports.length
+                };
+                renderSiteAiReportList(siteAiReportListCache);
+                if (manual) {
+                    showGlobalAlert('报告清单已刷新');
+                }
+            } catch (err) {
+                console.error('Load site AI report list failed:', err);
+                const message = String(err?.message || '加载报告清单失败');
+                const contentEl = document.getElementById('siteAiReportListContent');
+                if (contentEl) {
+                    contentEl.innerHTML = `<div class="site-ai-report-list-error">${escapeHtml(message)}</div>`;
+                }
+                showGlobalAlert(message);
+            } finally {
+                setSiteAiReportListLoading(false);
+            }
+        }
+
+        function buildSiteAiReportPdfFilename(item) {
+            const title = String(item?.title || '网站运营报告').replace(/[\\/:*?"<>|\r\n\t]+/g, '-').trim() || '网站运营报告';
+            const label = String(item?.period_label || getSiteAiReportPeriodLabel(item?.period)).replace(/[\\/:*?"<>|\r\n\t]+/g, '-').trim();
+            return `${label || 'AI报告'}-${title}.pdf`;
+        }
+
+        async function downloadSiteAiReportPdf(reportId) {
+            const id = String(reportId || '').trim();
+            if (!id) return;
+            const reports = getSiteAiReportListRows(siteAiReportListCache);
+            const item = reports.find(row => String(row?.id || '') === id) || {};
+            const url = String(item.download_url || `/api/admin/site-reports/ai-reports/${encodeURIComponent(id)}/download`);
+            const btn = document.querySelector(`[data-site-ai-download-id="${id}"]`);
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+            }
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) {
+                    const data = await parseJsonSafe(res);
+                    throw new Error(String(data.message || `PDF下载失败（HTTP ${res.status || '-'}）`));
+                }
+                const blob = await res.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = buildSiteAiReportPdfFilename(item);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            } catch (err) {
+                console.error('Download site AI report PDF failed:', err);
+                showGlobalAlert(String(err?.message || 'PDF下载失败'));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml || '<i class="fas fa-file-pdf"></i> 下载 PDF';
+                }
+            }
+        }
+
+        async function generateSiteAiReport() {
+            if (siteReportsAiLoading) return;
+            ensureSiteReportFiltersInitialized();
+            const endEl = document.getElementById('siteReportEndDate');
+            const periodEl = document.getElementById('siteReportAiPeriod');
+            const msgEl = document.getElementById('siteReportMsg');
+            const period = String(periodEl?.value || 'month').trim().toLowerCase();
+            const validPeriods = new Set(['week', 'month', 'quarter', 'year']);
+            const anchorDate = String(endEl?.value || siteReportsEndDate || getBeijingDateString()).trim();
+
+            let validationError = '';
+            if (!validPeriods.has(period)) {
+                validationError = '报告周期无效，请重新选择';
+            } else if (!isValidIsoDate(anchorDate)) {
+                validationError = '请先选择有效的结束日期';
+            }
+            if (validationError) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = validationError;
+                }
+                showGlobalAlert(validationError);
+                return;
+            }
+
+            if (msgEl) {
+                msgEl.style.color = '#64748b';
+                msgEl.textContent = `${getSiteAiReportPeriodLabel(period)}生成中，请稍候...`;
+            }
+            setSiteReportsAiLoading(true);
+            try {
+                const res = await fetch('/api/admin/site-reports/ai-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ period, anchor_date: anchorDate })
+                });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `AI报告生成失败（HTTP ${res.status || '-'}）`));
+                }
+                renderSiteAiReport(data);
+                if (data.report_record) {
+                    mergeSiteAiReportIntoCache(data.report_record);
+                } else {
+                    siteAiReportListCache = null;
+                }
+                if (msgEl) {
+                    msgEl.style.color = '#28a745';
+                    msgEl.textContent = 'AI报告已生成';
+                }
+            } catch (err) {
+                console.error('Generate site AI report failed:', err);
+                const message = String(err?.message || 'AI报告生成失败');
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = message;
+                }
+                showGlobalAlert(message);
+            } finally {
+                setSiteReportsAiLoading(false);
+            }
+        }
+
+        async function copySiteAiReport() {
+            const text = String(siteAiReportLastText || '').trim();
+            if (!text) return;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.setAttribute('readonly', 'readonly');
+                    textarea.style.position = 'fixed';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    textarea.remove();
+                }
+                showGlobalAlert('AI报告内容已复制');
+            } catch (err) {
+                showGlobalAlert('复制失败，请手动选择报告内容复制');
+            }
+        }
+
         async function loadSiteReports(manual = false) {
             if (siteReportsLoading) return;
             ensureSiteReportFiltersInitialized();
@@ -4004,7 +4444,7 @@
             const startDate = String(startEl?.value || '').trim();
             const endDate = String(endEl?.value || '').trim();
             const granularity = String(granularityEl?.value || 'day').trim().toLowerCase() || 'day';
-            const validGranularities = new Set(['year', 'month', 'week', 'day']);
+            const validGranularities = new Set(['year', 'quarter', 'month', 'week', 'day']);
             syncSiteReportDateInputLimits();
 
             let validationError = '';

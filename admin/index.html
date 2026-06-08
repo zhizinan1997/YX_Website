@@ -2835,14 +2835,32 @@
                                     <select id="siteReportGranularity" class="form-control site-report-filter-control site-report-granularity-select"
                                         onchange="loadSiteReports()">
                                         <option value="year">按年显示</option>
+                                        <option value="quarter">按季度显示</option>
                                         <option value="month">按月显示</option>
                                         <option value="week">按周显示</option>
                                         <option value="day" selected>按天显示</option>
                                     </select>
                                 </div>
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportAiPeriod" class="site-report-label">报告周期</label>
+                                    <select id="siteReportAiPeriod" class="form-control site-report-filter-control site-report-granularity-select">
+                                        <option value="week">周报</option>
+                                        <option value="month" selected>月报</option>
+                                        <option value="quarter">季报</option>
+                                        <option value="year">年报</option>
+                                    </select>
+                                </div>
                                 <button type="button" class="btn-primary site-report-refresh-btn" id="siteReportRefreshBtn"
                                     onclick="loadSiteReports(true)">
                                     <i class="fas fa-sync-alt"></i> 刷新报表
+                                </button>
+                                <button type="button" class="btn-primary site-report-refresh-btn site-report-ai-btn" id="siteReportAiBtn"
+                                    onclick="generateSiteAiReport()">
+                                    <i class="fas fa-magic"></i> AI生成报告
+                                </button>
+                                <button type="button" class="btn-primary site-report-refresh-btn site-report-list-btn" id="siteReportListBtn"
+                                    onclick="openSiteAiReportListModal()">
+                                    <i class="fas fa-list-ul"></i> 报告清单
                                 </button>
                             </div>
                         </div>
@@ -2887,6 +2905,27 @@
 
                         <div id="siteReportLastUpdated" class="site-report-meta">-</div>
                         <div id="siteReportMsg" class="error-message" style="color:#28a745;"></div>
+                    </div>
+
+                    <div class="card site-report-card site-ai-report-card" id="siteAiReportCard" style="display:none;">
+                        <div class="site-ai-report-header">
+                            <div>
+                                <h3 class="section-header" style="margin-bottom: 0;">AI网站运营报告</h3>
+                                <div class="site-report-meta" id="siteAiReportMeta">-</div>
+                            </div>
+                            <div class="site-ai-report-header-actions">
+                                <button type="button" class="btn-primary site-report-refresh-btn site-report-list-btn"
+                                    onclick="openSiteAiReportListModal()">
+                                    <i class="fas fa-list-ul"></i> 报告清单
+                                </button>
+                                <button type="button" class="btn-primary site-report-refresh-btn site-ai-report-copy-btn" id="siteAiReportCopyBtn"
+                                    onclick="copySiteAiReport()" disabled>
+                                    <i class="fas fa-copy"></i> 复制
+                                </button>
+                            </div>
+                        </div>
+                        <div class="site-ai-report-summary" id="siteAiReportSummary"></div>
+                        <div class="site-ai-report-content" id="siteAiReportContent"></div>
                     </div>
 
                     <div class="card site-report-card" style="margin-top: 18px;">
@@ -3428,6 +3467,28 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </button>
             </div>
             <pre id="knowledgeTextDetailContent" class="knowledge-text-detail-content"></pre>
+        </div>
+    </div>
+    <div id="siteAiReportListModal" class="site-ai-report-list-modal" hidden onclick="if(event.target===this) closeSiteAiReportListModal()">
+        <div class="site-ai-report-list-dialog" role="dialog" aria-modal="true" aria-labelledby="siteAiReportListTitle">
+            <div class="site-ai-report-list-header">
+                <div>
+                    <h3 id="siteAiReportListTitle">AI网站运营报告清单</h3>
+                    <div class="site-ai-report-list-meta" id="siteAiReportListMeta">按报告周期分栏展示，可下载渲染后的 PDF 报告</div>
+                </div>
+                <button type="button" class="btn-sm btn-danger" onclick="closeSiteAiReportListModal()">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+            <div class="site-ai-report-list-toolbar">
+                <button type="button" class="btn-primary site-report-refresh-btn" id="siteAiReportListRefreshBtn"
+                    onclick="loadSiteAiReportList(true)">
+                    <i class="fas fa-sync-alt"></i> 刷新清单
+                </button>
+            </div>
+            <div id="siteAiReportListContent" class="site-ai-report-list-content">
+                <div class="site-ai-report-list-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载报告清单...</div>
+            </div>
         </div>
     </div>
     <script src="/admin/js/state.js"></script>
