@@ -6,6 +6,7 @@
             build_time: document.lastModified || '',
             updates: ['新增后台「更新日志」入口，可查看版本号、构建时间与更新内容。']
         };
+        const CHANGELOG_PAGE_SIZE = 4;
         const ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE = 20;
         const CHATBOT_HISTORY_DEFAULT_PAGE_SIZE = 20;
         const SIDEBAR_MENU_GROUPS = {
@@ -22,6 +23,8 @@
         let chatbotHistoryTotalPages = 1;
         let chatbotHistoryPageSize = CHATBOT_HISTORY_DEFAULT_PAGE_SIZE;
         let chatbotHistoryTotal = 0;
+        let changelogHistory = [];
+        let changelogPage = 1;
         let adminSessionCheckTimer = null;
         let turnstilePublicConfig = { enabled: false, site_key: '' };
         let turnstileWidgetId = null;
@@ -63,9 +66,15 @@
             { key: 'site-settings', label: '站点设置' },
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
-            { key: 'log-records', label: '日志记录' }
+            { key: 'log-records', label: '系统日志' }
         ];
+        const LEGACY_PERMISSION_KEY_MAP = {
+            'changelog': 'log-records',
+            'docker-logs': 'log-records'
+        };
         let pendingKnowledgeFiles = [];
+        let savedKnowledgeFiles = [];
+        let lastKnowledgeTextValue = '';
         let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
         let currentAdminAuth = {
             username: '',
@@ -317,6 +326,50 @@
                 return { label: '简历投递', icon: 'far fa-file-alt' };
             }
             return { label: '留言消息', icon: 'far fa-envelope' };
+        }
+
+        function normalizePermissionKey(key) {
+            const rawKey = String(key || '').trim();
+            return LEGACY_PERMISSION_KEY_MAP[rawKey] || rawKey;
+        }
+
+        function normalizePermissionList(values) {
+            const output = [];
+            const source = Array.isArray(values) ? values : [];
+            source.forEach(item => {
+                const key = normalizePermissionKey(item);
+                if (key && !output.includes(key)) output.push(key);
+            });
+            return output;
+        }
+
+        function normalizePermissionCatalog(items) {
+            const source = Array.isArray(items) && items.length ? items : DEFAULT_PERMISSION_CATALOG;
+            const output = [];
+            source.forEach(item => {
+                const key = normalizePermissionKey((item && item.key) || '');
+                if (!key || output.some(existing => existing.key === key)) return;
+                output.push({
+                    key,
+                    label: key === 'log-records' ? '系统日志' : String((item && item.label) || key).trim()
+                });
+            });
+            return output.length ? output : [...DEFAULT_PERMISSION_CATALOG];
+        }
+
+        function expandPermissionsForApi(values) {
+            const normalized = normalizePermissionList(values);
+            const output = [];
+            normalized.forEach(key => {
+                if (key === 'log-records') {
+                    ['log-records', 'changelog', 'docker-logs'].forEach(item => {
+                        if (!output.includes(item)) output.push(item);
+                    });
+                    return;
+                }
+                if (key && !output.includes(key)) output.push(key);
+            });
+            return output;
         }
 
         function getMessageCenterItemTitle(msg) {
@@ -1030,7 +1083,7 @@
             currentAdminAuth = {
                 username: String(safe.username || ''),
                 is_super_admin: safe.is_super_admin === true,
-                permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : [],
+                permissions: normalizePermissionList(safe.permissions),
                 email: String(safe.email || ''),
                 email_masked: String(safe.email_masked || ''),
                 email_verified: safe.email_verified === true,
@@ -1043,12 +1096,7 @@
             };
             bindingRequiredState = safe.binding_required === true;
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
-                permissionCatalog = safe.permission_catalog
-                    .map(item => ({
-                        key: String((item && item.key) || '').trim(),
-                        label: String((item && item.label) || '').trim()
-                    }))
-                    .filter(item => item.key);
+                permissionCatalog = normalizePermissionCatalog(safe.permission_catalog);
             } else {
                 permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
             }
@@ -2102,7 +2150,6 @@
             const versionEl = document.getElementById('changelogVersion');
             const buildTimeEl = document.getElementById('changelogBuildTime');
             const updatesEl = document.getElementById('changelogUpdates');
-            const countEl = document.getElementById('changelogCountBadge');
             if (!versionEl || !buildTimeEl || !updatesEl) return;
 
             const data = (payload && typeof payload === 'object') ? payload : {};
@@ -2134,31 +2181,54 @@
             const latest = history[0] || { version: '-', build_time: '', updates: [] };
             versionEl.textContent = latest.version || '-';
             buildTimeEl.textContent = formatChangelogTime(latest.build_time) || '-';
+            changelogHistory = history;
+            changelogPage = 1;
+            renderChangelogPage();
+        }
+
+        function renderChangelogPage() {
+            const updatesEl = document.getElementById('changelogUpdates');
+            const countEl = document.getElementById('changelogCountBadge');
+            const paginationEl = document.getElementById('changelogPagination');
+            const pageInfoEl = document.getElementById('changelogPageInfo');
+            const prevBtn = document.getElementById('changelogPrevBtn');
+            const nextBtn = document.getElementById('changelogNextBtn');
+            if (!updatesEl) return;
+
+            const history = Array.isArray(changelogHistory) ? changelogHistory : [];
+            const total = history.length;
+            const totalPages = Math.max(1, Math.ceil(total / CHANGELOG_PAGE_SIZE));
+            changelogPage = Math.min(Math.max(1, changelogPage || 1), totalPages);
+            const start = (changelogPage - 1) * CHANGELOG_PAGE_SIZE;
+            const pageItems = history.slice(start, start + CHANGELOG_PAGE_SIZE);
+
             updatesEl.innerHTML = '';
 
-            if (!history.length) {
+            if (!total) {
                 const emptyItem = document.createElement('li');
                 emptyItem.className = 'changelog-update-empty';
                 emptyItem.textContent = '暂无更新记录';
                 updatesEl.appendChild(emptyItem);
                 if (countEl) countEl.textContent = '0 版';
+                if (paginationEl) paginationEl.hidden = true;
                 return;
             }
 
-            history.forEach((release, index) => {
+            pageItems.forEach((release, index) => {
+                const absoluteIndex = start + index;
                 const li = document.createElement('li');
                 li.className = 'changelog-update-item';
 
                 const number = document.createElement('span');
                 number.className = 'changelog-update-index';
-                number.textContent = String(index + 1).padStart(2, '0');
+                number.textContent = String(absoluteIndex + 1).padStart(2, '0');
 
                 const body = document.createElement('div');
                 body.className = 'changelog-update-text';
 
                 const head = document.createElement('div');
                 head.className = 'changelog-update-head';
-                const showVersion = release.version || `v${index + 1}`;
+                const showVersion = release.version || `v${absoluteIndex + 1}`;
                 const showTime = formatChangelogTime(release.build_time);
                 head.textContent = showTime && showTime !== '-'
                     ? `${showVersion} · ${showTime}`
@@ -2177,7 +2247,25 @@
                 updatesEl.appendChild(li);
             });
 
-            if (countEl) countEl.textContent = `${history.length} 版`;
+            if (countEl) countEl.textContent = `共 ${total} 版`;
+            if (paginationEl) {
+                paginationEl.hidden = totalPages <= 1;
+            }
+            if (pageInfoEl) {
+                const end = Math.min(start + pageItems.length, total);
+                pageInfoEl.textContent = `第 ${changelogPage} / ${totalPages} 页 · ${start + 1}-${end} / ${total} 版`;
+            }
+            if (prevBtn) prevBtn.disabled = changelogPage <= 1;
+            if (nextBtn) nextBtn.disabled = changelogPage >= totalPages;
+        }
+
+        function changeChangelogPage(delta) {
+            const total = Array.isArray(changelogHistory) ? changelogHistory.length : 0;
+            const totalPages = Math.max(1, Math.ceil(total / CHANGELOG_PAGE_SIZE));
+            const nextPage = Math.min(Math.max(1, changelogPage + Number(delta || 0)), totalPages);
+            if (nextPage === changelogPage) return;
+            changelogPage = nextPage;
+            renderChangelogPage();
         }
 
         function setChangelogLoading(isLoading) {
@@ -2206,14 +2294,6 @@
 
         let dockerLogsData = null;
 
-        function switchDockerLogsTab(tabName) {
-            document.querySelectorAll('.docker-logs-tab').forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.tab === tabName);
-            });
-            document.getElementById('dockerLogsContent1').classList.toggle('active', tabName === 'container1');
-            document.getElementById('dockerLogsContent2').classList.toggle('active', tabName === 'container2');
-        }
-
         function setDockerLogsLoading(isLoading) {
             const btn = document.getElementById('dockerLogsRefreshBtn');
             if (!btn) return;
@@ -2228,26 +2308,11 @@
             dockerLogsData = data;
 
             const container1 = data.container1 || {};
-            const container2 = data.container2 || {};
-            const singleContainer = !!data.single_container;
-
-            const tab1Label = document.getElementById('dockerLogsTab1Label');
-            const tab2Label = document.getElementById('dockerLogsTab2Label');
-            if (tab1Label) tab1Label.textContent = container1.name || '应用服务';
-            if (tab2Label) tab2Label.textContent = container2.name || 'Nginx 服务';
-            const tab2 = document.querySelector('.docker-logs-tab[data-tab="container2"]');
-            const content2 = document.getElementById('dockerLogsContent2');
-            if (tab2) tab2.hidden = singleContainer;
-            if (content2) content2.hidden = singleContainer;
-            if (singleContainer) switchDockerLogsTab('container1');
 
             const title1 = document.getElementById('dockerLogsTitle1');
-            const title2 = document.getElementById('dockerLogsTitle2');
-            if (title1) title1.textContent = `${container1.name || '应用服务'} 日志`;
-            if (title2) title2.textContent = `${container2.name || 'Nginx 服务'} 日志`;
+            if (title1) title1.textContent = `${container1.name || '应用容器'} 日志`;
 
             renderDockerLogContent('1', container1.logs || '暂无日志');
-            if (!singleContainer) renderDockerLogContent('2', container2.logs || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -2284,24 +2349,18 @@
             const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
             
             const container1 = dockerLogsData.container1 || {};
-            const container2 = dockerLogsData.container2 || {};
-            const singleContainer = !!dockerLogsData.single_container;
             
             let logs1 = container1.logs || '';
-            let logs2 = container2.logs || '';
             
             if (errorOnly) {
                 logs1 = filterErrorLogs(logs1);
-                logs2 = filterErrorLogs(logs2);
             }
             
             if (dateFilter) {
                 logs1 = filterLogsByDate(logs1, dateFilter);
-                logs2 = filterLogsByDate(logs2, dateFilter);
             }
             
             renderDockerLogContent('1', logs1 || '暂无日志');
-            if (!singleContainer) renderDockerLogContent('2', logs2 || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -2383,8 +2442,8 @@
                 const res = await fetch('/api/admin/docker-logs?lines=200', { cache: 'no-store' });
                 if (!res.ok) {
                     renderDockerLogs({
-                        container1: { name: '应用服务', logs: `请求失败: ${res.status}` },
-                        container2: { name: 'Nginx 服务', logs: `请求失败: ${res.status}` }
+                        single_container: true,
+                        container1: { name: '应用容器', logs: `请求失败: ${res.status}` }
                     });
                     return;
                 }
@@ -2393,8 +2452,8 @@
             } catch (err) {
                 console.warn('Load docker logs failed:', err);
                 renderDockerLogs({
-                    container1: { name: '应用服务', logs: `加载失败: ${err.message}` },
-                    container2: { name: 'Nginx 服务', logs: `加载失败: ${err.message}` }
+                    single_container: true,
+                    container1: { name: '应用容器', logs: `加载失败: ${err.message}` }
                 });
             } finally {
                 setDockerLogsLoading(false);
@@ -4054,7 +4113,7 @@
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'cdn-assets': 'CDN 素材',
-                'log-records': '日志记录'
+                'log-records': '系统日志'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
 
@@ -13603,7 +13662,7 @@
         function renderPermissionGrid(containerId, selectedPermissions = []) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            const selectedSet = new Set((selectedPermissions || []).map(v => String(v || '').trim()));
+            const selectedSet = new Set(normalizePermissionList(selectedPermissions));
             const catalog = Array.isArray(permissionCatalog) && permissionCatalog.length
                 ? permissionCatalog
                 : DEFAULT_PERMISSION_CATALOG;
@@ -13626,7 +13685,7 @@
             const output = [];
             container.querySelectorAll('input[type="checkbox"][data-permission-key]').forEach(el => {
                 if (el.checked) {
-                    const key = String(el.dataset.permissionKey || '').trim();
+                    const key = normalizePermissionKey(el.dataset.permissionKey);
                     if (key) output.push(key);
                 }
             });
@@ -13693,9 +13752,9 @@
                 ? permissionCatalog
                 : DEFAULT_PERMISSION_CATALOG;
             for (const item of catalog) {
-                const key = String((item && item.key) || '').trim();
+                const key = normalizePermissionKey((item && item.key) || '');
                 if (!key) continue;
-                map[key] = String((item && item.label) || key);
+                map[key] = key === 'log-records' ? '系统日志' : String((item && item.label) || key);
             }
             return map;
         }
@@ -13717,9 +13776,7 @@
             tbody.innerHTML = subAccountsCache.map((item) => {
                 const username = String(item.username || '').trim();
                 const enabled = item.enabled !== false;
-                const permissions = Array.isArray(item.permissions)
-                    ? item.permissions.map(v => String(v || '').trim()).filter(Boolean)
-                    : [];
+                const permissions = normalizePermissionList(item.permissions);
                 const permissionNames = permissions.map(key => labelMap[key] || key);
                 const permissionText = permissionNames.length ? permissionNames.join('、') : '无';
                 const loginText = item.last_login_at ? (formatChangelogTime(item.last_login_at) || item.last_login_at) : '从未登录';
@@ -13789,12 +13846,7 @@
                     throw new Error(data.message || '子账号列表加载失败');
                 }
                 if (Array.isArray(data.permission_catalog) && data.permission_catalog.length) {
-                    permissionCatalog = data.permission_catalog
-                        .map(item => ({
-                            key: String((item && item.key) || '').trim(),
-                            label: String((item && item.label) || '').trim()
-                        }))
-                        .filter(item => item.key);
+                    permissionCatalog = normalizePermissionCatalog(data.permission_catalog);
                 }
                 subAccountsCache = Array.isArray(data.items) ? data.items : [];
                 renderPermissionGrid('subCreatePermissionsGrid', ['messages']);
@@ -13847,7 +13899,7 @@
                             username,
                             password,
                             enabled,
-                            permissions,
+                            permissions: expandPermissionsForApi(permissions),
                             notify_message_email: notifyMessageEmail,
                             notify_job_email: notifyJobEmail
                         })
@@ -13918,7 +13970,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             enabled,
-                            permissions,
+                            permissions: expandPermissionsForApi(permissions),
                             password,
                             notify_message_email: notifyMessageEmail,
                             notify_job_email: notifyJobEmail
@@ -14175,7 +14227,9 @@
                 const data = await res.json();
 
                 document.getElementById('pdfSupportWarning').style.display = data.pdf_support ? 'none' : 'block';
-                textInput.value = data.text_content || '';
+                lastKnowledgeTextValue = data.text_content || '';
+                textInput.value = lastKnowledgeTextValue;
+                savedKnowledgeFiles = Array.isArray(data.files) ? data.files : [];
 
                 if (statusEl) {
                     if (data.text_size > 0) {
@@ -14186,10 +14240,10 @@
                     }
                 }
 
-                if (!Array.isArray(data.files) || data.files.length === 0) {
+                if (!savedKnowledgeFiles.length) {
                     listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无知识库文件</div>';
                 } else {
-                    listEl.innerHTML = data.files.map(file => `
+                    listEl.innerHTML = savedKnowledgeFiles.map(file => `
                         <div class="file-item">
                             <div class="file-info">
                                 <i class="fas fa-file-pdf"></i>
@@ -14218,8 +14272,10 @@
                 }
 
                 renderPendingKnowledgeFiles();
+                renderKnowledgeCatalogPreview();
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
+                renderKnowledgeCatalogPreview();
             }
         }
 
@@ -14262,11 +14318,143 @@
             msgEl.style.color = type === 'error' ? '#dc3545' : (type === 'warning' ? '#c05621' : '#28a745');
         }
 
+        function splitKnowledgeTextEntries(text) {
+            const normalized = String(text || '').replace(/\r\n/g, '\n').trim();
+            if (!normalized) return [];
+            const blocks = normalized.split(/\n\s*\n+/).map(item => item.trim()).filter(Boolean);
+            if (blocks.length > 1) return blocks;
+            return normalized.split('\n').map(item => item.trim()).filter(Boolean);
+        }
+
+        function buildKnowledgeTextPreviewItems(text) {
+            return splitKnowledgeTextEntries(text).map((item, index) => {
+                const compact = item.replace(/\s+/g, ' ').trim();
+                const title = compact.length > 52 ? `${compact.slice(0, 52)}...` : compact;
+                return {
+                    type: 'text',
+                    index,
+                    content: item,
+                    title: title || `文本条目 ${index + 1}`,
+                    meta: `文本 · ${compact.length} 字符`
+                };
+            });
+        }
+
+        function closeKnowledgeTextDetailModal() {
+            const modal = document.getElementById('knowledgeTextDetailModal');
+            if (modal) modal.hidden = true;
+        }
+
+        function viewKnowledgeTextEntry(index) {
+            const textValue = document.getElementById('knowledgeTextInput')?.value || '';
+            const entries = splitKnowledgeTextEntries(textValue);
+            const entry = entries[index];
+            if (entry === undefined) return;
+
+            const modal = document.getElementById('knowledgeTextDetailModal');
+            const titleEl = document.getElementById('knowledgeTextDetailTitle');
+            const metaEl = document.getElementById('knowledgeTextDetailMeta');
+            const contentEl = document.getElementById('knowledgeTextDetailContent');
+            if (!modal || !titleEl || !metaEl || !contentEl) {
+                showGlobalAlert(entry, `文本条目 ${index + 1}`);
+                return;
+            }
+
+            titleEl.textContent = `文本条目 ${index + 1}`;
+            metaEl.textContent = `${entry.replace(/\s+/g, ' ').trim().length} 字符`;
+            contentEl.textContent = entry;
+            modal.hidden = false;
+        }
+
+        async function deleteKnowledgeTextEntry(index) {
+            const textInput = document.getElementById('knowledgeTextInput');
+            if (!textInput) return;
+
+            const entries = splitKnowledgeTextEntries(textInput.value);
+            if (!Number.isInteger(index) || index < 0 || index >= entries.length) return;
+
+            const preview = entries[index].replace(/\s+/g, ' ').trim();
+            const confirmText = preview.length > 42 ? `${preview.slice(0, 42)}...` : preview;
+            const ok = await showGlobalConfirm(`确定从文本知识库中删除“${confirmText || `文本条目 ${index + 1}`}”吗？删除后需要点击“保存知识库”才会正式生效。`, '删除文本条目');
+            if (!ok) return;
+
+            entries.splice(index, 1);
+            textInput.value = entries.join('\n\n');
+            textInput.dispatchEvent(new Event('input', { bubbles: true }));
+            setKnowledgeUploadMessage('已从文本框移除该条，点击“保存知识库”后生效。', 'warning');
+        }
+
+        function renderKnowledgeCatalogPreview() {
+            const previewEl = document.getElementById('knowledgeCatalogPreview');
+            if (!previewEl) return;
+
+            const textValue = document.getElementById('knowledgeTextInput')?.value || '';
+            const textItems = buildKnowledgeTextPreviewItems(textValue);
+            const pendingFileItems = pendingKnowledgeFiles.map(file => ({
+                type: 'pending-pdf',
+                title: file.name,
+                meta: `待保存 PDF · ${formatFileSize(file.size)}`
+            }));
+            const savedFileItems = savedKnowledgeFiles.map(file => ({
+                type: 'saved-pdf',
+                title: file.name,
+                meta: `已保存 PDF · ${formatFileSize(file.size)} · ${formatDateTime(file.modified)}`
+            }));
+            const items = textItems.concat(pendingFileItems, savedFileItems);
+
+            if (!items.length) {
+                previewEl.innerHTML = '<div class="knowledge-catalog-preview__empty">输入知识库文本或添加 PDF 后，这里会生成分条目录预览。</div>';
+                return;
+            }
+
+            previewEl.innerHTML = `
+                <div class="knowledge-catalog-preview__head">
+                    <h4>知识库目录预览</h4>
+                    <span class="knowledge-catalog-preview__count">共 ${items.length} 条</span>
+                </div>
+                <div class="knowledge-catalog-preview__body">
+                    ${items.map((item, index) => `
+                        <div class="knowledge-catalog-preview__item knowledge-catalog-preview__item--${escapeAttr(item.type)}">
+                            <span class="knowledge-catalog-preview__index">${index + 1}</span>
+                            <div>
+                                <div class="knowledge-catalog-preview__title">${escapeHtml(item.title)}</div>
+                                <div class="knowledge-catalog-preview__meta">${escapeHtml(item.meta)}</div>
+                            </div>
+                            <div class="knowledge-catalog-preview__actions">
+                                ${item.type === 'text' ? `
+                                    <button type="button" class="btn-sm knowledge-text-view-btn" data-index="${item.index}">
+                                        <i class="fas fa-eye"></i> 查看
+                                    </button>
+                                    <button type="button" class="btn-sm btn-danger knowledge-text-delete-btn" data-index="${item.index}">
+                                        <i class="fas fa-trash"></i> 删除
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            previewEl.querySelectorAll('.knowledge-text-view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = Number(btn.dataset.index);
+                    if (Number.isInteger(index)) viewKnowledgeTextEntry(index);
+                });
+            });
+            previewEl.querySelectorAll('.knowledge-text-delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = Number(btn.dataset.index);
+                    if (Number.isInteger(index)) deleteKnowledgeTextEntry(index);
+                });
+            });
+        }
+
         function renderPendingKnowledgeFiles() {
             const pendingListEl = document.getElementById('knowledgePendingFileList');
             if (!pendingListEl) return;
             if (!pendingKnowledgeFiles.length) {
                 pendingListEl.innerHTML = '';
+                renderKnowledgeCatalogPreview();
                 return;
             }
 
@@ -14298,6 +14486,7 @@
                     renderPendingKnowledgeFiles();
                 });
             });
+            renderKnowledgeCatalogPreview();
         }
 
         function addPendingKnowledgeFiles(fileList) {
@@ -14343,15 +14532,32 @@
             if (!textInput || !saveBtn || !progress) return;
 
             setKnowledgeUploadMessage('');
+            const knowledgeText = textInput.value || '';
+            const hasText = knowledgeText.trim().length > 0;
+            const textChanged = knowledgeText !== lastKnowledgeTextValue;
+            const hasPendingFiles = pendingKnowledgeFiles.length > 0;
+
+            if (!hasText && !hasPendingFiles && !textChanged) {
+                setKnowledgeUploadMessage('请输入知识库文本或上传 PDF 文件后再保存。', 'error');
+                renderKnowledgeCatalogPreview();
+                return;
+            }
+
             progress.style.display = 'block';
             saveBtn.disabled = true;
             if (progressLabel) {
-                progressLabel.textContent = pendingKnowledgeFiles.length ? '正在保存文本与 PDF...' : '正在保存文本...';
+                if (hasText && hasPendingFiles) {
+                    progressLabel.textContent = '正在保存文本与 PDF...';
+                } else if (hasPendingFiles) {
+                    progressLabel.textContent = '正在保存 PDF...';
+                } else {
+                    progressLabel.textContent = '正在保存文本...';
+                }
             }
 
             try {
                 const formData = new FormData();
-                formData.append('knowledge_text', textInput.value || '');
+                formData.append('knowledge_text', knowledgeText);
                 pendingKnowledgeFiles.forEach(file => formData.append('files', file));
 
                 const res = await fetch('/api/chatbot/knowledge/upload', {
@@ -14414,6 +14620,11 @@
 
         if (knowledgeSaveBtn) {
             knowledgeSaveBtn.addEventListener('click', saveKnowledgeBase);
+        }
+
+        const knowledgeTextInput = document.getElementById('knowledgeTextInput');
+        if (knowledgeTextInput) {
+            knowledgeTextInput.addEventListener('input', renderKnowledgeCatalogPreview);
         }
     
         function copyToClipboard(text) {

@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260530-message-center">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260608-system-log-pagination">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
     <link rel="stylesheet" href="/admin/styles/components.css?v=20260529-unread-dot">
@@ -211,7 +211,7 @@
                     <i class="fas fa-cloud-upload-alt"></i> CDN 素材
                 </div>
                 <div class="menu-item" data-view="log-records" onclick="switchView('log-records')">
-                    <i class="fas fa-clipboard-list"></i> 日志记录
+                    <i class="fas fa-clipboard-list"></i> 系统日志
                 </div>
                 <div class="menu-item" id="sidebarLogoutItem" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
@@ -2389,6 +2389,8 @@
 
                             <div id="knowledgePendingFileList" class="file-list" style="margin-top: 15px;"></div>
 
+                            <div id="knowledgeCatalogPreview" class="knowledge-catalog-preview"></div>
+
                             <div id="uploadProgress" style="display: none; margin-top: 15px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fas fa-spinner fa-spin"></i>
@@ -2528,7 +2530,7 @@
 
                         <div id="subAccountsManageArea" style="display:none;">
                             <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                                权限与侧边栏一一对应：<code>网站数据、留言系统、首页设置、氢气首页、氢气产品、生物产品、行业方案、添加资讯、招聘信息、AI 与知识库、站点设置、账号设置、备份恢复、更新日志</code>。
+                                权限与侧边栏一一对应：<code>网站数据、留言系统、首页设置、氢气首页、氢气产品、生物产品、行业方案、添加资讯、招聘信息、AI 与知识库、站点设置、账号设置、CDN 素材、系统日志</code>。
                             </div>
 
                             <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
@@ -3343,6 +3345,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                 <span id="changelogCountBadge" class="changelog-count-badge">0 项</span>
                             </div>
                             <ul class="changelog-updates" id="changelogUpdates"></ul>
+                            <div class="changelog-pagination" id="changelogPagination" hidden>
+                                <span class="changelog-page-info" id="changelogPageInfo">第 1 / 1 页</span>
+                                <div class="changelog-page-actions">
+                                    <button type="button" class="changelog-page-btn" id="changelogPrevBtn"
+                                        onclick="changeChangelogPage(-1)">上一页</button>
+                                    <button type="button" class="changelog-page-btn" id="changelogNextBtn"
+                                        onclick="changeChangelogPage(1)">下一页</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="card docker-logs-card">
@@ -3355,15 +3366,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <button type="button" class="docker-logs-refresh-btn" id="dockerLogsRefreshBtn"
                                 onclick="loadDockerLogs(true)">
                                 <i class="fas fa-sync-alt"></i> 刷新日志
-                            </button>
-                        </div>
-
-                        <div class="docker-logs-tabs">
-                            <button type="button" class="docker-logs-tab active" data-tab="container1" onclick="switchDockerLogsTab('container1')">
-                                <i class="fas fa-box"></i> <span id="dockerLogsTab1Label">应用服务</span>
-                            </button>
-                            <button type="button" class="docker-logs-tab" data-tab="container2" onclick="switchDockerLogsTab('container2')">
-                                <i class="fas fa-box"></i> <span id="dockerLogsTab2Label">旧版网关</span>
                             </button>
                         </div>
 
@@ -3393,18 +3395,6 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                                 <i class="fas fa-spinner fa-spin"></i> 正在加载日志...
                             </div>
                         </div>
-
-                        <div id="dockerLogsContent2" class="docker-logs-content">
-                            <div id="dockerLogsOutput2" class="docker-logs-output" style="display:none;">
-                                <div class="docker-logs-output-header">
-                                    <span class="docker-logs-output-title" id="dockerLogsTitle2">旧版网关日志</span>
-                                </div>
-                                <div class="docker-logs-output-body" id="dockerLogsBody2"></div>
-                            </div>
-                            <div id="dockerLogsEmpty2" class="docker-logs-empty">
-                                <i class="fas fa-spinner fa-spin"></i> 正在加载日志...
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -3425,13 +3415,28 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             </div>
         </div>
     </div>
+
+    <div id="knowledgeTextDetailModal" class="knowledge-text-detail-modal" hidden onclick="if(event.target===this) closeKnowledgeTextDetailModal()">
+        <div class="knowledge-text-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="knowledgeTextDetailTitle">
+            <div class="knowledge-text-detail-header">
+                <div>
+                    <h3 id="knowledgeTextDetailTitle">文本条目全文</h3>
+                    <div id="knowledgeTextDetailMeta" class="knowledge-text-detail-meta"></div>
+                </div>
+                <button type="button" class="btn-sm btn-danger" onclick="closeKnowledgeTextDetailModal()">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+            <pre id="knowledgeTextDetailContent" class="knowledge-text-detail-content"></pre>
+        </div>
+    </div>
     <script src="/admin/js/state.js"></script>
     <script src="/admin/js/api.js"></script>
     <script src="/admin/js/auth.js"></script>
     <script src="/admin/js/components/shell.js"></script>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260530-message-center"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260608-system-log-pagination"></script>
     <script src="/admin/js/app.js"></script>
 </body>
 </html>

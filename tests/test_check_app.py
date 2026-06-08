@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import importlib
 import tempfile
 import unittest
 from pathlib import Path
 
-from check_app import mailer, main_site, monitor, storage
+from check_app import config, mailer, main_site, monitor, storage
 
 
 class MainSiteConfigTests(unittest.TestCase):
@@ -185,6 +186,80 @@ class MonitorTests(unittest.TestCase):
             ),
             456,
         )
+
+
+class AuthRouteTests(unittest.TestCase):
+    def test_verify_code_does_not_require_turnstile_after_email_code_is_sent(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            main_data_dir = root / "main"
+            check_data_dir = root / "check"
+            main_data_dir.mkdir()
+            check_data_dir.mkdir()
+            email = "admin@example.com"
+            (main_data_dir / "config.json").write_text(
+                json.dumps(
+                    {
+                        "turnstile_enabled": True,
+                        "turnstile_site_key": "site-key",
+                        "turnstile_secret_key": "secret-key",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (main_data_dir / "admin_users.json").write_text(
+                json.dumps(
+                    {
+                        "users": [
+                            {
+                                "username": "admin",
+                                "role": "super_admin",
+                                "enabled": True,
+                                "email": email,
+                                "email_verified": True,
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            storage.init_db(check_data_dir)
+            storage.store_auth_code(email, "123456", "salt", check_data_dir)
+
+            old_check_data_dir = config.CHECK_DATA_DIR
+            old_main_data_dir = config.MAIN_DATA_DIR
+            old_scheduler_enabled = config.SCHEDULER_ENABLED
+            old_secret_key = config.SECRET_KEY
+            old_verify_turnstile_token = main_site.verify_turnstile_token
+            turnstile_called = {"value": False}
+
+            def fake_verify_turnstile_token(*_args, **_kwargs):
+                turnstile_called["value"] = True
+                return False, "验证码登录不应再次要求人机验证"
+
+            try:
+                config.CHECK_DATA_DIR = check_data_dir
+                config.MAIN_DATA_DIR = main_data_dir
+                config.SCHEDULER_ENABLED = False
+                config.SECRET_KEY = "test-secret"
+                main_site.verify_turnstile_token = fake_verify_turnstile_token
+                app_module = importlib.import_module("check_app.app")
+                flask_app = app_module.create_app()
+                client = flask_app.test_client()
+
+                response = client.post("/api/auth/verify-code", json={"email": email, "code": "123456"})
+
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.get_json()["success"])
+                self.assertFalse(turnstile_called["value"])
+                with client.session_transaction() as session:
+                    self.assertEqual(session.get("check_admin_email"), email)
+            finally:
+                config.CHECK_DATA_DIR = old_check_data_dir
+                config.MAIN_DATA_DIR = old_main_data_dir
+                config.SCHEDULER_ENABLED = old_scheduler_enabled
+                config.SECRET_KEY = old_secret_key
+                main_site.verify_turnstile_token = old_verify_turnstile_token
 
 
 class MailerTests(unittest.TestCase):

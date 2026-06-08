@@ -2383,6 +2383,172 @@
             color: #888;
         }
 
+        .knowledge-catalog-preview {
+            margin-top: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fbfcfd;
+            overflow: hidden;
+        }
+
+        .knowledge-catalog-preview:empty {
+            display: none;
+        }
+
+        .knowledge-catalog-preview__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eef1f4;
+        }
+
+        .knowledge-catalog-preview__head h4 {
+            margin: 0;
+            color: #333;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .knowledge-catalog-preview__count {
+            color: #64748b;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .knowledge-catalog-preview__body {
+            display: grid;
+            gap: 8px;
+            padding: 12px 15px 15px;
+        }
+
+        .knowledge-catalog-preview__item {
+            display: grid;
+            grid-template-columns: 30px minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .knowledge-catalog-preview__item:last-child {
+            border-bottom: 0;
+        }
+
+        .knowledge-catalog-preview__index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #eaf7f8;
+            color: #167381;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .knowledge-catalog-preview__title {
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .knowledge-catalog-preview__meta {
+            margin-top: 2px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .knowledge-catalog-preview__actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .knowledge-catalog-preview__empty {
+            padding: 14px 15px;
+            color: #888;
+            font-size: 13px;
+        }
+
+        .knowledge-text-detail-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 3650;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(15, 23, 42, 0.48);
+        }
+
+        .knowledge-text-detail-modal[hidden] {
+            display: none !important;
+        }
+
+        .knowledge-text-detail-dialog {
+            width: min(820px, 96vw);
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 22px 52px rgba(15, 23, 42, 0.24);
+        }
+
+        .knowledge-text-detail-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .knowledge-text-detail-header h3 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 18px;
+        }
+
+        .knowledge-text-detail-meta {
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .knowledge-text-detail-content {
+            margin: 0;
+            padding: 18px;
+            overflow: auto;
+            color: #1f2937;
+            background: #fbfcfd;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.75;
+        }
+
+        @media (max-width: 640px) {
+            .knowledge-catalog-preview__item {
+                grid-template-columns: 30px minmax(0, 1fr);
+            }
+
+            .knowledge-catalog-preview__actions {
+                grid-column: 2;
+                justify-content: flex-start;
+            }
+        }
+
         .toggle-switch {
             position: relative;
             display: inline-block;
@@ -3078,6 +3244,54 @@
             font-size: 14px;
         }
 
+        .changelog-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #e7edf6;
+            flex-wrap: wrap;
+        }
+
+        .changelog-pagination[hidden] {
+            display: none;
+        }
+
+        .changelog-page-info {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .changelog-page-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .changelog-page-btn {
+            width: auto;
+            border: 1px solid #bfd2ef;
+            background: #f4f8ff;
+            color: #0f2f5f;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .changelog-page-btn:hover:not(:disabled) {
+            background: #e8f1ff;
+            border-color: #8fb1e6;
+        }
+
+        .changelog-page-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         .docker-logs-card {
             padding: 0;
             overflow: hidden;
@@ -3143,45 +3357,9 @@
             transform: none;
         }
 
-        .docker-logs-tabs {
-            display: flex;
-            gap: 0;
-            padding: 0 26px;
-            border-bottom: 2px solid #e8edf5;
-            background: #fff;
-        }
-
-        .docker-logs-tab {
-            padding: 14px 24px;
-            border: none;
-            background: transparent;
-            font-size: 14px;
-            font-weight: 600;
-            color: #64748b;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-        }
-
-        .docker-logs-tab:hover {
-            color: #0f2f5f;
-            background: #f5f8ff;
-        }
-
-        .docker-logs-tab.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
-        }
-
         .docker-logs-content {
-            display: none;
-            padding: 0;
-        }
-
-        .docker-logs-content.active {
             display: block;
+            padding: 0;
         }
 
         .docker-logs-output {
@@ -4059,6 +4237,19 @@
                 width: 26px;
                 height: 26px;
                 font-size: 11px;
+            }
+
+            .changelog-pagination {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .changelog-page-actions {
+                width: 100%;
+            }
+
+            .changelog-page-btn {
+                flex: 1;
             }
 
             .site-report-card {

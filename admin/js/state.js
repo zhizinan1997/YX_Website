@@ -14,7 +14,7 @@
         'settings': '账号设置',
         'backup': '备份恢复',
         'cdn-assets': 'CDN 素材',
-        'log-records': '日志记录'
+        'log-records': '系统日志'
     };
 
     const shellSections = [
