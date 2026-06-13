@@ -142,7 +142,7 @@ python3 -m check_app.app
 
 ```bash
 echo "【1/4】开始下载最新升级脚本 (通过代理)..." && \
-curl -fL -x 127.0.0.1:8090 --progress-bar -o /root/yxwebsite/dockerrun_upgrade.sh https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh && \
+curl -fL -x 127.0.0.1:7890 --progress-bar -o /root/yxwebsite/dockerrun_upgrade.sh https://raw.githubusercontent.com/zhizinan1997/YX_Website/main/tools/dockerrun_upgrade.sh && \
 echo "【2/4】升级脚本下载完成，开始赋予执行权限..." && \
 chmod +x /root/yxwebsite/dockerrun_upgrade.sh && \
 echo "【3/4】执行权限已设置，开始运行升级脚本..." && \
