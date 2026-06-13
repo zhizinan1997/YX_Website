@@ -288,6 +288,11 @@ def register_all_routes(app):
         get_client_ip=get_client_ip,
         resolve_ip_location=resolve_ip_location,
         beijing_tz=BEIJING_TZ,
+        get_config=get_config,
+        requests_support=REQUESTS_SUPPORT,
+        requests_module=requests if REQUESTS_SUPPORT else None,
+        httpx_support=HTTPX_SUPPORT,
+        httpx_module=httpx if HTTPX_SUPPORT else None,
     )
 
     # 后台认证与内容管理相关接口。

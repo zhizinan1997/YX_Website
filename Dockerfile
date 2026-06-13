@@ -13,7 +13,14 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/deps \
-    FLASK_LOG_FILE=/app/data/logs/app.log
+    FLASK_LOG_FILE=/app/data/logs/app.log \
+    SITE_REPORT_CHROMIUM_PATH=/usr/bin/chromium-browser
+
+RUN apk add --no-cache \
+    chromium \
+    font-noto \
+    font-noto-cjk \
+    fontconfig
 
 # Copy installed packages
 COPY --from=builder /deps /app/deps

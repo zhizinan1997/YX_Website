@@ -394,6 +394,11 @@
     box-shadow: 0 1px 8px rgba(15, 23, 42, 0.045);
 }
 
+.agent-thinking-message.has-agent-status .message-body {
+    border: 0;
+    box-shadow: none;
+}
+
 .agent-thinking-message .message-content {
     padding: 0;
     background: transparent;

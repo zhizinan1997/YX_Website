@@ -257,9 +257,6 @@ def create_app() -> Flask:
         data = request.get_json(silent=True) or {}
         email = str(data.get("email") or "").strip().lower()
         code = str(data.get("code") or "").strip()
-        turnstile_response = _verify_login_turnstile(data)
-        if turnstile_response is not None:
-            return turnstile_response
         user = main_site.find_verified_admin_by_email(email, config.MAIN_DATA_DIR)
         if not user:
             return jsonify({"success": False, "message": "账号邮箱状态已变化，请重新发送验证码"}), 403

@@ -6,6 +6,7 @@
             build_time: document.lastModified || '',
             updates: ['新增后台「更新日志」入口，可查看版本号、构建时间与更新内容。']
         };
+        const CHANGELOG_PAGE_SIZE = 4;
         const ADMIN_LOGIN_LOG_DEFAULT_PAGE_SIZE = 20;
         const CHATBOT_HISTORY_DEFAULT_PAGE_SIZE = 20;
         const SIDEBAR_MENU_GROUPS = {
@@ -22,6 +23,8 @@
         let chatbotHistoryTotalPages = 1;
         let chatbotHistoryPageSize = CHATBOT_HISTORY_DEFAULT_PAGE_SIZE;
         let chatbotHistoryTotal = 0;
+        let changelogHistory = [];
+        let changelogPage = 1;
         let adminSessionCheckTimer = null;
         let turnstilePublicConfig = { enabled: false, site_key: '' };
         let turnstileWidgetId = null;
@@ -63,9 +66,17 @@
             { key: 'site-settings', label: '站点设置' },
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
-            { key: 'log-records', label: '日志记录' }
+            { key: 'log-records', label: '系统日志' }
         ];
+        const LEGACY_PERMISSION_KEY_MAP = {
+            'changelog': 'log-records',
+            'docker-logs': 'log-records'
+        };
         let pendingKnowledgeFiles = [];
+        let savedKnowledgeFiles = [];
+        let savedKnowledgeTextEntries = [];
+        let currentKnowledgeTextEntryId = '';
+        let lastKnowledgeTextValue = '';
         let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
         let currentAdminAuth = {
             username: '',
@@ -81,6 +92,11 @@
         let siteReportsEndDate = '';
         let siteReportsGranularity = 'day';
         let siteReportsLoading = false;
+        let siteReportsAiLoading = false;
+        let siteAiReportListLoading = false;
+        let siteAiReportListCache = null;
+        let siteAiReportLastText = '';
+        let siteAiReportActiveJobId = '';
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
         const SITE_REPORT_COUNTRY_PAGE_SIZE = 8;
@@ -317,6 +333,50 @@
                 return { label: '简历投递', icon: 'far fa-file-alt' };
             }
             return { label: '留言消息', icon: 'far fa-envelope' };
+        }
+
+        function normalizePermissionKey(key) {
+            const rawKey = String(key || '').trim();
+            return LEGACY_PERMISSION_KEY_MAP[rawKey] || rawKey;
+        }
+
+        function normalizePermissionList(values) {
+            const output = [];
+            const source = Array.isArray(values) ? values : [];
+            source.forEach(item => {
+                const key = normalizePermissionKey(item);
+                if (key && !output.includes(key)) output.push(key);
+            });
+            return output;
+        }
+
+        function normalizePermissionCatalog(items) {
+            const source = Array.isArray(items) && items.length ? items : DEFAULT_PERMISSION_CATALOG;
+            const output = [];
+            source.forEach(item => {
+                const key = normalizePermissionKey((item && item.key) || '');
+                if (!key || output.some(existing => existing.key === key)) return;
+                output.push({
+                    key,
+                    label: key === 'log-records' ? '系统日志' : String((item && item.label) || key).trim()
+                });
+            });
+            return output.length ? output : [...DEFAULT_PERMISSION_CATALOG];
+        }
+
+        function expandPermissionsForApi(values) {
+            const normalized = normalizePermissionList(values);
+            const output = [];
+            normalized.forEach(key => {
+                if (key === 'log-records') {
+                    ['log-records', 'changelog', 'docker-logs'].forEach(item => {
+                        if (!output.includes(item)) output.push(item);
+                    });
+                    return;
+                }
+                if (key && !output.includes(key)) output.push(key);
+            });
+            return output;
         }
 
         function getMessageCenterItemTitle(msg) {
@@ -895,6 +955,7 @@
                 closeMessageCenter();
                 closeAccountMenu();
                 closeMobileSidebar();
+                closeSiteAiReportListModal();
             }
         });
         window.addEventListener('resize', () => {
@@ -1030,7 +1091,7 @@
             currentAdminAuth = {
                 username: String(safe.username || ''),
                 is_super_admin: safe.is_super_admin === true,
-                permissions: Array.isArray(safe.permissions) ? safe.permissions.map(v => String(v || '').trim()).filter(Boolean) : [],
+                permissions: normalizePermissionList(safe.permissions),
                 email: String(safe.email || ''),
                 email_masked: String(safe.email_masked || ''),
                 email_verified: safe.email_verified === true,
@@ -1043,12 +1104,7 @@
             };
             bindingRequiredState = safe.binding_required === true;
             if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
-                permissionCatalog = safe.permission_catalog
-                    .map(item => ({
-                        key: String((item && item.key) || '').trim(),
-                        label: String((item && item.label) || '').trim()
-                    }))
-                    .filter(item => item.key);
+                permissionCatalog = normalizePermissionCatalog(safe.permission_catalog);
             } else {
                 permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
             }
@@ -2102,7 +2158,6 @@
             const versionEl = document.getElementById('changelogVersion');
             const buildTimeEl = document.getElementById('changelogBuildTime');
             const updatesEl = document.getElementById('changelogUpdates');
-            const countEl = document.getElementById('changelogCountBadge');
             if (!versionEl || !buildTimeEl || !updatesEl) return;
 
             const data = (payload && typeof payload === 'object') ? payload : {};
@@ -2134,31 +2189,54 @@
             const latest = history[0] || { version: '-', build_time: '', updates: [] };
             versionEl.textContent = latest.version || '-';
             buildTimeEl.textContent = formatChangelogTime(latest.build_time) || '-';
+            changelogHistory = history;
+            changelogPage = 1;
+            renderChangelogPage();
+        }
+
+        function renderChangelogPage() {
+            const updatesEl = document.getElementById('changelogUpdates');
+            const countEl = document.getElementById('changelogCountBadge');
+            const paginationEl = document.getElementById('changelogPagination');
+            const pageInfoEl = document.getElementById('changelogPageInfo');
+            const prevBtn = document.getElementById('changelogPrevBtn');
+            const nextBtn = document.getElementById('changelogNextBtn');
+            if (!updatesEl) return;
+
+            const history = Array.isArray(changelogHistory) ? changelogHistory : [];
+            const total = history.length;
+            const totalPages = Math.max(1, Math.ceil(total / CHANGELOG_PAGE_SIZE));
+            changelogPage = Math.min(Math.max(1, changelogPage || 1), totalPages);
+            const start = (changelogPage - 1) * CHANGELOG_PAGE_SIZE;
+            const pageItems = history.slice(start, start + CHANGELOG_PAGE_SIZE);
+
             updatesEl.innerHTML = '';
 
-            if (!history.length) {
+            if (!total) {
                 const emptyItem = document.createElement('li');
                 emptyItem.className = 'changelog-update-empty';
                 emptyItem.textContent = '暂无更新记录';
                 updatesEl.appendChild(emptyItem);
                 if (countEl) countEl.textContent = '0 版';
+                if (paginationEl) paginationEl.hidden = true;
                 return;
             }
 
-            history.forEach((release, index) => {
+            pageItems.forEach((release, index) => {
+                const absoluteIndex = start + index;
                 const li = document.createElement('li');
                 li.className = 'changelog-update-item';
 
                 const number = document.createElement('span');
                 number.className = 'changelog-update-index';
-                number.textContent = String(index + 1).padStart(2, '0');
+                number.textContent = String(absoluteIndex + 1).padStart(2, '0');
 
                 const body = document.createElement('div');
                 body.className = 'changelog-update-text';
 
                 const head = document.createElement('div');
                 head.className = 'changelog-update-head';
-                const showVersion = release.version || `v${index + 1}`;
+                const showVersion = release.version || `v${absoluteIndex + 1}`;
                 const showTime = formatChangelogTime(release.build_time);
                 head.textContent = showTime && showTime !== '-'
                     ? `${showVersion} · ${showTime}`
@@ -2177,7 +2255,25 @@
                 updatesEl.appendChild(li);
             });
 
-            if (countEl) countEl.textContent = `${history.length} 版`;
+            if (countEl) countEl.textContent = `共 ${total} 版`;
+            if (paginationEl) {
+                paginationEl.hidden = totalPages <= 1;
+            }
+            if (pageInfoEl) {
+                const end = Math.min(start + pageItems.length, total);
+                pageInfoEl.textContent = `第 ${changelogPage} / ${totalPages} 页 · ${start + 1}-${end} / ${total} 版`;
+            }
+            if (prevBtn) prevBtn.disabled = changelogPage <= 1;
+            if (nextBtn) nextBtn.disabled = changelogPage >= totalPages;
+        }
+
+        function changeChangelogPage(delta) {
+            const total = Array.isArray(changelogHistory) ? changelogHistory.length : 0;
+            const totalPages = Math.max(1, Math.ceil(total / CHANGELOG_PAGE_SIZE));
+            const nextPage = Math.min(Math.max(1, changelogPage + Number(delta || 0)), totalPages);
+            if (nextPage === changelogPage) return;
+            changelogPage = nextPage;
+            renderChangelogPage();
         }
 
         function setChangelogLoading(isLoading) {
@@ -2206,14 +2302,6 @@
 
         let dockerLogsData = null;
 
-        function switchDockerLogsTab(tabName) {
-            document.querySelectorAll('.docker-logs-tab').forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.tab === tabName);
-            });
-            document.getElementById('dockerLogsContent1').classList.toggle('active', tabName === 'container1');
-            document.getElementById('dockerLogsContent2').classList.toggle('active', tabName === 'container2');
-        }
-
         function setDockerLogsLoading(isLoading) {
             const btn = document.getElementById('dockerLogsRefreshBtn');
             if (!btn) return;
@@ -2228,26 +2316,11 @@
             dockerLogsData = data;
 
             const container1 = data.container1 || {};
-            const container2 = data.container2 || {};
-            const singleContainer = !!data.single_container;
-
-            const tab1Label = document.getElementById('dockerLogsTab1Label');
-            const tab2Label = document.getElementById('dockerLogsTab2Label');
-            if (tab1Label) tab1Label.textContent = container1.name || '应用服务';
-            if (tab2Label) tab2Label.textContent = container2.name || 'Nginx 服务';
-            const tab2 = document.querySelector('.docker-logs-tab[data-tab="container2"]');
-            const content2 = document.getElementById('dockerLogsContent2');
-            if (tab2) tab2.hidden = singleContainer;
-            if (content2) content2.hidden = singleContainer;
-            if (singleContainer) switchDockerLogsTab('container1');
 
             const title1 = document.getElementById('dockerLogsTitle1');
-            const title2 = document.getElementById('dockerLogsTitle2');
-            if (title1) title1.textContent = `${container1.name || '应用服务'} 日志`;
-            if (title2) title2.textContent = `${container2.name || 'Nginx 服务'} 日志`;
+            if (title1) title1.textContent = `${container1.name || '应用容器'} 日志`;
 
             renderDockerLogContent('1', container1.logs || '暂无日志');
-            if (!singleContainer) renderDockerLogContent('2', container2.logs || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -2284,24 +2357,18 @@
             const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
             
             const container1 = dockerLogsData.container1 || {};
-            const container2 = dockerLogsData.container2 || {};
-            const singleContainer = !!dockerLogsData.single_container;
             
             let logs1 = container1.logs || '';
-            let logs2 = container2.logs || '';
             
             if (errorOnly) {
                 logs1 = filterErrorLogs(logs1);
-                logs2 = filterErrorLogs(logs2);
             }
             
             if (dateFilter) {
                 logs1 = filterLogsByDate(logs1, dateFilter);
-                logs2 = filterLogsByDate(logs2, dateFilter);
             }
             
             renderDockerLogContent('1', logs1 || '暂无日志');
-            if (!singleContainer) renderDockerLogContent('2', logs2 || '暂无日志');
             updateDockerLogsFilterInfo();
         }
 
@@ -2383,8 +2450,8 @@
                 const res = await fetch('/api/admin/docker-logs?lines=200', { cache: 'no-store' });
                 if (!res.ok) {
                     renderDockerLogs({
-                        container1: { name: '应用服务', logs: `请求失败: ${res.status}` },
-                        container2: { name: 'Nginx 服务', logs: `请求失败: ${res.status}` }
+                        single_container: true,
+                        container1: { name: '应用容器', logs: `请求失败: ${res.status}` }
                     });
                     return;
                 }
@@ -2393,8 +2460,8 @@
             } catch (err) {
                 console.warn('Load docker logs failed:', err);
                 renderDockerLogs({
-                    container1: { name: '应用服务', logs: `加载失败: ${err.message}` },
-                    container2: { name: 'Nginx 服务', logs: `加载失败: ${err.message}` }
+                    single_container: true,
+                    container1: { name: '应用容器', logs: `加载失败: ${err.message}` }
                 });
             } finally {
                 setDockerLogsLoading(false);
@@ -3238,6 +3305,7 @@
             const key = String(granularity || '').trim().toLowerCase();
             const labelMap = {
                 year: '按年显示',
+                quarter: '按季度显示',
                 month: '按月显示',
                 week: '按周显示',
                 day: '按天显示',
@@ -3250,6 +3318,7 @@
             const key = String(granularity || '').trim().toLowerCase();
             const titleMap = {
                 year: '按年趋势',
+                quarter: '按季度趋势',
                 month: '按月趋势',
                 week: '按周趋势',
                 day: '按天趋势',
@@ -3277,6 +3346,7 @@
                 if (startFull && endFull) return startFull === endFull ? startFull : `${startFull}-${endFull}`;
                 return label;
             }
+            if (key === 'quarter') return label || (start ? start.slice(0, 4) : '');
             if (key === 'month') return start ? start.slice(0, 7) : label;
             if (key === 'year') return start ? start.slice(0, 4) : label;
             if (key === 'day') return start ? start.slice(5) : label;
@@ -3388,7 +3458,7 @@
                 siteReportsEndDate = String(endEl.value || '').trim();
             }
             const currentGranularity = String(granularityEl.value || '').trim().toLowerCase();
-            if (['year', 'month', 'week', 'day'].includes(currentGranularity)) {
+            if (['year', 'quarter', 'month', 'week', 'day'].includes(currentGranularity)) {
                 siteReportsGranularity = currentGranularity;
             } else {
                 granularityEl.value = siteReportsGranularity;
@@ -3470,7 +3540,7 @@
                 : 0;
             const availableWidth = Math.max(720, Math.floor((wrapRect.width || wrap.clientWidth || 0) - wrapPaddingX));
             const maxLabelChars = Math.max(5, ...prepared.map(item => (item.axisLabel || item.label || '').length));
-            const slotBaseMap = { year: 88, month: 96, week: 190, day: 64, hour: 72 };
+            const slotBaseMap = { year: 88, quarter: 104, month: 96, week: 190, day: 64, hour: 72 };
             const slotWidth = Math.max(slotBaseMap[granularity] || 72, Math.min(220, (maxLabelChars * 8) + 28));
             const dataWidth = padding.left + padding.right + (Math.max(1, prepared.length - 1) * slotWidth);
             const width = Math.ceil(Math.max(availableWidth, dataWidth));
@@ -3929,6 +3999,675 @@
             }
         }
 
+        function setSiteReportsAiLoading(isLoading) {
+            siteReportsAiLoading = !!isLoading;
+            const btn = document.getElementById('siteReportAiBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-spinner fa-spin"></i> 生成中...'
+                : '<i class="fas fa-magic"></i> AI生成报告';
+        }
+
+        function ensureSiteAiReportProgress() {
+            const msgEl = document.getElementById('siteReportMsg');
+            if (!msgEl || !msgEl.parentElement) return null;
+            let wrap = document.getElementById('siteAiReportProgress');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.id = 'siteAiReportProgress';
+                wrap.className = 'site-ai-report-progress';
+                wrap.hidden = true;
+                wrap.innerHTML = `
+                    <div class="site-ai-report-progress-head">
+                        <span id="siteAiReportProgressText">准备生成...</span>
+                        <strong id="siteAiReportProgressValue">0%</strong>
+                    </div>
+                    <div class="site-ai-report-progress-track">
+                        <i id="siteAiReportProgressBar" style="width:0%"></i>
+                    </div>
+                `;
+                msgEl.parentElement.insertBefore(wrap, msgEl.nextSibling);
+            }
+            return wrap;
+        }
+
+        function formatSiteAiReportJobMessage(message, status) {
+            const text = String(message || '').trim();
+            const map = {
+                'AI report queued': 'AI报告已进入队列',
+                'Preparing analytics data...': '正在准备统计数据...',
+                'Building comparison context...': '正在构建环比分析上下文...',
+                'Calling AI model...': '正在调用AI模型...',
+                'Saving report...': '正在保存报告...',
+                'AI report generated': 'AI报告已生成'
+            };
+            if (map[text]) return map[text];
+            if (status === 'queued') return 'AI报告已进入队列';
+            if (status === 'running') return text || 'AI报告生成中...';
+            if (status === 'succeeded') return 'AI报告已生成';
+            if (status === 'failed') return text || 'AI报告生成失败';
+            return text || '准备生成AI报告...';
+        }
+
+        function updateSiteAiReportProgress(job) {
+            const wrap = ensureSiteAiReportProgress();
+            if (!wrap) return;
+            const progress = Math.max(0, Math.min(100, Number(job?.progress || 0)));
+            const status = String(job?.status || '').trim();
+            const textEl = document.getElementById('siteAiReportProgressText');
+            const valueEl = document.getElementById('siteAiReportProgressValue');
+            const barEl = document.getElementById('siteAiReportProgressBar');
+            wrap.hidden = false;
+            wrap.classList.toggle('is-error', status === 'failed');
+            wrap.classList.toggle('is-done', status === 'succeeded');
+            if (textEl) textEl.textContent = formatSiteAiReportJobMessage(job?.message || job?.error, status);
+            if (valueEl) valueEl.textContent = `${Math.round(progress)}%`;
+            if (barEl) barEl.style.width = `${progress}%`;
+            const msgEl = document.getElementById('siteReportMsg');
+            if (msgEl) {
+                msgEl.style.color = status === 'failed' ? '#dc3545' : (status === 'succeeded' ? '#28a745' : '#64748b');
+                msgEl.textContent = formatSiteAiReportJobMessage(job?.message || job?.error, status);
+            }
+        }
+
+        function resetSiteAiReportProgress() {
+            siteAiReportActiveJobId = '';
+            const wrap = document.getElementById('siteAiReportProgress');
+            if (!wrap) return;
+            wrap.hidden = true;
+            wrap.classList.remove('is-error', 'is-done');
+            const barEl = document.getElementById('siteAiReportProgressBar');
+            const valueEl = document.getElementById('siteAiReportProgressValue');
+            const textEl = document.getElementById('siteAiReportProgressText');
+            if (barEl) barEl.style.width = '0%';
+            if (valueEl) valueEl.textContent = '0%';
+            if (textEl) textEl.textContent = '准备生成...';
+        }
+
+        function waitSiteAiReport(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function pollSiteAiReportJob(statusUrl) {
+            const url = String(statusUrl || '').trim();
+            if (!url) throw new Error('缺少AI报告任务状态地址');
+            for (let attempt = 0; attempt < 180; attempt += 1) {
+                const res = await fetch(url, { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `AI报告状态查询失败（HTTP ${res.status || '-'}）`));
+                }
+                const job = data.job || {};
+                updateSiteAiReportProgress(job);
+                if (job.status === 'succeeded') {
+                    if (!job.result || typeof job.result !== 'object') {
+                        throw new Error('AI报告任务完成，但结果为空');
+                    }
+                    return job.result;
+                }
+                if (job.status === 'failed') {
+                    throw new Error(String(job.error || job.message || 'AI报告生成失败'));
+                }
+                await waitSiteAiReport(2000);
+            }
+            throw new Error('AI报告生成超时，请稍后刷新清单查看结果');
+        }
+
+        function getSiteAiReportPeriodLabel(period) {
+            const labelMap = {
+                week: '周报',
+                month: '月报',
+                quarter: '季报',
+                year: '年报'
+            };
+            return labelMap[String(period || '').trim().toLowerCase()] || '运营报告';
+        }
+
+        function formatSiteAiReportMetricValue(metricKey, value) {
+            if (metricKey === 'avg_session_duration_sec') return formatSiteReportDuration(value);
+            if (metricKey === 'bounce_rate' || metricKey === 'conversion_rate') return formatSiteReportPercent(value);
+            return formatSiteReportNumber(value);
+        }
+
+        function formatSiteAiReportChange(item) {
+            const rate = item && item.change_rate;
+            if (rate === null || typeof rate === 'undefined') {
+                const current = Number(item?.current || 0);
+                return current > 0 ? '新增' : '持平';
+            }
+            const num = Number(rate || 0);
+            if (!Number.isFinite(num) || num === 0) return '持平';
+            return `${num > 0 ? '+' : ''}${num.toFixed(2)}%`;
+        }
+
+        function renderSiteAiReportSummary(data) {
+            const wrap = document.getElementById('siteAiReportSummary');
+            if (!wrap) return;
+            const comparison = data && typeof data.comparison === 'object' ? data.comparison : {};
+            const keys = ['pageviews', 'unique_visitors', 'sessions', 'bounce_rate', 'conversion_events', 'conversion_rate'];
+            const cards = keys.map((key) => {
+                const item = comparison[key] || {};
+                const label = String(item.label || key);
+                const change = Number(item.change || 0);
+                const className = change > 0 ? 'is-up' : (change < 0 ? 'is-down' : 'is-flat');
+                return `
+                    <div class="site-ai-report-kpi ${className}">
+                        <div class="site-ai-report-kpi-label">${escapeHtml(label)}</div>
+                        <div class="site-ai-report-kpi-value">${escapeHtml(formatSiteAiReportMetricValue(key, item.current))}</div>
+                        <div class="site-ai-report-kpi-change">环比 ${escapeHtml(formatSiteAiReportChange(item))}</div>
+                    </div>
+                `;
+            }).join('');
+            wrap.innerHTML = cards;
+        }
+
+        function formatSiteAiReportText(text) {
+            const raw = String(text || '').trim();
+            if (!raw) return '<div class="no-data">暂无报告内容</div>';
+            const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+            const output = [];
+            let idx = 0;
+
+            const inline = (value) => {
+                return escapeHtml(String(value || '').trim())
+                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                    .replace(/`([^`]+)`/g, '<code>$1</code>');
+            };
+            const isTableSeparator = (line) => {
+                const cells = String(line || '').trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+                return cells.length > 1 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+            };
+            const parseTableRows = (tableLines) => {
+                return tableLines.map(line => {
+                    const cells = String(line || '').trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+                    return cells;
+                }).filter(cells => cells.length > 1 && !cells.every(cell => /^:?-{3,}:?$/.test(cell)));
+            };
+
+            while (idx < lines.length) {
+                const line = String(lines[idx] || '');
+                const stripped = line.trim();
+                if (!stripped) {
+                    idx += 1;
+                    continue;
+                }
+                if (stripped.includes('|') && idx + 1 < lines.length && isTableSeparator(lines[idx + 1])) {
+                    const tableLines = [stripped, lines[idx + 1].trim()];
+                    idx += 2;
+                    while (idx < lines.length && String(lines[idx] || '').trim().includes('|')) {
+                        tableLines.push(String(lines[idx] || '').trim());
+                        idx += 1;
+                    }
+                    const rows = parseTableRows(tableLines);
+                    if (rows.length) {
+                        const header = rows[0];
+                        const body = rows.slice(1);
+                        output.push('<div class="site-ai-report-table-wrap"><table class="site-ai-report-md-table"><thead><tr>');
+                        output.push(header.map(cell => `<th>${inline(cell)}</th>`).join(''));
+                        output.push('</tr></thead><tbody>');
+                        output.push(body.map(row => `<tr>${row.map(cell => `<td>${inline(cell)}</td>`).join('')}</tr>`).join(''));
+                        output.push('</tbody></table></div>');
+                    }
+                    continue;
+                }
+                const headingMatch = stripped.match(/^(#{1,4})\s+(.+)$/);
+                if (headingMatch) {
+                    output.push(`<h4>${inline(headingMatch[2])}</h4>`);
+                    idx += 1;
+                    continue;
+                }
+                const bulletItems = [];
+                while (idx < lines.length) {
+                    const match = String(lines[idx] || '').match(/^\s*[-*]\s+(.+)$/);
+                    if (!match) break;
+                    bulletItems.push(match[1]);
+                    idx += 1;
+                }
+                if (bulletItems.length) {
+                    output.push(`<ul>${bulletItems.map(item => `<li>${inline(item)}</li>`).join('')}</ul>`);
+                    continue;
+                }
+                const orderedItems = [];
+                while (idx < lines.length) {
+                    const match = String(lines[idx] || '').match(/^\s*\d+\.\s+(.+)$/);
+                    if (!match) break;
+                    orderedItems.push(match[1]);
+                    idx += 1;
+                }
+                if (orderedItems.length) {
+                    output.push(`<ol>${orderedItems.map(item => `<li>${inline(item)}</li>`).join('')}</ol>`);
+                    continue;
+                }
+                const paragraph = [stripped];
+                idx += 1;
+                while (idx < lines.length) {
+                    const next = String(lines[idx] || '').trim();
+                    if (
+                        !next
+                        || /^#{1,4}\s+/.test(next)
+                        || /^\s*[-*]\s+/.test(lines[idx])
+                        || /^\s*\d+\.\s+/.test(lines[idx])
+                        || (next.includes('|') && idx + 1 < lines.length && isTableSeparator(lines[idx + 1]))
+                    ) {
+                        break;
+                    }
+                    paragraph.push(next);
+                    idx += 1;
+                }
+                if (paragraph.join('').length <= 28 && !/[。；;]$/.test(paragraph[0])) {
+                    output.push(`<h4>${inline(paragraph.join(' '))}</h4>`);
+                } else {
+                    output.push(`<p>${paragraph.map(inline).join('<br>')}</p>`);
+                }
+            }
+            return output.join('');
+        }
+
+        function renderSiteAiReport(data) {
+            const card = document.getElementById('siteAiReportCard');
+            const metaEl = document.getElementById('siteAiReportMeta');
+            const contentEl = document.getElementById('siteAiReportContent');
+            const copyBtn = document.getElementById('siteAiReportCopyBtn');
+            if (!card || !contentEl) return;
+
+            const currentRange = data?.current_range?.label || '';
+            const previousRange = data?.previous_range?.label || '';
+            const periodLabel = data?.period_label || getSiteAiReportPeriodLabel(data?.period);
+            const generatedAt = formatChangelogTime(data?.generated_at) || String(data?.generated_at || '-');
+            if (metaEl) {
+                metaEl.textContent = `${periodLabel} · 当前周期：${currentRange || '-'} · 环比周期：${previousRange || '-'} · 生成时间：${generatedAt}`;
+            }
+            renderSiteAiReportSummary(data || {});
+            siteAiReportLastText = String(data?.report || '').trim();
+            contentEl.innerHTML = formatSiteAiReportText(siteAiReportLastText);
+            if (copyBtn) copyBtn.disabled = !siteAiReportLastText;
+            card.style.display = '';
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function groupSiteAiReports(reports) {
+            const grouped = { year: [], quarter: [], month: [], week: [] };
+            (Array.isArray(reports) ? reports : []).forEach((item) => {
+                const key = String(item?.period || '').trim().toLowerCase();
+                if (Object.prototype.hasOwnProperty.call(grouped, key)) {
+                    grouped[key].push(item);
+                }
+            });
+            return grouped;
+        }
+
+        function setSiteAiReportListLoading(isLoading) {
+            siteAiReportListLoading = !!isLoading;
+            const btn = document.getElementById('siteAiReportListRefreshBtn');
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.innerHTML = isLoading
+                ? '<i class="fas fa-spinner fa-spin"></i> 加载中...'
+                : '<i class="fas fa-sync-alt"></i> 刷新清单';
+        }
+
+        function getSiteAiReportListRows(data) {
+            if (Array.isArray(data?.reports)) return data.reports;
+            if (data?.grouped && typeof data.grouped === 'object') {
+                return ['year', 'quarter', 'month', 'week'].flatMap(key => Array.isArray(data.grouped[key]) ? data.grouped[key] : []);
+            }
+            return [];
+        }
+
+        function formatSiteAiReportListRange(item) {
+            const current = item?.current_range && typeof item.current_range === 'object' ? item.current_range : {};
+            const previous = item?.previous_range && typeof item.previous_range === 'object' ? item.previous_range : {};
+            const currentLabel = String(current.label || '').trim()
+                || [current.start_date, current.end_date].filter(Boolean).join(' 至 ');
+            const previousLabel = String(previous.label || '').trim()
+                || [previous.start_date, previous.end_date].filter(Boolean).join(' 至 ');
+            return {
+                current: currentLabel || '-',
+                previous: previousLabel || '-'
+            };
+        }
+
+        function renderSiteAiReportListMetricPills(item) {
+            const comparison = item?.comparison && typeof item.comparison === 'object' ? item.comparison : {};
+            const keys = ['pageviews', 'unique_visitors', 'conversion_events'];
+            return keys.map((key) => {
+                const metric = comparison[key] && typeof comparison[key] === 'object' ? comparison[key] : {};
+                const labelMap = {
+                    pageviews: 'PV',
+                    unique_visitors: 'UV',
+                    conversion_events: '转化'
+                };
+                return `
+                    <span class="site-ai-report-list-pill">
+                        ${escapeHtml(labelMap[key] || key)}
+                        <strong>${escapeHtml(formatSiteAiReportMetricValue(key, metric.current))}</strong>
+                        <em>${escapeHtml(formatSiteAiReportChange(metric))}</em>
+                    </span>
+                `;
+            }).join('');
+        }
+
+        function renderSiteAiReportListItem(item) {
+            const id = String(item?.id || '').trim();
+            const title = String(item?.title || `${getSiteAiReportPeriodLabel(item?.period)}网站运营报告`).trim();
+            const periodLabel = String(item?.period_label || getSiteAiReportPeriodLabel(item?.period)).trim();
+            const generatedAt = formatChangelogTime(item?.generated_at) || String(item?.generated_at || '-');
+            const ranges = formatSiteAiReportListRange(item);
+            const actionDisabled = id ? '' : ' disabled';
+            return `
+                <article class="site-ai-report-list-item">
+                    <div class="site-ai-report-list-item-head">
+                        <span class="site-ai-report-list-badge">${escapeHtml(periodLabel)}</span>
+                        <span class="site-ai-report-list-time">${escapeHtml(generatedAt)}</span>
+                    </div>
+                    <h4 title="${escapeAttr(title)}">${escapeHtml(title)}</h4>
+                    <div class="site-ai-report-list-range">当前：${escapeHtml(ranges.current)}</div>
+                    <div class="site-ai-report-list-range">环比：${escapeHtml(ranges.previous)}</div>
+                    <div class="site-ai-report-list-pills">${renderSiteAiReportListMetricPills(item)}</div>
+                    <div class="site-ai-report-list-actions">
+                        <button type="button" class="site-ai-report-download-btn" data-site-ai-download-id="${escapeAttr(id)}"
+                            onclick="downloadSiteAiReportPdf('${escapeAttr(id)}')"${actionDisabled}>
+                            <i class="fas fa-file-pdf"></i> 下载 PDF
+                        </button>
+                        <button type="button" class="site-ai-report-delete-btn" data-site-ai-delete-id="${escapeAttr(id)}"
+                            onclick="deleteSiteAiReport('${escapeAttr(id)}')"${actionDisabled}>
+                            <i class="fas fa-trash-alt"></i> 删除
+                        </button>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderSiteAiReportList(data) {
+            const contentEl = document.getElementById('siteAiReportListContent');
+            const metaEl = document.getElementById('siteAiReportListMeta');
+            if (!contentEl) return;
+            const reports = getSiteAiReportListRows(data);
+            const grouped = data?.grouped && typeof data.grouped === 'object'
+                ? data.grouped
+                : groupSiteAiReports(reports);
+            const total = reports.length;
+            if (metaEl) {
+                metaEl.textContent = total
+                    ? `共 ${total} 份已生成报告，可下载渲染后的 PDF`
+                    : '暂无已生成报告，生成一次 AI 报告后会自动出现在这里';
+            }
+            const columns = [
+                { key: 'year', label: '年报', icon: 'fas fa-calendar-alt' },
+                { key: 'quarter', label: '季报', icon: 'fas fa-chart-pie' },
+                { key: 'month', label: '月报', icon: 'far fa-calendar-check' },
+                { key: 'week', label: '周报', icon: 'fas fa-calendar-week' }
+            ];
+            contentEl.innerHTML = `
+                <div class="site-ai-report-list-grid">
+                    ${columns.map((column) => {
+                        const rows = Array.isArray(grouped[column.key]) ? grouped[column.key] : [];
+                        return `
+                            <section class="site-ai-report-list-column">
+                                <div class="site-ai-report-list-column-head">
+                                    <span><i class="${column.icon}"></i> ${escapeHtml(column.label)}</span>
+                                    <strong>${rows.length}</strong>
+                                </div>
+                                <div class="site-ai-report-list-items">
+                                    ${rows.length ? rows.map(renderSiteAiReportListItem).join('') : '<div class="site-ai-report-list-empty">暂无报告</div>'}
+                                </div>
+                            </section>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function mergeSiteAiReportIntoCache(record) {
+            if (!record || typeof record !== 'object' || !record.id) return;
+            const reports = getSiteAiReportListRows(siteAiReportListCache);
+            const nextReports = [record, ...reports.filter(item => String(item?.id || '') !== String(record.id))];
+            siteAiReportListCache = {
+                success: true,
+                reports: nextReports,
+                grouped: groupSiteAiReports(nextReports),
+                total: nextReports.length
+            };
+            const modal = document.getElementById('siteAiReportListModal');
+            if (modal && !modal.hidden) renderSiteAiReportList(siteAiReportListCache);
+        }
+
+        function openSiteAiReportListModal() {
+            const modal = document.getElementById('siteAiReportListModal');
+            if (!modal) return;
+            modal.hidden = false;
+            if (siteAiReportListCache) {
+                renderSiteAiReportList(siteAiReportListCache);
+            } else {
+                const contentEl = document.getElementById('siteAiReportListContent');
+                if (contentEl) {
+                    contentEl.innerHTML = '<div class="site-ai-report-list-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载报告清单...</div>';
+                }
+            }
+            loadSiteAiReportList();
+        }
+
+        function closeSiteAiReportListModal() {
+            const modal = document.getElementById('siteAiReportListModal');
+            if (modal) modal.hidden = true;
+        }
+
+        async function loadSiteAiReportList(manual = false) {
+            if (siteAiReportListLoading) return;
+            setSiteAiReportListLoading(true);
+            try {
+                const res = await fetch('/api/admin/site-reports/ai-reports?limit=120', { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `加载报告清单失败（HTTP ${res.status || '-'}）`));
+                }
+                const reports = getSiteAiReportListRows(data);
+                siteAiReportListCache = {
+                    ...data,
+                    reports,
+                    grouped: data.grouped && typeof data.grouped === 'object' ? data.grouped : groupSiteAiReports(reports),
+                    total: reports.length
+                };
+                renderSiteAiReportList(siteAiReportListCache);
+                if (manual) {
+                    showGlobalAlert('报告清单已刷新');
+                }
+            } catch (err) {
+                console.error('Load site AI report list failed:', err);
+                const message = String(err?.message || '加载报告清单失败');
+                const contentEl = document.getElementById('siteAiReportListContent');
+                if (contentEl) {
+                    contentEl.innerHTML = `<div class="site-ai-report-list-error">${escapeHtml(message)}</div>`;
+                }
+                showGlobalAlert(message);
+            } finally {
+                setSiteAiReportListLoading(false);
+            }
+        }
+
+        function buildSiteAiReportPdfFilename(item) {
+            const title = String(item?.title || '网站运营报告').replace(/[\\/:*?"<>|\r\n\t]+/g, '-').trim() || '网站运营报告';
+            const label = String(item?.period_label || getSiteAiReportPeriodLabel(item?.period)).replace(/[\\/:*?"<>|\r\n\t]+/g, '-').trim();
+            return `${label || 'AI报告'}-${title}.pdf`;
+        }
+
+        async function downloadSiteAiReportPdf(reportId) {
+            const id = String(reportId || '').trim();
+            if (!id) return;
+            const reports = getSiteAiReportListRows(siteAiReportListCache);
+            const item = reports.find(row => String(row?.id || '') === id) || {};
+            const url = String(item.download_url || `/api/admin/site-reports/ai-reports/${encodeURIComponent(id)}/download`);
+            const btn = document.querySelector(`[data-site-ai-download-id="${id}"]`);
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+            }
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) {
+                    const data = await parseJsonSafe(res);
+                    throw new Error(String(data.message || `PDF下载失败（HTTP ${res.status || '-'}）`));
+                }
+                const blob = await res.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = buildSiteAiReportPdfFilename(item);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            } catch (err) {
+                console.error('Download site AI report PDF failed:', err);
+                showGlobalAlert(String(err?.message || 'PDF下载失败'));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml || '<i class="fas fa-file-pdf"></i> 下载 PDF';
+                }
+            }
+        }
+
+        async function deleteSiteAiReport(reportId) {
+            const id = String(reportId || '').trim();
+            if (!id) return;
+            if (!window.confirm('确定删除这份AI报告吗？删除后对应的PDF缓存也会被清理。')) return;
+            const btn = document.querySelector(`[data-site-ai-delete-id="${id}"]`);
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+            }
+            try {
+                const res = await fetch(`/api/admin/site-reports/ai-reports/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    cache: 'no-store'
+                });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `删除报告失败（HTTP ${res.status || '-'}）`));
+                }
+                const reports = getSiteAiReportListRows(siteAiReportListCache)
+                    .filter(item => String(item?.id || '') !== id);
+                siteAiReportListCache = {
+                    success: true,
+                    reports,
+                    grouped: groupSiteAiReports(reports),
+                    total: reports.length
+                };
+                renderSiteAiReportList(siteAiReportListCache);
+                showGlobalAlert('报告已删除');
+            } catch (err) {
+                console.error('Delete site AI report failed:', err);
+                showGlobalAlert(String(err?.message || '删除报告失败'));
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml || '<i class="fas fa-trash-alt"></i> 删除';
+                }
+            }
+        }
+
+        async function generateSiteAiReport() {
+            if (siteReportsAiLoading) return;
+            ensureSiteReportFiltersInitialized();
+            const endEl = document.getElementById('siteReportEndDate');
+            const periodEl = document.getElementById('siteReportAiPeriod');
+            const msgEl = document.getElementById('siteReportMsg');
+            const period = String(periodEl?.value || 'month').trim().toLowerCase();
+            const validPeriods = new Set(['week', 'month', 'quarter', 'year']);
+            const anchorDate = String(endEl?.value || siteReportsEndDate || getBeijingDateString()).trim();
+
+            let validationError = '';
+            if (!validPeriods.has(period)) {
+                validationError = '报告周期无效，请重新选择';
+            } else if (!isValidIsoDate(anchorDate)) {
+                validationError = '请先选择有效的结束日期';
+            }
+            if (validationError) {
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = validationError;
+                }
+                showGlobalAlert(validationError);
+                return;
+            }
+
+            if (msgEl) {
+                msgEl.style.color = '#64748b';
+                msgEl.textContent = `${getSiteAiReportPeriodLabel(period)}生成任务启动中...`;
+            }
+            updateSiteAiReportProgress({ status: 'queued', progress: 5, message: 'AI report queued' });
+            setSiteReportsAiLoading(true);
+            try {
+                const res = await fetch('/api/admin/site-reports/ai-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ period, anchor_date: anchorDate })
+                });
+                const data = await parseJsonSafe(res);
+                let statusUrl = String(data.status_url || '').trim();
+                if (res.status === 409 && data.job && data.job.id) {
+                    siteAiReportActiveJobId = String(data.job.id);
+                    updateSiteAiReportProgress(data.job);
+                    statusUrl = `/api/admin/site-reports/ai-report/jobs/${encodeURIComponent(siteAiReportActiveJobId)}`;
+                } else if (res.status === 202 && data.success === true && data.job_id) {
+                    siteAiReportActiveJobId = String(data.job_id);
+                    updateSiteAiReportProgress(data.job || { status: 'queued', progress: 5, message: 'AI report queued' });
+                } else if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `AI报告生成失败（HTTP ${res.status || '-'}）`));
+                }
+                const result = await pollSiteAiReportJob(statusUrl || `/api/admin/site-reports/ai-report/jobs/${encodeURIComponent(siteAiReportActiveJobId)}`);
+                renderSiteAiReport(result);
+                if (result.report_record) {
+                    mergeSiteAiReportIntoCache(result.report_record);
+                } else {
+                    siteAiReportListCache = null;
+                }
+                if (msgEl) {
+                    msgEl.style.color = '#28a745';
+                    msgEl.textContent = 'AI报告已生成';
+                }
+                updateSiteAiReportProgress({ status: 'succeeded', progress: 100, message: 'AI report generated' });
+            } catch (err) {
+                console.error('Generate site AI report failed:', err);
+                const message = String(err?.message || 'AI报告生成失败');
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = message;
+                }
+                updateSiteAiReportProgress({ status: 'failed', progress: 100, message });
+                showGlobalAlert(message);
+            } finally {
+                setSiteReportsAiLoading(false);
+                siteAiReportActiveJobId = '';
+            }
+        }
+
+        async function copySiteAiReport() {
+            const text = String(siteAiReportLastText || '').trim();
+            if (!text) return;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.setAttribute('readonly', 'readonly');
+                    textarea.style.position = 'fixed';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    textarea.remove();
+                }
+                showGlobalAlert('AI报告内容已复制');
+            } catch (err) {
+                showGlobalAlert('复制失败，请手动选择报告内容复制');
+            }
+        }
+
         async function loadSiteReports(manual = false) {
             if (siteReportsLoading) return;
             ensureSiteReportFiltersInitialized();
@@ -3945,7 +4684,7 @@
             const startDate = String(startEl?.value || '').trim();
             const endDate = String(endEl?.value || '').trim();
             const granularity = String(granularityEl?.value || 'day').trim().toLowerCase() || 'day';
-            const validGranularities = new Set(['year', 'month', 'week', 'day']);
+            const validGranularities = new Set(['year', 'quarter', 'month', 'week', 'day']);
             syncSiteReportDateInputLimits();
 
             let validationError = '';
@@ -4054,7 +4793,7 @@
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'cdn-assets': 'CDN 素材',
-                'log-records': '日志记录'
+                'log-records': '系统日志'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
 
@@ -13603,7 +14342,7 @@
         function renderPermissionGrid(containerId, selectedPermissions = []) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            const selectedSet = new Set((selectedPermissions || []).map(v => String(v || '').trim()));
+            const selectedSet = new Set(normalizePermissionList(selectedPermissions));
             const catalog = Array.isArray(permissionCatalog) && permissionCatalog.length
                 ? permissionCatalog
                 : DEFAULT_PERMISSION_CATALOG;
@@ -13626,7 +14365,7 @@
             const output = [];
             container.querySelectorAll('input[type="checkbox"][data-permission-key]').forEach(el => {
                 if (el.checked) {
-                    const key = String(el.dataset.permissionKey || '').trim();
+                    const key = normalizePermissionKey(el.dataset.permissionKey);
                     if (key) output.push(key);
                 }
             });
@@ -13693,9 +14432,9 @@
                 ? permissionCatalog
                 : DEFAULT_PERMISSION_CATALOG;
             for (const item of catalog) {
-                const key = String((item && item.key) || '').trim();
+                const key = normalizePermissionKey((item && item.key) || '');
                 if (!key) continue;
-                map[key] = String((item && item.label) || key);
+                map[key] = key === 'log-records' ? '系统日志' : String((item && item.label) || key);
             }
             return map;
         }
@@ -13717,9 +14456,7 @@
             tbody.innerHTML = subAccountsCache.map((item) => {
                 const username = String(item.username || '').trim();
                 const enabled = item.enabled !== false;
-                const permissions = Array.isArray(item.permissions)
-                    ? item.permissions.map(v => String(v || '').trim()).filter(Boolean)
-                    : [];
+                const permissions = normalizePermissionList(item.permissions);
                 const permissionNames = permissions.map(key => labelMap[key] || key);
                 const permissionText = permissionNames.length ? permissionNames.join('、') : '无';
                 const loginText = item.last_login_at ? (formatChangelogTime(item.last_login_at) || item.last_login_at) : '从未登录';
@@ -13789,12 +14526,7 @@
                     throw new Error(data.message || '子账号列表加载失败');
                 }
                 if (Array.isArray(data.permission_catalog) && data.permission_catalog.length) {
-                    permissionCatalog = data.permission_catalog
-                        .map(item => ({
-                            key: String((item && item.key) || '').trim(),
-                            label: String((item && item.label) || '').trim()
-                        }))
-                        .filter(item => item.key);
+                    permissionCatalog = normalizePermissionCatalog(data.permission_catalog);
                 }
                 subAccountsCache = Array.isArray(data.items) ? data.items : [];
                 renderPermissionGrid('subCreatePermissionsGrid', ['messages']);
@@ -13847,7 +14579,7 @@
                             username,
                             password,
                             enabled,
-                            permissions,
+                            permissions: expandPermissionsForApi(permissions),
                             notify_message_email: notifyMessageEmail,
                             notify_job_email: notifyJobEmail
                         })
@@ -13918,7 +14650,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             enabled,
-                            permissions,
+                            permissions: expandPermissionsForApi(permissions),
                             password,
                             notify_message_email: notifyMessageEmail,
                             notify_job_email: notifyJobEmail
@@ -14175,21 +14907,23 @@
                 const data = await res.json();
 
                 document.getElementById('pdfSupportWarning').style.display = data.pdf_support ? 'none' : 'block';
-                textInput.value = data.text_content || '';
+                lastKnowledgeTextValue = '';
+                savedKnowledgeTextEntries = Array.isArray(data.text_entries) ? data.text_entries : [];
+                savedKnowledgeFiles = Array.isArray(data.files) ? data.files : [];
 
                 if (statusEl) {
-                    if (data.text_size > 0) {
+                    if (savedKnowledgeTextEntries.length) {
                         const modifiedText = data.text_modified ? `，最后更新：${formatDateTime(data.text_modified)}` : '';
-                        statusEl.textContent = `当前已保存文本知识库 ${formatFileSize(data.text_size)}${modifiedText}`;
+                        statusEl.textContent = `已保存 ${savedKnowledgeTextEntries.length} 条文本知识，共 ${formatFileSize(data.text_size || 0)}${modifiedText}`;
                     } else {
-                        statusEl.textContent = '当前未保存文本知识库内容';
+                        statusEl.textContent = '当前未保存文本条目。这里输入的内容会作为新条目追加保存。';
                     }
                 }
 
-                if (!Array.isArray(data.files) || data.files.length === 0) {
-                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无知识库文件</div>';
+                if (!savedKnowledgeFiles.length) {
+                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无已上传 PDF 文件</div>';
                 } else {
-                    listEl.innerHTML = data.files.map(file => `
+                    listEl.innerHTML = savedKnowledgeFiles.map(file => `
                         <div class="file-item">
                             <div class="file-info">
                                 <i class="fas fa-file-pdf"></i>
@@ -14199,6 +14933,9 @@
                                 </div>
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="btn-sm knowledge-view-btn" data-filename="${escapeAttr(file.name)}">
+                                    <i class="fas fa-eye"></i> 查看
+                                </button>
                                 <button type="button" class="btn-sm knowledge-download-btn" data-filename="${escapeAttr(file.name)}">
                                     <i class="fas fa-download"></i> 下载
                                 </button>
@@ -14209,6 +14946,9 @@
                         </div>
                     `).join('');
 
+                    listEl.querySelectorAll('.knowledge-view-btn').forEach(btn => {
+                        btn.addEventListener('click', () => viewKnowledgePdf(btn.dataset.filename || ''));
+                    });
                     listEl.querySelectorAll('.knowledge-download-btn').forEach(btn => {
                         btn.addEventListener('click', () => downloadKnowledgeFile(btn.dataset.filename || ''));
                     });
@@ -14218,8 +14958,10 @@
                 }
 
                 renderPendingKnowledgeFiles();
+                renderKnowledgeCatalogPreview();
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
+                renderKnowledgeCatalogPreview();
             }
         }
 
@@ -14243,11 +14985,17 @@
                 if (res.ok) {
                     loadKnowledgeFiles();
                 } else {
-                    alert('删除失败');
+                    const data = await res.json().catch(() => ({}));
+                    showGlobalAlert(data.message || '删除失败');
                 }
             } catch (e) {
-                alert('网络错误');
+                showGlobalAlert('网络错误');
             }
+        }
+
+        function viewKnowledgePdf(filename) {
+            if (!filename) return;
+            window.open(`/api/chatbot/knowledge/${encodeURIComponent(filename)}/view`, '_blank', 'noopener');
         }
 
         function downloadKnowledgeFile(filename) {
@@ -14262,11 +15010,198 @@
             msgEl.style.color = type === 'error' ? '#dc3545' : (type === 'warning' ? '#c05621' : '#28a745');
         }
 
+        function closeKnowledgeTextDetailModal() {
+            const modal = document.getElementById('knowledgeTextDetailModal');
+            currentKnowledgeTextEntryId = '';
+            if (modal) modal.hidden = true;
+        }
+
+        function setKnowledgeTextDetailMode(editing) {
+            const contentEl = document.getElementById('knowledgeTextDetailContent');
+            const formEl = document.getElementById('knowledgeTextDetailForm');
+            const editBtn = document.getElementById('knowledgeTextDetailEditBtn');
+            const saveBtn = document.getElementById('knowledgeTextDetailSaveBtn');
+            const cancelBtn = document.getElementById('knowledgeTextDetailCancelBtn');
+            if (contentEl) contentEl.hidden = !!editing;
+            if (formEl) formEl.hidden = !editing;
+            if (editBtn) editBtn.hidden = !!editing;
+            if (saveBtn) saveBtn.hidden = !editing;
+            if (cancelBtn) cancelBtn.hidden = !editing;
+        }
+
+        function findKnowledgeTextEntry(entryId) {
+            return savedKnowledgeTextEntries.find(item => String(item.id || '') === String(entryId || ''));
+        }
+
+        async function openKnowledgeTextEntryModal(entryId, editing = false) {
+            const safeId = String(entryId || '').trim();
+            if (!safeId) return;
+            const modal = document.getElementById('knowledgeTextDetailModal');
+            const titleEl = document.getElementById('knowledgeTextDetailTitle');
+            const metaEl = document.getElementById('knowledgeTextDetailMeta');
+            const contentEl = document.getElementById('knowledgeTextDetailContent');
+            const titleInput = document.getElementById('knowledgeTextDetailTitleInput');
+            const editor = document.getElementById('knowledgeTextDetailEditor');
+            if (!modal || !titleEl || !metaEl || !contentEl || !titleInput || !editor) {
+                const fallback = findKnowledgeTextEntry(safeId);
+                showGlobalAlert(fallback?.content || '', fallback?.title || '文本条目');
+                return;
+            }
+
+            let entry = findKnowledgeTextEntry(safeId);
+            try {
+                const res = await fetch(`/api/chatbot/knowledge/text/${encodeURIComponent(safeId)}`);
+                const data = await res.json();
+                if (res.ok && data.success && data.entry) {
+                    entry = data.entry;
+                } else if (!entry) {
+                    showGlobalAlert(data.message || '文本条目不存在');
+                    return;
+                }
+            } catch (e) {
+                if (!entry) {
+                    showGlobalAlert('文本条目加载失败');
+                    return;
+                }
+            }
+
+            currentKnowledgeTextEntryId = safeId;
+            const modifiedText = entry.modified_at ? `最后更新：${formatDateTime(entry.modified_at)}` : '';
+            titleEl.textContent = editing ? '编辑文本条目' : '文本条目全文';
+            metaEl.textContent = `${formatFileSize(entry.size || 0)}${modifiedText ? ` · ${modifiedText}` : ''}`;
+            contentEl.textContent = entry.content || '';
+            titleInput.value = entry.title || '';
+            editor.value = entry.content || '';
+            setKnowledgeTextDetailMode(editing);
+            modal.hidden = false;
+        }
+
+        function viewKnowledgeTextEntry(entryId) {
+            openKnowledgeTextEntryModal(entryId, false);
+        }
+
+        function editKnowledgeTextEntry(entryId) {
+            openKnowledgeTextEntryModal(entryId, true);
+        }
+
+        async function saveKnowledgeTextEntry() {
+            if (!currentKnowledgeTextEntryId) return;
+            const titleInput = document.getElementById('knowledgeTextDetailTitleInput');
+            const editor = document.getElementById('knowledgeTextDetailEditor');
+            const saveBtn = document.getElementById('knowledgeTextDetailSaveBtn');
+            const content = editor?.value || '';
+            if (!content.trim()) {
+                showGlobalAlert('文本内容不能为空');
+                return;
+            }
+            if (saveBtn) saveBtn.disabled = true;
+            try {
+                const res = await fetch(`/api/chatbot/knowledge/text/${encodeURIComponent(currentKnowledgeTextEntryId)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: titleInput?.value || '',
+                        content
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showGlobalAlert(data.message || '保存失败');
+                    return;
+                }
+                closeKnowledgeTextDetailModal();
+                await loadKnowledgeFiles();
+                setKnowledgeUploadMessage('文本条目已更新', 'success');
+            } catch (e) {
+                showGlobalAlert('保存失败：网络错误');
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        }
+
+        async function deleteKnowledgeTextEntry(entryId) {
+            const entry = findKnowledgeTextEntry(entryId);
+            if (!entry) return;
+            const preview = String(entry.title || entry.content || '').replace(/\s+/g, ' ').trim();
+            const confirmText = preview.length > 42 ? `${preview.slice(0, 42)}...` : preview;
+            const ok = await showGlobalConfirm(`确定删除文本条目“${confirmText || '未命名文本'}”吗？此操作无法撤销。`, '删除文本条目');
+            if (!ok) return;
+
+            try {
+                const res = await fetch(`/api/chatbot/knowledge/text/${encodeURIComponent(entry.id)}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showGlobalAlert(data.message || '删除失败');
+                    return;
+                }
+                await loadKnowledgeFiles();
+                setKnowledgeUploadMessage('文本条目已删除', 'success');
+            } catch (e) {
+                showGlobalAlert('删除失败：网络错误');
+            }
+        }
+
+        function renderKnowledgeCatalogPreview() {
+            const previewEl = document.getElementById('knowledgeCatalogPreview');
+            if (!previewEl) return;
+            const items = savedKnowledgeTextEntries.map((entry, index) => ({
+                type: 'text',
+                id: entry.id,
+                title: entry.title || `文本条目 ${index + 1}`,
+                meta: `文本 · ${formatFileSize(entry.size || 0)} · ${formatDateTime(entry.modified_at || entry.created_at)}`
+            }));
+
+            if (!items.length) {
+                previewEl.innerHTML = '<div class="knowledge-catalog-preview__empty">暂无已保存文本条目。</div>';
+                return;
+            }
+
+            previewEl.innerHTML = `
+                <div class="knowledge-catalog-preview__head">
+                    <h4>已保存文本条目</h4>
+                    <span class="knowledge-catalog-preview__count">共 ${items.length} 条</span>
+                </div>
+                <div class="knowledge-catalog-preview__body">
+                    ${items.map((item, index) => `
+                        <div class="knowledge-catalog-preview__item knowledge-catalog-preview__item--${escapeAttr(item.type)}">
+                            <span class="knowledge-catalog-preview__index">${index + 1}</span>
+                            <div>
+                                <div class="knowledge-catalog-preview__title">${escapeHtml(item.title)}</div>
+                                <div class="knowledge-catalog-preview__meta">${escapeHtml(item.meta)}</div>
+                            </div>
+                            <div class="knowledge-catalog-preview__actions">
+                                <button type="button" class="btn-sm knowledge-text-view-btn" data-entry-id="${escapeAttr(item.id)}">
+                                    <i class="fas fa-eye"></i> 查看
+                                </button>
+                                <button type="button" class="btn-sm knowledge-text-edit-btn" data-entry-id="${escapeAttr(item.id)}">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                                <button type="button" class="btn-sm btn-danger knowledge-text-delete-btn" data-entry-id="${escapeAttr(item.id)}">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            previewEl.querySelectorAll('.knowledge-text-view-btn').forEach(btn => {
+                btn.addEventListener('click', () => viewKnowledgeTextEntry(btn.dataset.entryId || ''));
+            });
+            previewEl.querySelectorAll('.knowledge-text-edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => editKnowledgeTextEntry(btn.dataset.entryId || ''));
+            });
+            previewEl.querySelectorAll('.knowledge-text-delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteKnowledgeTextEntry(btn.dataset.entryId || ''));
+            });
+        }
+
         function renderPendingKnowledgeFiles() {
             const pendingListEl = document.getElementById('knowledgePendingFileList');
             if (!pendingListEl) return;
             if (!pendingKnowledgeFiles.length) {
                 pendingListEl.innerHTML = '';
+                renderKnowledgeCatalogPreview();
                 return;
             }
 
@@ -14298,6 +15233,7 @@
                     renderPendingKnowledgeFiles();
                 });
             });
+            renderKnowledgeCatalogPreview();
         }
 
         function addPendingKnowledgeFiles(fileList) {
@@ -14343,15 +15279,33 @@
             if (!textInput || !saveBtn || !progress) return;
 
             setKnowledgeUploadMessage('');
+            const knowledgeText = textInput.value || '';
+            const hasText = knowledgeText.trim().length > 0;
+            const hasPendingFiles = pendingKnowledgeFiles.length > 0;
+
+            if (!hasText && !hasPendingFiles) {
+                setKnowledgeUploadMessage('请输入知识库文本或上传 PDF 文件后再保存。', 'error');
+                renderKnowledgeCatalogPreview();
+                return;
+            }
+
             progress.style.display = 'block';
             saveBtn.disabled = true;
             if (progressLabel) {
-                progressLabel.textContent = pendingKnowledgeFiles.length ? '正在保存文本与 PDF...' : '正在保存文本...';
+                if (hasText && hasPendingFiles) {
+                    progressLabel.textContent = '正在保存文本与 PDF...';
+                } else if (hasPendingFiles) {
+                    progressLabel.textContent = '正在保存 PDF...';
+                } else {
+                    progressLabel.textContent = '正在保存文本...';
+                }
             }
 
             try {
                 const formData = new FormData();
-                formData.append('knowledge_text', textInput.value || '');
+                if (hasText) {
+                    formData.append('knowledge_text', knowledgeText);
+                }
                 pendingKnowledgeFiles.forEach(file => formData.append('files', file));
 
                 const res = await fetch('/api/chatbot/knowledge/upload', {
@@ -14369,6 +15323,8 @@
                 }
 
                 pendingKnowledgeFiles = [];
+                textInput.value = '';
+                lastKnowledgeTextValue = '';
                 await loadKnowledgeFiles();
                 if (fileInput) fileInput.value = '';
                 setKnowledgeUploadMessage(data.message || '知识库保存成功', data.partial_success ? 'warning' : 'success');
@@ -14414,6 +15370,34 @@
 
         if (knowledgeSaveBtn) {
             knowledgeSaveBtn.addEventListener('click', saveKnowledgeBase);
+        }
+
+        const knowledgeTextInput = document.getElementById('knowledgeTextInput');
+        if (knowledgeTextInput) {
+            knowledgeTextInput.addEventListener('input', renderKnowledgeCatalogPreview);
+        }
+
+        const knowledgeTextDetailEditBtn = document.getElementById('knowledgeTextDetailEditBtn');
+        if (knowledgeTextDetailEditBtn) {
+            knowledgeTextDetailEditBtn.addEventListener('click', () => {
+                const titleEl = document.getElementById('knowledgeTextDetailTitle');
+                if (titleEl) titleEl.textContent = '编辑文本条目';
+                setKnowledgeTextDetailMode(true);
+            });
+        }
+        const knowledgeTextDetailSaveBtn = document.getElementById('knowledgeTextDetailSaveBtn');
+        if (knowledgeTextDetailSaveBtn) {
+            knowledgeTextDetailSaveBtn.addEventListener('click', saveKnowledgeTextEntry);
+        }
+        const knowledgeTextDetailCancelBtn = document.getElementById('knowledgeTextDetailCancelBtn');
+        if (knowledgeTextDetailCancelBtn) {
+            knowledgeTextDetailCancelBtn.addEventListener('click', () => {
+                if (currentKnowledgeTextEntryId) {
+                    openKnowledgeTextEntryModal(currentKnowledgeTextEntryId, false);
+                } else {
+                    closeKnowledgeTextDetailModal();
+                }
+            });
         }
     
         function copyToClipboard(text) {

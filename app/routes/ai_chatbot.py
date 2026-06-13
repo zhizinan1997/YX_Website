@@ -58,6 +58,7 @@ import json
 import re
 import threading
 import time
+import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -91,6 +92,7 @@ _knowledge_lock = threading.Lock()
 _conversation_log_lock = threading.Lock()
 
 MANUAL_KNOWLEDGE_FILENAME = "_manual_knowledge.txt"
+KNOWLEDGE_TEXT_ENTRIES_FILENAME = "knowledge_text_entries.json"
 
 _rate_limit_storage = defaultdict(list)
 _rate_limit_lock = threading.Lock()
@@ -235,7 +237,11 @@ def _manual_knowledge_path() -> Path:
     return _dep("knowledge_dir") / MANUAL_KNOWLEDGE_FILENAME
 
 
-def load_manual_knowledge_text() -> str:
+def _knowledge_text_entries_path() -> Path:
+    return _dep("knowledge_dir") / KNOWLEDGE_TEXT_ENTRIES_FILENAME
+
+
+def _read_legacy_manual_knowledge_text() -> str:
     path = _manual_knowledge_path()
     if not path.exists() or not path.is_file():
         return ""
@@ -245,22 +251,251 @@ def load_manual_knowledge_text() -> str:
         return ""
 
 
+def _knowledge_entry_timestamp() -> str:
+    return now_beijing().replace(microsecond=0).isoformat()
+
+
+def _derive_knowledge_text_title(content: str) -> str:
+    for line in str(content or "").splitlines():
+        compact = re.sub(r"\s+", " ", line).strip()
+        if compact:
+            return compact[:60] + ("..." if len(compact) > 60 else "")
+    return "文本知识"
+
+
+def _safe_knowledge_text_entry(row) -> dict | None:
+    if not isinstance(row, dict):
+        return None
+    content = str(row.get("content") or "")
+    if not content.strip():
+        return None
+    entry_id = str(row.get("id") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{8,80}", entry_id):
+        entry_id = uuid.uuid4().hex
+    title = str(row.get("title") or "").strip() or _derive_knowledge_text_title(content)
+    created_at = str(row.get("created_at") or "").strip() or _knowledge_entry_timestamp()
+    modified_at = str(row.get("modified_at") or "").strip() or created_at
+    return {
+        "id": entry_id,
+        "title": title[:120],
+        "content": content,
+        "created_at": created_at,
+        "modified_at": modified_at,
+        "size": len(content.encode("utf-8")),
+    }
+
+
+def _build_knowledge_text_entry(content: str, title: str = "") -> dict:
+    text = str(content or "")
+    now = _knowledge_entry_timestamp()
+    return {
+        "id": uuid.uuid4().hex,
+        "title": (str(title or "").strip() or _derive_knowledge_text_title(text))[:120],
+        "content": text,
+        "created_at": now,
+        "modified_at": now,
+        "size": len(text.encode("utf-8")),
+    }
+
+
+def _write_knowledge_text_entries(entries: list[dict]) -> None:
+    path = _knowledge_text_entries_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    clean_entries = []
+    seen_ids = set()
+    for row in entries:
+        entry = _safe_knowledge_text_entry(row)
+        if not entry or entry["id"] in seen_ids:
+            continue
+        seen_ids.add(entry["id"])
+        clean_entries.append(entry)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(
+        json.dumps(clean_entries, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    tmp_path.replace(path)
+
+
+def _read_knowledge_text_entries() -> list[dict]:
+    path = _knowledge_text_entries_path()
+    if path.exists():
+        try:
+            raw_entries = json.loads(path.read_text(encoding="utf-8") or "[]")
+        except Exception:
+            raw_entries = []
+        if not isinstance(raw_entries, list):
+            raw_entries = []
+
+        clean_entries = []
+        seen_ids = set()
+        for row in raw_entries:
+            entry = _safe_knowledge_text_entry(row)
+            if not entry or entry["id"] in seen_ids:
+                continue
+            seen_ids.add(entry["id"])
+            clean_entries.append(entry)
+        return clean_entries
+
+    legacy_text = _read_legacy_manual_knowledge_text()
+    migrated_entries = []
+    if legacy_text.strip():
+        migrated_entries.append(
+            _build_knowledge_text_entry(legacy_text, title="手工录入知识库")
+        )
+    _write_knowledge_text_entries(migrated_entries)
+    return migrated_entries
+
+
+def _append_knowledge_text_entry(content: str, title: str = "") -> dict:
+    text = str(content or "")
+    if not text.strip():
+        raise ValueError("文本内容不能为空")
+    entries = _read_knowledge_text_entries()
+    entry = _build_knowledge_text_entry(text, title=title)
+    entries.append(entry)
+    _write_knowledge_text_entries(entries)
+    reset_knowledge_cache()
+    return entry
+
+
+def _find_knowledge_text_entry(entry_id: str) -> dict | None:
+    safe_id = str(entry_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{8,80}", safe_id):
+        return None
+    for entry in _read_knowledge_text_entries():
+        if entry["id"] == safe_id:
+            return entry
+    return None
+
+
+def _update_knowledge_text_entry(entry_id: str, *, title: str = "", content: str = "") -> dict | None:
+    safe_id = str(entry_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{8,80}", safe_id):
+        return None
+    text = str(content or "")
+    if not text.strip():
+        raise ValueError("文本内容不能为空")
+    entries = _read_knowledge_text_entries()
+    updated_entry = None
+    for entry in entries:
+        if entry["id"] != safe_id:
+            continue
+        entry["title"] = (str(title or "").strip() or _derive_knowledge_text_title(text))[:120]
+        entry["content"] = text
+        entry["modified_at"] = _knowledge_entry_timestamp()
+        entry["size"] = len(text.encode("utf-8"))
+        updated_entry = entry
+        break
+    if updated_entry is None:
+        return None
+    _write_knowledge_text_entries(entries)
+    reset_knowledge_cache()
+    return updated_entry
+
+
+def _delete_knowledge_text_entry(entry_id: str) -> bool:
+    safe_id = str(entry_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{8,80}", safe_id):
+        return False
+    entries = _read_knowledge_text_entries()
+    kept_entries = [entry for entry in entries if entry["id"] != safe_id]
+    if len(kept_entries) == len(entries):
+        return False
+    _write_knowledge_text_entries(kept_entries)
+    reset_knowledge_cache()
+    return True
+
+
+def _knowledge_text_entry_public(entry: dict, *, include_content: bool = True) -> dict:
+    output = {
+        "id": entry.get("id", ""),
+        "title": entry.get("title", ""),
+        "created_at": entry.get("created_at", ""),
+        "modified_at": entry.get("modified_at", ""),
+        "size": int(entry.get("size") or 0),
+    }
+    if include_content:
+        output["content"] = entry.get("content", "")
+    return output
+
+
+def _safe_knowledge_pdf_filename(filename: str) -> str:
+    raw_name = Path(str(filename or "")).name.strip()
+    if not raw_name:
+        return ""
+    safe_name = re.sub(r"[^\w\u4e00-\u9fff\-_.]", "_", raw_name)
+    safe_name = re.sub(r"_+", "_", safe_name).strip()
+    if not safe_name or safe_name in {".", ".."} or ".." in safe_name:
+        return ""
+    if not safe_name.lower().endswith(".pdf"):
+        return ""
+    if safe_name.lower() == ".pdf":
+        safe_name = f"knowledge_{uuid.uuid4().hex[:8]}.pdf"
+    if len(safe_name) > 180:
+        stem = safe_name[:-4][:168].rstrip("._-") or "knowledge"
+        safe_name = f"{stem}_{uuid.uuid4().hex[:8]}.pdf"
+    return safe_name
+
+
+def _unique_knowledge_pdf_filename(filename: str) -> str:
+    safe_name = _safe_knowledge_pdf_filename(filename)
+    if not safe_name:
+        return ""
+    knowledge_dir = _dep("knowledge_dir")
+    target = knowledge_dir / safe_name
+    if not target.exists():
+        return safe_name
+    stem = safe_name[:-4]
+    suffix = ".pdf"
+    for index in range(2, 1000):
+        candidate = f"{stem}_{index}{suffix}"
+        if not (knowledge_dir / candidate).exists():
+            return candidate
+    return f"{stem}_{uuid.uuid4().hex[:8]}{suffix}"
+
+
+def _safe_knowledge_pdf_path(filename: str) -> tuple[Path | None, str]:
+    raw_name = str(filename or "").strip()
+    safe_name = Path(raw_name).name
+    if (
+        not raw_name
+        or safe_name != raw_name
+        or ".." in raw_name
+        or not raw_name.lower().endswith(".pdf")
+        or _safe_knowledge_pdf_filename(raw_name) != raw_name
+    ):
+        return None, "文件名不合法"
+    knowledge_dir = _dep("knowledge_dir")
+    knowledge_dir.mkdir(parents=True, exist_ok=True)
+    root = knowledge_dir.resolve()
+    path = (root / safe_name).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return None, "文件名不合法"
+    return path, ""
+
+
+def load_manual_knowledge_text() -> str:
+    entries = _read_knowledge_text_entries()
+    return "\n\n".join(entry["content"] for entry in entries if entry.get("content"))
+
+
 def save_manual_knowledge_text(text: str) -> dict:
-    path = _manual_knowledge_path()
     content = str(text or "")
     trimmed = content.strip()
     try:
         if trimmed:
-            path.write_text(content, encoding="utf-8")
-            stat = path.stat()
+            entry = _build_knowledge_text_entry(content, title="手工录入知识库")
+            _write_knowledge_text_entries([entry])
             return {
                 "saved": True,
                 "cleared": False,
-                "size": stat.st_size,
-                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "size": entry["size"],
+                "modified": entry["modified_at"],
             }
-        if path.exists():
-            path.unlink()
+        _write_knowledge_text_entries([])
         return {"saved": False, "cleared": True, "size": 0, "modified": ""}
     finally:
         reset_knowledge_cache()
@@ -421,19 +656,21 @@ def get_product_page_ai_config():
 
 
 def load_knowledge_base():
-    """从手工录入文本与 PDF 文件加载并缓存知识库内容。"""
+    """从文本条目与 PDF 文件加载并缓存知识库内容。"""
     knowledge_dir = _dep("knowledge_dir")
+    knowledge_dir.mkdir(parents=True, exist_ok=True)
     pdf_support = _dep("pdf_support")
     pypdf2_module = _dep("pypdf2_module")
-    manual_path = _manual_knowledge_path()
+    text_entries = _read_knowledge_text_entries()
+    entries_path = _knowledge_text_entries_path()
 
     with _knowledge_lock:
-        pdf_files = list(knowledge_dir.glob("*.pdf"))
+        pdf_files = sorted(knowledge_dir.glob("*.pdf"))
         tracked_files = [f.name for f in pdf_files]
         tracked_mtimes = [f.stat().st_mtime for f in pdf_files]
-        if manual_path.exists() and manual_path.is_file():
-            tracked_files.append(manual_path.name)
-            tracked_mtimes.append(manual_path.stat().st_mtime)
+        if entries_path.exists() and entries_path.is_file():
+            tracked_files.append(entries_path.name)
+            tracked_mtimes.append(entries_path.stat().st_mtime)
         current_files = sorted(tracked_files)
         current_mtime = max(tracked_mtimes) if tracked_mtimes else 0
 
@@ -444,10 +681,13 @@ def load_knowledge_base():
             return _knowledge_cache["content"]
 
         knowledge_text = []
-        manual_text = load_manual_knowledge_text().strip()
-        if manual_text:
-            knowledge_text.append("\n--- 来自手工录入知识库 ---\n")
-            knowledge_text.append(manual_text)
+        for entry in text_entries:
+            content = str(entry.get("content") or "").strip()
+            if not content:
+                continue
+            title = str(entry.get("title") or "").strip() or "文本知识"
+            knowledge_text.append(f"\n--- 来自文本条目: {title} ---\n")
+            knowledge_text.append(content)
 
         if not pdf_support or pypdf2_module is None:
             _knowledge_cache["content"] = "\n".join(knowledge_text)
@@ -2087,6 +2327,8 @@ def register_ai_chatbot_routes(
             return denied
         files = []
         for pdf_path in sorted(_dep("knowledge_dir").glob("*.pdf")):
+            if _safe_knowledge_pdf_filename(pdf_path.name) != pdf_path.name:
+                continue
             stat = pdf_path.stat()
             files.append(
                 {
@@ -2095,20 +2337,22 @@ def register_ai_chatbot_routes(
                     "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
                 }
             )
-        manual_text = load_manual_knowledge_text()
-        manual_path = _manual_knowledge_path()
-        manual_modified = ""
-        manual_size = 0
-        if manual_path.exists() and manual_path.is_file():
-            try:
-                stat = manual_path.stat()
-                manual_size = stat.st_size
-                manual_modified = datetime.fromtimestamp(stat.st_mtime).isoformat()
-            except Exception:
-                manual_size = len(manual_text.encode("utf-8"))
+        text_entries = [
+            _knowledge_text_entry_public(entry)
+            for entry in _read_knowledge_text_entries()
+        ]
+        manual_text = "\n\n".join(
+            entry.get("content", "") for entry in text_entries if entry.get("content")
+        )
+        manual_size = sum(int(entry.get("size") or 0) for entry in text_entries)
+        manual_modified = max(
+            (str(entry.get("modified_at") or "") for entry in text_entries),
+            default="",
+        )
         return jsonify(
             {
                 "files": files,
+                "text_entries": text_entries,
                 "pdf_support": _dep("pdf_support"),
                 "text_content": manual_text,
                 "text_size": manual_size,
@@ -2123,7 +2367,8 @@ def register_ai_chatbot_routes(
         if denied:
             return denied
         text_present = "knowledge_text" in request.form
-        manual_text = request.form.get("knowledge_text", "") if text_present else None
+        manual_text = request.form.get("knowledge_text", "") if text_present else ""
+        manual_title = request.form.get("knowledge_title", "")
         files = []
         if "file" in request.files:
             files.extend(request.files.getlist("file"))
@@ -2131,20 +2376,21 @@ def register_ai_chatbot_routes(
             files.extend(request.files.getlist("files"))
 
         files = [file for file in files if file and file.filename]
-        if not files and manual_text is None:
+        has_text = bool(str(manual_text or "").strip())
+        if not files and not has_text:
             return jsonify({"success": False, "message": "没有可保存的知识库内容"}), 400
 
         uploaded = []
         failed = []
-        manual_result = None
+        text_entry = None
 
-        if text_present:
+        if has_text:
             try:
-                manual_result = save_manual_knowledge_text(manual_text)
+                text_entry = _append_knowledge_text_entry(manual_text, title=manual_title)
             except Exception as exc:
                 failed.append(
                     {
-                        "filename": MANUAL_KNOWLEDGE_FILENAME,
+                        "filename": "knowledge_text",
                         "message": f"知识库文本保存失败: {str(exc)}",
                     }
                 )
@@ -2172,9 +2418,13 @@ def register_ai_chatbot_routes(
                     )
                     continue
 
-                filename = re.sub(r"[^\w\u4e00-\u9fff\-_.]", "_", file.filename)
+                filename = _unique_knowledge_pdf_filename(file.filename)
+                if not filename:
+                    failed.append({"filename": file.filename, "message": "文件名不合法"})
+                    continue
                 filepath = _dep("knowledge_dir") / filename
                 try:
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
                     file.save(str(filepath))
                     uploaded.append(filename)
                 except Exception as exc:
@@ -2186,23 +2436,21 @@ def register_ai_chatbot_routes(
             reset_knowledge_cache()
 
         success_parts = []
-        if manual_result is not None:
-            if manual_result.get("saved"):
-                success_parts.append("知识库文本已保存")
-            elif manual_result.get("cleared"):
-                success_parts.append("知识库文本已清空")
-            else:
-                success_parts.append("知识库文本已更新")
+        if text_entry is not None:
+            success_parts.append("文本知识条目已新增")
         if uploaded:
             success_parts.append(f"已上传 {len(uploaded)} 个 PDF 文件")
 
         response = {
             "success": True,
             "filename": uploaded[0] if uploaded else "",
-            "text_saved": bool(manual_result and manual_result.get("saved")),
-            "text_cleared": bool(manual_result and manual_result.get("cleared")),
-            "text_modified": (manual_result or {}).get("modified", ""),
-            "text_size": (manual_result or {}).get("size", 0),
+            "text_saved": text_entry is not None,
+            "text_cleared": False,
+            "text_entry": (
+                _knowledge_text_entry_public(text_entry) if text_entry is not None else None
+            ),
+            "text_modified": (text_entry or {}).get("modified_at", ""),
+            "text_size": (text_entry or {}).get("size", 0),
             "uploaded": uploaded,
             "failed": failed,
         }
@@ -2220,20 +2468,92 @@ def register_ai_chatbot_routes(
 
         return jsonify(response)
 
+    @app.route("/api/chatbot/knowledge/text/<entry_id>", methods=["GET"])
+    @login_required
+    def get_knowledge_text_entry(entry_id):
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
+        entry = _find_knowledge_text_entry(entry_id)
+        if entry is None:
+            return jsonify({"success": False, "message": "文本条目不存在"}), 404
+        return jsonify({"success": True, "entry": _knowledge_text_entry_public(entry)})
+
+    @app.route("/api/chatbot/knowledge/text/<entry_id>", methods=["PUT"])
+    @login_required
+    def update_knowledge_text_entry(entry_id):
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            data = request.form.to_dict()
+        try:
+            entry = _update_knowledge_text_entry(
+                entry_id,
+                title=data.get("title", ""),
+                content=data.get("content", ""),
+            )
+        except ValueError as exc:
+            return jsonify({"success": False, "message": str(exc)}), 400
+        if entry is None:
+            return jsonify({"success": False, "message": "文本条目不存在"}), 404
+        return jsonify(
+            {
+                "success": True,
+                "message": "文本条目已更新",
+                "entry": _knowledge_text_entry_public(entry),
+            }
+        )
+
+    @app.route("/api/chatbot/knowledge/text/<entry_id>", methods=["DELETE"])
+    @login_required
+    def delete_knowledge_text_entry(entry_id):
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
+        if not _delete_knowledge_text_entry(entry_id):
+            return jsonify({"success": False, "message": "文本条目不存在"}), 404
+        return jsonify({"success": True, "message": "文本条目已删除"})
+
+    @app.route("/api/chatbot/knowledge/<filename>/view", methods=["GET"])
+    @login_required
+    def view_knowledge_file(filename):
+        denied = _require_chatbot_admin_api()
+        if denied:
+            return denied
+        filepath, error = _safe_knowledge_pdf_path(filename)
+        if error:
+            return jsonify({"success": False, "message": error}), 400
+        if not filepath or not filepath.exists() or not filepath.is_file():
+            return jsonify({"success": False, "message": "文件不存在"}), 404
+        response = send_from_directory(
+            str(_dep("knowledge_dir")),
+            filepath.name,
+            as_attachment=False,
+            download_name=filepath.name,
+            mimetype="application/pdf",
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
     @app.route("/api/chatbot/knowledge/<filename>/download", methods=["GET"])
     @login_required
     def download_knowledge_file(filename):
         denied = _require_chatbot_admin_api()
         if denied:
             return denied
-        filepath = _dep("knowledge_dir") / filename
-        if not filepath.exists() or not filepath.is_file():
+        filepath, error = _safe_knowledge_pdf_path(filename)
+        if error:
+            return jsonify({"success": False, "message": error}), 400
+        if not filepath or not filepath.exists() or not filepath.is_file():
             return jsonify({"success": False, "message": "文件不存在"}), 404
         response = send_from_directory(
             str(_dep("knowledge_dir")),
-            filename,
+            filepath.name,
             as_attachment=True,
-            download_name=filename,
+            download_name=filepath.name,
+            mimetype="application/pdf",
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
         return response
@@ -2244,11 +2564,10 @@ def register_ai_chatbot_routes(
         denied = _require_chatbot_admin_api()
         if denied:
             return denied
-        safe_name = Path(filename).name
-        if safe_name != filename or ".." in filename:
-            return jsonify({"success": False, "message": "文件名不合法"}), 400
-        filepath = _dep("knowledge_dir") / safe_name
-        if not filepath.exists():
+        filepath, error = _safe_knowledge_pdf_path(filename)
+        if error:
+            return jsonify({"success": False, "message": error}), 400
+        if not filepath or not filepath.exists():
             return jsonify({"success": False, "message": "文件不存在"}), 404
         try:
             filepath.unlink()

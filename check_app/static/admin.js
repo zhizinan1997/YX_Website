@@ -158,13 +158,12 @@
     return Boolean(turnstilePublicConfig.enabled && turnstilePublicConfig.site_key);
   }
 
-  function setLoginActionState(disabled) {
+  function setSendCodeState(disabled) {
     $('sendCodeBtn').disabled = Boolean(disabled);
-    $('verifyCodeBtn').disabled = Boolean(disabled);
   }
 
   function updateTurnstileActionState() {
-    setLoginActionState(turnstileRequired() && !turnstileToken);
+    setSendCodeState(turnstileRequired() && !turnstileToken);
   }
 
   function setTurnstileError(message) {
@@ -252,18 +251,18 @@
       turnstileWidgetId = null;
       if (wrap) wrap.classList.add('hidden');
       setTurnstileError('');
-      setLoginActionState(false);
+      setSendCodeState(false);
       return;
     }
     if (wrap) wrap.classList.remove('hidden');
-    setLoginActionState(true);
+    setSendCodeState(true);
     try {
       await ensureTurnstileScriptLoaded();
       renderLoginTurnstile();
       resetLoginTurnstile('请先完成人机验证');
     } catch (_) {
       setTurnstileError('人机验证暂时无法加载，请稍后重试');
-      setLoginActionState(true);
+      setSendCodeState(true);
     }
   }
 
@@ -336,14 +335,12 @@
 
   async function verifyCode() {
     $('loginMessage').textContent = '';
-    if (!ensureTurnstileReady()) return;
     const email = $('loginEmail').value.trim();
     const code = $('loginCode').value.trim();
     const data = await api('/api/auth/verify-code', {
       method: 'POST',
-      body: JSON.stringify(withTurnstileToken({ email, code }))
+      body: JSON.stringify({ email, code })
     });
-    resetLoginTurnstile('');
     showAdmin(email);
     await refreshAdmin();
     return data;
@@ -591,7 +588,6 @@
     $('loginMessage').textContent = error.message;
   }));
   $('verifyCodeBtn').addEventListener('click', () => verifyCode().catch((error) => {
-    resetLoginTurnstile('');
     $('loginMessage').style.color = '#c84658';
     $('loginMessage').textContent = error.message;
   }));

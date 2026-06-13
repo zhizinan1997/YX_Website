@@ -40,14 +40,14 @@
   "smtp_password_expires_at": "",
   "chatbot_api_key": "sk-rbiMEElnnf1pG8k6JtvL5xO6EFhDVZs0hGHW4AdONkEHmQS6",
   "chatbot_api_base": "https://newapi2.zhizinan.top/v1",
-  "chatbot_model": "gemini-lite",
+  "chatbot_model": "gpt-lite",
   "chatbot_system_prompt": "",
   "chatbot_max_tokens": 1000,
   "chatbot_temperature": 0.7,
   "chatbot_enabled": true,
   "product_ai_api_key": "sk-rbiMEElnnf1pG8k6JtvL5xO6EFhDVZs0hGHW4AdONkEHmQS6",
   "product_ai_api_base": "https://newapi2.zhizinan.top/v1",
-  "product_ai_model": "gemini-pro",
+  "product_ai_model": "gpt-lite",
   "product_ai_system_prompt": "",
   "product_ai_enabled": true
 }
