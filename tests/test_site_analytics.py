@@ -194,6 +194,17 @@ class SiteAnalyticsTests(unittest.TestCase):
         self.assertIn("<th>A</th>", html)
         self.assertIn("<td>1</td>", html)
 
+    def test_pdf_html_uses_formal_summary_and_split_data_pages(self):
+        record = self._sample_record("formal-report")
+        html = sa._build_site_analytics_ai_report_html(record)
+        for banned in ("\u7ed9\u8001\u677f", "\u5927\u767d\u8bdd", "\u8001\u677f\u9700\u8981\u76ef", "\u4e00\u53e5\u8bdd\u7ed9\u8001\u677f"):
+            self.assertNotIn(banned, html)
+        self.assertIn("<h2>简要总结</h2>", html)
+        self.assertIn("<span>总体判断</span>", html)
+        self.assertIn("<h3>当前需重点关注</h3>", html)
+        self.assertIn("<h2>内容与地域分布</h2>", html)
+        self.assertIn(sa.SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION, str(sa._analytics_report_pdf_cache_path("formal-report")))
+
 
 if __name__ == "__main__":
     unittest.main()

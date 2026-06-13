@@ -105,6 +105,7 @@ SITE_ANALYTICS_AI_JOB_LOCK_TTL_SECONDS = 20 * 60
 SITE_ANALYTICS_AI_PDF_LOCK_TTL_SECONDS = 3 * 60
 SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS = 2200
 SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE = 0.2
+SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION = 'v20260613'
 SITE_ANALYTICS_ALLOWED_EVENT_TYPES = {'pageview', 'event', 'session_end'}
 SITE_ANALYTICS_CONVERSION_EVENTS = {
     'contact_submit',
@@ -1450,7 +1451,24 @@ def _analytics_report_file_path(report_id: str) -> Path:
 
 def _analytics_report_pdf_cache_path(report_id: str) -> Path:
     safe_id = _analytics_report_safe_id(report_id)
-    return SITE_ANALYTICS_AI_REPORTS_PDF_DIR / f'{safe_id}.pdf'
+    return SITE_ANALYTICS_AI_REPORTS_PDF_DIR / f'{safe_id}-{SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION}.pdf'
+
+
+def _analytics_report_pdf_cache_paths(report_id: str):
+    safe_id = _analytics_report_safe_id(report_id)
+    if not safe_id:
+        return []
+    paths = [_analytics_report_pdf_cache_path(safe_id)]
+    legacy_path = SITE_ANALYTICS_AI_REPORTS_PDF_DIR / f'{safe_id}.pdf'
+    if legacy_path not in paths:
+        paths.append(legacy_path)
+    try:
+        for path in SITE_ANALYTICS_AI_REPORTS_PDF_DIR.glob(f'{safe_id}-v*.pdf'):
+            if path not in paths:
+                paths.append(path)
+    except Exception:
+        pass
+    return paths
 
 
 def _analytics_report_index_item(record):
@@ -1537,7 +1555,7 @@ def _analytics_prune_report_store_locked(rows):
         report_id = _analytics_report_safe_id(item.get('id'))
         if not report_id:
             continue
-        for path in (_analytics_report_file_path(report_id), _analytics_report_pdf_cache_path(report_id)):
+        for path in [_analytics_report_file_path(report_id), *_analytics_report_pdf_cache_paths(report_id)]:
             try:
                 path.unlink()
             except FileNotFoundError:
@@ -1711,7 +1729,7 @@ def _delete_site_analytics_ai_report_record(report_id: str) -> bool:
             item for item in rows
             if _analytics_report_safe_id(item.get('id')) != safe_id
         ]
-        for path in (_analytics_report_file_path(safe_id), _analytics_report_pdf_cache_path(safe_id)):
+        for path in [_analytics_report_file_path(safe_id), *_analytics_report_pdf_cache_paths(safe_id)]:
             try:
                 path.unlink()
             except FileNotFoundError:
@@ -2273,50 +2291,51 @@ def _analytics_build_plain_report_interpretation(record, detail=None):
     top_event = events[0] if events else {}
     event_name = _analytics_plain_event_name(top_event.get('name'))
     event_count = _analytics_plain_int(top_event.get('count'))
+    duration_text = _analytics_plain_duration(duration)
 
     if visitors <= 0 or pageviews <= 0:
-        headline = '这段时间网站基本没什么有效访问，老板可以先把重点放在推广有没有做、统计代码有没有正常工作。'
+        headline = '当前周期网站有效访问偏少，建议优先核查推广动作是否持续，以及统计代码是否正常工作。'
     elif conversions <= 0:
-        headline = '这段时间网站有人看，但还没有看到明确咨询线索；现在最要紧的是把看内容的人引到产品、方案和联系入口。'
+        headline = '当前周期网站已形成一定访问规模，但尚未记录明确咨询线索；下一步应加强从内容浏览到产品、方案与联系入口的转化引导。'
     else:
-        headline = f'这段时间网站不只是有人看，还产生了 {_analytics_plain_number(conversions)} 次可能有价值的咨询或转化动作，可以继续放大有效内容。'
+        headline = f'当前周期网站访问与转化均有表现，共记录 {_analytics_plain_number(conversions)} 次潜在咨询或转化动作，建议继续放大有效内容与高意向入口。'
 
     cards = [
         {
-            'title': '有多少人来过',
+            'title': '访客规模',
             'value': f'{_analytics_plain_number(visitors)} 人',
             'note': (
-                f'这些人一共打开了 {_analytics_plain_number(pageviews)} 次页面，形成了 {_analytics_plain_number(sessions)} 次访问。'
+                f'本周期共记录 {_analytics_plain_number(pageviews)} 次页面浏览，形成 {_analytics_plain_number(sessions)} 次访问会话。'
                 f'{_analytics_plain_change_text(visitors_metric)}'
             ),
         },
         {
-            'title': '看得深不深',
-            'value': _analytics_plain_duration(duration),
-            'note': f'平均每次访问大概停留这么久；同时约 {bounce_rate:.1f}% 的访问看完一个页面就走了，需要继续把下一步入口做明显。',
+            'title': '访问深度',
+            'value': duration_text,
+            'note': f'平均每次访问停留约 {duration_text}；跳出率为 {bounce_rate:.1f}%，需要继续强化页面内的下一步行动入口。',
         },
         {
-            'title': '有没有留下线索',
+            'title': '线索转化',
             'value': f'{_analytics_plain_number(conversions)} 次',
-            'note': '这里指表单、电话、邮箱、资料下载等能代表客户意向的动作；如果是 0，就说明流量还没有变成销售线索。',
+            'note': '该指标统计表单、电话、邮箱、资料下载等能够代表客户意向的关键动作，用于评估访问流量是否转化为可跟进线索。',
         },
         {
-            'title': '最受关注内容',
+            'title': '重点内容',
             'value': top_page['label'],
-            'note': f'这个页面被打开了 {_analytics_plain_number(top_page["views"])} 次，适合在页面里加产品方案、咨询按钮和联系方式。',
+            'note': f'该页面被打开 {_analytics_plain_number(top_page["views"])} 次，适合进一步补充产品方案、咨询按钮和联系方式。',
         },
     ]
 
     points = [
-        f'简单说，这段时间大概有 {_analytics_plain_number(visitors)} 位不同访客来过网站，合计看了 {_analytics_plain_number(pageviews)} 次页面。',
-        f'访问最高的一天是 {peak_day["label"]}，当天页面被打开 {_analytics_plain_number(peak_day["views"])} 次；整个周期里有 {peak_day["active_days"]}/{peak_day["total_days"]} 天有访问记录。',
-        f'来访主要来自“{source_name}”，这类访问有 {_analytics_plain_number(source_sessions)} 次；如果来源经常识别不出来，后续要给推广链接加标记。',
-        f'用户最常见的动作是“{event_name}”，发生了 {_analytics_plain_number(event_count)} 次；如果点击咨询按钮很少，说明页面还没有把兴趣变成行动。',
+        f'本周期共有 {_analytics_plain_number(visitors)} 位独立访客访问网站，合计产生 {_analytics_plain_number(pageviews)} 次页面浏览。',
+        f'访问峰值出现在 {peak_day["label"]}，当天页面浏览量为 {_analytics_plain_number(peak_day["views"])} 次；整个周期内 {peak_day["active_days"]}/{peak_day["total_days"]} 天有访问记录。',
+        f'主要来源为“{source_name}”，对应 {_analytics_plain_number(source_sessions)} 次访问；如来源长期无法识别，建议为推广链接补充追踪参数。',
+        f'最高频行为事件为“{event_name}”，共发生 {_analytics_plain_number(event_count)} 次；如咨询类点击偏少，需要增强页面行动引导。',
     ]
 
     actions = [
         '把访问最多的页面当成重点入口，在页面中加醒目的“获取方案 / 联系技术工程师 / 下载资料”。',
-        '检查电话、表单、邮箱、微信复制、资料下载这些动作有没有被统计到，避免老板看到“0线索”但其实后台没记上。',
+        '检查电话、表单、邮箱、微信复制、资料下载等关键动作是否已纳入统计，避免因转化记录缺失造成经营判断偏差。',
         '如果热门内容多是新闻，就要在新闻里嵌入产品和解决方案入口，把读文章的人带到能产生商机的页面。',
     ]
 
@@ -2346,13 +2365,13 @@ def _analytics_plain_interpretation_html(plain):
     actions_html = ''.join(f'<li>{html.escape(str(item or ""))}</li>' for item in actions)
     return (
         '<div class="plain-hero">'
-        '<span>一句话给老板</span>'
+        '<span>总体判断</span>'
         f'<p>{html.escape(str(safe_plain.get("headline") or ""))}</p>'
         '</div>'
         f'<div class="plain-card-grid">{cards_html}</div>'
         '<div class="plain-two-col">'
-        f'<div class="plain-block"><h3>这份数据到底说明什么</h3><ol>{points_html}</ol></div>'
-        f'<div class="plain-block action"><h3>老板需要盯的事</h3><ol>{actions_html}</ol></div>'
+        f'<div class="plain-block"><h3>核心观察</h3><ol>{points_html}</ol></div>'
+        f'<div class="plain-block action"><h3>当前需重点关注</h3><ol>{actions_html}</ol></div>'
         '</div>'
     )
 
@@ -2443,7 +2462,7 @@ body {
 }
 .report-page {
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
   margin: 0 auto;
   padding: 18mm 17mm 16mm;
   background: #fff;
@@ -2566,17 +2585,21 @@ pre { white-space: pre-wrap; background: #0f172a; color: #e2e8f0; border-radius:
   <div class="footer"><span>MetaChip Website Analytics</span><span>Confidential · Internal Report</span></div>
 </section>
 <section class="report-page">
-  <div class="section-head"><h2>本报告解读</h2><span>给老板看的大白话版本</span></div>
+  <div class="section-head"><h2>简要总结</h2><span>面向经营决策的关键解读</span></div>
   {plain_html}
-  <div class="footer"><span>MetaChip Website Analytics</span><span>Plain Language Summary</span></div>
+  <div class="footer"><span>MetaChip Website Analytics</span><span>Executive Summary</span></div>
 </section>
 <section class="report-page">
-  <div class="section-head"><h2>数据概览</h2><span>趋势、渠道、设备与热门内容</span></div>
+  <div class="section-head"><h2>数据概览</h2><span>趋势、渠道与设备</span></div>
   <div class="panel"><h3>PV 趋势</h3>{trend_html}</div>
   <div class="panel-grid">
     <div class="panel"><h3>流量来源</h3>{source_html}</div>
     <div class="panel"><h3>设备类型</h3>{device_html}</div>
   </div>
+  <div class="footer"><span>MetaChip Website Analytics</span><span>Data Overview</span></div>
+</section>
+<section class="report-page">
+  <div class="section-head"><h2>内容与地域分布</h2><span>热门页面、行为事件与地域表现</span></div>
   <div class="panel-grid">
     <div class="panel"><h3>热门页面</h3>{pages_html}</div>
     <div class="panel"><h3>行为事件</h3>{events_html}</div>
@@ -2898,8 +2921,8 @@ def _generate_site_analytics_ai_report_pdf_reportlab(record):
 
     plain = _analytics_build_plain_report_interpretation(record)
     story.append(PageBreak())
-    story.append(Paragraph('本报告解读', styles['ReportTitle']))
-    story.append(Paragraph('给老板看的大白话版本', styles['ReportMeta']))
+    story.append(Paragraph('简要总结', styles['ReportTitle']))
+    story.append(Paragraph('面向经营决策的关键解读', styles['ReportMeta']))
     story.append(Paragraph(_analytics_inline_markdown_to_reportlab(plain.get('headline')), styles['ReportPlainHero']))
 
     plain_cards = []
@@ -2934,14 +2957,14 @@ def _generate_site_analytics_ai_report_pdf_reportlab(record):
         ]))
         story.append(KeepTogether([plain_table, Spacer(1, 8)]))
 
-    story.append(Paragraph('这份数据到底说明什么', styles['ReportH2']))
+    story.append(Paragraph('核心观察', styles['ReportH2']))
     plain_points = [
         ListItem(Paragraph(_analytics_inline_markdown_to_reportlab(item), styles['ReportBody']), leftIndent=10)
         for item in (plain.get('points') if isinstance(plain.get('points'), list) else [])
     ]
     if plain_points:
         story.append(ListFlowable(plain_points, bulletType='1', leftIndent=14, bulletFontName=base_font))
-    story.append(Paragraph('老板需要盯的事', styles['ReportH2']))
+    story.append(Paragraph('当前需重点关注', styles['ReportH2']))
     plain_actions = [
         ListItem(Paragraph(_analytics_inline_markdown_to_reportlab(item), styles['ReportBody']), leftIndent=10)
         for item in (plain.get('actions') if isinstance(plain.get('actions'), list) else [])
@@ -3206,6 +3229,7 @@ SITE_ANALYTICS_AI_SYSTEM_PROMPT = """你是企业官网运营数据分析师，�
 4. 输出结构：标题、核心结论、关键指标与环比、流量与渠道分析、内容与行为分析、地域/设备洞察、风险与异常、下阶段行动建议。
 5. 行动建议要具体，可执行，适合 B2B 传感器官网运营。
 6. 使用中文，专业、清晰，避免营销套话。
+7. 标题与小标题使用正式书面语，例如“简要总结”“当前需重点关注”“核心观察”；不要使用面向个人称呼或过度口语化、不适合正式汇报的表述。
 """
 
 
