@@ -55,6 +55,7 @@ import hashlib
 import html
 import io
 import json
+import logging
 import os
 import re
 import shutil
@@ -67,13 +68,21 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
-from flask import jsonify, request, send_file
+from flask import current_app, jsonify, request, send_file, session
 
 SITE_ANALYTICS_LOG_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_events.jsonl'
 SITE_ANALYTICS_AI_REPORTS_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_reports.jsonl'
+SITE_ANALYTICS_AI_REPORTS_DIR = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_reports'
+SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = SITE_ANALYTICS_AI_REPORTS_DIR / 'index.json'
+SITE_ANALYTICS_AI_REPORTS_PDF_DIR = SITE_ANALYTICS_AI_REPORTS_DIR / 'pdf_cache'
+SITE_ANALYTICS_AI_JOBS_DIR = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_jobs'
+SITE_ANALYTICS_AI_GENERATION_LOCK_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_report_generation.lock'
+SITE_ANALYTICS_AI_PDF_LOCK_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_report_pdf.lock'
 SITE_ANALYTICS_LOCK = threading.Lock()
-SITE_ANALYTICS_AI_REPORTS_LOCK = threading.Lock()
+SITE_ANALYTICS_AI_REPORTS_LOCK = threading.RLock()
+SITE_ANALYTICS_AI_JOBS_LOCK = threading.Lock()
 BEIJING_TZ = timezone(timedelta(hours=8))
+LOGGER = logging.getLogger(__name__)
 
 
 def _fallback_resolve_ip_location(_ip: str) -> str:
@@ -91,6 +100,11 @@ SITE_ANALYTICS_MAX_BATCH_SIZE = 25
 SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH = 80
 SITE_ANALYTICS_MAX_TEXT_LENGTH = 300
 SITE_ANALYTICS_MAX_PATH_LENGTH = 260
+SITE_ANALYTICS_AI_REPORTS_PER_PERIOD_LIMIT = 50
+SITE_ANALYTICS_AI_JOB_LOCK_TTL_SECONDS = 20 * 60
+SITE_ANALYTICS_AI_PDF_LOCK_TTL_SECONDS = 3 * 60
+SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS = 2200
+SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE = 0.2
 SITE_ANALYTICS_ALLOWED_EVENT_TYPES = {'pageview', 'event', 'session_end'}
 SITE_ANALYTICS_CONVERSION_EVENTS = {
     'contact_submit',
@@ -1319,6 +1333,295 @@ def _analytics_report_filename_part(value: str, fallback='report') -> str:
     return text[:80] or fallback
 
 
+class SiteAnalyticsBusyError(RuntimeError):
+    pass
+
+
+class _AnalyticsFileLock:
+    def __init__(self, path: Path, *, ttl_seconds=600, metadata=None):
+        self.path = Path(path)
+        self.ttl_seconds = max(30, int(ttl_seconds or 600))
+        self.metadata = metadata if isinstance(metadata, dict) else {}
+        self._fd = None
+
+    def acquire(self) -> bool:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            **self.metadata,
+            'pid': os.getpid(),
+            'created_ts': int(time.time()),
+        }
+        raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        for _attempt in range(2):
+            try:
+                self._fd = os.open(str(self.path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(self._fd, raw)
+                return True
+            except FileExistsError:
+                if self._is_stale():
+                    try:
+                        self.path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    except Exception:
+                        return False
+                    continue
+                return False
+        return False
+
+    def _is_stale(self) -> bool:
+        try:
+            return (time.time() - self.path.stat().st_mtime) > self.ttl_seconds
+        except FileNotFoundError:
+            return True
+        except Exception:
+            return False
+
+    def read_metadata(self):
+        try:
+            data = json.loads(self.path.read_text(encoding='utf-8'))
+        except Exception:
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def release(self):
+        if self._fd is not None:
+            try:
+                os.close(self._fd)
+            except Exception:
+                pass
+            self._fd = None
+        try:
+            self.path.unlink()
+        except FileNotFoundError:
+            pass
+        except Exception:
+            LOGGER.warning('Failed to release site analytics lock %s', self.path, exc_info=True)
+
+
+def _analytics_read_json_file(path: Path, default=None):
+    try:
+        data = json.loads(Path(path).read_text(encoding='utf-8'))
+    except Exception:
+        return default
+    return data
+
+
+def _analytics_write_json_file(path: Path, data):
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = target.with_name(f'.{target.name}.{uuid.uuid4().hex}.tmp')
+    try:
+        temp_path.write_text(
+            json.dumps(data, ensure_ascii=False, separators=(',', ':')),
+            encoding='utf-8',
+        )
+        os.replace(str(temp_path), str(target))
+    finally:
+        try:
+            temp_path.unlink()
+        except FileNotFoundError:
+            pass
+        except Exception:
+            pass
+
+
+def _current_admin_has_site_reports_access() -> bool:
+    if not bool(session.get('admin_logged_in')):
+        return False
+    if bool(session.get('admin_is_super_admin', False)):
+        return True
+    raw_permissions = session.get('admin_permissions', [])
+    if not isinstance(raw_permissions, (list, tuple, set)):
+        return False
+    return any(str(item or '').strip() == 'site-reports' for item in raw_permissions)
+
+
+def _require_site_reports_admin_api():
+    if _current_admin_has_site_reports_access():
+        return None
+    return jsonify({'success': False, 'message': '当前账号没有网站数据权限'}), 403
+
+
+def _analytics_report_file_path(report_id: str) -> Path:
+    safe_id = _analytics_report_safe_id(report_id)
+    return SITE_ANALYTICS_AI_REPORTS_DIR / f'{safe_id}.json'
+
+
+def _analytics_report_pdf_cache_path(report_id: str) -> Path:
+    safe_id = _analytics_report_safe_id(report_id)
+    return SITE_ANALYTICS_AI_REPORTS_PDF_DIR / f'{safe_id}.pdf'
+
+
+def _analytics_report_index_item(record):
+    safe_record = record if isinstance(record, dict) else {}
+    return {
+        'id': _analytics_report_safe_id(safe_record.get('id')),
+        'period': _analytics_clean_text(safe_record.get('period'), max_length=20),
+        'period_label': _analytics_clean_text(safe_record.get('period_label'), max_length=20),
+        'title': _analytics_ai_report_title(safe_record),
+        'generated_at': _analytics_clean_text(safe_record.get('generated_at'), max_length=40),
+        'created_ts': _analytics_report_generated_sort_value(safe_record) or int(time.time()),
+        'model': _analytics_clean_text(safe_record.get('model'), max_length=80),
+        'anchor_date': _analytics_clean_text(safe_record.get('anchor_date'), max_length=10),
+        'current_range': safe_record.get('current_range') if isinstance(safe_record.get('current_range'), dict) else {},
+        'previous_range': safe_record.get('previous_range') if isinstance(safe_record.get('previous_range'), dict) else {},
+        'comparison': safe_record.get('comparison') if isinstance(safe_record.get('comparison'), dict) else {},
+        'current_summary': safe_record.get('current_summary') if isinstance(safe_record.get('current_summary'), dict) else {},
+    }
+
+
+def _analytics_read_report_index():
+    data = _analytics_read_json_file(SITE_ANALYTICS_AI_REPORTS_INDEX_FILE, default={})
+    rows = data.get('reports') if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return []
+    output = []
+    seen = set()
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        report_id = _analytics_report_safe_id(item.get('id'))
+        if not report_id or report_id in seen:
+            continue
+        next_item = dict(item)
+        next_item['id'] = report_id
+        output.append(next_item)
+        seen.add(report_id)
+    output.sort(key=_analytics_report_generated_sort_value, reverse=True)
+    return output
+
+
+def _analytics_write_report_index(rows):
+    safe_rows = []
+    seen = set()
+    for item in rows if isinstance(rows, list) else []:
+        if not isinstance(item, dict):
+            continue
+        report_id = _analytics_report_safe_id(item.get('id'))
+        if not report_id or report_id in seen:
+            continue
+        next_item = dict(item)
+        next_item['id'] = report_id
+        safe_rows.append(next_item)
+        seen.add(report_id)
+    safe_rows.sort(key=_analytics_report_generated_sort_value, reverse=True)
+    _analytics_write_json_file(
+        SITE_ANALYTICS_AI_REPORTS_INDEX_FILE,
+        {'version': 1, 'reports': safe_rows, 'updated_ts': int(time.time())},
+    )
+
+
+def _analytics_ai_reports_per_period_limit():
+    raw = os.environ.get('SITE_ANALYTICS_AI_REPORTS_PER_PERIOD_LIMIT')
+    try:
+        value = int(raw if raw is not None else SITE_ANALYTICS_AI_REPORTS_PER_PERIOD_LIMIT)
+    except Exception:
+        value = SITE_ANALYTICS_AI_REPORTS_PER_PERIOD_LIMIT
+    return max(1, min(value, 500))
+
+
+def _analytics_prune_report_store_locked(rows):
+    limit = _analytics_ai_reports_per_period_limit()
+    keep = []
+    remove = []
+    grouped = {}
+    for item in rows if isinstance(rows, list) else []:
+        period = _analytics_clean_text(item.get('period'), max_length=20).lower() or 'unknown'
+        grouped.setdefault(period, []).append(item)
+    for period_rows in grouped.values():
+        period_rows.sort(key=_analytics_report_generated_sort_value, reverse=True)
+        keep.extend(period_rows[:limit])
+        remove.extend(period_rows[limit:])
+    for item in remove:
+        report_id = _analytics_report_safe_id(item.get('id'))
+        if not report_id:
+            continue
+        for path in (_analytics_report_file_path(report_id), _analytics_report_pdf_cache_path(report_id)):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+            except Exception:
+                LOGGER.warning('Failed to prune site analytics report file %s', path, exc_info=True)
+    keep.sort(key=_analytics_report_generated_sort_value, reverse=True)
+    return keep
+
+
+def _analytics_rebuild_report_index_locked():
+    SITE_ANALYTICS_AI_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for path in SITE_ANALYTICS_AI_REPORTS_DIR.glob('*.json'):
+        if path.name == SITE_ANALYTICS_AI_REPORTS_INDEX_FILE.name:
+            continue
+        record = _analytics_read_json_file(path, default=None)
+        if isinstance(record, dict):
+            report_id = _analytics_report_safe_id(record.get('id'))
+            if report_id:
+                record['id'] = report_id
+                rows.append(_analytics_report_index_item(record))
+    rows = _analytics_prune_report_store_locked(rows)
+    _analytics_write_report_index(rows)
+    return rows
+
+
+def _analytics_import_legacy_report_jsonl_locked(rows):
+    marker = SITE_ANALYTICS_AI_REPORTS_DIR / '.jsonl_imported'
+    if marker.exists() or not SITE_ANALYTICS_AI_REPORTS_FILE.exists():
+        return rows
+    try:
+        lines = SITE_ANALYTICS_AI_REPORTS_FILE.read_text(encoding='utf-8').splitlines()
+    except Exception:
+        lines = []
+    existing = {_analytics_report_safe_id(item.get('id')) for item in rows if isinstance(item, dict)}
+    imported = []
+    seen_legacy = set()
+    for line in reversed(lines):
+        row = str(line or '').strip()
+        if not row:
+            continue
+        try:
+            record = json.loads(row)
+        except Exception:
+            continue
+        if not isinstance(record, dict):
+            continue
+        report_id = _analytics_report_safe_id(record.get('id'))
+        if not report_id or report_id in existing or report_id in seen_legacy:
+            continue
+        record['id'] = report_id
+        record['created_ts'] = _analytics_report_generated_sort_value(record) or int(time.time())
+        try:
+            _analytics_write_json_file(_analytics_report_file_path(report_id), record)
+            imported.append(_analytics_report_index_item(record))
+            seen_legacy.add(report_id)
+        except Exception:
+            LOGGER.warning('Failed to import legacy site analytics AI report %s', report_id, exc_info=True)
+    if imported:
+        rows = imported + rows
+        rows.sort(key=_analytics_report_generated_sort_value, reverse=True)
+        rows = _analytics_prune_report_store_locked(rows)
+        _analytics_write_report_index(rows)
+    try:
+        marker.write_text(str(int(time.time())), encoding='utf-8')
+    except Exception:
+        pass
+    return rows
+
+
+def _ensure_site_analytics_ai_report_store():
+    SITE_ANALYTICS_AI_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    SITE_ANALYTICS_AI_REPORTS_PDF_DIR.mkdir(parents=True, exist_ok=True)
+    with SITE_ANALYTICS_AI_REPORTS_LOCK:
+        rows = _analytics_read_report_index()
+        if not rows and any(SITE_ANALYTICS_AI_REPORTS_DIR.glob('*.json')):
+            rows = _analytics_rebuild_report_index_locked()
+        rows = _analytics_import_legacy_report_jsonl_locked(rows)
+        if not SITE_ANALYTICS_AI_REPORTS_INDEX_FILE.exists():
+            _analytics_write_report_index(rows)
+        return rows
+
+
 def _analytics_ai_report_title(record) -> str:
     if not isinstance(record, dict):
         return 'AI网站运营报告'
@@ -1364,51 +1667,59 @@ def _append_site_analytics_ai_report_record(record):
     safe_record = dict(record)
     safe_record['id'] = _analytics_report_safe_id(safe_record.get('id')) or uuid.uuid4().hex
     safe_record['created_ts'] = _analytics_report_generated_sort_value(safe_record) or int(time.time())
-    SITE_ANALYTICS_AI_REPORTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SITE_ANALYTICS_AI_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    SITE_ANALYTICS_AI_REPORTS_PDF_DIR.mkdir(parents=True, exist_ok=True)
     with SITE_ANALYTICS_AI_REPORTS_LOCK:
-        with SITE_ANALYTICS_AI_REPORTS_FILE.open('a', encoding='utf-8') as fp:
-            fp.write(json.dumps(safe_record, ensure_ascii=False, separators=(',', ':')) + '\n')
+        rows = _ensure_site_analytics_ai_report_store()
+        _analytics_write_json_file(_analytics_report_file_path(safe_record['id']), safe_record)
+        index_item = _analytics_report_index_item(safe_record)
+        rows = [index_item] + [
+            item for item in rows
+            if _analytics_report_safe_id(item.get('id')) != safe_record['id']
+        ]
+        rows = _analytics_prune_report_store_locked(rows)
+        _analytics_write_report_index(rows)
     return safe_record
 
 
 def _iter_site_analytics_ai_report_records():
-    if not SITE_ANALYTICS_AI_REPORTS_FILE.exists():
-        return []
-    with SITE_ANALYTICS_AI_REPORTS_LOCK:
-        try:
-            lines = SITE_ANALYTICS_AI_REPORTS_FILE.read_text(encoding='utf-8').splitlines()
-        except Exception:
-            return []
-    records = []
-    seen = set()
-    for line in reversed(lines):
-        row = str(line or '').strip()
-        if not row:
-            continue
-        try:
-            obj = json.loads(row)
-        except Exception:
-            continue
-        if not isinstance(obj, dict):
-            continue
-        report_id = _analytics_report_safe_id(obj.get('id'))
-        if not report_id or report_id in seen:
-            continue
-        obj['id'] = report_id
-        seen.add(report_id)
-        records.append(obj)
-    records.sort(key=_analytics_report_generated_sort_value, reverse=True)
-    return records
+    return _ensure_site_analytics_ai_report_store()
 
 
 def _get_site_analytics_ai_report_record(report_id: str):
     safe_id = _analytics_report_safe_id(report_id)
     if not safe_id:
         return None
-    for record in _iter_site_analytics_ai_report_records():
-        if record.get('id') == safe_id:
-            return record
-    return None
+    _ensure_site_analytics_ai_report_store()
+    record = _analytics_read_json_file(_analytics_report_file_path(safe_id), default=None)
+    if not isinstance(record, dict):
+        return None
+    record['id'] = safe_id
+    return record
+
+
+def _delete_site_analytics_ai_report_record(report_id: str) -> bool:
+    safe_id = _analytics_report_safe_id(report_id)
+    if not safe_id:
+        return False
+    with SITE_ANALYTICS_AI_REPORTS_LOCK:
+        rows = _ensure_site_analytics_ai_report_store()
+        exists = any(_analytics_report_safe_id(item.get('id')) == safe_id for item in rows)
+        if not exists and not _analytics_report_file_path(safe_id).exists():
+            return False
+        next_rows = [
+            item for item in rows
+            if _analytics_report_safe_id(item.get('id')) != safe_id
+        ]
+        for path in (_analytics_report_file_path(safe_id), _analytics_report_pdf_cache_path(safe_id)):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+            except Exception:
+                LOGGER.warning('Failed to delete site analytics AI report file %s', path, exc_info=True)
+        _analytics_write_report_index(next_rows)
+    return True
 
 
 def _build_site_analytics_ai_report_record(report_text: str, context, model: str, generated_at: str):
@@ -2326,7 +2637,7 @@ def _generate_site_analytics_ai_report_pdf_chromium(record):
             '--no-first-run',
             '--allow-file-access-from-files',
             '--run-all-compositor-stages-before-draw',
-            '--virtual-time-budget=1000',
+            '--virtual-time-budget=5000',
             f'--user-data-dir={profile_path}',
             f'--print-to-pdf={pdf_path}',
             '--print-to-pdf-no-header',
@@ -2361,10 +2672,50 @@ def _generate_site_analytics_ai_report_pdf_chromium(record):
 
 
 def _generate_site_analytics_ai_report_pdf(record):
+    safe_record = record if isinstance(record, dict) else {}
+    report_id = _analytics_report_safe_id(safe_record.get('id'))
+    cache_path = _analytics_report_pdf_cache_path(report_id) if report_id else None
+    if cache_path and cache_path.exists() and cache_path.stat().st_size > 0:
+        buffer = io.BytesIO(cache_path.read_bytes())
+        buffer.seek(0)
+        return buffer
+
+    lock = _AnalyticsFileLock(
+        SITE_ANALYTICS_AI_PDF_LOCK_FILE,
+        ttl_seconds=SITE_ANALYTICS_AI_PDF_LOCK_TTL_SECONDS,
+        metadata={'type': 'site-report-pdf', 'report_id': report_id},
+    )
+    if not lock.acquire():
+        raise SiteAnalyticsBusyError('PDF 正在生成中，请稍后再试。')
     try:
-        return _generate_site_analytics_ai_report_pdf_chromium(record)
-    except Exception:
-        return _generate_site_analytics_ai_report_pdf_reportlab(record)
+        if cache_path and cache_path.exists() and cache_path.stat().st_size > 0:
+            buffer = io.BytesIO(cache_path.read_bytes())
+            buffer.seek(0)
+            return buffer
+        try:
+            pdf_buffer = _generate_site_analytics_ai_report_pdf_chromium(record)
+        except Exception as exc:
+            LOGGER.warning('Chromium site analytics PDF generation failed; falling back to ReportLab.', exc_info=True)
+            pdf_buffer = _generate_site_analytics_ai_report_pdf_reportlab(record)
+        pdf_bytes = pdf_buffer.getvalue()
+        if cache_path and pdf_bytes:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_path = cache_path.with_name(f'.{cache_path.name}.{uuid.uuid4().hex}.tmp')
+            try:
+                temp_path.write_bytes(pdf_bytes)
+                os.replace(str(temp_path), str(cache_path))
+            finally:
+                try:
+                    temp_path.unlink()
+                except FileNotFoundError:
+                    pass
+                except Exception:
+                    pass
+        output = io.BytesIO(pdf_bytes)
+        output.seek(0)
+        return output
+    finally:
+        lock.release()
 
 
 def _generate_site_analytics_ai_report_pdf_reportlab(record):
@@ -2392,8 +2743,9 @@ def _generate_site_analytics_ai_report_pdf_reportlab(record):
 
     try:
         pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
-    except Exception:
-        pass
+    except Exception as exc:
+        LOGGER.exception('ReportLab Chinese font registration failed for site analytics PDF.')
+        raise RuntimeError('PDF 中文字体注册失败，无法可靠导出中文报告。请检查 reportlab 与中文字体环境。') from exc
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -2727,359 +3079,6 @@ def _generate_site_analytics_ai_report_pdf_reportlab(record):
     return buffer
 
 
-def build_site_analytics_report(range_days=30):
-    now_local = datetime.now(BEIJING_TZ)
-    range_raw = str(range_days or '').strip().lower()
-    is_last_24h = range_raw in {'24h', 'last24h', '24hour', '24hours'}
-
-    bucket_keys = []
-    buckets = {}
-    range_days_value = 30
-    range_key = '30d'
-    range_label = '最近 30 天'
-
-    if is_last_24h:
-        range_days_value = 1
-        range_key = '24h'
-        range_label = '最近24小时'
-        current_hour = now_local.replace(minute=0, second=0, microsecond=0)
-        start_hour = current_hour - timedelta(hours=23)
-        since_ts = int(start_hour.astimezone(timezone.utc).timestamp())
-        for idx in range(24):
-            point = start_hour + timedelta(hours=idx)
-            bucket_key = point.strftime('%Y-%m-%d %H:00')
-            bucket_keys.append(bucket_key)
-            buckets[bucket_key] = {
-                'pageviews': 0,
-                'conversions': 0,
-                'events': 0,
-                'visitors': set(),
-                'sessions': set(),
-            }
-
-        def resolve_bucket_key(ts: int) -> str:
-            dt = datetime.fromtimestamp(int(ts), tz=timezone.utc).astimezone(BEIJING_TZ)
-            return dt.strftime('%Y-%m-%d %H:00')
-
-    else:
-        try:
-            days = int(range_days)
-        except Exception:
-            days = 30
-        if days not in (7, 30, 90, 180):
-            days = 30
-        range_days_value = days
-        range_key = f'{days}d'
-        range_label = f'最近 {days} 天'
-
-        start_date = now_local.date() - timedelta(days=days - 1)
-        start_dt_local = datetime.combine(start_date, datetime.min.time(), tzinfo=BEIJING_TZ)
-        since_ts = int(start_dt_local.astimezone(timezone.utc).timestamp())
-        for idx in range(days):
-            d = start_date + timedelta(days=idx)
-            bucket_key = d.strftime('%Y-%m-%d')
-            bucket_keys.append(bucket_key)
-            buckets[bucket_key] = {
-                'pageviews': 0,
-                'conversions': 0,
-                'events': 0,
-                'visitors': set(),
-                'sessions': set(),
-            }
-
-        def resolve_bucket_key(ts: int) -> str:
-            return _analytics_day_key(ts)
-
-    sessions = {}
-    pages = {}
-    event_counter = {}
-    visitor_set = set()
-    recent_events = []
-
-    records = _iter_site_analytics_records()
-    for item in records:
-        ts = _analytics_to_int(item.get('ts'), default=0)
-        if ts < since_ts:
-            continue
-        bucket_key = resolve_bucket_key(ts)
-        if bucket_key not in buckets:
-            continue
-
-        event_type = _analytics_clean_text(item.get('event_type'), max_length=24).lower()
-        event_name = _analytics_clean_text(item.get('event_name'), max_length=SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH).lower()
-        page_path = _analytics_normalize_path(item.get('page_path') or '/')
-        page_title = _analytics_clean_text(item.get('page_title'), max_length=120)
-        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
-        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
-        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
-        province = _analytics_extract_record_province(item)
-        country = _analytics_extract_record_country(item)
-        ip_addr = _analytics_clean_text(item.get('ip'), max_length=45)
-        visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64)
-        session_id = _analytics_clean_id(item.get('session_id'), max_length=64)
-        if not visitor_id:
-            visitor_id = 'anonymous'
-        if not session_id:
-            session_id = f'anon_{visitor_id}_{_analytics_day_key(ts)}'
-
-        visitor_set.add(visitor_id)
-        buckets[bucket_key]['visitors'].add(visitor_id)
-        buckets[bucket_key]['sessions'].add(session_id)
-
-        sess = sessions.get(session_id)
-        if not sess:
-            sess = {
-                'session_id': session_id,
-                'visitor_id': visitor_id,
-                'first_ts': ts,
-                'last_ts': ts,
-                'pageviews': 0,
-                'conversions': 0,
-                'reported_duration_sec': 0,
-                'source': source,
-                'device': device,
-                'os': os_name,
-                'province': province,
-                'country': country,
-                'ip': ip_addr,
-            }
-            sessions[session_id] = sess
-        else:
-            sess['first_ts'] = min(sess['first_ts'], ts)
-            sess['last_ts'] = max(sess['last_ts'], ts)
-            if sess.get('source') in {'', 'direct', 'internal', 'unknown'} and source not in {'', 'unknown'}:
-                sess['source'] = source
-            if sess.get('device') in {'', 'unknown'} and device not in {'', 'unknown'}:
-                sess['device'] = device
-            if sess.get('os') in {'', 'unknown'} and os_name not in {'', 'unknown'}:
-                sess['os'] = os_name
-            if not sess.get('province') and province:
-                sess['province'] = province
-            if not sess.get('country') and country:
-                sess['country'] = country
-            if not sess.get('ip') and ip_addr:
-                sess['ip'] = ip_addr
-
-        if event_type == 'pageview':
-            sess['pageviews'] += 1
-            buckets[bucket_key]['pageviews'] += 1
-
-            page_stats = pages.get(page_path)
-            if not page_stats:
-                page_stats = {
-                    'path': page_path,
-                    'title': page_title,
-                    'pageviews': 0,
-                    'visitors': set(),
-                    'sessions': set(),
-                }
-                pages[page_path] = page_stats
-            page_stats['pageviews'] += 1
-            page_stats['visitors'].add(visitor_id)
-            page_stats['sessions'].add(session_id)
-            if not page_stats.get('title') and page_title:
-                page_stats['title'] = page_title
-
-            if _analytics_is_conversion_page(page_path):
-                sess['conversions'] += 1
-                buckets[bucket_key]['conversions'] += 1
-
-        elif event_type == 'event':
-            buckets[bucket_key]['events'] += 1
-            if event_name:
-                event_counter[event_name] = event_counter.get(event_name, 0) + 1
-            if _analytics_is_conversion_event(event_name):
-                sess['conversions'] += 1
-                buckets[bucket_key]['conversions'] += 1
-
-        elif event_type == 'session_end':
-            reported_duration = max(0, _analytics_to_int(item.get('session_duration_sec'), default=0))
-            sess['reported_duration_sec'] = max(sess.get('reported_duration_sec', 0), reported_duration)
-
-        event_label = event_name or event_type or 'event'
-        recent_events.append({
-            'timestamp': datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(BEIJING_TZ).strftime('%Y-%m-%d %H:%M:%S'),
-            'type': event_type or 'event',
-            'name': event_label,
-            'path': page_path,
-            'source': source or '-',
-            'device': device or '-',
-        })
-
-    recent_events = recent_events[-25:]
-
-    tracked_sessions = [item for item in sessions.values() if int(item.get('pageviews') or 0) > 0]
-    total_sessions = len(tracked_sessions)
-    total_pageviews = sum(int(item.get('pageviews') or 0) for item in tracked_sessions)
-    total_conversions = sum(int(item.get('conversions') or 0) for item in tracked_sessions)
-    conversion_sessions = sum(1 for item in tracked_sessions if int(item.get('conversions') or 0) > 0)
-    bounce_sessions = sum(1 for item in tracked_sessions if int(item.get('pageviews') or 0) <= 1)
-
-    total_duration = 0
-    for item in tracked_sessions:
-        observed_duration = max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0))
-        reported_duration = max(0, int(item.get('reported_duration_sec') or 0))
-        duration_sec = max(observed_duration, reported_duration)
-        duration_sec = min(duration_sec, 12 * 3600)
-        total_duration += duration_sec
-
-    avg_session_duration_sec = (total_duration / total_sessions) if total_sessions else 0.0
-    bounce_rate = (bounce_sessions * 100.0 / total_sessions) if total_sessions else 0.0
-    conversion_rate = (conversion_sessions * 100.0 / total_sessions) if total_sessions else 0.0
-
-    source_counter = {}
-    device_counter = {}
-    os_counter = {}
-    province_counter = {}
-    continent_counter = {}
-    country_counter = {}
-    for item in tracked_sessions:
-        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
-        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
-        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
-        province = _analytics_clean_text(item.get('province'), max_length=32)
-        country = _analytics_clean_text(item.get('country'), max_length=64)
-        source_counter[source] = source_counter.get(source, 0) + 1
-        device_counter[device] = device_counter.get(device, 0) + 1
-        os_counter[os_name] = os_counter.get(os_name, 0) + 1
-        if province:
-            province_counter[province] = province_counter.get(province, 0) + 1
-        continent_key = _analytics_resolve_continent_from_country(country)
-        if country and country != '中国' and continent_key:
-            continent_counter[continent_key] = continent_counter.get(continent_key, 0) + 1
-        if country:
-            country_counter[country] = country_counter.get(country, 0) + 1
-
-    source_rows = [
-        {
-            'source': key,
-            'sessions': value,
-            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
-        }
-        for key, value in source_counter.items()
-    ]
-    source_rows.sort(key=lambda item: item['sessions'], reverse=True)
-
-    device_rows = [
-        {
-            'device': key,
-            'sessions': value,
-            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
-        }
-        for key, value in device_counter.items()
-    ]
-    device_rows.sort(key=lambda item: item['sessions'], reverse=True)
-
-    os_rows = [
-        {
-            'os': key,
-            'sessions': value,
-            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
-        }
-        for key, value in os_counter.items()
-    ]
-    os_rows.sort(key=lambda item: item['sessions'], reverse=True)
-
-    province_rows = [
-        {
-            'province': key,
-            'sessions': value,
-            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
-        }
-        for key, value in province_counter.items()
-    ]
-    province_rows.sort(key=lambda item: item['sessions'], reverse=True)
-
-    overseas_sessions = sum(continent_counter.values())
-    continent_rows = [
-        {
-            'continent_key': key,
-            'continent': _ANALYTICS_CONTINENT_LABELS.get(key, key),
-            'sessions': value,
-            'ratio': round((value * 100.0 / overseas_sessions), 2) if overseas_sessions else 0.0,
-        }
-        for key, value in continent_counter.items()
-    ]
-    continent_rows.sort(key=lambda item: item['sessions'], reverse=True)
-
-    country_rows = [
-        {
-            'country': key,
-            'sessions': value,
-            'ratio': round((value * 100.0 / total_sessions), 2) if total_sessions else 0.0,
-        }
-        for key, value in country_counter.items()
-    ]
-    country_rows.sort(key=lambda item: item['sessions'], reverse=True)
-
-    china_map_data = [
-        {
-            'name': item['province'],
-            'value': item['sessions'],
-        }
-        for item in province_rows
-    ]
-
-    top_pages = []
-    for path_key, stats in pages.items():
-        top_pages.append({
-            'path': path_key,
-            'title': stats.get('title') or '',
-            'pageviews': int(stats.get('pageviews') or 0),
-            'unique_visitors': len(stats.get('visitors', set())),
-            'sessions': len(stats.get('sessions', set())),
-        })
-    top_pages.sort(key=lambda item: item['pageviews'], reverse=True)
-    top_pages = top_pages[:12]
-
-    top_events = [{'name': name, 'count': count} for name, count in event_counter.items()]
-    top_events.sort(key=lambda item: item['count'], reverse=True)
-    top_events = top_events[:12]
-
-    trend = []
-    for bucket_key in bucket_keys:
-        row = buckets.get(bucket_key, {})
-        trend.append({
-            'date': bucket_key,
-            'pageviews': int(row.get('pageviews') or 0),
-            'unique_visitors': len(row.get('visitors', set())),
-            'sessions': len(row.get('sessions', set())),
-            'conversions': int(row.get('conversions') or 0),
-            'events': int(row.get('events') or 0),
-        })
-
-    return {
-        'range_days': range_days_value,
-        'range_key': range_key,
-        'range_label': range_label,
-        'generated_at': datetime.now(BEIJING_TZ).isoformat(timespec='seconds'),
-        'summary': {
-            'pageviews': total_pageviews,
-            'unique_visitors': len(visitor_set),
-            'sessions': total_sessions,
-            'avg_session_duration_sec': round(avg_session_duration_sec, 2),
-            'bounce_rate': round(bounce_rate, 2),
-            'conversion_events': total_conversions,
-            'conversion_sessions': conversion_sessions,
-            'conversion_rate': round(conversion_rate, 2),
-        },
-        'source_breakdown': source_rows,
-        'device_breakdown': device_rows,
-        'os_breakdown': os_rows,
-        'province_breakdown': province_rows,
-        'continent_breakdown': continent_rows,
-        'country_breakdown': country_rows,
-        'china_map_data': china_map_data,
-        'top_pages': top_pages,
-        'top_events': top_events,
-        'trend': trend,
-        'recent_events': recent_events,
-    }
-
-
-
-
-# 路由注册入口。
 def build_site_analytics_report(range_days=30, start_date=None, end_date=None, granularity='day'):
     start_date_raw = str(start_date or '').strip()
     end_date_raw = str(end_date or '').strip()
@@ -3215,27 +3214,43 @@ def _site_report_get_ai_config():
         config = _site_report_get_config_fn() or {}
     except Exception:
         config = {}
-    api_key = (
-        str(config.get('site_report_ai_api_key') or '').strip()
-        or str(config.get('product_ai_api_key') or '').strip()
-        or str(config.get('chatbot_api_key') or '').strip()
+    groups = (
+        ('site_report', 'site_report_ai_api_key', 'site_report_ai_api_base', 'site_report_ai_model'),
+        ('product_ai', 'product_ai_api_key', 'product_ai_api_base', 'product_ai_model'),
+        ('chatbot', 'chatbot_api_key', 'chatbot_api_base', 'chatbot_model'),
     )
-    api_base = (
-        str(config.get('site_report_ai_api_base') or '').strip()
-        or str(config.get('product_ai_api_base') or '').strip()
-        or str(config.get('chatbot_api_base') or '').strip()
-        or 'https://api.openai.com/v1'
-    )
-    model = (
-        str(config.get('site_report_ai_model') or '').strip()
-        or str(config.get('product_ai_model') or '').strip()
-        or str(config.get('chatbot_model') or '').strip()
-        or 'gpt-4o-mini'
-    )
+    selected = None
+    for source, key_name, base_name, model_name in groups:
+        api_key = str(config.get(key_name) or '').strip()
+        if api_key:
+            selected = (source, api_key, base_name, model_name)
+            break
+    if selected:
+        source, api_key, base_name, model_name = selected
+        api_base = str(config.get(base_name) or '').strip() or 'https://api.openai.com/v1'
+        model = str(config.get(model_name) or '').strip() or 'gpt-4o-mini'
+    else:
+        source = ''
+        api_key = ''
+        api_base = 'https://api.openai.com/v1'
+        model = 'gpt-4o-mini'
+    try:
+        max_tokens = int(config.get('site_report_ai_max_tokens') or SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS)
+    except Exception:
+        max_tokens = SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS
+    max_tokens = max(256, min(max_tokens, 8000))
+    try:
+        temperature = float(config.get('site_report_ai_temperature') or SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE)
+    except Exception:
+        temperature = SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE
+    temperature = max(0.0, min(temperature, 1.5))
     return {
         'api_key': api_key,
         'api_base': api_base,
         'model': model,
+        'source': source,
+        'max_tokens': max_tokens,
+        'temperature': temperature,
     }
 
 
@@ -3262,10 +3277,36 @@ def _analytics_extract_chat_completion_text(result) -> str:
     return ''
 
 
+def _site_report_ai_result(text=None, error=None, error_type=None, model='', status_code=None):
+    result = {
+        'text': text,
+        'error': error,
+        'error_type': error_type,
+        'model': model,
+    }
+    if status_code is not None:
+        result['status_code'] = status_code
+    return result
+
+
 def _call_site_report_ai(messages):
     config = _site_report_get_ai_config()
+    model = config.get('model', '')
     if not config.get('api_key'):
-        return None, 'AI API Key 未配置。请先在后台「AI 与知识库」或专用网站报告 AI 配置中填写 API Key。'
+        return _site_report_ai_result(
+            error='AI API Key 未配置。请先在后台「AI 与知识库」或专用网站报告 AI 配置中填写 API Key。',
+            error_type='config',
+            model=model,
+        )
+
+    has_requests = _site_report_requests_support and _site_report_requests_module is not None
+    has_httpx = _site_report_httpx_support and _site_report_httpx_module is not None
+    if not (has_requests or has_httpx):
+        return _site_report_ai_result(
+            error='缺少 HTTP 客户端库（requests/httpx），暂时无法调用 AI API。',
+            error_type='dependency',
+            model=model,
+        )
 
     api_url = config['api_base'].rstrip('/') + '/chat/completions'
     headers = {
@@ -3273,53 +3314,73 @@ def _call_site_report_ai(messages):
         'Content-Type': 'application/json',
     }
     payload = {
-        'model': config['model'],
+        'model': model,
         'messages': messages,
         'stream': False,
+        'temperature': config.get('temperature', SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE),
+        'max_tokens': config.get('max_tokens', SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS),
     }
-
     connect_timeout = 20
     read_timeout = 300
-    try:
-        if _site_report_requests_support and _site_report_requests_module is not None:
-            response = _site_report_requests_module.post(
-                api_url,
-                json=payload,
-                headers=headers,
-                timeout=(connect_timeout, read_timeout),
-            )
+    last_error = None
+    for attempt in range(2):
+        try:
+            if has_requests:
+                response = _site_report_requests_module.post(
+                    api_url,
+                    json=payload,
+                    headers=headers,
+                    timeout=(connect_timeout, read_timeout),
+                )
+            else:
+                timeout_obj = _site_report_httpx_module.Timeout(
+                    connect=connect_timeout,
+                    read=read_timeout,
+                    write=60,
+                    pool=60,
+                )
+                response = _site_report_httpx_module.post(
+                    api_url,
+                    json=payload,
+                    headers=headers,
+                    timeout=timeout_obj,
+                )
             if response.status_code != 200:
                 detail = (response.text or '').strip()[:500]
-                return None, f"AI API 错误: {response.status_code}{(' - ' + detail) if detail else ''}"
+                message = f"AI API 错误: {response.status_code}{(' - ' + detail) if detail else ''}"
+                last_error = _site_report_ai_result(
+                    error=message,
+                    error_type='upstream',
+                    model=model,
+                    status_code=response.status_code,
+                )
+                if attempt == 0 and (response.status_code == 429 or response.status_code >= 500):
+                    time.sleep(1.5)
+                    continue
+                return last_error
             text = _analytics_extract_chat_completion_text(response.json())
             if text:
-                return text, None
-            return None, 'AI API 返回格式错误'
-
-        if _site_report_httpx_support and _site_report_httpx_module is not None:
-            timeout_obj = _site_report_httpx_module.Timeout(
-                connect=connect_timeout,
-                read=read_timeout,
-                write=60,
-                pool=60,
+                return _site_report_ai_result(text=text, model=model)
+            return _site_report_ai_result(
+                error='AI API 返回格式错误',
+                error_type='format',
+                model=model,
             )
-            response = _site_report_httpx_module.post(
-                api_url,
-                json=payload,
-                headers=headers,
-                timeout=timeout_obj,
+        except Exception as exc:
+            last_error = _site_report_ai_result(
+                error=f'AI API 调用失败: {str(exc)}',
+                error_type='network',
+                model=model,
             )
-            if response.status_code != 200:
-                detail = (response.text or '').strip()[:500]
-                return None, f"AI API 错误: {response.status_code}{(' - ' + detail) if detail else ''}"
-            text = _analytics_extract_chat_completion_text(response.json())
-            if text:
-                return text, None
-            return None, 'AI API 返回格式错误'
-
-        return None, '缺少 HTTP 客户端库（requests/httpx），暂时无法调用 AI API。'
-    except Exception as exc:
-        return None, f'AI API 调用失败: {str(exc)}'
+            if attempt == 0:
+                time.sleep(1.5)
+                continue
+            return last_error
+    return last_error or _site_report_ai_result(
+        error='AI API 调用失败',
+        error_type='network',
+        model=model,
+    )
 
 
 def _analytics_top_rows(rows, limit=8):
@@ -3407,10 +3468,12 @@ def build_site_analytics_ai_report_context(period='month', anchor_date=None):
     anchor_raw = str(anchor_date or '').strip()
     anchor_value = _analytics_parse_local_date(anchor_raw) if anchor_raw else None
     today = datetime.now(BEIJING_TZ).date()
+    if anchor_raw and anchor_value is None:
+        raise ValueError('anchor_date 格式无效，必须为 YYYY-MM-DD')
     if anchor_value is None:
         anchor_value = today
     if anchor_value > today:
-        anchor_value = today
+        raise ValueError('anchor_date 不能晚于今天')
 
     current_start, current_full_end = _analytics_period_bounds(period_key, anchor_value)
     current_end = min(anchor_value, current_full_end)
@@ -3469,6 +3532,163 @@ def _build_site_analytics_ai_messages(context):
     ]
 
 
+def _site_report_ai_job_path(job_id: str) -> Path:
+    safe_id = _analytics_report_safe_id(job_id)
+    return SITE_ANALYTICS_AI_JOBS_DIR / f'{safe_id}.json'
+
+
+def _site_report_ai_now_text():
+    return datetime.now(BEIJING_TZ).isoformat(timespec='seconds')
+
+
+def _read_site_report_ai_job(job_id: str):
+    safe_id = _analytics_report_safe_id(job_id)
+    if not safe_id:
+        return None
+    job = _analytics_read_json_file(_site_report_ai_job_path(safe_id), default=None)
+    return job if isinstance(job, dict) else None
+
+
+def _write_site_report_ai_job(job_id: str, updates):
+    safe_id = _analytics_report_safe_id(job_id)
+    if not safe_id:
+        return None
+    with SITE_ANALYTICS_AI_JOBS_LOCK:
+        existing = _read_site_report_ai_job(safe_id) or {}
+        next_job = dict(existing)
+        next_job.update(updates if isinstance(updates, dict) else {})
+        next_job['id'] = safe_id
+        next_job['updated_at'] = _site_report_ai_now_text()
+        try:
+            next_job['progress'] = max(0, min(100, int(next_job.get('progress') or 0)))
+        except Exception:
+            next_job['progress'] = 0
+        _analytics_write_json_file(_site_report_ai_job_path(safe_id), next_job)
+        return next_job
+
+
+def _site_report_ai_job_public(job):
+    safe = job if isinstance(job, dict) else {}
+    output = {
+        'id': _analytics_report_safe_id(safe.get('id')),
+        'status': _analytics_clean_text(safe.get('status'), max_length=24) or 'unknown',
+        'progress': max(0, min(100, _analytics_to_int(safe.get('progress'), default=0))),
+        'message': _analytics_clean_text(safe.get('message'), max_length=160),
+        'created_at': _analytics_clean_text(safe.get('created_at'), max_length=40),
+        'updated_at': _analytics_clean_text(safe.get('updated_at'), max_length=40),
+        'period': _analytics_clean_text(safe.get('period'), max_length=20),
+        'anchor_date': _analytics_clean_text(safe.get('anchor_date'), max_length=10),
+    }
+    if isinstance(safe.get('result'), dict):
+        output['result'] = safe.get('result')
+    if safe.get('error'):
+        output['error'] = _analytics_clean_text(safe.get('error'), max_length=500)
+        output['error_type'] = _analytics_clean_text(safe.get('error_type'), max_length=40)
+    return output
+
+
+def _build_site_report_ai_success_payload(report_text, context, model, generated_at, public_record):
+    safe_context = context if isinstance(context, dict) else {}
+    current = safe_context.get('current') if isinstance(safe_context.get('current'), dict) else {}
+    return {
+        'success': True,
+        'report': str(report_text or '').strip(),
+        'generated_at': generated_at,
+        'model': model,
+        'period': safe_context.get('period'),
+        'period_label': safe_context.get('period_label'),
+        'anchor_date': safe_context.get('anchor_date'),
+        'current_range': safe_context.get('current_range') if isinstance(safe_context.get('current_range'), dict) else {},
+        'previous_range': safe_context.get('previous_range') if isinstance(safe_context.get('previous_range'), dict) else {},
+        'comparison': safe_context.get('comparison') if isinstance(safe_context.get('comparison'), dict) else {},
+        'current_summary': current.get('summary') if isinstance(current.get('summary'), dict) else {},
+        'report_record': public_record,
+        'report_id': public_record.get('id') if isinstance(public_record, dict) else '',
+        'download_url': public_record.get('download_url') if isinstance(public_record, dict) else '',
+    }
+
+
+def _cleanup_old_site_report_ai_jobs():
+    try:
+        SITE_ANALYTICS_AI_JOBS_DIR.mkdir(parents=True, exist_ok=True)
+        cutoff = time.time() - 7 * 24 * 3600
+        for path in SITE_ANALYTICS_AI_JOBS_DIR.glob('*.json'):
+            try:
+                if path.stat().st_mtime < cutoff:
+                    path.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def _run_site_report_ai_generation_job(app_obj, job_id, period, anchor_date, generation_lock):
+    def update(status, progress, message, **extra):
+        payload = {
+            'status': status,
+            'progress': progress,
+            'message': message,
+        }
+        payload.update(extra)
+        _write_site_report_ai_job(job_id, payload)
+
+    def run_inner():
+        try:
+            update('running', 15, '正在准备统计数据...')
+            context = build_site_analytics_ai_report_context(period=period, anchor_date=anchor_date)
+            update('running', 35, '正在构建环比分析上下文...')
+            messages = _build_site_analytics_ai_messages(context)
+            update('running', 55, '正在调用 AI 生成报告...')
+            ai_result = _call_site_report_ai(messages)
+            if ai_result.get('error'):
+                update(
+                    'failed',
+                    100,
+                    ai_result.get('error') or 'AI 报告生成失败',
+                    error=ai_result.get('error') or 'AI 报告生成失败',
+                    error_type=ai_result.get('error_type') or 'unknown',
+                )
+                return
+            report_text = str(ai_result.get('text') or '').strip()
+            update('running', 85, '正在保存报告...')
+            ai_config = _site_report_get_ai_config()
+            generated_at = datetime.now(BEIJING_TZ).isoformat(timespec='seconds')
+            saved_record = _append_site_analytics_ai_report_record(
+                _build_site_analytics_ai_report_record(
+                    report_text=report_text,
+                    context=context,
+                    model=ai_result.get('model') or ai_config.get('model', ''),
+                    generated_at=generated_at,
+                )
+            )
+            public_record = _analytics_public_ai_report_row(saved_record)
+            result = _build_site_report_ai_success_payload(
+                report_text,
+                context,
+                ai_result.get('model') or ai_config.get('model', ''),
+                generated_at,
+                public_record,
+            )
+            update('succeeded', 100, 'AI 报告已生成', result=result)
+        except Exception as exc:
+            LOGGER.exception('Site analytics AI report generation job failed.')
+            update(
+                'failed',
+                100,
+                f'AI 报告生成失败: {str(exc)}',
+                error=f'AI 报告生成失败: {str(exc)}',
+                error_type='internal',
+            )
+        finally:
+            generation_lock.release()
+
+    if app_obj is not None:
+        with app_obj.app_context():
+            run_inner()
+    else:
+        run_inner()
+
+
 def register_site_analytics_routes(
     app,
     *,
@@ -3484,12 +3704,20 @@ def register_site_analytics_routes(
     httpx_module=None,
 ):
     """注册公开埋点收集与后台统计报表相关路由。"""
-    global SITE_ANALYTICS_LOG_FILE, SITE_ANALYTICS_AI_REPORTS_FILE, BEIJING_TZ, _resolve_ip_location_fn
+    global SITE_ANALYTICS_LOG_FILE, SITE_ANALYTICS_AI_REPORTS_FILE, SITE_ANALYTICS_AI_REPORTS_DIR
+    global SITE_ANALYTICS_AI_REPORTS_INDEX_FILE, SITE_ANALYTICS_AI_REPORTS_PDF_DIR, SITE_ANALYTICS_AI_JOBS_DIR
+    global SITE_ANALYTICS_AI_GENERATION_LOCK_FILE, SITE_ANALYTICS_AI_PDF_LOCK_FILE, BEIJING_TZ, _resolve_ip_location_fn
     global _site_report_get_config_fn, _site_report_requests_support, _site_report_requests_module
     global _site_report_httpx_support, _site_report_httpx_module
 
     SITE_ANALYTICS_LOG_FILE = Path(data_dir) / "site_analytics_events.jsonl"
     SITE_ANALYTICS_AI_REPORTS_FILE = Path(data_dir) / "site_analytics_ai_reports.jsonl"
+    SITE_ANALYTICS_AI_REPORTS_DIR = Path(data_dir) / "site_analytics_ai_reports"
+    SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = SITE_ANALYTICS_AI_REPORTS_DIR / "index.json"
+    SITE_ANALYTICS_AI_REPORTS_PDF_DIR = SITE_ANALYTICS_AI_REPORTS_DIR / "pdf_cache"
+    SITE_ANALYTICS_AI_JOBS_DIR = Path(data_dir) / "site_analytics_ai_jobs"
+    SITE_ANALYTICS_AI_GENERATION_LOCK_FILE = Path(data_dir) / "site_analytics_ai_report_generation.lock"
+    SITE_ANALYTICS_AI_PDF_LOCK_FILE = Path(data_dir) / "site_analytics_ai_report_pdf.lock"
     BEIJING_TZ = beijing_tz or BEIJING_TZ
     _resolve_ip_location_fn = resolve_ip_location
     _site_report_get_config_fn = get_config if callable(get_config) else (lambda: {})
@@ -3532,6 +3760,9 @@ def register_site_analytics_routes(
     @app.route('/api/admin/site-reports', methods=['GET'])
     @login_required
     def get_site_reports_admin():
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
         """获取后台仪表盘使用的站点统计报表。"""
         range_days = request.args.get('range_days', 30)
         start_date = request.args.get('start_date', '')
@@ -3551,6 +3782,9 @@ def register_site_analytics_routes(
     @app.route('/api/admin/site-reports/ai-reports', methods=['GET'])
     @login_required
     def list_site_report_ai_reports_admin():
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
         """获取已生成的 AI 网站运营报告清单。"""
         period = _analytics_clean_text(request.args.get('period') or '', max_length=20).lower()
         if period and period not in {'week', 'month', 'quarter', 'year'}:
@@ -3584,6 +3818,9 @@ def register_site_analytics_routes(
     @app.route('/api/admin/site-reports/ai-report', methods=['POST'])
     @login_required
     def generate_site_report_ai_admin():
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
         """基于聚合统计与环比数据生成 AI 网站运营报告。"""
         payload = request.get_json(silent=True) or {}
         if not isinstance(payload, dict):
@@ -3593,50 +3830,105 @@ def register_site_analytics_routes(
             payload.get('anchor_date') or payload.get('end_date') or '',
             max_length=10,
         )
-        try:
-            context = build_site_analytics_ai_report_context(
-                period=period,
-                anchor_date=anchor_date,
-            )
-        except ValueError as exc:
-            return jsonify({'success': False, 'message': str(exc)}), 400
+        if period not in {'week', 'month', 'quarter', 'year'}:
+            return jsonify({'success': False, 'message': '报告周期无效'}), 400
+        parsed_anchor = _analytics_parse_local_date(anchor_date) if anchor_date else None
+        if anchor_date and parsed_anchor is None:
+            return jsonify({'success': False, 'message': 'anchor_date 格式无效，必须为 YYYY-MM-DD'}), 400
+        if parsed_anchor and parsed_anchor > datetime.now(BEIJING_TZ).date():
+            return jsonify({'success': False, 'message': 'anchor_date 不能晚于今天'}), 400
 
-        report_text, error = _call_site_report_ai(_build_site_analytics_ai_messages(context))
-        if error:
-            status_code = 400 if '未配置' in error or '缺少 HTTP' in error else 502
-            return jsonify({'success': False, 'message': error, **context}), status_code
-
-        ai_config = _site_report_get_ai_config()
-        generated_at = datetime.now(BEIJING_TZ).isoformat(timespec='seconds')
-        saved_record = _append_site_analytics_ai_report_record(
-            _build_site_analytics_ai_report_record(
-                report_text=report_text,
-                context=context,
-                model=ai_config.get('model', ''),
-                generated_at=generated_at,
-            )
+        _cleanup_old_site_report_ai_jobs()
+        job_id = uuid.uuid4().hex
+        generation_lock = _AnalyticsFileLock(
+            SITE_ANALYTICS_AI_GENERATION_LOCK_FILE,
+            ttl_seconds=SITE_ANALYTICS_AI_JOB_LOCK_TTL_SECONDS,
+            metadata={'type': 'site-report-ai-generation', 'job_id': job_id},
         )
-        public_record = _analytics_public_ai_report_row(saved_record)
+        if not generation_lock.acquire():
+            lock_meta = generation_lock.read_metadata()
+            active_job = _read_site_report_ai_job(lock_meta.get('job_id') or '')
+            return jsonify({
+                'success': False,
+                'message': 'AI 报告正在生成中，请稍后查看进度。',
+                'job': _site_report_ai_job_public(active_job) if active_job else {
+                    'id': _analytics_report_safe_id(lock_meta.get('job_id')),
+                    'status': 'running',
+                    'progress': 55,
+                    'message': 'AI report generation is already running',
+                },
+            }), 409
+        initial_job = _write_site_report_ai_job(job_id, {
+            'status': 'queued',
+            'progress': 5,
+            'message': 'AI report queued',
+            'created_at': _site_report_ai_now_text(),
+            'period': period,
+            'anchor_date': anchor_date,
+        })
+        try:
+            app_obj = current_app._get_current_object()
+        except Exception:
+            app_obj = None
+        try:
+            worker = threading.Thread(
+                target=_run_site_report_ai_generation_job,
+                args=(app_obj, job_id, period, anchor_date, generation_lock),
+                daemon=True,
+            )
+            worker.start()
+        except Exception as exc:
+            generation_lock.release()
+            _write_site_report_ai_job(job_id, {
+                'status': 'failed',
+                'progress': 100,
+                'message': f'Failed to start AI report job: {str(exc)}',
+                'error': f'Failed to start AI report job: {str(exc)}',
+                'error_type': 'internal',
+            })
+            return jsonify({'success': False, 'message': f'AI 报告任务启动失败: {str(exc)}'}), 500
         return jsonify({
             'success': True,
-            'report': report_text,
-            'generated_at': generated_at,
-            'model': ai_config.get('model', ''),
-            'report_record': public_record,
-            'report_id': public_record.get('id'),
-            'download_url': public_record.get('download_url'),
-            **context,
-        })
+            'job_id': job_id,
+            'status_url': f'/api/admin/site-reports/ai-report/jobs/{job_id}',
+            'job': _site_report_ai_job_public(initial_job),
+        }), 202
+
+    @app.route('/api/admin/site-reports/ai-report/jobs/<job_id>', methods=['GET'])
+    @login_required
+    def get_site_report_ai_job_admin(job_id):
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
+        job = _read_site_report_ai_job(job_id)
+        if not job:
+            return jsonify({'success': False, 'message': 'AI 报告任务不存在或已过期'}), 404
+        return jsonify({'success': True, 'job': _site_report_ai_job_public(job)})
+
+    @app.route('/api/admin/site-reports/ai-reports/<report_id>', methods=['DELETE'])
+    @login_required
+    def delete_site_report_ai_report_admin(report_id):
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
+        if not _delete_site_analytics_ai_report_record(report_id):
+            return jsonify({'success': False, 'message': '报告不存在或已被清理'}), 404
+        return jsonify({'success': True})
 
     @app.route('/api/admin/site-reports/ai-reports/<report_id>/download', methods=['GET'])
     @login_required
     def download_site_report_ai_report_admin(report_id):
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
         """下载渲染后的 AI 网站运营报告 PDF。"""
         record = _get_site_analytics_ai_report_record(report_id)
         if not record:
             return jsonify({'success': False, 'message': '报告不存在或已被清理'}), 404
         try:
             pdf_buffer = _generate_site_analytics_ai_report_pdf(record)
+        except SiteAnalyticsBusyError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 429
         except RuntimeError as exc:
             return jsonify({'success': False, 'message': str(exc)}), 503
         except Exception as exc:

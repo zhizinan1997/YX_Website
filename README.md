@@ -130,8 +130,11 @@ python3 -m check_app.app
   - `智能合并更新`
     说明：尽量保留宿主机上客户已经修改过的 `data/pages`，但遇到冲突仍可能需要人工核对。
   - `全新部署重置`
-    说明：会先备份宿主机旧内容，然后清空 `data/pages` 以及旧版遗留的 `cdn_assets/update_logs` 宿主机目录，再完整导入新镜像内容。
+    说明：会先备份宿主机旧内容，然后清空 `data/pages` 以及旧版遗留的 `cdn`、`update_logs` 宿主机目录，再完整导入新镜像内容。
+  - `重置界面，保留用户数据`
+    说明：会先备份旧内容，然后重置 `pages/cdn_assets`，完整保留 `data` 中的客户数据、配置、留言和管理员账号。
 - 如果当前机器上还保留着旧的 `yx-website` 容器，脚本会优先复用其中的 `SECRET_KEY`、`PUBLIC_BASE_URL` 等环境变量。
+- 新架构不再启动 `yx-gateway` / `gateway` 容器；一键脚本只创建和验证 `yx-website` 主站容器。若从 v4.1.0 或更早版本升级且服务器上仍残留 `yx-gateway`，脚本会先把它重命名为回滚备份，主站验证成功后自动清理；只有新主站启动失败时才恢复旧 gateway，避免升级中断后站点不可用。
 - 如果这些关键变量不存在，脚本会直接在终端里提示你输入，而不是静默失败。
 - 脚本会输出非常详细的中文日志，包括镜像拉取进度、目录状态、基线来源、每个文件的新增/更新/跳过/冲突处理结果，以及容器删除、启动、验证过程。
 
@@ -160,11 +163,13 @@ bash /root/yxwebsite/dockerrun_upgrade.sh --help
 - 如果你想跳过交互选择，也可以手动指定：
   - `DEPLOY_STRATEGY=smart bash /root/yxwebsite/dockerrun_upgrade.sh`
   - `DEPLOY_STRATEGY=reset bash /root/yxwebsite/dockerrun_upgrade.sh`
+  - `DEPLOY_STRATEGY=reset-keep-data bash /root/yxwebsite/dockerrun_upgrade.sh`
 
 说明：
 
 - `2026` 为主站入口，直接映射到 `yx-website:8000`。
 - 域名绑定通过阿里云 ESA 与宿主机 Nginx/宝塔反向代理完成，主站域名指向 `http://127.0.0.1:2026`。
+- 从 v4.1.0 升级时推荐使用 `智能合并更新`；旧宿主机 `data/`、`pages/`、`cdn_assets/` 会保留并按基线合并，旧 `update_logs/` 宿主机目录只作为遗留目录备份或清理，后台更新日志改为读取镜像内置 `update_logs`。
 - `yx-website` 在生产环境必须提供 `SECRET_KEY` 和 `PUBLIC_BASE_URL`。
 - 首次部署时还必须提供 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 作为超级管理员初始化凭据；如果 `/app/data/admin_users.json` 中已经存在超级管理员，则后续重启可省略这两个变量。
 - 如确需允许首次初始化时使用弱密码，可显式传入 `ALLOW_WEAK_ADMIN_PASSWORDS=true`；默认仍为 `false`。

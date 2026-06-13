@@ -871,7 +871,7 @@ validate_hidden_admin_runtime_values() {
 
 load_existing_state() {
   HAS_WEBSITE_CONTAINER=false
-  HAS_GATEWAY_CONTAINER=false
+  HAS_LEGACY_GATEWAY_CONTAINER=false
   EXISTING_ENV_LINES=""
   EXISTING_IMAGE_REF=""
 
@@ -881,8 +881,8 @@ load_existing_state() {
     EXISTING_IMAGE_REF="$(docker inspect -f '{{.Image}}' "$WEBSITE_CONTAINER" || true)"
   fi
 
-  if docker container inspect "$GATEWAY_CONTAINER" >/dev/null 2>&1; then
-    HAS_GATEWAY_CONTAINER=true
+  if docker container inspect "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1; then
+    HAS_LEGACY_GATEWAY_CONTAINER=true
   fi
 
   DATA_FILE_COUNT="$(count_regular_files "$DATA_DIR")"
@@ -899,13 +899,13 @@ load_existing_state() {
 determine_deploy_kind_and_strategy() {
   phase "识别部署场景"
   info "website 容器是否存在：$HAS_WEBSITE_CONTAINER"
-  info "gateway 容器是否存在：$HAS_GATEWAY_CONTAINER"
+  info "旧版 gateway 容器是否存在：$HAS_LEGACY_GATEWAY_CONTAINER"
   info "宿主机 data 文件数：$DATA_FILE_COUNT"
   info "宿主机 pages 文件数：$PAGES_FILE_COUNT"
   info "旧版宿主机 cdn_assets 文件数：$LEGACY_CDN_FILE_COUNT"
   info "旧版宿主机 update_logs 文件数：$LEGACY_UPDATE_LOGS_FILE_COUNT"
 
-  if [[ "$HAS_WEBSITE_CONTAINER" == "true" || "$HAS_GATEWAY_CONTAINER" == "true" || "$HAS_HOST_CONTENT" == "true" ]]; then
+  if [[ "$HAS_WEBSITE_CONTAINER" == "true" || "$HAS_LEGACY_GATEWAY_CONTAINER" == "true" || "$HAS_HOST_CONTENT" == "true" ]]; then
     DEPLOY_KIND="update"
     info "判断结果：当前机器上已存在部署痕迹，本次按"更新部署"处理。"
   else
@@ -1014,7 +1014,7 @@ rollback_containers() {
 
   warn "正在尝试回滚到旧容器..."
   docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
-  docker rm -f "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+  docker rm -f "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
 
   if [[ "$has_old_website" == "true" ]]; then
     docker rename "${WEBSITE_CONTAINER}-old" "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
@@ -1023,9 +1023,9 @@ rollback_containers() {
   fi
 
   if [[ "$has_old_gateway" == "true" ]]; then
-    docker rename "${GATEWAY_CONTAINER}-old" "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
-    docker start "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
-    info "已回滚网关容器到旧版本"
+    docker rename "${LEGACY_GATEWAY_CONTAINER}-old" "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+    docker start "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+    info "已回滚旧版 gateway 容器"
   fi
 }
 
@@ -1043,10 +1043,10 @@ recreate_containers() {
     has_old_website=true
   fi
 
-  if docker container inspect "$GATEWAY_CONTAINER" >/dev/null 2>&1; then
-    info "正在停止旧网关容器并重命名为 ${GATEWAY_CONTAINER}-old"
-    docker stop "$GATEWAY_CONTAINER" >/dev/null 2>&1 || true
-    docker rename "$GATEWAY_CONTAINER" "${GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
+  if docker container inspect "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1; then
+    info "检测到旧版 gateway 容器，正在停止并重命名为 ${LEGACY_GATEWAY_CONTAINER}-old（仅用于失败回滚）"
+    docker stop "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+    docker rename "$LEGACY_GATEWAY_CONTAINER" "${LEGACY_GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
     has_old_gateway=true
   fi
 
@@ -1105,7 +1105,7 @@ recreate_containers() {
   info "网站容器挂载：$DATA_DIR -> /app/data"
   info "网站容器挂载：$PAGES_DIR -> /app/pages"
   info "网站容器挂载：$CDN_ASSETS_DIR -> /app/cdn_assets"
-  info "网站/网关共享日志目录：$DATA_DIR/logs"
+  info "网站日志目录：$DATA_DIR/logs"
 
   set +e
   WEBSITE_CONTAINER_ID="$("${website_cmd[@]}" 2>&1)"
@@ -1126,7 +1126,7 @@ recreate_containers() {
     info "已将网站容器连接到 bridge 网络。"
   fi
 
-  info "Gateway container is deprecated in single-domain ESA deployments and will not be restarted."
+  info "单域名 ESA 部署已取消 gateway 容器；本次只启动网站容器。"
   info "等待容器初始化（3 秒）..."
   sleep 3
 
@@ -1155,8 +1155,8 @@ recreate_containers() {
     info "已清理旧网站容器"
   fi
   if [[ "$has_old_gateway" == "true" ]]; then
-    docker rm -f "${GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
-    info "已清理旧网关容器"
+    docker rm -f "${LEGACY_GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
+    info "已清理旧版 gateway 容器"
   fi
 }
 
@@ -1228,7 +1228,6 @@ show_help() {
   YX_ROOT=/root/yxwebsite
   NETWORK_NAME=yx-net
   WEBSITE_CONTAINER=yx-website
-  GATEWAY_CONTAINER=yx-gateway
   WEBSITE_IMAGE=ghcr.io/zhizinan1997/yx_website:latest
   MAIN_PORT=2026
   CLEAN_OLD_IMAGES=true
@@ -1244,6 +1243,7 @@ show_help() {
   - 首次部署：脚本会自动导入新镜像里的 data/pages 内容，并要求输入 SECRET_KEY、PUBLIC_BASE_URL；如果还没有 admin_users.json，也会要求输入管理员初始密码。
   - 更新部署：脚本会先让你选择"智能合并更新"、"全新部署重置"或"重置界面，保留用户数据"。
   - 如果旧容器仍存在，脚本会优先复用旧容器中的 SECRET_KEY、PUBLIC_BASE_URL 等环境变量。
+  - 新架构只启动网站容器；如果检测到旧版 yx-gateway 容器，会在升级成功后自动清理，失败时才临时回滚。
   - 如果缺少这些环境变量，脚本会直接在终端里提示输入。
   - 如确需允许首次初始化时使用弱密码，可显式传入 ALLOW_WEAK_ADMIN_PASSWORDS=true。
 
@@ -1258,7 +1258,9 @@ USAGE
 YX_ROOT="${YX_ROOT:-/root/yxwebsite}"
 NETWORK_NAME="${NETWORK_NAME:-yx-net}"
 WEBSITE_CONTAINER="${WEBSITE_CONTAINER:-yx-website}"
-GATEWAY_CONTAINER="${GATEWAY_CONTAINER:-yx-gateway}"
+# v4.1.0 及更早部署可能还保留 yx-gateway。新版本不再启动它，
+# 这里只保留旧容器名称用于升级成功后的清理和失败回滚。
+LEGACY_GATEWAY_CONTAINER="${LEGACY_GATEWAY_CONTAINER:-${GATEWAY_CONTAINER:-yx-gateway}}"
 WEBSITE_IMAGE="${WEBSITE_IMAGE:-ghcr.io/zhizinan1997/yx_website:latest}"
 MAIN_PORT="${MAIN_PORT:-2026}"
 CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"

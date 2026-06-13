@@ -74,6 +74,8 @@
         };
         let pendingKnowledgeFiles = [];
         let savedKnowledgeFiles = [];
+        let savedKnowledgeTextEntries = [];
+        let currentKnowledgeTextEntryId = '';
         let lastKnowledgeTextValue = '';
         let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
         let currentAdminAuth = {
@@ -94,6 +96,7 @@
         let siteAiReportListLoading = false;
         let siteAiReportListCache = null;
         let siteAiReportLastText = '';
+        let siteAiReportActiveJobId = '';
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
         const SITE_REPORT_COUNTRY_PAGE_SIZE = 8;
@@ -4006,6 +4009,111 @@
                 : '<i class="fas fa-magic"></i> AI生成报告';
         }
 
+        function ensureSiteAiReportProgress() {
+            const msgEl = document.getElementById('siteReportMsg');
+            if (!msgEl || !msgEl.parentElement) return null;
+            let wrap = document.getElementById('siteAiReportProgress');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.id = 'siteAiReportProgress';
+                wrap.className = 'site-ai-report-progress';
+                wrap.hidden = true;
+                wrap.innerHTML = `
+                    <div class="site-ai-report-progress-head">
+                        <span id="siteAiReportProgressText">准备生成...</span>
+                        <strong id="siteAiReportProgressValue">0%</strong>
+                    </div>
+                    <div class="site-ai-report-progress-track">
+                        <i id="siteAiReportProgressBar" style="width:0%"></i>
+                    </div>
+                `;
+                msgEl.parentElement.insertBefore(wrap, msgEl.nextSibling);
+            }
+            return wrap;
+        }
+
+        function formatSiteAiReportJobMessage(message, status) {
+            const text = String(message || '').trim();
+            const map = {
+                'AI report queued': 'AI报告已进入队列',
+                'Preparing analytics data...': '正在准备统计数据...',
+                'Building comparison context...': '正在构建环比分析上下文...',
+                'Calling AI model...': '正在调用AI模型...',
+                'Saving report...': '正在保存报告...',
+                'AI report generated': 'AI报告已生成'
+            };
+            if (map[text]) return map[text];
+            if (status === 'queued') return 'AI报告已进入队列';
+            if (status === 'running') return text || 'AI报告生成中...';
+            if (status === 'succeeded') return 'AI报告已生成';
+            if (status === 'failed') return text || 'AI报告生成失败';
+            return text || '准备生成AI报告...';
+        }
+
+        function updateSiteAiReportProgress(job) {
+            const wrap = ensureSiteAiReportProgress();
+            if (!wrap) return;
+            const progress = Math.max(0, Math.min(100, Number(job?.progress || 0)));
+            const status = String(job?.status || '').trim();
+            const textEl = document.getElementById('siteAiReportProgressText');
+            const valueEl = document.getElementById('siteAiReportProgressValue');
+            const barEl = document.getElementById('siteAiReportProgressBar');
+            wrap.hidden = false;
+            wrap.classList.toggle('is-error', status === 'failed');
+            wrap.classList.toggle('is-done', status === 'succeeded');
+            if (textEl) textEl.textContent = formatSiteAiReportJobMessage(job?.message || job?.error, status);
+            if (valueEl) valueEl.textContent = `${Math.round(progress)}%`;
+            if (barEl) barEl.style.width = `${progress}%`;
+            const msgEl = document.getElementById('siteReportMsg');
+            if (msgEl) {
+                msgEl.style.color = status === 'failed' ? '#dc3545' : (status === 'succeeded' ? '#28a745' : '#64748b');
+                msgEl.textContent = formatSiteAiReportJobMessage(job?.message || job?.error, status);
+            }
+        }
+
+        function resetSiteAiReportProgress() {
+            siteAiReportActiveJobId = '';
+            const wrap = document.getElementById('siteAiReportProgress');
+            if (!wrap) return;
+            wrap.hidden = true;
+            wrap.classList.remove('is-error', 'is-done');
+            const barEl = document.getElementById('siteAiReportProgressBar');
+            const valueEl = document.getElementById('siteAiReportProgressValue');
+            const textEl = document.getElementById('siteAiReportProgressText');
+            if (barEl) barEl.style.width = '0%';
+            if (valueEl) valueEl.textContent = '0%';
+            if (textEl) textEl.textContent = '准备生成...';
+        }
+
+        function waitSiteAiReport(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function pollSiteAiReportJob(statusUrl) {
+            const url = String(statusUrl || '').trim();
+            if (!url) throw new Error('缺少AI报告任务状态地址');
+            for (let attempt = 0; attempt < 180; attempt += 1) {
+                const res = await fetch(url, { cache: 'no-store' });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `AI报告状态查询失败（HTTP ${res.status || '-'}）`));
+                }
+                const job = data.job || {};
+                updateSiteAiReportProgress(job);
+                if (job.status === 'succeeded') {
+                    if (!job.result || typeof job.result !== 'object') {
+                        throw new Error('AI报告任务完成，但结果为空');
+                    }
+                    return job.result;
+                }
+                if (job.status === 'failed') {
+                    throw new Error(String(job.error || job.message || 'AI报告生成失败'));
+                }
+                await waitSiteAiReport(2000);
+            }
+            throw new Error('AI报告生成超时，请稍后刷新清单查看结果');
+        }
+
         function getSiteAiReportPeriodLabel(period) {
             const labelMap = {
                 week: '周报',
@@ -4057,29 +4165,103 @@
         function formatSiteAiReportText(text) {
             const raw = String(text || '').trim();
             if (!raw) return '<div class="no-data">暂无报告内容</div>';
-            const blocks = raw.split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
-            return blocks.map((block) => {
-                const clean = escapeHtml(block.replace(/\*\*/g, ''));
-                if (/^#{1,3}\s+/.test(block)) {
-                    return `<h4>${escapeHtml(block.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, ''))}</h4>`;
+            const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+            const output = [];
+            let idx = 0;
+
+            const inline = (value) => {
+                return escapeHtml(String(value || '').trim())
+                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                    .replace(/`([^`]+)`/g, '<code>$1</code>');
+            };
+            const isTableSeparator = (line) => {
+                const cells = String(line || '').trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+                return cells.length > 1 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+            };
+            const parseTableRows = (tableLines) => {
+                return tableLines.map(line => {
+                    const cells = String(line || '').trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+                    return cells;
+                }).filter(cells => cells.length > 1 && !cells.every(cell => /^:?-{3,}:?$/.test(cell)));
+            };
+
+            while (idx < lines.length) {
+                const line = String(lines[idx] || '');
+                const stripped = line.trim();
+                if (!stripped) {
+                    idx += 1;
+                    continue;
                 }
-                if (/^[-*]\s+/m.test(block)) {
-                    const items = block.split(/\n/).map(line => line.trim()).filter(Boolean).map((line) => {
-                        return `<li>${escapeHtml(line.replace(/^[-*]\s+/, '').replace(/\*\*/g, ''))}</li>`;
-                    }).join('');
-                    return `<ul>${items}</ul>`;
+                if (stripped.includes('|') && idx + 1 < lines.length && isTableSeparator(lines[idx + 1])) {
+                    const tableLines = [stripped, lines[idx + 1].trim()];
+                    idx += 2;
+                    while (idx < lines.length && String(lines[idx] || '').trim().includes('|')) {
+                        tableLines.push(String(lines[idx] || '').trim());
+                        idx += 1;
+                    }
+                    const rows = parseTableRows(tableLines);
+                    if (rows.length) {
+                        const header = rows[0];
+                        const body = rows.slice(1);
+                        output.push('<div class="site-ai-report-table-wrap"><table class="site-ai-report-md-table"><thead><tr>');
+                        output.push(header.map(cell => `<th>${inline(cell)}</th>`).join(''));
+                        output.push('</tr></thead><tbody>');
+                        output.push(body.map(row => `<tr>${row.map(cell => `<td>${inline(cell)}</td>`).join('')}</tr>`).join(''));
+                        output.push('</tbody></table></div>');
+                    }
+                    continue;
                 }
-                if (/^\d+\.\s+/m.test(block)) {
-                    const items = block.split(/\n/).map(line => line.trim()).filter(Boolean).map((line) => {
-                        return `<li>${escapeHtml(line.replace(/^\d+\.\s+/, '').replace(/\*\*/g, ''))}</li>`;
-                    }).join('');
-                    return `<ol>${items}</ol>`;
+                const headingMatch = stripped.match(/^(#{1,4})\s+(.+)$/);
+                if (headingMatch) {
+                    output.push(`<h4>${inline(headingMatch[2])}</h4>`);
+                    idx += 1;
+                    continue;
                 }
-                if (block.length <= 28 && !/[。；;]$/.test(block)) {
-                    return `<h4>${clean}</h4>`;
+                const bulletItems = [];
+                while (idx < lines.length) {
+                    const match = String(lines[idx] || '').match(/^\s*[-*]\s+(.+)$/);
+                    if (!match) break;
+                    bulletItems.push(match[1]);
+                    idx += 1;
                 }
-                return `<p>${clean.replace(/\n/g, '<br>')}</p>`;
-            }).join('');
+                if (bulletItems.length) {
+                    output.push(`<ul>${bulletItems.map(item => `<li>${inline(item)}</li>`).join('')}</ul>`);
+                    continue;
+                }
+                const orderedItems = [];
+                while (idx < lines.length) {
+                    const match = String(lines[idx] || '').match(/^\s*\d+\.\s+(.+)$/);
+                    if (!match) break;
+                    orderedItems.push(match[1]);
+                    idx += 1;
+                }
+                if (orderedItems.length) {
+                    output.push(`<ol>${orderedItems.map(item => `<li>${inline(item)}</li>`).join('')}</ol>`);
+                    continue;
+                }
+                const paragraph = [stripped];
+                idx += 1;
+                while (idx < lines.length) {
+                    const next = String(lines[idx] || '').trim();
+                    if (
+                        !next
+                        || /^#{1,4}\s+/.test(next)
+                        || /^\s*[-*]\s+/.test(lines[idx])
+                        || /^\s*\d+\.\s+/.test(lines[idx])
+                        || (next.includes('|') && idx + 1 < lines.length && isTableSeparator(lines[idx + 1]))
+                    ) {
+                        break;
+                    }
+                    paragraph.push(next);
+                    idx += 1;
+                }
+                if (paragraph.join('').length <= 28 && !/[。；;]$/.test(paragraph[0])) {
+                    output.push(`<h4>${inline(paragraph.join(' '))}</h4>`);
+                } else {
+                    output.push(`<p>${paragraph.map(inline).join('<br>')}</p>`);
+                }
+            }
+            return output.join('');
         }
 
         function renderSiteAiReport(data) {
@@ -4172,7 +4354,7 @@
             const periodLabel = String(item?.period_label || getSiteAiReportPeriodLabel(item?.period)).trim();
             const generatedAt = formatChangelogTime(item?.generated_at) || String(item?.generated_at || '-');
             const ranges = formatSiteAiReportListRange(item);
-            const downloadDisabled = id ? '' : ' disabled';
+            const actionDisabled = id ? '' : ' disabled';
             return `
                 <article class="site-ai-report-list-item">
                     <div class="site-ai-report-list-item-head">
@@ -4183,10 +4365,16 @@
                     <div class="site-ai-report-list-range">当前：${escapeHtml(ranges.current)}</div>
                     <div class="site-ai-report-list-range">环比：${escapeHtml(ranges.previous)}</div>
                     <div class="site-ai-report-list-pills">${renderSiteAiReportListMetricPills(item)}</div>
-                    <button type="button" class="site-ai-report-download-btn" data-site-ai-download-id="${escapeAttr(id)}"
-                        onclick="downloadSiteAiReportPdf('${escapeAttr(id)}')"${downloadDisabled}>
-                        <i class="fas fa-file-pdf"></i> 下载 PDF
-                    </button>
+                    <div class="site-ai-report-list-actions">
+                        <button type="button" class="site-ai-report-download-btn" data-site-ai-download-id="${escapeAttr(id)}"
+                            onclick="downloadSiteAiReportPdf('${escapeAttr(id)}')"${actionDisabled}>
+                            <i class="fas fa-file-pdf"></i> 下载 PDF
+                        </button>
+                        <button type="button" class="site-ai-report-delete-btn" data-site-ai-delete-id="${escapeAttr(id)}"
+                            onclick="deleteSiteAiReport('${escapeAttr(id)}')"${actionDisabled}>
+                            <i class="fas fa-trash-alt"></i> 删除
+                        </button>
+                    </div>
                 </article>
             `;
         }
@@ -4256,8 +4444,8 @@
                 if (contentEl) {
                     contentEl.innerHTML = '<div class="site-ai-report-list-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载报告清单...</div>';
                 }
-                loadSiteAiReportList();
             }
+            loadSiteAiReportList();
         }
 
         function closeSiteAiReportListModal() {
@@ -4342,6 +4530,45 @@
             }
         }
 
+        async function deleteSiteAiReport(reportId) {
+            const id = String(reportId || '').trim();
+            if (!id) return;
+            if (!window.confirm('确定删除这份AI报告吗？删除后对应的PDF缓存也会被清理。')) return;
+            const btn = document.querySelector(`[data-site-ai-delete-id="${id}"]`);
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+            }
+            try {
+                const res = await fetch(`/api/admin/site-reports/ai-reports/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                    cache: 'no-store'
+                });
+                const data = await parseJsonSafe(res);
+                if (!res.ok || data.success !== true) {
+                    throw new Error(String(data.message || `删除报告失败（HTTP ${res.status || '-'}）`));
+                }
+                const reports = getSiteAiReportListRows(siteAiReportListCache)
+                    .filter(item => String(item?.id || '') !== id);
+                siteAiReportListCache = {
+                    success: true,
+                    reports,
+                    grouped: groupSiteAiReports(reports),
+                    total: reports.length
+                };
+                renderSiteAiReportList(siteAiReportListCache);
+                showGlobalAlert('报告已删除');
+            } catch (err) {
+                console.error('Delete site AI report failed:', err);
+                showGlobalAlert(String(err?.message || '删除报告失败'));
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml || '<i class="fas fa-trash-alt"></i> 删除';
+                }
+            }
+        }
+
         async function generateSiteAiReport() {
             if (siteReportsAiLoading) return;
             ensureSiteReportFiltersInitialized();
@@ -4369,8 +4596,9 @@
 
             if (msgEl) {
                 msgEl.style.color = '#64748b';
-                msgEl.textContent = `${getSiteAiReportPeriodLabel(period)}生成中，请稍候...`;
+                msgEl.textContent = `${getSiteAiReportPeriodLabel(period)}生成任务启动中...`;
             }
+            updateSiteAiReportProgress({ status: 'queued', progress: 5, message: 'AI report queued' });
             setSiteReportsAiLoading(true);
             try {
                 const res = await fetch('/api/admin/site-reports/ai-report', {
@@ -4379,12 +4607,21 @@
                     body: JSON.stringify({ period, anchor_date: anchorDate })
                 });
                 const data = await parseJsonSafe(res);
-                if (!res.ok || data.success !== true) {
+                let statusUrl = String(data.status_url || '').trim();
+                if (res.status === 409 && data.job && data.job.id) {
+                    siteAiReportActiveJobId = String(data.job.id);
+                    updateSiteAiReportProgress(data.job);
+                    statusUrl = `/api/admin/site-reports/ai-report/jobs/${encodeURIComponent(siteAiReportActiveJobId)}`;
+                } else if (res.status === 202 && data.success === true && data.job_id) {
+                    siteAiReportActiveJobId = String(data.job_id);
+                    updateSiteAiReportProgress(data.job || { status: 'queued', progress: 5, message: 'AI report queued' });
+                } else if (!res.ok || data.success !== true) {
                     throw new Error(String(data.message || `AI报告生成失败（HTTP ${res.status || '-'}）`));
                 }
-                renderSiteAiReport(data);
-                if (data.report_record) {
-                    mergeSiteAiReportIntoCache(data.report_record);
+                const result = await pollSiteAiReportJob(statusUrl || `/api/admin/site-reports/ai-report/jobs/${encodeURIComponent(siteAiReportActiveJobId)}`);
+                renderSiteAiReport(result);
+                if (result.report_record) {
+                    mergeSiteAiReportIntoCache(result.report_record);
                 } else {
                     siteAiReportListCache = null;
                 }
@@ -4392,6 +4629,7 @@
                     msgEl.style.color = '#28a745';
                     msgEl.textContent = 'AI报告已生成';
                 }
+                updateSiteAiReportProgress({ status: 'succeeded', progress: 100, message: 'AI report generated' });
             } catch (err) {
                 console.error('Generate site AI report failed:', err);
                 const message = String(err?.message || 'AI报告生成失败');
@@ -4399,9 +4637,11 @@
                     msgEl.style.color = '#dc3545';
                     msgEl.textContent = message;
                 }
+                updateSiteAiReportProgress({ status: 'failed', progress: 100, message });
                 showGlobalAlert(message);
             } finally {
                 setSiteReportsAiLoading(false);
+                siteAiReportActiveJobId = '';
             }
         }
 
@@ -14667,21 +14907,21 @@
                 const data = await res.json();
 
                 document.getElementById('pdfSupportWarning').style.display = data.pdf_support ? 'none' : 'block';
-                lastKnowledgeTextValue = data.text_content || '';
-                textInput.value = lastKnowledgeTextValue;
+                lastKnowledgeTextValue = '';
+                savedKnowledgeTextEntries = Array.isArray(data.text_entries) ? data.text_entries : [];
                 savedKnowledgeFiles = Array.isArray(data.files) ? data.files : [];
 
                 if (statusEl) {
-                    if (data.text_size > 0) {
+                    if (savedKnowledgeTextEntries.length) {
                         const modifiedText = data.text_modified ? `，最后更新：${formatDateTime(data.text_modified)}` : '';
-                        statusEl.textContent = `当前已保存文本知识库 ${formatFileSize(data.text_size)}${modifiedText}`;
+                        statusEl.textContent = `已保存 ${savedKnowledgeTextEntries.length} 条文本知识，共 ${formatFileSize(data.text_size || 0)}${modifiedText}`;
                     } else {
-                        statusEl.textContent = '当前未保存文本知识库内容';
+                        statusEl.textContent = '当前未保存文本条目。这里输入的内容会作为新条目追加保存。';
                     }
                 }
 
                 if (!savedKnowledgeFiles.length) {
-                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无知识库文件</div>';
+                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">暂无已上传 PDF 文件</div>';
                 } else {
                     listEl.innerHTML = savedKnowledgeFiles.map(file => `
                         <div class="file-item">
@@ -14693,6 +14933,9 @@
                                 </div>
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="btn-sm knowledge-view-btn" data-filename="${escapeAttr(file.name)}">
+                                    <i class="fas fa-eye"></i> 查看
+                                </button>
                                 <button type="button" class="btn-sm knowledge-download-btn" data-filename="${escapeAttr(file.name)}">
                                     <i class="fas fa-download"></i> 下载
                                 </button>
@@ -14703,6 +14946,9 @@
                         </div>
                     `).join('');
 
+                    listEl.querySelectorAll('.knowledge-view-btn').forEach(btn => {
+                        btn.addEventListener('click', () => viewKnowledgePdf(btn.dataset.filename || ''));
+                    });
                     listEl.querySelectorAll('.knowledge-download-btn').forEach(btn => {
                         btn.addEventListener('click', () => downloadKnowledgeFile(btn.dataset.filename || ''));
                     });
@@ -14739,11 +14985,17 @@
                 if (res.ok) {
                     loadKnowledgeFiles();
                 } else {
-                    alert('删除失败');
+                    const data = await res.json().catch(() => ({}));
+                    showGlobalAlert(data.message || '删除失败');
                 }
             } catch (e) {
-                alert('网络错误');
+                showGlobalAlert('网络错误');
             }
+        }
+
+        function viewKnowledgePdf(filename) {
+            if (!filename) return;
+            window.open(`/api/chatbot/knowledge/${encodeURIComponent(filename)}/view`, '_blank', 'noopener');
         }
 
         function downloadKnowledgeFile(filename) {
@@ -14758,98 +15010,155 @@
             msgEl.style.color = type === 'error' ? '#dc3545' : (type === 'warning' ? '#c05621' : '#28a745');
         }
 
-        function splitKnowledgeTextEntries(text) {
-            const normalized = String(text || '').replace(/\r\n/g, '\n').trim();
-            if (!normalized) return [];
-            const blocks = normalized.split(/\n\s*\n+/).map(item => item.trim()).filter(Boolean);
-            if (blocks.length > 1) return blocks;
-            return normalized.split('\n').map(item => item.trim()).filter(Boolean);
-        }
-
-        function buildKnowledgeTextPreviewItems(text) {
-            return splitKnowledgeTextEntries(text).map((item, index) => {
-                const compact = item.replace(/\s+/g, ' ').trim();
-                const title = compact.length > 52 ? `${compact.slice(0, 52)}...` : compact;
-                return {
-                    type: 'text',
-                    index,
-                    content: item,
-                    title: title || `文本条目 ${index + 1}`,
-                    meta: `文本 · ${compact.length} 字符`
-                };
-            });
-        }
-
         function closeKnowledgeTextDetailModal() {
             const modal = document.getElementById('knowledgeTextDetailModal');
+            currentKnowledgeTextEntryId = '';
             if (modal) modal.hidden = true;
         }
 
-        function viewKnowledgeTextEntry(index) {
-            const textValue = document.getElementById('knowledgeTextInput')?.value || '';
-            const entries = splitKnowledgeTextEntries(textValue);
-            const entry = entries[index];
-            if (entry === undefined) return;
+        function setKnowledgeTextDetailMode(editing) {
+            const contentEl = document.getElementById('knowledgeTextDetailContent');
+            const formEl = document.getElementById('knowledgeTextDetailForm');
+            const editBtn = document.getElementById('knowledgeTextDetailEditBtn');
+            const saveBtn = document.getElementById('knowledgeTextDetailSaveBtn');
+            const cancelBtn = document.getElementById('knowledgeTextDetailCancelBtn');
+            if (contentEl) contentEl.hidden = !!editing;
+            if (formEl) formEl.hidden = !editing;
+            if (editBtn) editBtn.hidden = !!editing;
+            if (saveBtn) saveBtn.hidden = !editing;
+            if (cancelBtn) cancelBtn.hidden = !editing;
+        }
 
+        function findKnowledgeTextEntry(entryId) {
+            return savedKnowledgeTextEntries.find(item => String(item.id || '') === String(entryId || ''));
+        }
+
+        async function openKnowledgeTextEntryModal(entryId, editing = false) {
+            const safeId = String(entryId || '').trim();
+            if (!safeId) return;
             const modal = document.getElementById('knowledgeTextDetailModal');
             const titleEl = document.getElementById('knowledgeTextDetailTitle');
             const metaEl = document.getElementById('knowledgeTextDetailMeta');
             const contentEl = document.getElementById('knowledgeTextDetailContent');
-            if (!modal || !titleEl || !metaEl || !contentEl) {
-                showGlobalAlert(entry, `文本条目 ${index + 1}`);
+            const titleInput = document.getElementById('knowledgeTextDetailTitleInput');
+            const editor = document.getElementById('knowledgeTextDetailEditor');
+            if (!modal || !titleEl || !metaEl || !contentEl || !titleInput || !editor) {
+                const fallback = findKnowledgeTextEntry(safeId);
+                showGlobalAlert(fallback?.content || '', fallback?.title || '文本条目');
                 return;
             }
 
-            titleEl.textContent = `文本条目 ${index + 1}`;
-            metaEl.textContent = `${entry.replace(/\s+/g, ' ').trim().length} 字符`;
-            contentEl.textContent = entry;
+            let entry = findKnowledgeTextEntry(safeId);
+            try {
+                const res = await fetch(`/api/chatbot/knowledge/text/${encodeURIComponent(safeId)}`);
+                const data = await res.json();
+                if (res.ok && data.success && data.entry) {
+                    entry = data.entry;
+                } else if (!entry) {
+                    showGlobalAlert(data.message || '文本条目不存在');
+                    return;
+                }
+            } catch (e) {
+                if (!entry) {
+                    showGlobalAlert('文本条目加载失败');
+                    return;
+                }
+            }
+
+            currentKnowledgeTextEntryId = safeId;
+            const modifiedText = entry.modified_at ? `最后更新：${formatDateTime(entry.modified_at)}` : '';
+            titleEl.textContent = editing ? '编辑文本条目' : '文本条目全文';
+            metaEl.textContent = `${formatFileSize(entry.size || 0)}${modifiedText ? ` · ${modifiedText}` : ''}`;
+            contentEl.textContent = entry.content || '';
+            titleInput.value = entry.title || '';
+            editor.value = entry.content || '';
+            setKnowledgeTextDetailMode(editing);
             modal.hidden = false;
         }
 
-        async function deleteKnowledgeTextEntry(index) {
-            const textInput = document.getElementById('knowledgeTextInput');
-            if (!textInput) return;
+        function viewKnowledgeTextEntry(entryId) {
+            openKnowledgeTextEntryModal(entryId, false);
+        }
 
-            const entries = splitKnowledgeTextEntries(textInput.value);
-            if (!Number.isInteger(index) || index < 0 || index >= entries.length) return;
+        function editKnowledgeTextEntry(entryId) {
+            openKnowledgeTextEntryModal(entryId, true);
+        }
 
-            const preview = entries[index].replace(/\s+/g, ' ').trim();
+        async function saveKnowledgeTextEntry() {
+            if (!currentKnowledgeTextEntryId) return;
+            const titleInput = document.getElementById('knowledgeTextDetailTitleInput');
+            const editor = document.getElementById('knowledgeTextDetailEditor');
+            const saveBtn = document.getElementById('knowledgeTextDetailSaveBtn');
+            const content = editor?.value || '';
+            if (!content.trim()) {
+                showGlobalAlert('文本内容不能为空');
+                return;
+            }
+            if (saveBtn) saveBtn.disabled = true;
+            try {
+                const res = await fetch(`/api/chatbot/knowledge/text/${encodeURIComponent(currentKnowledgeTextEntryId)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: titleInput?.value || '',
+                        content
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showGlobalAlert(data.message || '保存失败');
+                    return;
+                }
+                closeKnowledgeTextDetailModal();
+                await loadKnowledgeFiles();
+                setKnowledgeUploadMessage('文本条目已更新', 'success');
+            } catch (e) {
+                showGlobalAlert('保存失败：网络错误');
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        }
+
+        async function deleteKnowledgeTextEntry(entryId) {
+            const entry = findKnowledgeTextEntry(entryId);
+            if (!entry) return;
+            const preview = String(entry.title || entry.content || '').replace(/\s+/g, ' ').trim();
             const confirmText = preview.length > 42 ? `${preview.slice(0, 42)}...` : preview;
-            const ok = await showGlobalConfirm(`确定从文本知识库中删除“${confirmText || `文本条目 ${index + 1}`}”吗？删除后需要点击“保存知识库”才会正式生效。`, '删除文本条目');
+            const ok = await showGlobalConfirm(`确定删除文本条目“${confirmText || '未命名文本'}”吗？此操作无法撤销。`, '删除文本条目');
             if (!ok) return;
 
-            entries.splice(index, 1);
-            textInput.value = entries.join('\n\n');
-            textInput.dispatchEvent(new Event('input', { bubbles: true }));
-            setKnowledgeUploadMessage('已从文本框移除该条，点击“保存知识库”后生效。', 'warning');
+            try {
+                const res = await fetch(`/api/chatbot/knowledge/text/${encodeURIComponent(entry.id)}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showGlobalAlert(data.message || '删除失败');
+                    return;
+                }
+                await loadKnowledgeFiles();
+                setKnowledgeUploadMessage('文本条目已删除', 'success');
+            } catch (e) {
+                showGlobalAlert('删除失败：网络错误');
+            }
         }
 
         function renderKnowledgeCatalogPreview() {
             const previewEl = document.getElementById('knowledgeCatalogPreview');
             if (!previewEl) return;
-
-            const textValue = document.getElementById('knowledgeTextInput')?.value || '';
-            const textItems = buildKnowledgeTextPreviewItems(textValue);
-            const pendingFileItems = pendingKnowledgeFiles.map(file => ({
-                type: 'pending-pdf',
-                title: file.name,
-                meta: `待保存 PDF · ${formatFileSize(file.size)}`
+            const items = savedKnowledgeTextEntries.map((entry, index) => ({
+                type: 'text',
+                id: entry.id,
+                title: entry.title || `文本条目 ${index + 1}`,
+                meta: `文本 · ${formatFileSize(entry.size || 0)} · ${formatDateTime(entry.modified_at || entry.created_at)}`
             }));
-            const savedFileItems = savedKnowledgeFiles.map(file => ({
-                type: 'saved-pdf',
-                title: file.name,
-                meta: `已保存 PDF · ${formatFileSize(file.size)} · ${formatDateTime(file.modified)}`
-            }));
-            const items = textItems.concat(pendingFileItems, savedFileItems);
 
             if (!items.length) {
-                previewEl.innerHTML = '<div class="knowledge-catalog-preview__empty">输入知识库文本或添加 PDF 后，这里会生成分条目录预览。</div>';
+                previewEl.innerHTML = '<div class="knowledge-catalog-preview__empty">暂无已保存文本条目。</div>';
                 return;
             }
 
             previewEl.innerHTML = `
                 <div class="knowledge-catalog-preview__head">
-                    <h4>知识库目录预览</h4>
+                    <h4>已保存文本条目</h4>
                     <span class="knowledge-catalog-preview__count">共 ${items.length} 条</span>
                 </div>
                 <div class="knowledge-catalog-preview__body">
@@ -14861,14 +15170,15 @@
                                 <div class="knowledge-catalog-preview__meta">${escapeHtml(item.meta)}</div>
                             </div>
                             <div class="knowledge-catalog-preview__actions">
-                                ${item.type === 'text' ? `
-                                    <button type="button" class="btn-sm knowledge-text-view-btn" data-index="${item.index}">
-                                        <i class="fas fa-eye"></i> 查看
-                                    </button>
-                                    <button type="button" class="btn-sm btn-danger knowledge-text-delete-btn" data-index="${item.index}">
-                                        <i class="fas fa-trash"></i> 删除
-                                    </button>
-                                ` : ''}
+                                <button type="button" class="btn-sm knowledge-text-view-btn" data-entry-id="${escapeAttr(item.id)}">
+                                    <i class="fas fa-eye"></i> 查看
+                                </button>
+                                <button type="button" class="btn-sm knowledge-text-edit-btn" data-entry-id="${escapeAttr(item.id)}">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                                <button type="button" class="btn-sm btn-danger knowledge-text-delete-btn" data-entry-id="${escapeAttr(item.id)}">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
                             </div>
                         </div>
                     `).join('')}
@@ -14876,16 +15186,13 @@
             `;
 
             previewEl.querySelectorAll('.knowledge-text-view-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const index = Number(btn.dataset.index);
-                    if (Number.isInteger(index)) viewKnowledgeTextEntry(index);
-                });
+                btn.addEventListener('click', () => viewKnowledgeTextEntry(btn.dataset.entryId || ''));
+            });
+            previewEl.querySelectorAll('.knowledge-text-edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => editKnowledgeTextEntry(btn.dataset.entryId || ''));
             });
             previewEl.querySelectorAll('.knowledge-text-delete-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const index = Number(btn.dataset.index);
-                    if (Number.isInteger(index)) deleteKnowledgeTextEntry(index);
-                });
+                btn.addEventListener('click', () => deleteKnowledgeTextEntry(btn.dataset.entryId || ''));
             });
         }
 
@@ -14974,10 +15281,9 @@
             setKnowledgeUploadMessage('');
             const knowledgeText = textInput.value || '';
             const hasText = knowledgeText.trim().length > 0;
-            const textChanged = knowledgeText !== lastKnowledgeTextValue;
             const hasPendingFiles = pendingKnowledgeFiles.length > 0;
 
-            if (!hasText && !hasPendingFiles && !textChanged) {
+            if (!hasText && !hasPendingFiles) {
                 setKnowledgeUploadMessage('请输入知识库文本或上传 PDF 文件后再保存。', 'error');
                 renderKnowledgeCatalogPreview();
                 return;
@@ -14997,7 +15303,9 @@
 
             try {
                 const formData = new FormData();
-                formData.append('knowledge_text', knowledgeText);
+                if (hasText) {
+                    formData.append('knowledge_text', knowledgeText);
+                }
                 pendingKnowledgeFiles.forEach(file => formData.append('files', file));
 
                 const res = await fetch('/api/chatbot/knowledge/upload', {
@@ -15015,6 +15323,8 @@
                 }
 
                 pendingKnowledgeFiles = [];
+                textInput.value = '';
+                lastKnowledgeTextValue = '';
                 await loadKnowledgeFiles();
                 if (fileInput) fileInput.value = '';
                 setKnowledgeUploadMessage(data.message || '知识库保存成功', data.partial_success ? 'warning' : 'success');
@@ -15065,6 +15375,29 @@
         const knowledgeTextInput = document.getElementById('knowledgeTextInput');
         if (knowledgeTextInput) {
             knowledgeTextInput.addEventListener('input', renderKnowledgeCatalogPreview);
+        }
+
+        const knowledgeTextDetailEditBtn = document.getElementById('knowledgeTextDetailEditBtn');
+        if (knowledgeTextDetailEditBtn) {
+            knowledgeTextDetailEditBtn.addEventListener('click', () => {
+                const titleEl = document.getElementById('knowledgeTextDetailTitle');
+                if (titleEl) titleEl.textContent = '编辑文本条目';
+                setKnowledgeTextDetailMode(true);
+            });
+        }
+        const knowledgeTextDetailSaveBtn = document.getElementById('knowledgeTextDetailSaveBtn');
+        if (knowledgeTextDetailSaveBtn) {
+            knowledgeTextDetailSaveBtn.addEventListener('click', saveKnowledgeTextEntry);
+        }
+        const knowledgeTextDetailCancelBtn = document.getElementById('knowledgeTextDetailCancelBtn');
+        if (knowledgeTextDetailCancelBtn) {
+            knowledgeTextDetailCancelBtn.addEventListener('click', () => {
+                if (currentKnowledgeTextEntryId) {
+                    openKnowledgeTextEntryModal(currentKnowledgeTextEntryId, false);
+                } else {
+                    closeKnowledgeTextDetailModal();
+                }
+            });
         }
     
         function copyToClipboard(text) {

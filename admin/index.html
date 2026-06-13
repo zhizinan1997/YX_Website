@@ -2362,9 +2362,9 @@
                     <!-- Knowledge Base Tab -->
                     <div id="chatbot-tab-knowledge" class="tab-content">
                         <div class="card" style="padding: 30px;">
-                            <h3 class="section-header">知识库文件管理</h3>
+                            <h3 class="section-header">知识库管理</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                支持直接录入知识库文本，也支持同时上传多个 PDF 文档。保存后，智能客服会综合使用文本与文档内容回答问题。
+                                支持新增文本知识、增量上传多个 PDF 文档。保存后，智能客服会综合使用已保存文本与文档内容回答问题。
                             </p>
 
                             <div id="pdfSupportWarning" class="chat-error" style="display: none; margin-bottom: 20px;">
@@ -2373,22 +2373,24 @@
                             </div>
 
                             <div class="form-group" style="margin-bottom: 18px;">
-                                <label for="knowledgeTextInput">知识库文本</label>
+                                <label for="knowledgeTextInput">新增文本知识</label>
                                 <textarea id="knowledgeTextInput" rows="10" class="form-control"
                                     style="min-height: 220px; resize: vertical;"
-                                    placeholder="可直接输入产品说明、常见问答、服务政策等知识库内容。"></textarea>
+                                    placeholder="输入一条新的产品说明、常见问答、服务政策等知识内容。保存后会新增为独立文本条目，不覆盖已有内容。"></textarea>
                                 <div id="knowledgeTextStatus" class="form-hint" style="margin-top: 8px;"></div>
                             </div>
 
+                            <h4 style="margin: 20px 0 12px; font-size: 16px; color: #333;">待上传 PDF</h4>
                             <div class="file-upload-zone" id="knowledgeUploadZone">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放 PDF 文件到此处</div>
-                                <div style="font-size: 13px; color: #888;">或点击选择多个 PDF 文件，保存时将与文本内容一起提交</div>
+                                <div style="font-size: 13px; color: #888;">或点击选择多个 PDF 文件，保存时会增量追加到知识库</div>
                                 <input type="file" id="knowledgeFileInput" accept=".pdf" multiple style="display: none;">
                             </div>
 
                             <div id="knowledgePendingFileList" class="file-list" style="margin-top: 15px;"></div>
 
+                            <h4 style="margin: 24px 0 12px; font-size: 16px; color: #333;">已保存文本条目</h4>
                             <div id="knowledgeCatalogPreview" class="knowledge-catalog-preview"></div>
 
                             <div id="uploadProgress" style="display: none; margin-top: 15px;">
@@ -2400,7 +2402,7 @@
 
                             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 18px;">
                                 <button type="button" id="knowledgeSaveBtn" class="btn-primary"
-                                    style="width: auto; padding: 12px 28px;">保存知识库</button>
+                                    style="width: auto; padding: 12px 28px;">保存新增内容</button>
                                 <div id="knowledgeUploadMsg" class="error-message" style="margin: 0;"></div>
                             </div>
 
@@ -3462,9 +3464,26 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     <h3 id="knowledgeTextDetailTitle">文本条目全文</h3>
                     <div id="knowledgeTextDetailMeta" class="knowledge-text-detail-meta"></div>
                 </div>
-                <button type="button" class="btn-sm btn-danger" onclick="closeKnowledgeTextDetailModal()">
-                    <i class="fas fa-times"></i> 关闭
-                </button>
+                <div class="knowledge-text-detail-actions">
+                    <button type="button" id="knowledgeTextDetailEditBtn" class="btn-sm">
+                        <i class="fas fa-edit"></i> 编辑
+                    </button>
+                    <button type="button" id="knowledgeTextDetailSaveBtn" class="btn-sm" hidden>
+                        <i class="fas fa-save"></i> 保存
+                    </button>
+                    <button type="button" id="knowledgeTextDetailCancelBtn" class="btn-sm" hidden>
+                        <i class="fas fa-undo"></i> 取消
+                    </button>
+                    <button type="button" class="btn-sm btn-danger" onclick="closeKnowledgeTextDetailModal()">
+                        <i class="fas fa-times"></i> 关闭
+                    </button>
+                </div>
+            </div>
+            <div id="knowledgeTextDetailForm" class="knowledge-text-detail-form" hidden>
+                <label for="knowledgeTextDetailTitleInput">标题</label>
+                <input type="text" id="knowledgeTextDetailTitleInput" class="form-control" maxlength="120">
+                <label for="knowledgeTextDetailEditor">内容</label>
+                <textarea id="knowledgeTextDetailEditor" class="form-control" rows="14"></textarea>
             </div>
             <pre id="knowledgeTextDetailContent" class="knowledge-text-detail-content"></pre>
         </div>
