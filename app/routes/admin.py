@@ -425,21 +425,44 @@ def _build_smtp_status_payload(config):
     }
 
 
-def _send_smtp_mail(settings, *, to_email: str, subject: str, html_body: str, text_body: str = ''):
+def _send_smtp_mail(settings, *, to_email: str, subject: str, html_body: str, text_body: str = '', attachments=None):
     recipient = _normalize_email(to_email)
     if not recipient:
         raise ValueError('missing recipient')
     if not _smtp_ready_for_email_auth(settings):
         raise RuntimeError('SMTP 配置不可用')
 
-    message = EmailMessage()
     from_name = str(settings.get('smtp_from_name') or '').strip()
     from_email = _normalize_email(settings.get('smtp_from_email', ''))
-    message['From'] = f'{from_name} <{from_email}>' if from_name else from_email
-    message['To'] = recipient
-    message['Subject'] = subject
-    message.set_content(text_body or '请使用支持 HTML 的邮箱客户端查看邮件。')
-    message.add_alternative(html_body, subtype='html')
+    from_header = f'{from_name} <{from_email}>' if from_name else from_email
+
+    if attachments:
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.application import MIMEApplication
+
+        message = MIMEMultipart('mixed')
+        message['From'] = from_header
+        message['To'] = recipient
+        message['Subject'] = subject
+
+        alt = MIMEMultipart('alternative')
+        alt.attach(MIMEText(text_body or '请使用支持 HTML 的邮箱客户端查看邮件。', 'plain', 'utf-8'))
+        alt.attach(MIMEText(html_body, 'html', 'utf-8'))
+        message.attach(alt)
+
+        for fname, data_bytes, mime_type in attachments:
+            maintype, subtype = (mime_type.split('/', 1) + ['octet-stream'])[:2]
+            part = MIMEApplication(data_bytes, _subtype=subtype)
+            part.add_header('Content-Disposition', 'attachment', filename=fname)
+            message.attach(part)
+    else:
+        message = EmailMessage()
+        message['From'] = from_header
+        message['To'] = recipient
+        message['Subject'] = subject
+        message.set_content(text_body or '请使用支持 HTML 的邮箱客户端查看邮件。')
+        message.add_alternative(html_body, subtype='html')
 
     host = settings['smtp_host']
     port = int(settings['smtp_port'])

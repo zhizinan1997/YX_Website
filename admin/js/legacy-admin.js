@@ -97,6 +97,7 @@
         let siteAiReportListCache = null;
         let siteAiReportLastText = '';
         let siteAiReportActiveJobId = '';
+        let scheduledReportConfig = null;
         const SITE_REPORT_EVENT_PAGE_SIZE = 8;
         const SITE_REPORT_PROVINCE_PAGE_SIZE = 8;
         const SITE_REPORT_COUNTRY_PAGE_SIZE = 8;
@@ -15284,7 +15285,7 @@
             const hasPendingFiles = pendingKnowledgeFiles.length > 0;
 
             if (!hasText && !hasPendingFiles) {
-                setKnowledgeUploadMessage('请输入知识库文本或上传 PDF 文件后再保存。', 'error');
+                setKnowledgeUploadMessage('请输入知识库文本或上传 PDF 文件后再保存。', '错误');
                 renderKnowledgeCatalogPreview();
                 return;
             }
@@ -15318,7 +15319,7 @@
                     const details = Array.isArray(data.failed) && data.failed.length
                         ? `：${data.failed.map(item => `${item.filename || '文本'} ${item.message}`).join('；')}`
                         : '';
-                    setKnowledgeUploadMessage(`${data.message || '保存失败'}${details}`, 'error');
+                    setKnowledgeUploadMessage(`${data.message || '保存失败'}${details}`, '错误');
                     return;
                 }
 
@@ -15329,7 +15330,7 @@
                 if (fileInput) fileInput.value = '';
                 setKnowledgeUploadMessage(data.message || '知识库保存成功', data.partial_success ? 'warning' : 'success');
             } catch (e) {
-                setKnowledgeUploadMessage('保存失败：网络错误', 'error');
+                setKnowledgeUploadMessage('保存失败：网络错误', '错误');
             } finally {
                 progress.style.display = 'none';
                 if (progressLabel) {
@@ -15804,3 +15805,245 @@
             if (!_cdnPreviewPath) return;
             downloadCdnFile(_cdnPreviewPath);
         }
+
+        // ── 定时报告设置弹窗 ──
+
+        function openScheduledReportSettings(focusSection) {
+            const modal = document.getElementById('scheduledReportSettingsModal');
+            if (!modal) return;
+            modal.hidden = false;
+            document.getElementById('srSettingsBody').innerHTML =
+                '<div class="sr-settings-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载配置...</div>';
+            fetch('/api/admin/scheduled-reports/config', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    scheduledReportConfig = data;
+                    _renderScheduledReportSettings(data, focusSection);
+                } else {
+                    document.getElementById('srSettingsBody').innerHTML =
+                        '<div class="sr-settings-loading" style="color:#dc2626;">加载失败: ' +
+                        (data.message || '未知错误') + '</div>';
+                }
+            })
+            .catch(err => {
+                document.getElementById('srSettingsBody').innerHTML =
+                    '<div class="sr-settings-loading" style="color:#dc2626;">网络请求失败</div>';
+            });
+        }
+
+        function closeScheduledReportSettings() {
+            const modal = document.getElementById('scheduledReportSettingsModal');
+            if (modal) modal.hidden = true;
+        }
+
+        function _renderScheduledReportSettings(data, focusSection) {
+            const sched = data.scheduled_reports || {};
+            const email = data.report_email_push || {};
+            const smtpOk = data.smtp_configured;
+            const emails = data.verified_admin_emails || [];
+            const recipients = new Set(email.recipient_emails || []);
+            const recent = data.recent_generations || [];
+
+            const periodLabels = { weekly: '周报', monthly: '月报', yearly: '年报' };
+            const periodBadgeCls = { weekly: 'sr-log-badge-week', monthly: 'sr-log-badge-month', yearly: 'sr-log-badge-year' };
+
+            let html = '';
+
+            // ── 卡片一：定期生成报告 ──
+            html += '<div class="sr-card" id="srCardSchedule">';
+            html += '<h4 class="sr-card-title"><i class="fas fa-clock"></i> 定期生成报告</h4>';
+            html += '<div class="sr-toggle-row">';
+            html += '  <label class="toggle-switch" style="margin:0;">';
+            html += '    <input type="checkbox" id="srSchedEnabled"' + (sched.enabled ? ' checked' : '') + ' onchange="toggleScheduledReports(this.checked)">';
+            html += '    <span class="toggle-slider"></span>';
+            html += '  </label>';
+            html += '  <span class="sr-toggle-label">启用定时生成</span>';
+            html += '</div>';
+            html += '<div class="sr-sub-options" id="srSubOptions"' + (sched.enabled ? '' : ' style="display:none;"') + '>';
+            html += '  <label><input type="checkbox" id="srSchedWeekly"' + (sched.weekly ? ' checked' : '') + '>';
+            html += '    <span><strong>周报</strong> — 每周一凌晨自动生成（上周一 ~ 上周日）</span></label>';
+            html += '  <label><input type="checkbox" id="srSchedMonthly"' + (sched.monthly ? ' checked' : '') + '>';
+            html += '    <span><strong>月报</strong> — 每月 1 日凌晨自动生成（上月整月）</span></label>';
+            html += '  <label><input type="checkbox" id="srSchedYearly"' + (sched.yearly ? ' checked' : '') + '>';
+            html += '    <span><strong>年报</strong> — 每年 1 月 1 日凌晨自动生成（上年整年）</span></label>';
+            html += '</div>';
+            html += '<div class="sr-time-hint"><i class="fas fa-info-circle"></i> 生成时间：凌晨 02:00（北京时间）</div>';
+            html += '</div>';
+
+            // ── 卡片二：报告邮件推送 ──
+            html += '<div class="sr-card" id="srCardEmail">';
+            html += '<h4 class="sr-card-title"><i class="fas fa-envelope"></i> 报告邮件推送</h4>';
+            if (!smtpOk) {
+                html += '<div class="sr-warning-banner"><i class="fas fa-exclamation-triangle"></i> SMTP 未配置，请先在系统设置中配置 SMTP 后再开启邮件推送。</div>';
+            }
+            html += '<div class="sr-toggle-row">';
+            html += '  <label class="toggle-switch" style="margin:0;">';
+            html += '    <input type="checkbox" id="srEmailEnabled"' + (email.enabled && smtpOk ? ' checked' : '') + (smtpOk ? '' : ' disabled') + ' onchange="toggleEmailPush(this.checked)">';
+            html += '    <span class="toggle-slider"></span>';
+            html += '  </label>';
+            html += '  <span class="sr-toggle-label">启用自动邮件推送</span>';
+            html += '</div>';
+            html += '<div id="srEmailList"' + (email.enabled && smtpOk ? '' : ' style="display:none;"') + '>';
+            if (emails.length === 0) {
+                html += '<p style="color:#94a3b8;font-size:13px;margin:8px 0;">暂无已验证邮箱的管理员账号。</p>';
+            } else {
+                html += '<div class="sr-email-list">';
+                emails.forEach(function(e) {
+                    const checked = recipients.has(e.email) ? ' checked' : '';
+                    html += '<label class="sr-email-item">';
+                    html += '  <input type="checkbox" class="sr-email-cb" value="' + escapeHtml(e.email) + '"' + checked + '>';
+                    html += '  <span class="sr-email-addr">' + escapeHtml(e.email) + '</span>';
+                    html += '  <span class="sr-email-user">' + escapeHtml(e.username) + '</span>';
+                    html += '</label>';
+                });
+                html += '</div>';
+            }
+            if (smtpOk && emails.length > 0) {
+                html += '<button type="button" class="sr-test-btn" onclick="sendTestReportEmail(this)"><i class="fas fa-paper-plane"></i> 发送测试邮件</button>';
+            }
+            html += '</div>';
+            html += '</div>';
+
+            // ── 卡片三：生成记录 ──
+            html += '<div class="sr-card">';
+            html += '<h4 class="sr-card-title"><i class="fas fa-history"></i> 自动生成记录</h4>';
+            if (recent.length === 0) {
+                html += '<div class="sr-gen-log-empty">暂无定时生成记录</div>';
+            } else {
+                html += '<div class="sr-gen-log">';
+                recent.forEach(function(r) {
+                    const badgeCls = periodBadgeCls[r.type] || 'sr-log-badge-week';
+                    const label = periodLabels[r.type] || r.type;
+                    const range = r.period_start + ' ~ ' + r.period_end;
+                    const time = (r.generated_at || '').replace('T', ' ').slice(0, 19);
+                    let statusHtml;
+                    if (!r.report_id) {
+                        statusHtml = '<span class="sr-log-status failed">生成失败</span>';
+                    } else if (r.email_sent) {
+                        statusHtml = '<span class="sr-log-status sent"><i class="fas fa-check-circle"></i> 已发送</span>';
+                    } else {
+                        statusHtml = '<span class="sr-log-status pending">待发送</span>';
+                    }
+                    html += '<div class="sr-gen-log-item">';
+                    html += '  <span class="sr-log-badge ' + badgeCls + '">' + escapeHtml(label) + '</span>';
+                    html += '  <span>' + escapeHtml(range) + '</span>';
+                    html += '  <span style="color:#94a3b8;font-size:12px;">' + escapeHtml(time) + '</span>';
+                    html += statusHtml;
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+
+            // ── 底部按钮 ──
+            html += '<div class="sr-footer">';
+            html += '  <button type="button" class="btn-sm" onclick="closeScheduledReportSettings()" style="padding:8px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;">取消</button>';
+            html += '  <button type="button" class="btn-primary" id="srSaveBtn" onclick="saveScheduledReportSettings()">保存设置</button>';
+            html += '</div>';
+
+            document.getElementById('srSettingsBody').innerHTML = html;
+
+            // 如果有 focusSection 参数，滚动到对应卡片
+            if (focusSection === 'email') {
+                const emailCard = document.getElementById('srCardEmail');
+                if (emailCard) emailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function toggleScheduledReports(enabled) {
+            const sub = document.getElementById('srSubOptions');
+            if (sub) sub.style.display = enabled ? '' : 'none';
+        }
+
+        function toggleEmailPush(enabled) {
+            const list = document.getElementById('srEmailList');
+            if (list) list.style.display = enabled ? '' : 'none';
+        }
+
+        function saveScheduledReportSettings() {
+            const btn = document.getElementById('srSaveBtn');
+            if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+
+            const enabledSched = document.getElementById('srSchedEnabled')?.checked || false;
+            const weekly = document.getElementById('srSchedWeekly')?.checked ?? true;
+            const monthly = document.getElementById('srSchedMonthly')?.checked ?? true;
+            const yearly = document.getElementById('srSchedYearly')?.checked ?? true;
+            const enabledEmail = document.getElementById('srEmailEnabled')?.checked || false;
+            const recipientEmails = [];
+            document.querySelectorAll('.sr-email-cb:checked').forEach(function(cb) {
+                recipientEmails.push(cb.value);
+            });
+
+            const payload = {
+                scheduled_reports: {
+                    enabled: enabledSched,
+                    weekly: weekly,
+                    monthly: monthly,
+                    yearly: yearly,
+                },
+                report_email_push: {
+                    enabled: enabledEmail,
+                    recipient_emails: recipientEmails,
+                },
+            };
+
+            fetch('/api/admin/scheduled-reports/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showGlobalAlert(data.message || '设置已保存', '成功');
+                    closeScheduledReportSettings();
+                } else {
+                    showGlobalAlert(data.message || '保存失败', '错误');
+                }
+            })
+            .catch(() => {
+                showGlobalAlert('网络请求失败', '错误');
+            })
+            .finally(() => {
+                if (btn) { btn.disabled = false; btn.textContent = '保存设置'; }
+            });
+        }
+
+        function sendTestReportEmail(btnEl) {
+            const checkedCbs = document.querySelectorAll('.sr-email-cb:checked');
+            if (checkedCbs.length === 0) {
+                showGlobalAlert('请先勾选至少一个收件邮箱', '错误');
+                return;
+            }
+            const firstEmail = checkedCbs[0].value;
+            if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...'; }
+
+            fetch('/api/admin/scheduled-reports/test-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to_email: firstEmail }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showGlobalAlert(data.message || '测试邮件已发送', '成功');
+                } else {
+                    showGlobalAlert(data.message || '发送失败', '错误');
+                }
+            })
+            .catch(() => {
+                showGlobalAlert('网络请求失败', '错误');
+            })
+            .finally(() => {
+                if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-paper-plane"></i> 发送测试邮件'; }
+            });
+        }
+
+        // ESC 关闭设置弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('scheduledReportSettingsModal');
+                if (modal && !modal.hidden) closeScheduledReportSettings();
+            }
+        });

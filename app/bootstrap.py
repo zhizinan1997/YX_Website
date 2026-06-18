@@ -289,6 +289,7 @@ def register_all_routes(app):
         resolve_ip_location=resolve_ip_location,
         beijing_tz=BEIJING_TZ,
         get_config=get_config,
+        update_config=update_config,
         requests_support=REQUESTS_SUPPORT,
         requests_module=requests if REQUESTS_SUPPORT else None,
         httpx_support=HTTPX_SUPPORT,
