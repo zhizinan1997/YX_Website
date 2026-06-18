@@ -77,13 +77,14 @@
       el.innerHTML = '<div class="empty-block">尚未配置监测目标。</div>';
       return;
     }
-    el.innerHTML = targets.map((target) => {
+    el.innerHTML = targets.map((target, index) => {
       const status = target.last_status || 'pending';
+      const statusModifier = status === 'ok' ? 'ok' : status === 'degraded' ? 'degraded' : status === 'pending' ? 'pending' : 'down';
       return `
-        <article class="target-card">
+        <article class="target-card target-card--${statusModifier}" style="animation-delay:${index * 0.06}s">
           <div class="target-card__head">
             <div>
-              <div class="target-title"><span class="status-dot status-dot--${status === 'ok' ? 'ok' : status === 'degraded' ? 'degraded' : status === 'pending' ? 'pending' : 'down'}"></span>${target.name}</div>
+              <div class="target-title"><i class="bi bi-globe2 target-icon"></i><span class="status-dot status-dot--${statusModifier}"></span>${target.name}</div>
               <div class="target-url">${target.url}</div>
             </div>
             <span class="status-pill ${statusClass(status)}">${statusLabel[status] || '未知状态'}</span>
@@ -109,7 +110,9 @@
     el.innerHTML = incidents.map((item) => `
       <div class="incident-item ${item.status === 'resolved' ? 'resolved' : ''}">
         <div>
-          <strong>${item.target_name}</strong>
+          <strong>${item.status === 'resolved'
+            ? '<i class="bi bi-check-circle incident-icon incident-icon--resolved"></i>'
+            : '<i class="bi bi-exclamation-triangle incident-icon incident-icon--down"></i>'}${item.target_name}</strong>
           <div class="target-url">${item.url}</div>
           <div class="muted">${formatSummary(item.last_error)}</div>
         </div>

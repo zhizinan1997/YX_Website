@@ -599,3 +599,9 @@ def get_recent_incidents(data_dir: Path | None = None, *, limit: int = 50) -> li
             dict(row)
             for row in conn.execute("SELECT * FROM incidents ORDER BY opened_at DESC LIMIT ?", (int(limit),)).fetchall()
         ]
+
+
+def clear_all_incidents(data_dir: Path | None = None) -> int:
+    with managed_connection(data_dir) as conn:
+        cursor = conn.execute("DELETE FROM incidents")
+        return cursor.rowcount

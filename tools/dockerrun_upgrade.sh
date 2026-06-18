@@ -78,6 +78,7 @@ require_cmd() {
 
 trim() {
   local value="$1"
+  value="${value//$'\r'/}"
   value="${value#"${value%%[![:space:]]*}"}"
   value="${value%"${value##*[![:space:]]}"}"
   printf '%s' "$value"
@@ -198,6 +199,7 @@ prompt_line_into() {
     IFS= read -r input < /dev/tty || die "读取输入失败。"
   fi
 
+  input="${input//$'\r'/}"
   input="$(trim "$input")"
   if [[ -z "$input" && -n "$default_value" ]]; then
     input="$default_value"
@@ -727,6 +729,16 @@ get_existing_env() {
   done
 }
 
+get_existing_check_env() {
+  local key="$1"
+  if [[ -z "${EXISTING_CHECK_ENV_LINES:-}" ]]; then
+    return 0
+  fi
+  awk -F= -v k="$key" '$1==k { $1=""; sub(/^=/, ""); print; exit }' <<< "$EXISTING_CHECK_ENV_LINES" | while IFS= read -r line; do
+    printf '%s' "$(trim "$line")"
+  done
+}
+
 resolve_basic_runtime_values() {
   local value_source=""
 
@@ -789,6 +801,35 @@ resolve_secret_key() {
 
   SECRET_KEY_VAL="$value"
   info "SECRET_KEY 已确认（来源：${source}，长度：${#SECRET_KEY_VAL}）"
+}
+
+resolve_check_secret_key() {
+  local value=""
+  local source=""
+
+  value="$(trim "${CHECK_SECRET_KEY:-}")"
+  if [[ -n "$value" ]]; then
+    source="当前 shell 环境变量"
+  else
+    value="$(get_existing_check_env "CHECK_SECRET_KEY")"
+    if [[ -n "$value" ]]; then
+      source="旧监测站容器环境变量"
+    fi
+  fi
+
+  if [[ -n "$value" && ${#value} -lt 32 ]]; then
+    warn "检测到的 CHECK_SECRET_KEY 长度不足 32 位，将改为交互输入。"
+    value=""
+    source=""
+  fi
+
+  if [[ -z "$value" ]]; then
+    prompt_confirm_secret_into value "请输入监测站 CHECK_SECRET_KEY（至少 32 位，生产环境务必固定不变）" 32
+    source="交互输入"
+  fi
+
+  CHECK_SECRET_KEY_VAL="$value"
+  info "CHECK_SECRET_KEY 已确认（来源：${source}，长度：${#CHECK_SECRET_KEY_VAL}）"
 }
 
 resolve_public_base_url() {
@@ -885,6 +926,13 @@ load_existing_state() {
     HAS_LEGACY_GATEWAY_CONTAINER=true
   fi
 
+  HAS_CHECK_CONTAINER=false
+  EXISTING_CHECK_ENV_LINES=""
+  if docker container inspect "$CHECK_CONTAINER" >/dev/null 2>&1; then
+    HAS_CHECK_CONTAINER=true
+    EXISTING_CHECK_ENV_LINES="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CHECK_CONTAINER" || true)"
+  fi
+
   DATA_FILE_COUNT="$(count_regular_files "$DATA_DIR")"
   PAGES_FILE_COUNT="$(count_regular_files "$PAGES_DIR")"
   LEGACY_CDN_FILE_COUNT="$(count_regular_files "$LEGACY_CDN_DIR")"
@@ -900,6 +948,7 @@ determine_deploy_kind_and_strategy() {
   phase "识别部署场景"
   info "website 容器是否存在：$HAS_WEBSITE_CONTAINER"
   info "旧版 gateway 容器是否存在：$HAS_LEGACY_GATEWAY_CONTAINER"
+  info "监测站容器是否存在：$HAS_CHECK_CONTAINER"
   info "宿主机 data 文件数：$DATA_FILE_COUNT"
   info "宿主机 pages 文件数：$PAGES_FILE_COUNT"
   info "旧版宿主机 cdn_assets 文件数：$LEGACY_CDN_FILE_COUNT"
@@ -935,7 +984,7 @@ determine_deploy_kind_and_strategy() {
 
 prepare_directories_and_network() {
   phase "准备目录和 Docker 网络"
-  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$DATA_DIR/logs"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$DATA_DIR/logs" "$CHECK_DATA_DIR"
 
   if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
     info "Docker 网络已存在：$NETWORK_NAME"
@@ -970,6 +1019,7 @@ pull_latest_images() {
     return 0
   fi
   pull_with_timeout "$WEBSITE_IMAGE" "网站"
+  pull_with_timeout "$CHECK_IMAGE" "监测站"
 }
 
 prepare_content_for_fresh_or_reset() {
@@ -1015,6 +1065,7 @@ rollback_containers() {
   warn "正在尝试回滚到旧容器..."
   docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
   docker rm -f "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
+  docker rm -f "$CHECK_CONTAINER" >/dev/null 2>&1 || true
 
   if [[ "$has_old_website" == "true" ]]; then
     docker rename "${WEBSITE_CONTAINER}-old" "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
@@ -1027,6 +1078,12 @@ rollback_containers() {
     docker start "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
     info "已回滚旧版 gateway 容器"
   fi
+
+  if [[ "${has_old_check:-false}" == "true" ]]; then
+    docker rename "${CHECK_CONTAINER}-old" "$CHECK_CONTAINER" >/dev/null 2>&1 || true
+    docker start "$CHECK_CONTAINER" >/dev/null 2>&1 || true
+    info "已回滚监测站容器到旧版本"
+  fi
 }
 
 recreate_containers() {
@@ -1035,6 +1092,7 @@ recreate_containers() {
   # 停止并重命名旧容器（保留以备回滚）
   local has_old_website=false
   local has_old_gateway=false
+  local has_old_check=false
 
   if docker container inspect "$WEBSITE_CONTAINER" >/dev/null 2>&1; then
     info "正在停止旧网站容器并重命名为 ${WEBSITE_CONTAINER}-old"
@@ -1048,6 +1106,13 @@ recreate_containers() {
     docker stop "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
     docker rename "$LEGACY_GATEWAY_CONTAINER" "${LEGACY_GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
     has_old_gateway=true
+  fi
+
+  if docker container inspect "$CHECK_CONTAINER" >/dev/null 2>&1; then
+    info "正在停止旧监测站容器并重命名为 ${CHECK_CONTAINER}-old"
+    docker stop "$CHECK_CONTAINER" >/dev/null 2>&1 || true
+    docker rename "$CHECK_CONTAINER" "${CHECK_CONTAINER}-old" >/dev/null 2>&1 || true
+    has_old_check=true
   fi
 
   website_cmd=(
@@ -1149,6 +1214,48 @@ recreate_containers() {
 
   success "新容器已通过稳定性验证。"
 
+  # ---- 监测站容器 ----
+  info "正在启动监测站容器：$CHECK_CONTAINER"
+  info "监测站容器网络：${NETWORK_NAME}，网络别名：${CHECK_CONTAINER}"
+  info "监测站容器挂载：$DATA_DIR -> /app/main_data (只读)"
+  info "监测站容器挂载：$CHECK_DATA_DIR -> /app/check_data"
+
+  set +e
+  CHECK_CONTAINER_ID="$(docker run -d \
+    --name "$CHECK_CONTAINER" \
+    --restart unless-stopped \
+    --network "$NETWORK_NAME" \
+    --network-alias "$CHECK_CONTAINER" \
+    -p "127.0.0.1:${CHECK_PORT}:8000" \
+    -e "CHECK_SECRET_KEY=$CHECK_SECRET_KEY_VAL" \
+    -e "CHECK_MAIN_DATA_DIR=/app/main_data" \
+    -e "CHECK_DATA_DIR=/app/check_data" \
+    -v "$DATA_DIR:/app/main_data:ro" \
+    -v "$CHECK_DATA_DIR:/app/check_data" \
+    "$CHECK_IMAGE" 2>&1)"
+  local ck_exit=$?
+  set -e
+
+  if (( ck_exit != 0 )); then
+    warn "监测站容器启动失败（退出码：$ck_exit）：$CHECK_CONTAINER_ID"
+    warn "主站容器已成功启动，监测站容器启动失败不影响主站运行。"
+  else
+    success "监测站容器启动成功，容器 ID：${CHECK_CONTAINER_ID:0:12}"
+
+    if ! docker network connect bridge "$CHECK_CONTAINER" 2>/dev/null; then
+      info "监测站容器已在 bridge 网络中，跳过。"
+    else
+      info "已将监测站容器连接到 bridge 网络。"
+    fi
+
+    sleep 2
+    if docker ps --filter "name=^/${CHECK_CONTAINER}$" --format '{{.Names}}' | grep -qx "$CHECK_CONTAINER"; then
+      success "监测站容器已通过稳定性验证。"
+    else
+      warn "监测站容器启动后未能稳定运行，请执行 docker logs $CHECK_CONTAINER 查看原因。主站不受影响。"
+    fi
+  fi
+
   # 新容器正常运行，清理旧容器
   if [[ "$has_old_website" == "true" ]]; then
     docker rm -f "${WEBSITE_CONTAINER}-old" >/dev/null 2>&1 || true
@@ -1158,16 +1265,25 @@ recreate_containers() {
     docker rm -f "${LEGACY_GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
     info "已清理旧版 gateway 容器"
   fi
+  if [[ "$has_old_check" == "true" ]]; then
+    docker rm -f "${CHECK_CONTAINER}-old" >/dev/null 2>&1 || true
+    info "已清理旧监测站容器"
+  fi
 }
 
 verify_containers() {
   phase "验证容器运行状态"
-  for c in "$WEBSITE_CONTAINER"; do
+  for c in "$WEBSITE_CONTAINER" "$CHECK_CONTAINER"; do
     if ! docker ps --filter "name=^/${c}$" --format '{{.Names}}' | grep -qx "$c"; then
-      die "容器 '$c' 未正常运行，请执行 docker logs $c 查看原因。"
+      if [[ "$c" == "$CHECK_CONTAINER" ]]; then
+        warn "监测站容器 '$c' 未正常运行，请执行 docker logs $c 查看原因。主站不受影响。"
+      else
+        die "容器 '$c' 未正常运行，请执行 docker logs $c 查看原因。"
+      fi
+    else
+      info "容器运行正常：$c"
+      info "容器详情摘要：$(docker ps --filter "name=^/${c}$" --format '{{.Names}} | {{.Image}} | {{.Status}}')"
     fi
-    info "容器运行正常：$c"
-    info "容器详情摘要：$(docker ps --filter "name=^/${c}$" --format '{{.Names}} | {{.Image}} | {{.Status}}')"
   done
 
   if command -v curl >/dev/null 2>&1; then
@@ -1184,6 +1300,20 @@ verify_containers() {
       success "HTTP 服务验证通过：http://127.0.0.1:${MAIN_PORT}/"
     else
       warn "HTTP 服务在 15 秒内未就绪，容器进程正在运行但服务可能仍在启动中，请手动验证。"
+    fi
+
+    local check_http_ok=false
+    for _ in $(seq 1 10); do
+      if curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${CHECK_PORT}/"; then
+        check_http_ok=true
+        break
+      fi
+      sleep 1
+    done
+    if [[ "$check_http_ok" == "true" ]]; then
+      success "监测站 HTTP 服务验证通过：http://127.0.0.1:${CHECK_PORT}/"
+    else
+      warn "监测站 HTTP 服务在 10 秒内未就绪，请手动验证 http://127.0.0.1:${CHECK_PORT}/"
     fi
   else
     info "未检测到 curl，跳过 HTTP 可用性验证。"
@@ -1230,6 +1360,10 @@ show_help() {
   WEBSITE_CONTAINER=yx-website
   WEBSITE_IMAGE=ghcr.io/zhizinan1997/yx_website:latest
   MAIN_PORT=2026
+  CHECK_CONTAINER=yx-check-site
+  CHECK_IMAGE=ghcr.io/zhizinan1997/yx_website-check:latest
+  CHECK_PORT=2028
+  CHECK_SECRET_KEY=...
   CLEAN_OLD_IMAGES=true
   SKIP_IMAGE_PULL=true|false
   DEPLOY_STRATEGY=smart|reset|reset-keep-data
@@ -1262,12 +1396,16 @@ WEBSITE_CONTAINER="${WEBSITE_CONTAINER:-yx-website}"
 # 这里只保留旧容器名称用于升级成功后的清理和失败回滚。
 LEGACY_GATEWAY_CONTAINER="${LEGACY_GATEWAY_CONTAINER:-${GATEWAY_CONTAINER:-yx-gateway}}"
 WEBSITE_IMAGE="${WEBSITE_IMAGE:-ghcr.io/zhizinan1997/yx_website:latest}"
+CHECK_CONTAINER="${CHECK_CONTAINER:-yx-check-site}"
+CHECK_IMAGE="${CHECK_IMAGE:-ghcr.io/zhizinan1997/yx_website-check:latest}"
+CHECK_PORT="${CHECK_PORT:-2028}"
 MAIN_PORT="${MAIN_PORT:-2026}"
 CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
 
 DATA_DIR="$YX_ROOT/data"
 PAGES_DIR="$YX_ROOT/pages"
 CDN_ASSETS_DIR="$YX_ROOT/cdn_assets"
+CHECK_DATA_DIR="$YX_ROOT/check_data"
 LEGACY_UPDATE_LOGS_DIR="$YX_ROOT/update_logs"
 LEGACY_CDN_DIR="$YX_ROOT/cdn"
 DATA_BASELINE_DIR="$YX_ROOT/.data-image-baseline"
@@ -1313,7 +1451,9 @@ fi
 phase "开始执行站点部署脚本"
 info "脚本目标目录：$YX_ROOT"
 info "网站镜像：$WEBSITE_IMAGE"
+info "监测站镜像：$CHECK_IMAGE"
 info "主站端口：$MAIN_PORT"
+info "监测站端口：$CHECK_PORT"
 info "CDN 专用入口已废弃；/cdn_assets 会走主站端口并交给 ESA 缓存。"
 
 load_existing_state
@@ -1321,6 +1461,7 @@ determine_deploy_kind_and_strategy
 backup_existing_content_before_update
 resolve_basic_runtime_values
 resolve_secret_key
+resolve_check_secret_key
 resolve_public_base_url
 prepare_directories_and_network
 pull_latest_images
@@ -1338,7 +1479,7 @@ resolve_admin_bootstrap_if_needed
 validate_hidden_admin_runtime_values
 
 phase "修复挂载目录权限"
-chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
+chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$CHECK_DATA_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
 info "挂载目录权限检查完成。"
 
 recreate_containers
@@ -1352,6 +1493,7 @@ if [[ "$DEPLOY_KIND" == "update" ]]; then
   info "本次更新策略：$DEPLOY_STRATEGY_MODE"
 fi
 success "主站入口：http://127.0.0.1:${MAIN_PORT}"
+success "监测站入口：http://127.0.0.1:${CHECK_PORT}"
 success "CDN 素材入口已合并到主站：/cdn_assets/"
 if has_regular_files "$DATA_CONFLICTS_DIR"; then
   warn "检测到 data 合并冲突，请检查：$DATA_CONFLICTS_DIR"
