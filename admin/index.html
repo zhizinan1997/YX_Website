@@ -3505,6 +3505,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </button>
             </div>
             <div class="site-ai-report-list-toolbar">
+                <button type="button" class="sr-toolbar-btn site-report-schedule-btn" id="siteReportScheduleBtn"
+                    onclick="openScheduledReportSettings()">
+                    <i class="fas fa-clock"></i> 报告定期生成
+                </button>
+                <button type="button" class="sr-toolbar-btn site-report-email-btn" id="siteReportEmailBtn"
+                    onclick="openScheduledReportSettings('email')">
+                    <i class="fas fa-envelope"></i> 报告自动推送邮箱
+                </button>
                 <button type="button" class="btn-primary site-report-refresh-btn" id="siteAiReportListRefreshBtn"
                     onclick="loadSiteAiReportList(true)">
                     <i class="fas fa-sync-alt"></i> 刷新清单
@@ -3512,6 +3520,22 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             </div>
             <div id="siteAiReportListContent" class="site-ai-report-list-content">
                 <div class="site-ai-report-list-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载报告清单...</div>
+            </div>
+        </div>
+    </div>
+    <div id="scheduledReportSettingsModal" class="sr-settings-modal" hidden
+         onclick="if(event.target===this) closeScheduledReportSettings()">
+        <div class="sr-settings-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="srSettingsTitle">
+            <div class="sr-settings-header">
+                <h3 id="srSettingsTitle">定时生成与推送设置</h3>
+                <button type="button" class="btn-sm btn-danger"
+                        onclick="closeScheduledReportSettings()">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+            <div class="sr-settings-body" id="srSettingsBody">
+                <div class="sr-settings-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载配置...</div>
             </div>
         </div>
     </div>

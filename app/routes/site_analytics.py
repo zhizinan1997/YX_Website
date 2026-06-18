@@ -95,6 +95,7 @@ _site_report_requests_support = False
 _site_report_requests_module = None
 _site_report_httpx_support = False
 _site_report_httpx_module = None
+_site_report_update_config_fn = None
 
 SITE_ANALYTICS_MAX_BATCH_SIZE = 25
 SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH = 80
@@ -107,6 +108,17 @@ SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS = 2200
 SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE = 0.2
 SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION = 'v20260613'
 SITE_ANALYTICS_ALLOWED_EVENT_TYPES = {'pageview', 'event', 'session_end'}
+
+# ── 定时报告调度相关 ──
+SCHEDULED_REPORTS_DIR = Path(__file__).resolve().parents[2] / 'data' / 'scheduled_reports'
+SCHEDULED_REPORTS_STATE_FILE = SCHEDULED_REPORTS_DIR / 'state.json'
+SCHEDULED_REPORTS_LOCK_FILE = SCHEDULED_REPORTS_DIR / 'scheduler.lock'
+SCHEDULED_REPORT_GENERATE_HOUR_BEIJING = 2  # 北京时间凌晨 2 点生成
+SCHEDULED_REPORT_CHECK_INTERVAL = 600  # 10 分钟检查一次
+SCHEDULED_REPORT_LOCK_TTL = 15 * 60  # 调度器文件锁 TTL 15 分钟
+SCHEDULED_REPORT_MAX_FAILURES = 3  # 连续失败次数上限
+_SCHEDULED_REPORT_THREAD_LOCK = threading.Lock()
+
 SITE_ANALYTICS_CONVERSION_EVENTS = {
     'contact_submit',
     'job_apply',
@@ -3713,6 +3725,373 @@ def _run_site_report_ai_generation_job(app_obj, job_id, period, anchor_date, gen
         run_inner()
 
 
+# ─────────────────────────────────────────────────────────────────────
+# 定时报告生成调度
+# ─────────────────────────────────────────────────────────────────────
+
+def _load_scheduled_report_state():
+    """读取定时报告生成状态文件。"""
+    if not SCHEDULED_REPORTS_STATE_FILE.exists():
+        return {'generated': []}
+    try:
+        data = json.loads(SCHEDULED_REPORTS_STATE_FILE.read_text(encoding='utf-8'))
+        if isinstance(data, dict) and isinstance(data.get('generated'), list):
+            return data
+    except Exception:
+        pass
+    return {'generated': []}
+
+
+def _save_scheduled_report_state(state):
+    """原子写入定时报告生成状态文件。"""
+    SCHEDULED_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    # 保留最近 200 条记录
+    generated = state.get('generated', [])
+    if len(generated) > 200:
+        generated = generated[-200:]
+        state['generated'] = generated
+    tmp = SCHEDULED_REPORTS_STATE_FILE.with_suffix('.tmp')
+    tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
+    tmp.replace(SCHEDULED_REPORTS_STATE_FILE)
+
+
+def _already_generated(state, report_type, period_start, period_end):
+    """检查指定周期是否已生成过报告。"""
+    for entry in state.get('generated', []):
+        if (entry.get('type') == report_type
+                and entry.get('period_start') == period_start
+                and entry.get('period_end') == period_end):
+            return True
+    return False
+
+
+def _get_failure_count(state, report_type, period_start, period_end):
+    """获取指定周期的连续失败次数。"""
+    for entry in state.get('generated', []):
+        if (entry.get('type') == report_type
+                and entry.get('period_start') == period_start
+                and entry.get('period_end') == period_end):
+            return entry.get('failure_count', 0)
+    return 0
+
+
+def _record_generation(state, report_type, period_start, period_end, report_id):
+    """记录一次成功的报告生成。"""
+    state.setdefault('generated', []).append({
+        'type': report_type,
+        'period_start': period_start,
+        'period_end': period_end,
+        'report_id': report_id,
+        'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'email_sent': False,
+        'email_sent_at': None,
+        'failure_count': 0,
+    })
+
+
+def _record_generation_failure(state, report_type, period_start, period_end):
+    """记录一次报告生成失败。"""
+    for entry in state.get('generated', []):
+        if (entry.get('type') == report_type
+                and entry.get('period_start') == period_start
+                and entry.get('period_end') == period_end):
+            entry['failure_count'] = entry.get('failure_count', 0) + 1
+            return
+    state.setdefault('generated', []).append({
+        'type': report_type,
+        'period_start': period_start,
+        'period_end': period_end,
+        'report_id': None,
+        'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'email_sent': False,
+        'email_sent_at': None,
+        'failure_count': 1,
+    })
+
+
+def _record_email_sent(state, report_type, period_start, period_end):
+    """记录邮件推送成功。"""
+    for entry in state.get('generated', []):
+        if (entry.get('type') == report_type
+                and entry.get('period_start') == period_start
+                and entry.get('period_end') == period_end):
+            entry['email_sent'] = True
+            entry['email_sent_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+            return
+
+
+def _compute_due_period(report_type, now_beijing):
+    """
+    根据报告类型和当前北京时间，计算当前应当生成的上一周期范围。
+    返回 (period_start_str, period_end_str, api_period_key, anchor_date_str) 或 None。
+    """
+    import calendar as _cal
+    today = now_beijing.date()
+    weekday = today.weekday()  # 0=Monday
+
+    if report_type == 'weekly':
+        # 仅在周一触发，生成上周 Mon-Sun 的报告
+        if weekday != 0:
+            return None
+        last_monday = today - timedelta(days=7)
+        last_sunday = last_monday + timedelta(days=6)
+        return (
+            last_monday.isoformat(),
+            last_sunday.isoformat(),
+            'week',
+            last_sunday.isoformat(),
+        )
+
+    if report_type == 'monthly':
+        # 在每月 1-3 号触发，生成上月整月报告（3 天宽限期）
+        if today.day > 3:
+            return None
+        first_of_this_month = today.replace(day=1)
+        last_day_prev = first_of_this_month - timedelta(days=1)
+        first_day_prev = last_day_prev.replace(day=1)
+        return (
+            first_day_prev.isoformat(),
+            last_day_prev.isoformat(),
+            'month',
+            last_day_prev.isoformat(),
+        )
+
+    if report_type == 'yearly':
+        # 在每年 1 月 1-3 号触发，生成上年整年报告
+        if today.month != 1 or today.day > 3:
+            return None
+        prev_year = today.year - 1
+        return (
+            f'{prev_year}-01-01',
+            f'{prev_year}-12-31',
+            'year',
+            f'{prev_year}-12-31',
+        )
+
+    return None
+
+
+def _generate_scheduled_report(app_obj, period_key, anchor_date):
+    """
+    桥接现有报告生成逻辑：同步调用 AI 生成并保存报告，返回 report_id 或 None。
+    """
+    try:
+        generation_lock = _AnalyticsFileLock(
+            SITE_ANALYTICS_AI_GENERATION_LOCK_FILE,
+            ttl_seconds=SITE_ANALYTICS_AI_JOB_LOCK_TTL_SECONDS,
+            metadata={'source': 'scheduled'},
+        )
+        if not generation_lock.acquire():
+            LOGGER.warning('[ScheduledReport] Cannot acquire generation lock, skipping.')
+            return None
+        try:
+            with app_obj.app_context():
+                context = build_site_analytics_ai_report_context(
+                    period=period_key, anchor_date=anchor_date
+                )
+                messages = _build_site_analytics_ai_messages(context)
+                ai_result = _call_site_report_ai(messages)
+                if ai_result.get('error'):
+                    LOGGER.error('[ScheduledReport] AI error: %s', ai_result.get('error'))
+                    return None
+                report_text = str(ai_result.get('text') or '').strip()
+                ai_config = _site_report_get_ai_config()
+                generated_at = datetime.now(BEIJING_TZ).isoformat(timespec='seconds')
+                saved_record = _append_site_analytics_ai_report_record(
+                    _build_site_analytics_ai_report_record(
+                        report_text=report_text,
+                        context=context,
+                        model=ai_result.get('model') or ai_config.get('model', ''),
+                        generated_at=generated_at,
+                    )
+                )
+                report_id = saved_record.get('id')
+                # 尝试生成 PDF
+                try:
+                    _generate_site_analytics_ai_report_pdf(saved_record)
+                except Exception:
+                    LOGGER.warning('[ScheduledReport] PDF generation failed, report saved without PDF.', exc_info=True)
+                LOGGER.info('[ScheduledReport] Report generated: %s (%s)', report_id, period_key)
+                return report_id
+        finally:
+            generation_lock.release()
+    except Exception:
+        LOGGER.exception('[ScheduledReport] Unexpected error during scheduled generation.')
+        return None
+
+
+def _send_scheduled_report_emails(app_obj, report_id, recipient_emails):
+    """为定时生成的报告发送邮件推送。"""
+    try:
+        from app.routes.admin import (
+            _send_smtp_mail,
+            _get_email_auth_settings,
+        )
+    except ImportError:
+        LOGGER.warning('[ScheduledReport] Cannot import email helpers from admin module.')
+        return False
+
+    record = _get_site_analytics_ai_report_record(report_id)
+    if not record:
+        LOGGER.warning('[ScheduledReport] Report %s not found for email push.', report_id)
+        return False
+
+    with app_obj.app_context():
+        config = _site_report_get_config_fn()
+        smtp_settings = _get_email_auth_settings(config)
+        if not smtp_settings.get('configured'):
+            LOGGER.info('[ScheduledReport] SMTP not configured, skipping email push.')
+            return False
+
+        title = _analytics_ai_report_title(record) or 'AI 网站运营报告'
+        period_label = record.get('period_label', '')
+        current_range = record.get('current_range', {}) if isinstance(record.get('current_range'), dict) else {}
+        range_label = f"{current_range.get('start_date', '')} ~ {current_range.get('end_date', '')}"
+
+        # 构建 HTML 邮件正文
+        html_body = (
+            f'<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">'
+            f'<h2 style="color:#123d71;">{html.escape(title)}</h2>'
+            f'<p style="color:#333;">报告周期：{html.escape(range_label)}</p>'
+            f'<p style="color:#333;">报告已由系统自动生成，详情请登录管理后台查看。</p>'
+            f'<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">'
+            f'<p style="color:#999;font-size:12px;">此邮件由定时报告系统自动发送。</p>'
+            f'</div>'
+        )
+        text_body = f'{title}\n报告周期：{range_label}\n报告已由系统自动生成，详情请登录管理后台查看。'
+
+        # 尝试获取 PDF 附件
+        pdf_path = _analytics_report_pdf_cache_path(report_id)
+        attachments = None
+        if pdf_path.exists() and pdf_path.stat().st_size > 0:
+            pdf_data = pdf_path.read_bytes()
+            pdf_filename = f'{_analytics_report_filename_part(period_label, fallback="report")}.pdf'
+            attachments = [(pdf_filename, pdf_data, 'application/pdf')]
+
+        sent_count = 0
+        for email_addr in recipient_emails:
+            try:
+                _send_smtp_mail(
+                    smtp_settings,
+                    to_email=email_addr,
+                    subject=f'[网站运营报告] {title}',
+                    html_body=html_body,
+                    text_body=text_body,
+                    attachments=attachments,
+                )
+                sent_count += 1
+                LOGGER.info('[ScheduledReport] Email sent to %s', email_addr)
+            except Exception:
+                LOGGER.warning('[ScheduledReport] Failed to send email to %s', email_addr, exc_info=True)
+
+        return sent_count > 0
+
+
+def _scheduled_report_loop(app_obj, get_config_fn, update_config_fn, data_dir):
+    """定时报告调度主循环，在 daemon thread 中运行。"""
+    LOGGER.info('[ScheduledReport] Scheduler thread started.')
+    while True:
+        time.sleep(SCHEDULED_REPORT_CHECK_INTERVAL)
+        try:
+            # 获取调度器文件锁，防止多 worker 并发
+            scheduler_lock = _AnalyticsFileLock(
+                SCHEDULED_REPORTS_LOCK_FILE,
+                ttl_seconds=SCHEDULED_REPORT_LOCK_TTL,
+                metadata={'source': 'scheduler'},
+            )
+            if not scheduler_lock.acquire():
+                continue
+        except Exception:
+            continue
+
+        try:
+            config = get_config_fn()
+            sched_cfg = config.get('scheduled_reports', {})
+            if not sched_cfg.get('enabled', False):
+                continue
+
+            now_beijing = datetime.now(BEIJING_TZ)
+            if now_beijing.hour < SCHEDULED_REPORT_GENERATE_HOUR_BEIJING:
+                continue
+
+            state = _load_scheduled_report_state()
+
+            for report_type in ('weekly', 'monthly', 'yearly'):
+                if not sched_cfg.get(report_type, True):
+                    continue
+
+                due = _compute_due_period(report_type, now_beijing)
+                if not due:
+                    continue
+                period_start, period_end, api_period, anchor_date = due
+
+                if _already_generated(state, report_type, period_start, period_end):
+                    # 检查是否需要补发邮件
+                    for entry in state.get('generated', []):
+                        if (entry.get('type') == report_type
+                                and entry.get('period_start') == period_start
+                                and entry.get('period_end') == period_end
+                                and not entry.get('email_sent')
+                                and entry.get('report_id')):
+                            email_cfg = config.get('report_email_push', {})
+                            if email_cfg.get('enabled') and email_cfg.get('recipient_emails'):
+                                ok = _send_scheduled_report_emails(
+                                    app_obj, entry['report_id'], email_cfg['recipient_emails']
+                                )
+                                if ok:
+                                    _record_email_sent(state, report_type, period_start, period_end)
+                                    _save_scheduled_report_state(state)
+                    continue
+
+                # 检查失败次数
+                if _get_failure_count(state, report_type, period_start, period_end) >= SCHEDULED_REPORT_MAX_FAILURES:
+                    continue
+
+                # 生成报告
+                report_id = _generate_scheduled_report(app_obj, api_period, anchor_date)
+                if report_id:
+                    _record_generation(state, report_type, period_start, period_end, report_id)
+
+                    # 邮件推送
+                    email_cfg = config.get('report_email_push', {})
+                    if email_cfg.get('enabled') and email_cfg.get('recipient_emails'):
+                        ok = _send_scheduled_report_emails(
+                            app_obj, report_id, email_cfg['recipient_emails']
+                        )
+                        if ok:
+                            _record_email_sent(state, report_type, period_start, period_end)
+
+                    _save_scheduled_report_state(state)
+                else:
+                    _record_generation_failure(state, report_type, period_start, period_end)
+                    _save_scheduled_report_state(state)
+        except Exception:
+            LOGGER.exception('[ScheduledReport] Scheduler loop error.')
+        finally:
+            try:
+                scheduler_lock.release()
+            except Exception:
+                pass
+
+
+def _start_scheduled_report_worker_once(app, get_config_fn, update_config_fn, data_dir):
+    """确保调度线程只启动一次。"""
+    if getattr(app, '_scheduled_report_worker_started', False):
+        return
+    with _SCHEDULED_REPORT_THREAD_LOCK:
+        if getattr(app, '_scheduled_report_worker_started', False):
+            return
+        thread = threading.Thread(
+            target=_scheduled_report_loop,
+            args=(app, get_config_fn, update_config_fn, data_dir),
+            name='site-report-scheduler',
+            daemon=True,
+        )
+        thread.start()
+        app._scheduled_report_worker_started = True
+        LOGGER.info('[ScheduledReport] Worker thread started.')
+
+
 def register_site_analytics_routes(
     app,
     *,
@@ -3722,6 +4101,7 @@ def register_site_analytics_routes(
     resolve_ip_location,
     beijing_tz,
     get_config=None,
+    update_config=None,
     requests_support=False,
     requests_module=None,
     httpx_support=False,
@@ -3732,7 +4112,7 @@ def register_site_analytics_routes(
     global SITE_ANALYTICS_AI_REPORTS_INDEX_FILE, SITE_ANALYTICS_AI_REPORTS_PDF_DIR, SITE_ANALYTICS_AI_JOBS_DIR
     global SITE_ANALYTICS_AI_GENERATION_LOCK_FILE, SITE_ANALYTICS_AI_PDF_LOCK_FILE, BEIJING_TZ, _resolve_ip_location_fn
     global _site_report_get_config_fn, _site_report_requests_support, _site_report_requests_module
-    global _site_report_httpx_support, _site_report_httpx_module
+    global _site_report_httpx_support, _site_report_httpx_module, _site_report_update_config_fn
 
     SITE_ANALYTICS_LOG_FILE = Path(data_dir) / "site_analytics_events.jsonl"
     SITE_ANALYTICS_AI_REPORTS_FILE = Path(data_dir) / "site_analytics_ai_reports.jsonl"
@@ -3749,6 +4129,7 @@ def register_site_analytics_routes(
     _site_report_requests_module = requests_module if _site_report_requests_support else None
     _site_report_httpx_support = bool(httpx_support and httpx_module is not None)
     _site_report_httpx_module = httpx_module if _site_report_httpx_support else None
+    _site_report_update_config_fn = update_config if callable(update_config) else None
 
     @app.route('/api/analytics/collect', methods=['POST'])
     def collect_site_analytics():
@@ -3970,6 +4351,164 @@ def register_site_analytics_routes(
             download_name=filename,
             max_age=0,
         )
+
+    # ── 定时报告配置 API ──
+
+    @app.route('/api/admin/scheduled-reports/config', methods=['GET'])
+    @login_required
+    def get_scheduled_reports_config():
+        """获取定时报告配置和状态。"""
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
+        try:
+            from app.routes.admin import _get_email_auth_settings, _load_admin_users
+
+            config = _site_report_get_config_fn()
+            sched_cfg = config.get('scheduled_reports', {})
+            email_cfg = config.get('report_email_push', {})
+            smtp_settings = _get_email_auth_settings(config)
+
+            # 获取已验证邮箱的管理员列表
+            admin_file = Path(__file__).resolve().parents[2] / 'data' / 'admin_users.json'
+            users_data = _load_admin_users(admin_file)
+            verified_emails = []
+            for u in users_data.get('users', []):
+                if u.get('email_verified') and u.get('email'):
+                    verified_emails.append({
+                        'email': u['email'],
+                        'username': u.get('username', ''),
+                    })
+
+            # 最近生成记录
+            state = _load_scheduled_report_state()
+            recent = list(reversed(state.get('generated', [])))[:20]
+
+            return jsonify({
+                'success': True,
+                'scheduled_reports': {
+                    'enabled': bool(sched_cfg.get('enabled', False)),
+                    'weekly': bool(sched_cfg.get('weekly', True)),
+                    'monthly': bool(sched_cfg.get('monthly', True)),
+                    'yearly': bool(sched_cfg.get('yearly', True)),
+                },
+                'report_email_push': {
+                    'enabled': bool(email_cfg.get('enabled', False)),
+                    'recipient_emails': list(email_cfg.get('recipient_emails', [])),
+                },
+                'smtp_configured': bool(smtp_settings.get('configured')),
+                'verified_admin_emails': verified_emails,
+                'recent_generations': recent,
+            })
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'读取配置失败: {str(exc)}'}), 500
+
+    @app.route('/api/admin/scheduled-reports/config', methods=['PUT'])
+    @login_required
+    def update_scheduled_reports_config():
+        """更新定时报告和邮件推送配置。"""
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
+        if not callable(_site_report_update_config_fn):
+            return jsonify({'success': False, 'message': '配置更新功能不可用'}), 503
+        try:
+            from app.routes.admin import _get_email_auth_settings, _load_admin_users
+
+            payload = request.get_json(silent=True) or {}
+            sched = payload.get('scheduled_reports', {})
+            email_push = payload.get('report_email_push', {})
+
+            # 校验邮件推送收件人
+            recipient_emails = list(email_push.get('recipient_emails', []))
+            if recipient_emails and email_push.get('enabled'):
+                config = _site_report_get_config_fn()
+                smtp_settings = _get_email_auth_settings(config)
+                if not smtp_settings.get('configured'):
+                    return jsonify({
+                        'success': False,
+                        'message': 'SMTP 未配置，请先在系统设置中配置 SMTP 后再开启邮件推送。',
+                    }), 400
+
+                admin_file = Path(__file__).resolve().parents[2] / 'data' / 'admin_users.json'
+                users_data = _load_admin_users(admin_file)
+                verified_set = {
+                    u['email'] for u in users_data.get('users', [])
+                    if u.get('email_verified') and u.get('email')
+                }
+                invalid = [e for e in recipient_emails if e not in verified_set]
+                if invalid:
+                    return jsonify({
+                        'success': False,
+                        'message': f'以下邮箱未验证或不存在: {", ".join(invalid)}',
+                    }), 400
+
+            new_config = {
+                'scheduled_reports': {
+                    'enabled': bool(sched.get('enabled', False)),
+                    'weekly': bool(sched.get('weekly', True)),
+                    'monthly': bool(sched.get('monthly', True)),
+                    'yearly': bool(sched.get('yearly', True)),
+                },
+                'report_email_push': {
+                    'enabled': bool(email_push.get('enabled', False)),
+                    'recipient_emails': recipient_emails,
+                },
+            }
+            _site_report_update_config_fn(new_config)
+            return jsonify({'success': True, 'message': '定时报告设置已保存。'})
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'保存配置失败: {str(exc)}'}), 500
+
+    @app.route('/api/admin/scheduled-reports/test-email', methods=['POST'])
+    @login_required
+    def send_scheduled_report_test_email():
+        """发送测试邮件验证推送通道。"""
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
+        try:
+            from app.routes.admin import _send_smtp_mail, _get_email_auth_settings
+
+            payload = request.get_json(silent=True) or {}
+            to_email = str(payload.get('to_email', '')).strip()
+            if not to_email:
+                return jsonify({'success': False, 'message': '请提供收件邮箱地址'}), 400
+
+            config = _site_report_get_config_fn()
+            smtp_settings = _get_email_auth_settings(config)
+            if not smtp_settings.get('configured'):
+                return jsonify({
+                    'success': False,
+                    'message': 'SMTP 未配置，请先在系统设置中配置 SMTP。',
+                }), 400
+
+            html_body = (
+                '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">'
+                '<h2 style="color:#123d71;">定时报告推送测试</h2>'
+                '<p>如果您收到此邮件，说明报告自动推送邮箱功能已正确配置。</p>'
+                '<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">'
+                '<p style="color:#999;font-size:12px;">此邮件由定时报告系统测试发送。</p>'
+                '</div>'
+            )
+            _send_smtp_mail(
+                smtp_settings,
+                to_email=to_email,
+                subject='[网站运营报告] 推送测试邮件',
+                html_body=html_body,
+                text_body='定时报告推送测试：如果您收到此邮件，说明报告自动推送邮箱功能已正确配置。',
+            )
+            return jsonify({'success': True, 'message': f'测试邮件已发送至 {to_email}'})
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'发送失败: {str(exc)}'}), 500
+
+    # 启动定时报告调度线程
+    _start_scheduled_report_worker_once(
+        app,
+        get_config_fn=get_config if callable(get_config) else (lambda: {}),
+        update_config_fn=update_config if callable(update_config) else (lambda c: None),
+        data_dir=data_dir,
+    )
 
 
 
