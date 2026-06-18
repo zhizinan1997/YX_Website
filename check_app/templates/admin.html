@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>元芯监测后台</title>
-  <link rel="stylesheet" href="/static/check.css?v=smtp-status-1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/check.css?v=beautify-v2">
 </head>
 <body class="admin2-root check-admin">
   <div class="admin-shell">
@@ -20,21 +21,21 @@
           </span>
         </a>
         <button id="sidebarToggleBtn" class="sidebar-toggle" type="button" aria-label="收起侧栏" title="收起侧栏">
-          <span class="sidebar-toggle__icon">&lt;</span>
+          <span class="sidebar-toggle__icon"><i class="bi bi-chevron-left"></i></span>
           <span class="sidebar-toggle__text">收起</span>
         </button>
       </div>
       <nav class="admin-nav" aria-label="后台导航">
         <a class="admin-nav__link is-active" href="#targets" data-admin-page="targets" aria-current="page">
-          <span class="admin-nav__mark">目</span>
+          <span class="admin-nav__mark"><i class="bi bi-bullseye"></i></span>
           <span class="admin-nav__text">监测目标</span>
         </a>
         <a class="admin-nav__link" href="#runs" data-admin-page="runs">
-          <span class="admin-nav__mark">记</span>
+          <span class="admin-nav__mark"><i class="bi bi-clock-history"></i></span>
           <span class="admin-nav__text">检测记录</span>
         </a>
         <a class="admin-nav__link" href="#incidents" data-admin-page="incidents">
-          <span class="admin-nav__mark">警</span>
+          <span class="admin-nav__mark"><i class="bi bi-bell"></i></span>
           <span class="admin-nav__text">异常告警</span>
         </a>
       </nav>
@@ -42,7 +43,7 @@
     <main class="admin-main">
       <section id="loginPanel" class="login-panel">
         <div class="login-box">
-          <span class="admin2-login-badge">邮箱登录</span>
+          <span class="admin2-login-badge"><i class="bi bi-envelope"></i> 邮箱登录</span>
           <h1>监测后台登录</h1>
           <p>使用主站已验证管理员邮箱接收验证码登录。</p>
           <label>管理员邮箱</label>
@@ -61,7 +62,7 @@
             <p id="loginTurnstileError" class="turnstile-error"></p>
           </div>
           <div id="devLoginPanel" class="dev-login-panel hidden">
-            <strong>本地预览模式</strong>
+            <strong><i class="bi bi-code-square"></i> 本地预览模式</strong>
             <span>当前没有主站邮箱和发信配置，可临时进入后台查看界面。</span>
             <button id="devLoginBtn" class="btn btn-ghost" type="button">本地预览登录</button>
           </div>
@@ -71,33 +72,37 @@
       <section id="adminPanel" class="admin-content hidden">
         <header class="admin-topbar">
           <div>
-            <span class="admin2-shell-badge">监测站点</span>
+            <span class="admin2-shell-badge"><i class="bi bi-activity"></i> 监测站点</span>
             <h1>主站监测后台</h1>
             <p>集中管理监测目标、检测记录和异常告警。</p>
           </div>
           <div class="admin-account">
             <span id="adminEmail">-</span>
-            <button id="logoutBtn" class="btn btn-ghost" type="button">退出</button>
+            <button id="logoutBtn" class="btn btn-ghost" type="button"><i class="bi bi-box-arrow-right"></i> 退出</button>
           </div>
         </header>
 
         <section class="admin-overview" aria-label="监测概览">
           <article class="admin-kpi-card admin-kpi-card--primary">
+            <div class="kpi-icon kpi-icon--primary"><i class="bi bi-bullseye"></i></div>
             <span>监测目标</span>
             <strong id="adminMetricTargets">-</strong>
             <small>已启用目标</small>
           </article>
           <article class="admin-kpi-card">
+            <div class="kpi-icon kpi-icon--ok"><i class="bi bi-check-circle"></i></div>
             <span>正常目标</span>
             <strong id="adminMetricOk">-</strong>
             <small>最近一次检测正常</small>
           </article>
           <article class="admin-kpi-card">
+            <div class="kpi-icon kpi-icon--latency"><i class="bi bi-speedometer2"></i></div>
             <span>平均响应延迟</span>
             <strong id="adminMetricLatency">-</strong>
             <small>按最近状态统计</small>
           </article>
           <article class="admin-kpi-card admin-kpi-card--warning">
+            <div class="kpi-icon kpi-icon--warning"><i class="bi bi-exclamation-triangle"></i></div>
             <span>活跃告警</span>
             <strong id="adminMetricIncidents">-</strong>
             <small>未恢复异常</small>
@@ -107,13 +112,13 @@
         <section class="admin-service-card" aria-label="发信服务状态">
           <div class="admin-service-card__head">
             <div>
-              <span class="admin2-shell-badge">主站只读配置</span>
-              <h2>SMTP 发信服务</h2>
+              <span class="admin2-shell-badge"><i class="bi bi-envelope-paper"></i> 主站只读配置</span>
+              <h2><i class="bi bi-envelope-at" style="margin-right:6px;opacity:0.6;"></i>SMTP 发信服务</h2>
               <p>用于后台验证码和异常告警邮件，配置直接读取自主站挂载目录。</p>
             </div>
             <div class="admin-service-card__actions">
               <span id="smtpStatusBadge" class="admin-status admin-status--pending">未检测</span>
-              <button id="smtpCheckBtn" class="btn btn-ghost" type="button">检测发信服务</button>
+              <button id="smtpCheckBtn" class="btn btn-ghost" type="button"><i class="bi bi-arrow-clockwise"></i> 检测发信服务</button>
             </div>
           </div>
           <div class="smtp-info-grid">
@@ -133,11 +138,11 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">监测目标</p>
-              <h2>监测目标</h2>
+              <h2><i class="bi bi-bullseye" style="margin-right:8px;opacity:0.5;"></i>监测目标</h2>
             </div>
             <div class="section-actions">
-              <button id="checkAllBtn" class="btn btn-accent" type="button">一键立即测试</button>
-              <button id="addTargetBtn" class="btn btn-primary" type="button">新增目标</button>
+              <button id="checkAllBtn" class="btn btn-accent" type="button"><i class="bi bi-arrow-repeat"></i> 一键立即测试</button>
+              <button id="addTargetBtn" class="btn btn-primary" type="button"><i class="bi bi-plus-lg"></i> 新增目标</button>
             </div>
           </div>
           <div class="target-form hidden" id="targetForm">
@@ -155,7 +160,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">检测记录</p>
-              <h2>最近检测记录</h2>
+              <h2><i class="bi bi-clock-history" style="margin-right:8px;opacity:0.5;"></i>最近检测记录</h2>
             </div>
           </div>
           <div id="adminRuns" class="admin-table loading-block">正在加载...</div>
@@ -165,7 +170,10 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">异常告警</p>
-              <h2>异常与告警</h2>
+              <h2><i class="bi bi-bell" style="margin-right:8px;opacity:0.5;"></i>异常与告警</h2>
+            </div>
+            <div class="section-actions">
+              <button id="clearIncidentsBtn" class="btn btn-ghost" type="button"><i class="bi bi-trash3"></i> 清除全部记录</button>
             </div>
           </div>
           <div id="adminIncidents" class="admin-table loading-block">正在加载...</div>
@@ -173,6 +181,6 @@
       </section>
     </main>
   </div>
-  <script src="/static/admin.js?v=login-turnstile-1"></script>
+  <script src="/static/admin.js?v=beautify-v2"></script>
 </body>
 </html>

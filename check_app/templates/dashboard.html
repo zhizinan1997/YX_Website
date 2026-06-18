@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>元芯传感主站监测</title>
-  <link rel="stylesheet" href="/static/check.css?v=response-latency-1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/static/check.css?v=beautify-v2">
 </head>
 <body class="check-public">
   <header class="site-header">
@@ -13,14 +14,10 @@
         <span class="brand__logo">
           <img src="/static/images/metachip-logo.png" alt="元芯传感标识">
         </span>
-        <span>
-          <strong>元芯传感</strong>
-          <small>主站可访问性监测</small>
-        </span>
       </a>
       <nav class="site-nav">
-        <a href="https://www.hnmetachip.cn/">主站</a>
-        <a href="/admin">后台</a>
+        <a href="https://www.hnmetachip.cn/"><i class="bi bi-globe2"></i>主站</a>
+        <a href="/admin"><i class="bi bi-gear"></i>后台</a>
       </nav>
     </div>
   </header>
@@ -43,18 +40,22 @@
 
     <section class="vs-container dashboard-grid">
       <article class="metric-card">
+        <div class="metric-icon metric-icon--targets"><i class="bi bi-bullseye"></i></div>
         <span>监测目标</span>
         <strong id="metricTargets">-</strong>
       </article>
       <article class="metric-card">
+        <div class="metric-icon metric-icon--ok"><i class="bi bi-check-circle"></i></div>
         <span>正常目标</span>
         <strong id="metricOk">-</strong>
       </article>
       <article class="metric-card">
+        <div class="metric-icon metric-icon--latency"><i class="bi bi-speedometer2"></i></div>
         <span>平均响应延迟</span>
         <strong id="metricLatency">-</strong>
       </article>
       <article class="metric-card">
+        <div class="metric-icon metric-icon--incidents"><i class="bi bi-exclamation-triangle"></i></div>
         <span>活跃异常</span>
         <strong id="metricIncidents">-</strong>
       </article>
@@ -64,7 +65,7 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">二十四小时状态</p>
-          <h2>关键页面可访问状态</h2>
+          <h2><i class="bi bi-activity section-heading-icon" style="background:rgba(0,161,223,0.1);color:var(--color-accent-blue);"></i>关键页面可访问状态</h2>
         </div>
         <span id="lastUpdated" class="muted">-</span>
       </div>
@@ -75,7 +76,7 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">异常记录</p>
-          <h2>最近异常记录</h2>
+          <h2><i class="bi bi-shield-exclamation section-heading-icon" style="background:var(--status-down-light);color:var(--status-down);"></i>最近异常记录</h2>
         </div>
       </div>
       <div id="incidentList" class="incident-list loading-block">正在加载异常记录...</div>
@@ -85,9 +86,9 @@
   <footer class="site-footer">
     <div class="vs-container">
       <strong>湖南元芯传感科技有限责任公司</strong>
-      <span>由独立监测容器提供主站可访问性检测服务。</span>
+      <span class="footer-right"><i class="bi bi-server"></i> 由独立监测容器提供主站可访问性检测服务</span>
     </div>
   </footer>
-  <script src="/static/dashboard.js?v=clock-hour-timeline-1"></script>
+  <script src="/static/dashboard.js?v=beautify-v2"></script>
 </body>
 </html>

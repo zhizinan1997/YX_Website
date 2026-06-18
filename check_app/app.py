@@ -376,6 +376,12 @@ def create_app() -> Flask:
     def admin_incidents():
         return jsonify({"success": True, "incidents": storage.get_recent_incidents(config.CHECK_DATA_DIR, limit=80)})
 
+    @app.route("/api/admin/incidents", methods=["DELETE"])
+    @_login_required
+    def admin_clear_incidents():
+        deleted = storage.clear_all_incidents(config.CHECK_DATA_DIR)
+        return jsonify({"success": True, "deleted": deleted})
+
     @app.route("/api/admin/smtp")
     @_login_required
     def admin_smtp_status():

@@ -103,7 +103,7 @@
     btn.setAttribute('title', label);
     btn.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
     if (text) text.textContent = collapsed ? '展开' : '收起';
-    if (icon) icon.textContent = collapsed ? '>' : '<';
+    if (icon) icon.innerHTML = collapsed ? '<i class="bi bi-chevron-right"></i>' : '<i class="bi bi-chevron-left"></i>';
   }
 
   function setSidebarCollapsed(collapsed) {
@@ -608,6 +608,19 @@
   });
   $('saveTargetBtn').addEventListener('click', () => saveTarget().catch((error) => alert(error.message)));
   $('adminTargets').addEventListener('click', (event) => handleTargetAction(event).catch((error) => alert(error.message)));
+  $('clearIncidentsBtn').addEventListener('click', async () => {
+    if (!confirm('确认清除全部异常记录？此操作不可恢复。')) return;
+    const btn = $('clearIncidentsBtn');
+    btn.disabled = true;
+    try {
+      await api('/api/admin/incidents', { method: 'DELETE', body: '{}' });
+      await refreshAdmin();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   initSidebarToggle();
   initAdminNavigation();
