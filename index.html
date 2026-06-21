@@ -944,13 +944,111 @@
   <!-- Sections removed -->
 
   <!-- ========================================
+       Contact CTA (与元芯专家取得联系)
+  ======================================== -->
+  <style>
+    .h2-contact-cta {
+        background-color: #ffffff;
+        background-image: url('/cdn_assets/images/gassensing/1.webp');
+        background-size: cover;
+        background-position: center 15%;
+        background-repeat: no-repeat;
+        padding: clamp(72px, 7.8vw, 128px) 0 clamp(78px, 8.2vw, 144px);
+    }
+
+    .h2-contact-cta__card {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: clamp(50px, 5vw, 70px) clamp(40px, 4.6vw, 88px);
+        min-height: clamp(310px, 30vw, 390px);
+        border: 1px solid #e6edf7;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(248, 251, 255, 0.86) 100%);
+        box-shadow: 0 14px 40px rgba(17, 54, 96, 0.08);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .h2-contact-cta__title {
+        margin: 0 0 12px;
+        color: #0f2f57;
+        font-size: clamp(28px, 2.8vw, 40px);
+        font-weight: 600;
+        line-height: 1.25;
+        letter-spacing: 0.3px;
+    }
+
+    .h2-contact-cta__desc {
+        margin: 0 auto 40px;
+        max-width: 780px;
+        font-size: 18px;
+        font-weight: 500;
+        line-height: 1.8;
+        color: #4e6786;
+    }
+
+    .h2-contact-cta__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-decoration: none;
+        padding: 12px 28px;
+        border-radius: 999px;
+        background: #0b4b87;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        box-shadow: 0 10px 24px rgba(11, 75, 135, 0.28);
+    }
+
+    .h2-contact-cta__btn:hover {
+        transform: translateY(-2px);
+        background: #083d6f;
+        box-shadow: 0 12px 28px rgba(8, 61, 111, 0.32);
+    }
+
+    @media (max-width: 768px) {
+        .h2-contact-cta {
+            padding: 64px 0 76px;
+        }
+
+        .h2-contact-cta__card {
+            min-height: 0;
+            padding: 56px 24px;
+        }
+
+        .h2-contact-cta__desc {
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+    }
+  </style>
+  <section class="h2-contact-cta" id="h2ContactExpertSection">
+    <div class="vs-container">
+      <div class="h2-contact-cta__card">
+        <h2 class="h2-contact-cta__title">与元芯专家聊聊你的场景</h2>
+        <p class="h2-contact-cta__desc">每个场景都不同。告诉我们你的需求，最快 10 分钟内获得元芯专家的方案建议。</p>
+        <a class="h2-contact-cta__btn" href="/pages/contact/feedback.html#feedbackForm">
+          获取专家建议
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
        Careers Section (Join Us)
   ======================================== -->
   <section class="vs-careers">
     <div class="vs-careers__content">
-      <h2 class="vs-careers__title">在元芯工作</h2>
-      <p class="vs-careers__desc">元芯传感始终聚焦客户对产品质量、生产效率与安全的需求。我们以持续创新的节奏拓展技术边界，以更严苛的标准自我要求，力求每一次交付都超越期待。</p>
-      <a href="pages/careers/jobs.html" class="vs-btn">加入我们的团队</a>
+      <h2 class="vs-careers__title">在元芯，做有价值的工作</h2>
+      <p class="vs-careers__desc">和我们一起，用传感技术提升质量、效率与安全。让每一次创新，都服务于真实的产业场景。</p>
+      <a href="pages/careers/jobs.html" class="vs-btn">查看开放职位</a>
     </div>
   </section>
 

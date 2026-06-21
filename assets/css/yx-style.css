@@ -1130,7 +1130,7 @@ li {
 }
 
 .vs-careers__title {
-    font-size: clamp(42px, 4.8vw, 64px);
+    font-size: clamp(32px, 3.6vw, 48px);
     font-weight: 700;
     margin-bottom: 18px;
     line-height: 1.2;
@@ -1139,7 +1139,7 @@ li {
 }
 
 .vs-careers__desc {
-    font-size: clamp(18px, 1.5vw, 24px);
+    font-size: clamp(15px, 1.2vw, 19px);
     line-height: 1.85;
     color: rgba(255, 255, 255, 0.92);
     margin: 0 auto 34px;
@@ -1148,9 +1148,9 @@ li {
 }
 
 .vs-careers .vs-btn {
-    padding: 18px 52px;
+    padding: 14px 40px;
     border-radius: 50px;
-    font-size: 24px;
+    font-size: 18px;
     background: linear-gradient(180deg, #dbe94b 0%, #c8d83f 100%);
     color: #003764;
     border: none;
