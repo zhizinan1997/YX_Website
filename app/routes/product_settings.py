@@ -55,6 +55,8 @@ from urllib.parse import quote
 
 from flask import jsonify, request, send_from_directory
 
+from app.asset_versioning import get_asset_version, inject_version_into_url
+
 APP_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = APP_ROOT / 'data'
 PRODUCT_SETTINGS_FILE = DATA_DIR / 'product_settings.json'
@@ -227,12 +229,37 @@ def _normalize_related_news_links(value):
     return cleaned
 
 
+def _versionize_product_images(settings: dict) -> dict:
+    """为产品设置中的 cardImage / image 路径追加 mtime 版本号。
+
+    只处理指向 /cdn_assets/ 或 /media/product-cards/ 的本地路径，
+    外部 URL 和已有 ?v= 的路径保持不变（已有版本号说明是刚上传的新文件）。
+    """
+    if not isinstance(settings, dict):
+        return settings
+    for product_id, product in settings.items():
+        if not isinstance(product, dict):
+            continue
+        for key in ('cardImage', 'image'):
+            url = product.get(key)
+            if not url or not isinstance(url, str):
+                continue
+            if 'v=' in url:
+                continue
+            if not url.startswith(('/cdn_assets/', '/media/product-cards/')):
+                continue
+            version = get_asset_version(url, APP_ROOT)
+            if version:
+                product[key] = inject_version_into_url(url, version)
+    return settings
+
+
 def get_product_settings():
     """加载产品设置，如自定义名称和新品标记。"""
     if PRODUCT_SETTINGS_FILE.exists():
         try:
             raw = json.loads(PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
-            return _SANITIZE_PUBLIC_PRODUCT_SETTINGS(raw)
+            return _versionize_product_images(_SANITIZE_PUBLIC_PRODUCT_SETTINGS(raw))
         except Exception:
             pass
     return {}
@@ -243,7 +270,7 @@ def get_bio_product_settings():
     if BIO_PRODUCT_SETTINGS_FILE.exists():
         try:
             raw = json.loads(BIO_PRODUCT_SETTINGS_FILE.read_text(encoding='utf-8'))
-            return _SANITIZE_PUBLIC_PRODUCT_SETTINGS(raw)
+            return _versionize_product_images(_SANITIZE_PUBLIC_PRODUCT_SETTINGS(raw))
         except Exception:
             pass
     return {}

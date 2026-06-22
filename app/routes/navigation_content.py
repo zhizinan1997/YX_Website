@@ -389,7 +389,7 @@ def normalize_measurement_target_items(items):
 
 
 def serialize_measurement_target_items(items):
-    """为测量对象条目附加可用的预览图。"""
+    """为测量对象条目附加可用的预览图，并将相对路径规范化为绝对路径。"""
     serialized = []
     for item in items or []:
         if not isinstance(item, dict):
@@ -398,6 +398,15 @@ def serialize_measurement_target_items(items):
         url = str(item.get('url') or '').strip()
         if not name or not url:
             continue
+        # 将相对路径 (../measurement/xxx.html) 转为绝对路径 (/pages/measurement/xxx.html)
+        # 避免在 /pages/gassensing/cases/ 等深层页面中 .. 解析层级不对导致链接错误
+        if not url.startswith('/') and not url.startswith('http'):
+            clean = url.replace('\\', '/')
+            while clean.startswith('./'):
+                clean = clean[2:]
+            while clean.startswith('../'):
+                clean = clean[3:]
+            url = '/pages/' + clean
         entry = {'name': name, 'url': url}
         custom_image = str(item.get('image') or '').strip()
         if custom_image:

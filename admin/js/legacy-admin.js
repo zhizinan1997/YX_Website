@@ -8909,6 +8909,7 @@
                 specsTableBodyId: isBio ? 'bioMeSpecsTableBody' : 'meSpecsTableBody',
                 newsContainerId: isBio ? 'bioMeNewsContainer' : 'meNewsContainer',
                 pageSectionsEndpoint: isBio ? '/api/bio-products/page-sections' : '/api/products/page-sections',
+                cardImageUploadUrl: isBio ? '/api/bio-products/card-image/upload' : '/api/products/card-image/upload',
                 previewBasePath: isBio ? '/pages/biosensing' : '/pages/gassensing',
             };
         }
@@ -9003,6 +9004,50 @@
             img.onerror = () => img.style.display = 'none';
             img.style.display = src ? '' : 'none';
             inp.addEventListener('input', () => { img.src = inp.value; img.style.display = inp.value ? '' : 'none'; });
+
+            // 本地上传按钮 + 隐藏 file input
+            const uploadBtn = document.createElement('button');
+            uploadBtn.type = 'button';
+            uploadBtn.textContent = '上传';
+            uploadBtn.className = 'btn-sm me-image-upload-btn';
+            uploadBtn.style.cssText = 'white-space:nowrap; padding:4px 10px; font-size:12px; cursor:pointer; background:#2563eb; color:#fff; border:none; border-radius:4px;';
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/png,image/jpeg,image/webp';
+            fileInput.style.display = 'none';
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async () => {
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = '上传中...';
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const res = await fetch(cfg.cardImageUploadUrl, { method: 'POST', body: formData });
+                    const result = await res.json();
+                    if (!result.success || !result.url) {
+                        throw new Error(result.message || '上传失败');
+                    }
+                    inp.value = result.url;
+                    img.src = result.url;
+                    img.style.display = '';
+                    uploadBtn.textContent = '已上传';
+                    uploadBtn.style.background = '#16a34a';
+                } catch (e) {
+                    uploadBtn.textContent = '失败';
+                    uploadBtn.style.background = '#dc2626';
+                    console.error('Manual edit image upload error:', e);
+                } finally {
+                    fileInput.value = '';
+                    setTimeout(() => {
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = '上传';
+                        uploadBtn.style.background = '#2563eb';
+                    }, 2000);
+                }
+            });
+
             const del = document.createElement('button');
             del.type = 'button';
             del.textContent = '✕';
@@ -9010,6 +9055,8 @@
             del.style.cssText = 'position:static; margin-left:4px; align-self:center;';
             del.onclick = () => row.remove();
             row.appendChild(inp);
+            row.appendChild(uploadBtn);
+            row.appendChild(fileInput);
             row.appendChild(img);
             row.appendChild(del);
             c.appendChild(row);
@@ -14387,15 +14434,24 @@
             const notifyMessageEl = document.getElementById('subEditNotifyMessageEmail');
             const notifyJobEl = document.getElementById('subEditNotifyJobEmail');
             const msgEl = document.getElementById('subEditMsg');
+            const emailCurrentEl = document.getElementById('subEditEmailCurrent');
+            const emailInputEl = document.getElementById('subEditEmail');
+            const emailMsgEl = document.getElementById('subEditEmailMsg');
             if (msgEl) {
                 msgEl.textContent = '';
                 msgEl.style.color = '#28a745';
             }
+            if (emailMsgEl) {
+                emailMsgEl.textContent = '';
+                emailMsgEl.style.color = '#28a745';
+            }
+            if (emailInputEl) emailInputEl.value = '';
             if (!target) {
                 if (enabledEl) enabledEl.checked = true;
                 if (pwdEl) pwdEl.value = '';
                 if (notifyMessageEl) notifyMessageEl.checked = false;
                 if (notifyJobEl) notifyJobEl.checked = false;
+                if (emailCurrentEl) emailCurrentEl.innerHTML = '当前未绑定邮箱';
                 renderPermissionGrid('subEditPermissionsGrid', []);
                 return;
             }
@@ -14403,6 +14459,18 @@
             if (pwdEl) pwdEl.value = '';
             if (notifyMessageEl) notifyMessageEl.checked = target.notify_message_email === true;
             if (notifyJobEl) notifyJobEl.checked = target.notify_job_email === true;
+            if (emailCurrentEl) {
+                const email = String(target.email || '').trim();
+                if (email) {
+                    const verified = target.email_verified === true;
+                    const boundAt = target.email_bound_at ? String(target.email_bound_at).slice(0, 10) : '';
+                    emailCurrentEl.innerHTML = `当前绑定：<strong style="color:#1e293b;">${escapeHtml(email)}</strong> `
+                        + (verified ? '<span style="color:#16a34a;">已验证</span>' : '<span style="color:#b45309;">未验证</span>')
+                        + (boundAt ? ` <span style="color:#94a3b8;">（绑定于 ${escapeHtml(boundAt)}）</span>` : '');
+                } else {
+                    emailCurrentEl.innerHTML = '<span style="color:#94a3b8;">当前未绑定邮箱</span>';
+                }
+            }
             renderPermissionGrid('subEditPermissionsGrid', Array.isArray(target.permissions) ? target.permissions : []);
         }
 
@@ -14449,7 +14517,7 @@
                 countEl.textContent = String(subAccountsCache.length || 0);
             }
             if (!subAccountsCache.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="no-data">暂无子账号</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无子账号</td></tr>';
                 return;
             }
 
@@ -14468,10 +14536,16 @@
                 const notifyMessageColor = item.notify_message_email === true ? '#16a34a' : '#64748b';
                 const notifyJobText = item.notify_job_email === true ? '接收' : '关闭';
                 const notifyJobColor = item.notify_job_email === true ? '#16a34a' : '#64748b';
+                const email = String(item.email || '').trim();
+                const emailVerified = item.email_verified === true;
+                const emailDisplay = email
+                    ? `<span style="color:#1e293b;">${escapeHtml(email)}</span>${emailVerified ? '<span style="margin-left:4px; color:#16a34a; font-size:12px;">已验证</span>' : '<span style="margin-left:4px; color:#b45309; font-size:12px;">未验证</span>'}`
+                    : '<span style="color:#94a3b8;">未绑定</span>';
 
                 return `
                     <tr>
                         <td>${escapeHtml(username)}</td>
+                        <td>${emailDisplay}</td>
                         <td><span style="font-weight:700; color:${statusColor};">${statusText}</span></td>
                         <td title="${escapeHtml(permissionText)}" style="max-width: 360px;">${escapeHtml(permissionText)}</td>
                         <td><span style="font-weight:700; color:${notifyMessageColor};">${notifyMessageText}</span></td>
@@ -14715,6 +14789,52 @@
         if (subRefreshBtn) {
             subRefreshBtn.addEventListener('click', async () => {
                 await loadSubAccounts();
+            });
+        }
+
+        const subForceEmailBtn = document.getElementById('subForceEmailBtn');
+        if (subForceEmailBtn) {
+            subForceEmailBtn.addEventListener('click', async () => {
+                const target = getSelectedSubAccount();
+                const emailInput = document.getElementById('subEditEmail');
+                const emailMsg = document.getElementById('subEditEmailMsg');
+                const newEmail = String(emailInput?.value || '').trim();
+
+                if (emailMsg) {
+                    emailMsg.textContent = '';
+                    emailMsg.style.color = '#dc3545';
+                }
+                if (!target) {
+                    if (emailMsg) emailMsg.textContent = '请先选择子账号';
+                    return;
+                }
+                if (!newEmail || !newEmail.includes('@')) {
+                    if (emailMsg) emailMsg.textContent = '请输入有效的邮箱地址';
+                    return;
+                }
+
+                subForceEmailBtn.disabled = true;
+                try {
+                    const res = await fetch(`/api/admin/subaccounts/${encodeURIComponent(target.username)}/email`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: newEmail })
+                    });
+                    const data = await parseJsonSafe(res);
+                    if (!res.ok || !data.success) {
+                        throw new Error(data.message || '邮箱更改失败');
+                    }
+                    if (emailMsg) {
+                        emailMsg.style.color = '#28a745';
+                        emailMsg.textContent = data.message || '邮箱已强制更改';
+                    }
+                    if (emailInput) emailInput.value = '';
+                    await loadSubAccounts();
+                } catch (err) {
+                    if (emailMsg) emailMsg.textContent = String(err.message || '邮箱更改失败');
+                } finally {
+                    subForceEmailBtn.disabled = false;
+                }
             });
         }
 

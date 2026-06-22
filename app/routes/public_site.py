@@ -58,6 +58,8 @@ from urllib.parse import urljoin
 
 from flask import Response, jsonify, redirect, request, send_file, send_from_directory
 
+from app.asset_versioning import inject_html_asset_versions, inject_js_asset_versions
+
 BEIJING_TZ = timezone(timedelta(hours=8))
 
 
@@ -924,6 +926,16 @@ def register_public_site_routes(
                 return response
 
             content_type = (response.headers.get('Content-Type') or '').lower()
+
+            # ── JavaScript 响应：为 JS 中引用的本地资源路径注入版本号 ──
+            if 'javascript' in content_type and 'text/html' not in content_type:
+                response.direct_passthrough = False
+                js_body = response.get_data(as_text=True)
+                if js_body:
+                    js_body = inject_js_asset_versions(js_body, root)
+                    response.set_data(js_body)
+                return response
+
             if 'text/html' not in content_type:
                 return response
 
@@ -934,6 +946,9 @@ def register_public_site_routes(
                 return response
 
             html_body = inject_seo_head_markup(html_body)
+
+            # ── 为 HTML 中所有 href/src 引用的本地静态资源注入 mtime 版本号 ──
+            html_body = inject_html_asset_versions(html_body, root, path)
 
             script_tags = []
             if chem_subscript_script_src not in html_body:
@@ -1058,6 +1073,10 @@ def register_public_site_routes(
             response = send_from_directory(str(root), normalized)
             if is_admin_html:
                 response.headers['Cache-Control'] = 'no-store, max-age=0'
+            elif 'v=' in (request.query_string.decode('utf-8', 'ignore') if request.query_string else ''):
+                response.headers['Cache-Control'] = 'public, max-age=31536000'
+            else:
+                response.headers['Cache-Control'] = 'public, max-age=300'
             return response
 
         html_path = root / f'{normalized}.html'
@@ -1065,6 +1084,10 @@ def register_public_site_routes(
             response = send_from_directory(str(root), f'{normalized}.html')
             if is_admin_html:
                 response.headers['Cache-Control'] = 'no-store, max-age=0'
+            elif 'v=' in (request.query_string.decode('utf-8', 'ignore') if request.query_string else ''):
+                response.headers['Cache-Control'] = 'public, max-age=31536000'
+            else:
+                response.headers['Cache-Control'] = 'public, max-age=300'
             return response
 
         if exact_path.is_dir():
@@ -1073,6 +1096,10 @@ def register_public_site_routes(
                 response = send_from_directory(str(exact_path), 'index.html')
                 if is_admin_html:
                     response.headers['Cache-Control'] = 'no-store, max-age=0'
+                elif 'v=' in (request.query_string.decode('utf-8', 'ignore') if request.query_string else ''):
+                    response.headers['Cache-Control'] = 'public, max-age=31536000'
+                else:
+                    response.headers['Cache-Control'] = 'public, max-age=300'
                 return response
 
         return Response(status=404)

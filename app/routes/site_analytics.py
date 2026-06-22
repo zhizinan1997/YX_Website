@@ -3920,6 +3920,128 @@ def _generate_scheduled_report(app_obj, period_key, anchor_date):
         return None
 
 
+def _build_report_email_html(*, title, period_label, range_label, comparison=None, generated_at=''):
+    """构建品牌风格的报告推送邮件 HTML。"""
+    # ── 关键指标摘要卡片 ──
+    metrics_html = ''
+    if isinstance(comparison, dict) and comparison:
+        metric_keys = [
+            ('pageviews', '页面浏览量', 'PV'),
+            ('unique_visitors', '独立访客', 'UV'),
+            ('sessions', '会话数', ''),
+            ('bounce_rate', '跳出率', '%'),
+        ]
+        cells = ''
+        for key, label, unit in metric_keys:
+            entry = comparison.get(key)
+            if not isinstance(entry, dict):
+                continue
+            current = entry.get('current')
+            change_rate = entry.get('change_rate')
+            if current is None:
+                continue
+            # 格式化当前值
+            if isinstance(current, float) and current == int(current):
+                cur_str = str(int(current))
+            elif isinstance(current, float):
+                cur_str = f'{current:.1f}'
+            else:
+                cur_str = str(current)
+            # 格式化变化率
+            if change_rate is not None and isinstance(change_rate, (int, float)):
+                if change_rate > 0:
+                    arrow_color = '#16a34a'
+                    arrow = '&#9650;'
+                elif change_rate < 0:
+                    arrow_color = '#dc2626'
+                    arrow = '&#9660;'
+                else:
+                    arrow_color = '#6b7280'
+                    arrow = '&#8212;'
+                rate_str = f'{abs(change_rate):.1f}%' if isinstance(change_rate, float) else f'{abs(change_rate)}%'
+                change_html = (
+                    f'<div style="margin-top:6px;font-size:12px;color:{arrow_color};">'
+                    f'{arrow} {rate_str}</div>'
+                )
+            else:
+                change_html = ''
+            cells += (
+                f'<td style="width:25%;padding:18px 8px;text-align:center;vertical-align:top;">'
+                f'<div style="font-size:11px;letter-spacing:0.6px;color:#5d708b;text-transform:uppercase;">{html.escape(label)}</div>'
+                f'<div style="margin-top:8px;font-size:26px;font-weight:800;color:#0d2d56;">{html.escape(cur_str)}{html.escape(unit)}</div>'
+                f'{change_html}'
+                f'</td>'
+            )
+        if cells:
+            metrics_html = f'''
+            <table style="width:100%;border-collapse:collapse;margin:0;" role="presentation">
+              <tr>{cells}</tr>
+            </table>
+            '''
+
+    # ── 完整 HTML 模板 ──
+    return f"""
+    <div style="margin:0;padding:0;background:linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);">
+      <div style="width:100%;margin:0;font-family:'Microsoft YaHei',Arial,sans-serif;color:#10233d;background:
+        radial-gradient(circle at top right, rgba(39,199,217,0.22) 0, rgba(39,199,217,0) 28%),
+        radial-gradient(circle at left center, rgba(18,61,113,0.08) 0, rgba(18,61,113,0) 32%),
+        linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);
+      ">
+        <div style="position:relative;overflow:hidden;background:
+          radial-gradient(circle at 78% 26%, rgba(39,199,217,0.34) 0, rgba(39,199,217,0) 18%),
+          radial-gradient(circle at 12% 18%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 20%),
+          linear-gradient(135deg,#08192d 0%,#123d71 55%,#1d6f99 76%,#27c7d9 100%);
+          border-radius:0;padding:44px 44px 102px;color:#ffffff;">
+          <div style="position:absolute;right:-78px;top:-66px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.08);"></div>
+          <div style="position:absolute;right:74px;bottom:28px;width:132px;height:132px;border-radius:50%;background:rgba(39,199,217,0.16);"></div>
+          <div style="position:relative;z-index:1;display:inline-block;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.24);font-size:12px;letter-spacing:1.4px;">
+            元芯传感后台
+          </div>
+          <div style="position:relative;z-index:1;margin-top:24px;font-size:14px;line-height:1.8;color:rgba(255,255,255,0.78);">网站运营数据 · {html.escape(period_label)}</div>
+          <h1 style="position:relative;z-index:1;margin:12px 0 0;font-size:30px;line-height:1.25;font-weight:800;color:#ffffff;text-shadow:0 10px 28px rgba(8,25,45,0.25);">{html.escape(title)}</h1>
+          <div style="position:relative;z-index:1;margin-top:16px;width:88px;height:4px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,0.92) 0%,rgba(39,199,217,0.92) 100%);"></div>
+        </div>
+        <div style="position:relative;z-index:2;margin-top:-54px;background:
+          linear-gradient(180deg,rgba(255,255,255,0.96) 0%,#ffffff 100%);
+          border-top-left-radius:34px;border-top-right-radius:34px;padding:40px 44px 34px;">
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.9;color:#10233d;">报告已由系统自动生成，以下是本周期的核心数据概览。</p>
+          {metrics_html}
+          <div style="margin-top:28px;padding:22px 24px;border-radius:24px;background:linear-gradient(180deg,#f9fcff 0%,#f1f7fd 100%);border:1px solid rgba(18,61,113,0.08);">
+            <div style="margin:0 0 8px;font-size:14px;font-weight:700;color:#123d71;">报告详情</div>
+            <div style="font-size:14px;line-height:1.9;color:#5d708b;">
+              <div>报告周期：<strong style="color:#10233d;">{html.escape(range_label)}</strong></div>
+              <div>报告类型：<strong style="color:#10233d;">{html.escape(period_label)}</strong></div>
+              {"<div>生成时间：<strong style='color:#10233d;'>" + html.escape(generated_at) + "</strong></div>" if generated_at else ""}
+            </div>
+          </div>
+          <div style="margin-top:20px;padding:22px 24px;border-radius:24px;background:
+            radial-gradient(circle at top center, rgba(255,255,255,0.72) 0, rgba(255,255,255,0) 34%),
+            linear-gradient(180deg,rgba(39,199,217,0.12) 0%,rgba(18,61,113,0.04) 100%);
+            border:1px solid rgba(39,199,217,0.24);">
+            <div style="font-size:14px;line-height:1.9;color:#5d708b;">
+              如需查看完整的 AI 分析报告、历史趋势对比或下载报告 PDF，请登录管理后台「网站数据」页面。
+            </div>
+          </div>
+        </div>
+        <div style="padding:22px 24px 32px;text-align:center;font-size:12px;line-height:1.9;color:#5d708b;background:#ffffff;border-top:1px solid rgba(18,61,113,0.06);">
+          <div style="font-weight:700;color:#123d71;">元芯传感 YX Website</div>
+          <div>本邮件由定时报告系统自动发送，请勿直接回复。</div>
+        </div>
+      </div>
+    </div>
+    """
+
+
+def _build_report_email_text(*, title, period_label, range_label):
+    """构建报告推送邮件的纯文本版本。"""
+    return (
+        f'{title}\n'
+        f'报告类型：{period_label}\n'
+        f'报告周期：{range_label}\n'
+        f'报告已由系统自动生成，详情请登录管理后台「网站数据」页面查看完整分析。'
+    )
+
+
 def _send_scheduled_report_emails(app_obj, report_id, recipient_emails):
     """为定时生成的报告发送邮件推送。"""
     try:
@@ -3945,27 +4067,35 @@ def _send_scheduled_report_emails(app_obj, report_id, recipient_emails):
 
         title = _analytics_ai_report_title(record) or 'AI 网站运营报告'
         period_label = record.get('period_label', '')
+        period_key = str(record.get('period', '')).strip().lower()
         current_range = record.get('current_range', {}) if isinstance(record.get('current_range'), dict) else {}
-        range_label = f"{current_range.get('start_date', '')} ~ {current_range.get('end_date', '')}"
+        start_date = current_range.get('start_date', '')
+        end_date = current_range.get('end_date', '')
+        range_label = f"{start_date} ~ {end_date}"
+        comparison = record.get('comparison') if isinstance(record.get('comparison'), dict) else None
+        generated_at = str(record.get('generated_at', ''))[:19].replace('T', ' ') if record.get('generated_at') else ''
 
         # 构建 HTML 邮件正文
-        html_body = (
-            f'<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">'
-            f'<h2 style="color:#123d71;">{html.escape(title)}</h2>'
-            f'<p style="color:#333;">报告周期：{html.escape(range_label)}</p>'
-            f'<p style="color:#333;">报告已由系统自动生成，详情请登录管理后台查看。</p>'
-            f'<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">'
-            f'<p style="color:#999;font-size:12px;">此邮件由定时报告系统自动发送。</p>'
-            f'</div>'
+        html_body = _build_report_email_html(
+            title=title,
+            period_label=period_label,
+            range_label=range_label,
+            comparison=comparison,
+            generated_at=generated_at,
         )
-        text_body = f'{title}\n报告周期：{range_label}\n报告已由系统自动生成，详情请登录管理后台查看。'
+        text_body = _build_report_email_text(
+            title=title,
+            period_label=period_label,
+            range_label=range_label,
+        )
 
-        # 尝试获取 PDF 附件
+        # 尝试获取 PDF 附件 — 使用详细命名：网站运营{周期标签}_{日期范围}.pdf
         pdf_path = _analytics_report_pdf_cache_path(report_id)
         attachments = None
         if pdf_path.exists() and pdf_path.stat().st_size > 0:
             pdf_data = pdf_path.read_bytes()
-            pdf_filename = f'{_analytics_report_filename_part(period_label, fallback="report")}.pdf'
+            date_part = f'{start_date}至{end_date}' if start_date and end_date else _analytics_report_filename_part(title, fallback='report')
+            pdf_filename = f'网站运营{period_label}_{date_part}.pdf'
             attachments = [(pdf_filename, pdf_data, 'application/pdf')]
 
         sent_count = 0
@@ -3974,7 +4104,7 @@ def _send_scheduled_report_emails(app_obj, report_id, recipient_emails):
                 _send_smtp_mail(
                     smtp_settings,
                     to_email=email_addr,
-                    subject=f'[网站运营报告] {title}',
+                    subject=f'[网站运营报告] {start_date}至{end_date} {period_label}',
                     html_body=html_body,
                     text_body=text_body,
                     attachments=attachments,
@@ -4338,12 +4468,20 @@ def register_site_analytics_routes(
             return jsonify({'success': False, 'message': str(exc)}), 503
         except Exception as exc:
             return jsonify({'success': False, 'message': f'PDF生成失败: {str(exc)}'}), 500
-        filename = (
-            _analytics_report_filename_part(record.get('period_label'), fallback='site-report')
-            + '-'
-            + _analytics_report_filename_part(record.get('title'), fallback=record.get('id') or 'report')
-            + '.pdf'
-        )
+        current_range = record.get('current_range', {}) if isinstance(record.get('current_range'), dict) else {}
+        start_date = current_range.get('start_date', '')
+        end_date = current_range.get('end_date', '')
+        period_label = record.get('period_label', '运营报告')
+        if start_date and end_date:
+            filename = f'网站运营{period_label}_{start_date}至{end_date}.pdf'
+        else:
+            filename = (
+                '网站运营'
+                + _analytics_report_filename_part(period_label, fallback='运营报告')
+                + '_'
+                + _analytics_report_filename_part(record.get('title'), fallback=record.get('id') or 'report')
+                + '.pdf'
+            )
         return send_file(
             pdf_buffer,
             mimetype='application/pdf',
@@ -4484,11 +4622,39 @@ def register_site_analytics_routes(
                 }), 400
 
             html_body = (
-                '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">'
-                '<h2 style="color:#123d71;">定时报告推送测试</h2>'
-                '<p>如果您收到此邮件，说明报告自动推送邮箱功能已正确配置。</p>'
-                '<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">'
-                '<p style="color:#999;font-size:12px;">此邮件由定时报告系统测试发送。</p>'
+                '<div style="margin:0;padding:0;background:linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);">'
+                '<div style="width:100%;margin:0;font-family:\'Microsoft YaHei\',Arial,sans-serif;color:#10233d;">'
+                '<div style="position:relative;overflow:hidden;background:'
+                '  radial-gradient(circle at 78% 26%, rgba(39,199,217,0.34) 0, rgba(39,199,217,0) 18%),'
+                '  radial-gradient(circle at 12% 18%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0) 20%),'
+                '  linear-gradient(135deg,#08192d 0%,#123d71 55%,#1d6f99 76%,#27c7d9 100%);'
+                '  border-radius:0;padding:44px 44px 102px;color:#ffffff;">'
+                '<div style="position:absolute;right:-78px;top:-66px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.08);"></div>'
+                '<div style="position:relative;z-index:1;display:inline-block;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.24);font-size:12px;letter-spacing:1.4px;">'
+                '  元芯传感后台'
+                '</div>'
+                '<div style="position:relative;z-index:1;margin-top:24px;font-size:14px;line-height:1.8;color:rgba(255,255,255,0.78);">定时报告推送测试</div>'
+                '<h1 style="position:relative;z-index:1;margin:12px 0 0;font-size:30px;line-height:1.25;font-weight:800;color:#ffffff;">推送通道验证</h1>'
+                '<div style="position:relative;z-index:1;margin-top:16px;width:88px;height:4px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,0.92) 0%,rgba(39,199,217,0.92) 100%);"></div>'
+                '</div>'
+                '<div style="position:relative;z-index:2;margin-top:-54px;background:'
+                '  linear-gradient(180deg,rgba(255,255,255,0.96) 0%,#ffffff 100%);'
+                '  border-top-left-radius:34px;border-top-right-radius:34px;padding:40px 44px 34px;">'
+                '<p style="margin:0 0 20px;font-size:16px;line-height:1.9;color:#10233d;">如果您收到此邮件，说明报告自动推送邮箱功能已正确配置。</p>'
+                '<div style="padding:22px 24px;border-radius:24px;background:'
+                '  radial-gradient(circle at top center, rgba(255,255,255,0.72) 0, rgba(255,255,255,0) 34%),'
+                '  linear-gradient(180deg,rgba(39,199,217,0.12) 0%,rgba(18,61,113,0.04) 100%);'
+                '  border:1px solid rgba(39,199,217,0.24);">'
+                '<div style="font-size:14px;line-height:1.9;color:#5d708b;">'
+                '  后续定时生成的周报、月报、年报将自动推送到此邮箱，并附带 PDF 附件。'
+                '</div>'
+                '</div>'
+                '</div>'
+                '<div style="padding:22px 24px 32px;text-align:center;font-size:12px;line-height:1.9;color:#5d708b;background:#ffffff;border-top:1px solid rgba(18,61,113,0.06);">'
+                '<div style="font-weight:700;color:#123d71;">元芯传感 YX Website</div>'
+                '<div>本邮件由定时报告系统测试发送，请勿直接回复。</div>'
+                '</div>'
+                '</div>'
                 '</div>'
             )
             _send_smtp_mail(
@@ -4496,7 +4662,7 @@ def register_site_analytics_routes(
                 to_email=to_email,
                 subject='[网站运营报告] 推送测试邮件',
                 html_body=html_body,
-                text_body='定时报告推送测试：如果您收到此邮件，说明报告自动推送邮箱功能已正确配置。',
+                text_body='定时报告推送测试：如果您收到此邮件，说明报告自动推送邮箱功能已正确配置。后续定时生成的报告将自动推送到此邮箱。',
             )
             return jsonify({'success': True, 'message': f'测试邮件已发送至 {to_email}'})
         except Exception as exc:
