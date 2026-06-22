@@ -72,8 +72,9 @@ def resolve_asset_path(url: str, app_root: Path, request_path: str = '') -> Path
         fs_path = app_root / path_part.lstrip('/')
     else:
         # 相对路径：基于 request_path 所在的 HTML 目录解析
-        if request_path:
-            base_dir = (app_root / request_path.lstrip('/')).parent
+        stripped_request = request_path.lstrip('/') if request_path else ''
+        if stripped_request:
+            base_dir = (app_root / stripped_request).parent
         else:
             base_dir = app_root
         fs_path = (base_dir / path_part).resolve()
@@ -204,15 +205,33 @@ def inject_html_asset_versions(html_body: str, app_root: Path, request_path: str
     return _HTML_ASSET_PATTERN.sub(replacer, html_body)
 
 
+# 匹配 JS 拼接模式：'/assets/partials/nav-xxx.html?v=' + SOME_VAR
+_JS_CONCAT_PATTERN = re.compile(
+    r'''(["'])((?:/assets/|/cdn_assets/)[^"'?\s]+\.(?:css|js|html|png|jpg|jpeg|webp|gif|svg|woff2?|ttf|eot))\?v=['"]\s*\+\s*[A-Z_][A-Z0-9_]*''',
+    re.IGNORECASE
+)
+
+# 匹配 JS 版本常量赋值：NAV_ASSET_VERSION = '20260411a'
+# 用于将手工版本号替换为 mtime 版本号
+_JS_VERSION_CONST_PATTERN = re.compile(
+    r'''(var\s+|const\s+|let\s+)?([A-Z_][A-Z0-9_]*(?:VERSION|ASSET_VERSION|VERSION_)[A-Z0-9_]*)\s*=\s*['"][^'"]*['"]''',
+    re.IGNORECASE
+)
+
+
 def inject_js_asset_versions(js_body: str, app_root: Path) -> str:
     """
-    遍历 JS 代码中引号包裹的本地资源路径，为它们注入 mtime 版本号。
+    遍历 JS 代码中的本地资源路径，为它们注入 mtime 版本号。
 
-    处理模式：
-    - '/assets/css/x.css' → '/assets/css/x.css?v=1719012345'
-    - '/assets/css/x.css?v=old' → '/assets/css/x.css?v=1719012345'
-    - '/assets/css/x.css?v=' + VAR → '/assets/css/x.css?v=1719012345'
+    处理三种模式：
+    1. 完整引号字符串: '/assets/css/x.css' 或 '/assets/css/x.css?v=old'
+       → '/assets/css/x.css?v=1719012345'
+    2. 字符串拼接: '/assets/css/x.css?v=' + NAV_ASSET_VERSION
+       → '/assets/css/x.css?v=1719012345'
+    3. 版本常量赋值: NAV_ASSET_VERSION = '20260411a'
+       → NAV_ASSET_VERSION = '<mtime>'（取该 JS 文件同级目录中 nav-component.css 的 mtime）
     """
+    # Pass 1: 匹配完整的引号字符串
     def replacer(match: re.Match) -> str:
         quote = match.group(1)
         base_path = match.group(2)
@@ -225,4 +244,35 @@ def inject_js_asset_versions(js_body: str, app_root: Path) -> str:
         return f'{quote}{new_url}{quote}'
 
     result = _JS_ASSET_PATTERN.sub(replacer, js_body)
+
+    # Pass 2: 匹配 '?v=' + VAR 拼接模式
+    def concat_replacer(match: re.Match) -> str:
+        quote = match.group(1)
+        base_path = match.group(2)
+
+        version = get_asset_version(base_path, app_root)
+        if not version:
+            return match.group(0)
+
+        new_url = inject_version_into_url(base_path, version)
+        return f'{quote}{new_url}{quote}'
+
+    result = _JS_CONCAT_PATTERN.sub(concat_replacer, result)
+
+    # Pass 3: 匹配版本常量赋值，用 mtime 版本号替换手工版本号
+    # 对于含 ASSET_VERSION 的常量，取 assets/css/nav-component.css 的 mtime 作为版本
+    # （nav-component.css 是这些常量主要服务的资源）
+    def const_replacer(match: re.Match) -> str:
+        prefix = match.group(1) or ''
+        const_name = match.group(2)
+        # 尝试用 nav-component.css 的 mtime（这是 nav-loader 主要加载的资源）
+        version = get_asset_version('/assets/css/nav-component.css', app_root)
+        if not version:
+            # 回退到 footer-component.css（footer-loader 的情况）
+            version = get_asset_version('/assets/css/footer-component.css', app_root)
+        if not version:
+            return match.group(0)
+        return f"{prefix}{const_name} = '{version}'"
+
+    result = _JS_VERSION_CONST_PATTERN.sub(const_replacer, result)
     return result
