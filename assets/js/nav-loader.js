@@ -7,7 +7,7 @@
     var NAV_READY_EVENT = 'mc-nav:ready';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260604i';
     var NEWS_PREVIEW_SCRIPT_SRC = '/assets/js/news-preview-loader.js?v=20260411a';
-    var NAV_ASSET_VERSION = '20260411a';
+    var NAV_ASSET_VERSION = '20260625a';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);

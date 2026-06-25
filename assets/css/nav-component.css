@@ -776,6 +776,8 @@ body.mc-nav-mobile-open {
   .vs-header {
     height: auto;
     min-height: 70px;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
   }
 
   .vs-header .vs-container,
