@@ -6,8 +6,8 @@
     var NAV_CSS_ID = 'mc-nav-component-css';
     var NAV_READY_EVENT = 'mc-nav:ready';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260604i';
-    var NEWS_PREVIEW_SCRIPT_SRC = '/assets/js/news-preview-loader.js?v=20260411a';
-    var NAV_ASSET_VERSION = '20260411a';
+    var NEWS_PREVIEW_SCRIPT_SRC = '/assets/js/news-preview-loader.js?v=20260626d';
+    var NAV_CACHE_TAG = '20260626m';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -54,7 +54,7 @@
         var link = document.createElement('link');
         link.id = NAV_CSS_ID;
         link.rel = 'stylesheet';
-        link.href = '/assets/css/nav-component.css?v=' + NAV_ASSET_VERSION;
+        link.href = withCacheTag('/assets/css/nav-component.css');
         document.head.appendChild(link);
     }
 
@@ -83,9 +83,30 @@
     }
 
     function injectPartial(root, profile) {
-        return fetchText('/assets/partials/nav-' + profile + '.html?v=' + NAV_ASSET_VERSION).then(function (html) {
+        return fetchText(withCacheTag('/assets/partials/nav-' + profile + '.html')).then(function (html) {
             root.innerHTML = html;
         });
+    }
+
+    function withCacheTag(url) {
+        var value = String(url || '');
+        var hashIndex = value.indexOf('#');
+        var fragment = hashIndex >= 0 ? value.slice(hashIndex) : '';
+        var withoutHash = hashIndex >= 0 ? value.slice(0, hashIndex) : value;
+        var parts = withoutHash.split('?');
+        var base = parts.shift();
+        var query = parts.join('?');
+        var params = [];
+        if (query) {
+            query.split('&').forEach(function (part) {
+                if (!part) return;
+                var key = part.split('=')[0];
+                if (decodeURIComponent(key || '') === 'v') return;
+                params.push(part);
+            });
+        }
+        params.push('v=' + encodeURIComponent(NAV_CACHE_TAG));
+        return base + '?' + params.join('&') + fragment;
     }
 
     function dispatchNavReady(root, profile) {
@@ -182,6 +203,17 @@
             return null;
         }
 
+        function getDirectItemLink(item) {
+            if (!item || !item.children) return null;
+            for (var i = 0; i < item.children.length; i++) {
+                var child = item.children[i];
+                if (child && child.classList && child.classList.contains('vs-nav__link')) {
+                    return child;
+                }
+            }
+            return null;
+        }
+
         function closeMobileMegaMenus(exceptItem) {
             var megaItems = root.querySelectorAll('.vs-nav__item--has-mega');
             megaItems.forEach(function (item) {
@@ -192,6 +224,8 @@
                     toggleBtn.classList.remove('is-open');
                     toggleBtn.setAttribute('aria-expanded', 'false');
                 }
+                var link = getDirectItemLink(item);
+                if (link) link.setAttribute('aria-expanded', 'false');
             });
         }
 
@@ -211,6 +245,54 @@
             setMobileToggleVisual(!!opened);
             document.body.classList.toggle('mc-nav-mobile-open', !!opened);
             if (!opened) closeMobileMegaMenus();
+        }
+
+        function toggleMobileMegaItem(item, toggleBtn) {
+            if (!item) return;
+            var button = toggleBtn || getDirectItemToggle(item);
+            var link = getDirectItemLink(item);
+            var willOpen = !item.classList.contains('is-mobile-open');
+            closeMobileMegaMenus(item);
+            item.classList.toggle('is-mobile-open', willOpen);
+            if (button) {
+                button.classList.toggle('is-open', willOpen);
+                button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            }
+            if (link) {
+                link.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            }
+        }
+
+        function activateMobileMegaTab(tab) {
+            if (!tab) return;
+            var inlineHandler = tab.getAttribute('onmouseover') || '';
+            var match = inlineHandler.match(/\b(showPanel(?:Contact|Solutions|Cases|News)?|activateLinkTab)\('([^']*)',\s*this\)/);
+            if (match) {
+                var fn = window[match[1]];
+                if (typeof fn === 'function') {
+                    if (match[1] === 'activateLinkTab') {
+                        fn(tab);
+                    } else {
+                        fn(match[2], tab);
+                    }
+                    return;
+                }
+            }
+
+            var sidebar = tab.closest('.vs-mega-sidebar');
+            if (!sidebar) return;
+            sidebar.querySelectorAll('.vs-mega-tab').forEach(function (t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+        }
+
+        function shouldSwitchMobileMegaTab(tab) {
+            if (!tab || !tab.classList || !tab.classList.contains('vs-mega-tab')) return false;
+            var inlineHandler = tab.getAttribute('onmouseover') || '';
+            if (/\bshowPanel(?:Contact|Solutions|Cases|News)?\(/.test(inlineHandler)) return true;
+            var href = tab.tagName && tab.tagName.toLowerCase() === 'a'
+                ? (tab.getAttribute('href') || '').trim()
+                : '';
+            return !href || href === '#';
         }
 
         function ensureMobileStructure() {
@@ -236,6 +318,18 @@
 
             var megaItems = root.querySelectorAll('.vs-nav__item--has-mega');
             megaItems.forEach(function (item) {
+                var itemLink = getDirectItemLink(item);
+                if (itemLink) {
+                    itemLink.setAttribute('aria-haspopup', 'true');
+                    itemLink.setAttribute('aria-expanded', 'false');
+                    itemLink.addEventListener('click', function (event) {
+                        if (!isMobileViewport()) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleMobileMegaItem(item);
+                    });
+                }
+
                 if (getDirectItemToggle(item)) return;
                 var toggleBtn = document.createElement('button');
                 toggleBtn.type = 'button';
@@ -249,11 +343,7 @@
                     if (!isMobileViewport()) return;
                     event.preventDefault();
                     event.stopPropagation();
-                    var willOpen = !item.classList.contains('is-mobile-open');
-                    closeMobileMegaMenus(item);
-                    item.classList.toggle('is-mobile-open', willOpen);
-                    toggleBtn.classList.toggle('is-open', willOpen);
-                    toggleBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                    toggleMobileMegaItem(item, toggleBtn);
                 });
             });
 
@@ -269,6 +359,24 @@
                     var parent = link.parentElement;
                     if (parent && parent.classList && parent.classList.contains('vs-nav__item--has-mega')) return;
                     setMobileNavOpen(false);
+                });
+            });
+
+            nav.querySelectorAll('.vs-mega-menu a').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (!isMobileViewport()) return;
+                    if (shouldSwitchMobileMegaTab(link)) return;
+                    setMobileNavOpen(false);
+                });
+            });
+
+            nav.querySelectorAll('.vs-mega-tab').forEach(function (tab) {
+                tab.addEventListener('click', function (event) {
+                    if (!isMobileViewport()) return;
+                    if (!shouldSwitchMobileMegaTab(tab)) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    activateMobileMegaTab(tab);
                 });
             });
 

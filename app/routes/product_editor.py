@@ -69,6 +69,70 @@ _DEPS = {}
 PRODUCT_ADMIN_DATA_PREFIX = 'MC_PRODUCT_ADMIN_DATA:'
 ALLOWED_PRODUCT_CATEGORIES = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
 
+PRODUCT_SPECS_MOBILE_GUARD = """
+
+        /* Product Specs Mobile Guard */
+        @media (max-width: 900px) {
+            .vs-specs-table {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border: 0 !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .vs-specs-table tbody {
+                display: grid !important;
+                width: 100% !important;
+                gap: 12px !important;
+            }
+
+            .vs-specs-table tr {
+                display: grid !important;
+                grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+                width: 100% !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                border-radius: 14px !important;
+                background: #ffffff !important;
+                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+            }
+
+            .vs-specs-table td {
+                display: flex !important;
+                align-items: center !important;
+                width: auto !important;
+                min-width: 0 !important;
+                min-height: 64px !important;
+                padding: 16px 18px !important;
+                border: 0 !important;
+                line-height: 1.65 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+            }
+
+            .vs-specs-table tr td:first-child {
+                border-radius: 0 !important;
+                border-bottom: 0 !important;
+                background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
+                color: #ffffff !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+            }
+
+            .vs-specs-table tr td:last-child {
+                border-radius: 0 !important;
+                background: #ffffff !important;
+                color: #26364d !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+            }
+        }
+"""
+
 
 
 # 依赖注入配置入口。
@@ -564,6 +628,7 @@ def render_gassensing_product_html(
     page_html = get_product_template_html()
     for key in placeholders:
         page_html = page_html.replace(key, sanitize_product_template_value(key, resolved.get(key, '')))
+    page_html = ensure_product_responsive_guards(page_html)
 
     page_html = inject_product_meta_tags(
         page_html=page_html,
@@ -1057,6 +1122,21 @@ def _insert_before_last_tag(text: str, tag: str, snippet: str) -> str:
     return (text or '') + '\n' + snippet
 
 
+def ensure_product_responsive_guards(page_html: str) -> str:
+    """Ensure generated product pages keep mobile table layout overrides."""
+    text = str(page_html or '')
+    if 'vs-specs-table' not in text or 'Product Specs Mobile Guard' in text:
+        return text
+
+    if re.search(r'</style\s*>', text, re.I):
+        return _insert_before_last_tag(text, 'style', PRODUCT_SPECS_MOBILE_GUARD.rstrip())
+
+    style_block = '<style>' + PRODUCT_SPECS_MOBILE_GUARD.rstrip() + '\n    </style>'
+    if re.search(r'</head\s*>', text, re.I):
+        return _insert_before_last_tag(text, 'head', style_block)
+    return style_block + '\n' + text
+
+
 def _build_related_section_html(section_class: str, title: str, grid_class: str, loading_text: str) -> str:
     return (
         f'<section class="{section_class}">\n'
@@ -1108,7 +1188,7 @@ def ensure_product_dynamic_sections(page_html: str) -> str:
         if not grid_pattern.search(match.group(0)):
             text = text[:match.start()] + section_html + text[match.end():]
 
-    return text
+    return ensure_product_responsive_guards(text)
 
 
 def _build_product_ai_revise_messages(
@@ -2091,7 +2171,7 @@ def register_product_editor_routes(
         if '<html' not in content.lower():
             return jsonify({'success': False, 'message': '上传内容不是有效的HTML文件'}), 400
 
-        filepath.write_text(content, encoding='utf-8')
+        filepath.write_text(ensure_product_responsive_guards(content), encoding='utf-8')
         return jsonify({'success': True, 'message': '覆盖上传成功'})
 
     @app.route('/api/products/delete', methods=['POST'])
@@ -2222,6 +2302,7 @@ def register_product_editor_routes(
         try:
             page_html = filepath.read_text(encoding='utf-8', errors='ignore')
             patched = patch_vs_product_sections(page_html, sections)
+            patched = ensure_product_responsive_guards(patched)
             filepath.write_text(patched, encoding='utf-8')
             return jsonify({'success': True, 'message': '保存成功'})
         except Exception as exc:

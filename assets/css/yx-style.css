@@ -1130,7 +1130,7 @@ li {
 }
 
 .vs-careers__title {
-    font-size: clamp(42px, 4.8vw, 64px);
+    font-size: clamp(32px, 3.6vw, 48px);
     font-weight: 700;
     margin-bottom: 18px;
     line-height: 1.2;
@@ -1139,7 +1139,7 @@ li {
 }
 
 .vs-careers__desc {
-    font-size: clamp(18px, 1.5vw, 24px);
+    font-size: clamp(15px, 1.2vw, 19px);
     line-height: 1.85;
     color: rgba(255, 255, 255, 0.92);
     margin: 0 auto 34px;
@@ -1148,9 +1148,9 @@ li {
 }
 
 .vs-careers .vs-btn {
-    padding: 18px 52px;
+    padding: 14px 40px;
     border-radius: 50px;
-    font-size: 24px;
+    font-size: 18px;
     background: linear-gradient(180deg, #dbe94b 0%, #c8d83f 100%);
     color: #003764;
     border: none;
@@ -2415,6 +2415,11 @@ li {
         padding-right: 16px;
     }
 
+    .vs-header {
+        border-bottom: 0 !important;
+        box-shadow: none !important;
+    }
+
     main,
     .vs-page-content,
     .vs-section,
@@ -2456,6 +2461,146 @@ li {
     .vs-page-content [style*="min-width"],
     .article-container [style*="min-width"] {
         min-width: 0 !important;
+    }
+
+    .vs-product-hero__inner {
+        grid-template-columns: minmax(0, 1fr) !important;
+        min-width: 0 !important;
+    }
+
+    .vs-product-hero__inner > *,
+    .vs-product-gallery,
+    .vs-product-hero__content,
+    .vs-gallery-main,
+    .vs-gallery-thumbs {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .vs-product-gallery {
+        width: 100% !important;
+    }
+
+    .vs-gallery-thumbs {
+        justify-content: flex-start !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .vs-product-hero__content,
+    .vs-product-hero__desc,
+    .vs-feature-list {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .vs-specs-table {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border: 0 !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .vs-specs-table tbody {
+        display: grid !important;
+        width: 100% !important;
+        gap: 12px !important;
+    }
+
+    .vs-specs-table tr {
+        display: grid !important;
+        grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+        width: 100% !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        border-radius: 14px !important;
+        background: #ffffff !important;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+    }
+
+    .vs-specs-table td {
+        display: flex !important;
+        align-items: center !important;
+        width: auto !important;
+        min-width: 0 !important;
+        min-height: 64px !important;
+        padding: 16px 18px !important;
+        border: 0 !important;
+        line-height: 1.65 !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+
+    .vs-specs-table tr td:first-child {
+        border-radius: 0 !important;
+        border-bottom: 0 !important;
+        background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
+        color: #ffffff !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+    }
+
+    .vs-specs-table tr td:last-child {
+        border-radius: 0 !important;
+        background: #ffffff !important;
+        color: #26364d !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+    }
+
+    .advantages-new-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 28px !important;
+        min-width: 0 !important;
+    }
+
+    .advantages-new-grid > * {
+        min-width: 0 !important;
+    }
+
+    .contact-form {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+        box-sizing: border-box !important;
+    }
+
+    .contact-form .form-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 16px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .contact-form input,
+    .contact-form textarea,
+    .contact-form .form-full {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .vs-stats-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        padding: 24px 0 !important;
+    }
+
+    .vs-stat__item {
+        min-width: 0 !important;
+        padding: 18px 0 !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--color-border) !important;
+        text-align: center !important;
+    }
+
+    .vs-stat__item:last-child {
+        border-bottom: 0 !important;
     }
 
     .article-hero {

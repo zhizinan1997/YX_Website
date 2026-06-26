@@ -3209,6 +3209,55 @@ def register_admin_routes(
             hidden_account=_is_hidden_admin_session(session),
         )
         return jsonify({'success': True, 'message': '子账号已删除。'})
+    @app.route('/api/admin/subaccounts/<username>/email', methods=['PUT'])
+    @login_required
+    def admin_subaccounts_force_email(username):
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+
+        target_name = _normalize_username(username)
+        data = request.get_json(silent=True) or {}
+        new_email = _normalize_email(data.get('email', ''))
+
+        if not new_email or '@' not in new_email:
+            return jsonify({'success': False, 'message': '请输入有效的邮箱地址。'}), 400
+
+        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+        with ADMIN_USERS_LOCK:
+            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
+            target_user, idx = _find_user(users_data, target_name)
+            if target_user is None or idx < 0:
+                return jsonify({'success': False, 'message': '未找到该子账号。'}), 404
+            if _is_hidden_admin_record(target_user):
+                return _hidden_admin_not_found_response()
+            if str(target_user.get('role') or '') == 'super_admin':
+                return jsonify({'success': False, 'message': '不能在此处修改超级管理员账号。'}), 400
+
+            # 检查邮箱是否已被其他账号占用
+            duplicated = _find_user_by_email(users_data, new_email, exclude_username=target_name)
+            if duplicated is not None:
+                dup_name = _normalize_username(duplicated.get('username', ''))
+                return jsonify({'success': False, 'message': f'该邮箱已被账号 {dup_name} 绑定。'}), 400
+
+            now_iso = now_beijing().isoformat(timespec='seconds')
+            updated = dict(target_user)
+            updated['email'] = new_email
+            updated['email_verified'] = True
+            updated['email_bound_at'] = now_iso
+            updated['updated_at'] = now_iso
+            users_data['users'][idx] = _sanitize_user_record(updated, fallback_username=target_name, is_super_admin=False)
+            _save_admin_users(users_file, users_data)
+
+        append_admin_login_log(
+            operation='subaccount_manage',
+            success=True,
+            username=session.get('admin_username', ''),
+            detail=f'强制更改子账号 {target_name} 的绑定邮箱为 {new_email}',
+            hidden_account=_is_hidden_admin_session(session),
+        )
+        return jsonify({'success': True, 'message': f'已将 {target_name} 的邮箱强制更改为 {new_email}。'})
     @app.route('/admin/logout', methods=['POST'])
     def admin_logout():
         """Handle admin logout."""

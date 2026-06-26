@@ -356,7 +356,7 @@ ALLOWED_AI_PRODUCT_IMAGE_MIME_TYPES = {
     'image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif',
     'image/tiff', 'image/avif', 'image/heic', 'image/heif'
 }
-MEDIA_IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+MEDIA_IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000'
 CONFIG_JSON_CACHE_SECONDS = 120
 CONFIG_JSON_STALE_SECONDS = 600
 HERO_DERIVED_WIDTHS = (768, 1280, 1920)

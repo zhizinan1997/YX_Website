@@ -28,6 +28,9 @@ archive/
 .coverage
 htmlcov/
 node_modules/
+.codex_remote/
+tmp_*.html
+*.bak_codex
 
 # Runtime generated files
 /data/.flask_secret_key
