@@ -257,6 +257,207 @@
             color: #aaa;
             cursor: not-allowed;
         }
+
+        /* Phone layout: compact scan-friendly cards without affecting tablet/desktop. */
+        @media (max-width: 640px) {
+            main {
+                padding-top: 72px !important;
+            }
+
+            .vs-page-hero {
+                padding: 72px 0 34px;
+            }
+
+            .vs-breadcrumb {
+                display: none;
+            }
+
+            .vs-page-hero h1 {
+                font-size: 30px;
+                line-height: 1.25;
+                margin-bottom: 8px;
+            }
+
+            .vs-page-hero p {
+                max-width: 24em;
+                margin: 0 auto;
+                font-size: 14px;
+                line-height: 1.55;
+            }
+
+            .vs-category-nav {
+                position: sticky;
+                top: 64px;
+                z-index: 20;
+                background: rgba(248, 250, 252, 0.96);
+                border-bottom-color: #e5edf7;
+                box-shadow: 0 8px 18px rgba(15, 45, 90, 0.06);
+                backdrop-filter: blur(10px);
+            }
+
+            .vs-category-nav .vs-container {
+                max-width: 100%;
+                padding-left: 16px;
+                padding-right: 16px;
+                overflow: hidden;
+            }
+
+            .vs-category-nav ul {
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                gap: 8px;
+                padding: 12px 0;
+                overflow-x: auto;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .vs-category-nav ul::-webkit-scrollbar {
+                display: none;
+            }
+
+            .vs-category-nav li {
+                flex: 0 0 auto;
+            }
+
+            .vs-category-nav li a {
+                padding: 8px 14px;
+                border-color: #dbe6f2;
+                border-radius: 999px;
+                color: #52657a;
+                font-size: 13px;
+                line-height: 1.2;
+                white-space: nowrap;
+                box-shadow: 0 2px 8px rgba(15, 45, 90, 0.05);
+            }
+
+            .vs-products-section {
+                padding: 28px 0 42px;
+            }
+
+            .vs-products-header {
+                margin-bottom: 18px;
+            }
+
+            .vs-products-header h2 {
+                font-size: 24px;
+                line-height: 1.25;
+                margin-bottom: 6px;
+            }
+
+            .vs-products-header p {
+                font-size: 13px;
+            }
+
+            .vs-products-list {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .vs-products-list>li>a {
+                display: grid;
+                grid-template-columns: 108px minmax(0, 1fr);
+                column-gap: 12px;
+                align-items: stretch;
+                min-height: 128px;
+                padding: 10px;
+                border: 1px solid #dce6f2;
+                border-radius: 12px;
+                box-shadow: 0 3px 12px rgba(17, 54, 96, 0.08);
+            }
+
+            .vs-products-list>li>a:hover {
+                transform: none;
+                box-shadow: 0 3px 12px rgba(17, 54, 96, 0.08);
+            }
+
+            .vs-product-img {
+                width: 108px;
+                height: 108px;
+                padding: 8px;
+                border-radius: 10px;
+                box-sizing: border-box;
+            }
+
+            .vs-product-info {
+                min-width: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+            }
+
+            .vs-product-info h5 {
+                margin: 0;
+                color: #0066cc;
+                font-size: 15px;
+                line-height: 1.35;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .vs-product-info p {
+                margin: 6px 0 8px;
+                color: #5d6b7c;
+                font-size: 12.5px;
+                line-height: 1.5;
+                -webkit-line-clamp: 2;
+                line-clamp: 2;
+            }
+
+            .vs-product-more {
+                align-self: flex-start;
+                margin-top: auto;
+                padding: 5px 10px;
+                border: 1px solid rgba(0, 102, 204, 0.22);
+                border-radius: 999px;
+                background: rgba(0, 102, 204, 0.05);
+                font-size: 12px;
+                line-height: 1.2;
+                white-space: nowrap;
+            }
+
+            .vs-pagination {
+                gap: 6px;
+                margin-top: 26px;
+            }
+
+            .vs-pagination span,
+            .vs-pagination a {
+                min-width: 36px;
+                height: 36px;
+                padding: 0 10px;
+                font-size: 13px;
+            }
+
+            .vs-pagination>span:first-child {
+                flex-basis: 100%;
+                height: auto;
+                margin-bottom: 2px;
+                color: #64748b;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .vs-products-list>li>a {
+                grid-template-columns: 100px minmax(0, 1fr);
+                column-gap: 10px;
+                min-height: 120px;
+            }
+
+            .vs-product-img {
+                width: 100px;
+                height: 100px;
+                padding: 7px;
+            }
+
+            .vs-product-info h5 {
+                font-size: 14.5px;
+            }
+        }
     </style>
   <!-- Site Search -->
   <link rel="stylesheet" href="../../assets/css/search.css">
@@ -273,7 +474,7 @@
   <a href="/pages/contact/contact.html">联系我们</a>
 </div>
 </noscript>
-<script src="/assets/js/nav-loader.js?v=20260625a"></script>
+<script src="/assets/js/nav-loader.js?v=20260626m"></script>
 
     <main style="padding-top: 90px;">
         <!-- Page Hero -->

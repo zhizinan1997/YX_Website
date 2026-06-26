@@ -24,26 +24,6 @@
 
     <link rel="stylesheet" href="../../assets/css/yx-style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <style>
-        .product-template-overview,
-        .product-template-overview > * {
-            min-width: 0;
-        }
-
-        @media (max-width: 900px) {
-            .product-template-card {
-                padding: 22px 18px !important;
-            }
-
-            .product-template-overview {
-                grid-template-columns: minmax(0, 1fr) !important;
-            }
-
-            .product-template-media img {
-                max-width: 100% !important;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -66,9 +46,9 @@
 
         <section class="vs-products-section">
             <div class="vs-container">
-                <div class="card product-template-card" style="padding: 30px; border-radius: 12px; background: #fff;">
-                    <div class="product-template-overview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-                        <div class="product-template-media">
+                <div class="card" style="padding: 30px; border-radius: 12px; background: #fff;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                        <div>
                             <!-- TODO: 修改产品图片 -->
                             <img src="../../assets/images/products/example-product.png" alt="产品名称"
                                 style="width: 100%; max-width: 560px; object-fit: contain; border-radius: 10px; background: #f7f8fa;" />
@@ -84,7 +64,7 @@
                     </div>
                 </div>
 
-                <div class="card product-template-card" style="padding: 30px; margin-top: 20px; border-radius: 12px; background: #fff;">
+                <div class="card" style="padding: 30px; margin-top: 20px; border-radius: 12px; background: #fff;">
                     <h3 class="section-header">核心特点</h3>
                     <!-- TODO: 修改核心特点 -->
                     <ul style="line-height: 1.9; color: #444;">
@@ -94,9 +74,9 @@
                     </ul>
                 </div>
 
-                <div class="card product-template-card" style="padding: 30px; margin-top: 20px; border-radius: 12px; background: #fff;">
+                <div class="card" style="padding: 30px; margin-top: 20px; border-radius: 12px; background: #fff;">
                     <h3 class="section-header">技术参数（示例）</h3>
-                    <table class="vs-specs-table" style="width: 100%; border-collapse: collapse;">
+                    <table style="width: 100%; border-collapse: collapse;">
                         <tbody>
                             <!-- TODO: 替换参数项 -->
                             <tr>

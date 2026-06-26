@@ -120,13 +120,13 @@
      */
     function createNewsItemHTML(news) {
         return `
-      <a href="${normalizeUrl(news.link)}" style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
-        <img src="${normalizeUrl(news.image, '/cdn_assets/images/common/f1dcc87cdcca.png')}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news" onerror="this.src='/cdn_assets/images/common/f1dcc87cdcca.png'">
-        <div>
-          <h4 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
+      <a class="vs-mobile-news-link" href="${normalizeUrl(news.link)}" style="text-decoration: none; display: flex; gap: 15px; align-items: flex-start;">
+        <img class="vs-mobile-news-thumb" src="${normalizeUrl(news.image, '/cdn_assets/images/common/f1dcc87cdcca.png')}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;" alt="news" onerror="this.src='/cdn_assets/images/common/f1dcc87cdcca.png'">
+        <div class="vs-mobile-news-copy">
+          <h4 class="vs-mobile-news-title" style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 5px; line-height: 1.4;">
             ${news.title}
           </h4>
-          <span style="font-size: 12px; color: #888;">${news.date}</span>
+          <span class="vs-mobile-news-date" style="font-size: 12px; color: #888;">${news.date}</span>
         </div>
       </a>
     `;
@@ -143,11 +143,11 @@
 
         return `
       <h3 style="margin-bottom: 20px; font-size: 18px; color: #333;">${config.title}</h3>
-      <div style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="vs-mobile-news-list" style="display: flex; flex-direction: column; gap: 20px;">
         ${newsListHTML}
       </div>
-      <div style="margin-top: 20px; text-align: right;">
-        <a href="${config.moreLink}" style="color: var(--color-primary); font-size: 14px; font-weight: 500;">
+      <div class="vs-mobile-news-more" style="margin-top: 20px; text-align: right;">
+        <a class="vs-mobile-news-more-link" href="${config.moreLink}" style="color: var(--color-primary); font-size: 14px; font-weight: 500;">
           ${config.moreLinkText} &rarr;
         </a>
       </div>

@@ -82,39 +82,6 @@
             object-fit: contain;
         }
 
-
-        /* Product Gallery Mobile Guard */
-        @media (max-width: 900px) {
-            .vs-product-hero__inner {
-                grid-template-columns: minmax(0, 1fr) !important;
-                min-width: 0 !important;
-            }
-
-            .vs-product-hero__inner > *,
-            .vs-product-gallery,
-            .vs-product-hero__content,
-            .vs-gallery-main,
-            .vs-gallery-thumbs {
-                min-width: 0 !important;
-                max-width: 100% !important;
-            }
-
-            .vs-product-gallery {
-                width: 100% !important;
-            }
-
-            .vs-gallery-thumbs {
-                justify-content: flex-start !important;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .vs-product-hero__content,
-            .vs-product-hero__desc,
-            .vs-feature-list {
-                overflow-wrap: anywhere;
-                word-break: break-word;
-            }
-        }
         .vs-gallery-nav {
             position: absolute;
             top: 50%;
@@ -1086,69 +1053,7 @@
                 grid-template-columns: 1fr;
             }
         }
-
-
-        /* Product Specs Mobile Guard */
-        @media (max-width: 900px) {
-            .vs-specs-table {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                border: 0 !important;
-                border-collapse: separate !important;
-                border-spacing: 0 !important;
-                background: transparent !important;
-                box-shadow: none !important;
-            }
-
-            .vs-specs-table tbody {
-                display: grid !important;
-                width: 100% !important;
-                gap: 12px !important;
-            }
-
-            .vs-specs-table tr {
-                display: grid !important;
-                grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
-                width: 100% !important;
-                margin: 0 !important;
-                overflow: hidden !important;
-                border-radius: 14px !important;
-                background: #ffffff !important;
-                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
-            }
-
-            .vs-specs-table td {
-                display: flex !important;
-                align-items: center !important;
-                width: auto !important;
-                min-width: 0 !important;
-                min-height: 64px !important;
-                padding: 16px 18px !important;
-                border: 0 !important;
-                line-height: 1.65 !important;
-                overflow-wrap: anywhere !important;
-                word-break: break-word !important;
-            }
-
-            .vs-specs-table tr td:first-child {
-                border-radius: 0 !important;
-                border-bottom: 0 !important;
-                background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
-                color: #ffffff !important;
-                font-size: 15px !important;
-                font-weight: 700 !important;
-            }
-
-            .vs-specs-table tr td:last-child {
-                border-radius: 0 !important;
-                background: #ffffff !important;
-                color: #26364d !important;
-                font-size: 15px !important;
-                font-weight: 500 !important;
-            }
-        }
-</style>
+    </style>
   <!-- Site Search -->
   <link rel="stylesheet" href="../../assets/css/search.css">
 
@@ -1173,16 +1078,16 @@
   <a href="/pages/contact/contact.html">联系我们</a>
 </div>
 </noscript>
-<script src="/assets/js/nav-loader.js?v=20260625a"></script>
+<script src="/assets/js/nav-loader.js?v=20260626m"></script>
 
-
+    
 
     <main style="padding-top: 90px;">
         <div style="background: var(--color-primary);">
             <div class="vs-container vs-breadcrumb">
                 <a href="../../index.html">首页</a><span>|</span>
                 <a href="../../pages/gassensing/all-products.html">气体传感产品</a><span>|</span>
-
+                
                 MC-OL-W1在线式露点分析仪
             </div>
         </div>
@@ -1834,7 +1739,7 @@
 
     <!-- AI智能客服 -->
     <script src="../../assets/js/chatbot.js?v=20260604i"></script>
-
+    
 
     <!-- 动态产品菜单（从API自动加载，支持自定义名称和新品标记） -->
     <script>
