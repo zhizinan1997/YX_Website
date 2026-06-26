@@ -10,6 +10,7 @@ docker-compose.yml
 
 # Python
 .venv
+.venv*
 venv
 __pycache__
 **/__pycache__
