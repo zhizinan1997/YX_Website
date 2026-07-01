@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "name": "微信公众号文章 A",
+      "promotion_mark": "wechat-a-20260701",
+      "target_path": "/",
+      "utm_source": "wechat",
+      "utm_medium": "article",
+      "utm_campaign": "2026plateform",
+      "utm_content": "001",
+      "utm_term": "",
+      "enabled": true,
+      "updated_at": "2026-07-01T14:13:10+08:00",
+      "id": "eaef9618708f45c49292e562a3a49fea",
+      "created_at": "2026-07-01T14:13:10+08:00",
+      "archived_at": ""
+    }
+  ]
+}

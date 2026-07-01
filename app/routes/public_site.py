@@ -468,6 +468,41 @@ def register_public_site_routes(
     }
     search_lock = threading.Lock()
 
+    def blocked_disabled_promotion_link_response():
+        mark = str(request.args.get('utm_id') or '').strip()
+        if not mark:
+            return None
+        try:
+            from app.routes.promotion_links import load_promotion_links, normalize_promotion_mark
+
+            safe_mark = normalize_promotion_mark(mark)
+            if not safe_mark:
+                return None
+            for item in load_promotion_links():
+                if normalize_promotion_mark(item.get('promotion_mark')) != safe_mark:
+                    continue
+                if item.get('archived_at') or not bool(item.get('enabled', True)):
+                    return Response(
+                        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+                        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                        '<title>推广链接已停用</title></head>'
+                        '<body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;'
+                        'display:flex;min-height:100vh;align-items:center;justify-content:center;'
+                        'margin:0;background:#f8fafc;color:#0f172a;">'
+                        '<main style="max-width:520px;padding:28px;background:#fff;border:1px solid #e2e8f0;'
+                        'border-radius:14px;box-shadow:0 20px 48px rgba(15,23,42,.12);">'
+                        '<h1 style="font-size:22px;margin:0 0 12px;">推广链接已停用</h1>'
+                        '<p style="font-size:15px;line-height:1.8;margin:0;color:#475569;">'
+                        '该推广链接已被管理员停用或隐藏，请返回官网或联系工作人员获取新的访问入口。'
+                        '</p></main></body></html>',
+                        status=410,
+                        mimetype='text/html',
+                    )
+                return None
+        except Exception:
+            return None
+        return None
+
     def normalize_public_static_path(raw_path: str) -> str:
         candidate = posixpath.normpath('/' + str(raw_path or '').replace('\\', '/')).lstrip('/')
         if not candidate or candidate in {'.', '/'}:
@@ -550,6 +585,66 @@ def register_public_site_routes(
         match = re.search(r'(?is)<title\b[^>]*>(.*?)</title>', html_body or '')
         return strip_html_markup(match.group(1) if match else '')
 
+    def title_override_for_public_path(path_value: str) -> str:
+        path_text = str(path_value or '').strip() or '/'
+        overrides = {
+            '/pages/biosensing/index_page_2.html': '生物传感产品第 2 页 - 元芯传感',
+            '/pages/careers/job-detail.html': '招聘岗位详情 - 元芯传感',
+            '/pages/careers/job.aspx.html': '在线招聘列表 - 元芯传感',
+            '/pages/contact/feedback.aspx_attach_id.html': '在线留言附件 - 元芯传感',
+            '/pages/honors/honor-page2.html': '应用案例第 2 页 - 元芯传感',
+            '/pages/news/news_show.aspx_id_75.html': '兆瓦级氢能飞机株洲首飞安全检测方案 - 湖南元芯传感科技有限责任公司',
+        }
+        return overrides.get(path_text, '')
+
+    def canonical_path_override_for_public_path(path_value: str) -> str:
+        overrides = {
+            '/pages/news/news_show.aspx_id_75.html': '/pages/news/news_show.aspx_id_76.html',
+        }
+        return overrides.get(str(path_value or '').strip(), '')
+
+    def robots_override_for_public_path(path_value: str) -> str:
+        overrides = {
+            '/pages/news/news_show.aspx_id_75.html': 'noindex,follow,max-image-preview:large',
+        }
+        return overrides.get(str(path_value or '').strip(), '')
+
+    def should_exclude_from_public_sitemap(path_value: str) -> bool:
+        return str(path_value or '').strip() in {
+            '/pages/news/news_show.aspx_id_75.html',
+        }
+
+    def replace_html_title(html_body: str, title_text: str) -> str:
+        clean_title = str(title_text or '').strip()
+        if not clean_title:
+            return html_body
+        escaped_title = html.escape(clean_title, quote=False)
+        body = str(html_body or '')
+        if re.search(r'(?is)<title\b[^>]*>.*?</title>', body):
+            return re.sub(
+                r'(?is)(<title\b[^>]*>).*?(</title>)',
+                lambda match: f'{match.group(1)}{escaped_title}{match.group(2)}',
+                body,
+                count=1,
+            )
+        head_match = re.search(r'(?is)<head\b[^>]*>', body)
+        if head_match:
+            insert_pos = head_match.end()
+            return body[:insert_pos] + f'\n<title>{escaped_title}</title>' + body[insert_pos:]
+        return f'<title>{escaped_title}</title>\n{body}'
+
+    def normalize_public_title_markup(html_body: str, path_value: str) -> str:
+        override = title_override_for_public_path(path_value)
+        if override:
+            return replace_html_title(html_body, override)
+
+        title_text = extract_html_title(html_body)
+        if re.search(r'[锟�]|婀栧|鍏冭|绉戞|鏈夐檺', title_text or ''):
+            fixed = re.sub(r'\s*-\s*.*$', f' - {site_company_name}', title_text).strip()
+            if fixed:
+                return replace_html_title(html_body, fixed)
+        return html_body
+
     def truncate_seo_text(text: str, max_length: int = 155) -> str:
         clean = re.sub(r'\s{2,}', ' ', str(text or '').strip())
         if len(clean) <= max_length:
@@ -575,8 +670,73 @@ def register_public_site_routes(
                 return str(attrs.get('href') or '').strip()
         return ''
 
+    def is_invalid_public_canonical_url(value: str) -> bool:
+        lowered = str(value or '').strip().lower()
+        return (
+            '/api/products/code/download' in lowered
+            or '/api/bio-products/code/download' in lowered
+        )
+
+    def strip_invalid_existing_seo_markup(html_body: str) -> str:
+        body = str(html_body or '')
+        lowered = body.lower()
+        if '/api/products/code/download' not in lowered and '/api/bio-products/code/download' not in lowered:
+            return body
+
+        def replace_link_tag(match):
+            tag = match.group(0)
+            attrs = extract_html_tag_attributes(tag)
+            rel_tokens = {token.strip().lower() for token in str(attrs.get('rel') or '').split() if token.strip()}
+            if 'canonical' in rel_tokens and is_invalid_public_canonical_url(attrs.get('href', '')):
+                return ''
+            return tag
+
+        def replace_jsonld_tag(match):
+            tag = match.group(0)
+            return '' if is_invalid_public_canonical_url(tag) else tag
+
+        body = re.sub(r'(?is)<link\b[^>]*>', replace_link_tag, body)
+        body = re.sub(
+            r'(?is)<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>.*?</script>',
+            replace_jsonld_tag,
+            body,
+        )
+        return body
+
     def extract_primary_heading(html_body: str) -> str:
         return extract_public_heading_from_html(html_body)
+
+    def normalize_public_h1_markup(html_body: str, fallback_heading: str) -> str:
+        body = str(html_body or '')
+        kept_primary = False
+
+        def replace_h1(match):
+            nonlocal kept_primary
+            attrs = match.group(1) or ''
+            inner = match.group(2) or ''
+            heading_text = strip_html_markup(inner)
+            if not heading_text:
+                return ''
+            if not kept_primary:
+                kept_primary = True
+                return match.group(0)
+            return f'<h2{attrs}>{inner}</h2>'
+
+        normalized = re.sub(r'(?is)<h1\b([^>]*)>(.*?)</h1>', replace_h1, body)
+        if kept_primary:
+            return normalized
+
+        heading = strip_brand_suffix(fallback_heading) or site_display_name or site_brand_name
+        heading = strip_html_markup(heading)
+        if not heading:
+            return normalized
+
+        fallback_h1 = f'<h1 class="seo-fallback-heading">{html.escape(heading, quote=False)}</h1>'
+        body_match = re.search(r'(?is)<body\b[^>]*>', normalized)
+        if body_match:
+            insert_pos = body_match.end()
+            return normalized[:insert_pos] + '\n' + fallback_h1 + normalized[insert_pos:]
+        return fallback_h1 + '\n' + normalized
 
     def looks_like_noise_description(text: str) -> bool:
         candidate = str(text or '').strip()
@@ -780,13 +940,48 @@ def register_public_site_routes(
 
         return payloads
 
+    def append_meta_tag_if_missing(head_tags: list[str], html_body: str, *, attr_name: str, attr_value: str, content: str):
+        if extract_meta_content(html_body, attr_name=attr_name, attr_value=attr_value):
+            return
+        escaped_attr_value = html.escape(attr_value, quote=True)
+        escaped_content = html.escape(content or '', quote=True)
+        head_tags.append(f'<meta {attr_name}="{escaped_attr_value}" content="{escaped_content}">')
+
+    def append_social_meta_tags(
+        head_tags: list[str],
+        html_body: str,
+        *,
+        canonical_path: str,
+        canonical_url: str,
+        title_text: str,
+        description: str,
+        image_url: str,
+    ):
+        page_title = strip_brand_suffix(extract_primary_heading(html_body)) or title_text or site_display_name
+        page_type = 'article' if str(canonical_path or '').startswith('/pages/news/news_show') else 'website'
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='property', attr_value='og:type', content=page_type)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='property', attr_value='og:site_name', content=site_display_name)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='property', attr_value='og:locale', content='zh_CN')
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='property', attr_value='og:title', content=page_title)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='property', attr_value='og:description', content=description)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='property', attr_value='og:url', content=canonical_url)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='property', attr_value='og:image', content=image_url)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='name', attr_value='twitter:card', content='summary_large_image')
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='name', attr_value='twitter:title', content=page_title)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='name', attr_value='twitter:description', content=description)
+        append_meta_tag_if_missing(head_tags, html_body, attr_name='name', attr_value='twitter:image', content=image_url)
+
     def inject_seo_head_markup(html_body: str) -> str:
+        html_body = strip_invalid_existing_seo_markup(html_body)
         base_url, _ = absolute_public_base_url()
-        canonical_path = canonical_public_path_for_request(request.path or '') or (request.path or '/')
+        request_canonical_path = canonical_public_path_for_request(request.path or '') or (request.path or '/')
+        canonical_path = canonical_path_override_for_public_path(request_canonical_path) or request_canonical_path
         canonical_url = absolute_public_url(canonical_path, base_url=base_url)
+        html_body = normalize_public_title_markup(html_body, request_canonical_path)
         title_text = extract_html_title(html_body)
+        html_body = normalize_public_h1_markup(html_body, title_text)
         heading_text = extract_primary_heading(html_body)
-        description = build_page_description(canonical_path, html_body, title_text, heading_text)
+        description = build_page_description(request_canonical_path, html_body, title_text, heading_text)
         image_url = extract_primary_image_url(html_body, base_url=base_url, page_url=canonical_url)
         structured_data = build_structured_data(canonical_path, canonical_url, html_body, title_text, description, image_url)
 
@@ -796,11 +991,25 @@ def register_public_site_routes(
         if not extract_link_href(html_body, rel_value='canonical'):
             head_tags.append(f'<link rel="canonical" href="{html.escape(canonical_url, quote=True)}">')
         if not extract_meta_content(html_body, attr_name='name', attr_value='robots'):
-            head_tags.append(f'<meta name="robots" content="{seo_default_robots}">')
+            robots_content = robots_override_for_public_path(request_canonical_path) or seo_default_robots
+            head_tags.append(f'<meta name="robots" content="{robots_content}">')
         if not extract_link_href(html_body, rel_value='icon'):
             head_tags.append('<link rel="icon" href="/favicon.png" sizes="32x32" type="image/png">')
         if not extract_link_href(html_body, rel_value='apple-touch-icon'):
             head_tags.append('<link rel="apple-touch-icon" href="/apple-touch-icon.png">')
+        if 'seo-fallback-heading' in html_body and 'seo-fallback-heading-style' not in html_body:
+            head_tags.append(
+                '<style id="seo-fallback-heading-style">.seo-fallback-heading{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important;}</style>'
+            )
+        append_social_meta_tags(
+            head_tags,
+            html_body,
+            canonical_path=canonical_path,
+            canonical_url=canonical_url,
+            title_text=title_text,
+            description=description,
+            image_url=image_url,
+        )
         if structured_data and 'application/ld+json' not in html_body.lower():
             payload = json.dumps(structured_data[0] if len(structured_data) == 1 else structured_data, ensure_ascii=False)
             payload = payload.replace('</', '<\\/')
@@ -849,8 +1058,12 @@ def register_public_site_routes(
                 if rel.startswith('admin/'):
                     continue
                 url = f'/{rel}'
+                if should_exclude_from_public_sitemap(url):
+                    continue
                 if url.endswith('/index.html'):
                     url = url[:-10] + '/'
+                    if should_exclude_from_public_sitemap(url):
+                        continue
                 add_url(url, html_file, changefreq='weekly', priority='0.8' if '/news/' in url else '0.7')
 
         return output
@@ -926,6 +1139,10 @@ def register_public_site_routes(
                 return response
 
             content_type = (response.headers.get('Content-Type') or '').lower()
+            content_disposition = (response.headers.get('Content-Disposition') or '').lower()
+
+            if path.startswith('/api/') or 'attachment' in content_disposition:
+                return response
 
             # ── JavaScript 响应：为 JS 中引用的本地资源路径注入版本号 ──
             if 'javascript' in content_type and 'text/html' not in content_type:
@@ -1047,10 +1264,16 @@ def register_public_site_routes(
 
     @app.route('/')
     def index():
+        blocked = blocked_disabled_promotion_link_response()
+        if blocked:
+            return blocked
         return send_from_directory(str(root), 'index.html')
 
     @app.route('/<path:path>')
     def serve_static(path):
+        blocked = blocked_disabled_promotion_link_response()
+        if blocked:
+            return blocked
         canonical_path = canonical_public_path_for_request(path)
         request_path = request.path or ''
         if canonical_path and canonical_path != request_path:

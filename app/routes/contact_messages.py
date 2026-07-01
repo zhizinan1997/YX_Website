@@ -231,6 +231,73 @@ def _summarize_text(value: str, limit: int = 120) -> str:
     return normalized[: max(1, limit - 1)].rstrip() + '…'
 
 
+def _clean_attribution_text(value, limit: int = 160) -> str:
+    text = _normalize_whitespace(value)
+    if not text:
+        return ''
+    text = re.sub(r'[\x00-\x1f<>]+', '', text).strip()
+    return text[:limit]
+
+
+def _clean_attribution_utm(raw) -> dict:
+    data = raw if isinstance(raw, dict) else {}
+    output = {}
+    for source_key, out_key in (
+        ('source', 'utm_source'),
+        ('medium', 'utm_medium'),
+        ('campaign', 'utm_campaign'),
+        ('content', 'utm_content'),
+        ('term', 'utm_term'),
+        ('id', 'utm_id'),
+    ):
+        value = _clean_attribution_text(data.get(source_key) or data.get(out_key), limit=96)
+        value = re.sub(r'[^A-Za-z0-9._:-]+', '-', value).strip('.:-_')
+        output[out_key] = value[:96]
+    return output
+
+
+def _clean_attribution_touch(raw) -> dict:
+    data = raw if isinstance(raw, dict) else {}
+    utm = _clean_attribution_utm(data.get('utm') if isinstance(data.get('utm'), dict) else data)
+    promotion_mark = _clean_attribution_text(data.get('promotion_mark') or utm.get('utm_id'), limit=96)
+    promotion_mark = re.sub(r'[^A-Za-z0-9._:-]+', '-', promotion_mark).strip('.:-_')[:96]
+    return {
+        **utm,
+        'promotion_mark': promotion_mark,
+        'landing_page': _clean_attribution_text(data.get('landing_page'), limit=260),
+        'referrer': _clean_attribution_text(data.get('referrer'), limit=300),
+    }
+
+
+def _extract_request_attribution(data=None) -> dict:
+    raw = ''
+    if data is not None:
+        try:
+            raw = data.get('attribution') or ''
+        except Exception:
+            raw = ''
+    if not raw:
+        raw = request.cookies.get('yx_site_attribution', '')
+    parsed = {}
+    if isinstance(raw, dict):
+        parsed = raw
+    elif raw:
+        try:
+            parsed = json.loads(unquote(str(raw)))
+        except Exception:
+            parsed = {}
+    if not isinstance(parsed, dict):
+        return {}
+    first = _clean_attribution_touch(parsed.get('first_touch') or parsed.get('first'))
+    last = _clean_attribution_touch(parsed.get('last_touch') or parsed.get('last'))
+    if not any(first.values()) and not any(last.values()):
+        return {}
+    return {
+        'first_touch': first,
+        'last_touch': last,
+    }
+
+
 def _format_file_size(size_bytes) -> str:
     try:
         value = int(size_bytes or 0)
@@ -672,6 +739,7 @@ def register_contact_message_routes(
             'is_read': False,
             'timestamp': now_bj.isoformat(),
             'ip': ip,
+            'attribution': _extract_request_attribution(data),
         }
 
         filepath = _dep('messages_dir') / f"{message['id']}.json"
@@ -894,6 +962,7 @@ def register_contact_message_routes(
             'is_read': False,
             'timestamp': now.isoformat(),
             'ip': ip,
+            'attribution': _extract_request_attribution(data),
         }
 
         filepath = _dep('messages_dir') / f'{message_id}.json'

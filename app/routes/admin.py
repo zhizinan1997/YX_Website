@@ -133,6 +133,7 @@ SMTP_REMINDER_DAYS = (7, 3, 1)
 ADMIN_PERMISSION_CATALOG = [
     {'key': 'site-reports', 'label': '网站数据'},
     {'key': 'messages', 'label': '留言系统'},
+    {'key': 'promotion-links', 'label': '推广链接'},
     {'key': 'home', 'label': '首页设置'},
     {'key': 'h2-home', 'label': '氢气首页'},
     {'key': 'products', 'label': '氢气产品'},
@@ -522,6 +523,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'site-settings'
     if p.startswith('/api/admin/site-reports'):
         return 'site-reports'
+    if p.startswith('/api/admin/promotion-links'):
+        return 'promotion-links'
     if p.startswith('/api/admin/changelog'):
         return 'log-records'
     if p.startswith('/api/admin/docker-logs'):

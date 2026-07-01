@@ -70,7 +70,10 @@ from urllib.parse import urlparse
 
 from flask import current_app, jsonify, request, send_file, session
 
+from app.routes.promotion_links import load_promotion_links, normalize_promotion_mark
+
 SITE_ANALYTICS_LOG_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_events.jsonl'
+PROMOTION_LINKS_FILE = Path(__file__).resolve().parents[2] / 'data' / 'promotion_links.json'
 SITE_ANALYTICS_AI_REPORTS_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_reports.jsonl'
 SITE_ANALYTICS_AI_REPORTS_DIR = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_reports'
 SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = SITE_ANALYTICS_AI_REPORTS_DIR / 'index.json'
@@ -106,7 +109,7 @@ SITE_ANALYTICS_AI_JOB_LOCK_TTL_SECONDS = 20 * 60
 SITE_ANALYTICS_AI_PDF_LOCK_TTL_SECONDS = 3 * 60
 SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS = 2200
 SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE = 0.2
-SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION = 'v20260613'
+SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION = 'v20260701'
 SITE_ANALYTICS_ALLOWED_EVENT_TYPES = {'pageview', 'event', 'session_end'}
 
 # ── 定时报告调度相关 ──
@@ -178,6 +181,35 @@ def _analytics_clean_id(value, max_length=64):
     if not text:
         return ''
     return re.sub(r'[^a-zA-Z0-9._:-]', '', text)[:max_length]
+
+
+def _analytics_clean_utm_value(value, max_length=96):
+    text = _analytics_clean_text(value, max_length=max_length)
+    if not text:
+        return ''
+    text = re.sub(r'[^a-zA-Z0-9._:-]+', '-', text).strip('.:-_')
+    return text[:max_length]
+
+
+def _analytics_load_promotion_lookup():
+    lookup = {}
+    try:
+        items = load_promotion_links(PROMOTION_LINKS_FILE)
+    except Exception:
+        items = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        mark = normalize_promotion_mark(item.get('promotion_mark'))
+        if not mark:
+            continue
+        lookup.setdefault(mark, {
+            'name': _analytics_clean_text(item.get('name'), max_length=120),
+            'utm_source': _analytics_clean_utm_value(item.get('utm_source'), max_length=80),
+            'utm_medium': _analytics_clean_utm_value(item.get('utm_medium'), max_length=80),
+            'utm_campaign': _analytics_clean_utm_value(item.get('utm_campaign'), max_length=80),
+        })
+    return lookup
 
 
 def _analytics_extract_host(raw_url: str) -> str:
@@ -927,6 +959,7 @@ def _build_site_analytics_report_from_buckets(
     event_counter = {}
     visitor_set = set()
     recent_events = []
+    promotion_lookup = _analytics_load_promotion_lookup()
 
     records = _iter_site_analytics_records()
     for item in records:
@@ -946,6 +979,13 @@ def _build_site_analytics_report_from_buckets(
         page_path = _analytics_normalize_path(item.get('page_path') or '/')
         page_title = _analytics_clean_text(item.get('page_title'), max_length=120)
         source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        utm_source = _analytics_clean_utm_value(item.get('utm_source'), max_length=80).lower()
+        utm_medium = _analytics_clean_utm_value(item.get('utm_medium'), max_length=80).lower()
+        utm_campaign = _analytics_clean_utm_value(item.get('utm_campaign'), max_length=80)
+        utm_content = _analytics_clean_utm_value(item.get('utm_content'), max_length=80)
+        utm_term = _analytics_clean_utm_value(item.get('utm_term'), max_length=80)
+        utm_id = _analytics_clean_utm_value(item.get('utm_id'), max_length=80)
+        promotion_mark = normalize_promotion_mark(item.get('promotion_mark') or utm_id)
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
         os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
         province = _analytics_extract_record_province(item)
@@ -970,9 +1010,18 @@ def _build_site_analytics_report_from_buckets(
                 'first_ts': ts,
                 'last_ts': ts,
                 'pageviews': 0,
+                'events': 0,
+                'click_events': 0,
                 'conversions': 0,
                 'reported_duration_sec': 0,
                 'source': source,
+                'utm_source': utm_source,
+                'utm_medium': utm_medium,
+                'utm_campaign': utm_campaign,
+                'utm_content': utm_content,
+                'utm_term': utm_term,
+                'utm_id': utm_id,
+                'promotion_mark': promotion_mark,
                 'device': device,
                 'os': os_name,
                 'province': province,
@@ -985,6 +1034,20 @@ def _build_site_analytics_report_from_buckets(
             sess['last_ts'] = max(sess['last_ts'], ts)
             if sess.get('source') in {'', 'direct', 'internal', 'unknown'} and source not in {'', 'unknown'}:
                 sess['source'] = source
+            if not sess.get('utm_source') and utm_source:
+                sess['utm_source'] = utm_source
+            if not sess.get('utm_medium') and utm_medium:
+                sess['utm_medium'] = utm_medium
+            if not sess.get('utm_campaign') and utm_campaign:
+                sess['utm_campaign'] = utm_campaign
+            if not sess.get('utm_content') and utm_content:
+                sess['utm_content'] = utm_content
+            if not sess.get('utm_term') and utm_term:
+                sess['utm_term'] = utm_term
+            if not sess.get('utm_id') and utm_id:
+                sess['utm_id'] = utm_id
+            if not sess.get('promotion_mark') and promotion_mark:
+                sess['promotion_mark'] = promotion_mark
             if sess.get('device') in {'', 'unknown'} and device not in {'', 'unknown'}:
                 sess['device'] = device
             if sess.get('os') in {'', 'unknown'} and os_name not in {'', 'unknown'}:
@@ -1022,8 +1085,11 @@ def _build_site_analytics_report_from_buckets(
 
         elif event_type == 'event':
             buckets[bucket_key]['events'] += 1
+            sess['events'] += 1
             if event_name:
                 event_counter[event_name] = event_counter.get(event_name, 0) + 1
+            if 'click' in event_name or event_name in {'button', 'link'}:
+                sess['click_events'] += 1
             if _analytics_is_conversion_event(event_name):
                 sess['conversions'] += 1
                 buckets[bucket_key]['conversions'] += 1
@@ -1039,6 +1105,7 @@ def _build_site_analytics_report_from_buckets(
             'name': event_label,
             'path': page_path,
             'source': source or '-',
+            'promotion_mark': promotion_mark or '-',
             'device': device or '-',
         })
 
@@ -1069,15 +1136,87 @@ def _build_site_analytics_report_from_buckets(
     province_counter = {}
     continent_counter = {}
     country_counter = {}
+    promotion_stats = {}
+    campaign_stats = {}
     for item in tracked_sessions:
         source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        utm_source = _analytics_clean_utm_value(item.get('utm_source'), max_length=80).lower()
+        utm_medium = _analytics_clean_utm_value(item.get('utm_medium'), max_length=80).lower()
+        utm_campaign = _analytics_clean_utm_value(item.get('utm_campaign'), max_length=80)
+        utm_content = _analytics_clean_utm_value(item.get('utm_content'), max_length=80)
+        utm_term = _analytics_clean_utm_value(item.get('utm_term'), max_length=80)
+        promotion_mark = normalize_promotion_mark(item.get('promotion_mark') or item.get('utm_id'))
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
         os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
         province = _analytics_clean_text(item.get('province'), max_length=32)
         country = _analytics_clean_text(item.get('country'), max_length=64)
+        pageview_count = int(item.get('pageviews') or 0)
+        conversion_count = int(item.get('conversions') or 0)
+        event_count = int(item.get('events') or 0)
+        click_count = int(item.get('click_events') or 0)
+        visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64) or 'anonymous'
+        observed_duration = max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0))
+        reported_duration = max(0, int(item.get('reported_duration_sec') or 0))
+        session_duration = min(max(observed_duration, reported_duration), 12 * 3600)
         source_counter[source] = source_counter.get(source, 0) + 1
         device_counter[device] = device_counter.get(device, 0) + 1
         os_counter[os_name] = os_counter.get(os_name, 0) + 1
+        if promotion_mark:
+            stats = promotion_stats.setdefault(promotion_mark, {
+                'promotion_mark': promotion_mark,
+                'name': promotion_lookup.get(promotion_mark, {}).get('name') or '',
+                'utm_source': utm_source or promotion_lookup.get(promotion_mark, {}).get('utm_source') or '',
+                'utm_medium': utm_medium or promotion_lookup.get(promotion_mark, {}).get('utm_medium') or '',
+                'utm_campaign': utm_campaign or promotion_lookup.get(promotion_mark, {}).get('utm_campaign') or '',
+                'utm_content': utm_content,
+                'utm_term': utm_term,
+                'sessions': 0,
+                'pageviews': 0,
+                'visitors': set(),
+                'events': 0,
+                'click_events': 0,
+                'conversion_events': 0,
+                'conversion_sessions': 0,
+                'bounce_sessions': 0,
+                'duration_sec': 0,
+                'first_ts': 0,
+                'last_ts': 0,
+            })
+            stats['sessions'] += 1
+            stats['pageviews'] += pageview_count
+            stats['visitors'].add(visitor_id)
+            stats['events'] += event_count
+            stats['click_events'] += click_count
+            stats['conversion_events'] += conversion_count
+            if conversion_count > 0:
+                stats['conversion_sessions'] += 1
+            if pageview_count <= 1:
+                stats['bounce_sessions'] += 1
+            stats['duration_sec'] += session_duration
+            first_ts = int(item.get('first_ts') or 0)
+            last_ts = int(item.get('last_ts') or 0)
+            if first_ts and (not stats.get('first_ts') or first_ts < int(stats.get('first_ts') or 0)):
+                stats['first_ts'] = first_ts
+            if last_ts and last_ts > int(stats.get('last_ts') or 0):
+                stats['last_ts'] = last_ts
+        if utm_campaign:
+            campaign_key = f'{utm_source}|{utm_medium}|{utm_campaign}'
+            stats = campaign_stats.setdefault(campaign_key, {
+                'utm_source': utm_source,
+                'utm_medium': utm_medium,
+                'utm_campaign': utm_campaign,
+                'sessions': 0,
+                'pageviews': 0,
+                'visitors': set(),
+                'conversion_events': 0,
+                'conversion_sessions': 0,
+            })
+            stats['sessions'] += 1
+            stats['pageviews'] += pageview_count
+            stats['visitors'].add(visitor_id)
+            stats['conversion_events'] += conversion_count
+            if conversion_count > 0:
+                stats['conversion_sessions'] += 1
         if province:
             province_counter[province] = province_counter.get(province, 0) + 1
         continent_key = _analytics_resolve_continent_from_country(country)
@@ -1095,6 +1234,51 @@ def _build_site_analytics_report_from_buckets(
         for key, value in source_counter.items()
     ]
     source_rows.sort(key=lambda item: item['sessions'], reverse=True)
+
+    promotion_rows = []
+    for stats in promotion_stats.values():
+        sessions_count = int(stats.get('sessions') or 0)
+        promotion_rows.append({
+            'promotion_mark': stats.get('promotion_mark') or '',
+            'name': stats.get('name') or '',
+            'utm_source': stats.get('utm_source') or '',
+            'utm_medium': stats.get('utm_medium') or '',
+            'utm_campaign': stats.get('utm_campaign') or '',
+            'utm_content': stats.get('utm_content') or '',
+            'utm_term': stats.get('utm_term') or '',
+            'sessions': sessions_count,
+            'pageviews': int(stats.get('pageviews') or 0),
+            'unique_visitors': len(stats.get('visitors', set())),
+            'events': int(stats.get('events') or 0),
+            'click_events': int(stats.get('click_events') or 0),
+            'conversion_events': int(stats.get('conversion_events') or 0),
+            'conversion_sessions': int(stats.get('conversion_sessions') or 0),
+            'conversion_rate': round((int(stats.get('conversion_sessions') or 0) * 100.0 / sessions_count), 2) if sessions_count else 0.0,
+            'bounce_rate': round((int(stats.get('bounce_sessions') or 0) * 100.0 / sessions_count), 2) if sessions_count else 0.0,
+            'avg_session_duration_sec': round((int(stats.get('duration_sec') or 0) / sessions_count), 2) if sessions_count else 0.0,
+            'pages_per_session': round((int(stats.get('pageviews') or 0) / sessions_count), 2) if sessions_count else 0.0,
+            'first_seen': _analytics_local_datetime(int(stats.get('first_ts') or 0)).strftime('%Y-%m-%d %H:%M:%S') if int(stats.get('first_ts') or 0) else '',
+            'last_seen': _analytics_local_datetime(int(stats.get('last_ts') or 0)).strftime('%Y-%m-%d %H:%M:%S') if int(stats.get('last_ts') or 0) else '',
+            'ratio': round((sessions_count * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        })
+    promotion_rows.sort(key=lambda item: (item['sessions'], item['pageviews']), reverse=True)
+
+    campaign_rows = []
+    for stats in campaign_stats.values():
+        sessions_count = int(stats.get('sessions') or 0)
+        campaign_rows.append({
+            'utm_source': stats.get('utm_source') or '',
+            'utm_medium': stats.get('utm_medium') or '',
+            'utm_campaign': stats.get('utm_campaign') or '',
+            'sessions': sessions_count,
+            'pageviews': int(stats.get('pageviews') or 0),
+            'unique_visitors': len(stats.get('visitors', set())),
+            'conversion_events': int(stats.get('conversion_events') or 0),
+            'conversion_sessions': int(stats.get('conversion_sessions') or 0),
+            'conversion_rate': round((int(stats.get('conversion_sessions') or 0) * 100.0 / sessions_count), 2) if sessions_count else 0.0,
+            'ratio': round((sessions_count * 100.0 / total_sessions), 2) if total_sessions else 0.0,
+        })
+    campaign_rows.sort(key=lambda item: (item['sessions'], item['pageviews']), reverse=True)
 
     device_rows = [
         {
@@ -1201,6 +1385,8 @@ def _build_site_analytics_report_from_buckets(
             'conversion_rate': round(conversion_rate, 2),
         },
         'source_breakdown': source_rows,
+        'campaign_breakdown': campaign_rows,
+        'promotion_breakdown': promotion_rows,
         'device_breakdown': device_rows,
         'os_breakdown': os_rows,
         'province_breakdown': province_rows,
@@ -1240,9 +1426,18 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
     utm = raw_event.get('utm', {})
     utm_source = ''
     utm_medium = ''
+    utm_campaign = ''
+    utm_content = ''
+    utm_term = ''
+    utm_id = ''
     if isinstance(utm, dict):
-        utm_source = _analytics_clean_text(utm.get('source'), max_length=64).lower()
-        utm_medium = _analytics_clean_text(utm.get('medium'), max_length=64).lower()
+        utm_source = _analytics_clean_utm_value(utm.get('source'), max_length=80).lower()
+        utm_medium = _analytics_clean_utm_value(utm.get('medium'), max_length=80).lower()
+        utm_campaign = _analytics_clean_utm_value(utm.get('campaign'), max_length=80)
+        utm_content = _analytics_clean_utm_value(utm.get('content'), max_length=80)
+        utm_term = _analytics_clean_utm_value(utm.get('term'), max_length=80)
+        utm_id = _analytics_clean_utm_value(utm.get('id'), max_length=80)
+    promotion_mark = normalize_promotion_mark(raw_event.get('promotion_mark') or utm_id)
 
     source = _analytics_classify_source(referrer, utm_source, utm_medium, request_host)
     device = _analytics_classify_device(request_ua)
@@ -1251,6 +1446,8 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
     session_duration_sec = max(0, _analytics_to_int(raw_event.get('session_duration_sec'), default=0))
     scroll_depth = max(0, min(100, _analytics_to_int(raw_event.get('scroll_depth'), default=0)))
     event_value = _analytics_to_float(raw_event.get('event_value'), default=0.0)
+    event_target_text = _analytics_clean_text(raw_event.get('event_target_text') or raw_event.get('target_text'), max_length=120)
+    event_target_url = _analytics_clean_text(raw_event.get('event_target_url') or raw_event.get('target_url'), max_length=260)
 
     now_ts = int(time.time())
     return {
@@ -1264,6 +1461,13 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
         'referrer': referrer,
         'referrer_host': _analytics_extract_host(referrer),
         'source': source,
+        'utm_source': utm_source,
+        'utm_medium': utm_medium,
+        'utm_campaign': utm_campaign,
+        'utm_content': utm_content,
+        'utm_term': utm_term,
+        'utm_id': utm_id,
+        'promotion_mark': promotion_mark,
         'device': device,
         'os': os_name,
         'ip': geo.get('ip') or '',
@@ -1274,6 +1478,8 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
         'session_id': session_id,
         'session_duration_sec': session_duration_sec,
         'scroll_depth': scroll_depth,
+        'event_target_text': event_target_text,
+        'event_target_url': event_target_url,
     }
 
 
@@ -1841,6 +2047,8 @@ def _analytics_report_detail_from_context(context):
     return {
         'trend': _analytics_top_rows(current.get('trend'), 80),
         'source_breakdown': _analytics_top_rows(current.get('source_breakdown'), 8),
+        'campaign_breakdown': _analytics_top_rows(current.get('campaign_breakdown'), 10),
+        'promotion_breakdown': _analytics_top_rows(current.get('promotion_breakdown'), 12),
         'device_breakdown': _analytics_top_rows(current.get('device_breakdown'), 8),
         'os_breakdown': _analytics_top_rows(current.get('os_breakdown'), 8),
         'province_breakdown': _analytics_top_rows(current.get('province_breakdown'), 10),
@@ -2162,6 +2370,34 @@ def _analytics_top_events_table_html(rows):
     return ''.join(output)
 
 
+def _analytics_promotion_table_html(rows):
+    safe_rows = [row for row in (rows if isinstance(rows, list) else []) if isinstance(row, dict)][:8]
+    if not safe_rows:
+        return '<div class="empty-block">暂无推广链接数据</div>'
+    output = ['<table class="data-table"><thead><tr><th>推广链接</th><th>渠道</th><th>会话/PV</th><th>点击/事件</th><th>转化</th><th>质量</th></tr></thead><tbody>']
+    for row in safe_rows:
+        name = _analytics_clean_text(row.get('name'), max_length=42)
+        mark = _analytics_clean_text(row.get('promotion_mark'), max_length=42)
+        channel_parts = [
+            _analytics_clean_text(row.get('utm_source'), max_length=18),
+            _analytics_clean_text(row.get('utm_medium'), max_length=18),
+            _analytics_clean_text(row.get('utm_campaign'), max_length=24),
+        ]
+        channel = ' / '.join([part for part in channel_parts if part]) or '-'
+        output.append(
+            '<tr>'
+            f'<td><strong>{html.escape(name or mark or "-")}</strong><small>{html.escape(mark)}</small></td>'
+            f'<td>{html.escape(channel)}</td>'
+            f'<td>{int(float(row.get("sessions") or 0)):,} / {int(float(row.get("pageviews") or 0)):,}</td>'
+            f'<td>{int(float(row.get("click_events") or 0)):,} / {int(float(row.get("events") or 0)):,}</td>'
+            f'<td>{int(float(row.get("conversion_events") or 0)):,}<small>会话 {int(float(row.get("conversion_sessions") or 0)):,}，{float(row.get("conversion_rate") or 0):.2f}%</small></td>'
+            f'<td>{float(row.get("pages_per_session") or 0):.2f}页/会话<small>停留 {int(float(row.get("avg_session_duration_sec") or 0))}秒，跳出 {float(row.get("bounce_rate") or 0):.2f}%</small></td>'
+            '</tr>'
+        )
+    output.append('</tbody></table>')
+    return ''.join(output)
+
+
 def _analytics_plain_int(value):
     try:
         return int(round(float(value or 0)))
@@ -2435,7 +2671,7 @@ def _analytics_ai_report_pages_html(report_text):
     for idx, chunk in enumerate(chunks):
         section_label = '策略洞察与行动建议' if idx == 0 else f'策略洞察与行动建议 · 续 {idx + 1}'
         pages.append(
-            '<section class="report-page content-page">'
+            '<section class="report-page content-page ai-report-page">'
             f'<div class="section-head"><h2>AI 运营分析</h2><span>{html.escape(section_label)}</span></div>'
             f'<article class="report-body">{_analytics_markdown_to_report_html(chunk)}</article>'
             '<div class="footer"><span>MetaChip Website Analytics</span><span>AI Generated Analysis</span></div>'
@@ -2457,6 +2693,7 @@ def _build_site_analytics_ai_report_html(record):
     ai_pages_html = _analytics_ai_report_pages_html(safe_record.get('report'))
     trend_html = _analytics_trend_svg_html(detail.get('trend'))
     source_html = _analytics_bar_list_html(detail.get('source_breakdown'), label_key='source', empty_text='暂无渠道来源数据')
+    promotion_html = _analytics_promotion_table_html(detail.get('promotion_breakdown'))
     device_html = _analytics_bar_list_html(detail.get('device_breakdown'), label_key='device', empty_text='暂无设备数据')
     pages_html = _analytics_top_pages_table_html(detail.get('top_pages'))
     events_html = _analytics_top_events_table_html(detail.get('top_events'))
@@ -2569,6 +2806,207 @@ code { font-family: Consolas, Monaco, monospace; background: #f1f5f9; padding: 1
 pre { white-space: pre-wrap; background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 12px; font-size: 11px; }
 </style>
 """
+    pagination_js = """
+<script>
+(function () {
+  function onReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  }
+
+  function paginateAiReportPages() {
+    var sourcePages = Array.prototype.slice.call(document.querySelectorAll('.ai-report-page'));
+    if (!sourcePages.length) return;
+
+    var firstPage = sourcePages[0];
+    var parent = firstPage.parentNode;
+    var sourceBlocks = [];
+    sourcePages.forEach(function (page) {
+      var article = page.querySelector(':scope > .report-body');
+      if (!article) return;
+      Array.prototype.slice.call(article.children).forEach(function (child) {
+        sourceBlocks.push(child.cloneNode(true));
+      });
+    });
+    sourcePages.slice(1).forEach(function (page) { page.remove(); });
+
+    var firstArticle = firstPage.querySelector(':scope > .report-body');
+    if (!firstArticle) return;
+    firstArticle.replaceChildren();
+
+    var pageIndex = 0;
+    var currentPage = firstPage;
+    var currentArticle = firstArticle;
+
+    function sectionLabel(index) {
+      return index === 0 ? '策略洞察与行动建议' : '策略洞察与行动建议 · 续 ' + (index + 1);
+    }
+
+    function updateLabel(page, index) {
+      var label = page.querySelector(':scope > .section-head span');
+      if (label) label.textContent = sectionLabel(index);
+    }
+
+    function createPage() {
+      pageIndex += 1;
+      var section = document.createElement('section');
+      section.className = 'report-page content-page ai-report-page';
+      section.innerHTML = '<div class="section-head"><h2>AI 运营分析</h2><span></span></div>'
+        + '<article class="report-body"></article>'
+        + '<div class="footer"><span>MetaChip Website Analytics</span><span>AI Generated Analysis</span></div>';
+      updateLabel(section, pageIndex);
+      parent.insertBefore(section, currentPage.nextSibling);
+      currentPage = section;
+      currentArticle = section.querySelector(':scope > .report-body');
+      return section;
+    }
+
+    function availableHeight(page, article) {
+      var articleRect = article.getBoundingClientRect();
+      var footer = page.querySelector(':scope > .footer');
+      if (footer) {
+        return Math.max(80, footer.getBoundingClientRect().top - articleRect.top - 12);
+      }
+      return Math.max(80, page.getBoundingClientRect().bottom - articleRect.top - 48);
+    }
+
+    function usedHeight(article) {
+      var children = article.children;
+      if (!children.length) return 0;
+      var articleRect = article.getBoundingClientRect();
+      var lastRect = children[children.length - 1].getBoundingClientRect();
+      return Math.max(article.scrollHeight, lastRect.bottom - articleRect.top + 8);
+    }
+
+    function isOverflowing(page, article) {
+      return usedHeight(article) > availableHeight(page, article);
+    }
+
+    function appendWholeBlock(block) {
+      currentArticle.appendChild(block);
+      if (!isOverflowing(currentPage, currentArticle)) return;
+      if (currentArticle.children.length <= 1) return;
+      currentArticle.removeChild(block);
+      createPage();
+      currentArticle.appendChild(block);
+    }
+
+    function appendListBlock(block) {
+      var tagName = block.tagName.toLowerCase();
+      var items = Array.prototype.slice.call(block.children).map(function (item) {
+        return item.cloneNode(true);
+      });
+      if (!items.length) {
+        appendWholeBlock(block);
+        return;
+      }
+
+      var list = document.createElement(tagName);
+      list.className = block.className || '';
+      currentArticle.appendChild(list);
+      items.forEach(function (item) {
+        list.appendChild(item);
+        if (!isOverflowing(currentPage, currentArticle)) return;
+        if (list.children.length > 1) {
+          list.removeChild(item);
+          createPage();
+          list = document.createElement(tagName);
+          list.className = block.className || '';
+          currentArticle.appendChild(list);
+          list.appendChild(item);
+          return;
+        }
+        if (currentArticle.children.length > 1) {
+          currentArticle.removeChild(list);
+          createPage();
+          list = document.createElement(tagName);
+          list.className = block.className || '';
+          currentArticle.appendChild(list);
+          list.appendChild(item);
+        }
+      });
+    }
+
+    function buildTableWrap(sourceTable) {
+      var wrap = document.createElement('div');
+      wrap.className = 'table-scroll';
+      var table = document.createElement('table');
+      table.className = sourceTable.className || 'md-table';
+      var sourceHead = sourceTable.tHead;
+      if (sourceHead) table.appendChild(sourceHead.cloneNode(true));
+      var tbody = document.createElement('tbody');
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      return { wrap: wrap, tbody: tbody };
+    }
+
+    function appendTableBlock(block) {
+      var sourceTable = block.querySelector('table');
+      if (!sourceTable || !sourceTable.tBodies.length) {
+        appendWholeBlock(block);
+        return;
+      }
+
+      var rows = Array.prototype.slice.call(sourceTable.tBodies[0].rows).map(function (row) {
+        return row.cloneNode(true);
+      });
+      if (!rows.length) {
+        appendWholeBlock(block);
+        return;
+      }
+
+      var tableParts = buildTableWrap(sourceTable);
+      currentArticle.appendChild(tableParts.wrap);
+      rows.forEach(function (row) {
+        tableParts.tbody.appendChild(row);
+        if (!isOverflowing(currentPage, currentArticle)) return;
+        if (tableParts.tbody.children.length > 1) {
+          tableParts.tbody.removeChild(row);
+          createPage();
+          tableParts = buildTableWrap(sourceTable);
+          currentArticle.appendChild(tableParts.wrap);
+          tableParts.tbody.appendChild(row);
+          return;
+        }
+        if (currentArticle.children.length > 1) {
+          currentArticle.removeChild(tableParts.wrap);
+          createPage();
+          tableParts = buildTableWrap(sourceTable);
+          currentArticle.appendChild(tableParts.wrap);
+          tableParts.tbody.appendChild(row);
+        }
+      });
+    }
+
+    updateLabel(firstPage, 0);
+    sourceBlocks.forEach(function (block) {
+      if (block.matches && block.matches('.table-scroll')) {
+        appendTableBlock(block);
+      } else if (block.matches && block.matches('ul, ol')) {
+        appendListBlock(block);
+      } else {
+        appendWholeBlock(block);
+      }
+    });
+
+    Array.prototype.slice.call(document.querySelectorAll('.ai-report-page')).forEach(function (page, index) {
+      updateLabel(page, index);
+    });
+    window.__siteAiReportPaginated = true;
+  }
+
+  onReady(function () {
+    paginateAiReportPages();
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(paginateAiReportPages).catch(function () {});
+    }
+  });
+})();
+</script>
+"""
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -2608,6 +3046,7 @@ pre { white-space: pre-wrap; background: #0f172a; color: #e2e8f0; border-radius:
     <div class="panel"><h3>流量来源</h3>{source_html}</div>
     <div class="panel"><h3>设备类型</h3>{device_html}</div>
   </div>
+  <div class="panel"><h3>推广链接表现</h3>{promotion_html}</div>
   <div class="footer"><span>MetaChip Website Analytics</span><span>Data Overview</span></div>
 </section>
 <section class="report-page">
@@ -2623,6 +3062,7 @@ pre { white-space: pre-wrap; background: #0f172a; color: #e2e8f0; border-radius:
   <div class="footer"><span>MetaChip Website Analytics</span><span>Data Overview</span></div>
 </section>
 {ai_pages_html}
+{pagination_js}
 </body>
 </html>"""
 
@@ -3232,16 +3672,817 @@ def build_site_analytics_report(range_days=30, start_date=None, end_date=None, g
     )
 
 
+def build_promotion_link_stats(start_date=None, end_date=None):
+    start_raw = str(start_date or '').strip()
+    end_raw = str(end_date or '').strip()
+    if start_raw or end_raw:
+        report = build_site_analytics_report(start_date=start_raw, end_date=end_raw, granularity='day')
+    else:
+        report = build_site_analytics_report(range_days=30)
+    return {
+        'generated_at': report.get('generated_at'),
+        'range_label': report.get('range_label'),
+        'start_date': report.get('start_date'),
+        'end_date': report.get('end_date'),
+        'promotion_breakdown': report.get('promotion_breakdown') if isinstance(report.get('promotion_breakdown'), list) else [],
+        'campaign_breakdown': report.get('campaign_breakdown') if isinstance(report.get('campaign_breakdown'), list) else [],
+    }
+
+
+def build_site_source_detail_stats(source_key, start_date=None, end_date=None, range_days=30):
+    source_filter = _analytics_clean_text(source_key, max_length=32).lower() or 'direct'
+    start_raw = str(start_date or '').strip()
+    end_raw = str(end_date or '').strip()
+
+    if start_raw or end_raw:
+        if not start_raw or not end_raw:
+            raise ValueError('开始日期和结束日期必须同时填写')
+        start_date_value = _analytics_parse_local_date(start_raw)
+        end_date_value = _analytics_parse_local_date(end_raw)
+        if not start_date_value or not end_date_value:
+            raise ValueError('日期格式无效，必须为 YYYY-MM-DD')
+        if start_date_value > end_date_value:
+            raise ValueError('开始日期不能晚于结束日期')
+    else:
+        try:
+            days = int(range_days)
+        except Exception:
+            days = 30
+        if days not in (7, 30, 90, 180):
+            days = 30
+        end_date_value = datetime.now(BEIJING_TZ).date()
+        start_date_value = end_date_value - timedelta(days=days - 1)
+        start_raw = _analytics_format_local_date(start_date_value)
+        end_raw = _analytics_format_local_date(end_date_value)
+
+    start_dt_local = datetime.combine(start_date_value, datetime.min.time(), tzinfo=BEIJING_TZ)
+    end_dt_exclusive_local = datetime.combine(end_date_value + timedelta(days=1), datetime.min.time(), tzinfo=BEIJING_TZ)
+    since_ts = int(start_dt_local.astimezone(timezone.utc).timestamp())
+    until_ts_exclusive = int(end_dt_exclusive_local.astimezone(timezone.utc).timestamp())
+
+    bucket_keys, buckets = _analytics_build_range_buckets(start_date_value, end_date_value, 'day')
+    sessions = {}
+    landing_pages = {}
+    pages = {}
+    events = {}
+    device_counter = {}
+    os_counter = {}
+    province_counter = {}
+    country_counter = {}
+    referrer_counter = {}
+    utm_counter = {}
+    recent_events = []
+    visitors = set()
+
+    for item in _iter_site_analytics_records():
+        ts = _analytics_to_int(item.get('ts'), default=0)
+        if ts < since_ts or ts >= until_ts_exclusive:
+            continue
+        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        if source != source_filter:
+            continue
+
+        local_dt = _analytics_local_datetime(ts)
+        bucket_key = _analytics_bucket_key_for_date(local_dt.date(), 'day')
+        if bucket_key not in buckets:
+            continue
+
+        event_type = _analytics_clean_text(item.get('event_type'), max_length=24).lower()
+        event_name = _analytics_clean_text(item.get('event_name'), max_length=SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH).lower()
+        event_label = event_name or event_type or 'event'
+        page_path = _analytics_normalize_path(item.get('page_path') or '/')
+        page_title = _analytics_clean_text(item.get('page_title'), max_length=120)
+        referrer = _analytics_clean_text(item.get('referrer'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
+        province = _analytics_extract_record_province(item)
+        country = _analytics_extract_record_country(item)
+        location = _analytics_clean_text(item.get('location'), max_length=80)
+        visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64) or 'anonymous'
+        session_id = _analytics_clean_id(item.get('session_id'), max_length=64) or f'anon_{visitor_id}_{_analytics_day_key(ts)}'
+        utm_source = _analytics_clean_utm_value(item.get('utm_source'), max_length=80)
+        utm_medium = _analytics_clean_utm_value(item.get('utm_medium'), max_length=80)
+        utm_campaign = _analytics_clean_utm_value(item.get('utm_campaign'), max_length=80)
+
+        visitors.add(visitor_id)
+        bucket = buckets[bucket_key]
+        bucket['visitors'].add(visitor_id)
+        bucket['sessions'].add(session_id)
+        referrer_key = referrer or '空 Referrer'
+        referrer_counter[referrer_key] = referrer_counter.get(referrer_key, 0) + 1
+        device_counter[device] = device_counter.get(device, 0) + 1
+        os_counter[os_name] = os_counter.get(os_name, 0) + 1
+        if province:
+            province_counter[province] = province_counter.get(province, 0) + 1
+        if country:
+            country_counter[country] = country_counter.get(country, 0) + 1
+        utm_key = '带 UTM' if (utm_source or utm_medium or utm_campaign or item.get('promotion_mark') or item.get('utm_id')) else '无 UTM'
+        utm_counter[utm_key] = utm_counter.get(utm_key, 0) + 1
+
+        sess = sessions.get(session_id)
+        if not sess:
+            sess = {
+                'session_id': session_id,
+                'visitor_id': visitor_id,
+                'first_ts': ts,
+                'last_ts': ts,
+                'pageviews': 0,
+                'events': 0,
+                'click_events': 0,
+                'conversions': 0,
+                'reported_duration_sec': 0,
+                'landing_page': '',
+                'exit_page': '',
+                'device': device,
+                'os': os_name,
+                'location': location,
+                'province': province,
+                'country': country,
+                'referrer': referrer,
+            }
+            sessions[session_id] = sess
+        else:
+            sess['first_ts'] = min(sess['first_ts'], ts)
+            sess['last_ts'] = max(sess['last_ts'], ts)
+            if not sess.get('location') and location:
+                sess['location'] = location
+            if not sess.get('referrer') and referrer:
+                sess['referrer'] = referrer
+
+        if event_type == 'pageview':
+            bucket['pageviews'] += 1
+            sess['pageviews'] += 1
+            if not sess.get('landing_page'):
+                sess['landing_page'] = page_path
+                landing = landing_pages.setdefault(page_path, {
+                    'path': page_path,
+                    'title': page_title,
+                    'sessions': 0,
+                    'visitors': set(),
+                })
+                landing['sessions'] += 1
+                landing['visitors'].add(visitor_id)
+                if not landing.get('title') and page_title:
+                    landing['title'] = page_title
+            sess['exit_page'] = page_path
+            page_stats = pages.setdefault(page_path, {
+                'path': page_path,
+                'title': page_title,
+                'pageviews': 0,
+                'visitors': set(),
+                'sessions': set(),
+            })
+            page_stats['pageviews'] += 1
+            page_stats['visitors'].add(visitor_id)
+            page_stats['sessions'].add(session_id)
+            if not page_stats.get('title') and page_title:
+                page_stats['title'] = page_title
+            if _analytics_is_conversion_page(page_path):
+                bucket['conversions'] += 1
+                sess['conversions'] += 1
+        elif event_type == 'event':
+            bucket['events'] += 1
+            sess['events'] += 1
+            event_stats = events.setdefault(event_label, {
+                'name': event_label,
+                'count': 0,
+                'clicks': 0,
+                'conversions': 0,
+            })
+            event_stats['count'] += 1
+            if 'click' in event_label or event_label in {'button', 'link'}:
+                sess['click_events'] += 1
+                event_stats['clicks'] += 1
+            if _analytics_is_conversion_event(event_label):
+                bucket['conversions'] += 1
+                sess['conversions'] += 1
+                event_stats['conversions'] += 1
+        elif event_type == 'session_end':
+            sess['reported_duration_sec'] = max(sess.get('reported_duration_sec', 0), max(0, _analytics_to_int(item.get('session_duration_sec'), default=0)))
+
+        recent_events.append({
+            'timestamp': local_dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'event_type': event_type,
+            'event_name': event_label,
+            'page_path': page_path,
+            'page_title': page_title,
+            'device': device,
+            'os': os_name,
+            'location': location,
+            'visitor_id': visitor_id,
+            'session_id': session_id,
+            'referrer': referrer,
+        })
+
+    tracked_sessions = [item for item in sessions.values() if int(item.get('pageviews') or 0) > 0]
+    total_sessions = len(tracked_sessions)
+    total_pageviews = sum(int(item.get('pageviews') or 0) for item in tracked_sessions)
+    total_events = sum(int(item.get('events') or 0) for item in tracked_sessions)
+    total_clicks = sum(int(item.get('click_events') or 0) for item in tracked_sessions)
+    total_conversions = sum(int(item.get('conversions') or 0) for item in tracked_sessions)
+    conversion_sessions = sum(1 for item in tracked_sessions if int(item.get('conversions') or 0) > 0)
+    bounce_sessions = sum(1 for item in tracked_sessions if int(item.get('pageviews') or 0) <= 1)
+    total_duration = 0
+    for item in tracked_sessions:
+        observed = max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0))
+        reported = max(0, int(item.get('reported_duration_sec') or 0))
+        total_duration += min(max(observed, reported), 12 * 3600)
+
+    def ratio(value, base):
+        return round((int(value or 0) * 100.0 / int(base or 0)), 2) if int(base or 0) else 0.0
+
+    def counter_rows(counter, key_name, limit=20):
+        total = sum(counter.values())
+        rows = [{key_name: key, 'count': value, 'ratio': ratio(value, total)} for key, value in counter.items()]
+        rows.sort(key=lambda row: row.get('count') or 0, reverse=True)
+        return rows[:limit]
+
+    landing_rows = []
+    for row in landing_pages.values():
+        landing_rows.append({
+            'path': row.get('path') or '',
+            'title': row.get('title') or '',
+            'sessions': int(row.get('sessions') or 0),
+            'unique_visitors': len(row.get('visitors', set())),
+            'ratio': ratio(row.get('sessions') or 0, total_sessions),
+        })
+    landing_rows.sort(key=lambda row: row.get('sessions') or 0, reverse=True)
+
+    page_rows = []
+    for row in pages.values():
+        page_rows.append({
+            'path': row.get('path') or '',
+            'title': row.get('title') or '',
+            'pageviews': int(row.get('pageviews') or 0),
+            'unique_visitors': len(row.get('visitors', set())),
+            'sessions': len(row.get('sessions', set())),
+        })
+    page_rows.sort(key=lambda row: row.get('pageviews') or 0, reverse=True)
+
+    event_rows = [{'name': row.get('name') or '', 'count': int(row.get('count') or 0), 'clicks': int(row.get('clicks') or 0), 'conversions': int(row.get('conversions') or 0)} for row in events.values()]
+    event_rows.sort(key=lambda row: row.get('count') or 0, reverse=True)
+
+    session_rows = []
+    for item in tracked_sessions:
+        duration = min(max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0), int(item.get('reported_duration_sec') or 0)), 12 * 3600)
+        session_rows.append({
+            'session_id': item.get('session_id') or '',
+            'visitor_id': item.get('visitor_id') or '',
+            'first_time': _analytics_local_datetime(int(item.get('first_ts') or 0)).strftime('%Y-%m-%d %H:%M:%S'),
+            'duration_sec': duration,
+            'pageviews': int(item.get('pageviews') or 0),
+            'events': int(item.get('events') or 0),
+            'click_events': int(item.get('click_events') or 0),
+            'conversions': int(item.get('conversions') or 0),
+            'landing_page': item.get('landing_page') or '',
+            'exit_page': item.get('exit_page') or '',
+            'device': item.get('device') or '',
+            'os': item.get('os') or '',
+            'location': item.get('location') or item.get('province') or item.get('country') or '',
+            'referrer': item.get('referrer') or '',
+        })
+    session_rows.sort(key=lambda row: row.get('first_time') or '', reverse=True)
+
+    trend = []
+    for bucket_key in bucket_keys:
+        row = buckets.get(bucket_key, {})
+        trend.append({
+            'date': str(row.get('label') or bucket_key),
+            'label': str(row.get('label') or bucket_key),
+            'pageviews': int(row.get('pageviews') or 0),
+            'unique_visitors': len(row.get('visitors', set())),
+            'sessions': len(row.get('sessions', set())),
+            'events': int(row.get('events') or 0),
+            'conversions': int(row.get('conversions') or 0),
+        })
+
+    return {
+        'generated_at': datetime.now(BEIJING_TZ).isoformat(timespec='seconds'),
+        'source': source_filter,
+        'range_label': f'{start_raw} 至 {end_raw}',
+        'start_date': start_raw,
+        'end_date': end_raw,
+        'summary': {
+            'sessions': total_sessions,
+            'pageviews': total_pageviews,
+            'unique_visitors': len(visitors),
+            'events': total_events,
+            'click_events': total_clicks,
+            'conversion_events': total_conversions,
+            'conversion_sessions': conversion_sessions,
+            'conversion_rate': ratio(conversion_sessions, total_sessions),
+            'bounce_rate': ratio(bounce_sessions, total_sessions),
+            'avg_session_duration_sec': round((total_duration / total_sessions), 2) if total_sessions else 0.0,
+        },
+        'trend': trend,
+        'landing_pages': landing_rows[:30],
+        'pages': page_rows[:30],
+        'events': event_rows[:30],
+        'devices': counter_rows(device_counter, 'device'),
+        'os': counter_rows(os_counter, 'os'),
+        'provinces': counter_rows(province_counter, 'province'),
+        'countries': counter_rows(country_counter, 'country'),
+        'referrers': counter_rows(referrer_counter, 'referrer'),
+        'utm_status': counter_rows(utm_counter, 'status'),
+        'sessions_detail': session_rows[:80],
+        'recent_events': recent_events[-120:][::-1],
+    }
+
+
+def build_promotion_link_detail_stats(promotion_mark, start_date=None, end_date=None):
+    mark = normalize_promotion_mark(promotion_mark)
+    if not mark:
+        raise ValueError('推广标记无效')
+
+    start_raw = str(start_date or '').strip()
+    end_raw = str(end_date or '').strip()
+    has_custom_range = bool(start_raw or end_raw)
+    if start_raw or end_raw:
+        if not start_raw or not end_raw:
+            raise ValueError('开始日期和结束日期必须同时填写')
+        start_date_value = _analytics_parse_local_date(start_raw)
+        end_date_value = _analytics_parse_local_date(end_raw)
+        if not start_date_value or not end_date_value:
+            raise ValueError('日期格式无效，必须为 YYYY-MM-DD')
+        if start_date_value > end_date_value:
+            raise ValueError('开始日期不能晚于结束日期')
+    else:
+        start_date_value = None
+        end_date_value = None
+
+    raw_records = []
+    for item in _iter_site_analytics_records():
+        ts = _analytics_to_int(item.get('ts'), default=0)
+        if ts <= 0:
+            continue
+        item_mark = normalize_promotion_mark(item.get('promotion_mark') or item.get('utm_id'))
+        if item_mark == mark:
+            raw_records.append(item)
+
+    if not has_custom_range:
+        if raw_records:
+            dates = [_analytics_local_datetime(_analytics_to_int(item.get('ts'), default=0)).date() for item in raw_records]
+            start_date_value = min(dates)
+            end_date_value = max(dates)
+        else:
+            end_date_value = datetime.now(BEIJING_TZ).date()
+            start_date_value = end_date_value
+        start_raw = _analytics_format_local_date(start_date_value)
+        end_raw = _analytics_format_local_date(end_date_value)
+
+    start_dt_local = datetime.combine(start_date_value, datetime.min.time(), tzinfo=BEIJING_TZ)
+    end_dt_exclusive_local = datetime.combine(end_date_value + timedelta(days=1), datetime.min.time(), tzinfo=BEIJING_TZ)
+    since_ts = int(start_dt_local.astimezone(timezone.utc).timestamp())
+    until_ts_exclusive = int(end_dt_exclusive_local.astimezone(timezone.utc).timestamp())
+
+    bucket_keys, buckets = _analytics_build_range_buckets(start_date_value, end_date_value, 'day')
+    sessions = {}
+    pages = {}
+    events = {}
+    device_counter = {}
+    os_counter = {}
+    source_counter = {}
+    province_counter = {}
+    country_counter = {}
+    referrer_counter = {}
+    visitor_journeys = {}
+    recent_events = []
+    visitor_set = set()
+    total_pageviews = 0
+    total_events = 0
+    total_clicks = 0
+    total_conversions = 0
+
+    promotion_lookup = _analytics_load_promotion_lookup()
+    promotion_meta = promotion_lookup.get(mark, {})
+
+    records = []
+    for item in raw_records:
+        ts = _analytics_to_int(item.get('ts'), default=0)
+        if ts < since_ts or ts >= until_ts_exclusive:
+            continue
+        records.append(item)
+
+    records.sort(key=lambda row: _analytics_to_int(row.get('ts'), default=0))
+
+    for item in records:
+        ts = _analytics_to_int(item.get('ts'), default=0)
+        local_dt = _analytics_local_datetime(ts)
+        bucket_key = _analytics_bucket_key_for_date(local_dt.date(), 'day')
+        if bucket_key not in buckets:
+            continue
+
+        event_type = _analytics_clean_text(item.get('event_type'), max_length=24).lower()
+        event_name = _analytics_clean_text(item.get('event_name'), max_length=SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH).lower()
+        event_label = event_name or event_type or 'event'
+        page_path = _analytics_normalize_path(item.get('page_path') or '/')
+        page_title = _analytics_clean_text(item.get('page_title'), max_length=120)
+        referrer = _analytics_clean_text(item.get('referrer'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
+        source = _analytics_clean_text(item.get('source'), max_length=32).lower() or 'direct'
+        utm_source = _analytics_clean_utm_value(item.get('utm_source'), max_length=80).lower()
+        utm_medium = _analytics_clean_utm_value(item.get('utm_medium'), max_length=80).lower()
+        utm_campaign = _analytics_clean_utm_value(item.get('utm_campaign'), max_length=80)
+        utm_content = _analytics_clean_utm_value(item.get('utm_content'), max_length=80)
+        utm_term = _analytics_clean_utm_value(item.get('utm_term'), max_length=80)
+        device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
+        os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
+        province = _analytics_extract_record_province(item)
+        country = _analytics_extract_record_country(item)
+        location = _analytics_clean_text(item.get('location'), max_length=80)
+        visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64) or 'anonymous'
+        session_id = _analytics_clean_id(item.get('session_id'), max_length=64) or f'anon_{visitor_id}_{_analytics_day_key(ts)}'
+        scroll_depth = max(0, min(100, _analytics_to_int(item.get('scroll_depth'), default=0)))
+        event_value = _analytics_to_float(item.get('event_value'), default=0.0)
+        session_duration_sec = max(0, _analytics_to_int(item.get('session_duration_sec'), default=0))
+        event_target_text = _analytics_clean_text(item.get('event_target_text') or item.get('target_text'), max_length=120)
+        event_target_url = _analytics_clean_text(item.get('event_target_url') or item.get('target_url'), max_length=260)
+        is_click_event = event_type == 'event' and (('click' in event_label) or event_label in {'button', 'link'})
+        is_conversion_event = event_type == 'event' and _analytics_is_conversion_event(event_label)
+
+        visitor_set.add(visitor_id)
+        bucket = buckets[bucket_key]
+        bucket['visitors'].add(visitor_id)
+        bucket['sessions'].add(session_id)
+        source_counter[source] = source_counter.get(source, 0) + 1
+        device_counter[device] = device_counter.get(device, 0) + 1
+        os_counter[os_name] = os_counter.get(os_name, 0) + 1
+        if province:
+            province_counter[province] = province_counter.get(province, 0) + 1
+        if country:
+            country_counter[country] = country_counter.get(country, 0) + 1
+        referrer_key = referrer or '直接访问/无来源页'
+        referrer_counter[referrer_key] = referrer_counter.get(referrer_key, 0) + 1
+
+        journey = visitor_journeys.setdefault(visitor_id, {
+            'visitor_id': visitor_id,
+            'first_ts': ts,
+            'last_ts': ts,
+            'sessions': set(),
+            'pageviews': 0,
+            'events': 0,
+            'click_events': 0,
+            'conversions': 0,
+            'duration_sec': 0,
+            'device': device,
+            'os': os_name,
+            'location': location,
+            'province': province,
+            'country': country,
+            'source': source,
+            'referrer': referrer,
+            'pages': [],
+            'buttons': [],
+            'timeline': [],
+        })
+        journey['first_ts'] = min(journey.get('first_ts') or ts, ts)
+        journey['last_ts'] = max(journey.get('last_ts') or ts, ts)
+        journey['sessions'].add(session_id)
+        if not journey.get('location') and location:
+            journey['location'] = location
+        if not journey.get('referrer') and referrer:
+            journey['referrer'] = referrer
+
+        sess = sessions.get(session_id)
+        if not sess:
+            sess = {
+                'session_id': session_id,
+                'visitor_id': visitor_id,
+                'first_ts': ts,
+                'last_ts': ts,
+                'pageviews': 0,
+                'events': 0,
+                'click_events': 0,
+                'conversions': 0,
+                'reported_duration_sec': 0,
+                'landing_page': '',
+                'exit_page': '',
+                'source': source,
+                'utm_source': utm_source,
+                'utm_medium': utm_medium,
+                'utm_campaign': utm_campaign,
+                'utm_content': utm_content,
+                'utm_term': utm_term,
+                'device': device,
+                'os': os_name,
+                'province': province,
+                'country': country,
+                'location': location,
+                'referrer': referrer,
+                'ip': _analytics_clean_text(item.get('ip'), max_length=45),
+                'max_scroll_depth': scroll_depth,
+            }
+            sessions[session_id] = sess
+        else:
+            sess['first_ts'] = min(sess['first_ts'], ts)
+            sess['last_ts'] = max(sess['last_ts'], ts)
+            sess['reported_duration_sec'] = max(sess.get('reported_duration_sec', 0), session_duration_sec)
+            sess['max_scroll_depth'] = max(sess.get('max_scroll_depth', 0), scroll_depth)
+            if not sess.get('referrer') and referrer:
+                sess['referrer'] = referrer
+            if not sess.get('location') and location:
+                sess['location'] = location
+
+        if event_type == 'pageview':
+            total_pageviews += 1
+            bucket['pageviews'] += 1
+            sess['pageviews'] += 1
+            journey['pageviews'] += 1
+            if not sess.get('landing_page'):
+                sess['landing_page'] = page_path
+            sess['exit_page'] = page_path
+            journey['pages'].append({
+                'timestamp': local_dt.strftime('%Y-%m-%d %H:%M:%S'),
+                'path': page_path,
+                'title': page_title,
+            })
+            journey['timeline'].append({
+                'ts': ts,
+                'timestamp': local_dt.strftime('%Y-%m-%d %H:%M:%S'),
+                'type': 'pageview',
+                'label': page_title or page_path,
+                'page_path': page_path,
+                'page_title': page_title,
+                'session_id': session_id,
+                'duration_sec': 0,
+            })
+            page_stats = pages.setdefault(page_path, {
+                'path': page_path,
+                'title': page_title,
+                'pageviews': 0,
+                'visitors': set(),
+                'sessions': set(),
+                'conversions': 0,
+            })
+            page_stats['pageviews'] += 1
+            page_stats['visitors'].add(visitor_id)
+            page_stats['sessions'].add(session_id)
+            if not page_stats.get('title') and page_title:
+                page_stats['title'] = page_title
+            if _analytics_is_conversion_page(page_path):
+                total_conversions += 1
+                bucket['conversions'] += 1
+                sess['conversions'] += 1
+                journey['conversions'] += 1
+                page_stats['conversions'] += 1
+        elif event_type == 'event':
+            total_events += 1
+            bucket['events'] += 1
+            sess['events'] += 1
+            journey['events'] += 1
+            event_stats = events.setdefault(event_label, {
+                'name': event_label,
+                'count': 0,
+                'clicks': 0,
+                'conversions': 0,
+                'value': 0.0,
+            })
+            event_stats['count'] += 1
+            event_stats['value'] += event_value
+            if is_click_event:
+                total_clicks += 1
+                sess['click_events'] += 1
+                journey['click_events'] += 1
+                event_stats['clicks'] += 1
+                journey['buttons'].append({
+                    'timestamp': local_dt.strftime('%Y-%m-%d %H:%M:%S'),
+                    'event_name': event_label,
+                    'text': event_target_text or _analytics_plain_event_name(event_label),
+                    'url': event_target_url,
+                    'page_path': page_path,
+                })
+            if is_conversion_event:
+                total_conversions += 1
+                bucket['conversions'] += 1
+                sess['conversions'] += 1
+                journey['conversions'] += 1
+                event_stats['conversions'] += 1
+            if is_click_event or is_conversion_event or event_label in {'form_submit', 'contact_submit', 'job_apply', 'phone_click', 'email_click'}:
+                journey['timeline'].append({
+                    'ts': ts,
+                    'timestamp': local_dt.strftime('%Y-%m-%d %H:%M:%S'),
+                    'type': 'click' if is_click_event else ('conversion' if is_conversion_event else 'event'),
+                    'label': event_target_text or _analytics_plain_event_name(event_label),
+                    'event_name': event_label,
+                    'target_text': event_target_text,
+                    'target_url': event_target_url,
+                    'page_path': page_path,
+                    'page_title': page_title,
+                    'session_id': session_id,
+                    'duration_sec': 0,
+                })
+        elif event_type == 'session_end':
+            sess['reported_duration_sec'] = max(sess.get('reported_duration_sec', 0), session_duration_sec)
+
+        recent_events.append({
+            'timestamp': local_dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'event_type': event_type,
+            'event_name': event_label,
+            'page_path': page_path,
+            'page_title': page_title,
+            'source': source,
+            'referrer': referrer,
+            'device': device,
+            'os': os_name,
+            'location': location,
+            'visitor_id': visitor_id,
+            'session_id': session_id,
+            'scroll_depth': scroll_depth,
+            'event_value': event_value,
+            'event_target_text': event_target_text,
+            'event_target_url': event_target_url,
+        })
+
+    tracked_sessions = [item for item in sessions.values() if int(item.get('pageviews') or 0) > 0]
+    total_sessions = len(tracked_sessions)
+    conversion_sessions = sum(1 for item in tracked_sessions if int(item.get('conversions') or 0) > 0)
+    bounce_sessions = sum(1 for item in tracked_sessions if int(item.get('pageviews') or 0) <= 1)
+    total_duration = 0
+    for item in tracked_sessions:
+        observed = max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0))
+        reported = max(0, int(item.get('reported_duration_sec') or 0))
+        total_duration += min(max(observed, reported), 12 * 3600)
+
+    def ratio(value, base):
+        return round((int(value or 0) * 100.0 / int(base or 0)), 2) if int(base or 0) else 0.0
+
+    def top_counter_rows(counter, key_name, limit=20):
+        rows = [
+            {
+                key_name: key,
+                'count': value,
+                'ratio': ratio(value, max(1, sum(counter.values()))),
+            }
+            for key, value in counter.items()
+        ]
+        rows.sort(key=lambda row: row.get('count') or 0, reverse=True)
+        return rows[:limit]
+
+    trend = []
+    for bucket_key in bucket_keys:
+        row = buckets.get(bucket_key, {})
+        trend.append({
+            'date': str(row.get('label') or bucket_key),
+            'label': str(row.get('label') or bucket_key),
+            'bucket_start': str(row.get('bucket_start') or ''),
+            'bucket_end': str(row.get('bucket_end') or ''),
+            'pageviews': int(row.get('pageviews') or 0),
+            'unique_visitors': len(row.get('visitors', set())),
+            'sessions': len(row.get('sessions', set())),
+            'events': int(row.get('events') or 0),
+            'conversions': int(row.get('conversions') or 0),
+        })
+
+    page_rows = []
+    for stats in pages.values():
+        page_rows.append({
+            'path': stats.get('path') or '',
+            'title': stats.get('title') or '',
+            'pageviews': int(stats.get('pageviews') or 0),
+            'unique_visitors': len(stats.get('visitors', set())),
+            'sessions': len(stats.get('sessions', set())),
+            'conversions': int(stats.get('conversions') or 0),
+        })
+    page_rows.sort(key=lambda row: row.get('pageviews') or 0, reverse=True)
+
+    event_rows = []
+    for stats in events.values():
+        event_rows.append({
+            'name': stats.get('name') or '',
+            'count': int(stats.get('count') or 0),
+            'clicks': int(stats.get('clicks') or 0),
+            'conversions': int(stats.get('conversions') or 0),
+            'value': round(float(stats.get('value') or 0.0), 2),
+        })
+    event_rows.sort(key=lambda row: row.get('count') or 0, reverse=True)
+
+    session_rows = []
+    for item in tracked_sessions:
+        duration = min(max(0, int(item.get('last_ts') or 0) - int(item.get('first_ts') or 0), int(item.get('reported_duration_sec') or 0)), 12 * 3600)
+        session_rows.append({
+            'session_id': item.get('session_id') or '',
+            'visitor_id': item.get('visitor_id') or '',
+            'first_time': _analytics_local_datetime(int(item.get('first_ts') or 0)).strftime('%Y-%m-%d %H:%M:%S'),
+            'last_time': _analytics_local_datetime(int(item.get('last_ts') or 0)).strftime('%Y-%m-%d %H:%M:%S'),
+            'duration_sec': duration,
+            'pageviews': int(item.get('pageviews') or 0),
+            'events': int(item.get('events') or 0),
+            'click_events': int(item.get('click_events') or 0),
+            'conversions': int(item.get('conversions') or 0),
+            'landing_page': item.get('landing_page') or '',
+            'exit_page': item.get('exit_page') or '',
+            'source': item.get('source') or '',
+            'device': item.get('device') or '',
+            'os': item.get('os') or '',
+            'location': item.get('location') or '',
+            'province': item.get('province') or '',
+            'country': item.get('country') or '',
+            'referrer': item.get('referrer') or '',
+            'max_scroll_depth': int(item.get('max_scroll_depth') or 0),
+        })
+    session_rows.sort(key=lambda row: row.get('last_time') or '', reverse=True)
+
+    session_duration_lookup = {
+        row.get('session_id') or '': int(row.get('duration_sec') or 0)
+        for row in session_rows
+    }
+    visitor_rows = []
+    for journey in visitor_journeys.values():
+        timeline = sorted(journey.get('timeline') or [], key=lambda row: (int(row.get('ts') or 0), str(row.get('type') or '')))
+        for idx, step in enumerate(timeline):
+            duration = 0
+            if step.get('type') == 'pageview':
+                current_ts = int(step.get('ts') or 0)
+                current_session = str(step.get('session_id') or '')
+                for next_step in timeline[idx + 1:]:
+                    if str(next_step.get('session_id') or '') != current_session:
+                        continue
+                    next_ts = int(next_step.get('ts') or 0)
+                    if next_ts > current_ts:
+                        duration = min(next_ts - current_ts, 3600)
+                        break
+            step['duration_sec'] = duration
+        session_ids = [str(value or '') for value in journey.get('sessions', set()) if str(value or '')]
+        total_customer_duration = sum(session_duration_lookup.get(session_id, 0) for session_id in session_ids)
+        if not total_customer_duration:
+            total_customer_duration = min(max(0, int(journey.get('last_ts') or 0) - int(journey.get('first_ts') or 0)), 12 * 3600)
+        first_ts = int(journey.get('first_ts') or 0)
+        last_ts = int(journey.get('last_ts') or 0)
+        visitor_rows.append({
+            'visitor_id': journey.get('visitor_id') or '',
+            'first_time': _analytics_local_datetime(first_ts).strftime('%Y-%m-%d %H:%M:%S') if first_ts else '',
+            'last_time': _analytics_local_datetime(last_ts).strftime('%Y-%m-%d %H:%M:%S') if last_ts else '',
+            'duration_sec': total_customer_duration,
+            'sessions': len(journey.get('sessions', set())),
+            'pageviews': int(journey.get('pageviews') or 0),
+            'events': int(journey.get('events') or 0),
+            'click_events': int(journey.get('click_events') or 0),
+            'conversions': int(journey.get('conversions') or 0),
+            'device': journey.get('device') or '',
+            'os': journey.get('os') or '',
+            'location': journey.get('location') or journey.get('province') or journey.get('country') or '',
+            'source': journey.get('source') or '',
+            'referrer': journey.get('referrer') or '',
+            'pages': (journey.get('pages') or [])[:80],
+            'buttons': (journey.get('buttons') or [])[:80],
+            'timeline': [
+                {key: value for key, value in step.items() if key != 'ts'}
+                for step in timeline[:160]
+            ],
+        })
+    visitor_rows.sort(key=lambda row: row.get('last_time') or '', reverse=True)
+
+    return {
+        'generated_at': datetime.now(BEIJING_TZ).isoformat(timespec='seconds'),
+        'range_label': f'{start_raw} 至 {end_raw}',
+        'start_date': start_raw,
+        'end_date': end_raw,
+        'promotion_mark': mark,
+        'promotion': {
+            'promotion_mark': mark,
+            'name': promotion_meta.get('name') or '',
+            'utm_source': promotion_meta.get('utm_source') or '',
+            'utm_medium': promotion_meta.get('utm_medium') or '',
+            'utm_campaign': promotion_meta.get('utm_campaign') or '',
+            'utm_content': promotion_meta.get('utm_content') or '',
+        },
+        'summary': {
+            'pageviews': total_pageviews,
+            'unique_visitors': len(visitor_set),
+            'sessions': total_sessions,
+            'events': total_events,
+            'click_events': total_clicks,
+            'conversion_events': total_conversions,
+            'conversion_sessions': conversion_sessions,
+            'conversion_rate': ratio(conversion_sessions, total_sessions),
+            'bounce_rate': ratio(bounce_sessions, total_sessions),
+            'avg_session_duration_sec': round((total_duration / total_sessions), 2) if total_sessions else 0.0,
+        },
+        'trend': trend,
+        'pages': page_rows[:50],
+        'events': event_rows[:50],
+        'devices': top_counter_rows(device_counter, 'device'),
+        'os': top_counter_rows(os_counter, 'os'),
+        'sources': top_counter_rows(source_counter, 'source'),
+        'provinces': top_counter_rows(province_counter, 'province'),
+        'countries': top_counter_rows(country_counter, 'country'),
+        'referrers': top_counter_rows(referrer_counter, 'referrer'),
+        'visitor_journeys': visitor_rows[:200],
+        'sessions_detail': session_rows[:100],
+        'recent_events': recent_events[-200:][::-1],
+    }
+
+
 SITE_ANALYTICS_AI_SYSTEM_PROMPT = """你是企业官网运营数据分析师，负责基于后台统计数据撰写中文网站运营报告。
 
 要求：
 1. 只使用用户提供的聚合数据，不要编造未提供的渠道、客户身份、订单或收入。
-2. 报告要面向经营和营销决策，覆盖流量规模、访客质量、渠道来源、设备/系统、地域分布、热门内容、行为事件、转化表现和环比变化。
-3. 明确指出数据采集口径限制：统计来自站内埋点，可能包含爬虫或测试访问；没有收入、订单、客户姓名、手机号等业务成交数据。
-4. 输出结构：标题、核心结论、关键指标与环比、流量与渠道分析、内容与行为分析、地域/设备洞察、风险与异常、下阶段行动建议。
-5. 行动建议要具体，可执行，适合 B2B 传感器官网运营。
-6. 使用中文，专业、清晰，避免营销套话。
-7. 标题与小标题使用正式书面语，例如“简要总结”“当前需重点关注”“核心观察”；不要使用面向个人称呼或过度口语化、不适合正式汇报的表述。
+2. 报告要面向经营和营销决策，覆盖流量规模、访客质量、渠道来源、推广链接/活动表现、设备/系统、地域分布、热门内容、行为事件、转化表现和环比变化。
+3. 分析推广链接时，要优先使用 promotion_breakdown 和 campaign_breakdown，明确总结具体来源平台、媒介、活动名称、内容标识/文章/二维码、推广标记，以及会话、PV、UV、点击事件、行为事件、转化事件、转化会话、转化率、跳出率、平均停留、页/会话等质量指标。
+4. 明确指出数据采集口径限制：统计来自站内埋点，可能包含爬虫或测试访问；没有收入、订单、客户姓名、手机号等业务成交数据。
+5. 输出结构：标题、核心结论、关键指标与环比、流量与渠道分析、推广链接表现、内容与行为分析、地域/设备洞察、风险与异常、下阶段行动建议。
+6. 行动建议要具体，可执行，适合 B2B 传感器官网运营。
+7. 使用中文，专业、清晰，避免营销套话。
+8. 标题与小标题使用正式书面语，例如“简要总结”“当前需重点关注”“核心观察”；不要使用面向个人称呼或过度口语化、不适合正式汇报的表述。
 """
 
 
@@ -3486,6 +4727,8 @@ def _analytics_compact_report_for_ai(report):
         'summary': safe.get('summary') if isinstance(safe.get('summary'), dict) else {},
         'trend': _analytics_top_rows(safe.get('trend'), 80),
         'source_breakdown': _analytics_top_rows(safe.get('source_breakdown'), 8),
+        'campaign_breakdown': _analytics_top_rows(safe.get('campaign_breakdown'), 10),
+        'promotion_breakdown': _analytics_top_rows(safe.get('promotion_breakdown'), 12),
         'device_breakdown': _analytics_top_rows(safe.get('device_breakdown'), 8),
         'os_breakdown': _analytics_top_rows(safe.get('os_breakdown'), 8),
         'province_breakdown': _analytics_top_rows(safe.get('province_breakdown'), 10),
@@ -3559,6 +4802,7 @@ def _build_site_analytics_ai_messages(context):
     user_prompt = (
         '请基于以下官网运营统计数据生成详细网站运营报告。'
         '数据均为聚合口径，不能反推出个人身份；请重点分析当前周期与上一周期的环比变化。'
+        '请单独总结各推广来源、具体推广链接、具体文章/二维码的访问质量和转化表现。'
         '\n\n'
         f'{compact_json}'
     )
@@ -4238,13 +5482,14 @@ def register_site_analytics_routes(
     httpx_module=None,
 ):
     """注册公开埋点收集与后台统计报表相关路由。"""
-    global SITE_ANALYTICS_LOG_FILE, SITE_ANALYTICS_AI_REPORTS_FILE, SITE_ANALYTICS_AI_REPORTS_DIR
+    global SITE_ANALYTICS_LOG_FILE, PROMOTION_LINKS_FILE, SITE_ANALYTICS_AI_REPORTS_FILE, SITE_ANALYTICS_AI_REPORTS_DIR
     global SITE_ANALYTICS_AI_REPORTS_INDEX_FILE, SITE_ANALYTICS_AI_REPORTS_PDF_DIR, SITE_ANALYTICS_AI_JOBS_DIR
     global SITE_ANALYTICS_AI_GENERATION_LOCK_FILE, SITE_ANALYTICS_AI_PDF_LOCK_FILE, BEIJING_TZ, _resolve_ip_location_fn
     global _site_report_get_config_fn, _site_report_requests_support, _site_report_requests_module
     global _site_report_httpx_support, _site_report_httpx_module, _site_report_update_config_fn
 
     SITE_ANALYTICS_LOG_FILE = Path(data_dir) / "site_analytics_events.jsonl"
+    PROMOTION_LINKS_FILE = Path(data_dir) / "promotion_links.json"
     SITE_ANALYTICS_AI_REPORTS_FILE = Path(data_dir) / "site_analytics_ai_reports.jsonl"
     SITE_ANALYTICS_AI_REPORTS_DIR = Path(data_dir) / "site_analytics_ai_reports"
     SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = SITE_ANALYTICS_AI_REPORTS_DIR / "index.json"
@@ -4309,6 +5554,23 @@ def register_site_analytics_routes(
                 start_date=start_date,
                 end_date=end_date,
                 granularity=granularity,
+            )
+        except ValueError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 400
+        return jsonify({'success': True, **report})
+
+    @app.route('/api/admin/site-reports/source-detail', methods=['GET'])
+    @login_required
+    def get_site_report_source_detail_admin():
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
+        try:
+            report = build_site_source_detail_stats(
+                request.args.get('source') or 'direct',
+                range_days=request.args.get('range_days', 30),
+                start_date=request.args.get('start_date', ''),
+                end_date=request.args.get('end_date', ''),
             )
         except ValueError as exc:
             return jsonify({'success': False, 'message': str(exc)}), 400
@@ -4675,6 +5937,3 @@ def register_site_analytics_routes(
         update_config_fn=update_config if callable(update_config) else (lambda c: None),
         data_dir=data_dir,
     )
-
-
-

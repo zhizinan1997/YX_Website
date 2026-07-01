@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
+from urllib.parse import quote
 
 from flask import Flask
 
 from app.routes import ai_chatbot as chatbot
+from app.routes import contact_messages
 
 
 class FakePdfPage:
@@ -217,6 +220,28 @@ class KnowledgeBaseTests(unittest.TestCase):
             self.client.get("/api/chatbot/knowledge/sample.pdf/download").status_code,
             404,
         )
+
+
+class ContactAttributionTests(unittest.TestCase):
+    def test_extract_request_attribution_from_cookie(self):
+        app = Flask(__name__)
+        payload = {
+            "first_touch": {
+                "utm": {"source": "wechat", "medium": "article", "campaign": "hydrogen", "id": "wechat-article-a"},
+                "promotion_mark": "wechat-article-a",
+                "landing_page": "/?utm_id=wechat-article-a",
+            },
+            "last_touch": {
+                "utm": {"source": "wechat", "medium": "article", "campaign": "hydrogen", "id": "wechat-article-a"},
+                "promotion_mark": "wechat-article-a",
+                "landing_page": "/pages/gassensing/mc_ld_r1.html",
+            },
+        }
+        encoded = quote(json.dumps(payload, separators=(',', ':')))
+        with app.test_request_context(headers={"Cookie": f"yx_site_attribution={encoded}"}):
+            attr = contact_messages._extract_request_attribution({})
+        self.assertEqual(attr["last_touch"]["utm_source"], "wechat")
+        self.assertEqual(attr["last_touch"]["promotion_mark"], "wechat-article-a")
 
 
 if __name__ == "__main__":

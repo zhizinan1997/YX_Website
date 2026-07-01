@@ -163,7 +163,8 @@ body.admin2-root.sidebar-collapsed .sidebar-toggle-btn {
 }
 
 .admin2-root .btn-primary,
-.admin2-root .btn-sm {
+.admin2-root .btn-sm,
+.admin2-root .btn-secondary {
     border-radius: 12px;
 }
 
@@ -179,6 +180,397 @@ body.admin2-root.sidebar-collapsed .sidebar-toggle-btn {
 
 .admin2-root .btn-sm:hover {
     background: #dfeaf7;
+}
+
+.admin2-root .btn-secondary {
+    border: 1px solid rgba(14, 41, 78, 0.16);
+    background: #f8fbff;
+    color: var(--admin2-primary);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin2-root .btn-secondary:hover {
+    background: #edf4fb;
+    border-color: rgba(27, 94, 160, 0.28);
+}
+
+.admin2-root .promotion-link-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+}
+
+.admin2-root .promotion-link-output-actions {
+    margin-top: 10px;
+}
+
+.admin2-root .promotion-link-main-btn,
+.admin2-root .promotion-link-secondary-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 18px;
+    white-space: nowrap;
+}
+
+.admin2-root .promotion-link-secondary-btn {
+    min-width: 128px;
+}
+
+.admin2-root #view-promotion-links .form-group label.metric-with-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.admin2-root .promotion-link-list-toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 14px;
+}
+
+.admin2-root .promotion-link-list-toolbar label {
+    min-width: 180px;
+    display: grid;
+    gap: 6px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.admin2-root .promotion-link-list-toolbar .form-control {
+    min-height: 38px;
+    padding: 8px 12px;
+}
+
+.admin2-root .promotion-link-status-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.admin2-root .promotion-link-status-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: #1b5ea0;
+}
+
+.admin2-root .promotion-link-stats-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.48);
+    padding: 24px;
+}
+
+.admin2-root .promotion-link-stats-modal[hidden] {
+    display: none !important;
+}
+
+.admin2-root .promotion-link-stats-dialog {
+    width: min(1280px, 96vw);
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.admin2-root .promotion-link-stats-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 22px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.admin2-root .promotion-link-stats-header h3 {
+    margin: 0 0 6px;
+    color: #0f172a;
+    font-size: 19px;
+}
+
+.admin2-root .promotion-link-stats-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.admin2-root .promotion-link-stats-body {
+    overflow: auto;
+    padding: 18px 22px 24px;
+}
+
+.admin2-root .source-detail-btn {
+    border: 0;
+    background: transparent;
+    color: #0f2f5f;
+    cursor: pointer;
+    padding: 0;
+    display: inline-grid;
+    gap: 2px;
+    text-align: left;
+    font: inherit;
+}
+
+.admin2-root .source-detail-btn:hover {
+    color: #1b5ea0;
+}
+
+.admin2-root .source-detail-btn span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.admin2-root .promotion-link-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.admin2-root .promotion-link-kpi {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: #f8fbff;
+}
+
+.admin2-root .promotion-link-kpi span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.admin2-root .promotion-link-kpi strong {
+    display: block;
+    margin-top: 6px;
+    color: #0f2f5f;
+    font-size: 22px;
+}
+
+.admin2-root .promotion-link-detail-section {
+    margin-top: 18px;
+}
+
+.admin2-root .promotion-link-detail-section h4 {
+    margin: 0 0 10px;
+    color: #0f172a;
+    font-size: 15px;
+}
+
+.admin2-root .promotion-link-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.admin2-root .promotion-link-chart {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    padding: 14px;
+    overflow-x: auto;
+}
+
+.admin2-root .promotion-link-chart svg {
+    display: block;
+    min-width: 720px;
+    height: 300px;
+}
+
+.admin2-root .promotion-link-chart .line-pv {
+    fill: none;
+    stroke: #2563eb;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.admin2-root .promotion-link-chart .line-sessions {
+    fill: none;
+    stroke: #10b981;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.admin2-root .promotion-link-chart .line-conversions {
+    fill: none;
+    stroke: #f97316;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.admin2-root .promotion-link-chart .chart-grid {
+    stroke: #e2e8f0;
+    stroke-dasharray: 4 4;
+}
+
+.admin2-root .promotion-link-chart .chart-axis,
+.admin2-root .promotion-link-chart text {
+    stroke: none;
+    fill: #64748b;
+    font-size: 11px;
+}
+
+.admin2-root .promotion-journey-list {
+    display: grid;
+    gap: 12px;
+}
+
+.admin2-root .promotion-journey-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.admin2-root .promotion-journey-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    list-style: none;
+    background: #f8fafc;
+}
+
+.admin2-root .promotion-journey-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin2-root .promotion-journey-item summary strong,
+.admin2-root .promotion-journey-item summary em {
+    display: block;
+}
+
+.admin2-root .promotion-journey-item summary strong {
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.admin2-root .promotion-journey-item summary em {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 12px;
+    font-style: normal;
+}
+
+.admin2-root .promotion-journey-metrics {
+    color: #0f2f5f;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.admin2-root .promotion-journey-metrics em {
+    display: block;
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    text-align: right;
+}
+
+.admin2-root .promotion-journey-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 14px 0;
+}
+
+.admin2-root .promotion-journey-meta span {
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #f8fbff;
+    color: #475569;
+    font-size: 12px;
+    padding: 5px 9px;
+}
+
+.admin2-root .promotion-journey-timeline {
+    margin: 0;
+    padding: 12px 14px 14px 34px;
+}
+
+.admin2-root .promotion-journey-step {
+    position: relative;
+    padding: 0 0 14px 12px;
+    color: #334155;
+}
+
+.admin2-root .promotion-journey-step::marker {
+    color: #2563eb;
+    font-weight: 800;
+}
+
+.admin2-root .promotion-journey-step-time {
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 3px;
+}
+
+.admin2-root .promotion-journey-step-body {
+    display: grid;
+    gap: 3px;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.admin2-root .promotion-journey-step-body strong {
+    color: #0f172a;
+}
+
+.admin2-root .promotion-journey-step-body span {
+    color: #64748b;
+    word-break: break-word;
+}
+
+.admin2-root .promotion-journey-step-body em {
+    color: #0f766e;
+    font-style: normal;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .admin2-root .promotion-link-kpi-grid,
+    .admin2-root .promotion-link-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin2-root .promotion-journey-item summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .admin2-root .promotion-journey-metrics {
+        white-space: normal;
+    }
 }
 
 .admin2-root .form-control,

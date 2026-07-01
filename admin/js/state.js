@@ -1,6 +1,7 @@
 (function () {
     const viewTitles = {
         'site-reports': '网站数据',
+        'promotion-links': '推广链接',
         'messages': '留言系统',
         'home': '首页设置',
         'h2-home': '氢气首页设置',
@@ -18,7 +19,7 @@
     };
 
     const shellSections = [
-        { label: '总览', items: [{ type: 'view', key: 'site-reports' }, { type: 'view', key: 'messages' }] },
+        { label: '总览', items: [{ type: 'view', key: 'site-reports' }, { type: 'view', key: 'promotion-links' }, { type: 'view', key: 'messages' }] },
         { label: '内容运营', items: [{ type: 'view', key: 'home' }, { type: 'view', key: 'news-create' }, { type: 'view', key: 'jobs' }, { type: 'view', key: 'site-settings' }] },
         { label: '产品与方案', items: [{ type: 'group', key: 'gas-related' }, { type: 'group', key: 'bio-related' }] },
         { label: 'AI 与知识库', items: [{ type: 'view', key: 'chatbot' }] },

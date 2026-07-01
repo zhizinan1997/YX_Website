@@ -52,9 +52,11 @@
         let bindingCountdown = 0;
         let bindingTimer = null;
         let globalActionResolver = null;
+        let globalActionCleanup = null;
         const DEFAULT_PERMISSION_CATALOG = [
             { key: 'site-reports', label: '网站数据' },
             { key: 'messages', label: '留言系统' },
+            { key: 'promotion-links', label: '推广链接' },
             { key: 'home', label: '首页设置' },
             { key: 'h2-home', label: '氢气首页' },
             { key: 'products', label: '氢气产品' },
@@ -105,6 +107,10 @@
         let siteReportProvinceRowsAll = [];
         let siteReportCountryRowsAll = [];
         let siteReportRecentRowsAll = [];
+        let promotionLinksCache = [];
+        let promotionLinkStatsCache = {};
+        let currentPromotionLinkUrl = '';
+        const PROMOTION_QR_LOGO_SRC = '/cdn_assets/images/common/f1dcc87cdcca.png';
         let siteReportEventPage = 1;
         let siteReportProvincePage = 1;
         let siteReportCountryPage = 1;
@@ -601,6 +607,10 @@
             const inputEl = document.getElementById('globalActionInput');
             if (!modal) return;
             modal.hidden = true;
+            if (typeof globalActionCleanup === 'function') {
+                globalActionCleanup();
+                globalActionCleanup = null;
+            }
             const resolver = globalActionResolver;
             globalActionResolver = null;
             if (!resolver) return;
@@ -629,6 +639,7 @@
             msgEl.textContent = String(options.message || '');
             okBtn.textContent = String(options.okText || '确定');
             cancelBtn.textContent = String(options.cancelText || '取消');
+            okBtn.disabled = false;
 
             if (mode === 'alert') {
                 cancelBtn.style.display = 'none';
@@ -641,6 +652,26 @@
             } else {
                 cancelBtn.style.display = '';
                 inputWrap.style.display = 'none';
+            }
+
+            const waitSeconds = Math.max(0, Number.parseInt(options.waitSeconds || 0, 10) || 0);
+            if (waitSeconds > 0) {
+                const okText = String(options.okText || '确定');
+                let remaining = waitSeconds;
+                okBtn.disabled = true;
+                okBtn.textContent = `${remaining} 秒后可${okText}`;
+                const timer = window.setInterval(() => {
+                    remaining -= 1;
+                    if (remaining > 0) {
+                        okBtn.textContent = `${remaining} 秒后可${okText}`;
+                        return;
+                    }
+                    window.clearInterval(timer);
+                    globalActionCleanup = null;
+                    okBtn.disabled = false;
+                    okBtn.textContent = okText;
+                }, 1000);
+                globalActionCleanup = () => window.clearInterval(timer);
             }
 
             modal.hidden = false;
@@ -3215,6 +3246,46 @@
             showGlobalAlert(text, `${item.title} · 说明`);
         }
 
+        const PROMOTION_LINK_FIELD_HELP = {
+            mark: {
+                title: '推广标记',
+                text: '这是这条推广链接的唯一编号，会写入链接里的 utm_id。\n\n建议用容易识别的英文、数字或短横线，例如 wechat-article-a。以后网站访问、二维码扫码、留言线索都会用它对应到这条推广链接。\n\n创建后不能修改，是为了保证历史统计不会乱。'
+            },
+            target: {
+                title: '目标页面',
+                text: '用户点击推广链接后，会先进入官网的哪个页面。\n\n例如填 / 表示进入首页；填某个产品页路径，用户就直接进入对应产品页。这里只允许本站页面，避免生成外部跳转链接。'
+            },
+            source: {
+                title: '来源平台',
+                text: '表示用户是从哪个平台来的。\n\n例如微信公众号填 wechat，百度推广填 baidu，知乎填 zhihu。之后网站数据和 AI 报告可以按平台汇总，看到哪个平台带来的访问和线索更多。'
+            },
+            medium: {
+                title: '媒介类型',
+                text: '表示这次推广是用什么形式触达用户。\n\n例如公众号文章可以填 article，广告点击可以填 cpc，二维码可以填 qrcode。它能帮助区分“同一个平台里的不同推广方式”。'
+            },
+            campaign: {
+                title: '活动名称',
+                text: '表示这条链接属于哪一次推广活动。\n\n例如 2026 年氢气传感器推广、春季招聘推广。多条链接可以使用同一个活动名称，这样报表能把同一活动下的访问和转化合在一起看。'
+            },
+            content: {
+                title: '内容标识',
+                text: '用于区分同一平台、同一活动里的具体内容或位置。\n\n例如微信公众号文章 A、海报 01、页面底部按钮、二维码展架。客户想知道“是哪一篇推文的链接点进来的”，主要就靠这里和推广标记来区分。'
+            },
+            term: {
+                title: '关键词/备注',
+                text: '这是可选补充信息。\n\n常见用法是记录投放关键词、广告组、备注说明，或者任何运营同事以后看报表时需要知道的小信息。不确定时可以留空。'
+            }
+        };
+
+        function showPromotionLinkFieldHelp(fieldKey) {
+            const key = String(fieldKey || '').trim();
+            const item = PROMOTION_LINK_FIELD_HELP[key] || {
+                title: '推广链接字段',
+                text: '这个字段会帮助后台区分不同推广链接的来源和效果。'
+            };
+            showGlobalAlert(item.text, `${item.title} · 说明`);
+        }
+
         function formatSiteReportEventName(rawName, rawType = '') {
             const name = String(rawName || '').trim().toLowerCase();
             const type = String(rawType || '').trim().toLowerCase();
@@ -3889,11 +3960,16 @@
                         const sourceKey = String(item?.source || '').toLowerCase();
                         const sourceText = sourceLabels[sourceKey] || sourceKey || '未知';
                         return `
-                            <tr>
-                                <td>${escapeHtml(sourceText)}</td>
-                                <td>${formatSiteReportNumber(item?.sessions)}</td>
-                                <td>${formatSiteReportPercent(item?.ratio)}</td>
-                            </tr>
+	                            <tr>
+	                                <td>
+                                        <button type="button" class="source-detail-btn" onclick="openSiteSourceDetail('${escapeHtml(sourceKey)}', '${escapeHtml(sourceText)}')">
+                                            ${escapeHtml(sourceText)}
+                                            <span>查看详情</span>
+                                        </button>
+                                    </td>
+	                                <td>${formatSiteReportNumber(item?.sessions)}</td>
+	                                <td>${formatSiteReportPercent(item?.ratio)}</td>
+	                            </tr>
                         `;
                     }).join('');
                 }
@@ -3913,6 +3989,64 @@
                                 <td>${escapeHtml(deviceText)}</td>
                                 <td>${formatSiteReportNumber(item?.sessions)}</td>
                                 <td>${formatSiteReportPercent(item?.ratio)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const promotionBody = document.getElementById('siteReportPromotionBody');
+            const promotionRows = Array.isArray(data.promotion_breakdown) ? data.promotion_breakdown : [];
+            if (promotionBody) {
+                if (!promotionRows.length) {
+                    promotionBody.innerHTML = '<tr><td colspan="9" class="no-data">暂无推广链接数据</td></tr>';
+                } else {
+                    promotionBody.innerHTML = promotionRows.slice(0, 12).map((item) => {
+                        const name = String(item?.name || '').trim();
+                        const mark = String(item?.promotion_mark || '').trim();
+                        const source = String(item?.utm_source || '').trim();
+                        const medium = String(item?.utm_medium || '').trim();
+                        const campaign = String(item?.utm_campaign || '').trim();
+                        const content = String(item?.utm_content || '').trim();
+                        const term = String(item?.utm_term || '').trim();
+                        return `
+                            <tr>
+                                <td>
+                                    <strong>${escapeHtml(name || mark || '-')}</strong>
+                                    <div class="form-hint">${escapeHtml(mark || '-')}</div>
+                                </td>
+                                <td>
+                                    <strong>${escapeHtml(source || '-')}</strong>
+                                    <div class="form-hint">${escapeHtml(medium || '-')}</div>
+                                </td>
+                                <td>
+                                    <strong>${escapeHtml(campaign || '-')}</strong>
+                                    <div class="form-hint">${escapeHtml(content || term || '-')}</div>
+                                </td>
+                                <td>
+                                    <strong>${formatSiteReportNumber(item?.sessions)}</strong>
+                                    <div class="form-hint">占比 ${formatSiteReportPercent(item?.ratio)}</div>
+                                </td>
+                                <td>
+                                    <strong>PV ${formatSiteReportNumber(item?.pageviews)}</strong>
+                                    <div class="form-hint">UV ${formatSiteReportNumber(item?.unique_visitors)}；页/会话 ${escapeHtml(String(item?.pages_per_session ?? '0'))}</div>
+                                </td>
+                                <td>
+                                    <strong>点击 ${formatSiteReportNumber(item?.click_events)}</strong>
+                                    <div class="form-hint">事件 ${formatSiteReportNumber(item?.events)}</div>
+                                </td>
+                                <td>
+                                    <strong>${formatSiteReportNumber(item?.conversion_events)} 次</strong>
+                                    <div class="form-hint">转化会话 ${formatSiteReportNumber(item?.conversion_sessions)}；${formatSiteReportPercent(item?.conversion_rate)}</div>
+                                </td>
+                                <td>
+                                    <strong>停留 ${formatSiteReportDuration(item?.avg_session_duration_sec)}</strong>
+                                    <div class="form-hint">跳出率 ${formatSiteReportPercent(item?.bounce_rate)}</div>
+                                </td>
+                                <td>
+                                    <strong>${escapeHtml(item?.last_seen || '-')}</strong>
+                                    <div class="form-hint">首次 ${escapeHtml(item?.first_seen || '-')}</div>
+                                </td>
                             </tr>
                         `;
                     }).join('');
@@ -4748,6 +4882,741 @@
             }
         }
 
+        function getPromotionLinkFormPayload() {
+            return {
+                name: document.getElementById('promotionLinkName')?.value || '',
+                promotion_mark: document.getElementById('promotionLinkMark')?.value || '',
+                target_path: document.getElementById('promotionLinkTarget')?.value || '/',
+                utm_source: document.getElementById('promotionLinkSource')?.value || '',
+                utm_medium: document.getElementById('promotionLinkMedium')?.value || '',
+                utm_campaign: document.getElementById('promotionLinkCampaign')?.value || '',
+                utm_content: document.getElementById('promotionLinkContent')?.value || '',
+                utm_term: document.getElementById('promotionLinkTerm')?.value || '',
+                enabled: !!document.getElementById('promotionLinkEnabled')?.checked
+            };
+        }
+
+        function setPromotionLinkMessage(text, isError = false) {
+            const el = document.getElementById('promotionLinkFormMsg');
+            if (!el) return;
+            el.style.color = isError ? '#dc2626' : '#28a745';
+            el.textContent = text || '';
+        }
+
+        function resetPromotionLinkForm() {
+            const form = document.getElementById('promotionLinkForm');
+            if (form) form.reset();
+            const idEl = document.getElementById('promotionLinkId');
+            const markEl = document.getElementById('promotionLinkMark');
+            const targetEl = document.getElementById('promotionLinkTarget');
+            const enabledEl = document.getElementById('promotionLinkEnabled');
+            if (idEl) idEl.value = '';
+            if (markEl) {
+                markEl.disabled = false;
+                markEl.value = '';
+            }
+            if (targetEl && !targetEl.value) targetEl.value = '/';
+            if (enabledEl) enabledEl.checked = true;
+            const title = document.getElementById('promotionLinkFormTitle');
+            if (title) title.textContent = '创建推广链接';
+            const btn = document.getElementById('promotionLinkSubmitBtn');
+            if (btn) btn.innerHTML = '<i class="fas fa-plus"></i> 创建链接';
+            setPromotionLinkMessage('');
+        }
+
+        function drawPromotionQrLogo(canvas) {
+            if (!canvas || !canvas.getContext) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            const img = new Image();
+            img.onload = () => {
+                const size = Math.round(Math.min(canvas.width, canvas.height) * 0.24);
+                const pad = Math.round(size * 0.18);
+                const boxSize = size + (pad * 2);
+                const x = Math.round((canvas.width - boxSize) / 2);
+                const y = Math.round((canvas.height - boxSize) / 2);
+                const radius = Math.round(boxSize * 0.18);
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + boxSize - radius, y);
+                ctx.quadraticCurveTo(x + boxSize, y, x + boxSize, y + radius);
+                ctx.lineTo(x + boxSize, y + boxSize - radius);
+                ctx.quadraticCurveTo(x + boxSize, y + boxSize, x + boxSize - radius, y + boxSize);
+                ctx.lineTo(x + radius, y + boxSize);
+                ctx.quadraticCurveTo(x, y + boxSize, x, y + boxSize - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.drawImage(img, x + pad, y + pad, size, size);
+                ctx.restore();
+            };
+            img.src = PROMOTION_QR_LOGO_SRC;
+        }
+
+        function renderPromotionQr(url) {
+            const box = document.getElementById('promotionQrBox');
+            if (!box) return;
+            box.innerHTML = '';
+            currentPromotionLinkUrl = String(url || '').trim();
+            const textArea = document.getElementById('promotionLinkGeneratedUrl');
+            if (textArea) textArea.value = currentPromotionLinkUrl;
+            if (!currentPromotionLinkUrl) {
+                box.innerHTML = '<span class="form-hint">暂无二维码</span>';
+                return;
+            }
+            if (typeof QRCode === 'function') {
+                try {
+                    new QRCode(box, {
+                        text: currentPromotionLinkUrl,
+                        width: 224,
+                        height: 224,
+                        colorDark: '#0f172a',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    window.setTimeout(() => drawPromotionQrLogo(box.querySelector('canvas')), 0);
+                    return;
+                } catch (err) {
+                    console.warn('QR render failed', err);
+                }
+            }
+            box.textContent = '二维码生成失败';
+        }
+
+        async function copyPromotionLinkUrl() {
+            const value = currentPromotionLinkUrl || document.getElementById('promotionLinkGeneratedUrl')?.value || '';
+            if (!value) {
+                showGlobalAlert('请先创建或选择一个推广链接');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(value);
+                showGlobalAlert('推广链接已复制');
+            } catch (_) {
+                const field = document.getElementById('promotionLinkGeneratedUrl');
+                if (field) {
+                    field.select();
+                    document.execCommand('copy');
+                    showGlobalAlert('推广链接已复制');
+                }
+            }
+        }
+
+        function downloadPromotionQr() {
+            const box = document.getElementById('promotionQrBox');
+            const canvas = box ? box.querySelector('canvas') : null;
+            if (!canvas) {
+                showGlobalAlert('请先生成二维码');
+                return;
+            }
+            const link = document.createElement('a');
+            const mark = document.getElementById('promotionLinkMark')?.value || 'promotion-link';
+            link.download = `${String(mark || 'promotion-link').replace(/[^A-Za-z0-9._-]+/g, '-')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function promotionStatsByMark(rows) {
+            const map = {};
+            (Array.isArray(rows) ? rows : []).forEach(item => {
+                const mark = String(item?.promotion_mark || '').trim();
+                if (mark) map[mark] = item;
+            });
+            return map;
+        }
+
+        function getPromotionLinkChannel(item) {
+            return [item?.utm_source, item?.utm_medium, item?.utm_campaign]
+                .map(v => String(v || '').trim())
+                .filter(Boolean)
+                .join(' / ') || '-';
+        }
+
+        function updatePromotionLinkChannelFilter(rows) {
+            const select = document.getElementById('promotionLinkChannelFilter');
+            if (!select) return;
+            const current = select.value || '';
+            const channels = Array.from(new Set((Array.isArray(rows) ? rows : []).map(getPromotionLinkChannel))).sort((a, b) => a.localeCompare(b));
+            select.innerHTML = '<option value="">全部渠道</option>' + channels.map(channel => `<option value="${escapeHtml(channel)}">${escapeHtml(channel)}</option>`).join('');
+            if (current && channels.includes(current)) {
+                select.value = current;
+            }
+        }
+
+        function getPromotionLinkVisibleRows(rows) {
+            const channelFilter = document.getElementById('promotionLinkChannelFilter')?.value || '';
+            const sortMode = document.getElementById('promotionLinkSortMode')?.value || 'created_desc';
+            const output = (Array.isArray(rows) ? rows : []).filter(item => {
+                if (!channelFilter) return true;
+                return getPromotionLinkChannel(item) === channelFilter;
+            });
+            output.sort((a, b) => {
+                if (sortMode === 'created_asc') {
+                    return String(a?.created_at || '').localeCompare(String(b?.created_at || ''));
+                }
+                if (sortMode === 'channel_asc') {
+                    return getPromotionLinkChannel(a).localeCompare(getPromotionLinkChannel(b)) || String(b?.created_at || '').localeCompare(String(a?.created_at || ''));
+                }
+                if (sortMode === 'channel_desc') {
+                    return getPromotionLinkChannel(b).localeCompare(getPromotionLinkChannel(a)) || String(b?.created_at || '').localeCompare(String(a?.created_at || ''));
+                }
+                return String(b?.created_at || '').localeCompare(String(a?.created_at || ''));
+            });
+            return output;
+        }
+
+        function renderPromotionLinks() {
+            const body = document.getElementById('promotionLinksBody');
+            if (!body) return;
+            const stats = promotionStatsByMark(promotionLinkStatsCache.promotion_breakdown || []);
+            const allRows = Array.isArray(promotionLinksCache) ? promotionLinksCache : [];
+            updatePromotionLinkChannelFilter(allRows);
+            const rows = getPromotionLinkVisibleRows(allRows);
+            if (!rows.length) {
+                body.innerHTML = '<tr><td colspan="7" class="no-data">暂无符合条件的推广链接</td></tr>';
+                return;
+            }
+            body.innerHTML = rows.map(item => {
+                const mark = String(item?.promotion_mark || '').trim();
+                const rowStats = stats[mark] || {};
+                const channel = getPromotionLinkChannel(item);
+                const statusText = item?.enabled ? '启用' : '停用';
+                return `
+                    <tr>
+                        <td>
+                            <strong>${escapeHtml(item?.name || mark || '-')}</strong>
+                            <div class="form-hint">${escapeHtml(mark || '-')}</div>
+                        </td>
+                        <td>${escapeHtml(channel)}</td>
+                        <td>${formatSiteReportNumber(rowStats.sessions || 0)}</td>
+                        <td>${formatSiteReportNumber(rowStats.pageviews || 0)}</td>
+                        <td>${formatSiteReportNumber(rowStats.conversion_events || 0)}</td>
+                        <td>
+                            <label class="promotion-link-status-toggle">
+                                <input type="checkbox" ${item?.enabled ? 'checked' : ''} onchange="togglePromotionLinkEnabled('${escapeHtml(item.id)}', this.checked)">
+                                ${escapeHtml(statusText)}
+                            </label>
+                        </td>
+                        <td>
+                            <button type="button" class="btn-sm" onclick="openPromotionLinkStats('${escapeHtml(item.id)}')">访问数据</button>
+                            <button type="button" class="btn-sm" onclick="editPromotionLink('${escapeHtml(item.id)}')">编辑</button>
+                            <button type="button" class="btn-sm btn-danger" onclick="archivePromotionLink('${escapeHtml(item.id)}')">停用并隐藏</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function findPromotionLink(id) {
+            const safeId = String(id || '').trim();
+            return (promotionLinksCache || []).find(item => String(item?.id || '') === safeId) || null;
+        }
+
+        function fillPromotionLinkForm(item, editMode = false) {
+            if (!item) return;
+            document.getElementById('promotionLinkId').value = editMode ? String(item.id || '') : '';
+            document.getElementById('promotionLinkName').value = item.name || '';
+            document.getElementById('promotionLinkMark').value = item.promotion_mark || '';
+            document.getElementById('promotionLinkMark').disabled = !!editMode;
+            document.getElementById('promotionLinkTarget').value = item.target_path || '/';
+            document.getElementById('promotionLinkSource').value = item.utm_source || '';
+            document.getElementById('promotionLinkMedium').value = item.utm_medium || '';
+            document.getElementById('promotionLinkCampaign').value = item.utm_campaign || '';
+            document.getElementById('promotionLinkContent').value = item.utm_content || '';
+            document.getElementById('promotionLinkTerm').value = item.utm_term || '';
+            document.getElementById('promotionLinkEnabled').checked = !!item.enabled;
+            const title = document.getElementById('promotionLinkFormTitle');
+            if (title) title.textContent = editMode ? '编辑推广链接' : '推广链接详情';
+            const btn = document.getElementById('promotionLinkSubmitBtn');
+            if (btn) btn.innerHTML = editMode ? '<i class="fas fa-save"></i> 保存修改' : '<i class="fas fa-plus"></i> 创建链接';
+            renderPromotionQr(item.url || '');
+            setPromotionLinkMessage('');
+        }
+
+        function selectPromotionLink(id) {
+            const item = findPromotionLink(id);
+            if (!item) return;
+            fillPromotionLinkForm(item, false);
+        }
+
+        function editPromotionLink(id) {
+            const item = findPromotionLink(id);
+            if (!item) return;
+            fillPromotionLinkForm(item, true);
+        }
+
+        async function togglePromotionLinkEnabled(id, enabled) {
+            const item = findPromotionLink(id);
+            if (!item) return;
+            const payload = {
+                name: item.name || '',
+                promotion_mark: item.promotion_mark || '',
+                target_path: item.target_path || '/',
+                utm_source: item.utm_source || '',
+                utm_medium: item.utm_medium || '',
+                utm_campaign: item.utm_campaign || '',
+                utm_content: item.utm_content || '',
+                utm_term: item.utm_term || '',
+                enabled: !!enabled
+            };
+            try {
+                const res = await fetch(`/api/admin/promotion-links/${encodeURIComponent(id)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) throw new Error(data.message || '启停失败');
+                if (data.item) {
+                    const idx = promotionLinksCache.findIndex(row => String(row?.id || '') === String(id));
+                    if (idx >= 0) promotionLinksCache[idx] = data.item;
+                }
+                renderPromotionLinks();
+                showGlobalAlert(enabled ? '推广链接已启用' : '推广链接已停用');
+            } catch (err) {
+                renderPromotionLinks();
+                showGlobalAlert(err.message || '启停失败');
+            }
+        }
+
+        function closePromotionLinkStatsModal() {
+            const modal = document.getElementById('promotionLinkStatsModal');
+            if (modal) modal.hidden = true;
+        }
+
+        function renderPromotionLinkMiniChart(rows) {
+            const items = Array.isArray(rows) ? rows : [];
+            if (!items.length) return '<div class="no-data">暂无趋势数据</div>';
+            const slotWidth = items.length > 180 ? 18 : (items.length > 90 ? 28 : 70);
+            const width = Math.max(720, Math.min(4800, slotWidth * Math.max(2, items.length)));
+            const height = 300;
+            const padding = { left: 46, right: 18, top: 20, bottom: 44 };
+            const plotWidth = width - padding.left - padding.right;
+            const plotHeight = height - padding.top - padding.bottom;
+            const prepared = items.map(item => ({
+                label: String(item?.label || item?.date || ''),
+                pv: Math.max(0, Number(item?.pageviews || 0)),
+                sessions: Math.max(0, Number(item?.sessions || 0)),
+                conversions: Math.max(0, Number(item?.conversions || 0)),
+            }));
+            const maxValue = Math.max(1, ...prepared.map(item => Math.max(item.pv, item.sessions, item.conversions)));
+            const toX = (idx) => prepared.length <= 1 ? padding.left + plotWidth / 2 : padding.left + (idx / (prepared.length - 1)) * plotWidth;
+            const toY = (value) => padding.top + ((maxValue - value) / maxValue) * plotHeight;
+            const linePoints = (key) => prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item[key]).toFixed(2)}`).join(' ');
+            const grid = [0, 0.25, 0.5, 0.75, 1].map(ratio => {
+                const value = Math.round(maxValue * (1 - ratio));
+                const y = padding.top + (ratio * plotHeight);
+                return `<line class="chart-grid" x1="${padding.left}" y1="${y.toFixed(2)}" x2="${padding.left + plotWidth}" y2="${y.toFixed(2)}"></line><text x="${padding.left - 8}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatSiteReportNumber(value))}</text>`;
+            }).join('');
+            const labelStep = prepared.length <= 10 ? 1 : Math.ceil(prepared.length / 8);
+            const labels = prepared.map((item, idx) => {
+                if (idx !== 0 && idx !== prepared.length - 1 && idx % labelStep !== 0) return '';
+                return `<text x="${toX(idx).toFixed(2)}" y="${height - 12}" text-anchor="middle">${escapeHtml(item.label.slice(5) || item.label)}</text>`;
+            }).join('');
+            return `
+                <div class="promotion-link-chart">
+                    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="推广链接访问趋势">
+                        ${grid}
+                        <line class="chart-axis" x1="${padding.left}" y1="${padding.top + plotHeight}" x2="${padding.left + plotWidth}" y2="${padding.top + plotHeight}"></line>
+                        <polyline class="line-pv" points="${linePoints('pv')}"></polyline>
+                        <polyline class="line-sessions" points="${linePoints('sessions')}"></polyline>
+                        <polyline class="line-conversions" points="${linePoints('conversions')}"></polyline>
+                        ${labels}
+                    </svg>
+                    <div class="site-report-line-legend">
+                        <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot pv"></i>PV</span>
+                        <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot uv"></i>会话</span>
+                        <span class="site-report-line-legend-item"><i style="width:10px;height:10px;border-radius:50%;background:#f97316;display:inline-block;"></i>转化</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPromotionLinkSimpleTable(title, headers, rows, emptyText = '暂无数据') {
+            const safeRows = Array.isArray(rows) ? rows : [];
+            return `
+                <section class="promotion-link-detail-section">
+                    <h4>${escapeHtml(title)}</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr>${headers.map(header => `<th>${escapeHtml(header.label)}</th>`).join('')}</tr></thead>
+                            <tbody>
+                                ${safeRows.length ? safeRows.map(row => `
+                                    <tr>${headers.map(header => `<td>${header.render ? header.render(row) : escapeHtml(row?.[header.key] ?? '-')}</td>`).join('')}</tr>
+                                `).join('') : `<tr><td colspan="${headers.length}" class="no-data">${escapeHtml(emptyText)}</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            `;
+        }
+
+        function closeSiteSourceDetailModal() {
+            const modal = document.getElementById('siteSourceDetailModal');
+            if (modal) modal.hidden = true;
+        }
+
+        function renderSiteSourceDetail(data, sourceText) {
+            const body = document.getElementById('siteSourceDetailBody');
+            const title = document.getElementById('siteSourceDetailTitle');
+            const subtitle = document.getElementById('siteSourceDetailSubtitle');
+            if (!body) return;
+            const summary = data?.summary || {};
+            if (title) title.textContent = `${sourceText || '来源'} · 详情`;
+            if (subtitle) subtitle.textContent = `统计范围：${data?.range_label || '-'}。直接访问通常包含地址栏输入、书签、无来源 App 跳转、未带 UTM 的二维码或隐私策略导致来源缺失。`;
+            const kpis = [
+                ['会话', formatSiteReportNumber(summary.sessions || 0)],
+                ['PV', formatSiteReportNumber(summary.pageviews || 0)],
+                ['UV', formatSiteReportNumber(summary.unique_visitors || 0)],
+                ['点击事件', formatSiteReportNumber(summary.click_events || 0)],
+                ['行为事件', formatSiteReportNumber(summary.events || 0)],
+                ['转化事件', formatSiteReportNumber(summary.conversion_events || 0)],
+                ['转化率', formatSiteReportPercent(summary.conversion_rate || 0)],
+                ['跳出率', formatSiteReportPercent(summary.bounce_rate || 0)],
+            ];
+            body.innerHTML = `
+                <div class="promotion-link-kpi-grid">
+                    ${kpis.map(([label, value]) => `<div class="promotion-link-kpi"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
+                </div>
+                <section class="promotion-link-detail-section">
+                    <h4>访问趋势</h4>
+                    ${renderPromotionLinkMiniChart(data?.trend || [])}
+                </section>
+                <div class="promotion-link-detail-grid">
+                    ${renderPromotionLinkSimpleTable('落地页排行', [
+                        { label: '落地页', render: row => `<strong>${escapeHtml(row.title || row.path || '-')}</strong><div class="form-hint">${escapeHtml(row.path || '-')}</div>` },
+                        { label: '会话', render: row => formatSiteReportNumber(row.sessions || 0) },
+                        { label: 'UV', render: row => formatSiteReportNumber(row.unique_visitors || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.landing_pages || [])}
+                    ${renderPromotionLinkSimpleTable('热门页面', [
+                        { label: '页面', render: row => `<strong>${escapeHtml(row.title || row.path || '-')}</strong><div class="form-hint">${escapeHtml(row.path || '-')}</div>` },
+                        { label: 'PV', render: row => formatSiteReportNumber(row.pageviews || 0) },
+                        { label: 'UV', render: row => formatSiteReportNumber(row.unique_visitors || 0) },
+                        { label: '会话', render: row => formatSiteReportNumber(row.sessions || 0) },
+                    ], data?.pages || [])}
+                </div>
+                <div class="promotion-link-detail-grid">
+                    ${renderPromotionLinkSimpleTable('Referrer 情况', [
+                        { label: '来源页面', key: 'referrer' },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.referrers || [])}
+                    ${renderPromotionLinkSimpleTable('UTM 情况', [
+                        { label: '状态', key: 'status' },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.utm_status || [])}
+                </div>
+                <div class="promotion-link-detail-grid">
+                    ${renderPromotionLinkSimpleTable('设备分布', [
+                        { label: '设备', key: 'device' },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.devices || [])}
+                    ${renderPromotionLinkSimpleTable('地域分布', [
+                        { label: '省份', render: row => escapeHtml(row.province || row.country || '-') },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.provinces || data?.countries || [])}
+                </div>
+                ${renderPromotionLinkSimpleTable('事件明细', [
+                    { label: '事件', key: 'name' },
+                    { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                    { label: '点击', render: row => formatSiteReportNumber(row.clicks || 0) },
+                    { label: '转化', render: row => formatSiteReportNumber(row.conversions || 0) },
+                ], data?.events || [])}
+                ${renderPromotionLinkSimpleTable('会话明细', [
+                    { label: '时间', key: 'first_time' },
+                    { label: '访问', render: row => `PV ${formatSiteReportNumber(row.pageviews || 0)} / 点击 ${formatSiteReportNumber(row.click_events || 0)}<div class="form-hint">转化 ${formatSiteReportNumber(row.conversions || 0)}；停留 ${formatSiteReportDuration(row.duration_sec || 0)}</div>` },
+                    { label: '页面', render: row => `${escapeHtml(row.landing_page || '-')}<div class="form-hint">离开：${escapeHtml(row.exit_page || '-')}</div>` },
+                    { label: '设备/地区', render: row => `${escapeHtml(row.device || '-')} / ${escapeHtml(row.os || '-')}<div class="form-hint">${escapeHtml(row.location || '-')}</div>` },
+                    { label: 'Referrer', render: row => escapeHtml(row.referrer || '空 Referrer') },
+                ], data?.sessions_detail || [])}
+            `;
+        }
+
+        async function openSiteSourceDetail(sourceKey, sourceText) {
+            const modal = document.getElementById('siteSourceDetailModal');
+            const body = document.getElementById('siteSourceDetailBody');
+            const title = document.getElementById('siteSourceDetailTitle');
+            const subtitle = document.getElementById('siteSourceDetailSubtitle');
+            if (title) title.textContent = `${sourceText || sourceKey || '来源'} · 详情`;
+            if (subtitle) subtitle.textContent = '正在加载来源明细...';
+            if (body) body.innerHTML = '<div class="no-data">正在加载来源明细...</div>';
+            if (modal) modal.hidden = false;
+            const params = new URLSearchParams();
+            params.set('source', sourceKey || 'direct');
+            if (siteReportsStartDate && siteReportsEndDate) {
+                params.set('start_date', siteReportsStartDate);
+                params.set('end_date', siteReportsEndDate);
+            } else {
+                const rangeEl = document.getElementById('siteReportRange');
+                params.set('range_days', rangeEl?.value || '30');
+            }
+            try {
+                const res = await fetch(`/api/admin/site-reports/source-detail?${params.toString()}`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) throw new Error(data.message || '来源明细加载失败');
+                renderSiteSourceDetail(data, sourceText || sourceKey);
+            } catch (err) {
+                if (body) body.innerHTML = `<div class="no-data">${escapeHtml(err.message || '来源明细加载失败')}</div>`;
+            }
+        }
+
+        function formatPromotionJourneyStepType(type) {
+            const key = String(type || '').trim();
+            if (key === 'pageview') return '访问页面';
+            if (key === 'click') return '点击';
+            if (key === 'conversion') return '转化';
+            return '行为';
+        }
+
+        function renderPromotionLinkVisitorJourneys(rows) {
+            const items = Array.isArray(rows) ? rows : [];
+            if (!items.length) {
+                return `
+                    <section class="promotion-link-detail-section">
+                        <h4>访问客户行为路径</h4>
+                        <div class="no-data">暂无客户路径数据</div>
+                    </section>
+                `;
+            }
+            return `
+                <section class="promotion-link-detail-section">
+                    <h4>访问客户行为路径</h4>
+                    <div class="promotion-journey-list">
+                        ${items.map((item, index) => {
+                            const timeline = Array.isArray(item?.timeline) ? item.timeline : [];
+                            const buttons = Array.isArray(item?.buttons) ? item.buttons : [];
+                            const buttonText = buttons.length
+                                ? buttons.slice(0, 8).map(btn => btn.text || btn.event_name || '点击').join('、')
+                                : '暂无点击记录';
+                            return `
+                                <details class="promotion-journey-item">
+                                    <summary>
+                                        <span>
+                                            <strong>客户 ${escapeHtml(item?.visitor_id || '-')}</strong>
+                                            <em>${escapeHtml(item?.first_time || '-')} 至 ${escapeHtml(item?.last_time || '-')}</em>
+                                        </span>
+                                        <span class="promotion-journey-metrics">
+                                            ${formatSiteReportNumber(item?.sessions || 0)} 会话 · ${formatSiteReportNumber(item?.pageviews || 0)} PV · ${formatSiteReportNumber(item?.click_events || 0)} 点击 · 停留 ${formatSiteReportDuration(item?.duration_sec || 0)}
+                                            <em>点击展开详细数据</em>
+                                        </span>
+                                    </summary>
+                                    <div class="promotion-journey-meta">
+                                        <span>设备：${escapeHtml(item?.device || '-')} / ${escapeHtml(item?.os || '-')}</span>
+                                        <span>地区：${escapeHtml(item?.location || '-')}</span>
+                                        <span>来源：${escapeHtml(item?.source || '-')}</span>
+                                        <span>点击：${escapeHtml(buttonText)}</span>
+                                    </div>
+                                    <ol class="promotion-journey-timeline">
+                                        ${timeline.length ? timeline.map(step => `
+                                            <li class="promotion-journey-step type-${escapeHtml(step?.type || 'event')}">
+                                                <div class="promotion-journey-step-time">${escapeHtml(step?.timestamp || '-')}</div>
+                                                <div class="promotion-journey-step-body">
+                                                    <strong>${escapeHtml(formatPromotionJourneyStepType(step?.type))}：${escapeHtml(step?.label || step?.page_title || step?.page_path || '-')}</strong>
+                                                    <span>${escapeHtml(step?.page_path || '-')}</span>
+                                                    ${step?.target_url ? `<span>目标：${escapeHtml(step.target_url)}</span>` : ''}
+                                                    ${step?.duration_sec ? `<em>该页面约停留 ${escapeHtml(formatSiteReportDuration(step.duration_sec))}</em>` : ''}
+                                                </div>
+                                            </li>
+                                        `).join('') : '<li class="promotion-journey-step"><div class="promotion-journey-step-body">暂无路径明细</div></li>'}
+                                    </ol>
+                                </details>
+                            `;
+                        }).join('')}
+                    </div>
+                </section>
+            `;
+        }
+
+        function renderPromotionLinkStats(data, item) {
+            const body = document.getElementById('promotionLinkStatsBody');
+            const title = document.getElementById('promotionLinkStatsTitle');
+            const subtitle = document.getElementById('promotionLinkStatsSubtitle');
+            if (!body) return;
+            const summary = data?.summary || {};
+            const channel = getPromotionLinkChannel(item || data?.promotion || {});
+            if (title) title.textContent = `${item?.name || data?.promotion_mark || '推广链接'} · 访问数据`;
+            if (subtitle) subtitle.textContent = `标记：${item?.promotion_mark || data?.promotion_mark || '-'}；渠道：${channel}；统计范围：${data?.range_label || '-'}`;
+            const kpis = [
+                ['会话', formatSiteReportNumber(summary.sessions || 0)],
+                ['PV', formatSiteReportNumber(summary.pageviews || 0)],
+                ['UV', formatSiteReportNumber(summary.unique_visitors || 0)],
+                ['点击事件', formatSiteReportNumber(summary.click_events || 0)],
+                ['行为事件', formatSiteReportNumber(summary.events || 0)],
+                ['转化事件', formatSiteReportNumber(summary.conversion_events || 0)],
+                ['转化率', formatSiteReportPercent(summary.conversion_rate || 0)],
+                ['平均会话时长', formatSiteReportDuration(summary.avg_session_duration_sec || 0)],
+            ];
+            body.innerHTML = `
+                <div class="promotion-link-kpi-grid">
+                    ${kpis.map(([label, value]) => `<div class="promotion-link-kpi"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
+                </div>
+                <section class="promotion-link-detail-section">
+                    <h4>访问趋势</h4>
+                    ${renderPromotionLinkMiniChart(data?.trend || [])}
+                </section>
+                ${renderPromotionLinkVisitorJourneys(data?.visitor_journeys || [])}
+                <div class="promotion-link-detail-grid">
+                    ${renderPromotionLinkSimpleTable('热门页面', [
+                        { label: '页面', render: row => `<strong>${escapeHtml(row.title || row.path || '-')}</strong><div class="form-hint">${escapeHtml(row.path || '-')}</div>` },
+                        { label: 'PV', render: row => formatSiteReportNumber(row.pageviews || 0) },
+                        { label: 'UV', render: row => formatSiteReportNumber(row.unique_visitors || 0) },
+                        { label: '转化', render: row => formatSiteReportNumber(row.conversions || 0) },
+                    ], data?.pages || [])}
+                    ${renderPromotionLinkSimpleTable('事件明细', [
+                        { label: '事件', key: 'name' },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '点击', render: row => formatSiteReportNumber(row.clicks || 0) },
+                        { label: '转化', render: row => formatSiteReportNumber(row.conversions || 0) },
+                    ], data?.events || [])}
+                </div>
+                <div class="promotion-link-detail-grid">
+                    ${renderPromotionLinkSimpleTable('设备分布', [
+                        { label: '设备', key: 'device' },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.devices || [])}
+                    ${renderPromotionLinkSimpleTable('地域分布', [
+                        { label: '省份', render: row => escapeHtml(row.province || row.country || '-') },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.provinces || data?.countries || [])}
+                </div>
+                <div class="promotion-link-detail-grid">
+                    ${renderPromotionLinkSimpleTable('来源类型', [
+                        { label: '来源', key: 'source' },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.sources || [])}
+                    ${renderPromotionLinkSimpleTable('操作系统', [
+                        { label: '系统', key: 'os' },
+                        { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                        { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                    ], data?.os || [])}
+                </div>
+                ${renderPromotionLinkSimpleTable('来源页面 Referrer', [
+                    { label: '来源页面', key: 'referrer' },
+                    { label: '次数', render: row => formatSiteReportNumber(row.count || 0) },
+                    { label: '占比', render: row => formatSiteReportPercent(row.ratio || 0) },
+                ], data?.referrers || [])}
+                ${renderPromotionLinkSimpleTable('会话明细', [
+                    { label: '时间', render: row => `${escapeHtml(row.first_time || '-')}<div class="form-hint">最后：${escapeHtml(row.last_time || '-')}</div>` },
+                    { label: '访问', render: row => `PV ${formatSiteReportNumber(row.pageviews || 0)} / 事件 ${formatSiteReportNumber(row.events || 0)}<div class="form-hint">点击 ${formatSiteReportNumber(row.click_events || 0)}；转化 ${formatSiteReportNumber(row.conversions || 0)}</div>` },
+                    { label: '页面', render: row => `${escapeHtml(row.landing_page || '-')}<div class="form-hint">离开：${escapeHtml(row.exit_page || '-')}</div>` },
+                    { label: '访客/设备', render: row => `${escapeHtml(row.visitor_id || '-')}<div class="form-hint">${escapeHtml(row.device || '-')} / ${escapeHtml(row.os || '-')} / ${escapeHtml(row.location || row.province || row.country || '-')}</div>` },
+                    { label: '时长', render: row => formatSiteReportDuration(row.duration_sec || 0) },
+                ], data?.sessions_detail || [])}
+                ${renderPromotionLinkSimpleTable('最近事件', [
+                    { label: '时间', key: 'timestamp' },
+                    { label: '事件', render: row => `${escapeHtml(row.event_name || row.event_type || '-')}<div class="form-hint">${escapeHtml(row.event_type || '-')}</div>` },
+                    { label: '页面', render: row => `${escapeHtml(row.page_title || row.page_path || '-')}<div class="form-hint">${escapeHtml(row.page_path || '-')}</div>` },
+                    { label: '来源/设备', render: row => `${escapeHtml(row.source || '-')}<div class="form-hint">${escapeHtml(row.device || '-')} / ${escapeHtml(row.os || '-')}</div>` },
+                ], data?.recent_events || [])}
+            `;
+        }
+
+        async function openPromotionLinkStats(id) {
+            const item = findPromotionLink(id);
+            if (!item) return;
+            const modal = document.getElementById('promotionLinkStatsModal');
+            const body = document.getElementById('promotionLinkStatsBody');
+            const title = document.getElementById('promotionLinkStatsTitle');
+            const subtitle = document.getElementById('promotionLinkStatsSubtitle');
+            if (title) title.textContent = `${item.name || item.promotion_mark || '推广链接'} · 访问数据`;
+            if (subtitle) subtitle.textContent = `正在加载 ${item.promotion_mark || ''} 的访问明细`;
+            if (body) body.innerHTML = '<div class="no-data">正在加载访问数据...</div>';
+            if (modal) modal.hidden = false;
+            try {
+                const res = await fetch(`/api/admin/promotion-links/${encodeURIComponent(id)}/detail-stats`, { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) throw new Error(data.message || '访问数据加载失败');
+                renderPromotionLinkStats(data, item);
+            } catch (err) {
+                if (body) body.innerHTML = `<div class="no-data">${escapeHtml(err.message || '访问数据加载失败')}</div>`;
+            }
+        }
+
+        async function archivePromotionLink(id) {
+            const item = findPromotionLink(id);
+            if (!item) return;
+            const label = item.name || item.promotion_mark || '未命名推广链接';
+            const result = await showGlobalActionModal({
+                mode: 'confirm',
+                title: '确认删除推广链接',
+                message: `确认删除「${label}」吗？\n\n删除后，之前所有使用该推广链接访问的入口都将不可使用；这条链接也会被停用并从列表中隐藏。\n\n请慎重操作。`,
+                okText: '确认删除',
+                cancelText: '取消',
+                waitSeconds: 3
+            });
+            if (!result.ok) return;
+            try {
+                const res = await fetch(`/api/admin/promotion-links/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) throw new Error(data.message || '删除失败');
+                await loadPromotionLinks(true);
+                showGlobalAlert('推广链接已停用并隐藏');
+            } catch (err) {
+                showGlobalAlert(err.message || '删除失败');
+            }
+        }
+
+        async function loadPromotionLinks(manual = false) {
+            try {
+                const [linksRes, statsRes] = await Promise.all([
+                    fetch('/api/admin/promotion-links', { cache: 'no-store' }),
+                    fetch('/api/admin/promotion-links/stats', { cache: 'no-store' })
+                ]);
+                const linksData = await linksRes.json().catch(() => ({}));
+                const statsData = await statsRes.json().catch(() => ({}));
+                if (!linksRes.ok || linksData.success === false) throw new Error(linksData.message || '推广链接加载失败');
+                promotionLinksCache = Array.isArray(linksData.items) ? linksData.items : [];
+                promotionLinkStatsCache = statsData && statsData.success !== false ? statsData : {};
+                renderPromotionLinks();
+                if (!currentPromotionLinkUrl && promotionLinksCache[0]) {
+                    selectPromotionLink(promotionLinksCache[0].id);
+                } else if (!promotionLinksCache.length) {
+                    renderPromotionQr('');
+                }
+                if (manual) showGlobalAlert('推广链接已刷新');
+            } catch (err) {
+                const body = document.getElementById('promotionLinksBody');
+                if (body) body.innerHTML = `<tr><td colspan="7" class="no-data">${escapeHtml(err.message || '推广链接加载失败')}</td></tr>`;
+            }
+        }
+
+        async function submitPromotionLinkForm(event) {
+            event.preventDefault();
+            const id = document.getElementById('promotionLinkId')?.value || '';
+            const payload = getPromotionLinkFormPayload();
+            const btn = document.getElementById('promotionLinkSubmitBtn');
+            if (btn) btn.disabled = true;
+            try {
+                const url = id ? `/api/admin/promotion-links/${encodeURIComponent(id)}` : '/api/admin/promotion-links';
+                const res = await fetch(url, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) throw new Error(data.message || '保存失败');
+                const item = data.item || {};
+                renderPromotionQr(item.url || '');
+                await loadPromotionLinks(false);
+                if (item.id) fillPromotionLinkForm(item, true);
+                setPromotionLinkMessage(id ? '推广链接已更新' : '推广链接已创建');
+            } catch (err) {
+                setPromotionLinkMessage(err.message || '保存失败', true);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
         // --- Navigation ---
         function switchView(viewName, options = {}) {
             if (viewName === 'changelog' || viewName === 'docker-logs') {
@@ -4781,6 +5650,7 @@
             // Update Title
             const titles = {
                 'messages': '留言系统',
+                'promotion-links': '推广链接',
                 'products': '氢气产品',
                 'bio-products': '生物产品',
                 'hydrogen-solutions': '行业方案',
@@ -4800,6 +5670,7 @@
 
             // Load data for the view
             if (viewName === 'messages') loadMessages();
+            if (viewName === 'promotion-links') loadPromotionLinks();
             if (viewName === 'products') {
                 bindProductCreateEvents();
                 loadProducts();
@@ -13041,6 +13912,39 @@
             `;
         }
 
+        function formatMessageAttributionSummary(message) {
+            const attr = message && typeof message.attribution === 'object' ? message.attribution : {};
+            const last = attr.last_touch && typeof attr.last_touch === 'object' ? attr.last_touch : {};
+            const parts = [last.utm_source, last.utm_medium, last.utm_campaign].map(v => String(v || '').trim()).filter(Boolean);
+            const mark = String(last.promotion_mark || last.utm_id || '').trim();
+            if (!parts.length && !mark) return '';
+            return `${parts.join(' / ') || '未知渠道'}${mark ? ` · 标记：${mark}` : ''}`;
+        }
+
+        function formatMessageAttributionDetail(message) {
+            const attr = message && typeof message.attribution === 'object' ? message.attribution : {};
+            const renderTouch = (label, touch) => {
+                const data = touch && typeof touch === 'object' ? touch : {};
+                const pairs = [
+                    ['来源', data.utm_source],
+                    ['媒介', data.utm_medium],
+                    ['活动', data.utm_campaign],
+                    ['内容', data.utm_content],
+                    ['关键词', data.utm_term],
+                    ['推广标记', data.promotion_mark || data.utm_id],
+                    ['落地页', data.landing_page],
+                    ['Referrer', data.referrer],
+                ].filter(([, value]) => String(value || '').trim());
+                if (!pairs.length) return '';
+                return `<div style="margin-bottom:8px;"><strong>${escapeHtml(label)}</strong><br>${pairs.map(([key, value]) => `${escapeHtml(key)}：${escapeHtml(String(value || ''))}`).join('<br>')}</div>`;
+            };
+            const htmlParts = [
+                renderTouch('首次触达', attr.first_touch),
+                renderTouch('最近触达', attr.last_touch),
+            ].filter(Boolean);
+            return htmlParts.length ? htmlParts.join('') : '-';
+        }
+
         function viewMessageDetail(id) {
             const message = messageDetailMap[String(id || '')];
             if (!message) {
@@ -13062,6 +13966,7 @@
             items.push(buildMessageDetailItem('邮箱', formatMessageDetailValue(message.email)));
             items.push(buildMessageDetailItem('来源 IP', formatMessageDetailValue(message.ip)));
             items.push(buildMessageDetailItem('类型', formatMessageDetailValue(isJob ? '应聘信息' : '留言信息')));
+            items.push(buildMessageDetailItem('推广归因', formatMessageAttributionDetail(message)));
 
             if (title) {
                 items.push(buildMessageDetailItem('标题', formatMessageDetailValue(title)));
@@ -13409,6 +14314,7 @@
                             const dateStr = timestamp.split('T')[0] || '-';
                             const timeStr = timestamp.length >= 16 ? timestamp.substring(11, 16) : '-';
                             const isRead = !!msg.is_read;
+                            const attributionText = formatMessageAttributionSummary(msg);
                             return `
                                 <tr>
                                     <td>
@@ -13426,6 +14332,7 @@
                                             ${escapeHtml(msg.content || '')}
                                         </div>
                                         ${msg.email ? `<div style="font-size:12px; color:#888; margin-top:2px;"><i class="far fa-envelope"></i> ${escapeHtml(msg.email)}</div>` : ''}
+                                        ${attributionText ? `<div style="font-size:12px; color:#2563eb; margin-top:2px;"><i class="fas fa-bullhorn"></i> ${escapeHtml(attributionText)}</div>` : ''}
                                     </td>
                                     <td>
                                         <button class="btn-sm" onclick="viewMessageDetail('${msg.id}')">
@@ -13456,6 +14363,7 @@
                             const resumeHtml = msg.resume_url
                                 ? `<a href="${escapeHtml(msg.resume_url)}" target="_blank" rel="noopener">下载简历</a>`
                                 : '未上传';
+                            const attributionText = formatMessageAttributionSummary(msg);
                             const detailsHtml = `
                                 <div><strong>职位：</strong>${escapeHtml(msg.job_title || msg.job_id || '-')}</div>
                                 <div><strong>年龄/民族/性别：</strong>${escapeHtml(msg.age || '-')} / ${escapeHtml(msg.ethnicity || '-')} / ${escapeHtml(msg.gender || '-')}</div>
@@ -13464,6 +14372,7 @@
                                 <div><strong>工作经历：</strong>${escapeHtml(msg.work_experience || '-')}</div>
                                 <div><strong>项目经历：</strong>${escapeHtml(msg.project_experience || '-')}</div>
                                 <div><strong>自我陈述：</strong>${escapeHtml(msg.self_statement || '-')}</div>
+                                ${attributionText ? `<div style="color:#2563eb;"><strong>来源：</strong>${escapeHtml(attributionText)}</div>` : ''}
                             `;
                             return `
                                 <tr>

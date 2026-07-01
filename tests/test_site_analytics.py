@@ -14,6 +14,7 @@ class SiteAnalyticsTests(unittest.TestCase):
     def setUp(self):
         self._old_paths = {
             "log": sa.SITE_ANALYTICS_LOG_FILE,
+            "promotion": sa.PROMOTION_LINKS_FILE,
             "jsonl": sa.SITE_ANALYTICS_AI_REPORTS_FILE,
             "dir": sa.SITE_ANALYTICS_AI_REPORTS_DIR,
             "index": sa.SITE_ANALYTICS_AI_REPORTS_INDEX_FILE,
@@ -35,6 +36,7 @@ class SiteAnalyticsTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
         sa.SITE_ANALYTICS_LOG_FILE = self._old_paths["log"]
+        sa.PROMOTION_LINKS_FILE = self._old_paths["promotion"]
         sa.SITE_ANALYTICS_AI_REPORTS_FILE = self._old_paths["jsonl"]
         sa.SITE_ANALYTICS_AI_REPORTS_DIR = self._old_paths["dir"]
         sa.SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = self._old_paths["index"]
@@ -51,6 +53,7 @@ class SiteAnalyticsTests(unittest.TestCase):
 
     def _configure_paths(self, data_dir: Path):
         sa.SITE_ANALYTICS_LOG_FILE = data_dir / "site_analytics_events.jsonl"
+        sa.PROMOTION_LINKS_FILE = data_dir / "promotion_links.json"
         sa.SITE_ANALYTICS_AI_REPORTS_FILE = data_dir / "site_analytics_ai_reports.jsonl"
         sa.SITE_ANALYTICS_AI_REPORTS_DIR = data_dir / "site_analytics_ai_reports"
         sa.SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = sa.SITE_ANALYTICS_AI_REPORTS_DIR / "index.json"
@@ -130,6 +133,49 @@ class SiteAnalyticsTests(unittest.TestCase):
     def test_invalid_anchor_date_is_rejected(self):
         with self.assertRaises(ValueError):
             sa.build_site_analytics_ai_report_context(period="month", anchor_date="2026-99-99")
+
+    def test_promotion_breakdown_and_ai_context_include_utm_id(self):
+        now_ts = int(sa.time.time())
+        sa.PROMOTION_LINKS_FILE.write_text(
+            '{"version":1,"items":[{"id":"1","name":"微信公众号文章 A","promotion_mark":"wechat-article-a","utm_source":"wechat","utm_medium":"article","utm_campaign":"hydrogen"}]}',
+            encoding="utf-8",
+        )
+        sa._append_site_analytics_records([
+            {
+                "ts": now_ts,
+                "event_type": "pageview",
+                "event_name": "page_view",
+                "page_path": "/",
+                "source": "campaign",
+                "utm_source": "wechat",
+                "utm_medium": "article",
+                "utm_campaign": "hydrogen",
+                "utm_id": "wechat-article-a",
+                "promotion_mark": "wechat-article-a",
+                "visitor_id": "v1",
+                "session_id": "s1",
+            },
+            {
+                "ts": now_ts,
+                "event_type": "event",
+                "event_name": "contact_submit",
+                "page_path": "/",
+                "source": "campaign",
+                "utm_source": "wechat",
+                "utm_medium": "article",
+                "utm_campaign": "hydrogen",
+                "utm_id": "wechat-article-a",
+                "promotion_mark": "wechat-article-a",
+                "visitor_id": "v1",
+                "session_id": "s1",
+            },
+        ])
+        report = sa.build_site_analytics_report(range_days=7)
+        self.assertEqual(report["promotion_breakdown"][0]["promotion_mark"], "wechat-article-a")
+        self.assertEqual(report["promotion_breakdown"][0]["name"], "微信公众号文章 A")
+        self.assertEqual(report["promotion_breakdown"][0]["conversion_events"], 1)
+        context = sa.build_site_analytics_ai_report_context(period="month")
+        self.assertEqual(context["current"]["promotion_breakdown"][0]["promotion_mark"], "wechat-article-a")
 
     def test_report_store_prunes_and_deletes(self):
         sa.SITE_ANALYTICS_AI_REPORTS_PER_PERIOD_LIMIT = 2

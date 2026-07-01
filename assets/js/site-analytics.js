@@ -14,7 +14,10 @@
   var SESSION_KEY = 'yx_analytics_sid';
   var SESSION_START_KEY = 'yx_analytics_session_start';
   var SESSION_TOUCH_KEY = 'yx_analytics_session_touch';
+  var ATTRIBUTION_KEY = 'yx_site_attribution';
+  var ATTRIBUTION_COOKIE = 'yx_site_attribution';
   var SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+  var ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
   var FLUSH_DELAY_MS = 2000;
   var MAX_BATCH_SIZE = 20;
   var MAX_AUTO_EVENTS_PER_PAGE = 40;
@@ -55,6 +58,15 @@
     }
   }
 
+  function writeCookieValue(name, value, maxAgeSeconds) {
+    try {
+      document.cookie = String(name || '') + '=' + encodeURIComponent(String(value || '')) +
+        '; path=/; max-age=' + String(maxAgeSeconds || 0) + '; samesite=lax';
+    } catch (_) {
+      // ignore cookie failures
+    }
+  }
+
   function readCookieValue(name) {
     var prefix = String(name || '') + '=';
     var cookies = document.cookie ? document.cookie.split('; ') : [];
@@ -74,9 +86,11 @@
 
   function clearAnalyticsStorage() {
     removeStorageItem(window.localStorage, VISITOR_KEY);
+    removeStorageItem(window.localStorage, ATTRIBUTION_KEY);
     removeStorageItem(window.sessionStorage, SESSION_KEY);
     removeStorageItem(window.sessionStorage, SESSION_START_KEY);
     removeStorageItem(window.sessionStorage, SESSION_TOUCH_KEY);
+    writeCookieValue(ATTRIBUTION_COOKIE, '', 0);
   }
 
   function disableAnalytics() {
@@ -122,14 +136,96 @@
       return text.slice(0, 260);
     }
 
+    function cleanUtmValue(raw) {
+      return String(raw || '').trim().replace(/[^A-Za-z0-9._:-]+/g, '-').replace(/^[.:\-_]+|[.:\-_]+$/g, '').slice(0, 96);
+    }
+
     function readUtm() {
       var params = new URLSearchParams(window.location.search || '');
       return {
-        source: String(params.get('utm_source') || '').trim().slice(0, 64),
-        medium: String(params.get('utm_medium') || '').trim().slice(0, 64),
-        campaign: String(params.get('utm_campaign') || '').trim().slice(0, 64)
+        source: cleanUtmValue(params.get('utm_source')),
+        medium: cleanUtmValue(params.get('utm_medium')),
+        campaign: cleanUtmValue(params.get('utm_campaign')),
+        content: cleanUtmValue(params.get('utm_content')),
+        term: cleanUtmValue(params.get('utm_term')),
+        id: cleanUtmValue(params.get('utm_id'))
       };
     }
+
+    function hasUtm(utm) {
+      return !!(utm && (utm.source || utm.medium || utm.campaign || utm.content || utm.term || utm.id));
+    }
+
+    function readStoredAttribution() {
+      var raw = getStorageItem(window.localStorage, ATTRIBUTION_KEY);
+      if (!raw) raw = readCookieValue(ATTRIBUTION_COOKIE);
+      if (!raw) return { first: null, last: null };
+      try {
+        var parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return { first: null, last: null };
+        var now = nowMs();
+        ['first', 'last'].forEach(function (key) {
+          var item = parsed[key];
+          if (!item || typeof item !== 'object' || !item.utm) {
+            parsed[key] = null;
+            return;
+          }
+          var captured = Number(item.captured_at_ms || 0);
+          if (!captured || now - captured > ATTRIBUTION_TTL_MS) parsed[key] = null;
+        });
+        return { first: parsed.first || null, last: parsed.last || null };
+      } catch (_) {
+        return { first: null, last: null };
+      }
+    }
+
+    function writeStoredAttribution(value) {
+      var payload = JSON.stringify(value || { first: null, last: null });
+      setStorageItem(window.localStorage, ATTRIBUTION_KEY, payload);
+      writeCookieValue(ATTRIBUTION_COOKIE, payload, Math.round(ATTRIBUTION_TTL_MS / 1000));
+    }
+
+    function makeAttributionTouch(utm) {
+      return {
+        utm: utm || {},
+        promotion_mark: cleanUtmValue((utm && utm.id) || ''),
+        landing_page: normalizePath(window.location.pathname + window.location.search),
+        referrer: String(document.referrer || '').slice(0, 300),
+        captured_at_ms: nowMs()
+      };
+    }
+
+    function refreshAttributionFromUrl() {
+      var stored = readStoredAttribution();
+      var currentUtm = readUtm();
+      if (hasUtm(currentUtm)) {
+        var touch = makeAttributionTouch(currentUtm);
+        if (!stored.first) stored.first = touch;
+        stored.last = touch;
+        writeStoredAttribution(stored);
+      } else if (stored.first || stored.last) {
+        writeStoredAttribution(stored);
+      }
+      return stored;
+    }
+
+    var currentAttribution = refreshAttributionFromUrl();
+
+    function getCurrentAttribution() {
+      currentAttribution = readStoredAttribution();
+      return {
+        first_touch: currentAttribution.first || null,
+        last_touch: currentAttribution.last || null
+      };
+    }
+
+    window.YXSiteAttribution = {
+      get: getCurrentAttribution,
+      getLastUtm: function () {
+        var attr = getCurrentAttribution();
+        return (attr.last_touch && attr.last_touch.utm) || {};
+      }
+    };
 
     function getVisitorId() {
       if (analyticsDisabled) return '';
@@ -208,13 +304,19 @@
 
     function buildBaseEvent() {
       var sess = ensureSession();
+      var attr = getCurrentAttribution();
+      var lastTouch = attr.last_touch || {};
+      var lastUtm = lastTouch.utm || {};
+      var currentUtm = readUtm();
+      var effectiveUtm = hasUtm(currentUtm) ? currentUtm : lastUtm;
       return {
         visitor_id: getVisitorId(),
         session_id: sess.sessionId,
         page_path: normalizePath(window.location.pathname),
         page_title: String(document.title || '').slice(0, 120),
         referrer: String(document.referrer || '').slice(0, 300),
-        utm: readUtm()
+        utm: effectiveUtm || {},
+        promotion_mark: cleanUtmValue((effectiveUtm && effectiveUtm.id) || lastTouch.promotion_mark || '')
       };
     }
 
@@ -238,6 +340,18 @@
       autoEventCount += 1;
       var payload = Object.assign({ event_type: 'event', event_name: eventName }, extra || {});
       pushEvent(payload);
+    }
+
+    function getAnalyticsTargetText(target) {
+      if (!target) return '';
+      var text = String(
+        target.getAttribute('data-analytics-label') ||
+        target.getAttribute('aria-label') ||
+        target.getAttribute('title') ||
+        target.textContent ||
+        ''
+      ).replace(/\s+/g, ' ').trim();
+      return text.slice(0, 120);
     }
 
     function detectFormEventName(formEl) {
@@ -326,13 +440,19 @@
 
       var conversion = String(target.getAttribute('data-analytics-conversion') || '').trim();
       if (conversion) {
-        pushAutoEvent('conversion_' + conversion.toLowerCase().replace(/[^a-z0-9_]+/g, '_'));
+        pushAutoEvent('conversion_' + conversion.toLowerCase().replace(/[^a-z0-9_]+/g, '_'), {
+          event_target_text: getAnalyticsTargetText(target),
+          event_target_url: String(target.getAttribute('href') || '').trim().slice(0, 260)
+        });
         return;
       }
 
       var customEvent = String(target.getAttribute('data-analytics-event') || '').trim();
       if (customEvent) {
-        pushAutoEvent(customEvent.toLowerCase().replace(/[^a-z0-9_]+/g, '_'));
+        pushAutoEvent(customEvent.toLowerCase().replace(/[^a-z0-9_]+/g, '_'), {
+          event_target_text: getAnalyticsTargetText(target),
+          event_target_url: String(target.getAttribute('href') || '').trim().slice(0, 260)
+        });
         return;
       }
 
@@ -341,18 +461,29 @@
         var href = String(target.getAttribute('href') || '').trim();
         if (!href || href === '#') return;
         if (href.toLowerCase().startsWith('tel:')) {
-          pushAutoEvent('phone_click');
+          pushAutoEvent('phone_click', {
+            event_target_text: getAnalyticsTargetText(target),
+            event_target_url: href.slice(0, 260)
+          });
           return;
         }
         if (href.toLowerCase().startsWith('mailto:')) {
-          pushAutoEvent('email_click');
+          pushAutoEvent('email_click', {
+            event_target_text: getAnalyticsTargetText(target),
+            event_target_url: href.slice(0, 260)
+          });
           return;
         }
-        pushAutoEvent('click_link');
+        pushAutoEvent('click_link', {
+          event_target_text: getAnalyticsTargetText(target),
+          event_target_url: href.slice(0, 260)
+        });
         return;
       }
       if (tagName === 'button') {
-        pushAutoEvent('click_button');
+        pushAutoEvent('click_button', {
+          event_target_text: getAnalyticsTargetText(target)
+        });
       }
     }, true);
 
@@ -360,6 +491,18 @@
       if (analyticsDisabled) return;
       var form = evt.target;
       if (!form || String(form.tagName || '').toLowerCase() !== 'form') return;
+      try {
+        var hidden = form.querySelector('input[name="attribution"]');
+        if (!hidden) {
+          hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = 'attribution';
+          form.appendChild(hidden);
+        }
+        hidden.value = JSON.stringify(getCurrentAttribution());
+      } catch (_) {
+        // ignore attribution field failures
+      }
       pushAutoEvent(detectFormEventName(form));
     }, true);
 

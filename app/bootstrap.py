@@ -191,6 +191,7 @@ from app.routes.product_settings import (
     register_product_settings_routes,
     save_product_settings,
 )
+from app.routes.promotion_links import register_promotion_link_routes
 from app.routes.public_site import register_public_site_routes
 from app.routes.showcase_content import (
     get_h2_home_config,
@@ -294,6 +295,13 @@ def register_all_routes(app):
         requests_module=requests if REQUESTS_SUPPORT else None,
         httpx_support=HTTPX_SUPPORT,
         httpx_module=httpx if HTTPX_SUPPORT else None,
+    )
+
+    register_promotion_link_routes(
+        app,
+        login_required=login_required,
+        data_dir=DATA_DIR,
+        get_public_base_url=get_public_base_url,
     )
 
     # 后台认证与内容管理相关接口。
