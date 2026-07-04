@@ -362,10 +362,28 @@ CONFIG_JSON_STALE_SECONDS = 600
 HERO_DERIVED_WIDTHS = (768, 1280, 1920)
 HERO_DERIVED_FORMATS = ('avif', 'webp')
 HERO_SOURCE_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.avif'}
-try:
-    ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '28800').strip()))
-except Exception:
-    ADMIN_SESSION_MAX_AGE_SECONDS = 28800
+def _read_timeout_seconds(env_names, default_value, minimum_value=300):
+    for env_name in env_names:
+        raw_value = (os.environ.get(env_name) or '').strip()
+        if not raw_value:
+            continue
+        try:
+            return max(minimum_value, int(raw_value))
+        except Exception:
+            continue
+    return max(minimum_value, int(default_value))
+
+
+ADMIN_SESSION_IDLE_TIMEOUT_SECONDS = _read_timeout_seconds(
+    ('ADMIN_SESSION_IDLE_TIMEOUT_SECONDS', 'ADMIN_SESSION_MAX_AGE_SECONDS'),
+    7200,
+)
+ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS = _read_timeout_seconds(
+    ('ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS',),
+    86400,
+)
+# Backward-compatible alias for existing imports and deployments.
+ADMIN_SESSION_MAX_AGE_SECONDS = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
 
 
 def ensure_required_runtime_config():

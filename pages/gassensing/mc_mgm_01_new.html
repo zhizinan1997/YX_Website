@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC-MGM-01便携式动态配气仪 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/yx-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/search.css">
+    <meta name="description" content="MC-MGM-01便携式动态配气仪搭载高精度MFC质量流量控制器与温度压力双补偿算法，适用于现场校准、应急配气及实验室多梯度浓度气体即时配制。">
+    <link rel="canonical" href="https://www.hnmetachip.cn/pages/gassensing/mc_mgm_01.html">
+    <meta name="robots" content="index,follow,max-image-preview:large">
+    <link rel="icon" href="/favicon.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://www.hnmetachip.cn/"},{"@type":"ListItem","position":2,"name":"气体传感产品","item":"https://www.hnmetachip.cn/pages/gassensing/all-products.html"},{"@type":"ListItem","position":3,"name":"MC-MGM-01便携式动态配气仪","item":"https://www.hnmetachip.cn/pages/gassensing/mc_mgm_01.html"}]}</script>
+    <style>
+        .vs-product-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            padding: 120px 0 80px;
+            color: white;
+        }
+
+        .vs-product-hero__inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        .vs-product-gallery {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .vs-gallery-main {
+            width: 100%;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .vs-gallery-main img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .vs-gallery-thumbs {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            justify-content: center;
+            padding: 8px 0;
+        }
+
+        .vs-gallery-thumb {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vs-gallery-thumb:hover,
+        .vs-gallery-thumb.active {
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-gallery-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .vs-gallery-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.68);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, background 0.2s ease;
+            z-index: 2;
+        }
+
+        .vs-gallery-main:hover .vs-gallery-nav {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .vs-gallery-nav:hover {
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .vs-gallery-nav--prev {
+            left: 12px;
+        }
+
+        .vs-gallery-nav--next {
+            right: 12px;
+        }
+
+        .vs-product-hero__content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .vs-product-hero__desc {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .vs-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .vs-feature-list li {
+            padding: 12px 16px 12px 44px;
+            position: relative;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            line-height: 1.7;
+        }
+
+        .vs-feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 16px;
+            color: #4ADE80;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .vs-product-section {
+            padding: 108px 0;
+        }
+
+        .vs-product-section.alt-bg {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .vs-product-section__title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 40px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .vs-product-section__title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
+            border-radius: 2px;
+        }
+
+        .vs-product-section__content {
+            font-size: 17px;
+            line-height: 2;
+            color: #4a5568;
+            max-width: 1160px;
+        }
+
+        .vs-product-section__content--full {
+            max-width: none;
+            width: 100%;
+            text-align: justify;
+            text-justify: inter-ideograph;
+        }
+
+        .vs-product-section__content p {
+            margin-bottom: 22px;
+        }
+
+        .vs-detail-image {
+            margin-top: 36px;
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+            text-align: center;
+        }
+
+        .vs-detail-image img {
+            max-width: 100%;
+            max-height: 520px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .vs-advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+            align-items: stretch;
+        }
+
+        .vs-advantage-card {
+            background: white;
+            padding: 38px 30px 34px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 1px solid #f1f5f9;
+            min-height: 238px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-advantage-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-advantage-card i {
+            font-size: 40px;
+            color: var(--color-accent-orange);
+            margin-bottom: 18px;
+            display: block;
+        }
+
+        .vs-advantage-card h4 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0b3f6d;
+            margin-bottom: 12px;
+        }
+
+        .vs-advantage-card p {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.85;
+            margin-top: auto;
+        }
+
+        .vs-application-highlights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+            align-items: stretch;
+        }
+
+        .vs-application-highlight {
+            background: white;
+            padding: 36px 30px 28px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 1px solid #f1f5f9;
+            display: flex;
+            min-height: 276px;
+        }
+
+        .vs-application-highlight:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-application-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .vs-application-content__head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .vs-application-content__head i {
+            font-size: 20px;
+            color: var(--color-accent-orange);
+            width: 26px;
+            text-align: center;
+        }
+
+        .vs-application-content h4 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .vs-application-content p {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.9;
+            color: #64748b;
+            flex: 1;
+        }
+
+        .vs-specs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #d8e4ef;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.10);
+            background: #ffffff;
+            margin-top: 8px;
+        }
+
+        .vs-specs-table td {
+            padding: 22px 28px;
+            border-bottom: 1px solid #dde6ef;
+            font-size: 16px;
+            transition: background-color 0.2s ease;
+            line-height: 1.75;
+        }
+
+        .vs-specs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vs-specs-table tr td:first-child {
+            background: linear-gradient(180deg, #0b3f6d 0%, #0a4a7c 100%);
+            color: white;
+            font-weight: 700;
+            width: 260px;
+            letter-spacing: 0.2px;
+        }
+
+        .vs-specs-table tr td:last-child {
+            background: white;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .vs-specs-table tr:nth-child(even) td:last-child {
+            background: #f6f9fc;
+        }
+
+        .vs-specs-table tr:hover td:last-child {
+            background: #edf5ff;
+        }
+
+        .vs-related-products {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 108px 0;
+        }
+
+        .vs-related-products h2,
+        .vs-related-news h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .vs-related-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 28px;
+        }
+
+        .vs-related-item {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            min-height: 304px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-related-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-related-item img {
+            width: 100%;
+            height: 196px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 24px;
+        }
+
+        .vs-related-item h4 {
+            padding: 22px 16px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+            line-height: 1.6;
+            margin-top: auto;
+        }
+
+        .vs-related-news {
+            padding: 108px 0;
+        }
+
+        .vs-news-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 36px;
+        }
+
+        .vs-news-item {
+            display: flex;
+            gap: 24px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            min-height: 220px;
+        }
+
+        .vs-news-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-news-item img {
+            width: 232px;
+            height: 220px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: #f8fafc;
+        }
+
+        .vs-news-item__content {
+            padding: 28px 28px 28px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .vs-news-item__content h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 14px;
+            line-height: 1.5;
+        }
+
+        .vs-news-item__content p {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.85;
+        }
+
+        .vs-cta-section {
+            background: transparent;
+            padding: 64px 0 72px;
+            text-align: center;
+        }
+
+        .vs-cta-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            background: linear-gradient(140deg, #0a3a63 0%, #082c4b 58%, #0b4573 100%);
+            padding: 52px 52px 48px;
+            color: #f4f9ff;
+            box-shadow: 0 16px 38px rgba(9, 31, 53, 0.20);
+        }
+
+        .vs-cta-panel::before {
+            content: '';
+            position: absolute;
+            right: -120px;
+            top: -120px;
+            width: 340px;
+            height: 340px;
+            background: radial-gradient(circle, rgba(126, 197, 255, 0.28) 0%, rgba(126, 197, 255, 0) 70%);
+            pointer-events: none;
+        }
+
+        .vs-cta-section h3 {
+            font-size: 36px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-cta-section p {
+            font-size: 18px;
+            line-height: 1.9;
+            color: #d9e8f7;
+            max-width: 900px;
+            margin: 0 auto 26px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #ffffff;
+            color: #0b3c67;
+            border: none;
+            border-radius: 999px;
+            padding: 14px 34px;
+            font-size: 17px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 10px 24px rgba(8, 32, 54, 0.26);
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-cta-btn:hover {
+            background: #eaf3ff;
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(8, 32, 54, 0.32);
+            color: #0b3c67;
+        }
+
+        .vs-feedback-hub {
+            padding: 64px 0 78px;
+            background: #f7fafd;
+            border-top: 1px solid #e5edf5;
+        }
+
+        .vs-feedback-hub__tools {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 26px;
+        }
+
+        .vs-tool-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 40px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid #c7d7e8;
+            background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+            color: #1d3f5f;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #c7d8ea, 0 10px 18px rgba(20, 54, 87, 0.12);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            overflow: hidden;
+        }
+
+        .vs-tool-btn:hover {
+            border-color: #9fc0df;
+            color: #113453;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 0 #b8cce1, 0 16px 26px rgba(20, 54, 87, 0.18);
+        }
+
+        .vs-wechat-wrap {
+            position: relative;
+        }
+
+        .vs-wechat-pop {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 190px;
+            background: #ffffff;
+            border: 1px solid #d7e4f1;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(15, 36, 62, 0.16);
+            padding: 12px;
+            display: none;
+            z-index: 5;
+        }
+
+        .vs-wechat-pop.is-open {
+            display: block;
+        }
+
+        .vs-wechat-pop img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .vs-wechat-pop p {
+            margin: 8px 0 0;
+            text-align: center;
+            font-size: 12px;
+            color: #4f6479;
+        }
+
+        .vs-feedback-hub h3 {
+            text-align: center;
+            font-size: 34px;
+            color: #0d3f6c;
+            margin: 0 0 16px;
+        }
+
+        .vs-feedback-sub {
+            text-align: center;
+            font-size: 17px;
+            color: #5c7288;
+            margin: 0 0 24px;
+        }
+
+        .vs-feedback-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .vs-feedback-chip {
+            position: relative;
+            border: 1px solid #d7e4ef;
+            background: linear-gradient(180deg, #ffffff 0%, #f4f8fd 100%);
+            color: #264965;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #d5e1ec, 0 8px 14px rgba(21, 55, 88, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            overflow: hidden;
+        }
+
+        .vs-feedback-chip:hover {
+            transform: translateY(-2px);
+            border-color: #b7cde4;
+            box-shadow: 0 3px 0 #c8d7e6, 0 12px 20px rgba(22, 58, 92, 0.14);
+        }
+
+        .vs-feedback-chip.is-active {
+            background: linear-gradient(180deg, #175286 0%, #0d3f6c 100%);
+            border-color: #0d3f6c;
+            color: #fff;
+            box-shadow: 0 3px 0 #0a3457, 0 12px 20px rgba(10, 46, 77, 0.24);
+        }
+
+        .vs-feedback-panel {
+            margin-top: 18px;
+            background: #fff;
+            border: 1px solid #dce8f3;
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+            box-shadow: 0 10px 26px rgba(15, 36, 62, 0.10);
+        }
+
+        .vs-feedback-panel[hidden] {
+            display: none;
+        }
+
+        .vs-feedback-panel h4 {
+            margin: 0 0 8px;
+            color: #0d3f6c;
+            font-size: 20px;
+        }
+
+        .vs-feedback-panel p {
+            margin: 0 0 10px;
+            color: #5c7288;
+            font-size: 14px;
+        }
+
+        .vs-feedback-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .vs-feedback-panel input,
+        .vs-feedback-panel textarea {
+            width: 100%;
+            border: 1px solid #d6e2ed;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #31475d;
+            background: #fbfdff;
+            outline: none;
+        }
+
+        .vs-feedback-panel textarea {
+            min-height: 108px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        .vs-feedback-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 999px;
+            background: #0d3f6c;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 24px;
+            cursor: pointer;
+        }
+
+        .vs-feedback-msg {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #3f5d78;
+        }
+
+        .vs-feedback-msg.is-error {
+            color: #b53a3a;
+        }
+
+        .vs-breadcrumb {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            padding-left: 32px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vs-breadcrumb a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none !important;
+            border-bottom: none !important;
+            display: inline-block;
+        }
+
+        .vs-breadcrumb a:hover {
+            color: white;
+        }
+
+        .vs-breadcrumb span {
+            margin: 0;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 1024px) {
+            .vs-related-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .vs-product-hero__inner {
+                gap: 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-product-section,
+            .vs-related-news,
+            .vs-related-products {
+                padding: 72px 0;
+            }
+
+            .vs-product-section__title {
+                font-size: 30px;
+                margin-bottom: 32px;
+            }
+
+            .vs-product-section__content {
+                font-size: 16px;
+                line-height: 1.9;
+            }
+
+            .vs-product-hero__inner {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-product-hero__content h1 {
+                font-size: 32px;
+            }
+
+            .vs-news-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-news-item {
+                min-height: auto;
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .vs-news-item img {
+                width: 100%;
+                height: 200px;
+            }
+
+            .vs-news-item__content {
+                padding: 20px 18px 22px;
+            }
+
+            .vs-related-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-specs-table {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border: 0 !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .vs-specs-table tbody {
+                display: grid !important;
+                width: 100% !important;
+                gap: 12px !important;
+            }
+
+            .vs-specs-table tr {
+                display: grid !important;
+                grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+                width: 100% !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                border-radius: 14px !important;
+                background: #ffffff !important;
+                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+            }
+
+            .vs-specs-table td {
+                display: flex !important;
+                align-items: center !important;
+                width: auto !important;
+                min-width: 0 !important;
+                min-height: 64px !important;
+                padding: 16px 18px !important;
+                border: 0 !important;
+                line-height: 1.65 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+            }
+
+            .vs-specs-table tr td:first-child {
+                border-radius: 0 !important;
+                border-bottom: 0 !important;
+                background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
+                color: #ffffff !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+            }
+
+            .vs-specs-table tr td:last-child {
+                border-radius: 0 !important;
+                background: #ffffff !important;
+                color: #26364d !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+            }
+
+            .vs-cta-panel {
+                border-radius: 16px;
+                padding: 42px 20px 40px;
+            }
+
+            .vs-cta-section h3 {
+                font-size: 30px;
+            }
+
+            .vs-feedback-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .vs-related-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    
+
+        /* Product Specs Mobile Guard */
+        @media (max-width: 900px) {
+            .vs-specs-table {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border: 0 !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .vs-specs-table tbody {
+                display: grid !important;
+                width: 100% !important;
+                gap: 12px !important;
+            }
+
+            .vs-specs-table tr {
+                display: grid !important;
+                grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+                width: 100% !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                border-radius: 14px !important;
+                background: #ffffff !important;
+                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+            }
+
+            .vs-specs-table td {
+                display: flex !important;
+                align-items: center !important;
+                width: auto !important;
+                min-width: 0 !important;
+                min-height: 64px !important;
+                padding: 16px 18px !important;
+                border: 0 !important;
+                line-height: 1.65 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+            }
+
+            .vs-specs-table tr td:first-child {
+                border-radius: 0 !important;
+                border-bottom: 0 !important;
+                background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
+                color: #ffffff !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+            }
+
+            .vs-specs-table tr td:last-child {
+                border-radius: 0 !important;
+                background: #ffffff !important;
+                color: #26364d !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+            }
+        }
+</style>
+
+    <meta name="product-name" content="mc_mgm_01_new" />
+    <meta name="product-short-name" content="MC-MGM-01-NEW" />
+    <meta name="product-image" content="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" />
+    <meta name="product-description" content="mc_mgm_01_new" />
+    <meta name="product-category" content="detector" />
+
+</head>
+
+<body>
+    <div id="mc-nav-root" data-nav-profile="gas"></div>
+    <noscript>
+        <div class="mc-nav-noscript">
+            <a href="/index.html">首页</a> |
+            <a href="/pages/gassensing/all-products.html">产品</a> |
+            <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+            <a href="/pages/research/index.html">科研服务</a> |
+            <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+            <a href="/pages/about/about.html">公司简介</a> |
+            <a href="/pages/contact/contact.html">联系我们</a>
+        </div>
+    </noscript>
+    <script src="/assets/js/nav-loader.js"></script>
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index.html">首页</a><span>|</span>
+                <a href="../../pages/gassensing/all-products.html">气体传感产品</a><span>|</span>
+                MC-MGM-01便携式动态配气仪
+            </div>
+        </div>
+
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <button type="button" class="vs-gallery-nav vs-gallery-nav--prev" onclick="prevImage()" aria-label="上一张">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <img id="mainImage" src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="MC-MGM-01便携式动态配气仪">
+                            <button type="button" class="vs-gallery-nav vs-gallery-nav--next" onclick="nextImage()" aria-label="下一张">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active" onclick="changeImage(this, '/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png')">
+                                <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="MC-MGM-01产品图">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vs-product-hero__content">
+                        <h1>MC-MGM-01便携式动态配气仪</h1>
+                        <p class="vs-product-hero__desc">MC-MGM-01是一款面向现场气体标准物质配制需求的可移动精准配气设备，搭载高精度MFC质量流量控制器与温度压力双补偿算法，可服务于气体检测仪器现场校准、应急配气与实验室多梯度浓度即时用气。</p>
+                        <ul class="vs-feature-list">
+                            <li>智能交互操控：7寸高清触摸屏，支持可视化参数设置、实时数据监控与历史数据回溯。</li>
+                            <li>精准动态配气：流量精度可达±0.8%设定点或±0.5%FS，流量重复性±0.2%FS。</li>
+                            <li>便携续航设计：可充电锂电池供电，续航时长≥8小时，适合现场与移动作业。</li>
+                            <li>气体适用范围广：316L不锈钢、PFA、PTFE管路材质，适配腐蚀性气体及有机VOCs等应用需求。</li>
+                            <li>高效配方管理：支持1000组配气数据存储，配方可一键调取，配置异常及时报警。</li>
+                        </ul>
+                        <div>
+                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary" style="padding: 14px 32px; font-size: 16px; border-radius: 999px;">
+                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价 电话：18807329836/13974993326
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品详情</h2>
+                <div class="vs-product-section__content vs-product-section__content--full">
+                    <p>MC-MGM-01便携式动态配气仪针对现场气体标准物质配制需求开发，采用质量流量控制器（MFC）动态稀释原理，结合核心流量控制算法与集成化结构设计，实现现场可移动、可快速部署的精准配气。产品内置自主研发温度压力双补偿算法，可在不同环境条件下保持稳定输出，满足检测仪器校准、应急气体配置和实验室多梯度浓度气体即时用气等需求。</p>
+                    <p>设备支持7寸高清触摸屏交互，并可通过上位机软件进行参数可视化设置、实时数据监控与历史数据回溯。其稀释比覆盖1:1—1:1000，并可按项目需求定制；稀释气流量、标准气流量及气路数量均具备可选配置，便于匹配不同浓度梯度、不同流量范围和不同工况条件下的配气任务。</p>
+                    <p>MC-MGM-01采用轻量化便携设计，可充电锂电池供电，续航时长≥8小时，适用于无外接电源的野外、厂区及现场应急场景。全管路可采用316L不锈钢、PFA、PTFE等材质，兼顾耐腐蚀与低吸附需求，提升腐蚀性气体、有机VOCs等气体配制过程的可靠性和可维护性。</p>
+                </div>
+                <div class="vs-detail-image">
+                    <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="MC-MGM-01便携式动态配气仪详情图">
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品优势</h2>
+                <div class="vs-advantages-grid">
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-desktop"></i>
+                        <h4>智能交互操控</h4>
+                        <p>7寸高清触摸屏配合上位机软件，支持参数设置、实时监控和历史数据回溯，便于现场快速确认配气状态。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-bullseye"></i>
+                        <h4>精准稳定配气</h4>
+                        <p>搭载高精度MFC质量流量控制器，内置温度压力双补偿算法，适用于从痕量到较高浓度区间的动态配制。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-suitcase"></i>
+                        <h4>移动作业友好</h4>
+                        <p>整机轻量化设计，采用可充电锂电池供电，续航时长≥8小时，满足野外、厂区和应急现场即时配气。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-flask"></i>
+                        <h4>气体适用面广</h4>
+                        <p>管路材质支持316L不锈钢、PFA、PTFE，面向腐蚀性气体、有机VOCs等应用提供更可靠的管路基础。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-database"></i>
+                        <h4>配方管理便捷</h4>
+                        <p>可存储1000组配气数据，常用配方一键调取，流量配置错误及时报警，降低重复操作与配置风险。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">主要应用</h2>
+                <div class="vs-product-section__content" style="margin-bottom: 38px;">
+                    MC-MGM-01便携式动态配气仪适用于现场校准、性能测试、应急验证及实验室即时用气等多类场景，可为气体检测仪器提供多梯度、可追溯、可快速配置的混合气体输出。
+                </div>
+                <div class="vs-application-highlights">
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-balance-scale"></i>
+                                <h4>计量检定机构</h4>
+                            </div>
+                            <p>用于气体仪表强制检定、量值溯源与现场校准配气，为不同检测范围仪表提供稳定、可控的标准混合气体。</p>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-vial"></i>
+                                <h4>第三方检测机构</h4>
+                            </div>
+                            <p>支持气体仪表校准、性能测试和多点浓度验证，提升检测任务中配气效率与浓度梯度切换便利性。</p>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-leaf"></i>
+                                <h4>生态环境应急部门</h4>
+                            </div>
+                            <p>适用于现场监测仪表的校准与验证，可在应急监测、临时布点和现场巡检中快速完成气体配置。</p>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-industry"></i>
+                                <h4>工矿企业</h4>
+                            </div>
+                            <p>用于现场监测仪表定期校准与维护，帮助企业在生产区域、厂区边界及重点风险点开展仪表状态确认。</p>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术指标</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>型号</td>
+                        <td>MC-MGM-01</td>
+                    </tr>
+                    <tr>
+                        <td>稀释原理</td>
+                        <td>质量流量控制器（MFC）/ 动态稀释法</td>
+                    </tr>
+                    <tr>
+                        <td>流量精度</td>
+                        <td>±0.8%设定点（流量＞30% FS）；±0.5%FS（流量≤30% FS）</td>
+                    </tr>
+                    <tr>
+                        <td>流量重复性</td>
+                        <td>±0.2% FS</td>
+                    </tr>
+                    <tr>
+                        <td>稀释比</td>
+                        <td>1:1—1:1000（可定制）</td>
+                    </tr>
+                    <tr>
+                        <td>响应时间</td>
+                        <td>≤1s</td>
+                    </tr>
+                    <tr>
+                        <td>预热时间</td>
+                        <td>≤20s</td>
+                    </tr>
+                    <tr>
+                        <td>稀释气流</td>
+                        <td>0—10 SLPM；可选0—5 SLPM / 0—20 SLPM，其他量程可定制</td>
+                    </tr>
+                    <tr>
+                        <td>标准气流量范围</td>
+                        <td>0—100 SCCM；可选0—50 SCCM / 0—200 SCCM / 0—500 SCCM，其他量程可定制</td>
+                    </tr>
+                    <tr>
+                        <td>管路材质</td>
+                        <td>316L不锈钢 / PFA / PTFE</td>
+                    </tr>
+                    <tr>
+                        <td>气路输入</td>
+                        <td>2路：1×稀释气输入口；1×标气输入口（更多气路可定制）</td>
+                    </tr>
+                    <tr>
+                        <td>气路输出</td>
+                        <td>2路：1×校准气输出口；1×废气输出口</td>
+                    </tr>
+                    <tr>
+                        <td>供电要求</td>
+                        <td>可充电锂电池供电</td>
+                    </tr>
+                    <tr>
+                        <td>续航时长</td>
+                        <td>≥8H</td>
+                    </tr>
+                    <tr>
+                        <td>通信接口</td>
+                        <td>1×RS485；1×USB；1×RS232</td>
+                    </tr>
+                    <tr>
+                        <td>通信协议</td>
+                        <td>Modbus-RTU（RS232和RS485）</td>
+                    </tr>
+                    <tr>
+                        <td>工作温度范围</td>
+                        <td>-10—60℃</td>
+                    </tr>
+                    <tr>
+                        <td>工作湿度范围</td>
+                        <td>20—95%RH（无冷凝）</td>
+                    </tr>
+                    <tr>
+                        <td>尺寸</td>
+                        <td>mm（长×宽×高）（含把手），具体尺寸以产品交付配置为准</td>
+                    </tr>
+                    <tr>
+                        <td>重量</td>
+                        <td>kg，具体重量以产品交付配置为准</td>
+                    </tr>
+                    <tr>
+                        <td>质保期</td>
+                        <td>整机质保24个月，核心部件（质量流量控制器、压力传感器、触摸屏）质保12个月</td>
+                    </tr>
+                    <tr>
+                        <td>执行标准</td>
+                        <td>GB/T 5275.1-2024 气体分析 动态法制备校准用混合气体 第1部分：通用要求；GB/T 5275.7-2025 气体分析 动态法制备校准用混合气体 第7部分：热式质量流量控制器（MFC）；HJ 1261-2022 固定污染源废气 校准用混合气体 动态制备技术规范</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <section class="vs-related-news">
+            <div class="vs-container">
+                <h2>相关新闻</h2>
+                <div class="vs-news-grid">
+                    <a href="../../pages/news/index.html" class="vs-news-item">
+                        <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="MC-MGM-01相关新闻图片">
+                        <div class="vs-news-item__content">
+                            <h4>暂无指定相关新闻</h4>
+                            <p>当前产品资料未提供相关新闻链接。您可前往新闻中心了解元芯传感最新动态、展会信息与产品资讯。</p>
+                        </div>
+                    </a>
+                    <a href="../../pages/gassensing/all-products.html" class="vs-news-item">
+                        <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="气体传感产品图片">
+                        <div class="vs-news-item__content">
+                            <h4>了解更多气体传感与现场检测产品</h4>
+                            <p>查看元芯传感气体传感产品列表，获取更多检测、校准、监测与系统集成相关产品信息。</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-related-products">
+            <div class="vs-container">
+                <h2>相关产品</h2>
+                <div class="vs-related-grid" id="randomRelatedProducts">
+                    <a href="../../pages/gassensing/all-products.html" class="vs-related-item">
+                        <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="MC-MGM-01相关产品图">
+                        <h4>更多气体传感与配气相关产品</h4>
+                    </a>
+                    <a href="../../pages/gassensing/all-products.html" class="vs-related-item">
+                        <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="现场校准相关产品图">
+                        <h4>现场校准与检测仪器产品</h4>
+                    </a>
+                    <a href="../../pages/gassensing/all-products.html" class="vs-related-item">
+                        <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="动态配气相关产品图">
+                        <h4>动态配气与气体分析配套方案</h4>
+                    </a>
+                    <a href="../../pages/gassensing/all-products.html" class="vs-related-item">
+                        <img src="/pages/gassensing/MC-MGM-01/mc-mgm-01-product-04.png" alt="气体标准物质配制相关产品图">
+                        <h4>气体标准物质配制支持产品</h4>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <div class="vs-cta-panel">
+                    <h3>让现场配气方案更快落地</h3>
+                    <p>请提供目标气体、浓度范围、稀释比、流量范围、气路数量及使用场景，我们将协助匹配MC-MGM-01配置方案与实施建议。</p>
+                    <a href="../../pages/contact/contact.html" class="vs-cta-btn">
+                        <i class="fas fa-phone"></i>联系技术顾问
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="vs-feedback-hub" id="feedbackHub">
+            <div class="vs-container">
+                <div class="vs-feedback-hub__tools">
+                    <button type="button" class="vs-tool-btn" id="feedbackPrintBtn">
+                        <i class="fas fa-print"></i>打印页面
+                    </button>
+                    <div class="vs-wechat-wrap">
+                        <button type="button" class="vs
+<!-- MC_PRODUCT_ADMIN_DATA:eyJ2ZXJzaW9uIjozLCJ0aXRsZSI6Im1jX21nbV8wMV9uZXciLCJzaG9ydF9uYW1lIjoiTUMtTUdNLTAxLU5FVyIsImNhdGVnb3J5IjoiZGV0ZWN0b3IiLCJpbWFnZV91cmwiOiIvcGFnZXMvZ2Fzc2Vuc2luZy9NQy1NR00tMDEvbWMtbWdtLTAxLXByb2R1Y3QtMDQucG5nIiwic3VtbWFyeSI6Im1jX21nbV8wMV9uZXciLCJjb250ZW50X2h0bWwiOiIiLCJ0ZW1wbGF0ZV9maWVsZHMiOnt9LCJzb3VyY2UiOiJhaS1mdWxsLWh0bWwifQ== -->

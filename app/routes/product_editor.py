@@ -71,6 +71,8 @@ except ImportError:
 _DEPS = {}
 PRODUCT_ADMIN_DATA_PREFIX = 'MC_PRODUCT_ADMIN_DATA:'
 ALLOWED_PRODUCT_CATEGORIES = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
+MAX_AI_PRODUCT_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_AI_PRODUCT_IMAGES = 12
 PRODUCT_AI_DRAFTS_LOCK = threading.Lock()
 PRODUCT_SECTION_TEXT_KEYS = {'title', 'description', 'detail', 'app_intro', 'cta_title', 'cta_desc'}
 PRODUCT_SECTION_LIST_KEYS = {
@@ -654,6 +656,16 @@ def encode_product_admin_data(payload: dict) -> str:
     raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
     encoded = base64.b64encode(raw.encode('utf-8')).decode('ascii')
     return f'<!-- {PRODUCT_ADMIN_DATA_PREFIX}{encoded} -->'
+
+
+def strip_product_admin_data(page_html: str) -> str:
+    """移除旧的后台编辑状态，避免 HTML 模式保存时重复写入标记。"""
+    return re.sub(
+        r'\s*<!--\s*' + re.escape(PRODUCT_ADMIN_DATA_PREFIX) + r'[A-Za-z0-9+/=_-]+\s*-->\s*',
+        '\n',
+        page_html or '',
+        flags=re.I,
+    )
 
 
 def decode_product_admin_data(page_html: str):
@@ -1505,7 +1517,12 @@ def _normalize_product_ai_draft(data: dict, *, family: str, existing: dict | Non
     image_urls_raw = source.get('image_urls', source.get('images', current.get('image_urls', [])))
     if not image_urls_raw and source.get('detail_image_urls'):
         image_urls_raw = _normalize_text_lines(source.get('detail_image_urls'))
-    image_urls = _unique_nonempty_strings(image_urls_raw, limit=24)
+    image_urls = _unique_nonempty_strings(image_urls_raw, limit=MAX_AI_PRODUCT_IMAGES)
+    news_urls = _unique_nonempty_strings(source.get('news_urls', current.get('news_urls', [])), limit=2)
+    related_product_urls = _unique_nonempty_strings(
+        source.get('related_product_urls', current.get('related_product_urls', [])),
+        limit=4,
+    )
 
     raw_sections = source.get('sections', current.get('sections', {}))
     defaults = _build_default_product_sections(
@@ -1535,6 +1552,8 @@ def _normalize_product_ai_draft(data: dict, *, family: str, existing: dict | Non
             max_length=50000,
         ),
         'image_urls': image_urls,
+        'news_urls': news_urls,
+        'related_product_urls': related_product_urls,
         'sections': sections,
         'page_html': page_html,
         'mode': _normalize_draft_mode(source.get('mode', current.get('mode', 'structured'))),
@@ -1572,7 +1591,11 @@ def _product_ai_draft_list_item(draft: dict) -> dict:
             'updated_at',
             'updated_by',
         )
-    } | {'image_count': len(draft.get('image_urls') or [])}
+    } | {
+        'image_count': len(draft.get('image_urls') or []),
+        'news_count': len(draft.get('news_urls') or []),
+        'related_product_count': len(draft.get('related_product_urls') or []),
+    }
 
 
 def _find_product_ai_draft(items: list[dict], draft_id: str, family: str) -> tuple[dict | None, int]:
@@ -2085,6 +2108,8 @@ def register_product_editor_routes(
                         'summary': summary or sections.get('description', ''),
                         'source_text': context_text,
                         'image_urls': sections.get('images', []),
+                        'news_urls': _normalize_text_lines(news_urls)[:2],
+                        'related_product_urls': _normalize_text_lines(related_product_urls)[:4],
                         'sections': sections,
                         'page_html': page_html,
                         'status': 'generated',
@@ -2123,6 +2148,8 @@ def register_product_editor_routes(
         image_url = (data.get('image_url') or (current_sections.get('images') or ['/assets/images/logo.png'])[0]).strip()
         summary = (data.get('summary') or current_sections.get('description') or title).strip()
         context_text = (data.get('context_text') or data.get('source_text') or '').strip()
+        news_urls = data.get('news_urls') or []
+        related_product_urls = data.get('related_product_urls') or []
 
         messages = _build_product_ai_revise_sections_messages(
             instruction=instruction,
@@ -2167,6 +2194,8 @@ def register_product_editor_routes(
                         'summary': summary,
                         'source_text': context_text or existing.get('source_text', ''),
                         'image_urls': sections.get('images', []),
+                        'news_urls': _normalize_text_lines(news_urls)[:2],
+                        'related_product_urls': _normalize_text_lines(related_product_urls)[:4],
                         'sections': sections,
                         'page_html': page_html,
                         'status': 'generated',
@@ -2224,7 +2253,15 @@ def register_product_editor_routes(
         summary = (data.get('summary') or '').strip()
         image_url = (data.get('image_url') or '').strip()
         sections = data.get('sections') or {}
+        mode = _normalize_draft_mode(data.get('mode') or 'structured')
+        image_urls_raw = data.get('image_urls') or data.get('detail_image_urls')
+        if not image_urls_raw and isinstance(sections, dict):
+            image_urls_raw = sections.get('images')
+        if len(_normalize_text_lines(image_urls_raw)) > MAX_AI_PRODUCT_IMAGES:
+            return jsonify({'success': False, 'message': f'单个产品最多保留 {MAX_AI_PRODUCT_IMAGES} 张图片'}), 400
 
+        if mode == 'html':
+            return jsonify({'success': False, 'message': 'HTML源码模式请使用完整HTML保存接口'}), 400
         if not title or not category or not slug:
             return jsonify({'success': False, 'message': '请填写标题、分类和链接标识'}), 400
         if not re.fullmatch(r'[a-z0-9_]+', slug):
@@ -2271,6 +2308,8 @@ def register_product_editor_routes(
                         'summary': summary or sections.get('description', ''),
                         'source_text': data.get('source_text') or data.get('context_text') or existing.get('source_text', ''),
                         'image_urls': sections.get('images', []),
+                        'news_urls': _normalize_text_lines(data.get('news_urls') or existing.get('news_urls', []))[:2],
+                        'related_product_urls': _normalize_text_lines(data.get('related_product_urls') or existing.get('related_product_urls', []))[:4],
                         'sections': sections,
                         'page_html': page_html,
                         'status': 'published',
@@ -2356,6 +2395,8 @@ def register_product_editor_routes(
             return jsonify({'success': False, 'message': '请提供合法链接标识（小写字母/数字/下划线）'}), 400
         if not files:
             return jsonify({'success': False, 'message': '请至少上传一张图片'}), 400
+        if len(files) > MAX_AI_PRODUCT_IMAGES:
+            return jsonify({'success': False, 'message': f'单个产品最多上传 {MAX_AI_PRODUCT_IMAGES} 张图片'}), 400
 
         slug_dash = slug.replace('_', '-')
         model_folder = re.sub(r'[^A-Za-z0-9._-]+', '', short_name.upper()) if short_name else ''
@@ -2367,20 +2408,46 @@ def register_product_editor_routes(
         web_prefix = _get_products_web_prefix_by_family(product_family)
 
         existing = sorted(target_dir.glob(f'{slug_dash}-product-*.*'))
+        if len(existing) + len(files) > MAX_AI_PRODUCT_IMAGES:
+            remaining = max(0, MAX_AI_PRODUCT_IMAGES - len(existing))
+            return jsonify({
+                'success': False,
+                'message': f'该产品最多保留 {MAX_AI_PRODUCT_IMAGES} 张图片，当前还可上传 {remaining} 张',
+            }), 400
         counter = len(existing) + 1
         urls = []
 
         for uploaded in files:
             original_name = uploaded.filename or ''
             mime = (uploaded.mimetype or uploaded.content_type or '').lower()
+            size = int(getattr(uploaded, 'content_length', 0) or 0)
             sample = b''
             try:
                 stream = uploaded.stream
                 current_pos = stream.tell()
+                if not size:
+                    stream.seek(0, 2)
+                    size = stream.tell()
+                    stream.seek(current_pos)
                 sample = stream.read(1024)
                 stream.seek(current_pos)
             except Exception:
                 sample = b''
+            if size and size > MAX_AI_PRODUCT_IMAGE_BYTES:
+                return jsonify({
+                    'success': False,
+                    'message': f'单张图片不能超过 {MAX_AI_PRODUCT_IMAGE_BYTES // (1024 * 1024)}MB: {original_name or "未命名文件"}',
+                }), 400
+            mime_clean = (mime or '').split(';')[0].strip().lower()
+            sample_lower = (sample or b'')[:512].lower()
+            if Path(original_name or '').suffix.lower() == '.svg' or mime_clean == 'image/svg+xml' or b'<svg' in sample_lower:
+                return jsonify({
+                    'success': False,
+                    'message': (
+                        f'不支持的图片格式: {Path((original_name or "")).suffix.lower() or "svg"}。'
+                        '支持 PNG/JPG/JPEG/WEBP/BMP/GIF/TIF/TIFF/HEIC/HEIF/AVIF'
+                    ),
+                }), 400
 
             ext = _dep('normalize_ai_product_image_extension')(original_name, mime, sample)
             if not ext:
@@ -2393,7 +2460,6 @@ def register_product_editor_routes(
                     ),
                 }), 400
 
-            mime_clean = (mime or '').split(';')[0].strip().lower()
             if mime_clean and mime_clean.startswith('image/') and mime_clean not in _dep('allowed_ai_product_image_mime_types'):
                 inferred_from_mime = _dep('infer_ai_product_image_extension_from_mime')(mime_clean)
                 if not inferred_from_mime:
@@ -2660,8 +2726,14 @@ def register_product_editor_routes(
         category = (data.get('category') or '').strip()
         image_url = (data.get('image_url') or '').strip()
         summary = (data.get('summary') or '').strip()
-        slug = (data.get('slug') or '').strip()
+        slug = (data.get('slug') or '').strip().lower()
         page_html = (data.get('page_html') or '').strip()
+        sections = data.get('sections') if isinstance(data.get('sections'), dict) else {}
+        image_urls_raw = data.get('image_urls') or data.get('detail_image_urls')
+        if not image_urls_raw:
+            image_urls_raw = sections.get('images')
+        if len(_normalize_text_lines(image_urls_raw)) > MAX_AI_PRODUCT_IMAGES:
+            return jsonify({'success': False, 'message': f'单个产品最多保留 {MAX_AI_PRODUCT_IMAGES} 张图片'}), 400
 
         if not title or not category or not slug:
             return jsonify({'success': False, 'message': '请填写标题、分类和链接标识'}), 400
@@ -2677,7 +2749,7 @@ def register_product_editor_routes(
         if not summary:
             summary = title
 
-        page_html = ensure_product_dynamic_sections(page_html)
+        page_html = ensure_product_dynamic_sections(strip_product_admin_data(page_html))
         enriched_html = inject_product_meta_tags(
             page_html=page_html,
             title=title,
@@ -2696,6 +2768,7 @@ def register_product_editor_routes(
             'summary': summary,
             'content_html': '',
             'template_fields': {},
+            'sections': sections,
             'source': 'ai-full-html',
         }
         marker = encode_product_admin_data(admin_payload)
@@ -2711,10 +2784,42 @@ def register_product_editor_routes(
         if filepath.exists():
             return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
         filepath.write_text(enriched_html, encoding='utf-8')
+        link = f'{_get_products_web_prefix_by_family(product_family)}/{filename}'
+
+        draft_id = _safe_draft_id(data.get('draft_id') or '')
+        draft = None
+        if draft_id:
+            with PRODUCT_AI_DRAFTS_LOCK:
+                payload = _read_product_ai_drafts_payload()
+                items = payload.get('items', [])
+                existing, idx = _find_product_ai_draft(items, draft_id, product_family)
+                if existing is not None:
+                    draft, _ = _normalize_product_ai_draft({
+                        **existing,
+                        'title': title,
+                        'short_name': short_name,
+                        'category': category,
+                        'summary': summary,
+                        'source_text': data.get('source_text') or data.get('context_text') or existing.get('source_text', ''),
+                        'image_urls': _normalize_text_lines(data.get('image_urls') or data.get('detail_image_urls') or existing.get('image_urls', [])),
+                        'news_urls': _normalize_text_lines(data.get('news_urls') or existing.get('news_urls', []))[:2],
+                        'related_product_urls': _normalize_text_lines(data.get('related_product_urls') or existing.get('related_product_urls', []))[:4],
+                        'sections': sections or existing.get('sections', {}),
+                        'page_html': enriched_html,
+                        'status': 'published',
+                        'mode': 'html',
+                        'published_link': link,
+                    }, family=product_family, existing=existing)
+                    items[idx] = draft
+                    payload['items'] = items
+                    _write_product_ai_drafts_payload(payload)
+
         return jsonify({
             'success': True,
             'filename': filename,
-            'link': f'{_get_products_web_prefix_by_family(product_family)}/{filename}',
+            'link': link,
+            'page_html': enriched_html,
+            'draft': draft,
         })
 
     @app.route('/api/products/ai-generate-fields', methods=['POST'])

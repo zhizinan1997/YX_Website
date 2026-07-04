@@ -609,16 +609,44 @@
                             </div>
 
                             <form id="aiProductForm">
-                                <div style="display:grid; grid-template-columns: 1fr; gap: 16px;">
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                                    <div class="form-group">
+                                        <label>产品标题</label>
+                                        <input type="text" id="aiProductTitle" class="form-control"
+                                            placeholder="例如：MC-LD-H2 氢气泄漏检测仪">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品简称</label>
+                                        <input type="text" id="aiProductShortName" class="form-control"
+                                            placeholder="例如：MC-LD-H2">
+                                    </div>
                                     <div class="form-group">
                                         <label>链接标识（文件名）</label>
                                         <input type="text" id="aiProductSlug" class="form-control"
                                             placeholder="例如：mc_ld_h2（仅小写字母/数字/下划线，留空可自动生成）">
                                     </div>
+                                    <div class="form-group">
+                                        <label>产品分类</label>
+                                        <select id="aiProductCategory" class="form-control">
+                                            <option value="detector" selected>detector · 检测仪</option>
+                                            <option value="sensor">sensor · 传感器</option>
+                                            <option value="module">module · 模组</option>
+                                            <option value="alarm">alarm · 报警器</option>
+                                            <option value="system">system · 系统</option>
+                                            <option value="iot">iot · 物联网</option>
+                                            <option value="service">service · 服务</option>
+                                            <option value="probe">probe · 探头</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="grid-column:1 / -1;">
+                                        <label>一句概述</label>
+                                        <input type="text" id="aiProductSummary" class="form-control"
+                                            placeholder="用于产品首屏描述和 SEO 摘要，可留空让 AI 生成">
+                                    </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label>产品资料总输入框（请粘贴完整详情）</label>
+                                    <label>产品资料总输入框（补充资料）</label>
                                     <textarea id="aiProductFullContent" class="form-control" rows="18"
                                         placeholder="请粘贴完整产品资料，例如：\n1. 产品名称：...\n2. 一句概述：...\n3. 产品特点：...\n4. 产品详情：...\n5. 产品优势：...\n6. 主要应用：...\n7. 技术参数：..."></textarea>
                                 </div>
@@ -629,13 +657,25 @@
                                         <button type="button" class="btn-sm" id="aiProductUploadImagesBtn"
                                             style="width:auto; padding:10px 18px;">上传产品图</button>
                                         <input type="file" id="aiProductImagesInput"
-                                            accept="image/*,.png,.jpg,.jpeg,.webp,.bmp,.gif,.svg,.tif,.tiff,.heic,.heif,.avif" multiple
+                                            accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,.heic,.heif,.avif,image/png,image/jpeg,image/webp,image/bmp,image/gif,image/tiff,image/heic,image/heif,image/avif" multiple
                                             style="display:none;">
                                         <span id="aiProductImagesMsg"
-                                            style="font-size:13px; color:#667085;">可上传一张或多张，生成页面时自动用于主图与详情图。</span>
+                                            style="font-size:13px; color:#667085;">最多 12 张，单张不超过 10MB，支持 PNG/JPG/JPEG/WEBP/BMP/GIF/TIF/TIFF/HEIC/HEIF/AVIF。</span>
                                     </div>
                                     <div id="aiProductImagesList"
                                         style="margin-top:10px; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px;"></div>
+                                </div>
+
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+                                    <div class="form-group">
+                                        <label>相关新闻（最多 2 条）</label>
+                                        <select id="aiProductNews1" class="form-control"></select>
+                                        <select id="aiProductNews2" class="form-control" style="margin-top:8px;"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>相关产品（最多 4 个）</label>
+                                        <div id="aiProductRelatedProducts" style="display:grid; gap:8px;"></div>
+                                    </div>
                                 </div>
                             </form>
 
@@ -675,7 +715,7 @@
 
                         <div class="card" style="padding:30px; margin-top:20px;">
                             <h3 class="section-header">AI 上架预览</h3>
-                            <iframe id="aiProductPreviewFrame" data-ai-preview-frame="1" scrolling="auto"
+                            <iframe id="aiProductPreviewFrame" data-ai-preview-frame="1" sandbox="allow-scripts" scrolling="auto"
                                 style="width:100%; min-height:560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff; overflow:hidden;"></iframe>
                         </div>
                     </div>
@@ -912,16 +952,44 @@
                             </div>
 
                             <form id="bioAiProductForm">
-                                <div style="display:grid; grid-template-columns: 1fr; gap: 16px;">
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                                    <div class="form-group">
+                                        <label>产品标题</label>
+                                        <input type="text" id="bioAiProductTitle" class="form-control"
+                                            placeholder="例如：血钾检测芯片">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>产品简称</label>
+                                        <input type="text" id="bioAiProductShortName" class="form-control"
+                                            placeholder="例如：Blood Potassium Chip">
+                                    </div>
                                     <div class="form-group">
                                         <label>链接标识（文件名）</label>
                                         <input type="text" id="bioAiProductSlug" class="form-control"
                                             placeholder="例如：blood_potassium_chip（仅小写字母/数字/下划线，留空可自动生成）">
                                     </div>
+                                    <div class="form-group">
+                                        <label>产品分类</label>
+                                        <select id="bioAiProductCategory" class="form-control">
+                                            <option value="sensor" selected>sensor · 传感器</option>
+                                            <option value="module">module · 模组</option>
+                                            <option value="detector">detector · 检测仪</option>
+                                            <option value="alarm">alarm · 报警器</option>
+                                            <option value="system">system · 系统</option>
+                                            <option value="iot">iot · 物联网</option>
+                                            <option value="service">service · 服务</option>
+                                            <option value="probe">probe · 探头</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="grid-column:1 / -1;">
+                                        <label>一句概述</label>
+                                        <input type="text" id="bioAiProductSummary" class="form-control"
+                                            placeholder="用于产品首屏描述和 SEO 摘要，可留空让 AI 生成">
+                                    </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label>产品资料总输入框（请粘贴完整详情）</label>
+                                    <label>产品资料总输入框（补充资料）</label>
                                     <textarea id="bioAiProductFullContent" class="form-control" rows="18"
                                         placeholder="请粘贴完整产品资料，例如：\n1. 产品名称：...\n2. 一句概述：...\n3. 产品特点：...\n4. 产品详情：...\n5. 产品优势：...\n6. 主要应用：...\n7. 技术参数：..."></textarea>
                                 </div>
@@ -932,13 +1000,25 @@
                                         <button type="button" class="btn-sm" id="bioAiProductUploadImagesBtn"
                                             style="width:auto; padding:10px 18px;">上传产品图</button>
                                         <input type="file" id="bioAiProductImagesInput"
-                                            accept="image/*,.png,.jpg,.jpeg,.webp,.bmp,.gif,.svg,.tif,.tiff,.heic,.heif,.avif" multiple
+                                            accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,.heic,.heif,.avif,image/png,image/jpeg,image/webp,image/bmp,image/gif,image/tiff,image/heic,image/heif,image/avif" multiple
                                             style="display:none;">
                                         <span id="bioAiProductImagesMsg"
-                                            style="font-size:13px; color:#667085;">可上传一张或多张，生成页面时自动用于主图与详情图。</span>
+                                            style="font-size:13px; color:#667085;">最多 12 张，单张不超过 10MB，支持 PNG/JPG/JPEG/WEBP/BMP/GIF/TIF/TIFF/HEIC/HEIF/AVIF。</span>
                                     </div>
                                     <div id="bioAiProductImagesList"
                                         style="margin-top:10px; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px;"></div>
+                                </div>
+
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+                                    <div class="form-group">
+                                        <label>相关新闻（最多 2 条）</label>
+                                        <select id="bioAiProductNews1" class="form-control"></select>
+                                        <select id="bioAiProductNews2" class="form-control" style="margin-top:8px;"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>相关产品（最多 4 个）</label>
+                                        <div id="bioAiProductRelatedProducts" style="display:grid; gap:8px;"></div>
+                                    </div>
                                 </div>
                             </form>
 
@@ -978,7 +1058,7 @@
 
                         <div class="card" style="padding:30px; margin-top:20px;">
                             <h3 class="section-header">AI 上架预览</h3>
-                            <iframe id="bioAiProductPreviewFrame" data-ai-preview-frame="1" scrolling="auto"
+                            <iframe id="bioAiProductPreviewFrame" data-ai-preview-frame="1" sandbox="allow-scripts" scrolling="auto"
                                 style="width:100%; min-height:560px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff; overflow:hidden;"></iframe>
                         </div>
                     </div>

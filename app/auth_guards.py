@@ -6,7 +6,7 @@
 主要功能：
 1. 登录状态验证（login_required装饰器）
    - 检查Session中的管理员登录状态
-   - 验证会话是否过期（基于admin_login_at和admin_session_ttl）
+   - 验证会话是否过期（基于admin_login_at、admin_last_active_at和会话TTL）
    - 检查会话schema版本，确保兼容新版本
    - 防止跨站请求伪造（CSRF）
 
@@ -16,7 +16,7 @@
    - 权限映射表（ADMIN_PERMISSION_KEYS）：定义所有可分配的权限项
 
 3. 会话安全机制
-   - 会话超时自动失效（默认8小时，可配置）
+   - 会话超时自动失效（默认2小时空闲超时、24小时绝对超时，可配置）
    - 会话schema版本校验，防止旧版会话继续使用
    - 同源请求校验，防止跨站API调用
 
@@ -51,12 +51,13 @@
 作者：元芯传感技术团队
 """
 
-import time
 from functools import wraps
 
 from flask import jsonify, redirect, request, session
 
-from app.app_config import ADMIN_SESSION_MAX_AGE_SECONDS, WRITE_METHODS
+from app.admin_feature_unlocks import is_admin_feature_unlocked
+from app.admin_session import is_admin_session_expired, maybe_refresh_admin_session
+from app.app_config import WRITE_METHODS
 from app.request_security import is_same_origin_request
 from app.routes.admin import (
     ADMIN_PERMISSION_KEYS,
@@ -75,18 +76,7 @@ def login_required(f):
             if is_api:
                 return jsonify({'success': False, 'message': '登录已过期，请重新登录'}), 401
             return redirect('/admin')
-        now_ts = int(time.time())
-        try:
-            login_at = int(session.get('admin_login_at') or 0)
-        except Exception:
-            login_at = 0
-        try:
-            ttl = int(session.get('admin_session_ttl') or ADMIN_SESSION_MAX_AGE_SECONDS)
-        except Exception:
-            ttl = ADMIN_SESSION_MAX_AGE_SECONDS
-        if ttl <= 0:
-            ttl = ADMIN_SESSION_MAX_AGE_SECONDS
-        if login_at <= 0 or now_ts - login_at > ttl:
+        if is_admin_session_expired(session):
             session.clear()
             if is_api:
                 return jsonify({'success': False, 'message': '登录已过期，请重新登录'}), 401
@@ -109,8 +99,16 @@ def login_required(f):
                 return jsonify({'success': False, 'message': '当前账号必须先绑定安全邮箱后才能继续操作。', 'binding_required': True}), 403
             return redirect('/admin')
 
+        method = (request.method or 'GET').upper()
+        required_permission = resolve_permission_for_path(request.path or '', method)
+        if required_permission and required_permission != '__unknown__' and not is_admin_feature_unlocked(required_permission):
+            if is_api:
+                return jsonify({'success': False, 'message': '该功能尚未解锁，请联系服务方开通。'}), 403
+            return redirect('/admin')
+
         is_super_admin = bool(session.get('admin_is_super_admin', False))
         if is_super_admin:
+            maybe_refresh_admin_session(session, request)
             return f(*args, **kwargs)
 
         raw_permissions = session.get('admin_permissions', [])
@@ -122,11 +120,9 @@ def login_required(f):
                     permissions.append(key)
         session['admin_permissions'] = permissions
 
-        method = (request.method or 'GET').upper()
         is_write_method = method in WRITE_METHODS
 
         if is_write_method:
-            required_permission = resolve_permission_for_path(request.path or '', method)
             denied = (
                 required_permission == '__unknown__'
                 or (required_permission and required_permission not in permissions)
@@ -136,6 +132,7 @@ def login_required(f):
                     return jsonify({'success': False, 'message': '当前账号无权限执行该操作'}), 403
                 return redirect('/admin')
 
+        maybe_refresh_admin_session(session, request)
         return f(*args, **kwargs)
     return decorated_function
 

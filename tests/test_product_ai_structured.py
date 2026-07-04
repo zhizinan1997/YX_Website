@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from functools import wraps
+from io import BytesIO
 from pathlib import Path
 
 from flask import Flask, jsonify, session
@@ -157,6 +158,21 @@ class ProductAiStructuredTests(unittest.TestCase):
                 return jsonify({"success": False, "message": "super admin required"}), 403
             return None
 
+        def normalize_test_ai_image_extension(filename, mime, sample):
+            name = str(filename or "").lower()
+            clean_mime = str(mime or "").split(";")[0].strip().lower()
+            sample_lower = (sample or b"").lower()
+            if name.endswith(".svg") or clean_mime == "image/svg+xml":
+                return ""
+            if name.endswith(".png") or clean_mime == "image/png" or (sample or b"").startswith(b"\x89PNG\r\n\x1a\n"):
+                return ".png"
+            if b"<svg" in sample_lower:
+                return ""
+            return ""
+
+        def infer_test_ai_image_extension_from_mime(mime):
+            return ".png" if str(mime or "").split(";")[0].strip().lower() == "image/png" else ""
+
         pe.register_product_editor_routes(
             app,
             login_required=login_required,
@@ -178,8 +194,8 @@ class ProductAiStructuredTests(unittest.TestCase):
             get_hydrogen_solution_products_config=lambda: {},
             save_hydrogen_solution_products_config=lambda _config: None,
             default_product_categories={},
-            normalize_ai_product_image_extension=lambda *_args: ".png",
-            infer_ai_product_image_extension_from_mime=lambda _mime: ".png",
+            normalize_ai_product_image_extension=normalize_test_ai_image_extension,
+            infer_ai_product_image_extension_from_mime=infer_test_ai_image_extension_from_mime,
             allowed_ai_product_image_mime_types={"image/png"},
         )
         self.app = app
@@ -305,6 +321,15 @@ class ProductAiStructuredTests(unittest.TestCase):
 
         duplicate = self.client.post("/api/products/ai-create-from-sections", json=payload)
         self.assertEqual(duplicate.status_code, 409)
+        self.assertIn("更换", duplicate.get_json()["message"])
+
+        too_many_images = self.client.post("/api/products/ai-create-from-sections", json={
+            **payload,
+            "slug": "mc_test_too_many_images",
+            "image_urls": [f"/assets/product-{idx}.png" for idx in range(pe.MAX_AI_PRODUCT_IMAGES + 1)],
+        })
+        self.assertEqual(too_many_images.status_code, 400)
+        self.assertIn("12", too_many_images.get_json()["message"])
 
         bio_payload = {
             **payload,
@@ -314,6 +339,111 @@ class ProductAiStructuredTests(unittest.TestCase):
         bio_created = self.client.post("/api/bio-products/ai-create-from-sections", json=bio_payload)
         self.assertEqual(bio_created.status_code, 200)
         self.assertTrue((self.root / "pages" / "biosensing" / "bio_test_product.html").exists())
+
+    def test_create_from_sections_rejects_html_mode(self):
+        self._login(super_admin=True)
+        payload = {
+            "title": "测试氢气检测仪",
+            "short_name": "MC-TEST",
+            "category": "detector",
+            "slug": "mc_html_wrong_endpoint",
+            "summary": "用于氢气安全检测。",
+            "mode": "html",
+            "sections": self._sample_sections(),
+        }
+        response = self.client.post("/api/products/ai-create-from-sections", json=payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("HTML源码模式", response.get_json()["message"])
+
+    def test_create_html_updates_draft_and_writes_same_html_mode(self):
+        self._login(super_admin=True)
+        created = self.client.post("/api/products/ai-drafts", json={
+            "slug": "html_mode_product",
+            "title": "HTML 草稿",
+            "short_name": "HTML-DRAFT",
+            "category": "detector",
+            "source_text": "产品资料",
+            "sections": self._sample_sections(),
+            "mode": "html",
+        })
+        self.assertEqual(created.status_code, 200)
+        draft_id = created.get_json()["draft"]["id"]
+        old_marker = pe.encode_product_admin_data({"title": "旧标记"})
+        html = f"""<!DOCTYPE html>
+<html><head><title>HTML 源码产品</title></head>
+<body><main><h1>HTML 源码产品</h1><p>源码模式内容</p></main>{old_marker}</body></html>"""
+        response = self.client.post("/api/products/ai-create-html", json={
+            "draft_id": draft_id,
+            "title": "HTML 源码产品",
+            "short_name": "HTML-MODE",
+            "category": "detector",
+            "slug": "html_mode_product",
+            "summary": "源码模式摘要",
+            "image_url": "/assets/test-product.png",
+            "page_html": html,
+            "news_urls": ["/pages/news/a.html"],
+            "related_product_urls": ["mc_ld_h2.html"],
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["draft"]["status"], "published")
+        self.assertEqual(data["draft"]["mode"], "html")
+        self.assertEqual(data["draft"]["published_link"], "/pages/gassensing/html_mode_product.html")
+        written = (self.root / "pages" / "gassensing" / "html_mode_product.html").read_text(encoding="utf-8")
+        self.assertIn("HTML 源码产品", written)
+        self.assertEqual(written.count("MC_PRODUCT_ADMIN_DATA:"), 1)
+
+    def test_create_html_requires_super_admin(self):
+        self._login(super_admin=False)
+        response = self.client.post("/api/products/ai-create-html", json={
+            "title": "HTML 源码产品",
+            "short_name": "HTML-MODE",
+            "category": "detector",
+            "slug": "html_mode_denied",
+            "summary": "源码模式摘要",
+            "page_html": "<!DOCTYPE html><html><body>Denied</body></html>",
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_ai_upload_images_limits_count_size_and_format(self):
+        self._login()
+        too_many = {
+            "slug": "upload_limit",
+            "files": [
+                (BytesIO(b"\x89PNG\r\n\x1a\n" + bytes([idx])), f"img{idx}.png")
+                for idx in range(pe.MAX_AI_PRODUCT_IMAGES + 1)
+            ],
+        }
+        response = self.client.post("/api/products/ai-upload-images", data=too_many, content_type="multipart/form-data")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("最多上传", response.get_json()["message"])
+
+        oversized = BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * (pe.MAX_AI_PRODUCT_IMAGE_BYTES + 1))
+        response = self.client.post(
+            "/api/products/ai-upload-images",
+            data={"slug": "upload_big", "files": [(oversized, "big.png")]},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("不能超过", response.get_json()["message"])
+
+        svg = BytesIO(b'<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+        response = self.client.post(
+            "/api/products/ai-upload-images",
+            data={"slug": "upload_svg", "files": [(svg, "unsafe.svg")]},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(".svg", response.get_json()["message"])
+
+        disguised_svg = BytesIO(b'<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+        response = self.client.post(
+            "/api/products/ai-upload-images",
+            data={"slug": "upload_disguised_svg", "files": [(disguised_svg, "disguised.png")]},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("PNG/JPG", response.get_json()["message"])
 
 
 if __name__ == "__main__":

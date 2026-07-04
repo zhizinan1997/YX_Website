@@ -17,7 +17,7 @@
 
 2. 会话管理系统
    - Session存储管理员状态
-   - 会话过期自动失效（默认8小时）
+   - 会话过期自动失效（默认2小时空闲超时、24小时绝对超时）
    - 会话版本校验（防止旧会话攻击）
    - 同源请求验证（防CSRF）
 
@@ -89,6 +89,16 @@ from urllib.request import Request, urlopen
 import ssl
 
 from flask import jsonify, make_response, request, send_from_directory, session
+from app.admin_feature_unlocks import (
+    filter_unlocked_permission_catalog,
+    get_admin_feature_unlocks,
+    is_admin_feature_unlocked,
+)
+from app.admin_session import is_admin_session_expired, maybe_refresh_admin_session
+from app.app_config import (
+    ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS,
+    ADMIN_SESSION_IDLE_TIMEOUT_SECONDS,
+)
 from app.admin_geo import (
     ADMIN_GEO_CONTINENTS,
     build_admin_login_geo_catalog_payload,
@@ -115,10 +125,7 @@ ADMIN_USERS_LOCK = threading.RLock()
 EMAIL_AUTH_STATE_LOCK = threading.RLock()
 SMTP_REMINDER_THREAD_LOCK = threading.Lock()
 TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
-try:
-    ADMIN_SESSION_MAX_AGE_SECONDS = max(300, int((os.environ.get('ADMIN_SESSION_MAX_AGE_SECONDS') or '7200').strip()))
-except Exception:
-    ADMIN_SESSION_MAX_AGE_SECONDS = 7200
+ADMIN_SESSION_MAX_AGE_SECONDS = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
 ADMIN_SESSION_SCHEMA_VERSION = 4
 LOGIN_DELAY_SECONDS = [60, 180]
 EMAIL_CODE_LENGTH = 6
@@ -149,6 +156,25 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'log-records', 'label': '系统日志'},
 ]
 ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
+
+
+def _admin_feature_response_fields():
+    feature_unlocks = get_admin_feature_unlocks(ADMIN_PERMISSION_KEYS)
+    return {
+        'permission_catalog': filter_unlocked_permission_catalog(ADMIN_PERMISSION_CATALOG),
+        'unlocked_features': [key for key in ADMIN_PERMISSION_KEYS if feature_unlocks.get(key, True)],
+        'feature_unlocks': feature_unlocks,
+    }
+
+
+def _filter_unlocked_permissions(permissions):
+    return [key for key in permissions if is_admin_feature_unlocked(key)]
+
+
+def _locked_permissions(permissions):
+    return [key for key in permissions if not is_admin_feature_unlocked(key)]
+
+
 USERNAME_RULE = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
 APP_ENV = (os.environ.get('APP_ENV') or os.environ.get('FLASK_ENV') or '').strip().lower()
 DEV_ENV_NAMES = {'dev', 'development', 'local', 'test', 'testing'}
@@ -519,6 +545,8 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'site-settings'
     if p.startswith('/api/admin/security/login-geo'):
         return 'site-settings'
+    if p.startswith('/api/cdn/assets'):
+        return 'cdn-assets'
     if p.startswith('/api/admin/security/turnstile') or p.startswith('/api/cdn/'):
         return 'site-settings'
     if p.startswith('/api/admin/site-reports'):
@@ -529,8 +557,6 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'log-records'
     if p.startswith('/api/admin/docker-logs'):
         return 'log-records'
-    if p.startswith('/api/cdn/assets'):
-        return 'cdn-assets'
     if p.startswith('/api/backup/'):
         return 'backup'
     if p.startswith('/api/recommendations'):
@@ -714,7 +740,9 @@ def _clear_admin_session(sess):
         'admin_is_hidden',
         'admin_permissions',
         'admin_login_at',
+        'admin_last_active_at',
         'admin_session_ttl',
+        'admin_session_absolute_ttl',
         'admin_session_schema',
         'admin_binding_required',
         'admin_previous_login_at',
@@ -741,8 +769,11 @@ def _set_logged_in_session(sess, *, user, permissions, is_super_admin: bool, is_
     sess['admin_is_super_admin'] = bool(is_super_admin)
     sess['admin_is_hidden'] = bool(is_hidden_admin)
     sess['admin_permissions'] = list(permissions or [])
-    sess['admin_login_at'] = int(time.time())
-    sess['admin_session_ttl'] = ADMIN_SESSION_MAX_AGE_SECONDS
+    now_ts = int(time.time())
+    sess['admin_login_at'] = now_ts
+    sess['admin_last_active_at'] = now_ts
+    sess['admin_session_ttl'] = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
+    sess['admin_session_absolute_ttl'] = ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS
     sess['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
     sess['admin_binding_required'] = bool(binding_required)
 
@@ -1694,22 +1725,7 @@ def _start_smtp_reminder_worker_once(*, app, root: Path, get_config):
 
 
 def _is_admin_session_expired(sess) -> bool:
-    if not sess.get('admin_logged_in'):
-        return True
-    now_ts = int(time.time())
-    try:
-        login_at = int(sess.get('admin_login_at') or 0)
-    except Exception:
-        login_at = 0
-    try:
-        ttl = int(sess.get('admin_session_ttl') or ADMIN_SESSION_MAX_AGE_SECONDS)
-    except Exception:
-        ttl = ADMIN_SESSION_MAX_AGE_SECONDS
-    if ttl <= 0:
-        ttl = ADMIN_SESSION_MAX_AGE_SECONDS
-    if login_at <= 0:
-        return True
-    return (now_ts - login_at) > ttl
+    return is_admin_session_expired(sess)
 
 
 def _is_same_origin_request(req) -> bool:
@@ -2897,7 +2913,9 @@ def register_admin_routes(
         session['admin_is_hidden'] = bool(is_hidden_admin)
         session['admin_permissions'] = list(user_permissions)
         session['admin_login_at'] = now_ts
-        session['admin_session_ttl'] = ADMIN_SESSION_MAX_AGE_SECONDS
+        session['admin_last_active_at'] = now_ts
+        session['admin_session_ttl'] = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
+        session['admin_session_absolute_ttl'] = ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS
         session['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
 
         prev_last_login_at = ''
@@ -3048,7 +3066,7 @@ def register_admin_routes(
     def admin_permissions_catalog():
         return jsonify({
             'success': True,
-            'permission_catalog': ADMIN_PERMISSION_CATALOG,
+            **_admin_feature_response_fields(),
             'is_super_admin': bool(_is_super_admin_session(session)),
         })
 
@@ -3065,7 +3083,7 @@ def register_admin_routes(
         return jsonify({
             'success': True,
             'items': items,
-            'permission_catalog': ADMIN_PERMISSION_CATALOG,
+            **_admin_feature_response_fields(),
         })
 
     @app.route('/api/admin/subaccounts', methods=['POST'])
@@ -3090,6 +3108,8 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': '密码至少需要 8 位。'}), 400
         if not permissions:
             return jsonify({'success': False, 'message': '请至少选择 1 项权限。'}), 400
+        if _locked_permissions(permissions):
+            return jsonify({'success': False, 'message': '包含尚未解锁的功能权限，无法分配。'}), 400
 
         root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
         with ADMIN_USERS_LOCK:
@@ -3141,6 +3161,8 @@ def register_admin_routes(
 
         if not permissions:
             return jsonify({'success': False, 'message': '请至少选择 1 项权限。'}), 400
+        if _locked_permissions(permissions):
+            return jsonify({'success': False, 'message': '包含尚未解锁的功能权限，无法分配。'}), 400
         if reset_password and len(reset_password) < 8:
             return jsonify({'success': False, 'message': '密码至少需要 8 位。'}), 400
 
@@ -3291,7 +3313,7 @@ def register_admin_routes(
                 'is_hidden_admin': False,
                 'binding_required': False,
                 'permissions': [],
-                'permission_catalog': ADMIN_PERMISSION_CATALOG,
+                **_admin_feature_response_fields(),
             })
 
         root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
@@ -3309,12 +3331,14 @@ def register_admin_routes(
                 'is_hidden_admin': False,
                 'binding_required': False,
                 'permissions': [],
-                'permission_catalog': ADMIN_PERMISSION_CATALOG,
+                **_admin_feature_response_fields(),
             })
 
         is_super_admin = bool(str(user.get('role') or '') == 'super_admin')
         is_hidden_admin = _is_hidden_admin_record(user)
         permissions = _normalize_permissions(user.get('permissions', []), is_super_admin=is_super_admin)
+        permissions = _filter_unlocked_permissions(permissions)
+        feature_fields = _admin_feature_response_fields()
         current_login_at = str(session.get('admin_current_login_at') or user.get('last_login_at') or '')
         current_login_ip = str(session.get('admin_current_login_ip') or user.get('last_login_ip') or '')
         previous_login_at = str(session.get('admin_previous_login_at') or '')
@@ -3329,6 +3353,7 @@ def register_admin_routes(
         session['admin_permissions'] = permissions
         session['admin_username'] = _normalize_username(user.get('username', current_name))
         session['admin_binding_required'] = bool((get_config() or {}).get('email_auth_enabled', False) and not _has_verified_email(user))
+        maybe_refresh_admin_session(session, request)
 
         return jsonify({
             'logged_in': True,
@@ -3337,7 +3362,7 @@ def register_admin_routes(
             'is_hidden_admin': is_hidden_admin,
             'binding_required': bool(session.get('admin_binding_required', False)),
             'permissions': permissions,
-            'permission_catalog': ADMIN_PERMISSION_CATALOG,
+            **feature_fields,
             'last_login_at': display_last_login_at,
             'last_login_ip': display_last_login_ip,
             'last_login_location': display_last_login_location,

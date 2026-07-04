@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "default_unlocked": true,
+  "features": {
+    "site-reports": true,
+    "promotion-links": false,
+    "messages": true,
+    "home": true,
+    "h2-home": true,
+    "products": true,
+    "bio-products": true,
+    "hydrogen-solutions": true,
+    "news-create": true,
+    "jobs": true,
+    "chatbot": true,
+    "site-settings": true,
+    "settings": true,
+    "backup": true,
+    "cdn-assets": true,
+    "log-records": true
+  }
+}

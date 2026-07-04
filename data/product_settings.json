@@ -232,6 +232,7 @@
     ]
   },
   "mc_la_h1": {
+    "cardImage": "/media/product-cards/3bdd0ac1d2e54aab81d590f2202dcc47.png",
     "industryCategories": [
       "industry-3"
     ]
@@ -262,7 +263,7 @@
   },
   "../customization/semiconductor_device_customization": {
     "cardTitle": "半导体器件与微纳工艺定制化服务",
-    "cardImage": "/cdn_assets/images/customization/6090d145d024.png",
+    "cardImage": "/cdn_assets/images/customization/6090d145d024.png?v=1775480406",
     "industryCategories": [
       "industry-5"
     ]
@@ -275,12 +276,13 @@
     "displayName": "MC-LD-R1型冷媒泄漏检漏仪",
     "hidden": false,
     "cardTitle": "MC-LD-R1型冷媒泄漏检漏仪",
-    "cardImage": "/cdn_assets/images/gassensing/a5616561db97.webp",
+    "cardImage": "/cdn_assets/images/gassensing/a5616561db97.webp?v=1775480406",
     "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。"
   },
   "mc_gd_01": {
     "displayName": "MC-GD-01型可燃气体检漏仪",
     "isNew": true,
+    "cardImage": "/media/product-cards/d349f4009088436681fb15ba3e94b53f.png",
     "industryCategories": [
       "hydrogen",
       "leak"
@@ -288,5 +290,9 @@
   },
   "mc_ol_w1": {
     "displayName": "MC-OL-W1在线式露点分析仪"
+  },
+  "mc_mgm_01_new": {
+    "cardTitle": "MC-MGM-01便携式动态配气仪",
+    "cardSummary": "MC-MGM-01便携式动态配气仪是针对现场气体标准物质配制需求，搭载高精度MFC质量流量控制器，内置自主研发温度压力双补偿算法；依托核心流量控制算法与集成化设计开发的可移动精准配气设备，满足各类气体检测仪器现场校准、应急气体配置与实验室多梯度浓度气体即时用气需求。"
   }
 }

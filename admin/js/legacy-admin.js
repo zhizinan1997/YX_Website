@@ -68,6 +68,7 @@
             { key: 'site-settings', label: '站点设置' },
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
+            { key: 'cdn-assets', label: 'CDN 素材' },
             { key: 'log-records', label: '系统日志' }
         ];
         const LEGACY_PERMISSION_KEY_MAP = {
@@ -80,6 +81,8 @@
         let currentKnowledgeTextEntryId = '';
         let lastKnowledgeTextValue = '';
         let permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
+        let featureUnlocks = {};
+        let unlockedFeatures = [];
         let currentAdminAuth = {
             username: '',
             is_super_admin: false,
@@ -358,7 +361,8 @@
         }
 
         function normalizePermissionCatalog(items) {
-            const source = Array.isArray(items) && items.length ? items : DEFAULT_PERMISSION_CATALOG;
+            const hasExplicitCatalog = Array.isArray(items);
+            const source = hasExplicitCatalog ? items : DEFAULT_PERMISSION_CATALOG;
             const output = [];
             source.forEach(item => {
                 const key = normalizePermissionKey((item && item.key) || '');
@@ -368,8 +372,46 @@
                     label: key === 'log-records' ? '系统日志' : String((item && item.label) || key).trim()
                 });
             });
-            return output.length ? output : [...DEFAULT_PERMISSION_CATALOG];
+            return output.length || hasExplicitCatalog ? output : [...DEFAULT_PERMISSION_CATALOG];
         }
+
+        function normalizeFeatureUnlockValue(value, defaultValue = true) {
+            if (value === true || value === false) return value;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+                if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+            }
+            return defaultValue !== false;
+        }
+
+        function buildDefaultFeatureUnlocks() {
+            const output = {};
+            DEFAULT_PERMISSION_CATALOG.forEach(item => {
+                const key = normalizePermissionKey((item && item.key) || '');
+                if (key) output[key] = true;
+            });
+            return output;
+        }
+
+        function normalizeFeatureUnlocks(rawMap) {
+            const output = buildDefaultFeatureUnlocks();
+            if (rawMap && typeof rawMap === 'object' && !Array.isArray(rawMap)) {
+                Object.entries(rawMap).forEach(([rawKey, rawValue]) => {
+                    const key = normalizePermissionKey(rawKey);
+                    if (!key) return;
+                    output[key] = normalizeFeatureUnlockValue(rawValue, true);
+                });
+            }
+            return output;
+        }
+
+        function syncUnlockedFeatureList() {
+            unlockedFeatures = Object.keys(featureUnlocks).filter(key => featureUnlocks[key] !== false);
+        }
+
+        featureUnlocks = normalizeFeatureUnlocks({});
+        syncUnlockedFeatureList();
 
         function expandPermissionsForApi(values) {
             const normalized = normalizePermissionList(values);
@@ -969,6 +1011,12 @@
         // --- Init ---
         initLoginBackground();
         initLoginSecurity();
+        if (window.Admin2Api && typeof window.Admin2Api.installUserActivityTracker === 'function') {
+            window.Admin2Api.installUserActivityTracker();
+        }
+        if (window.Admin2Api && typeof window.Admin2Api.installGlobalFetchGuard === 'function') {
+            window.Admin2Api.installGlobalFetchGuard();
+        }
         checkLoginStatus();
         loadVersionBadge();
         document.addEventListener('click', (event) => {
@@ -1135,7 +1183,23 @@
                 current_login_location: String(safe.current_login_location || '')
             };
             bindingRequiredState = safe.binding_required === true;
-            if (Array.isArray(safe.permission_catalog) && safe.permission_catalog.length) {
+            if (safe.feature_unlocks && typeof safe.feature_unlocks === 'object' && !Array.isArray(safe.feature_unlocks)) {
+                featureUnlocks = normalizeFeatureUnlocks(safe.feature_unlocks);
+            } else if (Array.isArray(safe.unlocked_features)) {
+                const nextUnlocks = buildDefaultFeatureUnlocks();
+                Object.keys(nextUnlocks).forEach(key => {
+                    nextUnlocks[key] = false;
+                });
+                safe.unlocked_features.forEach(rawKey => {
+                    const key = normalizePermissionKey(rawKey);
+                    if (key) nextUnlocks[key] = true;
+                });
+                featureUnlocks = nextUnlocks;
+            } else {
+                featureUnlocks = normalizeFeatureUnlocks({});
+            }
+            syncUnlockedFeatureList();
+            if (Array.isArray(safe.permission_catalog)) {
                 permissionCatalog = normalizePermissionCatalog(safe.permission_catalog);
             } else {
                 permissionCatalog = [...DEFAULT_PERMISSION_CATALOG];
@@ -1148,7 +1212,9 @@
         }
 
         function hasViewPermission(viewName) {
-            return true;
+            const key = normalizePermissionKey(viewName);
+            if (!key) return true;
+            return featureUnlocks[key] !== false;
         }
 
         function canEditView(viewName) {
@@ -1219,7 +1285,14 @@
         }
 
         function getFirstAllowedView() {
-            return 'site-reports';
+            const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
+            for (const el of menuItems) {
+                const key = normalizePermissionKey(el.dataset.view || '');
+                if (key && hasViewPermission(key) && document.getElementById(`view-${key}`)) {
+                    return key;
+                }
+            }
+            return hasViewPermission('settings') ? 'settings' : 'site-reports';
         }
 
         function getHashAdminView() {
@@ -1276,11 +1349,20 @@
             for (const el of menuItems) {
                 const key = String(el.dataset.view || '').trim();
                 const allowed = hasViewPermission(key);
-                el.style.display = '';
+                el.style.display = allowed ? '' : 'none';
+                if (!allowed) {
+                    el.classList.remove('read-only-menu');
+                    continue;
+                }
                 const isEditable = canEditView(key);
-                el.classList.toggle('read-only-menu', allowed && !isEditable);
+                el.classList.toggle('read-only-menu', !isEditable);
             }
             syncSidebarMenuGroupVisibility();
+            const activeSection = document.querySelector('.view-section.active');
+            const activeView = activeSection && activeSection.id ? activeSection.id.replace(/^view-/, '') : '';
+            if (activeView && !hasViewPermission(activeView) && typeof switchView === 'function') {
+                switchView(getFirstAllowedView(), { persist: false });
+            }
         }
 
         function syncSubAccountManageVisibility() {
@@ -5825,17 +5907,27 @@
         let aiProductCurrentDraftId = '';
         let aiProductDraftSaveTimer = null;
         let aiProductDraftsCache = [];
+        let aiProductMode = 'structured';
         let bioAiProductEventsBound = false;
         let bioAiUploadedImageUrls = [];
         let bioAiProductSectionsData = {};
         let bioAiProductCurrentDraftId = '';
         let bioAiProductDraftSaveTimer = null;
         let bioAiProductDraftsCache = [];
+        let bioAiProductMode = 'structured';
+        let aiProductNewsOptionsCache = [];
+        let aiProductRelatedOptionsCache = { gas: [], bio: [] };
         let hydrogenSolutionDefinitions = [];
         let hydrogenSolutionsConfig = [];
         let hydrogenSolutionProductOptions = [];
         const AI_STREAM_IDLE_TIMEOUT_MS = 45000;
         const AI_STREAM_TOTAL_TIMEOUT_MS = 7 * 60 * 1000;
+        const AI_PRODUCT_MAX_IMAGES = 12;
+        const AI_PRODUCT_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+        const AI_PRODUCT_CATEGORIES = ['sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'];
+        const AI_PRODUCT_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff', 'heic', 'heif', 'avif'];
+        const AI_PRODUCT_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif', 'image/tiff', 'image/heic', 'image/heif', 'image/avif'];
+        const AI_PRODUCT_IMAGE_FORMAT_HINT = '支持 PNG/JPG/JPEG/WEBP/BMP/GIF/TIF/TIFF/HEIC/HEIF/AVIF';
 
         function syncProductEditorSourceFromVisual() {
             const visual = document.getElementById('productEditorVisual');
@@ -6552,8 +6644,10 @@
             const fullContent = document.getElementById('aiProductFullContent')?.value || '';
             const parsed = aiParseProductFromFullText(fullContent);
             const slugInput = document.getElementById('aiProductSlug');
-            const slugValue = (slugInput?.value || '').trim() || aiGuessSlugFromText(fullContent);
-            const shortName = parsed.shortName || '';
+            const titleValue = (document.getElementById('aiProductTitle')?.value || '').trim();
+            const shortName = (document.getElementById('aiProductShortName')?.value || '').trim() || parsed.shortName || '';
+            const slugFromTitle = titleValue.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            const slugValue = (slugInput?.value || '').trim() || aiGuessSlugFromText(fullContent) || slugFromTitle;
 
             if (!slugValue) {
                 if (msg) {
@@ -6571,16 +6665,40 @@
             }
             if (slugInput && !slugInput.value.trim()) slugInput.value = slugValue;
             if (!files || !files.length) return;
+            const fileList = Array.from(files);
+            if ((aiUploadedImageUrls.length + fileList.length) > AI_PRODUCT_MAX_IMAGES) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = `单个产品最多 ${AI_PRODUCT_MAX_IMAGES} 张图片，请先减少选择数量。`;
+                }
+                return;
+            }
+            const oversized = fileList.find(file => Number(file?.size || 0) > AI_PRODUCT_MAX_IMAGE_BYTES);
+            if (oversized) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = `单张图片不能超过 10MB：${oversized.name || '未命名文件'}`;
+                }
+                return;
+            }
+            const unsupported = fileList.map(file => validateAiProductImageFile(file)).find(Boolean);
+            if (unsupported) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = unsupported;
+                }
+                return;
+            }
 
             if (msg) {
                 msg.style.color = '#2563eb';
-                msg.textContent = `正在上传 ${files.length} 张图片...`;
+                msg.textContent = `正在上传 ${fileList.length} 张图片...`;
             }
 
             const formData = new FormData();
             formData.append('slug', slugValue);
             formData.append('short_name', shortName);
-            Array.from(files).forEach(file => formData.append('files', file));
+            fileList.forEach(file => formData.append('files', file));
 
             try {
                 const res = await fetch('/api/products/ai-upload-images', {
@@ -6616,24 +6734,35 @@
         function getAiProductPayload() {
             const fullContent = document.getElementById('aiProductFullContent')?.value.trim() || '';
             const parsed = aiParseProductFromFullText(fullContent);
+            const titleInput = document.getElementById('aiProductTitle');
+            const shortNameInput = document.getElementById('aiProductShortName');
+            const summaryInput = document.getElementById('aiProductSummary');
             const slugInput = document.getElementById('aiProductSlug');
+            if (titleInput && !titleInput.value.trim() && parsed.title) titleInput.value = parsed.title;
+            if (shortNameInput && !shortNameInput.value.trim() && parsed.shortName) shortNameInput.value = parsed.shortName;
+            if (summaryInput && !summaryInput.value.trim() && parsed.summary) summaryInput.value = parsed.summary;
+            const title = (titleInput?.value || '').trim() || parsed.title || '';
+            const shortName = (shortNameInput?.value || '').trim() || parsed.shortName || '';
+            const summary = (summaryInput?.value || '').trim() || parsed.summary || '';
             const manualSlug = (slugInput?.value || '').trim();
-            const slug = manualSlug || aiGuessSlugFromText(fullContent);
+            const slug = manualSlug || aiGuessSlugFromText(fullContent) || title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
             if (slugInput && !manualSlug && slug) slugInput.value = slug;
-            const category = 'detector';
+            const categoryValue = document.getElementById('aiProductCategory')?.value || 'detector';
+            const category = AI_PRODUCT_CATEGORIES.includes(categoryValue) ? categoryValue : 'detector';
             const imageUrls = Array.isArray(aiUploadedImageUrls) ? aiUploadedImageUrls : [];
             const imageUrl = imageUrls[0] || '/cdn_assets/images/common/f1dcc87cdcca.png';
+            const config = getAiProductFlowConfig('gas');
 
             return {
-                title: parsed.title || slug || '未命名产品',
-                short_name: parsed.shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
+                title: title || slug || '未命名产品',
+                short_name: shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
                 slug: slug,
                 category: category,
                 image_url: imageUrl,
                 detail_image_urls: imageUrls.join('\n'),
-                news_urls: '',
-                related_product_urls: '',
-                summary: parsed.summary || '',
+                news_urls: getAiSelectedNewsUrls(config).join('\n'),
+                related_product_urls: getAiSelectedRelatedProductUrls(config).join('\n'),
+                summary: summary,
                 context_text: fullContent,
                 full_text: fullContent
             };
@@ -6644,6 +6773,18 @@
                 payload.full_text ? `产品资料全文:\n${payload.full_text}` : '',
                 payload.detail_image_urls ? `已上传产品图片链接：\n${payload.detail_image_urls}` : ''
             ].filter(Boolean).join('\n\n');
+        }
+
+        function validateAiProductImageFile(file) {
+            const name = String(file?.name || '').trim();
+            const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+            const mime = String(file?.type || '').split(';')[0].trim().toLowerCase();
+            if (ext === 'svg' || mime === 'image/svg+xml') {
+                return `不支持 SVG 图片：${name || '未命名文件'}。${AI_PRODUCT_IMAGE_FORMAT_HINT}`;
+            }
+            if (ext && AI_PRODUCT_IMAGE_EXTENSIONS.includes(ext)) return '';
+            if (mime && AI_PRODUCT_IMAGE_MIME_TYPES.includes(mime)) return '';
+            return `不支持的图片格式：${name || mime || '未知文件'}。${AI_PRODUCT_IMAGE_FORMAT_HINT}`;
         }
 
         function getAiProductFlowConfig(family) {
@@ -6658,6 +6799,14 @@
                 sourceBoxId: isBio ? 'bioAiProductFieldsJson' : 'aiProductFieldsJson',
                 fullContentId: isBio ? 'bioAiProductFullContent' : 'aiProductFullContent',
                 slugId: isBio ? 'bioAiProductSlug' : 'aiProductSlug',
+                titleId: isBio ? 'bioAiProductTitle' : 'aiProductTitle',
+                shortNameId: isBio ? 'bioAiProductShortName' : 'aiProductShortName',
+                summaryId: isBio ? 'bioAiProductSummary' : 'aiProductSummary',
+                categoryId: isBio ? 'bioAiProductCategory' : 'aiProductCategory',
+                newsSelectIds: isBio ? ['bioAiProductNews1', 'bioAiProductNews2'] : ['aiProductNews1', 'aiProductNews2'],
+                relatedProductsId: isBio ? 'bioAiProductRelatedProducts' : 'aiProductRelatedProducts',
+                previewFrameId: isBio ? 'bioAiProductPreviewFrame' : 'aiProductPreviewFrame',
+                linkId: isBio ? 'bioAiProductLink' : 'aiProductLink',
                 modifyInstructionId: isBio ? 'bioAiProductModifyInstruction' : 'aiProductModifyInstruction',
                 getPayload: isBio ? getBioAiProductPayload : getAiProductPayload,
                 updatePreview: isBio ? updateBioAiProductPreview : updateAiProductPreview,
@@ -6684,6 +6833,12 @@
                     if (isBio) bioAiUploadedImageUrls = list;
                     else aiUploadedImageUrls = list;
                 },
+                getMode: () => isBio ? bioAiProductMode : aiProductMode,
+                setMode: (value) => {
+                    const next = value === 'html' ? 'html' : 'structured';
+                    if (isBio) bioAiProductMode = next;
+                    else aiProductMode = next;
+                },
                 getSaveTimer: () => isBio ? bioAiProductDraftSaveTimer : aiProductDraftSaveTimer,
                 setSaveTimer: (timer) => {
                     if (isBio) bioAiProductDraftSaveTimer = timer;
@@ -6701,11 +6856,15 @@
                 const sections = parsed && typeof parsed === 'object' && parsed.sections && typeof parsed.sections === 'object'
                     ? parsed.sections
                     : parsed;
-                config.setSectionsData(sections || {});
-                return sections || {};
+                if (!sections || typeof sections !== 'object' || Array.isArray(sections)) {
+                    throw new Error('sections must be an object');
+                }
+                config.setSectionsData(sections);
+                setAiDraftMessage(config, '', '#64748b');
+                return sections;
             } catch (e) {
                 if (showError) setAiDraftMessage(config, '结构化 JSON 格式有误，请检查逗号和引号。', '#dc2626');
-                return config.getSectionsData() || {};
+                return null;
             }
         }
 
@@ -6723,9 +6882,31 @@
             el.textContent = text || '';
         }
 
+        function getAiSelectedNewsUrls(config) {
+            const values = config.newsSelectIds
+                .map(id => String(document.getElementById(id)?.value || '').trim())
+                .filter(Boolean);
+            return Array.from(new Set(values)).slice(0, 2);
+        }
+
+        function getAiSelectedRelatedProductUrls(config) {
+            const container = document.getElementById(config.relatedProductsId);
+            if (!container) return [];
+            const values = Array.from(container.querySelectorAll('select'))
+                .map(el => String(el.value || '').trim())
+                .filter(Boolean);
+            return Array.from(new Set(values)).slice(0, 4);
+        }
+
         function collectAiStructuredDraftPayload(config, overrides = {}) {
             const payload = config.getPayload();
-            const sections = overrides.sections || parseAiProductSectionsJson(config, false) || {};
+            const parsedSections = Object.prototype.hasOwnProperty.call(overrides, 'sections')
+                ? overrides.sections
+                : parseAiProductSectionsJson(config, false);
+            if (parsedSections === null) {
+                throw new Error('结构化 JSON 格式有误，请修正后再保存草稿。');
+            }
+            const sections = parsedSections || {};
             const htmlBox = document.getElementById(config.sourceBoxId);
             const imageUrls = config.getImageUrls();
             return {
@@ -6736,9 +6917,11 @@
                 summary: payload.summary || (sections.description || ''),
                 source_text: payload.full_text || payload.context_text || '',
                 image_urls: imageUrls,
+                news_urls: getAiSelectedNewsUrls(config),
+                related_product_urls: getAiSelectedRelatedProductUrls(config),
                 sections,
                 page_html: overrides.page_html != null ? overrides.page_html : (htmlBox?.value || ''),
-                mode: overrides.mode || 'structured',
+                mode: overrides.mode || config.getMode(),
                 status: overrides.status || (Object.keys(sections || {}).length ? 'generated' : 'draft'),
                 published_link: overrides.published_link || ''
             };
@@ -6755,7 +6938,13 @@
         }
 
         async function saveAiProductDraftNow(config, overrides = {}) {
-            const payload = collectAiStructuredDraftPayload(config, overrides);
+            let payload = null;
+            try {
+                payload = collectAiStructuredDraftPayload(config, overrides);
+            } catch (e) {
+                setAiDraftMessage(config, e?.message || '草稿内容有误，无法同步。', '#dc2626');
+                throw e;
+            }
             localStorage.setItem(config.localKey, JSON.stringify({ ...payload, draft_id: config.getCurrentDraftId(), saved_at: Date.now() }));
             if (!hasMeaningfulAiDraft(payload)) return null;
 
@@ -6780,8 +6969,15 @@
         function scheduleAiProductDraftSave(config, overrides = {}) {
             const existing = config.getSaveTimer();
             if (existing) clearTimeout(existing);
+            let payload = null;
+            try {
+                payload = collectAiStructuredDraftPayload(config, overrides);
+            } catch (e) {
+                setAiDraftMessage(config, e?.message || '草稿内容有误，无法自动保存。', '#dc2626');
+                return;
+            }
             localStorage.setItem(config.localKey, JSON.stringify({
-                ...collectAiStructuredDraftPayload(config, overrides),
+                ...payload,
                 draft_id: config.getCurrentDraftId(),
                 saved_at: Date.now()
             }));
@@ -6862,15 +7058,32 @@
             config.setCurrentDraftId(draft.id || '');
             const slugInput = document.getElementById(config.slugId);
             const fullInput = document.getElementById(config.fullContentId);
+            const titleInput = document.getElementById(config.titleId);
+            const shortNameInput = document.getElementById(config.shortNameId);
+            const summaryInput = document.getElementById(config.summaryId);
+            const categoryInput = document.getElementById(config.categoryId);
             if (slugInput) slugInput.value = draft.slug || '';
             if (fullInput) fullInput.value = draft.source_text || '';
+            if (titleInput) titleInput.value = draft.title || '';
+            if (shortNameInput) shortNameInput.value = draft.short_name || '';
+            if (summaryInput) summaryInput.value = draft.summary || '';
+            if (categoryInput && draft.category) categoryInput.value = draft.category;
             config.setImageUrls(Array.isArray(draft.image_urls) ? draft.image_urls : []);
+            config.setMode(draft.mode || 'structured');
             config.renderImages();
+            await loadAiProductPickerOptions(config, draft.news_urls || [], draft.related_product_urls || []);
             setAiProductSectionsJson(config, draft.sections || {});
             const sourceBox = document.getElementById(config.sourceBoxId);
             if (sourceBox) sourceBox.value = draft.page_html || '';
             if (draft.page_html) await config.updatePreview();
-            else await refreshAiProductStructuredPreview(config);
+            else if (Object.keys(draft.sections || {}).length) await refreshAiProductStructuredPreview(config);
+            else clearAiProductPreview(config);
+            const linkEl = document.getElementById(config.linkId);
+            if (linkEl) {
+                linkEl.innerHTML = draft.published_link
+                    ? `页面：<a href="${escapeAttr(draft.published_link)}" target="_blank">${escapeHtml(draft.published_link)}</a>`
+                    : '';
+            }
             setAiDraftMessage(config, `已载入草稿：${draft.title || draft.slug || draft.id}`, '#2563eb');
             renderAiProductDrafts(config, config.getDraftsCache());
         }
@@ -6890,9 +7103,14 @@
                         summary: parsed.summary || '',
                         source_text: parsed.source_text || '',
                         image_urls: parsed.image_urls || [],
+                        news_urls: parsed.news_urls || [],
+                        related_product_urls: parsed.related_product_urls || [],
                         sections: parsed.sections || {},
-                        page_html: parsed.page_html || ''
+                        page_html: parsed.page_html || '',
+                        mode: parsed.mode || 'structured'
                     });
+                    setAiDraftMessage(config, '已恢复浏览器本地暂存，正在尝试同步为服务器草稿...', '#2563eb');
+                    scheduleAiProductDraftSave(config);
                 } catch (_) { }
                 return;
             }
@@ -6910,7 +7128,9 @@
                     setAiDraftMessage(config, data.message || '删除失败', '#dc2626');
                     return;
                 }
-                if (config.getCurrentDraftId() === draftId) config.setCurrentDraftId('');
+                if (config.getCurrentDraftId() === draftId) {
+                    await createBlankAiProductDraft(config);
+                }
                 await loadAiProductDrafts(config);
                 return;
             }
@@ -6943,13 +7163,26 @@
             config.setCurrentDraftId('');
             const slugInput = document.getElementById(config.slugId);
             const fullInput = document.getElementById(config.fullContentId);
+            const titleInput = document.getElementById(config.titleId);
+            const shortNameInput = document.getElementById(config.shortNameId);
+            const summaryInput = document.getElementById(config.summaryId);
+            const categoryInput = document.getElementById(config.categoryId);
             if (slugInput) slugInput.value = '';
             if (fullInput) fullInput.value = '';
+            if (titleInput) titleInput.value = '';
+            if (shortNameInput) shortNameInput.value = '';
+            if (summaryInput) summaryInput.value = '';
+            if (categoryInput) categoryInput.value = config.family === 'bio' ? 'sensor' : 'detector';
             config.setImageUrls([]);
+            config.setMode('structured');
             config.renderImages();
+            renderAiProductPickers(config, [], []);
             setAiProductSectionsJson(config, {});
             const sourceBox = document.getElementById(config.sourceBoxId);
             if (sourceBox) sourceBox.value = '';
+            clearAiProductPreview(config);
+            const linkEl = document.getElementById(config.linkId);
+            if (linkEl) linkEl.innerHTML = '';
             setAiDraftMessage(config, '已新建空白草稿，填写后会自动保存。', '#2563eb');
             scheduleAiProductDraftSave(config);
         }
@@ -6957,14 +7190,16 @@
         async function refreshAiProductStructuredPreview(config) {
             const payload = config.getPayload();
             const sections = parseAiProductSectionsJson(config, true);
+            if (sections === null) return;
             if (!Object.keys(sections || {}).length) return;
+            const previewSections = applyAiPickerSelectionsToSections(config, sections);
             const res = await fetch(`${config.apiPrefix}/ai-preview-sections`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...payload,
                     source_text: payload.full_text || payload.context_text || '',
-                    sections
+                    sections: previewSections
                 })
             });
             const data = await res.json().catch(() => ({}));
@@ -6972,11 +7207,12 @@
                 setAiDraftMessage(config, data.message || '预览生成失败', '#dc2626');
                 return;
             }
-            setAiProductSectionsJson(config, data.sections || sections);
+            setAiProductSectionsJson(config, data.sections || previewSections);
+            config.setMode('structured');
             const sourceBox = document.getElementById(config.sourceBoxId);
             if (sourceBox) sourceBox.value = data.page_html || '';
             await config.updatePreview();
-            scheduleAiProductDraftSave(config, { sections: data.sections || sections, page_html: data.page_html || '' });
+            scheduleAiProductDraftSave(config, { sections: data.sections || previewSections, page_html: data.page_html || '' });
         }
 
         function getAiGeneratedHtml() {
@@ -7067,6 +7303,13 @@
                 if (event.source && iframe.contentWindow !== event.source) return;
                 iframe.style.height = `${Math.max(560, Number(data.height) || 560)}px`;
             });
+        }
+
+        function clearAiProductPreview(config) {
+            const iframe = document.getElementById(config.previewFrameId);
+            if (!iframe) return;
+            iframe.removeAttribute('srcdoc');
+            iframe.style.height = '560px';
         }
 
         async function updateAiProductPreview() {
@@ -7202,10 +7445,10 @@
             const modifyMsg = document.getElementById('aiProductModifyMsg');
             const config = getAiProductFlowConfig('gas');
             const payload = getAiProductPayload();
-            if (!payload.slug || !payload.context_text) {
+            if (!payload.slug || !payload.title || !payload.short_name) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先填写产品资料总输入框，并提供可用的链接标识。';
+                    msg.textContent = '请先填写产品标题、简称和可用的链接标识。';
                 }
                 return;
             }
@@ -7234,6 +7477,7 @@
                 if (!res.ok) {
                     throw new Error(data.message || 'AI 生成失败');
                 }
+                config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || {});
                 setAiGeneratedHtmlOutput(data.page_html || '');
                 if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
@@ -7259,6 +7503,13 @@
             const currentSections = parseAiProductSectionsJson(config, true);
             const payload = getAiProductPayload();
 
+            if (currentSections === null) {
+                if (modifyMsg) {
+                    modifyMsg.style.color = '#dc3545';
+                    modifyMsg.textContent = '结构化 JSON 格式有误，请修正后再修改';
+                }
+                return;
+            }
             if (!Object.keys(currentSections || {}).length) {
                 if (modifyMsg) {
                     modifyMsg.style.color = '#dc3545';
@@ -7294,6 +7545,8 @@
                         category: payload.category,
                         image_url: payload.image_url,
                         summary: payload.summary,
+                        news_urls: payload.news_urls,
+                        related_product_urls: payload.related_product_urls,
                         context_text: buildAiProductContextText(payload),
                         instruction,
                         sections: currentSections
@@ -7303,6 +7556,7 @@
                 if (!res.ok) {
                     throw new Error(data.message || 'AI 修改失败');
                 }
+                config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || currentSections);
                 setAiGeneratedHtmlOutput(data.page_html || '');
                 if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
@@ -7333,21 +7587,45 @@
             const linkEl = document.getElementById('aiProductLink');
             const config = getAiProductFlowConfig('gas');
             const payload = getAiProductPayload();
-            if (!payload.slug || !payload.context_text) {
+            if (!payload.slug || !payload.title || !payload.short_name || !payload.category) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先填写产品资料总输入框，并提供可用的链接标识。';
+                    msg.textContent = '请先填写产品标题、简称、分类和可用的链接标识。';
                 }
                 return;
             }
+            if (config.getImageUrls().length > AI_PRODUCT_MAX_IMAGES) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = `单个产品最多 ${AI_PRODUCT_MAX_IMAGES} 张图片，请先减少图片数量。`;
+                }
+                return;
+            }
+            const isHtmlMode = config.getMode() === 'html';
+            const pageHtml = getAiGeneratedHtml().trim();
             const sections = parseAiProductSectionsJson(config, true);
-            if (!Object.keys(sections || {}).length) {
+            if (sections === null) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '结构化 JSON 格式有误，请修正后再保存。';
+                }
+                return;
+            }
+            if (isHtmlMode && !pageHtml) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '源码模式下请先填写完整 HTML 源码。';
+                }
+                return;
+            }
+            if (!isHtmlMode && !Object.keys(sections || {}).length) {
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = '请先点击“AI 生成页面内容”';
                 }
                 return;
             }
+            const publishSections = applyAiPickerSelectionsToSections(config, sections || {});
 
             if (msg) {
                 msg.style.color = '#2563eb';
@@ -7356,18 +7634,22 @@
             if (linkEl) linkEl.innerHTML = '';
 
             try {
-                const res = await fetch('/api/products/ai-create-from-sections', {
+                const endpoint = isHtmlMode ? '/api/products/ai-create-html' : '/api/products/ai-create-from-sections';
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...payload,
                         draft_id: config.getCurrentDraftId(),
                         source_text: payload.full_text || payload.context_text || '',
-                        sections
+                        image_urls: config.getImageUrls(),
+                        sections: publishSections,
+                        page_html: isHtmlMode ? pageHtml : undefined,
+                        mode: isHtmlMode ? 'html' : 'structured'
                     })
                 });
-                const data = await res.json();
-                if (!data.success) throw new Error(data.message || '生成失败');
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) throw new Error(data.message || '生成失败');
                 if (data.page_html) setAiGeneratedHtmlOutput(data.page_html);
                 if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
 
@@ -7379,7 +7661,7 @@
                     const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
                     linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
                 }
-                scheduleAiProductDraftSave(config, { sections, page_html: getAiGeneratedHtml(), status: 'published', published_link: data.link || '' });
+                scheduleAiProductDraftSave(config, { sections: publishSections, page_html: getAiGeneratedHtml(), status: 'published', published_link: data.link || '', mode: isHtmlMode ? 'html' : 'structured' });
                 await loadProducts();
             } catch (e) {
                 if (msg) {
@@ -7396,16 +7678,25 @@
 
             const fullContentInput = document.getElementById('aiProductFullContent');
             const slugInput = document.getElementById('aiProductSlug');
-            if (fullContentInput && slugInput) {
+            const titleInput = document.getElementById('aiProductTitle');
+            const shortNameInput = document.getElementById('aiProductShortName');
+            const summaryInput = document.getElementById('aiProductSummary');
+            const categoryInput = document.getElementById('aiProductCategory');
+            if (fullContentInput) {
                 fullContentInput.addEventListener('input', () => {
-                    if (slugInput.value.trim()) return;
+                    const parsed = aiParseProductFromFullText(fullContentInput.value || '');
+                    if (titleInput && !titleInput.value.trim() && parsed.title) titleInput.value = parsed.title;
+                    if (shortNameInput && !shortNameInput.value.trim() && parsed.shortName) shortNameInput.value = parsed.shortName;
+                    if (summaryInput && !summaryInput.value.trim() && parsed.summary) summaryInput.value = parsed.summary;
+                    if (!slugInput || slugInput.value.trim()) return;
                     const guessed = aiGuessSlugFromText(fullContentInput.value || '');
                     if (guessed) slugInput.value = guessed;
                 });
             }
-            [fullContentInput, slugInput].forEach(el => {
+            [fullContentInput, slugInput, titleInput, shortNameInput, summaryInput, categoryInput].forEach(el => {
                 if (!el) return;
                 el.addEventListener('input', () => scheduleAiProductDraftSave(flowConfig));
+                el.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
             });
 
             const genBtn = document.getElementById('aiGenerateFieldsBtn');
@@ -7430,7 +7721,7 @@
                 window.__aiProductPreviewHeightBound = true;
             }
 
-            ['aiProductSlug', 'aiProductFullContent', 'aiProductFieldsJson']
+            ['aiProductSlug', 'aiProductFullContent', 'aiProductTitle', 'aiProductShortName', 'aiProductSummary', 'aiProductCategory', 'aiProductFieldsJson']
                 .forEach(id => {
                     const el = document.getElementById(id);
                     if (!el) return;
@@ -7440,6 +7731,7 @@
             const generatedHtmlBox = document.getElementById('aiProductFieldsJson');
             if (generatedHtmlBox) {
                 generatedHtmlBox.addEventListener('input', () => {
+                    flowConfig.setMode('html');
                     updateAiProductPreview().catch(() => { });
                     scheduleAiProductDraftSave(flowConfig, { mode: 'html', page_html: generatedHtmlBox.value || '' });
                 });
@@ -7448,6 +7740,7 @@
             if (sectionsBox) {
                 let sectionsPreviewTimer = null;
                 sectionsBox.addEventListener('input', () => {
+                    flowConfig.setMode('structured');
                     parseAiProductSectionsJson(flowConfig, false);
                     scheduleAiProductDraftSave(flowConfig);
                     if (sectionsPreviewTimer) clearTimeout(sectionsPreviewTimer);
@@ -7468,8 +7761,16 @@
             }
             const newDraftBtn = document.getElementById('aiProductNewDraftBtn');
             if (newDraftBtn) newDraftBtn.addEventListener('click', () => createBlankAiProductDraft(flowConfig).catch(() => { }));
+            flowConfig.newsSelectIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
+            });
+            const relatedBox = document.getElementById(flowConfig.relatedProductsId);
+            if (relatedBox) relatedBox.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
 
             renderAiUploadedImages();
+            renderAiProductPickers(flowConfig, [], []);
+            loadAiProductPickerOptions(flowConfig).catch(() => { });
             loadAiProductDrafts(flowConfig).catch(() => { });
         }
 
@@ -7493,8 +7794,10 @@
             const fullContent = document.getElementById('bioAiProductFullContent')?.value || '';
             const parsed = aiParseProductFromFullText(fullContent);
             const slugInput = document.getElementById('bioAiProductSlug');
-            const slugValue = (slugInput?.value || '').trim() || aiGuessSlugFromText(fullContent);
-            const shortName = parsed.shortName || '';
+            const titleValue = (document.getElementById('bioAiProductTitle')?.value || '').trim();
+            const shortName = (document.getElementById('bioAiProductShortName')?.value || '').trim() || parsed.shortName || '';
+            const slugFromTitle = titleValue.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            const slugValue = (slugInput?.value || '').trim() || aiGuessSlugFromText(fullContent) || slugFromTitle;
 
             if (!slugValue) {
                 if (msg) {
@@ -7512,16 +7815,40 @@
             }
             if (slugInput && !slugInput.value.trim()) slugInput.value = slugValue;
             if (!files || !files.length) return;
+            const fileList = Array.from(files);
+            if ((bioAiUploadedImageUrls.length + fileList.length) > AI_PRODUCT_MAX_IMAGES) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = `单个产品最多 ${AI_PRODUCT_MAX_IMAGES} 张图片，请先减少选择数量。`;
+                }
+                return;
+            }
+            const oversized = fileList.find(file => Number(file?.size || 0) > AI_PRODUCT_MAX_IMAGE_BYTES);
+            if (oversized) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = `单张图片不能超过 10MB：${oversized.name || '未命名文件'}`;
+                }
+                return;
+            }
+            const unsupported = fileList.map(file => validateAiProductImageFile(file)).find(Boolean);
+            if (unsupported) {
+                if (msg) {
+                    msg.style.color = '#dc2626';
+                    msg.textContent = unsupported;
+                }
+                return;
+            }
 
             if (msg) {
                 msg.style.color = '#2563eb';
-                msg.textContent = `正在上传 ${files.length} 张图片...`;
+                msg.textContent = `正在上传 ${fileList.length} 张图片...`;
             }
 
             const formData = new FormData();
             formData.append('slug', slugValue);
             formData.append('short_name', shortName);
-            Array.from(files).forEach(file => formData.append('files', file));
+            fileList.forEach(file => formData.append('files', file));
 
             try {
                 const res = await fetch('/api/bio-products/ai-upload-images', {
@@ -7557,24 +7884,35 @@
         function getBioAiProductPayload() {
             const fullContent = document.getElementById('bioAiProductFullContent')?.value.trim() || '';
             const parsed = aiParseProductFromFullText(fullContent);
+            const titleInput = document.getElementById('bioAiProductTitle');
+            const shortNameInput = document.getElementById('bioAiProductShortName');
+            const summaryInput = document.getElementById('bioAiProductSummary');
             const slugInput = document.getElementById('bioAiProductSlug');
+            if (titleInput && !titleInput.value.trim() && parsed.title) titleInput.value = parsed.title;
+            if (shortNameInput && !shortNameInput.value.trim() && parsed.shortName) shortNameInput.value = parsed.shortName;
+            if (summaryInput && !summaryInput.value.trim() && parsed.summary) summaryInput.value = parsed.summary;
+            const title = (titleInput?.value || '').trim() || parsed.title || '';
+            const shortName = (shortNameInput?.value || '').trim() || parsed.shortName || '';
+            const summary = (summaryInput?.value || '').trim() || parsed.summary || '';
             const manualSlug = (slugInput?.value || '').trim();
-            const slug = manualSlug || aiGuessSlugFromText(fullContent);
+            const slug = manualSlug || aiGuessSlugFromText(fullContent) || title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
             if (slugInput && !manualSlug && slug) slugInput.value = slug;
-            const category = 'sensor';
+            const categoryValue = document.getElementById('bioAiProductCategory')?.value || 'sensor';
+            const category = AI_PRODUCT_CATEGORIES.includes(categoryValue) ? categoryValue : 'sensor';
             const imageUrls = Array.isArray(bioAiUploadedImageUrls) ? bioAiUploadedImageUrls : [];
             const imageUrl = imageUrls[0] || '/cdn_assets/images/common/f1dcc87cdcca.png';
+            const config = getAiProductFlowConfig('bio');
 
             return {
-                title: parsed.title || slug || '未命名产品',
-                short_name: parsed.shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
+                title: title || slug || '未命名产品',
+                short_name: shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
                 slug: slug,
                 category: category,
                 image_url: imageUrl,
                 detail_image_urls: imageUrls.join('\n'),
-                news_urls: '',
-                related_product_urls: '',
-                summary: parsed.summary || '',
+                news_urls: getAiSelectedNewsUrls(config).join('\n'),
+                related_product_urls: getAiSelectedRelatedProductUrls(config).join('\n'),
+                summary: summary,
                 context_text: fullContent,
                 full_text: fullContent
             };
@@ -7644,10 +7982,10 @@
             const modifyMsg = document.getElementById('bioAiProductModifyMsg');
             const config = getAiProductFlowConfig('bio');
             const payload = getBioAiProductPayload();
-            if (!payload.slug || !payload.context_text) {
+            if (!payload.slug || !payload.title || !payload.short_name) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先填写产品资料总输入框，并提供可用的链接标识。';
+                    msg.textContent = '请先填写产品标题、简称和可用的链接标识。';
                 }
                 return;
             }
@@ -7676,6 +8014,7 @@
                 if (!res.ok) {
                     throw new Error(data.message || 'AI 生成失败');
                 }
+                config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || {});
                 setBioAiGeneratedHtmlOutput(data.page_html || '');
                 if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
@@ -7701,6 +8040,13 @@
             const currentSections = parseAiProductSectionsJson(config, true);
             const payload = getBioAiProductPayload();
 
+            if (currentSections === null) {
+                if (modifyMsg) {
+                    modifyMsg.style.color = '#dc3545';
+                    modifyMsg.textContent = '结构化 JSON 格式有误，请修正后再修改';
+                }
+                return;
+            }
             if (!Object.keys(currentSections || {}).length) {
                 if (modifyMsg) {
                     modifyMsg.style.color = '#dc3545';
@@ -7736,6 +8082,8 @@
                         category: payload.category,
                         image_url: payload.image_url,
                         summary: payload.summary,
+                        news_urls: payload.news_urls,
+                        related_product_urls: payload.related_product_urls,
                         context_text: buildAiProductContextText(payload),
                         instruction,
                         sections: currentSections
@@ -7745,6 +8093,7 @@
                 if (!res.ok) {
                     throw new Error(data.message || 'AI 修改失败');
                 }
+                config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || currentSections);
                 setBioAiGeneratedHtmlOutput(data.page_html || '');
                 if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
@@ -7775,21 +8124,45 @@
             const linkEl = document.getElementById('bioAiProductLink');
             const config = getAiProductFlowConfig('bio');
             const payload = getBioAiProductPayload();
-            if (!payload.slug || !payload.context_text) {
+            if (!payload.slug || !payload.title || !payload.short_name || !payload.category) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先填写产品资料总输入框，并提供可用的链接标识。';
+                    msg.textContent = '请先填写产品标题、简称、分类和可用的链接标识。';
                 }
                 return;
             }
+            if (config.getImageUrls().length > AI_PRODUCT_MAX_IMAGES) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = `单个产品最多 ${AI_PRODUCT_MAX_IMAGES} 张图片，请先减少图片数量。`;
+                }
+                return;
+            }
+            const isHtmlMode = config.getMode() === 'html';
+            const pageHtml = getBioAiGeneratedHtml().trim();
             const sections = parseAiProductSectionsJson(config, true);
-            if (!Object.keys(sections || {}).length) {
+            if (sections === null) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '结构化 JSON 格式有误，请修正后再保存。';
+                }
+                return;
+            }
+            if (isHtmlMode && !pageHtml) {
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '源码模式下请先填写完整 HTML 源码。';
+                }
+                return;
+            }
+            if (!isHtmlMode && !Object.keys(sections || {}).length) {
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = '请先点击“AI 生成页面内容”';
                 }
                 return;
             }
+            const publishSections = applyAiPickerSelectionsToSections(config, sections || {});
 
             if (msg) {
                 msg.style.color = '#2563eb';
@@ -7798,18 +8171,22 @@
             if (linkEl) linkEl.innerHTML = '';
 
             try {
-                const res = await fetch('/api/bio-products/ai-create-from-sections', {
+                const endpoint = isHtmlMode ? '/api/bio-products/ai-create-html' : '/api/bio-products/ai-create-from-sections';
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...payload,
                         draft_id: config.getCurrentDraftId(),
                         source_text: payload.full_text || payload.context_text || '',
-                        sections
+                        image_urls: config.getImageUrls(),
+                        sections: publishSections,
+                        page_html: isHtmlMode ? pageHtml : undefined,
+                        mode: isHtmlMode ? 'html' : 'structured'
                     })
                 });
-                const data = await res.json();
-                if (!data.success) throw new Error(data.message || '生成失败');
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) throw new Error(data.message || '生成失败');
                 if (data.page_html) setBioAiGeneratedHtmlOutput(data.page_html);
                 if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
 
@@ -7821,7 +8198,7 @@
                     const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
                     linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
                 }
-                scheduleAiProductDraftSave(config, { sections, page_html: getBioAiGeneratedHtml(), status: 'published', published_link: data.link || '' });
+                scheduleAiProductDraftSave(config, { sections: publishSections, page_html: getBioAiGeneratedHtml(), status: 'published', published_link: data.link || '', mode: isHtmlMode ? 'html' : 'structured' });
                 await loadBioProducts();
             } catch (e) {
                 if (msg) {
@@ -7838,16 +8215,25 @@
 
             const fullContentInput = document.getElementById('bioAiProductFullContent');
             const slugInput = document.getElementById('bioAiProductSlug');
-            if (fullContentInput && slugInput) {
+            const titleInput = document.getElementById('bioAiProductTitle');
+            const shortNameInput = document.getElementById('bioAiProductShortName');
+            const summaryInput = document.getElementById('bioAiProductSummary');
+            const categoryInput = document.getElementById('bioAiProductCategory');
+            if (fullContentInput) {
                 fullContentInput.addEventListener('input', () => {
-                    if (slugInput.value.trim()) return;
+                    const parsed = aiParseProductFromFullText(fullContentInput.value || '');
+                    if (titleInput && !titleInput.value.trim() && parsed.title) titleInput.value = parsed.title;
+                    if (shortNameInput && !shortNameInput.value.trim() && parsed.shortName) shortNameInput.value = parsed.shortName;
+                    if (summaryInput && !summaryInput.value.trim() && parsed.summary) summaryInput.value = parsed.summary;
+                    if (!slugInput || slugInput.value.trim()) return;
                     const guessed = aiGuessSlugFromText(fullContentInput.value || '');
                     if (guessed) slugInput.value = guessed;
                 });
             }
-            [fullContentInput, slugInput].forEach(el => {
+            [fullContentInput, slugInput, titleInput, shortNameInput, summaryInput, categoryInput].forEach(el => {
                 if (!el) return;
                 el.addEventListener('input', () => scheduleAiProductDraftSave(flowConfig));
+                el.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
             });
 
             const genBtn = document.getElementById('bioAiGenerateFieldsBtn');
@@ -7872,7 +8258,7 @@
                 window.__aiProductPreviewHeightBound = true;
             }
 
-            ['bioAiProductSlug', 'bioAiProductFullContent', 'bioAiProductFieldsJson']
+            ['bioAiProductSlug', 'bioAiProductFullContent', 'bioAiProductTitle', 'bioAiProductShortName', 'bioAiProductSummary', 'bioAiProductCategory', 'bioAiProductFieldsJson']
                 .forEach(id => {
                     const el = document.getElementById(id);
                     if (!el) return;
@@ -7882,6 +8268,7 @@
             const generatedHtmlBox = document.getElementById('bioAiProductFieldsJson');
             if (generatedHtmlBox) {
                 generatedHtmlBox.addEventListener('input', () => {
+                    flowConfig.setMode('html');
                     updateBioAiProductPreview().catch(() => { });
                     scheduleAiProductDraftSave(flowConfig, { mode: 'html', page_html: generatedHtmlBox.value || '' });
                 });
@@ -7890,6 +8277,7 @@
             if (sectionsBox) {
                 let sectionsPreviewTimer = null;
                 sectionsBox.addEventListener('input', () => {
+                    flowConfig.setMode('structured');
                     parseAiProductSectionsJson(flowConfig, false);
                     scheduleAiProductDraftSave(flowConfig);
                     if (sectionsPreviewTimer) clearTimeout(sectionsPreviewTimer);
@@ -7910,8 +8298,16 @@
             }
             const newDraftBtn = document.getElementById('bioAiProductNewDraftBtn');
             if (newDraftBtn) newDraftBtn.addEventListener('click', () => createBlankAiProductDraft(flowConfig).catch(() => { }));
+            flowConfig.newsSelectIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
+            });
+            const relatedBox = document.getElementById(flowConfig.relatedProductsId);
+            if (relatedBox) relatedBox.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
 
             renderBioAiUploadedImages();
+            renderAiProductPickers(flowConfig, [], []);
+            loadAiProductPickerOptions(flowConfig).catch(() => { });
             loadAiProductDrafts(flowConfig).catch(() => { });
         }
 
@@ -7945,6 +8341,88 @@
                 return `<option value="${escapeAttr(link)}" ${selectedLink === link ? 'selected' : ''}>${escapeHtml(label)}</option>`;
             }).join('');
             return base + options;
+        }
+
+        function buildAiProductOptionsHtml(products, selected, family) {
+            const selectedLink = String(selected || '');
+            const base = '<option value="">不指定</option>';
+            const options = (products || []).map(item => {
+                const link = getAiProductOptionLink(item, family);
+                if (!link) return '';
+                const title = String(item.displayName || item.cardTitle || item.name || item.title || item.id || link);
+                return `<option value="${escapeAttr(link)}" ${selectedLink === link ? 'selected' : ''}>${escapeHtml(title)}</option>`;
+            }).join('');
+            return base + options;
+        }
+
+        function getAiProductOptionLink(item, family) {
+            const rawLink = String(item?.link || item?.url || '');
+            const id = String(item?.id || '').trim();
+            return rawLink || (id ? `${family === 'bio' ? '/pages/biosensing' : '/pages/gassensing'}/${id}.html` : '');
+        }
+
+        async function loadAiProductPickerOptions(config, selectedNews = null, selectedRelated = null) {
+            try {
+                const newsSelection = Array.isArray(selectedNews) ? selectedNews : getAiSelectedNewsUrls(config);
+                const relatedSelection = Array.isArray(selectedRelated) ? selectedRelated : getAiSelectedRelatedProductUrls(config);
+                const [newsRes, productsRes] = await Promise.all([
+                    aiProductNewsOptionsCache.length ? Promise.resolve(null) : fetch('/api/news/list'),
+                    fetch(config.family === 'bio' ? '/api/bio-products/with-settings' : '/api/products/with-settings')
+                ]);
+                if (newsRes) {
+                    const newsData = await newsRes.json().catch(() => ({}));
+                    aiProductNewsOptionsCache = Array.isArray(newsData.items) ? newsData.items : (Array.isArray(newsData.news) ? newsData.news : []);
+                }
+                const productsData = await productsRes.json().catch(() => ({}));
+                aiProductRelatedOptionsCache[config.family] = Array.isArray(productsData.products) ? productsData.products : [];
+                renderAiProductPickers(config, newsSelection, relatedSelection);
+            } catch (e) {
+                setAiDraftMessage(config, '相关新闻或相关产品选项加载失败，可稍后重试。', '#d97706');
+            }
+        }
+
+        function renderAiProductPickers(config, selectedNews = getAiSelectedNewsUrls(config), selectedRelated = getAiSelectedRelatedProductUrls(config)) {
+            config.newsSelectIds.forEach((id, index) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = buildNewsOptionsHtml(aiProductNewsOptionsCache, selectedNews[index] || '');
+            });
+            const relatedBox = document.getElementById(config.relatedProductsId);
+            if (relatedBox) {
+                relatedBox.innerHTML = [0, 1, 2, 3].map(index => `
+                    <select class="form-control ai-related-product-select" data-index="${index}">
+                        ${buildAiProductOptionsHtml(aiProductRelatedOptionsCache[config.family] || [], selectedRelated[index] || '', config.family)}
+                    </select>
+                `).join('');
+            }
+        }
+
+        function applyAiPickerSelectionsToSections(config, sections) {
+            const next = { ...(sections && typeof sections === 'object' ? sections : {}) };
+            const selectedNews = getAiSelectedNewsUrls(config);
+            if (selectedNews.length) {
+                next.news = selectedNews.map(link => {
+                    const item = aiProductNewsOptionsCache.find(news => String(news.link || '') === link) || {};
+                    return {
+                        href: link,
+                        img: item.image || item.img || '/assets/images/logo.png',
+                        title: item.title || link,
+                        desc: item.summary || item.desc || ''
+                    };
+                });
+            }
+            const selectedRelated = getAiSelectedRelatedProductUrls(config);
+            if (selectedRelated.length) {
+                const options = aiProductRelatedOptionsCache[config.family] || [];
+                next.related_products = selectedRelated.map(link => {
+                    const item = options.find(product => getAiProductOptionLink(product, config.family) === link) || {};
+                    return {
+                        href: link,
+                        img: item.cardImage || item.image || item.img || '/assets/images/logo.png',
+                        title: item.displayName || item.cardTitle || item.name || item.title || link
+                    };
+                });
+            }
+            return next;
         }
 
         function triggerProductCodeDownload(productId, endpoint = '/api/products/code/download') {
@@ -15724,7 +16202,12 @@
                 if (!res.ok || !data.success) {
                     throw new Error(data.message || '子账号列表加载失败');
                 }
-                if (Array.isArray(data.permission_catalog) && data.permission_catalog.length) {
+                if (data.feature_unlocks && typeof data.feature_unlocks === 'object' && !Array.isArray(data.feature_unlocks)) {
+                    featureUnlocks = normalizeFeatureUnlocks(data.feature_unlocks);
+                    syncUnlockedFeatureList();
+                    applySidebarPermissions();
+                }
+                if (Array.isArray(data.permission_catalog)) {
                     permissionCatalog = normalizePermissionCatalog(data.permission_catalog);
                 }
                 subAccountsCache = Array.isArray(data.items) ? data.items : [];
