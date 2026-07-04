@@ -596,9 +596,17 @@
                         <div class="card" style="padding:30px;">
                             <h3 class="section-header">AI 自动上架 · 气体传感产品</h3>
                             <p style="margin-bottom: 16px; color:#667085; font-size:13px;">
-                                填写产品资料后，系统将调用“产品页编程 AI”参考 <code>pages/gassensing/mc_ld_h2.html</code> 直接生成完整
+                                填写产品资料后，系统将调用“产品页编程 AI”生成结构化页面内容，再由后台套用参考页骨架渲染完整
                                 HTML，并可保存为产品页面文件（<code>pages/gassensing/*.html</code>）。
                             </p>
+                            <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px; background:#f8fafc; margin-bottom:16px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                                    <strong style="font-size:14px; color:#0f172a;">AI 创建草稿</strong>
+                                    <button type="button" class="btn-sm" id="aiProductNewDraftBtn" style="width:auto; padding:8px 12px;">新建草稿</button>
+                                </div>
+                                <div id="aiProductDraftsList" style="margin-top:10px; display:grid; gap:8px;"></div>
+                                <div id="aiProductDraftMsg" style="margin-top:8px; font-size:12px; color:#64748b;"></div>
+                            </div>
 
                             <form id="aiProductForm">
                                 <div style="display:grid; grid-template-columns: 1fr; gap: 16px;">
@@ -633,7 +641,7 @@
 
                             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px;">
                                 <button type="button" id="aiGenerateFieldsBtn" class="btn-primary"
-                                    style="width:auto; padding:10px 18px;">AI 生成完整HTML</button>
+                                    style="width:auto; padding:10px 18px;">AI 生成页面内容</button>
                                 <button type="button" id="aiCreateProductBtn" class="btn-sm"
                                     style="width:auto; padding:10px 18px;">保存为产品页面文件</button>
                                 <span id="aiProductMsg"
@@ -643,17 +651,23 @@
                         </div>
 
                         <div class="card" style="padding:30px; margin-top:20px;">
-                            <h3 class="section-header">AI 生成结果（完整 HTML 源码）</h3>
-                            <textarea id="aiProductFieldsJson" class="form-control" rows="18"
-                                placeholder="点击“AI 生成完整HTML”后自动填充，可手工微调源码。"></textarea>
+                            <h3 class="section-header">AI 生成结果（结构化页面内容）</h3>
+                            <textarea id="aiProductSectionsJson" class="form-control" rows="18"
+                                placeholder="点击“AI 生成页面内容”后自动填充结构化 JSON，可手工微调字段。"></textarea>
+                            <details style="margin-top:12px;">
+                                <summary style="cursor:pointer; color:#475569; font-size:13px; font-weight:600;">高级源码模式（完整 HTML 兜底）</summary>
+                                <textarea id="aiProductFieldsJson" class="form-control" rows="12"
+                                    style="margin-top:10px;"
+                                    placeholder="仅在特殊页面需要手工调整完整 HTML 时使用。"></textarea>
+                            </details>
                             <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d1d5db;">
                                 <label style="font-size: 13px; color:#374151; font-weight:600;">AI 修改意见（支持多轮）</label>
                                 <textarea id="aiProductModifyInstruction" class="form-control" rows="3"
-                                    placeholder="例如：把参数区改成表格；把相关新闻改成三列卡片；主图改为圆角阴影并加点击放大"></textarea>
+                                    placeholder="例如：把标题改短一点；新增 3 条技术参数；把应用场景改为加氢站、实验室、储氢设施"></textarea>
                                 <div
                                     style="display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;">
                                     <button type="button" id="aiProductModifyBtn" class="btn-primary"
-                                        style="width:auto; padding:10px 18px;">AI 按意见修改HTML</button>
+                                        style="width:auto; padding:10px 18px;">AI 按意见修改内容</button>
                                     <span id="aiProductModifyMsg" style="font-size:13px; color:#2563eb;"></span>
                                 </div>
                             </div>
@@ -885,9 +899,17 @@
                         <div class="card" style="padding:30px;">
                             <h3 class="section-header">AI 自动上架 · 生物传感产品</h3>
                             <p style="margin-bottom: 16px; color:#667085; font-size:13px;">
-                                填写产品资料后，系统将调用“产品页编程 AI”参考 <code>pages/biosensing/blood_potassium_chip.html</code> 直接生成完整
+                                填写产品资料后，系统将调用“产品页编程 AI”生成结构化页面内容，再由后台套用参考页骨架渲染完整
                                 HTML，并可保存为产品页面文件（<code>pages/biosensing/*.html</code>）。
                             </p>
+                            <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px; background:#f8fafc; margin-bottom:16px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                                    <strong style="font-size:14px; color:#0f172a;">AI 创建草稿</strong>
+                                    <button type="button" class="btn-sm" id="bioAiProductNewDraftBtn" style="width:auto; padding:8px 12px;">新建草稿</button>
+                                </div>
+                                <div id="bioAiProductDraftsList" style="margin-top:10px; display:grid; gap:8px;"></div>
+                                <div id="bioAiProductDraftMsg" style="margin-top:8px; font-size:12px; color:#64748b;"></div>
+                            </div>
 
                             <form id="bioAiProductForm">
                                 <div style="display:grid; grid-template-columns: 1fr; gap: 16px;">
@@ -922,7 +944,7 @@
 
                             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 4px;">
                                 <button type="button" id="bioAiGenerateFieldsBtn" class="btn-primary"
-                                    style="width:auto; padding:10px 18px;">AI 生成完整HTML</button>
+                                    style="width:auto; padding:10px 18px;">AI 生成页面内容</button>
                                 <button type="button" id="bioAiCreateProductBtn" class="btn-sm"
                                     style="width:auto; padding:10px 18px;">保存为产品页面文件</button>
                                 <span id="bioAiProductMsg"
@@ -932,17 +954,23 @@
                         </div>
 
                         <div class="card" style="padding:30px; margin-top:20px;">
-                            <h3 class="section-header">AI 生成结果（完整 HTML 源码）</h3>
-                            <textarea id="bioAiProductFieldsJson" class="form-control" rows="18"
-                                placeholder="点击“AI 生成完整HTML”后自动填充，可手工微调源码。"></textarea>
+                            <h3 class="section-header">AI 生成结果（结构化页面内容）</h3>
+                            <textarea id="bioAiProductSectionsJson" class="form-control" rows="18"
+                                placeholder="点击“AI 生成页面内容”后自动填充结构化 JSON，可手工微调字段。"></textarea>
+                            <details style="margin-top:12px;">
+                                <summary style="cursor:pointer; color:#475569; font-size:13px; font-weight:600;">高级源码模式（完整 HTML 兜底）</summary>
+                                <textarea id="bioAiProductFieldsJson" class="form-control" rows="12"
+                                    style="margin-top:10px;"
+                                    placeholder="仅在特殊页面需要手工调整完整 HTML 时使用。"></textarea>
+                            </details>
                             <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d1d5db;">
                                 <label style="font-size: 13px; color:#374151; font-weight:600;">AI 修改意见（支持多轮）</label>
                                 <textarea id="bioAiProductModifyInstruction" class="form-control" rows="3"
-                                    placeholder="例如：把参数区改成表格；把相关新闻改成三列卡片；主图改为圆角阴影并加点击放大"></textarea>
+                                    placeholder="例如：把标题改短一点；新增 3 条技术参数；把应用场景改为急诊、ICU、床旁检测"></textarea>
                                 <div
                                     style="display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;">
                                     <button type="button" id="bioAiProductModifyBtn" class="btn-primary"
-                                        style="width:auto; padding:10px 18px;">AI 按意见修改HTML</button>
+                                        style="width:auto; padding:10px 18px;">AI 按意见修改内容</button>
                                     <span id="bioAiProductModifyMsg" style="font-size:13px; color:#2563eb;"></span>
                                 </div>
                             </div>

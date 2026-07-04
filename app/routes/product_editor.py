@@ -43,13 +43,16 @@
 from __future__ import annotations
 
 import base64
+from datetime import datetime, timezone
 import html
 import json
 import re
+import threading
+import uuid
 from html.parser import HTMLParser
 from pathlib import Path
 
-from flask import Response, jsonify, request, send_file, stream_with_context
+from flask import Response, jsonify, request, send_file, session, stream_with_context
 
 try:
     import httpx
@@ -68,6 +71,20 @@ except ImportError:
 _DEPS = {}
 PRODUCT_ADMIN_DATA_PREFIX = 'MC_PRODUCT_ADMIN_DATA:'
 ALLOWED_PRODUCT_CATEGORIES = {'sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'}
+PRODUCT_AI_DRAFTS_LOCK = threading.Lock()
+PRODUCT_SECTION_TEXT_KEYS = {'title', 'description', 'detail', 'app_intro', 'cta_title', 'cta_desc'}
+PRODUCT_SECTION_LIST_KEYS = {
+    'images',
+    'highlights',
+    'advantages',
+    'applications',
+    'specs',
+    'news',
+    'related_products',
+}
+PRODUCT_SECTION_KEYS = PRODUCT_SECTION_TEXT_KEYS | PRODUCT_SECTION_LIST_KEYS
+PRODUCT_AI_DRAFT_STATUSES = {'draft', 'generated', 'published'}
+PRODUCT_AI_DRAFT_MODES = {'structured', 'html'}
 
 PRODUCT_SPECS_MOBILE_GUARD = """
 
@@ -220,6 +237,79 @@ def _get_products_dir_by_family(product_family: str) -> Path:
 
 def _get_products_web_prefix_by_family(product_family: str) -> str:
     return '/pages/biosensing' if str(product_family or '').strip().lower() == 'bio' else '/pages/gassensing'
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+
+
+def _product_ai_drafts_file() -> Path:
+    return _dep('app_root') / 'data' / 'product_ai_drafts.json'
+
+
+def _current_admin_username() -> str:
+    return str(session.get('admin_username') or '').strip()
+
+
+def _read_product_ai_drafts_payload() -> dict:
+    path = _product_ai_drafts_file()
+    if not path.exists():
+        return {'version': 1, 'items': []}
+    try:
+        payload = json.loads(path.read_text(encoding='utf-8') or '{}')
+    except Exception:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    items = payload.get('items')
+    if not isinstance(items, list):
+        items = []
+    return {'version': int(payload.get('version', 1) or 1), 'items': [item for item in items if isinstance(item, dict)]}
+
+
+def _write_product_ai_drafts_payload(payload: dict) -> None:
+    path = _product_ai_drafts_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    safe_payload = payload if isinstance(payload, dict) else {'version': 1, 'items': []}
+    items = safe_payload.get('items')
+    if not isinstance(items, list):
+        items = []
+    safe_payload = {'version': int(safe_payload.get('version', 1) or 1), 'items': [item for item in items if isinstance(item, dict)]}
+    tmp = path.with_suffix(path.suffix + f'.tmp-{uuid.uuid4().hex}')
+    tmp.write_text(json.dumps(safe_payload, ensure_ascii=False, indent=2), encoding='utf-8')
+    tmp.replace(path)
+
+
+def _safe_draft_id(raw_value: str) -> str:
+    value = str(raw_value or '').strip()
+    if re.fullmatch(r'[A-Za-z0-9_-]{8,80}', value):
+        return value
+    return ''
+
+
+def _new_product_ai_draft_id() -> str:
+    return f'draft_{uuid.uuid4().hex}'
+
+
+def _normalize_product_family(value: str) -> str:
+    return 'bio' if str(value or '').strip().lower() == 'bio' else 'gas'
+
+
+def _normalize_draft_status(value: str) -> str:
+    status = str(value or '').strip().lower()
+    return status if status in PRODUCT_AI_DRAFT_STATUSES else 'draft'
+
+
+def _normalize_draft_mode(value: str) -> str:
+    mode = str(value or '').strip().lower()
+    return mode if mode in PRODUCT_AI_DRAFT_MODES else 'structured'
+
+
+def _clean_draft_text(value, max_length: int = 20000) -> str:
+    text = str(value or '').replace('\r\n', '\n').replace('\r', '\n').strip()
+    if max_length > 0 and len(text) > max_length:
+        text = text[:max_length]
+    return text
 
 
 def resolve_product_html_path_by_id(product_id: str) -> tuple[Path | None, str]:
@@ -1032,6 +1122,470 @@ def _normalize_text_lines(value):
     return [p.strip() for p in parts if p and p.strip()]
 
 
+def _unique_nonempty_strings(values, limit: int = 12) -> list[str]:
+    result = []
+    source = values if isinstance(values, list) else _normalize_text_lines(values)
+    for item in source:
+        text = str(item or '').strip()
+        if not text or text in result:
+            continue
+        result.append(text)
+        if len(result) >= limit:
+            break
+    return result
+
+
+def _normalize_icon(value: str, fallback: str = 'fas fa-check-circle') -> str:
+    text = str(value or '').strip()
+    if not text:
+        return fallback
+    text = re.sub(r'[^A-Za-z0-9 _-]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text or fallback
+
+
+def _normalize_product_sections(raw_sections, *, partial: bool = False, defaults: dict | None = None) -> dict:
+    """Normalize AI/page section data into the fixed `vs-*` editing model."""
+    source = raw_sections if isinstance(raw_sections, dict) else {}
+    normalized = {} if partial else dict(defaults or {})
+
+    def should_take(key: str) -> bool:
+        return key in source
+
+    for key in PRODUCT_SECTION_TEXT_KEYS:
+        if should_take(key):
+            normalized[key] = _clean_draft_text(source.get(key), max_length=6000)
+        elif not partial and key not in normalized:
+            normalized[key] = ''
+
+    if should_take('images'):
+        normalized['images'] = _unique_nonempty_strings(source.get('images'), limit=12)
+    elif not partial and 'images' not in normalized:
+        normalized['images'] = []
+
+    if should_take('highlights'):
+        normalized['highlights'] = _unique_nonempty_strings(source.get('highlights'), limit=12)
+    elif not partial and 'highlights' not in normalized:
+        normalized['highlights'] = []
+
+    if should_take('advantages'):
+        items = source.get('advantages') if isinstance(source.get('advantages'), list) else []
+        cards = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            title = _clean_draft_text(item.get('title'), max_length=120)
+            desc = _clean_draft_text(item.get('desc') or item.get('description'), max_length=360)
+            if not title and not desc:
+                continue
+            cards.append({
+                'icon': _normalize_icon(item.get('icon'), fallback='fas fa-check-circle'),
+                'title': title,
+                'desc': desc,
+            })
+            if len(cards) >= 12:
+                break
+        normalized['advantages'] = cards
+    elif not partial and 'advantages' not in normalized:
+        normalized['advantages'] = []
+
+    if should_take('applications'):
+        items = source.get('applications') if isinstance(source.get('applications'), list) else []
+        cards = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            title = _clean_draft_text(item.get('title'), max_length=120)
+            desc = _clean_draft_text(item.get('desc') or item.get('description'), max_length=420)
+            scenario = _clean_draft_text(item.get('scenario') or item.get('scenarios'), max_length=240)
+            img = _clean_draft_text(item.get('img') or item.get('image'), max_length=600)
+            if not title and not desc and not scenario:
+                continue
+            cards.append({
+                'icon': _normalize_icon(item.get('icon'), fallback='fas fa-circle'),
+                'title': title,
+                'desc': desc,
+                'scenario': scenario,
+                'img': img,
+            })
+            if len(cards) >= 12:
+                break
+        normalized['applications'] = cards
+    elif not partial and 'applications' not in normalized:
+        normalized['applications'] = []
+
+    if should_take('specs'):
+        rows = source.get('specs') if isinstance(source.get('specs'), list) else []
+        specs = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            key = _clean_draft_text(row.get('key') or row.get('name'), max_length=120)
+            value = _clean_draft_text(row.get('value') or row.get('val'), max_length=300)
+            if not key and not value:
+                continue
+            specs.append({'key': key, 'value': value})
+            if len(specs) >= 48:
+                break
+        normalized['specs'] = specs
+    elif not partial and 'specs' not in normalized:
+        normalized['specs'] = []
+
+    if should_take('news'):
+        items = source.get('news') if isinstance(source.get('news'), list) else []
+        news = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            title = _clean_draft_text(item.get('title'), max_length=180)
+            desc = _clean_draft_text(item.get('desc') or item.get('description'), max_length=320)
+            href = _clean_draft_text(item.get('href') or item.get('url') or item.get('link'), max_length=600) or '#'
+            img = _clean_draft_text(item.get('img') or item.get('image'), max_length=600)
+            if not title and not desc:
+                continue
+            news.append({'href': href, 'img': img, 'title': title, 'desc': desc})
+            if len(news) >= 12:
+                break
+        normalized['news'] = news
+    elif not partial and 'news' not in normalized:
+        normalized['news'] = []
+
+    if should_take('related_products'):
+        items = source.get('related_products') if isinstance(source.get('related_products'), list) else []
+        related = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            title = _clean_draft_text(item.get('title') or item.get('name'), max_length=160)
+            href = _clean_draft_text(item.get('href') or item.get('url') or item.get('link'), max_length=600) or '#'
+            img = _clean_draft_text(item.get('img') or item.get('image'), max_length=600)
+            if not title:
+                continue
+            related.append({'href': href, 'img': img, 'title': title})
+            if len(related) >= 12:
+                break
+        normalized['related_products'] = related
+    elif not partial and 'related_products' not in normalized:
+        normalized['related_products'] = []
+
+    return {key: normalized[key] for key in PRODUCT_SECTION_KEYS if key in normalized}
+
+
+def _build_default_product_sections(
+    *,
+    title: str,
+    summary: str,
+    image_url: str,
+    detail_image_urls='',
+    context_text: str = '',
+) -> dict:
+    images = _unique_nonempty_strings([image_url, *_normalize_text_lines(detail_image_urls)], limit=12)
+    fallback_image = image_url or '/assets/images/logo.png'
+    if not images:
+        images = [fallback_image]
+    clean_title = _clean_draft_text(title, max_length=160) or '产品页面'
+    clean_summary = _clean_draft_text(summary, max_length=600)
+    return {
+        'title': clean_title,
+        'description': clean_summary or f'{clean_title}产品详情与应用方案。',
+        'images': images,
+        'highlights': [],
+        'detail': _clean_draft_text(context_text, max_length=6000),
+        'advantages': [],
+        'app_intro': '',
+        'applications': [],
+        'specs': [],
+        'news': [],
+        'related_products': [],
+        'cta_title': f'获取{clean_title}产品方案',
+        'cta_desc': '欢迎联系元芯传感，获取产品选型、技术支持与定制化方案。',
+    }
+
+
+def _first_image_from_sections(sections, fallback: str = '/assets/images/logo.png') -> str:
+    if isinstance(sections, dict):
+        images = sections.get('images')
+        if isinstance(images, list):
+            for item in images:
+                text = str(item or '').strip()
+                if text:
+                    return text
+    return fallback
+
+
+def _merge_product_sections(current_sections: dict, patch_sections: dict) -> dict:
+    merged = dict(current_sections if isinstance(current_sections, dict) else {})
+    for key in PRODUCT_SECTION_KEYS:
+        if key in patch_sections:
+            merged[key] = patch_sections[key]
+    return _normalize_product_sections(merged)
+
+
+def _extract_product_sections_from_ai_response(response_text: str, *, defaults: dict | None = None) -> dict:
+    parsed = parse_json_object_from_ai_text(response_text or '')
+    raw_sections = parsed.get('sections') if isinstance(parsed.get('sections'), dict) else parsed
+    return _normalize_product_sections(raw_sections, defaults=defaults)
+
+
+def _extract_product_patch_from_ai_response(response_text: str) -> dict:
+    parsed = parse_json_object_from_ai_text(response_text or '')
+    raw_patch = parsed.get('patch') if isinstance(parsed.get('patch'), dict) else parsed
+    return _normalize_product_sections(raw_patch, partial=True)
+
+
+def _product_sections_schema_for_prompt() -> dict:
+    return {
+        'sections': {
+            'title': '产品标题',
+            'description': '一句话产品价值描述',
+            'images': ['产品图片 URL'],
+            'highlights': ['核心亮点短句'],
+            'detail': '产品详情正文，可用空行分段',
+            'advantages': [{'icon': 'Font Awesome class', 'title': '优势标题', 'desc': '优势描述'}],
+            'app_intro': '应用场景引导文字',
+            'applications': [{'icon': 'Font Awesome class', 'title': '应用标题', 'desc': '应用描述', 'scenario': '重点场景'}],
+            'specs': [{'key': '参数名', 'value': '参数值'}],
+            'news': [{'href': '新闻链接', 'img': '新闻图 URL', 'title': '新闻标题', 'desc': '新闻摘要'}],
+            'related_products': [{'href': '产品链接', 'img': '产品图 URL', 'title': '产品标题'}],
+            'cta_title': '底部联系标题',
+            'cta_desc': '底部联系说明',
+        }
+    }
+
+
+def _build_product_ai_sections_messages(
+    title,
+    short_name,
+    category,
+    image_url,
+    summary,
+    context_text,
+    detail_image_urls='',
+    news_urls='',
+    related_product_urls='',
+    product_family='gas',
+):
+    """Build compact messages that ask AI for structured product sections only."""
+    ai_cfg = _dep('get_product_page_ai_config')()
+    system_prompt = _dep('get_product_page_ai_system_prompt')()
+    reference_sections = extract_vs_product_sections(ensure_product_dynamic_sections(get_product_ai_reference_html(product_family)))
+    compact_reference = {
+        'section_keys': [key for key in PRODUCT_SECTION_KEYS if key in reference_sections],
+        'example_highlights': (reference_sections.get('highlights') or [])[:3],
+        'example_specs': (reference_sections.get('specs') or [])[:4],
+        'example_advantages': (reference_sections.get('advantages') or [])[:2],
+        'example_applications': (reference_sections.get('applications') or [])[:2],
+    }
+    user_prompt = (
+        "请根据产品资料生成产品页结构化 JSON，不要输出 HTML。\n"
+        "输出要求：\n"
+        "1) 只输出一个 JSON 对象，不要 Markdown，不要解释。\n"
+        "2) JSON 顶层必须包含 sections 字段。\n"
+        "3) sections 只能使用给定 schema 中的字段；不知道的内容留空数组或空字符串，不要编造认证、客户案例或测试报告。\n"
+        "4) 图片字段只能使用已提供的图片 URL；没有图片时使用 /assets/images/logo.png。\n\n"
+        f"schema:\n{json.dumps(_product_sections_schema_for_prompt(), ensure_ascii=False)}\n\n"
+        f"参考页区块摘要（只用于风格和字段数量参考，不要照抄产品内容）:\n{json.dumps(compact_reference, ensure_ascii=False)}\n\n"
+        f"产品资料：\n"
+        f"- 产品标题: {title}\n"
+        f"- 产品简称: {short_name}\n"
+        f"- 产品分类: {category}\n"
+        f"- 产品主图URL: {image_url or '/assets/images/logo.png'}\n"
+        f"- 产品摘要: {summary or '（请你生成）'}\n"
+        f"- 产品详情图片URL列表: {json.dumps(_normalize_text_lines(detail_image_urls), ensure_ascii=False)}\n"
+        f"- 相关新闻URL列表: {json.dumps(_normalize_text_lines(news_urls), ensure_ascii=False)}\n"
+        f"- 相关产品URL列表: {json.dumps(_normalize_text_lines(related_product_urls), ensure_ascii=False)}\n"
+        f"- 详细补充资料:\n{context_text or '（无）'}"
+    )
+    return [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_prompt},
+    ], ai_cfg
+
+
+def _build_product_ai_revise_sections_messages(
+    *,
+    instruction: str,
+    current_sections: dict,
+    title: str,
+    summary: str,
+    context_text: str,
+):
+    """Build compact messages that ask AI for a section merge patch only."""
+    system_prompt = _dep('get_product_page_ai_system_prompt')()
+    compact_current = _normalize_product_sections(current_sections)
+    user_prompt = (
+        "请根据修改意见返回产品页 sections 的 JSON patch，不要输出完整 HTML。\n"
+        "输出要求：\n"
+        "1) 只输出一个 JSON 对象，不要 Markdown，不要解释。\n"
+        "2) 顶层必须是 {\"patch\": {...}}。\n"
+        "3) patch 只包含需要修改的字段；未修改字段不要返回。\n"
+        "4) 数组字段如果需要改动，请返回该数组的新完整值。\n"
+        "5) 只能使用 schema 中的字段。\n\n"
+        f"schema:\n{json.dumps(_product_sections_schema_for_prompt(), ensure_ascii=False)}\n\n"
+        f"修改意见:\n{instruction}\n\n"
+        f"当前产品: {title or compact_current.get('title') or '产品页面'}\n"
+        f"当前摘要: {summary or compact_current.get('description') or ''}\n"
+        f"补充资料:\n{context_text or '（无）'}\n\n"
+        f"当前 sections:\n{json.dumps(compact_current, ensure_ascii=False)}"
+    )
+    return [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_prompt},
+    ]
+
+
+def render_product_page_from_sections(
+    *,
+    product_family: str,
+    title: str,
+    short_name: str,
+    category: str,
+    image_url: str,
+    summary: str,
+    sections: dict,
+    source_text: str = '',
+) -> tuple[str, dict]:
+    """Render a full product HTML page from structured `vs-*` sections."""
+    family = _normalize_product_family(product_family)
+    normalized_sections = _normalize_product_sections(
+        sections,
+        defaults=_build_default_product_sections(
+            title=title,
+            summary=summary,
+            image_url=image_url or '/assets/images/logo.png',
+            detail_image_urls=(sections or {}).get('images', []),
+            context_text=source_text,
+        ),
+    )
+    page_title = normalized_sections.get('title') or title or '产品页面'
+    page_summary = summary or normalized_sections.get('description') or page_title
+    page_image = image_url or (normalized_sections.get('images') or ['/assets/images/logo.png'])[0] or '/assets/images/logo.png'
+
+    page_html = ensure_product_dynamic_sections(get_product_ai_reference_html(family))
+    page_html = patch_vs_product_sections(page_html, normalized_sections)
+    page_html = ensure_product_dynamic_sections(page_html)
+    page_html = inject_product_meta_tags(
+        page_html=page_html,
+        title=page_title,
+        short_name=short_name or page_title,
+        image_url=page_image,
+        summary=page_summary,
+        category=category or ('sensor' if family == 'bio' else 'detector'),
+    )
+    admin_payload = {
+        'version': 4,
+        'title': page_title,
+        'short_name': short_name or page_title,
+        'category': category or ('sensor' if family == 'bio' else 'detector'),
+        'image_url': page_image,
+        'summary': page_summary,
+        'content_html': build_product_content_html_from_template_fields({}),
+        'template_fields': {},
+        'sections': normalized_sections,
+        'source': 'ai-structured-sections',
+    }
+    marker = encode_product_admin_data(admin_payload)
+    if '</body>' in page_html:
+        page_html = page_html.replace('</body>', marker + '\n</body>', 1)
+    else:
+        page_html += '\n' + marker
+    return ensure_product_responsive_guards(page_html), normalized_sections
+
+
+def _normalize_product_ai_draft(data: dict, *, family: str, existing: dict | None = None) -> tuple[dict | None, str]:
+    source = data if isinstance(data, dict) else {}
+    current = existing if isinstance(existing, dict) else {}
+    now = _utc_now_iso()
+    draft_id = _safe_draft_id(current.get('id') or source.get('id')) or _new_product_ai_draft_id()
+    normalized_family = _normalize_product_family(family or current.get('family') or source.get('family'))
+    slug = _clean_draft_text(source.get('slug', current.get('slug', '')), max_length=120).lower()
+    if slug and not re.fullmatch(r'[a-z0-9_]+', slug):
+        return None, '链接标识仅支持小写字母、数字、下划线'
+
+    image_urls_raw = source.get('image_urls', source.get('images', current.get('image_urls', [])))
+    if not image_urls_raw and source.get('detail_image_urls'):
+        image_urls_raw = _normalize_text_lines(source.get('detail_image_urls'))
+    image_urls = _unique_nonempty_strings(image_urls_raw, limit=24)
+
+    raw_sections = source.get('sections', current.get('sections', {}))
+    defaults = _build_default_product_sections(
+        title=source.get('title', current.get('title', '')),
+        summary=source.get('summary', current.get('summary', '')),
+        image_url=(image_urls[0] if image_urls else source.get('image_url', current.get('image_url', ''))),
+        detail_image_urls=image_urls,
+        context_text=source.get('source_text', source.get('context_text', current.get('source_text', ''))),
+    )
+    sections = _normalize_product_sections(raw_sections, defaults=defaults)
+    page_html = _clean_draft_text(source.get('page_html', current.get('page_html', '')), max_length=400000)
+
+    draft = {
+        'id': draft_id,
+        'family': normalized_family,
+        'status': _normalize_draft_status(source.get('status', current.get('status', 'draft'))),
+        'slug': slug,
+        'title': _clean_draft_text(source.get('title', current.get('title', sections.get('title', ''))), max_length=180),
+        'short_name': _clean_draft_text(source.get('short_name', current.get('short_name', '')), max_length=120),
+        'category': _clean_draft_text(
+            source.get('category', current.get('category', 'sensor' if normalized_family == 'bio' else 'detector')),
+            max_length=40,
+        ),
+        'summary': _clean_draft_text(source.get('summary', current.get('summary', sections.get('description', ''))), max_length=800),
+        'source_text': _clean_draft_text(
+            source.get('source_text', source.get('context_text', source.get('full_text', current.get('source_text', '')))),
+            max_length=50000,
+        ),
+        'image_urls': image_urls,
+        'sections': sections,
+        'page_html': page_html,
+        'mode': _normalize_draft_mode(source.get('mode', current.get('mode', 'structured'))),
+        'published_link': _clean_draft_text(source.get('published_link', current.get('published_link', '')), max_length=600),
+        'created_at': _clean_draft_text(current.get('created_at') or source.get('created_at') or now, max_length=40),
+        'updated_at': now,
+        'updated_by': _clean_draft_text(_current_admin_username() or source.get('updated_by') or current.get('updated_by'), max_length=80),
+    }
+    if draft['category'] not in ALLOWED_PRODUCT_CATEGORIES:
+        draft['category'] = 'sensor' if normalized_family == 'bio' else 'detector'
+    if not draft['title']:
+        draft['title'] = sections.get('title') or draft['slug'] or '未命名产品'
+    if not draft['short_name']:
+        draft['short_name'] = draft['slug'].replace('_', '-').upper() if draft['slug'] else draft['title']
+    if not draft['summary']:
+        draft['summary'] = sections.get('description') or draft['title']
+    return draft, ''
+
+
+def _product_ai_draft_list_item(draft: dict) -> dict:
+    return {
+        key: draft.get(key, '')
+        for key in (
+            'id',
+            'family',
+            'status',
+            'slug',
+            'title',
+            'short_name',
+            'category',
+            'summary',
+            'mode',
+            'published_link',
+            'created_at',
+            'updated_at',
+            'updated_by',
+        )
+    } | {'image_count': len(draft.get('image_urls') or [])}
+
+
+def _find_product_ai_draft(items: list[dict], draft_id: str, family: str) -> tuple[dict | None, int]:
+    safe_id = _safe_draft_id(draft_id)
+    if not safe_id:
+        return None, -1
+    expected_family = _normalize_product_family(family)
+    for idx, item in enumerate(items):
+        if item.get('id') == safe_id and _normalize_product_family(item.get('family')) == expected_family:
+            return item, idx
+    return None, -1
+
+
 def _build_product_ai_html_messages(
     title,
     short_name,
@@ -1387,6 +1941,347 @@ def register_product_editor_routes(
         """获取后台可视化表单所需的模板占位符列表。"""
         placeholders = extract_product_template_placeholders(get_product_template_html())
         return jsonify({'items': placeholders, 'count': len(placeholders)})
+
+    @app.route('/api/products/ai-drafts', methods=['GET', 'POST'])
+    @app.route('/api/bio-products/ai-drafts', methods=['GET', 'POST'])
+    @login_required
+    def product_ai_drafts_collection():
+        """List or create AI product drafts for the current product family."""
+        product_family = _get_product_family_from_request()
+        if request.method == 'GET':
+            with PRODUCT_AI_DRAFTS_LOCK:
+                payload = _read_product_ai_drafts_payload()
+                items = [
+                    _product_ai_draft_list_item(item)
+                    for item in payload.get('items', [])
+                    if _normalize_product_family(item.get('family')) == product_family
+                ]
+            items.sort(key=lambda item: item.get('updated_at', ''), reverse=True)
+            return jsonify({'success': True, 'items': items, 'count': len(items)})
+
+        body = request.get_json(force=True, silent=True) or {}
+        draft, error = _normalize_product_ai_draft(body, family=product_family)
+        if error:
+            return jsonify({'success': False, 'message': error}), 400
+        with PRODUCT_AI_DRAFTS_LOCK:
+            payload = _read_product_ai_drafts_payload()
+            items = payload.get('items', [])
+            items.append(draft)
+            payload['items'] = items
+            _write_product_ai_drafts_payload(payload)
+        return jsonify({'success': True, 'draft': draft})
+
+    @app.route('/api/products/ai-drafts/<draft_id>', methods=['GET', 'PUT', 'DELETE'])
+    @app.route('/api/bio-products/ai-drafts/<draft_id>', methods=['GET', 'PUT', 'DELETE'])
+    @login_required
+    def product_ai_drafts_item(draft_id):
+        """Read, update, or delete one AI product draft."""
+        product_family = _get_product_family_from_request()
+        if not _safe_draft_id(draft_id):
+            return jsonify({'success': False, 'message': '草稿ID不合法'}), 400
+
+        with PRODUCT_AI_DRAFTS_LOCK:
+            payload = _read_product_ai_drafts_payload()
+            items = payload.get('items', [])
+            draft, idx = _find_product_ai_draft(items, draft_id, product_family)
+            if draft is None:
+                return jsonify({'success': False, 'message': '草稿不存在'}), 404
+
+            if request.method == 'GET':
+                return jsonify({'success': True, 'draft': draft})
+
+            if request.method == 'DELETE':
+                payload['items'] = items[:idx] + items[idx + 1:]
+                _write_product_ai_drafts_payload(payload)
+                return jsonify({'success': True, 'message': '草稿已删除'})
+
+            body = request.get_json(force=True, silent=True) or {}
+            updated, error = _normalize_product_ai_draft(body, family=product_family, existing=draft)
+            if error:
+                return jsonify({'success': False, 'message': error}), 400
+            items[idx] = updated
+            payload['items'] = items
+            _write_product_ai_drafts_payload(payload)
+        return jsonify({'success': True, 'draft': updated})
+
+    @app.route('/api/products/ai-generate-sections', methods=['POST'])
+    @app.route('/api/bio-products/ai-generate-sections', methods=['POST'])
+    @login_required
+    def ai_generate_product_sections():
+        """Generate compact structured product page sections with AI."""
+        data = request.get_json(force=True, silent=True) or {}
+        product_family = _get_product_family_from_request()
+        title = (data.get('title') or '').strip()
+        short_name = (data.get('short_name') or '').strip()
+        category = (data.get('category') or ('sensor' if product_family == 'bio' else 'detector')).strip()
+        image_url = (data.get('image_url') or '').strip()
+        detail_image_urls = data.get('detail_image_urls') or data.get('image_urls') or ''
+        news_urls = (data.get('news_urls') or '').strip()
+        related_product_urls = (data.get('related_product_urls') or '').strip()
+        summary = (data.get('summary') or '').strip()
+        context_text = (data.get('context_text') or data.get('source_text') or data.get('full_text') or '').strip()
+
+        if not title or not short_name:
+            return jsonify({'success': False, 'message': '请至少填写产品标题和产品简称'}), 400
+        if category not in ALLOWED_PRODUCT_CATEGORIES:
+            return jsonify({'success': False, 'message': '产品分类不合法'}), 400
+
+        messages, ai_cfg = _build_product_ai_sections_messages(
+            title=title,
+            short_name=short_name,
+            category=category,
+            image_url=image_url,
+            summary=summary,
+            context_text=context_text,
+            detail_image_urls=detail_image_urls,
+            news_urls=news_urls,
+            related_product_urls=related_product_urls,
+            product_family=product_family,
+        )
+        if not ai_cfg.get('enabled', False):
+            return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
+        if not ai_cfg.get('api_key'):
+            return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
+
+        response_text, error = call_openai_api_sync_with_custom_config(messages, ai_cfg)
+        if error:
+            return jsonify({'success': False, 'message': error}), 502
+
+        defaults = _build_default_product_sections(
+            title=title,
+            summary=summary,
+            image_url=image_url or '/assets/images/logo.png',
+            detail_image_urls=detail_image_urls,
+            context_text=context_text,
+        )
+        try:
+            sections = _extract_product_sections_from_ai_response(response_text or '', defaults=defaults)
+            page_html, sections = render_product_page_from_sections(
+                product_family=product_family,
+                title=title,
+                short_name=short_name,
+                category=category,
+                image_url=image_url or (sections.get('images') or ['/assets/images/logo.png'])[0],
+                summary=summary or sections.get('description', ''),
+                sections=sections,
+                source_text=context_text,
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'AI输出解析失败: {exc}'}), 500
+
+        draft_id = _safe_draft_id(data.get('draft_id') or '')
+        draft = None
+        if draft_id:
+            with PRODUCT_AI_DRAFTS_LOCK:
+                payload = _read_product_ai_drafts_payload()
+                items = payload.get('items', [])
+                existing, idx = _find_product_ai_draft(items, draft_id, product_family)
+                if existing is not None:
+                    draft, _ = _normalize_product_ai_draft({
+                        **existing,
+                        'title': title,
+                        'short_name': short_name,
+                        'category': category,
+                        'summary': summary or sections.get('description', ''),
+                        'source_text': context_text,
+                        'image_urls': sections.get('images', []),
+                        'sections': sections,
+                        'page_html': page_html,
+                        'status': 'generated',
+                        'mode': 'structured',
+                    }, family=product_family, existing=existing)
+                    items[idx] = draft
+                    payload['items'] = items
+                    _write_product_ai_drafts_payload(payload)
+
+        return jsonify({'success': True, 'sections': sections, 'page_html': page_html, 'draft': draft})
+
+    @app.route('/api/products/ai-revise-sections', methods=['POST'])
+    @app.route('/api/bio-products/ai-revise-sections', methods=['POST'])
+    @login_required
+    def ai_revise_product_sections():
+        """Revise structured product page sections with a compact AI merge patch."""
+        data = request.get_json(force=True, silent=True) or {}
+        product_family = _get_product_family_from_request()
+        instruction = (data.get('instruction') or '').strip()
+        if not instruction:
+            return jsonify({'success': False, 'message': '请先填写修改意见'}), 400
+
+        current_sections = _normalize_product_sections(data.get('sections') or {})
+        if not current_sections:
+            return jsonify({'success': False, 'message': '当前页面内容为空，请先生成页面内容'}), 400
+
+        ai_cfg = _dep('get_product_page_ai_config')()
+        if not ai_cfg.get('enabled', False):
+            return jsonify({'success': False, 'message': '产品页编程 AI 未启用，请先在 AI 客服设置中开启'}), 400
+        if not ai_cfg.get('api_key'):
+            return jsonify({'success': False, 'message': '产品页编程 AI 未配置 API Key'}), 400
+
+        title = (data.get('title') or current_sections.get('title') or '产品页面').strip()
+        short_name = (data.get('short_name') or '').strip() or title
+        category = (data.get('category') or ('sensor' if product_family == 'bio' else 'detector')).strip()
+        image_url = (data.get('image_url') or (current_sections.get('images') or ['/assets/images/logo.png'])[0]).strip()
+        summary = (data.get('summary') or current_sections.get('description') or title).strip()
+        context_text = (data.get('context_text') or data.get('source_text') or '').strip()
+
+        messages = _build_product_ai_revise_sections_messages(
+            instruction=instruction,
+            current_sections=current_sections,
+            title=title,
+            summary=summary,
+            context_text=context_text,
+        )
+        response_text, error = call_openai_api_sync_with_custom_config(messages, ai_cfg)
+        if error:
+            return jsonify({'success': False, 'message': error}), 502
+
+        try:
+            patch = _extract_product_patch_from_ai_response(response_text or '')
+            sections = _merge_product_sections(current_sections, patch)
+            page_html, sections = render_product_page_from_sections(
+                product_family=product_family,
+                title=title,
+                short_name=short_name,
+                category=category,
+                image_url=image_url,
+                summary=summary,
+                sections=sections,
+                source_text=context_text,
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'AI输出解析失败: {exc}'}), 500
+
+        draft_id = _safe_draft_id(data.get('draft_id') or '')
+        draft = None
+        if draft_id:
+            with PRODUCT_AI_DRAFTS_LOCK:
+                payload = _read_product_ai_drafts_payload()
+                items = payload.get('items', [])
+                existing, idx = _find_product_ai_draft(items, draft_id, product_family)
+                if existing is not None:
+                    draft, _ = _normalize_product_ai_draft({
+                        **existing,
+                        'title': title,
+                        'short_name': short_name,
+                        'category': category,
+                        'summary': summary,
+                        'source_text': context_text or existing.get('source_text', ''),
+                        'image_urls': sections.get('images', []),
+                        'sections': sections,
+                        'page_html': page_html,
+                        'status': 'generated',
+                        'mode': 'structured',
+                    }, family=product_family, existing=existing)
+                    items[idx] = draft
+                    payload['items'] = items
+                    _write_product_ai_drafts_payload(payload)
+
+        return jsonify({'success': True, 'patch': patch, 'sections': sections, 'page_html': page_html, 'draft': draft})
+
+    @app.route('/api/products/ai-preview-sections', methods=['POST'])
+    @app.route('/api/bio-products/ai-preview-sections', methods=['POST'])
+    @login_required
+    def ai_preview_product_sections():
+        """Render a preview HTML page from structured sections."""
+        data = request.get_json(force=True, silent=True) or {}
+        product_family = _get_product_family_from_request()
+        title = (data.get('title') or '').strip()
+        short_name = (data.get('short_name') or '').strip() or title
+        category = (data.get('category') or ('sensor' if product_family == 'bio' else 'detector')).strip()
+        image_url = (data.get('image_url') or '').strip()
+        summary = (data.get('summary') or '').strip()
+        sections = data.get('sections') or {}
+        try:
+            page_html, sections = render_product_page_from_sections(
+                product_family=product_family,
+                title=title or '产品页面',
+                short_name=short_name or title or '产品页面',
+                category=category,
+                image_url=image_url or _first_image_from_sections(sections),
+                summary=summary,
+                sections=sections,
+                source_text=(data.get('source_text') or data.get('context_text') or ''),
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'预览生成失败: {exc}'}), 500
+        return jsonify({'success': True, 'sections': sections, 'page_html': page_html})
+
+    @app.route('/api/products/ai-create-from-sections', methods=['POST'])
+    @app.route('/api/bio-products/ai-create-from-sections', methods=['POST'])
+    @login_required
+    def ai_create_product_from_sections():
+        """Save a product page file from structured sections."""
+        super_admin_denied = _dep('require_super_admin_api')()
+        if super_admin_denied:
+            return super_admin_denied
+
+        data = request.get_json(force=True, silent=True) or {}
+        product_family = _get_product_family_from_request()
+        title = (data.get('title') or '').strip()
+        short_name = (data.get('short_name') or '').strip() or title
+        category = (data.get('category') or ('sensor' if product_family == 'bio' else 'detector')).strip()
+        slug = (data.get('slug') or '').strip().lower()
+        summary = (data.get('summary') or '').strip()
+        image_url = (data.get('image_url') or '').strip()
+        sections = data.get('sections') or {}
+
+        if not title or not category or not slug:
+            return jsonify({'success': False, 'message': '请填写标题、分类和链接标识'}), 400
+        if not re.fullmatch(r'[a-z0-9_]+', slug):
+            return jsonify({'success': False, 'message': '链接标识仅支持小写字母、数字、下划线'}), 400
+        if category not in ALLOWED_PRODUCT_CATEGORIES:
+            return jsonify({'success': False, 'message': '产品分类不合法'}), 400
+
+        try:
+            page_html, sections = render_product_page_from_sections(
+                product_family=product_family,
+                title=title,
+                short_name=short_name,
+                category=category,
+                image_url=image_url or _first_image_from_sections(sections),
+                summary=summary,
+                sections=sections,
+                source_text=(data.get('source_text') or data.get('context_text') or ''),
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'页面生成失败: {exc}'}), 500
+
+        products_dir = _get_products_dir_by_family(product_family)
+        products_dir.mkdir(parents=True, exist_ok=True)
+        filename = f'{slug}.html'
+        filepath = products_dir / filename
+        if filepath.exists():
+            return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
+        filepath.write_text(page_html, encoding='utf-8')
+        link = f'{_get_products_web_prefix_by_family(product_family)}/{filename}'
+
+        draft_id = _safe_draft_id(data.get('draft_id') or '')
+        draft = None
+        if draft_id:
+            with PRODUCT_AI_DRAFTS_LOCK:
+                payload = _read_product_ai_drafts_payload()
+                items = payload.get('items', [])
+                existing, idx = _find_product_ai_draft(items, draft_id, product_family)
+                if existing is not None:
+                    draft, _ = _normalize_product_ai_draft({
+                        **existing,
+                        'title': title,
+                        'short_name': short_name,
+                        'category': category,
+                        'summary': summary or sections.get('description', ''),
+                        'source_text': data.get('source_text') or data.get('context_text') or existing.get('source_text', ''),
+                        'image_urls': sections.get('images', []),
+                        'sections': sections,
+                        'page_html': page_html,
+                        'status': 'published',
+                        'mode': 'structured',
+                        'published_link': link,
+                    }, family=product_family, existing=existing)
+                    items[idx] = draft
+                    payload['items'] = items
+                    _write_product_ai_drafts_payload(payload)
+
+        return jsonify({'success': True, 'filename': filename, 'link': link, 'sections': sections, 'page_html': page_html, 'draft': draft})
 
     @app.route('/api/products/ai-generate-html', methods=['POST'])
     @app.route('/api/bio-products/ai-generate-html', methods=['POST'])
@@ -2427,6 +3322,20 @@ def extract_vs_product_sections(page_html: str) -> dict:
                 'desc': strip(p_m.group(1)) if p_m else '',
                 'scenario': strip(sc_m.group(1)) if sc_m else '',
             })
+        if not applications:
+            app_cards = re.findall(r'<div[^>]*class="[^"]*vs-application-card[^"]*"[^>]*>(.*?)</div>\s*</div>', app_inner, re.S | re.I)
+            for card in app_cards:
+                img_m = re.search(r'<img[^>]*src="([^"]+)"', card, re.I)
+                icon_m = re.search(r'<i[^>]*class="([^"]*)"', card, re.I)
+                h4_m = re.search(r'<h4[^>]*>(.*?)</h4>', card, re.S | re.I)
+                p_m = re.search(r'<p[^>]*>(.*?)</p>', card, re.S | re.I)
+                applications.append({
+                    'icon': (icon_m.group(1) if icon_m else ''),
+                    'title': strip(h4_m.group(1)) if h4_m else '',
+                    'desc': strip(p_m.group(1)) if p_m else '',
+                    'scenario': '',
+                    'img': (img_m.group(1) if img_m else ''),
+                })
 
     # --- 规格参数表区块 ---
     specs_m = re.search(r'<table[^>]*class="[^"]*vs-specs-table[^"]*"[^>]*>(.*?)</table>', c, re.S | re.I)
@@ -2463,6 +3372,25 @@ def extract_vs_product_sections(page_html: str) -> dict:
                 'desc': strip(p_m.group(1)) if p_m else '',
             })
 
+    # --- 相关产品 ---
+    related_sec = re.search(r'<section[^>]*class="[^"]*vs-related-products[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
+    related_products = []
+    if related_sec:
+        for m in re.finditer(r'<a\b([^>]*)>(.*?)</a>', related_sec.group(1), re.S | re.I):
+            attrs = m.group(1) or ''
+            body = m.group(2) or ''
+            cls_m = re.search(r'class="([^"]*)"', attrs, re.I)
+            if not cls_m or 'vs-related-item' not in cls_m.group(1):
+                continue
+            href_m = re.search(r'href="([^"]*)"', attrs, re.I)
+            img_m = re.search(r'<img[^>]*src="([^"]+)"', body, re.I)
+            h4_m = re.search(r'<h4[^>]*>(.*?)</h4>', body, re.S | re.I)
+            related_products.append({
+                'href': href_m.group(1) if href_m else '#',
+                'img': img_m.group(1) if img_m else '',
+                'title': strip(h4_m.group(1)) if h4_m else '',
+            })
+
     # --- CTA 区块 ---
     cta_m = re.search(r'<section[^>]*class="[^"]*vs-cta-section[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
     cta_title = ''
@@ -2484,6 +3412,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
         'applications': applications,
         'specs': specs,
         'news': news,
+        'related_products': related_products,
         'cta_title': cta_title,
         'cta_desc': cta_desc,
     }
@@ -2640,6 +3569,32 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                         f'                    </article>'
                     )
                 c = c[:app_grid_match.start(2)] + new_arts + '\n                ' + c[app_grid_match.start(3):]
+            else:
+                legacy_grid_match = re.search(
+                    r'(<div[^>]*class="[^"]*vs-applications-grid[^"]*"[^>]*>)(.*?)(</div>\s*\n\s*</div>\s*\n\s*</section>)',
+                    c, re.S | re.I
+                )
+                if legacy_grid_match:
+                    source_images = sections.get('images') if isinstance(sections.get('images'), list) else []
+                    new_cards = ''
+                    for idx, app in enumerate(app_list):
+                        icon = str(app.get('icon') or 'fas fa-circle')
+                        title_t = esc_text(str(app.get('title') or ''))
+                        desc_t = esc_text(str(app.get('desc') or ''))
+                        fallback_img = source_images[(idx + 1) % len(source_images)] if source_images else ''
+                        img = esc(str(app.get('img') or fallback_img or '/assets/images/logo.png'))
+                        new_cards += (
+                            f'\n                    <div class="vs-application-card">\n'
+                            f'                        <div class="vs-app-img-wrap">\n'
+                            f'                            <img src="{img}" alt="{title_t}">\n'
+                            f'                        </div>\n'
+                            f'                        <div class="vs-application-label">\n'
+                            f'                            <h4><i class="{esc(icon)}"></i> {title_t}</h4>\n'
+                            f'                            <p>{desc_t}</p>\n'
+                            f'                        </div>\n'
+                            f'                    </div>'
+                        )
+                    c = c[:legacy_grid_match.start(2)] + new_cards + '\n                ' + c[legacy_grid_match.start(3):]
 
     # --- 规格参数 ---
     if 'specs' in sections:
@@ -2688,6 +3643,28 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                     )
                 c = c[:news_grid_match.start(2)] + new_news + '\n                ' + c[news_grid_match.start(3):]
 
+    # --- 相关产品 ---
+    if 'related_products' in sections:
+        related_list = sections['related_products']
+        if isinstance(related_list, list):
+            related_grid_match = re.search(
+                r'(<div[^>]*class="[^"]*vs-related-grid[^"]*"[^>]*>)(.*?)(</div>\s*\n\s*</div>\s*\n\s*</section>)',
+                c, re.S | re.I
+            )
+            if related_grid_match:
+                new_related = ''
+                for item in related_list:
+                    href = esc(str(item.get('href') or '#'))
+                    img = esc(str(item.get('img') or '/assets/images/logo.png'))
+                    title_t = esc_text(str(item.get('title') or ''))
+                    new_related += (
+                        f'\n                    <a href="{href}" class="vs-related-item">\n'
+                        f'                        <img src="{img}" alt="{title_t}">\n'
+                        f'                        <h4>{title_t}</h4>\n'
+                        f'                    </a>'
+                    )
+                c = c[:related_grid_match.start(2)] + new_related + '\n                ' + c[related_grid_match.start(3):]
+
     # --- CTA ---
     if 'cta_title' in sections:
         new_cta_title = esc_text(sections['cta_title'])
@@ -2712,4 +3689,5 @@ __all__ = [
     'extract_vs_product_sections',
     'patch_vs_product_sections',
     'register_product_editor_routes',
+    'render_product_page_from_sections',
 ]

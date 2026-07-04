@@ -2127,9 +2127,9 @@
         const TAB_GUIDES = {
             'product-tab-industries': '设置说明：先定义领域分类名称，再勾选每个产品所属领域；分类与勾选都会自动保存。',
             'product-tab-add': '设置说明：本页为“产品列表”管理，可在下方设置卡片标题/图片/摘要与显示状态。',
-            'product-tab-ai': '设置说明：先填写资料并点击“AI 生成完整HTML”，确认源码后点击“保存为产品页面文件”。',
+            'product-tab-ai': '设置说明：先填写资料并点击“AI 生成页面内容”，确认结构化内容后点击“保存为产品页面文件”。',
             'bio-product-tab-add': '设置说明：本页为“生物传感产品列表”管理，可设置卡片标题/图片/摘要与显示状态。',
-            'bio-product-tab-ai': '设置说明：先填写资料并点击“AI 生成完整HTML”，确认源码后点击“保存为产品页面文件”。',
+            'bio-product-tab-ai': '设置说明：先填写资料并点击“AI 生成页面内容”，确认结构化内容后点击“保存为产品页面文件”。',
             'bio-product-tab-manual-edit': '设置说明：选择生物产品后可直接编辑页面区块内容，保存后对应产品页立即更新。',
             'bio-product-tab-industries': '设置说明：先定义生物产品领域分类，再勾选每个产品所属领域；分类与勾选都会自动保存。',
             'view-bio-products': '设置说明：管理生物传感产品展示与筛选分类，前台 /pages/biosensing/?filter=xxx 会按本页配置展示。',
@@ -5821,8 +5821,16 @@
         let productTemplateGroupVisibleCounts = {};
         let aiProductEventsBound = false;
         let aiUploadedImageUrls = [];
+        let aiProductSectionsData = {};
+        let aiProductCurrentDraftId = '';
+        let aiProductDraftSaveTimer = null;
+        let aiProductDraftsCache = [];
         let bioAiProductEventsBound = false;
         let bioAiUploadedImageUrls = [];
+        let bioAiProductSectionsData = {};
+        let bioAiProductCurrentDraftId = '';
+        let bioAiProductDraftSaveTimer = null;
+        let bioAiProductDraftsCache = [];
         let hydrogenSolutionDefinitions = [];
         let hydrogenSolutionsConfig = [];
         let hydrogenSolutionProductOptions = [];
@@ -6592,6 +6600,7 @@
                 });
                 aiUploadedImageUrls = merged;
                 renderAiUploadedImages();
+                scheduleAiProductDraftSave(getAiProductFlowConfig('gas'));
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = `✓ 本次上传 ${uploadedUrls.length} 张，累计 ${aiUploadedImageUrls.length} 张（${data.folder || ''}）`;
@@ -6635,6 +6644,339 @@
                 payload.full_text ? `产品资料全文:\n${payload.full_text}` : '',
                 payload.detail_image_urls ? `已上传产品图片链接：\n${payload.detail_image_urls}` : ''
             ].filter(Boolean).join('\n\n');
+        }
+
+        function getAiProductFlowConfig(family) {
+            const isBio = family === 'bio';
+            return {
+                family,
+                apiPrefix: isBio ? '/api/bio-products' : '/api/products',
+                localKey: isBio ? 'yx_admin_bio_ai_product_draft_fallback' : 'yx_admin_ai_product_draft_fallback',
+                draftListId: isBio ? 'bioAiProductDraftsList' : 'aiProductDraftsList',
+                draftMsgId: isBio ? 'bioAiProductDraftMsg' : 'aiProductDraftMsg',
+                sectionsBoxId: isBio ? 'bioAiProductSectionsJson' : 'aiProductSectionsJson',
+                sourceBoxId: isBio ? 'bioAiProductFieldsJson' : 'aiProductFieldsJson',
+                fullContentId: isBio ? 'bioAiProductFullContent' : 'aiProductFullContent',
+                slugId: isBio ? 'bioAiProductSlug' : 'aiProductSlug',
+                modifyInstructionId: isBio ? 'bioAiProductModifyInstruction' : 'aiProductModifyInstruction',
+                getPayload: isBio ? getBioAiProductPayload : getAiProductPayload,
+                updatePreview: isBio ? updateBioAiProductPreview : updateAiProductPreview,
+                renderImages: isBio ? renderBioAiUploadedImages : renderAiUploadedImages,
+                loadProducts: isBio ? loadBioProducts : loadProducts,
+                getDraftsCache: () => isBio ? bioAiProductDraftsCache : aiProductDraftsCache,
+                setDraftsCache: (items) => {
+                    if (isBio) bioAiProductDraftsCache = items;
+                    else aiProductDraftsCache = items;
+                },
+                getCurrentDraftId: () => isBio ? bioAiProductCurrentDraftId : aiProductCurrentDraftId,
+                setCurrentDraftId: (value) => {
+                    if (isBio) bioAiProductCurrentDraftId = value || '';
+                    else aiProductCurrentDraftId = value || '';
+                },
+                getSectionsData: () => isBio ? bioAiProductSectionsData : aiProductSectionsData,
+                setSectionsData: (value) => {
+                    if (isBio) bioAiProductSectionsData = value && typeof value === 'object' ? value : {};
+                    else aiProductSectionsData = value && typeof value === 'object' ? value : {};
+                },
+                getImageUrls: () => isBio ? bioAiUploadedImageUrls : aiUploadedImageUrls,
+                setImageUrls: (value) => {
+                    const list = Array.isArray(value) ? value.map(v => String(v || '').trim()).filter(Boolean) : [];
+                    if (isBio) bioAiUploadedImageUrls = list;
+                    else aiUploadedImageUrls = list;
+                },
+                getSaveTimer: () => isBio ? bioAiProductDraftSaveTimer : aiProductDraftSaveTimer,
+                setSaveTimer: (timer) => {
+                    if (isBio) bioAiProductDraftSaveTimer = timer;
+                    else aiProductDraftSaveTimer = timer;
+                }
+            };
+        }
+
+        function parseAiProductSectionsJson(config, showError = false) {
+            const box = document.getElementById(config.sectionsBoxId);
+            const raw = (box?.value || '').trim();
+            if (!raw) return config.getSectionsData() || {};
+            try {
+                const parsed = JSON.parse(raw);
+                const sections = parsed && typeof parsed === 'object' && parsed.sections && typeof parsed.sections === 'object'
+                    ? parsed.sections
+                    : parsed;
+                config.setSectionsData(sections || {});
+                return sections || {};
+            } catch (e) {
+                if (showError) setAiDraftMessage(config, '结构化 JSON 格式有误，请检查逗号和引号。', '#dc2626');
+                return config.getSectionsData() || {};
+            }
+        }
+
+        function setAiProductSectionsJson(config, sections) {
+            const safeSections = sections && typeof sections === 'object' ? sections : {};
+            config.setSectionsData(safeSections);
+            const box = document.getElementById(config.sectionsBoxId);
+            if (box) box.value = JSON.stringify(safeSections, null, 2);
+        }
+
+        function setAiDraftMessage(config, text, color = '#64748b') {
+            const el = document.getElementById(config.draftMsgId);
+            if (!el) return;
+            el.style.color = color;
+            el.textContent = text || '';
+        }
+
+        function collectAiStructuredDraftPayload(config, overrides = {}) {
+            const payload = config.getPayload();
+            const sections = overrides.sections || parseAiProductSectionsJson(config, false) || {};
+            const htmlBox = document.getElementById(config.sourceBoxId);
+            const imageUrls = config.getImageUrls();
+            return {
+                slug: payload.slug || '',
+                title: payload.title || '',
+                short_name: payload.short_name || '',
+                category: payload.category || (config.family === 'bio' ? 'sensor' : 'detector'),
+                summary: payload.summary || (sections.description || ''),
+                source_text: payload.full_text || payload.context_text || '',
+                image_urls: imageUrls,
+                sections,
+                page_html: overrides.page_html != null ? overrides.page_html : (htmlBox?.value || ''),
+                mode: overrides.mode || 'structured',
+                status: overrides.status || (Object.keys(sections || {}).length ? 'generated' : 'draft'),
+                published_link: overrides.published_link || ''
+            };
+        }
+
+        function hasMeaningfulAiDraft(payload) {
+            return Boolean(
+                (payload.slug || '').trim()
+                || (payload.source_text || '').trim()
+                || (payload.image_urls || []).length
+                || Object.keys(payload.sections || {}).length
+                || (payload.page_html || '').trim()
+            );
+        }
+
+        async function saveAiProductDraftNow(config, overrides = {}) {
+            const payload = collectAiStructuredDraftPayload(config, overrides);
+            localStorage.setItem(config.localKey, JSON.stringify({ ...payload, draft_id: config.getCurrentDraftId(), saved_at: Date.now() }));
+            if (!hasMeaningfulAiDraft(payload)) return null;
+
+            const currentId = config.getCurrentDraftId();
+            const url = currentId ? `${config.apiPrefix}/ai-drafts/${encodeURIComponent(currentId)}` : `${config.apiPrefix}/ai-drafts`;
+            const method = currentId ? 'PUT' : 'POST';
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || '草稿同步失败');
+            }
+            if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
+            setAiDraftMessage(config, `草稿已同步 ${new Date().toLocaleTimeString()}`, '#16a34a');
+            await loadAiProductDrafts(config);
+            return data.draft || null;
+        }
+
+        function scheduleAiProductDraftSave(config, overrides = {}) {
+            const existing = config.getSaveTimer();
+            if (existing) clearTimeout(existing);
+            localStorage.setItem(config.localKey, JSON.stringify({
+                ...collectAiStructuredDraftPayload(config, overrides),
+                draft_id: config.getCurrentDraftId(),
+                saved_at: Date.now()
+            }));
+            const timer = setTimeout(async () => {
+                config.setSaveTimer(null);
+                try {
+                    await saveAiProductDraftNow(config, overrides);
+                } catch (e) {
+                    setAiDraftMessage(config, `本地已暂存，尚未同步：${e?.message || '网络异常'}`, '#d97706');
+                }
+            }, 900);
+            config.setSaveTimer(timer);
+        }
+
+        async function loadAiProductDrafts(config) {
+            const list = document.getElementById(config.draftListId);
+            if (!list) return;
+            try {
+                const res = await fetch(`${config.apiPrefix}/ai-drafts`);
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) throw new Error(data.message || '草稿列表加载失败');
+                const items = Array.isArray(data.items) ? data.items : [];
+                config.setDraftsCache(items);
+                renderAiProductDrafts(config, items);
+            } catch (e) {
+                renderAiProductDrafts(config, []);
+                const local = localStorage.getItem(config.localKey);
+                setAiDraftMessage(config, local ? '草稿列表加载失败，可恢复本地暂存。' : (e?.message || '草稿列表加载失败'), local ? '#d97706' : '#dc2626');
+            }
+        }
+
+        function renderAiProductDrafts(config, items) {
+            const list = document.getElementById(config.draftListId);
+            if (!list) return;
+            const local = localStorage.getItem(config.localKey);
+            const currentId = config.getCurrentDraftId();
+            if (!items.length && !local) {
+                list.innerHTML = '<div style="font-size:12px;color:#94a3b8;">暂无草稿，开始填写后会自动暂存。</div>';
+                return;
+            }
+            const cards = items.map(item => {
+                const active = item.id === currentId;
+                const title = escapeHtml(item.title || item.slug || '未命名草稿');
+                const slug = escapeHtml(item.slug || '-');
+                const status = item.status === 'published' ? '已发布' : (item.status === 'generated' ? '已生成' : '草稿');
+                const updated = escapeHtml((item.updated_at || '').replace('T', ' ').replace('Z', ''));
+                const linkBtn = item.published_link ? `<button type="button" class="btn-sm" data-ai-draft-action="open" data-id="${escapeHtml(item.id)}" style="width:auto;padding:6px 10px;">打开页面</button>` : '';
+                return `
+                    <div style="border:1px solid ${active ? '#2563eb' : '#e2e8f0'}; border-radius:8px; padding:10px; background:${active ? '#eff6ff' : '#fff'};">
+                        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                            <div>
+                                <div style="font-size:13px; font-weight:700; color:#0f172a;">${title}</div>
+                                <div style="font-size:12px; color:#64748b; margin-top:3px;">${slug} · ${status} · ${updated || '未同步时间'}</div>
+                            </div>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button type="button" class="btn-sm" data-ai-draft-action="load" data-id="${escapeHtml(item.id)}" style="width:auto;padding:6px 10px;">继续编辑</button>
+                                <button type="button" class="btn-sm" data-ai-draft-action="copy" data-id="${escapeHtml(item.id)}" style="width:auto;padding:6px 10px;">复制草稿</button>
+                                ${linkBtn}
+                                <button type="button" class="btn-sm btn-danger" data-ai-draft-action="delete" data-id="${escapeHtml(item.id)}" style="width:auto;padding:6px 10px;">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            const localCard = local ? `
+                <div style="border:1px dashed #f59e0b; border-radius:8px; padding:10px; background:#fffbeb;">
+                    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                        <div style="font-size:12px; color:#92400e;">浏览器本地暂存</div>
+                        <button type="button" class="btn-sm" data-ai-draft-action="load-local" style="width:auto;padding:6px 10px;">恢复本地暂存</button>
+                    </div>
+                </div>
+            ` : '';
+            list.innerHTML = cards + localCard;
+        }
+
+        async function applyAiProductDraft(config, draft) {
+            if (!draft) return;
+            config.setCurrentDraftId(draft.id || '');
+            const slugInput = document.getElementById(config.slugId);
+            const fullInput = document.getElementById(config.fullContentId);
+            if (slugInput) slugInput.value = draft.slug || '';
+            if (fullInput) fullInput.value = draft.source_text || '';
+            config.setImageUrls(Array.isArray(draft.image_urls) ? draft.image_urls : []);
+            config.renderImages();
+            setAiProductSectionsJson(config, draft.sections || {});
+            const sourceBox = document.getElementById(config.sourceBoxId);
+            if (sourceBox) sourceBox.value = draft.page_html || '';
+            if (draft.page_html) await config.updatePreview();
+            else await refreshAiProductStructuredPreview(config);
+            setAiDraftMessage(config, `已载入草稿：${draft.title || draft.slug || draft.id}`, '#2563eb');
+            renderAiProductDrafts(config, config.getDraftsCache());
+        }
+
+        async function handleAiProductDraftAction(config, action, draftId) {
+            if (action === 'load-local') {
+                const raw = localStorage.getItem(config.localKey);
+                if (!raw) return;
+                try {
+                    const parsed = JSON.parse(raw);
+                    await applyAiProductDraft(config, {
+                        id: parsed.draft_id || '',
+                        slug: parsed.slug || '',
+                        title: parsed.title || '',
+                        short_name: parsed.short_name || '',
+                        category: parsed.category || '',
+                        summary: parsed.summary || '',
+                        source_text: parsed.source_text || '',
+                        image_urls: parsed.image_urls || [],
+                        sections: parsed.sections || {},
+                        page_html: parsed.page_html || ''
+                    });
+                } catch (_) { }
+                return;
+            }
+            const item = config.getDraftsCache().find(d => d.id === draftId);
+            if (action === 'open' && item?.published_link) {
+                window.open(item.published_link, '_blank', 'noopener');
+                return;
+            }
+            if (action === 'delete') {
+                const ok = await showGlobalConfirm('确定删除这个 AI 创建草稿吗？');
+                if (!ok) return;
+                const res = await fetch(`${config.apiPrefix}/ai-drafts/${encodeURIComponent(draftId)}`, { method: 'DELETE' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    setAiDraftMessage(config, data.message || '删除失败', '#dc2626');
+                    return;
+                }
+                if (config.getCurrentDraftId() === draftId) config.setCurrentDraftId('');
+                await loadAiProductDrafts(config);
+                return;
+            }
+            const res = await fetch(`${config.apiPrefix}/ai-drafts/${encodeURIComponent(draftId)}`);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                setAiDraftMessage(config, data.message || '草稿读取失败', '#dc2626');
+                return;
+            }
+            if (action === 'copy') {
+                const copied = { ...data.draft, id: undefined, title: `${data.draft.title || '未命名草稿'}（副本）`, status: 'draft', published_link: '' };
+                const createRes = await fetch(`${config.apiPrefix}/ai-drafts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(copied)
+                });
+                const createData = await createRes.json().catch(() => ({}));
+                if (!createRes.ok || !createData.success) {
+                    setAiDraftMessage(config, createData.message || '复制失败', '#dc2626');
+                    return;
+                }
+                await applyAiProductDraft(config, createData.draft);
+                await loadAiProductDrafts(config);
+                return;
+            }
+            await applyAiProductDraft(config, data.draft);
+        }
+
+        async function createBlankAiProductDraft(config) {
+            config.setCurrentDraftId('');
+            const slugInput = document.getElementById(config.slugId);
+            const fullInput = document.getElementById(config.fullContentId);
+            if (slugInput) slugInput.value = '';
+            if (fullInput) fullInput.value = '';
+            config.setImageUrls([]);
+            config.renderImages();
+            setAiProductSectionsJson(config, {});
+            const sourceBox = document.getElementById(config.sourceBoxId);
+            if (sourceBox) sourceBox.value = '';
+            setAiDraftMessage(config, '已新建空白草稿，填写后会自动保存。', '#2563eb');
+            scheduleAiProductDraftSave(config);
+        }
+
+        async function refreshAiProductStructuredPreview(config) {
+            const payload = config.getPayload();
+            const sections = parseAiProductSectionsJson(config, true);
+            if (!Object.keys(sections || {}).length) return;
+            const res = await fetch(`${config.apiPrefix}/ai-preview-sections`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...payload,
+                    source_text: payload.full_text || payload.context_text || '',
+                    sections
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                setAiDraftMessage(config, data.message || '预览生成失败', '#dc2626');
+                return;
+            }
+            setAiProductSectionsJson(config, data.sections || sections);
+            const sourceBox = document.getElementById(config.sourceBoxId);
+            if (sourceBox) sourceBox.value = data.page_html || '';
+            await config.updatePreview();
+            scheduleAiProductDraftSave(config, { sections: data.sections || sections, page_html: data.page_html || '' });
         }
 
         function getAiGeneratedHtml() {
@@ -6858,6 +7200,7 @@
         async function aiGenerateProductTemplateFields() {
             const msg = document.getElementById('aiProductMsg');
             const modifyMsg = document.getElementById('aiProductModifyMsg');
+            const config = getAiProductFlowConfig('gas');
             const payload = getAiProductPayload();
             if (!payload.slug || !payload.context_text) {
                 if (msg) {
@@ -6868,101 +7211,58 @@
             }
             if (msg) {
                 msg.style.color = '#2563eb';
-                msg.textContent = 'AI 正在流式生成完整HTML...';
+                msg.textContent = 'AI 正在生成结构化页面内容...';
             }
             if (modifyMsg) {
                 modifyMsg.textContent = '';
             }
+            setAiProductSectionsJson(config, {});
             setAiGeneratedHtmlOutput('');
 
-            const streamController = new AbortController();
-            const streamAbortTimer = setTimeout(() => {
-                streamController.abort();
-            }, AI_STREAM_TOTAL_TIMEOUT_MS);
-
             try {
-                const res = await fetch('/api/products/ai-generate-html-stream', {
+                await saveAiProductDraftNow(config).catch(() => null);
+                const res = await fetch('/api/products/ai-generate-sections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    signal: streamController.signal,
                     body: JSON.stringify({
                         ...payload,
+                        draft_id: config.getCurrentDraftId(),
                         context_text: buildAiProductContextText(payload)
                     })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'AI 生成失败');
                 }
-                let lastPreviewAt = Date.now();
-                const htmlText = await readAiProductHtmlStream(res, {
-                    onRetry: (evt) => {
-                        if (msg) {
-                            msg.style.color = '#d97706';
-                            msg.textContent = `第 ${evt.attempt || 2} 轮续写中...`;
-                        }
-                    },
-                    onChunk: (chunkedHtml) => {
-                        setAiGeneratedHtmlOutput(chunkedHtml);
-                        const now = Date.now();
-                        if (now - lastPreviewAt > 1500) {
-                            lastPreviewAt = now;
-                            updateAiProductPreview().catch(() => { });
-                        }
-                    },
-                    onDone: (doneHtml) => {
-                        setAiGeneratedHtmlOutput(doneHtml);
-                    }
-                }, {
-                    idleTimeoutMs: AI_STREAM_IDLE_TIMEOUT_MS,
-                    totalTimeoutMs: AI_STREAM_TOTAL_TIMEOUT_MS
-                });
-
-                if (!htmlText.trim()) throw new Error('AI 未返回内容');
-
+                setAiProductSectionsJson(config, data.sections || {});
+                setAiGeneratedHtmlOutput(data.page_html || '');
+                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
                 if (msg) {
                     msg.style.color = '#16a34a';
-                    msg.textContent = '✓ AI 完整HTML生成完成';
+                    msg.textContent = '✓ AI 页面内容生成完成';
                 }
                 await updateAiProductPreview();
+                scheduleAiProductDraftSave(config, { sections: data.sections || {}, page_html: data.page_html || '', status: 'generated' });
             } catch (e) {
-                if (msg) {
-                    msg.style.color = '#d97706';
-                    msg.textContent = `流式生成异常：${e?.message || '未知错误'}，正在自动切换稳定模式...`;
-                }
-                try {
-                    const fallbackHtml = await fetchAiProductHtmlFallback(payload);
-                    if (!fallbackHtml.trim()) throw new Error('稳定模式未返回内容');
-                    setAiGeneratedHtmlOutput(fallbackHtml);
-                    await updateAiProductPreview();
-                    if (msg) {
-                        msg.style.color = '#16a34a';
-                        msg.textContent = '✓ 流式中断，已自动切换稳定模式并完成生成';
-                    }
-                    return;
-                } catch (fallbackErr) {
-                    e = fallbackErr;
-                }
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = e?.message || 'AI 生成失败';
                 }
-            } finally {
-                clearTimeout(streamAbortTimer);
             }
         }
 
         async function aiReviseGeneratedHtml() {
             const msg = document.getElementById('aiProductMsg');
             const modifyMsg = document.getElementById('aiProductModifyMsg');
+            const config = getAiProductFlowConfig('gas');
             const instruction = document.getElementById('aiProductModifyInstruction')?.value.trim() || '';
-            const currentHtml = getAiGeneratedHtml().trim();
+            const currentSections = parseAiProductSectionsJson(config, true);
             const payload = getAiProductPayload();
 
-            if (!currentHtml) {
+            if (!Object.keys(currentSections || {}).length) {
                 if (modifyMsg) {
                     modifyMsg.style.color = '#dc3545';
-                    modifyMsg.textContent = '请先生成 HTML，再进行修改';
+                    modifyMsg.textContent = '请先生成页面内容，再进行修改';
                 }
                 return;
             }
@@ -6976,106 +7276,47 @@
 
             if (msg) {
                 msg.style.color = '#2563eb';
-                msg.textContent = 'AI 正在按意见流式修改HTML...';
+                msg.textContent = 'AI 正在按意见修改页面内容...';
             }
             if (modifyMsg) {
                 modifyMsg.style.color = '#2563eb';
-                modifyMsg.textContent = '流式修改中...';
+                modifyMsg.textContent = '修改中...';
             }
-            setAiGeneratedHtmlOutput('');
-
-            const streamController = new AbortController();
-            const streamAbortTimer = setTimeout(() => {
-                streamController.abort();
-            }, AI_STREAM_TOTAL_TIMEOUT_MS);
 
             try {
-                const res = await fetch('/api/products/ai-revise-html-stream', {
+                const res = await fetch('/api/products/ai-revise-sections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    signal: streamController.signal,
                     body: JSON.stringify({
+                        draft_id: config.getCurrentDraftId(),
                         title: payload.title || payload.short_name || '产品页面',
+                        short_name: payload.short_name,
                         category: payload.category,
                         image_url: payload.image_url,
-                        detail_image_urls: payload.detail_image_urls,
-                        news_urls: payload.news_urls,
-                        related_product_urls: payload.related_product_urls,
                         summary: payload.summary,
                         context_text: buildAiProductContextText(payload),
                         instruction,
-                        current_html: currentHtml
+                        sections: currentSections
                     })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'AI 修改失败');
                 }
-                let lastPreviewAt = Date.now();
-                const htmlText = await readAiProductHtmlStream(res, {
-                    onRetry: (evt) => {
-                        if (msg) {
-                            msg.style.color = '#d97706';
-                            msg.textContent = `修改第 ${evt.attempt || 2} 轮续写中...`;
-                        }
-                        if (modifyMsg) {
-                            modifyMsg.style.color = '#d97706';
-                            modifyMsg.textContent = `第 ${evt.attempt || 2} 轮续写中...`;
-                        }
-                    },
-                    onChunk: (chunkedHtml) => {
-                        setAiGeneratedHtmlOutput(chunkedHtml);
-                        const now = Date.now();
-                        if (now - lastPreviewAt > 1500) {
-                            lastPreviewAt = now;
-                            updateAiProductPreview().catch(() => { });
-                        }
-                    },
-                    onDone: (doneHtml) => {
-                        setAiGeneratedHtmlOutput(doneHtml);
-                    }
-                }, {
-                    idleTimeoutMs: AI_STREAM_IDLE_TIMEOUT_MS,
-                    totalTimeoutMs: AI_STREAM_TOTAL_TIMEOUT_MS
-                });
-
-                if (!htmlText.trim()) throw new Error('AI 未返回内容');
-
+                setAiProductSectionsJson(config, data.sections || currentSections);
+                setAiGeneratedHtmlOutput(data.page_html || '');
+                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = '✓ AI 修改完成';
                 }
                 if (modifyMsg) {
                     modifyMsg.style.color = '#16a34a';
-                    modifyMsg.textContent = '✓ 已按意见更新 HTML，可继续输入下一轮意见';
+                    modifyMsg.textContent = '✓ 已按意见更新内容，可继续输入下一轮意见';
                 }
                 await updateAiProductPreview();
+                scheduleAiProductDraftSave(config, { sections: data.sections || currentSections, page_html: data.page_html || '', status: 'generated' });
             } catch (e) {
-                if (msg) {
-                    msg.style.color = '#d97706';
-                    msg.textContent = `流式修改异常：${e?.message || '未知错误'}，正在自动切换稳定模式...`;
-                }
-                if (modifyMsg) {
-                    modifyMsg.style.color = '#d97706';
-                    modifyMsg.textContent = '流式异常，切换稳定模式中...';
-                }
-                try {
-                    const fallbackHtml = await fetchAiProductRevisedHtmlFallback(payload, instruction, currentHtml);
-                    if (!fallbackHtml.trim()) throw new Error('稳定模式未返回内容');
-                    setAiGeneratedHtmlOutput(fallbackHtml);
-                    await updateAiProductPreview();
-                    if (msg) {
-                        msg.style.color = '#16a34a';
-                        msg.textContent = '✓ 流式中断，已自动切换稳定模式并完成修改';
-                    }
-                    if (modifyMsg) {
-                        modifyMsg.style.color = '#16a34a';
-                        modifyMsg.textContent = '✓ 稳定模式修改完成';
-                    }
-                    return;
-                } catch (fallbackErr) {
-                    e = fallbackErr;
-                }
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = e?.message || 'AI 修改失败';
@@ -7084,14 +7325,13 @@
                     modifyMsg.style.color = '#dc3545';
                     modifyMsg.textContent = e?.message || 'AI 修改失败';
                 }
-            } finally {
-                clearTimeout(streamAbortTimer);
             }
         }
 
         async function aiCreateProductPage() {
             const msg = document.getElementById('aiProductMsg');
             const linkEl = document.getElementById('aiProductLink');
+            const config = getAiProductFlowConfig('gas');
             const payload = getAiProductPayload();
             if (!payload.slug || !payload.context_text) {
                 if (msg) {
@@ -7100,11 +7340,11 @@
                 }
                 return;
             }
-            const pageHtml = getAiGeneratedHtml().trim();
-            if (!pageHtml) {
+            const sections = parseAiProductSectionsJson(config, true);
+            if (!Object.keys(sections || {}).length) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先点击“AI 生成完整HTML”';
+                    msg.textContent = '请先点击“AI 生成页面内容”';
                 }
                 return;
             }
@@ -7116,16 +7356,20 @@
             if (linkEl) linkEl.innerHTML = '';
 
             try {
-                const res = await fetch('/api/products/ai-create-html', {
+                const res = await fetch('/api/products/ai-create-from-sections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...payload,
-                        page_html: pageHtml
+                        draft_id: config.getCurrentDraftId(),
+                        source_text: payload.full_text || payload.context_text || '',
+                        sections
                     })
                 });
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || '生成失败');
+                if (data.page_html) setAiGeneratedHtmlOutput(data.page_html);
+                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
 
                 if (msg) {
                     msg.style.color = '#16a34a';
@@ -7135,6 +7379,7 @@
                     const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
                     linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
                 }
+                scheduleAiProductDraftSave(config, { sections, page_html: getAiGeneratedHtml(), status: 'published', published_link: data.link || '' });
                 await loadProducts();
             } catch (e) {
                 if (msg) {
@@ -7147,6 +7392,7 @@
         function bindAiProductEvents() {
             if (aiProductEventsBound) return;
             aiProductEventsBound = true;
+            const flowConfig = getAiProductFlowConfig('gas');
 
             const fullContentInput = document.getElementById('aiProductFullContent');
             const slugInput = document.getElementById('aiProductSlug');
@@ -7157,6 +7403,10 @@
                     if (guessed) slugInput.value = guessed;
                 });
             }
+            [fullContentInput, slugInput].forEach(el => {
+                if (!el) return;
+                el.addEventListener('input', () => scheduleAiProductDraftSave(flowConfig));
+            });
 
             const genBtn = document.getElementById('aiGenerateFieldsBtn');
             if (genBtn) genBtn.addEventListener('click', aiGenerateProductTemplateFields);
@@ -7189,10 +7439,38 @@
 
             const generatedHtmlBox = document.getElementById('aiProductFieldsJson');
             if (generatedHtmlBox) {
-                generatedHtmlBox.addEventListener('input', () => { updateAiProductPreview().catch(() => { }); });
+                generatedHtmlBox.addEventListener('input', () => {
+                    updateAiProductPreview().catch(() => { });
+                    scheduleAiProductDraftSave(flowConfig, { mode: 'html', page_html: generatedHtmlBox.value || '' });
+                });
             }
+            const sectionsBox = document.getElementById('aiProductSectionsJson');
+            if (sectionsBox) {
+                let sectionsPreviewTimer = null;
+                sectionsBox.addEventListener('input', () => {
+                    parseAiProductSectionsJson(flowConfig, false);
+                    scheduleAiProductDraftSave(flowConfig);
+                    if (sectionsPreviewTimer) clearTimeout(sectionsPreviewTimer);
+                    sectionsPreviewTimer = setTimeout(() => {
+                        refreshAiProductStructuredPreview(flowConfig).catch(() => { });
+                    }, 900);
+                });
+            }
+            const draftList = document.getElementById('aiProductDraftsList');
+            if (draftList) {
+                draftList.addEventListener('click', (event) => {
+                    const btn = event.target.closest('[data-ai-draft-action]');
+                    if (!btn) return;
+                    handleAiProductDraftAction(flowConfig, btn.dataset.aiDraftAction || '', btn.dataset.id || '').catch((e) => {
+                        setAiDraftMessage(flowConfig, e?.message || '草稿操作失败', '#dc2626');
+                    });
+                });
+            }
+            const newDraftBtn = document.getElementById('aiProductNewDraftBtn');
+            if (newDraftBtn) newDraftBtn.addEventListener('click', () => createBlankAiProductDraft(flowConfig).catch(() => { }));
 
             renderAiUploadedImages();
+            loadAiProductDrafts(flowConfig).catch(() => { });
         }
 
         function renderBioAiUploadedImages() {
@@ -7263,6 +7541,7 @@
                 });
                 bioAiUploadedImageUrls = merged;
                 renderBioAiUploadedImages();
+                scheduleAiProductDraftSave(getAiProductFlowConfig('bio'));
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = `✓ 本次上传 ${uploadedUrls.length} 张，累计 ${bioAiUploadedImageUrls.length} 张（${data.folder || ''}）`;
@@ -7363,6 +7642,7 @@
         async function aiGenerateBioProductTemplateFields() {
             const msg = document.getElementById('bioAiProductMsg');
             const modifyMsg = document.getElementById('bioAiProductModifyMsg');
+            const config = getAiProductFlowConfig('bio');
             const payload = getBioAiProductPayload();
             if (!payload.slug || !payload.context_text) {
                 if (msg) {
@@ -7373,101 +7653,58 @@
             }
             if (msg) {
                 msg.style.color = '#2563eb';
-                msg.textContent = 'AI 正在流式生成完整HTML...';
+                msg.textContent = 'AI 正在生成结构化页面内容...';
             }
             if (modifyMsg) {
                 modifyMsg.textContent = '';
             }
+            setAiProductSectionsJson(config, {});
             setBioAiGeneratedHtmlOutput('');
 
-            const streamController = new AbortController();
-            const streamAbortTimer = setTimeout(() => {
-                streamController.abort();
-            }, AI_STREAM_TOTAL_TIMEOUT_MS);
-
             try {
-                const res = await fetch('/api/bio-products/ai-generate-html-stream', {
+                await saveAiProductDraftNow(config).catch(() => null);
+                const res = await fetch('/api/bio-products/ai-generate-sections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    signal: streamController.signal,
                     body: JSON.stringify({
                         ...payload,
+                        draft_id: config.getCurrentDraftId(),
                         context_text: buildAiProductContextText(payload)
                     })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'AI 生成失败');
                 }
-                let lastPreviewAt = Date.now();
-                const htmlText = await readAiProductHtmlStream(res, {
-                    onRetry: (evt) => {
-                        if (msg) {
-                            msg.style.color = '#d97706';
-                            msg.textContent = `第 ${evt.attempt || 2} 轮续写中...`;
-                        }
-                    },
-                    onChunk: (chunkedHtml) => {
-                        setBioAiGeneratedHtmlOutput(chunkedHtml);
-                        const now = Date.now();
-                        if (now - lastPreviewAt > 1500) {
-                            lastPreviewAt = now;
-                            updateBioAiProductPreview().catch(() => { });
-                        }
-                    },
-                    onDone: (doneHtml) => {
-                        setBioAiGeneratedHtmlOutput(doneHtml);
-                    }
-                }, {
-                    idleTimeoutMs: AI_STREAM_IDLE_TIMEOUT_MS,
-                    totalTimeoutMs: AI_STREAM_TOTAL_TIMEOUT_MS
-                });
-
-                if (!htmlText.trim()) throw new Error('AI 未返回内容');
-
+                setAiProductSectionsJson(config, data.sections || {});
+                setBioAiGeneratedHtmlOutput(data.page_html || '');
+                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
                 if (msg) {
                     msg.style.color = '#16a34a';
-                    msg.textContent = '✓ AI 完整HTML生成完成';
+                    msg.textContent = '✓ AI 页面内容生成完成';
                 }
                 await updateBioAiProductPreview();
+                scheduleAiProductDraftSave(config, { sections: data.sections || {}, page_html: data.page_html || '', status: 'generated' });
             } catch (e) {
-                if (msg) {
-                    msg.style.color = '#d97706';
-                    msg.textContent = `流式生成异常：${e?.message || '未知错误'}，正在自动切换稳定模式...`;
-                }
-                try {
-                    const fallbackHtml = await fetchBioAiProductHtmlFallback(payload);
-                    if (!fallbackHtml.trim()) throw new Error('稳定模式未返回内容');
-                    setBioAiGeneratedHtmlOutput(fallbackHtml);
-                    await updateBioAiProductPreview();
-                    if (msg) {
-                        msg.style.color = '#16a34a';
-                        msg.textContent = '✓ 流式中断，已自动切换稳定模式并完成生成';
-                    }
-                    return;
-                } catch (fallbackErr) {
-                    e = fallbackErr;
-                }
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = e?.message || 'AI 生成失败';
                 }
-            } finally {
-                clearTimeout(streamAbortTimer);
             }
         }
 
         async function aiReviseBioGeneratedHtml() {
             const msg = document.getElementById('bioAiProductMsg');
             const modifyMsg = document.getElementById('bioAiProductModifyMsg');
+            const config = getAiProductFlowConfig('bio');
             const instruction = document.getElementById('bioAiProductModifyInstruction')?.value.trim() || '';
-            const currentHtml = getBioAiGeneratedHtml().trim();
+            const currentSections = parseAiProductSectionsJson(config, true);
             const payload = getBioAiProductPayload();
 
-            if (!currentHtml) {
+            if (!Object.keys(currentSections || {}).length) {
                 if (modifyMsg) {
                     modifyMsg.style.color = '#dc3545';
-                    modifyMsg.textContent = '请先生成 HTML，再进行修改';
+                    modifyMsg.textContent = '请先生成页面内容，再进行修改';
                 }
                 return;
             }
@@ -7481,106 +7718,47 @@
 
             if (msg) {
                 msg.style.color = '#2563eb';
-                msg.textContent = 'AI 正在按意见流式修改HTML...';
+                msg.textContent = 'AI 正在按意见修改页面内容...';
             }
             if (modifyMsg) {
                 modifyMsg.style.color = '#2563eb';
-                modifyMsg.textContent = '流式修改中...';
+                modifyMsg.textContent = '修改中...';
             }
-            setBioAiGeneratedHtmlOutput('');
-
-            const streamController = new AbortController();
-            const streamAbortTimer = setTimeout(() => {
-                streamController.abort();
-            }, AI_STREAM_TOTAL_TIMEOUT_MS);
 
             try {
-                const res = await fetch('/api/bio-products/ai-revise-html-stream', {
+                const res = await fetch('/api/bio-products/ai-revise-sections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    signal: streamController.signal,
                     body: JSON.stringify({
+                        draft_id: config.getCurrentDraftId(),
                         title: payload.title || payload.short_name || '产品页面',
+                        short_name: payload.short_name,
                         category: payload.category,
                         image_url: payload.image_url,
-                        detail_image_urls: payload.detail_image_urls,
-                        news_urls: payload.news_urls,
-                        related_product_urls: payload.related_product_urls,
                         summary: payload.summary,
                         context_text: buildAiProductContextText(payload),
                         instruction,
-                        current_html: currentHtml
+                        sections: currentSections
                     })
                 });
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'AI 修改失败');
                 }
-                let lastPreviewAt = Date.now();
-                const htmlText = await readAiProductHtmlStream(res, {
-                    onRetry: (evt) => {
-                        if (msg) {
-                            msg.style.color = '#d97706';
-                            msg.textContent = `修改第 ${evt.attempt || 2} 轮续写中...`;
-                        }
-                        if (modifyMsg) {
-                            modifyMsg.style.color = '#d97706';
-                            modifyMsg.textContent = `第 ${evt.attempt || 2} 轮续写中...`;
-                        }
-                    },
-                    onChunk: (chunkedHtml) => {
-                        setBioAiGeneratedHtmlOutput(chunkedHtml);
-                        const now = Date.now();
-                        if (now - lastPreviewAt > 1500) {
-                            lastPreviewAt = now;
-                            updateBioAiProductPreview().catch(() => { });
-                        }
-                    },
-                    onDone: (doneHtml) => {
-                        setBioAiGeneratedHtmlOutput(doneHtml);
-                    }
-                }, {
-                    idleTimeoutMs: AI_STREAM_IDLE_TIMEOUT_MS,
-                    totalTimeoutMs: AI_STREAM_TOTAL_TIMEOUT_MS
-                });
-
-                if (!htmlText.trim()) throw new Error('AI 未返回内容');
-
+                setAiProductSectionsJson(config, data.sections || currentSections);
+                setBioAiGeneratedHtmlOutput(data.page_html || '');
+                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = '✓ AI 修改完成';
                 }
                 if (modifyMsg) {
                     modifyMsg.style.color = '#16a34a';
-                    modifyMsg.textContent = '✓ 已按意见更新 HTML，可继续输入下一轮意见';
+                    modifyMsg.textContent = '✓ 已按意见更新内容，可继续输入下一轮意见';
                 }
                 await updateBioAiProductPreview();
+                scheduleAiProductDraftSave(config, { sections: data.sections || currentSections, page_html: data.page_html || '', status: 'generated' });
             } catch (e) {
-                if (msg) {
-                    msg.style.color = '#d97706';
-                    msg.textContent = `流式修改异常：${e?.message || '未知错误'}，正在自动切换稳定模式...`;
-                }
-                if (modifyMsg) {
-                    modifyMsg.style.color = '#d97706';
-                    modifyMsg.textContent = '流式异常，切换稳定模式中...';
-                }
-                try {
-                    const fallbackHtml = await fetchBioAiProductRevisedHtmlFallback(payload, instruction, currentHtml);
-                    if (!fallbackHtml.trim()) throw new Error('稳定模式未返回内容');
-                    setBioAiGeneratedHtmlOutput(fallbackHtml);
-                    await updateBioAiProductPreview();
-                    if (msg) {
-                        msg.style.color = '#16a34a';
-                        msg.textContent = '✓ 流式中断，已自动切换稳定模式并完成修改';
-                    }
-                    if (modifyMsg) {
-                        modifyMsg.style.color = '#16a34a';
-                        modifyMsg.textContent = '✓ 稳定模式修改完成';
-                    }
-                    return;
-                } catch (fallbackErr) {
-                    e = fallbackErr;
-                }
                 if (msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = e?.message || 'AI 修改失败';
@@ -7589,14 +7767,13 @@
                     modifyMsg.style.color = '#dc3545';
                     modifyMsg.textContent = e?.message || 'AI 修改失败';
                 }
-            } finally {
-                clearTimeout(streamAbortTimer);
             }
         }
 
         async function aiCreateBioProductPage() {
             const msg = document.getElementById('bioAiProductMsg');
             const linkEl = document.getElementById('bioAiProductLink');
+            const config = getAiProductFlowConfig('bio');
             const payload = getBioAiProductPayload();
             if (!payload.slug || !payload.context_text) {
                 if (msg) {
@@ -7605,11 +7782,11 @@
                 }
                 return;
             }
-            const pageHtml = getBioAiGeneratedHtml().trim();
-            if (!pageHtml) {
+            const sections = parseAiProductSectionsJson(config, true);
+            if (!Object.keys(sections || {}).length) {
                 if (msg) {
                     msg.style.color = '#dc3545';
-                    msg.textContent = '请先点击“AI 生成完整HTML”';
+                    msg.textContent = '请先点击“AI 生成页面内容”';
                 }
                 return;
             }
@@ -7621,16 +7798,20 @@
             if (linkEl) linkEl.innerHTML = '';
 
             try {
-                const res = await fetch('/api/bio-products/ai-create-html', {
+                const res = await fetch('/api/bio-products/ai-create-from-sections', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         ...payload,
-                        page_html: pageHtml
+                        draft_id: config.getCurrentDraftId(),
+                        source_text: payload.full_text || payload.context_text || '',
+                        sections
                     })
                 });
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || '生成失败');
+                if (data.page_html) setBioAiGeneratedHtmlOutput(data.page_html);
+                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
 
                 if (msg) {
                     msg.style.color = '#16a34a';
@@ -7640,6 +7821,7 @@
                     const stamped = `${data.link}${data.link.includes('?') ? '&' : '?'}t=${Date.now()}`;
                     linkEl.innerHTML = `页面：<a href="${stamped}" target="_blank">${stamped}</a>`;
                 }
+                scheduleAiProductDraftSave(config, { sections, page_html: getBioAiGeneratedHtml(), status: 'published', published_link: data.link || '' });
                 await loadBioProducts();
             } catch (e) {
                 if (msg) {
@@ -7652,6 +7834,7 @@
         function bindBioAiProductEvents() {
             if (bioAiProductEventsBound) return;
             bioAiProductEventsBound = true;
+            const flowConfig = getAiProductFlowConfig('bio');
 
             const fullContentInput = document.getElementById('bioAiProductFullContent');
             const slugInput = document.getElementById('bioAiProductSlug');
@@ -7662,6 +7845,10 @@
                     if (guessed) slugInput.value = guessed;
                 });
             }
+            [fullContentInput, slugInput].forEach(el => {
+                if (!el) return;
+                el.addEventListener('input', () => scheduleAiProductDraftSave(flowConfig));
+            });
 
             const genBtn = document.getElementById('bioAiGenerateFieldsBtn');
             if (genBtn) genBtn.addEventListener('click', aiGenerateBioProductTemplateFields);
@@ -7694,10 +7881,38 @@
 
             const generatedHtmlBox = document.getElementById('bioAiProductFieldsJson');
             if (generatedHtmlBox) {
-                generatedHtmlBox.addEventListener('input', () => { updateBioAiProductPreview().catch(() => { }); });
+                generatedHtmlBox.addEventListener('input', () => {
+                    updateBioAiProductPreview().catch(() => { });
+                    scheduleAiProductDraftSave(flowConfig, { mode: 'html', page_html: generatedHtmlBox.value || '' });
+                });
             }
+            const sectionsBox = document.getElementById('bioAiProductSectionsJson');
+            if (sectionsBox) {
+                let sectionsPreviewTimer = null;
+                sectionsBox.addEventListener('input', () => {
+                    parseAiProductSectionsJson(flowConfig, false);
+                    scheduleAiProductDraftSave(flowConfig);
+                    if (sectionsPreviewTimer) clearTimeout(sectionsPreviewTimer);
+                    sectionsPreviewTimer = setTimeout(() => {
+                        refreshAiProductStructuredPreview(flowConfig).catch(() => { });
+                    }, 900);
+                });
+            }
+            const draftList = document.getElementById('bioAiProductDraftsList');
+            if (draftList) {
+                draftList.addEventListener('click', (event) => {
+                    const btn = event.target.closest('[data-ai-draft-action]');
+                    if (!btn) return;
+                    handleAiProductDraftAction(flowConfig, btn.dataset.aiDraftAction || '', btn.dataset.id || '').catch((e) => {
+                        setAiDraftMessage(flowConfig, e?.message || '草稿操作失败', '#dc2626');
+                    });
+                });
+            }
+            const newDraftBtn = document.getElementById('bioAiProductNewDraftBtn');
+            if (newDraftBtn) newDraftBtn.addEventListener('click', () => createBlankAiProductDraft(flowConfig).catch(() => { }));
 
             renderBioAiUploadedImages();
+            loadAiProductDrafts(flowConfig).catch(() => { });
         }
 
         function escapeAttr(value) {
