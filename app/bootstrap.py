@@ -189,6 +189,7 @@ from app.routes.product_settings import (
     infer_default_bio_industry_categories,
     infer_default_industry_categories,
     register_product_settings_routes,
+    save_bio_product_settings,
     save_product_settings,
 )
 from app.routes.promotion_links import register_promotion_link_routes
@@ -424,6 +425,8 @@ def register_all_routes(app):
         get_product_page_ai_system_prompt=get_product_page_ai_system_prompt,
         get_product_settings=get_product_settings,
         save_product_settings=save_product_settings,
+        get_bio_product_settings=get_bio_product_settings,
+        save_bio_product_settings=save_bio_product_settings,
         product_featured_file=PRODUCT_FEATURED_FILE,
         excluded_product_files=EXCLUDED_PRODUCT_FILES,
         hydrogen_solutions_config_file=HYDROGEN_SOLUTIONS_CONFIG_FILE,

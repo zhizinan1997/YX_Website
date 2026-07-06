@@ -2463,11 +2463,6 @@ li {
         min-width: 0 !important;
     }
 
-    .vs-product-hero__inner {
-        grid-template-columns: minmax(0, 1fr) !important;
-        min-width: 0 !important;
-    }
-
     .vs-product-hero__inner > *,
     .vs-product-gallery,
     .vs-product-hero__content,
@@ -2492,7 +2487,25 @@ li {
         overflow-wrap: anywhere;
         word-break: break-word;
     }
+}
 
+@media (max-width: 599px) {
+    .vs-product-hero__inner {
+        grid-template-columns: minmax(0, 1fr) !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (min-width: 600px) and (max-width: 900px) {
+    .vs-product-hero__inner {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+        gap: 40px !important;
+        align-items: start !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (max-width: 900px) {
     .vs-specs-table {
         display: block !important;
         width: 100% !important;

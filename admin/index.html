@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260608-system-log-pagination">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260706-ai-image-sort">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
     <link rel="stylesheet" href="/admin/styles/components.css?v=20260701-source-detail">
@@ -152,15 +152,15 @@
                 <div class="menu-item active" data-view="site-reports" onclick="switchView('site-reports')">
                     <i class="fas fa-chart-line"></i> 网站数据
                 </div>
-                <div class="menu-item" data-view="promotion-links" onclick="switchView('promotion-links')">
-                    <i class="fas fa-bullhorn"></i> 推广链接
-                </div>
                 <div class="menu-item" data-view="messages" onclick="switchView('messages')">
                     <i class="fas fa-envelope"></i> 留言系统
                     <span id="messagesUnreadDot" class="menu-unread-dot" hidden aria-label="存在未读留言"></span>
                 </div>
                 <div class="menu-item" data-view="home" onclick="switchView('home')">
                     <i class="fas fa-home"></i> 首页设置
+                </div>
+                <div class="menu-item" data-view="promotion-links" onclick="switchView('promotion-links')">
+                    <i class="fas fa-bullhorn"></i> 推广链接
                 </div>
                 <div class="sidebar-menu-group" data-menu-group="gas-related">
                     <button type="button" class="sidebar-menu-group-toggle" onclick="toggleSidebarMenuGroup('gas-related')"
@@ -628,14 +628,7 @@
                                     <div class="form-group">
                                         <label>产品分类</label>
                                         <select id="aiProductCategory" class="form-control">
-                                            <option value="detector" selected>detector · 检测仪</option>
-                                            <option value="sensor">sensor · 传感器</option>
-                                            <option value="module">module · 模组</option>
-                                            <option value="alarm">alarm · 报警器</option>
-                                            <option value="system">system · 系统</option>
-                                            <option value="iot">iot · 物联网</option>
-                                            <option value="service">service · 服务</option>
-                                            <option value="probe">probe · 探头</option>
+                                            <option value="">加载领域分类中...</option>
                                         </select>
                                     </div>
                                     <div class="form-group" style="grid-column:1 / -1;">
@@ -662,7 +655,7 @@
                                         <span id="aiProductImagesMsg"
                                             style="font-size:13px; color:#667085;">最多 12 张，单张不超过 10MB，支持 PNG/JPG/JPEG/WEBP/BMP/GIF/TIF/TIFF/HEIC/HEIF/AVIF。</span>
                                     </div>
-                                    <div id="aiProductImagesList"
+                                    <div id="aiProductImagesList" class="ai-product-image-list"
                                         style="margin-top:10px; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px;"></div>
                                 </div>
 
@@ -971,14 +964,7 @@
                                     <div class="form-group">
                                         <label>产品分类</label>
                                         <select id="bioAiProductCategory" class="form-control">
-                                            <option value="sensor" selected>sensor · 传感器</option>
-                                            <option value="module">module · 模组</option>
-                                            <option value="detector">detector · 检测仪</option>
-                                            <option value="alarm">alarm · 报警器</option>
-                                            <option value="system">system · 系统</option>
-                                            <option value="iot">iot · 物联网</option>
-                                            <option value="service">service · 服务</option>
-                                            <option value="probe">probe · 探头</option>
+                                            <option value="">加载领域分类中...</option>
                                         </select>
                                     </div>
                                     <div class="form-group" style="grid-column:1 / -1;">
@@ -1005,7 +991,7 @@
                                         <span id="bioAiProductImagesMsg"
                                             style="font-size:13px; color:#667085;">最多 12 张，单张不超过 10MB，支持 PNG/JPG/JPEG/WEBP/BMP/GIF/TIF/TIFF/HEIC/HEIF/AVIF。</span>
                                     </div>
-                                    <div id="bioAiProductImagesList"
+                                    <div id="bioAiProductImagesList" class="ai-product-image-list"
                                         style="margin-top:10px; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px;"></div>
                                 </div>
 
@@ -3848,7 +3834,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260701-source-detail"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260706-cn-draft-time"></script>
     <script src="/admin/js/app.js"></script>
 </body>
 </html>

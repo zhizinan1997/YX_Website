@@ -6624,19 +6624,99 @@
             return { title, summary, shortName };
         }
 
-        function renderAiUploadedImages() {
-            const list = document.getElementById('aiProductImagesList');
+        function getAiProductImagesListId(config) {
+            return config.family === 'bio' ? 'bioAiProductImagesList' : 'aiProductImagesList';
+        }
+
+        function getAiProductImagesMessageId(config) {
+            return config.family === 'bio' ? 'bioAiProductImagesMsg' : 'aiProductImagesMsg';
+        }
+
+        function applyAiImageOrderToSections(config, sections) {
+            const next = { ...(sections && typeof sections === 'object' ? sections : {}) };
+            const imageUrls = config.getImageUrls();
+            if (imageUrls.length && Object.keys(next).length) {
+                next.images = imageUrls;
+            }
+            return next;
+        }
+
+        function syncAiProductImageOrderFromDom(config) {
+            const list = document.getElementById(getAiProductImagesListId(config));
             if (!list) return;
-            if (!aiUploadedImageUrls.length) {
-                list.innerHTML = '<div style="font-size:12px; color:#94a3b8;">尚未上传图片</div>';
+            const urls = Array.from(list.querySelectorAll('.ai-product-image-card'))
+                .map(card => String(card.dataset.url || '').trim())
+                .filter(Boolean);
+            config.setImageUrls(urls);
+
+            const currentSections = parseAiProductSectionsJson(config, false);
+            let nextSections = currentSections;
+            if (currentSections && typeof currentSections === 'object' && Object.keys(currentSections).length) {
+                nextSections = applyAiImageOrderToSections(config, currentSections);
+                setAiProductSectionsJson(config, nextSections);
+            }
+
+            config.renderImages();
+            scheduleAiProductDraftSave(config, nextSections !== currentSections ? { sections: nextSections } : {});
+
+            const msg = document.getElementById(getAiProductImagesMessageId(config));
+            if (msg) {
+                msg.style.color = '#16a34a';
+                msg.textContent = urls.length ? `✓ 图片顺序已更新，当前主图：第 1 张` : '';
+            }
+
+            if (config.getMode() === 'structured' && nextSections && Object.keys(nextSections).length) {
+                refreshAiProductStructuredPreview(config).catch(() => { });
+            }
+        }
+
+        function initAiProductImageSortable(config, list) {
+            if (!list) return;
+            if (list._aiProductSortable && typeof list._aiProductSortable.destroy === 'function') {
+                list._aiProductSortable.destroy();
+                list._aiProductSortable = null;
+            }
+            if (typeof Sortable === 'undefined' || !list.querySelector('.ai-product-image-card')) return;
+            list._aiProductSortable = new Sortable(list, {
+                animation: 150,
+                draggable: '.ai-product-image-card',
+                handle: '.ai-product-image-drag',
+                ghostClass: 'ai-product-image-card--ghost',
+                chosenClass: 'ai-product-image-card--chosen',
+                dragClass: 'ai-product-image-card--dragging',
+                onEnd: () => syncAiProductImageOrderFromDom(config)
+            });
+        }
+
+        function renderAiUploadedImagesForConfig(config) {
+            const list = document.getElementById(getAiProductImagesListId(config));
+            if (!list) return;
+            const urls = config.getImageUrls();
+            if (!urls.length) {
+                list.innerHTML = '<div class="ai-product-image-empty">尚未上传图片</div>';
+                initAiProductImageSortable(config, list);
                 return;
             }
-            list.innerHTML = aiUploadedImageUrls.map((url, index) => `
-                <div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#fff;">
-                    <img src="${url}" alt="product-image-${index + 1}" style="width:100%; height:90px; object-fit:cover; border-radius:6px; background:#f8fafc;">
-                    <div style="margin-top:6px; font-size:11px; color:#475569; overflow-wrap:anywhere; word-break:break-word;">${escapeHtml(url)}</div>
+            const altPrefix = config.family === 'bio' ? 'bio-product-image' : 'product-image';
+            list.innerHTML = urls.map((url, index) => `
+                <div class="ai-product-image-card" data-url="${escapeAttr(url)}">
+                    <div class="ai-product-image-drag" title="拖动调整顺序" aria-label="拖动调整顺序">
+                        <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+                    </div>
+                    <div class="ai-product-image-preview">
+                        <img src="${escapeAttr(url)}" alt="${altPrefix}-${index + 1}">
+                    </div>
+                    <div class="ai-product-image-meta">
+                        <span class="ai-product-image-order">${index === 0 ? '主图' : `第 ${index + 1} 张`}</span>
+                        <span class="ai-product-image-url">${escapeHtml(url)}</span>
+                    </div>
                 </div>
             `).join('');
+            initAiProductImageSortable(config, list);
+        }
+
+        function renderAiUploadedImages() {
+            renderAiUploadedImagesForConfig(getAiProductFlowConfig('gas'));
         }
 
         async function uploadAiProductImages(files) {
@@ -6747,8 +6827,7 @@
             const manualSlug = (slugInput?.value || '').trim();
             const slug = manualSlug || aiGuessSlugFromText(fullContent) || title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
             if (slugInput && !manualSlug && slug) slugInput.value = slug;
-            const categoryValue = document.getElementById('aiProductCategory')?.value || 'detector';
-            const category = AI_PRODUCT_CATEGORIES.includes(categoryValue) ? categoryValue : 'detector';
+            const industryCategoryValue = document.getElementById('aiProductCategory')?.value || '';
             const imageUrls = Array.isArray(aiUploadedImageUrls) ? aiUploadedImageUrls : [];
             const imageUrl = imageUrls[0] || '/cdn_assets/images/common/f1dcc87cdcca.png';
             const config = getAiProductFlowConfig('gas');
@@ -6757,7 +6836,8 @@
                 title: title || slug || '未命名产品',
                 short_name: shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
                 slug: slug,
-                category: category,
+                category: 'detector',
+                industryCategories: industryCategoryValue ? [industryCategoryValue] : [],
                 image_url: imageUrl,
                 detail_image_urls: imageUrls.join('\n'),
                 news_urls: getAiSelectedNewsUrls(config).join('\n'),
@@ -6792,7 +6872,6 @@
             return {
                 family,
                 apiPrefix: isBio ? '/api/bio-products' : '/api/products',
-                localKey: isBio ? 'yx_admin_bio_ai_product_draft_fallback' : 'yx_admin_ai_product_draft_fallback',
                 draftListId: isBio ? 'bioAiProductDraftsList' : 'aiProductDraftsList',
                 draftMsgId: isBio ? 'bioAiProductDraftMsg' : 'aiProductDraftMsg',
                 sectionsBoxId: isBio ? 'bioAiProductSectionsJson' : 'aiProductSectionsJson',
@@ -6914,6 +6993,7 @@
                 title: payload.title || '',
                 short_name: payload.short_name || '',
                 category: payload.category || (config.family === 'bio' ? 'sensor' : 'detector'),
+                industryCategories: Array.isArray(payload.industryCategories) ? payload.industryCategories : [],
                 summary: payload.summary || (sections.description || ''),
                 source_text: payload.full_text || payload.context_text || '',
                 image_urls: imageUrls,
@@ -6945,7 +7025,6 @@
                 setAiDraftMessage(config, e?.message || '草稿内容有误，无法同步。', '#dc2626');
                 throw e;
             }
-            localStorage.setItem(config.localKey, JSON.stringify({ ...payload, draft_id: config.getCurrentDraftId(), saved_at: Date.now() }));
             if (!hasMeaningfulAiDraft(payload)) return null;
 
             const currentId = config.getCurrentDraftId();
@@ -6976,17 +7055,13 @@
                 setAiDraftMessage(config, e?.message || '草稿内容有误，无法自动保存。', '#dc2626');
                 return;
             }
-            localStorage.setItem(config.localKey, JSON.stringify({
-                ...payload,
-                draft_id: config.getCurrentDraftId(),
-                saved_at: Date.now()
-            }));
+            if (!hasMeaningfulAiDraft(payload)) return;
             const timer = setTimeout(async () => {
                 config.setSaveTimer(null);
                 try {
                     await saveAiProductDraftNow(config, overrides);
                 } catch (e) {
-                    setAiDraftMessage(config, `本地已暂存，尚未同步：${e?.message || '网络异常'}`, '#d97706');
+                    setAiDraftMessage(config, `草稿同步失败：${e?.message || '网络异常'}`, '#dc2626');
                 }
             }, 900);
             config.setSaveTimer(timer);
@@ -7004,18 +7079,44 @@
                 renderAiProductDrafts(config, items);
             } catch (e) {
                 renderAiProductDrafts(config, []);
-                const local = localStorage.getItem(config.localKey);
-                setAiDraftMessage(config, local ? '草稿列表加载失败，可恢复本地暂存。' : (e?.message || '草稿列表加载失败'), local ? '#d97706' : '#dc2626');
+                setAiDraftMessage(config, e?.message || '草稿列表加载失败', '#dc2626');
+            }
+        }
+
+        function formatAiDraftBeijingTime(value) {
+            const raw = String(value || '').trim();
+            if (!raw) return '';
+            const date = new Date(raw);
+            if (Number.isNaN(date.getTime())) return raw.replace('T', ' ').replace('Z', '');
+            try {
+                const parts = new Intl.DateTimeFormat('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                }).formatToParts(date).reduce((acc, part) => {
+                    if (part.type !== 'literal') acc[part.type] = part.value;
+                    return acc;
+                }, {});
+                return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+            } catch (_) {
+                return date.toLocaleString('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    hour12: false
+                }).replace(/\//g, '-');
             }
         }
 
         function renderAiProductDrafts(config, items) {
             const list = document.getElementById(config.draftListId);
             if (!list) return;
-            const local = localStorage.getItem(config.localKey);
             const currentId = config.getCurrentDraftId();
-            if (!items.length && !local) {
-                list.innerHTML = '<div style="font-size:12px;color:#94a3b8;">暂无草稿，开始填写后会自动暂存。</div>';
+            if (!items.length) {
+                list.innerHTML = '<div style="font-size:12px;color:#94a3b8;">暂无草稿，开始填写后会自动保存到服务器。</div>';
                 return;
             }
             const cards = items.map(item => {
@@ -7023,7 +7124,7 @@
                 const title = escapeHtml(item.title || item.slug || '未命名草稿');
                 const slug = escapeHtml(item.slug || '-');
                 const status = item.status === 'published' ? '已发布' : (item.status === 'generated' ? '已生成' : '草稿');
-                const updated = escapeHtml((item.updated_at || '').replace('T', ' ').replace('Z', ''));
+                const updated = escapeHtml(formatAiDraftBeijingTime(item.updated_at));
                 const linkBtn = item.published_link ? `<button type="button" class="btn-sm" data-ai-draft-action="open" data-id="${escapeHtml(item.id)}" style="width:auto;padding:6px 10px;">打开页面</button>` : '';
                 return `
                     <div style="border:1px solid ${active ? '#2563eb' : '#e2e8f0'}; border-radius:8px; padding:10px; background:${active ? '#eff6ff' : '#fff'};">
@@ -7042,15 +7143,7 @@
                     </div>
                 `;
             }).join('');
-            const localCard = local ? `
-                <div style="border:1px dashed #f59e0b; border-radius:8px; padding:10px; background:#fffbeb;">
-                    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-                        <div style="font-size:12px; color:#92400e;">浏览器本地暂存</div>
-                        <button type="button" class="btn-sm" data-ai-draft-action="load-local" style="width:auto;padding:6px 10px;">恢复本地暂存</button>
-                    </div>
-                </div>
-            ` : '';
-            list.innerHTML = cards + localCard;
+            list.innerHTML = cards;
         }
 
         async function applyAiProductDraft(config, draft) {
@@ -7062,12 +7155,22 @@
             const shortNameInput = document.getElementById(config.shortNameId);
             const summaryInput = document.getElementById(config.summaryId);
             const categoryInput = document.getElementById(config.categoryId);
+            if (config.family === 'gas') {
+                await loadAiProductIndustryCategoryOptions((draft.industryCategories || [])[0] || '');
+            } else if (config.family === 'bio') {
+                await loadBioAiProductIndustryCategoryOptions((draft.industryCategories || [])[0] || '');
+            }
             if (slugInput) slugInput.value = draft.slug || '';
             if (fullInput) fullInput.value = draft.source_text || '';
             if (titleInput) titleInput.value = draft.title || '';
             if (shortNameInput) shortNameInput.value = draft.short_name || '';
             if (summaryInput) summaryInput.value = draft.summary || '';
-            if (categoryInput && draft.category) categoryInput.value = draft.category;
+            if (categoryInput && (config.family === 'gas' || config.family === 'bio')) {
+                const industryValue = Array.isArray(draft.industryCategories) ? String(draft.industryCategories[0] || '') : '';
+                if (industryValue) categoryInput.value = industryValue;
+            } else if (categoryInput && draft.category) {
+                categoryInput.value = draft.category;
+            }
             config.setImageUrls(Array.isArray(draft.image_urls) ? draft.image_urls : []);
             config.setMode(draft.mode || 'structured');
             config.renderImages();
@@ -7089,31 +7192,6 @@
         }
 
         async function handleAiProductDraftAction(config, action, draftId) {
-            if (action === 'load-local') {
-                const raw = localStorage.getItem(config.localKey);
-                if (!raw) return;
-                try {
-                    const parsed = JSON.parse(raw);
-                    await applyAiProductDraft(config, {
-                        id: parsed.draft_id || '',
-                        slug: parsed.slug || '',
-                        title: parsed.title || '',
-                        short_name: parsed.short_name || '',
-                        category: parsed.category || '',
-                        summary: parsed.summary || '',
-                        source_text: parsed.source_text || '',
-                        image_urls: parsed.image_urls || [],
-                        news_urls: parsed.news_urls || [],
-                        related_product_urls: parsed.related_product_urls || [],
-                        sections: parsed.sections || {},
-                        page_html: parsed.page_html || '',
-                        mode: parsed.mode || 'structured'
-                    });
-                    setAiDraftMessage(config, '已恢复浏览器本地暂存，正在尝试同步为服务器草稿...', '#2563eb');
-                    scheduleAiProductDraftSave(config);
-                } catch (_) { }
-                return;
-            }
             const item = config.getDraftsCache().find(d => d.id === draftId);
             if (action === 'open' && item?.published_link) {
                 window.open(item.published_link, '_blank', 'noopener');
@@ -7172,7 +7250,8 @@
             if (titleInput) titleInput.value = '';
             if (shortNameInput) shortNameInput.value = '';
             if (summaryInput) summaryInput.value = '';
-            if (categoryInput) categoryInput.value = config.family === 'bio' ? 'sensor' : 'detector';
+            if (categoryInput && config.family === 'gas') await loadAiProductIndustryCategoryOptions();
+            if (categoryInput && config.family === 'bio') await loadBioAiProductIndustryCategoryOptions();
             config.setImageUrls([]);
             config.setMode('structured');
             config.renderImages();
@@ -7183,7 +7262,7 @@
             clearAiProductPreview(config);
             const linkEl = document.getElementById(config.linkId);
             if (linkEl) linkEl.innerHTML = '';
-            setAiDraftMessage(config, '已新建空白草稿，填写后会自动保存。', '#2563eb');
+            setAiDraftMessage(config, '已新建空白草稿，填写后会自动保存到服务器。', '#2563eb');
             scheduleAiProductDraftSave(config);
         }
 
@@ -7775,18 +7854,7 @@
         }
 
         function renderBioAiUploadedImages() {
-            const list = document.getElementById('bioAiProductImagesList');
-            if (!list) return;
-            if (!bioAiUploadedImageUrls.length) {
-                list.innerHTML = '<div style="font-size:12px; color:#94a3b8;">尚未上传图片</div>';
-                return;
-            }
-            list.innerHTML = bioAiUploadedImageUrls.map((url, index) => `
-                <div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#fff;">
-                    <img src="${url}" alt="bio-product-image-${index + 1}" style="width:100%; height:90px; object-fit:cover; border-radius:6px; background:#f8fafc;">
-                    <div style="margin-top:6px; font-size:11px; color:#475569; overflow-wrap:anywhere; word-break:break-word;">${escapeHtml(url)}</div>
-                </div>
-            `).join('');
+            renderAiUploadedImagesForConfig(getAiProductFlowConfig('bio'));
         }
 
         async function uploadBioAiProductImages(files) {
@@ -7897,8 +7965,7 @@
             const manualSlug = (slugInput?.value || '').trim();
             const slug = manualSlug || aiGuessSlugFromText(fullContent) || title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
             if (slugInput && !manualSlug && slug) slugInput.value = slug;
-            const categoryValue = document.getElementById('bioAiProductCategory')?.value || 'sensor';
-            const category = AI_PRODUCT_CATEGORIES.includes(categoryValue) ? categoryValue : 'sensor';
+            const industryCategoryValue = document.getElementById('bioAiProductCategory')?.value || '';
             const imageUrls = Array.isArray(bioAiUploadedImageUrls) ? bioAiUploadedImageUrls : [];
             const imageUrl = imageUrls[0] || '/cdn_assets/images/common/f1dcc87cdcca.png';
             const config = getAiProductFlowConfig('bio');
@@ -7907,7 +7974,8 @@
                 title: title || slug || '未命名产品',
                 short_name: shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
                 slug: slug,
-                category: category,
+                category: 'sensor',
+                industryCategories: industryCategoryValue ? [industryCategoryValue] : [],
                 image_url: imageUrl,
                 detail_image_urls: imageUrls.join('\n'),
                 news_urls: getAiSelectedNewsUrls(config).join('\n'),
@@ -8397,7 +8465,7 @@
         }
 
         function applyAiPickerSelectionsToSections(config, sections) {
-            const next = { ...(sections && typeof sections === 'object' ? sections : {}) };
+            const next = applyAiImageOrderToSections(config, sections);
             const selectedNews = getAiSelectedNewsUrls(config);
             if (selectedNews.length) {
                 next.news = selectedNews.map(link => {
@@ -8925,14 +8993,49 @@
             }
         }
 
+        function renderBioAiProductIndustryCategoryOptions(selectedValue = '') {
+            const select = document.getElementById('bioAiProductCategory');
+            if (!select) return;
+            const current = String(selectedValue || select.value || '').trim();
+            const categories = Array.isArray(bioIndustryFiltersData) ? bioIndustryFiltersData : [];
+            if (!categories.length) {
+                select.innerHTML = '<option value="">暂无领域分类</option>';
+                select.disabled = true;
+                return;
+            }
+            select.disabled = false;
+            select.innerHTML = categories.map((item, index) => {
+                const key = String(item?.key || '').trim();
+                const name = String(item?.name || key || `领域分类 ${index + 1}`).trim();
+                if (!key) return '';
+                return `<option value="${escapeIndustryHtml(key)}">${escapeIndustryHtml(name)}</option>`;
+            }).join('');
+            if (current && categories.some(item => String(item?.key || '').trim() === current)) {
+                select.value = current;
+            } else if (categories[0]?.key) {
+                select.value = String(categories[0].key);
+            }
+        }
+
+        async function loadBioAiProductIndustryCategoryOptions(selectedValue = '') {
+            if (!Array.isArray(bioIndustryFiltersData) || !bioIndustryFiltersData.length) {
+                await loadBioIndustryFilters();
+                renderBioAiProductIndustryCategoryOptions(selectedValue);
+            } else {
+                renderBioAiProductIndustryCategoryOptions(selectedValue);
+            }
+        }
+
         async function loadBioIndustryFilters() {
             try {
                 const res = await fetch('/api/bio-products/industry-filters');
                 const data = await res.json();
                 bioIndustryFiltersData = Array.isArray(data.categories) ? data.categories : [];
+                renderBioAiProductIndustryCategoryOptions();
                 renderBioIndustrySettings();
             } catch (e) {
                 console.error('Load bio industry filters error:', e);
+                renderBioAiProductIndustryCategoryOptions();
                 const editor = document.getElementById('bioIndustryFilterEditor');
                 if (editor) {
                     editor.innerHTML = '<div style="color:#dc3545;">加载领域分类失败，请刷新重试</div>';
@@ -9472,14 +9575,49 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function renderAiProductIndustryCategoryOptions(selectedValue = '') {
+            const select = document.getElementById('aiProductCategory');
+            if (!select) return;
+            const current = String(selectedValue || select.value || '').trim();
+            const categories = Array.isArray(industryFiltersData) ? industryFiltersData : [];
+            if (!categories.length) {
+                select.innerHTML = '<option value="">暂无领域分类</option>';
+                select.disabled = true;
+                return;
+            }
+            select.disabled = false;
+            select.innerHTML = categories.map((item, index) => {
+                const key = String(item?.key || '').trim();
+                const name = String(item?.name || key || `领域分类 ${index + 1}`).trim();
+                if (!key) return '';
+                return `<option value="${escapeIndustryHtml(key)}">${escapeIndustryHtml(name)}</option>`;
+            }).join('');
+            if (current && categories.some(item => String(item?.key || '').trim() === current)) {
+                select.value = current;
+            } else if (categories[0]?.key) {
+                select.value = String(categories[0].key);
+            }
+        }
+
+        async function loadAiProductIndustryCategoryOptions(selectedValue = '') {
+            if (!Array.isArray(industryFiltersData) || !industryFiltersData.length) {
+                await loadIndustryFilters();
+                renderAiProductIndustryCategoryOptions(selectedValue);
+            } else {
+                renderAiProductIndustryCategoryOptions(selectedValue);
+            }
+        }
+
         async function loadIndustryFilters() {
             try {
                 const res = await fetch('/api/products/industry-filters');
                 const data = await res.json();
                 industryFiltersData = Array.isArray(data.categories) ? data.categories : [];
+                renderAiProductIndustryCategoryOptions();
                 renderIndustrySettings();
             } catch (e) {
                 console.error('Load industry filters error:', e);
+                renderAiProductIndustryCategoryOptions();
                 const editor = document.getElementById('industryFilterEditor');
                 if (editor) {
                     editor.innerHTML = '<div style="color:#dc3545;">加载领域分类失败，请刷新重试</div>';
@@ -10441,7 +10579,10 @@
                 tab.classList.add('active');
                 renderTabGuide(tab);
                 if (tabName === 'add') bindProductCreateEvents();
-                if (tabName === 'ai') bindAiProductEvents();
+                if (tabName === 'ai') {
+                    bindAiProductEvents();
+                    loadAiProductIndustryCategoryOptions().catch(() => { });
+                }
                 if (tabName === 'manual-edit') initManualEditTab();
             }
         }
@@ -10952,7 +11093,10 @@
                 tab.classList.add('active');
                 renderTabGuide(tab);
             }
-            if (tabName === 'ai') bindBioAiProductEvents();
+            if (tabName === 'ai') {
+                bindBioAiProductEvents();
+                loadBioAiProductIndustryCategoryOptions().catch(() => { });
+            }
             if (tabName === 'manual-edit') {
                 if (!bioProductsData.length) {
                     loadBioProducts().then(() => initBioManualEditTab()).catch(() => initBioManualEditTab());

@@ -87,6 +87,35 @@ PRODUCT_SECTION_LIST_KEYS = {
 PRODUCT_SECTION_KEYS = PRODUCT_SECTION_TEXT_KEYS | PRODUCT_SECTION_LIST_KEYS
 PRODUCT_AI_DRAFT_STATUSES = {'draft', 'generated', 'published'}
 PRODUCT_AI_DRAFT_MODES = {'structured', 'html'}
+PRODUCT_AI_SECTIONS_SYSTEM_PROMPT = """你是“元芯传感产品页结构化内容助手”，负责把产品资料整理成后台可渲染的结构化 JSON。
+
+硬性规则：
+1) 只输出一个严格 JSON 对象；禁止输出 HTML、CSS、Markdown、解释文本或任何前后缀。
+2) 顶层必须是 {"sections": {...}}。
+3) JSON 必须可被标准解析器直接解析：键和值使用双引号，不要注释、尾逗号、单引号或未加引号的键。
+4) sections 只能使用用户提供 schema 中的字段；未知内容留空字符串或空数组。
+5) 禁止编造认证、资质、客户案例或测试报告。"""
+PRODUCT_AI_SECTIONS_PATCH_SYSTEM_PROMPT = """你是“元芯传感产品页结构化内容修订助手”，负责按修改意见返回 sections 的 JSON patch。
+
+硬性规则：
+1) 只输出一个严格 JSON 对象；禁止输出 HTML、CSS、Markdown、解释文本或任何前后缀。
+2) 顶层必须是 {"patch": {...}}。
+3) JSON 必须可被标准解析器直接解析：键和值使用双引号，不要注释、尾逗号、单引号或未加引号的键。
+4) patch 只包含需要修改的 schema 字段；数组字段如需修改，返回该数组的新完整值。
+5) 禁止编造认证、资质、客户案例或测试报告。"""
+
+PRODUCT_HERO_LAYOUT_GUARD = """
+
+        /* Product Hero Layout Guard */
+        @media (min-width: 600px) and (max-width: 900px) {
+            .vs-product-hero__inner {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 40px !important;
+                align-items: start !important;
+                min-width: 0 !important;
+            }
+        }
+"""
 
 PRODUCT_SPECS_MOBILE_GUARD = """
 
@@ -164,6 +193,8 @@ def configure_product_editor(
     get_product_page_ai_system_prompt,
     get_product_settings,
     save_product_settings,
+    get_bio_product_settings,
+    save_bio_product_settings,
     product_featured_file,
     excluded_product_files,
     hydrogen_solutions_config_file,
@@ -184,6 +215,8 @@ def configure_product_editor(
         'get_product_page_ai_system_prompt': get_product_page_ai_system_prompt,
         'get_product_settings': get_product_settings,
         'save_product_settings': save_product_settings,
+        'get_bio_product_settings': get_bio_product_settings,
+        'save_bio_product_settings': save_bio_product_settings,
         'product_featured_file': Path(product_featured_file),
         'excluded_product_files': set(excluded_product_files or set()),
         'hydrogen_solutions_config_file': Path(hydrogen_solutions_config_file),
@@ -1041,6 +1074,9 @@ def parse_json_object_from_ai_text(text: str):
     if raw.startswith('```'):
         raw = re.sub(r'^```[a-zA-Z]*\s*', '', raw)
         raw = re.sub(r'\s*```$', '', raw)
+    lower_raw = raw.lower()
+    if lower_raw.startswith('<!doctype html') or lower_raw.startswith('<html'):
+        raise ValueError('AI返回了HTML而不是结构化JSON')
     try:
         obj = json.loads(raw)
         if isinstance(obj, dict):
@@ -1132,6 +1168,41 @@ def _normalize_text_lines(value):
     raw = raw.replace('，', ',').replace('；', ';')
     parts = re.split(r'[\n,;]+', raw)
     return [p.strip() for p in parts if p and p.strip()]
+
+
+def _normalize_industry_categories(value, limit: int = 12) -> list[str]:
+    result = []
+    for item in _normalize_text_lines(value):
+        key = re.sub(r'[^a-z0-9_-]+', '-', str(item or '').strip().lower())
+        key = re.sub(r'-{2,}', '-', key).strip('-_')
+        if not key or key in result:
+            continue
+        result.append(key)
+        if len(result) >= limit:
+            break
+    return result
+
+
+def _save_ai_product_industry_categories(product_family: str, product_id: str, data: dict) -> None:
+    normalized_family = _normalize_product_family(product_family)
+    if normalized_family not in {'gas', 'bio'}:
+        return
+    industry_categories = _normalize_industry_categories(
+        data.get('industryCategories') if 'industryCategories' in data else data.get('industry_categories')
+    )
+    if not industry_categories:
+        return
+    get_settings = _dep('get_bio_product_settings') if normalized_family == 'bio' else _dep('get_product_settings')
+    save_settings = _dep('save_bio_product_settings') if normalized_family == 'bio' else _dep('save_product_settings')
+    settings = get_settings()
+    if not isinstance(settings, dict):
+        settings = {}
+    product_settings = settings.get(product_id)
+    if not isinstance(product_settings, dict):
+        product_settings = {}
+    product_settings['industryCategories'] = industry_categories
+    settings[product_id] = product_settings
+    save_settings(settings)
 
 
 def _unique_nonempty_strings(values, limit: int = 12) -> list[str]:
@@ -1333,6 +1404,26 @@ def _merge_product_sections(current_sections: dict, patch_sections: dict) -> dic
     return _normalize_product_sections(merged)
 
 
+def _replace_div_inner_by_class(page_html: str, class_name: str, inner_html: str) -> str:
+    """Replace the inner HTML of the first div carrying class_name using balanced div scanning."""
+    text = page_html or ''
+    pattern = re.compile(r'<div\b[^>]*class="[^"]*\b' + re.escape(class_name) + r'\b[^"]*"[^>]*>', re.I)
+    match = pattern.search(text)
+    if not match:
+        return text
+    depth = 1
+    for token in re.finditer(r'<div\b[^>]*>|</div\s*>', text[match.end():], re.I):
+        absolute_start = match.end() + token.start()
+        absolute_end = match.end() + token.end()
+        if token.group(0).lower().startswith('<div'):
+            depth += 1
+        else:
+            depth -= 1
+            if depth == 0:
+                return text[:match.end()] + inner_html + text[absolute_start:]
+    return text
+
+
 def _extract_product_sections_from_ai_response(response_text: str, *, defaults: dict | None = None) -> dict:
     parsed = parse_json_object_from_ai_text(response_text or '')
     raw_sections = parsed.get('sections') if isinstance(parsed.get('sections'), dict) else parsed
@@ -1379,7 +1470,6 @@ def _build_product_ai_sections_messages(
 ):
     """Build compact messages that ask AI for structured product sections only."""
     ai_cfg = _dep('get_product_page_ai_config')()
-    system_prompt = _dep('get_product_page_ai_system_prompt')()
     reference_sections = extract_vs_product_sections(ensure_product_dynamic_sections(get_product_ai_reference_html(product_family)))
     compact_reference = {
         'section_keys': [key for key in PRODUCT_SECTION_KEYS if key in reference_sections],
@@ -1409,7 +1499,7 @@ def _build_product_ai_sections_messages(
         f"- 详细补充资料:\n{context_text or '（无）'}"
     )
     return [
-        {'role': 'system', 'content': system_prompt},
+        {'role': 'system', 'content': PRODUCT_AI_SECTIONS_SYSTEM_PROMPT},
         {'role': 'user', 'content': user_prompt},
     ], ai_cfg
 
@@ -1423,7 +1513,6 @@ def _build_product_ai_revise_sections_messages(
     context_text: str,
 ):
     """Build compact messages that ask AI for a section merge patch only."""
-    system_prompt = _dep('get_product_page_ai_system_prompt')()
     compact_current = _normalize_product_sections(current_sections)
     user_prompt = (
         "请根据修改意见返回产品页 sections 的 JSON patch，不要输出完整 HTML。\n"
@@ -1441,7 +1530,7 @@ def _build_product_ai_revise_sections_messages(
         f"当前 sections:\n{json.dumps(compact_current, ensure_ascii=False)}"
     )
     return [
-        {'role': 'system', 'content': system_prompt},
+        {'role': 'system', 'content': PRODUCT_AI_SECTIONS_PATCH_SYSTEM_PROMPT},
         {'role': 'user', 'content': user_prompt},
     ]
 
@@ -1545,6 +1634,9 @@ def _normalize_product_ai_draft(data: dict, *, family: str, existing: dict | Non
         'category': _clean_draft_text(
             source.get('category', current.get('category', 'sensor' if normalized_family == 'bio' else 'detector')),
             max_length=40,
+        ),
+        'industryCategories': _normalize_industry_categories(
+            source.get('industryCategories', source.get('industry_categories', current.get('industryCategories', [])))
         ),
         'summary': _clean_draft_text(source.get('summary', current.get('summary', sections.get('description', ''))), max_length=800),
         'source_text': _clean_draft_text(
@@ -1700,15 +1792,21 @@ def _insert_before_last_tag(text: str, tag: str, snippet: str) -> str:
 
 
 def ensure_product_responsive_guards(page_html: str) -> str:
-    """Ensure generated product pages keep mobile table layout overrides."""
+    """Ensure generated product pages keep responsive layout overrides."""
     text = str(page_html or '')
-    if 'vs-specs-table' not in text or 'Product Specs Mobile Guard' in text:
+    guards = []
+    if 'vs-product-hero__inner' in text and 'Product Hero Layout Guard' not in text:
+        guards.append(PRODUCT_HERO_LAYOUT_GUARD.rstrip())
+    if 'vs-specs-table' in text and 'Product Specs Mobile Guard' not in text:
+        guards.append(PRODUCT_SPECS_MOBILE_GUARD.rstrip())
+    if not guards:
         return text
 
+    guard_css = '\n'.join(guards)
     if re.search(r'</style\s*>', text, re.I):
-        return _insert_before_last_tag(text, 'style', PRODUCT_SPECS_MOBILE_GUARD.rstrip())
+        return _insert_before_last_tag(text, 'style', guard_css)
 
-    style_block = '<style>' + PRODUCT_SPECS_MOBILE_GUARD.rstrip() + '\n    </style>'
+    style_block = '<style>' + guard_css + '\n    </style>'
     if re.search(r'</head\s*>', text, re.I):
         return _insert_before_last_tag(text, 'head', style_block)
     return style_block + '\n' + text
@@ -1928,6 +2026,8 @@ def register_product_editor_routes(
     get_product_page_ai_system_prompt,
     get_product_settings,
     save_product_settings,
+    get_bio_product_settings,
+    save_bio_product_settings,
     product_featured_file,
     excluded_product_files,
     hydrogen_solutions_config_file,
@@ -1947,6 +2047,8 @@ def register_product_editor_routes(
         get_product_page_ai_system_prompt=get_product_page_ai_system_prompt,
         get_product_settings=get_product_settings,
         save_product_settings=save_product_settings,
+        get_bio_product_settings=get_bio_product_settings,
+        save_bio_product_settings=save_bio_product_settings,
         product_featured_file=product_featured_file,
         excluded_product_files=excluded_product_files,
         hydrogen_solutions_config_file=hydrogen_solutions_config_file,
@@ -2291,6 +2393,7 @@ def register_product_editor_routes(
             return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
         filepath.write_text(page_html, encoding='utf-8')
         link = f'{_get_products_web_prefix_by_family(product_family)}/{filename}'
+        _save_ai_product_industry_categories(product_family, slug, data)
 
         draft_id = _safe_draft_id(data.get('draft_id') or '')
         draft = None
@@ -2305,6 +2408,7 @@ def register_product_editor_routes(
                         'title': title,
                         'short_name': short_name,
                         'category': category,
+                        'industryCategories': _normalize_industry_categories(data.get('industryCategories') or existing.get('industryCategories', [])),
                         'summary': summary or sections.get('description', ''),
                         'source_text': data.get('source_text') or data.get('context_text') or existing.get('source_text', ''),
                         'image_urls': sections.get('images', []),
@@ -2385,7 +2489,7 @@ def register_product_editor_routes(
     @app.route('/api/bio-products/ai-upload-images', methods=['POST'])
     @login_required
     def ai_upload_product_images():
-        """将 AI 生成的产品图片上传到产品图片目录。"""
+        """将 AI 生成的产品图片上传到 CDN 产品图片目录。"""
         product_family = _get_product_family_from_request()
         slug = (request.form.get('slug') or '').strip().lower()
         short_name = (request.form.get('short_name') or '').strip()
@@ -2403,9 +2507,10 @@ def register_product_editor_routes(
         if not model_folder:
             model_folder = slug_dash.upper()
 
-        target_dir = _get_products_dir_by_family(product_family) / model_folder
+        cdn_family_dir = 'biosensing' if product_family == 'bio' else 'gassensing'
+        target_dir = _dep('app_root') / 'cdn_assets' / 'images' / cdn_family_dir / model_folder
         target_dir.mkdir(parents=True, exist_ok=True)
-        web_prefix = _get_products_web_prefix_by_family(product_family)
+        web_prefix = f'/cdn_assets/images/{cdn_family_dir}'
 
         existing = sorted(target_dir.glob(f'{slug_dash}-product-*.*'))
         if len(existing) + len(files) > MAX_AI_PRODUCT_IMAGES:
@@ -2476,7 +2581,7 @@ def register_product_editor_routes(
             urls.append(f'{web_prefix}/{model_folder}/{filename}')
             counter += 1
 
-        return jsonify({'success': True, 'folder': model_folder, 'urls': urls})
+        return jsonify({'success': True, 'folder': f'images/{cdn_family_dir}/{model_folder}', 'urls': urls})
 
     @app.route('/api/products/ai-generate-html-stream', methods=['POST'])
     @app.route('/api/bio-products/ai-generate-html-stream', methods=['POST'])
@@ -2785,6 +2890,7 @@ def register_product_editor_routes(
             return jsonify({'success': False, 'message': f'文件已存在：{filename}，请更换链接标识'}), 409
         filepath.write_text(enriched_html, encoding='utf-8')
         link = f'{_get_products_web_prefix_by_family(product_family)}/{filename}'
+        _save_ai_product_industry_categories(product_family, slug, data)
 
         draft_id = _safe_draft_id(data.get('draft_id') or '')
         draft = None
@@ -2799,6 +2905,7 @@ def register_product_editor_routes(
                         'title': title,
                         'short_name': short_name,
                         'category': category,
+                        'industryCategories': _normalize_industry_categories(data.get('industryCategories') or existing.get('industryCategories', [])),
                         'summary': summary,
                         'source_text': data.get('source_text') or data.get('context_text') or existing.get('source_text', ''),
                         'image_urls': _normalize_text_lines(data.get('image_urls') or data.get('detail_image_urls') or existing.get('image_urls', [])),
@@ -3570,24 +3677,19 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                 lambda m: m.group(1) + main_src + '"',
                 c, count=1, flags=re.I
             )
-            # 替换画廊缩略图区块。
-            thumbs_match = re.search(
-                r'(<div[^>]*class="[^"]*vs-gallery-thumbs[^"]*"[^>]*>)(.*?)(</div>\s*</div>)',
-                c, re.S | re.I
-            )
-            if thumbs_match:
-                new_thumbs = ''
-                for i, src in enumerate(imgs):
-                    safe_src = esc(src)
-                    active_cls = ' active' if i == 0 else ''
-                    new_thumbs += (
-                        f'\n                            <div class="vs-gallery-thumb{active_cls}"\n'
-                        f'                                onclick="changeImage(this, \'{safe_src}\')">\n'
-                        f'                                <img src="{safe_src}"\n'
-                        f'                                    alt="产品图{i + 1}">\n'
-                        f'                            </div>'
-                    )
-                c = c[:thumbs_match.start(2)] + new_thumbs + '\n                        ' + c[thumbs_match.start(3):]
+            # 替换画廊缩略图区块。这里必须按 div 层级替换，避免缩略图 div 嵌套时误删外层结构。
+            new_thumbs = ''
+            for i, src in enumerate(imgs):
+                safe_src = esc(src)
+                active_cls = ' active' if i == 0 else ''
+                new_thumbs += (
+                    f'\n                            <div class="vs-gallery-thumb{active_cls}"\n'
+                    f'                                onclick="changeImage(this, \'{safe_src}\')">\n'
+                    f'                                <img src="{safe_src}"\n'
+                    f'                                    alt="产品图{i + 1}">\n'
+                    f'                            </div>'
+                )
+            c = _replace_div_inner_by_class(c, 'vs-gallery-thumbs', new_thumbs + '\n                        ')
 
     # --- 亮点 ---
     if 'highlights' in sections:

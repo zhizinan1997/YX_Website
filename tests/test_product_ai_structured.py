@@ -134,15 +134,22 @@ class ProductAiStructuredTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         _write_reference_pages(self.root)
         self.ai_response = "{}"
+        self.ai_calls = []
         self._original_call = pe.call_openai_api_sync_with_custom_config
 
-        def fake_ai_call(_messages, _config):
+        def fake_ai_call(messages, config):
+            self.ai_calls.append({
+                "messages": [dict(item) for item in messages],
+                "config": dict(config),
+            })
             return self.ai_response, None
 
         pe.call_openai_api_sync_with_custom_config = fake_ai_call
 
         app = Flask(__name__)
         app.secret_key = "test-secret"
+        self.product_settings = {}
+        self.bio_product_settings = {}
 
         def login_required(fn):
             @wraps(fn)
@@ -185,9 +192,11 @@ class ProductAiStructuredTests(unittest.TestCase):
                 "api_base": "https://api.example.com/v1",
                 "model": "test-model",
             },
-            get_product_page_ai_system_prompt=lambda: "You write structured JSON.",
-            get_product_settings=lambda: {},
-            save_product_settings=lambda _settings: None,
+            get_product_page_ai_system_prompt=lambda: "HTML SYSTEM: 完整 HTML <!DOCTYPE html> <html>",
+            get_product_settings=lambda: dict(self.product_settings),
+            save_product_settings=lambda settings: self.product_settings.clear() or self.product_settings.update(settings),
+            get_bio_product_settings=lambda: dict(self.bio_product_settings),
+            save_bio_product_settings=lambda settings: self.bio_product_settings.clear() or self.bio_product_settings.update(settings),
             product_featured_file=self.root / "data" / "product_featured.json",
             excluded_product_files=set(),
             hydrogen_solutions_config_file=self.root / "data" / "hydrogen_solutions_config.json",
@@ -275,6 +284,16 @@ class ProductAiStructuredTests(unittest.TestCase):
         self.assertIn("mc_ld_h2.html", page_html)
         self.assertIn("MC_PRODUCT_ADMIN_DATA:", page_html)
 
+    def test_responsive_guards_preserve_tablet_hero_grid(self):
+        html = """<!DOCTYPE html>
+<html><head><style>.vs-product-hero__inner { display:grid; }</style></head>
+<body><div class="vs-product-hero__inner"></div><table class="vs-specs-table"></table></body></html>"""
+        guarded = pe.ensure_product_responsive_guards(html)
+        self.assertIn("Product Hero Layout Guard", guarded)
+        self.assertIn("@media (min-width: 600px) and (max-width: 900px)", guarded)
+        self.assertIn("minmax(0, 1fr) minmax(0, 1fr) !important", guarded)
+        self.assertIn("Product Specs Mobile Guard", guarded)
+
     def test_ai_generate_and_revise_sections(self):
         self._login()
         self.ai_response = json.dumps({"sections": self._sample_sections()}, ensure_ascii=False)
@@ -290,6 +309,13 @@ class ProductAiStructuredTests(unittest.TestCase):
         data = generated.get_json()
         self.assertEqual(data["sections"]["title"], "测试氢气检测仪")
         self.assertIn("测试氢气检测仪", data["page_html"])
+        generate_system_prompt = self.ai_calls[-1]["messages"][0]["content"]
+        self.assertIn("严格 JSON", generate_system_prompt)
+        self.assertIn('"sections"', generate_system_prompt)
+        self.assertIn("禁止输出 HTML", generate_system_prompt)
+        self.assertNotIn("完整 HTML", generate_system_prompt)
+        self.assertNotIn("<!DOCTYPE html>", generate_system_prompt)
+        self.assertNotIn("<html>", generate_system_prompt)
 
         self.ai_response = json.dumps({"patch": {"title": "新标题"}}, ensure_ascii=False)
         revised = self.client.post("/api/products/ai-revise-sections", json={
@@ -303,6 +329,26 @@ class ProductAiStructuredTests(unittest.TestCase):
         revised_data = revised.get_json()
         self.assertEqual(revised_data["sections"]["title"], "新标题")
         self.assertEqual(revised_data["sections"]["specs"][0]["value"], "0-1000 ppm")
+        revise_system_prompt = self.ai_calls[-1]["messages"][0]["content"]
+        self.assertIn("严格 JSON", revise_system_prompt)
+        self.assertIn('"patch"', revise_system_prompt)
+        self.assertNotIn("完整 HTML", revise_system_prompt)
+        self.assertNotIn("<!DOCTYPE html>", revise_system_prompt)
+        self.assertNotIn("<html>", revise_system_prompt)
+
+    def test_ai_generate_sections_reports_html_instead_of_json(self):
+        self._login()
+        self.ai_response = "<!DOCTYPE html><html><head><style>body { color: red; }</style></head><body></body></html>"
+        response = self.client.post("/api/products/ai-generate-sections", json={
+            "title": "测试氢气检测仪",
+            "short_name": "MC-TEST",
+            "category": "detector",
+            "image_url": "/assets/test-product.png",
+            "summary": "用于氢气安全检测。",
+            "context_text": "产品资料",
+        })
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("HTML", response.get_json()["message"])
 
     def test_create_from_sections_writes_family_paths_and_detects_conflict(self):
         self._login(super_admin=True)
@@ -313,11 +359,13 @@ class ProductAiStructuredTests(unittest.TestCase):
             "slug": "mc_test_product",
             "summary": "用于氢气安全检测。",
             "image_url": "/assets/test-product.png",
+            "industryCategories": ["hydrogen", "leak"],
             "sections": self._sample_sections(),
         }
         created = self.client.post("/api/products/ai-create-from-sections", json=payload)
         self.assertEqual(created.status_code, 200)
         self.assertTrue((self.root / "pages" / "gassensing" / "mc_test_product.html").exists())
+        self.assertEqual(self.product_settings["mc_test_product"]["industryCategories"], ["hydrogen", "leak"])
 
         duplicate = self.client.post("/api/products/ai-create-from-sections", json=payload)
         self.assertEqual(duplicate.status_code, 409)
@@ -335,10 +383,12 @@ class ProductAiStructuredTests(unittest.TestCase):
             **payload,
             "category": "sensor",
             "slug": "bio_test_product",
+            "industryCategories": ["chip", "instrument"],
         }
         bio_created = self.client.post("/api/bio-products/ai-create-from-sections", json=bio_payload)
         self.assertEqual(bio_created.status_code, 200)
         self.assertTrue((self.root / "pages" / "biosensing" / "bio_test_product.html").exists())
+        self.assertEqual(self.bio_product_settings["bio_test_product"]["industryCategories"], ["chip", "instrument"])
 
     def test_create_from_sections_rejects_html_mode(self):
         self._login(super_admin=True)
@@ -381,6 +431,7 @@ class ProductAiStructuredTests(unittest.TestCase):
             "summary": "源码模式摘要",
             "image_url": "/assets/test-product.png",
             "page_html": html,
+            "industryCategories": ["industry-4"],
             "news_urls": ["/pages/news/a.html"],
             "related_product_urls": ["mc_ld_h2.html"],
         })
@@ -389,6 +440,8 @@ class ProductAiStructuredTests(unittest.TestCase):
         self.assertEqual(data["draft"]["status"], "published")
         self.assertEqual(data["draft"]["mode"], "html")
         self.assertEqual(data["draft"]["published_link"], "/pages/gassensing/html_mode_product.html")
+        self.assertEqual(data["draft"]["industryCategories"], ["industry-4"])
+        self.assertEqual(self.product_settings["html_mode_product"]["industryCategories"], ["industry-4"])
         written = (self.root / "pages" / "gassensing" / "html_mode_product.html").read_text(encoding="utf-8")
         self.assertIn("HTML 源码产品", written)
         self.assertEqual(written.count("MC_PRODUCT_ADMIN_DATA:"), 1)
@@ -407,6 +460,33 @@ class ProductAiStructuredTests(unittest.TestCase):
 
     def test_ai_upload_images_limits_count_size_and_format(self):
         self._login()
+        uploaded = self.client.post(
+            "/api/products/ai-upload-images",
+            data={
+                "slug": "upload_ok",
+                "files": [(BytesIO(b"\x89PNG\r\n\x1a\nok"), "ok.png")],
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(uploaded.status_code, 200)
+        uploaded_data = uploaded.get_json()
+        self.assertEqual(uploaded_data["urls"], ["/cdn_assets/images/gassensing/UPLOAD-OK/upload-ok-product-01.png"])
+        self.assertTrue((self.root / "cdn_assets" / "images" / "gassensing" / "UPLOAD-OK" / "upload-ok-product-01.png").exists())
+
+        bio_uploaded = self.client.post(
+            "/api/bio-products/ai-upload-images",
+            data={
+                "slug": "bio_upload_ok",
+                "short_name": "BP-CHIP",
+                "files": [(BytesIO(b"\x89PNG\r\n\x1a\nbio"), "bio.png")],
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(bio_uploaded.status_code, 200)
+        bio_data = bio_uploaded.get_json()
+        self.assertEqual(bio_data["urls"], ["/cdn_assets/images/biosensing/BP-CHIP/bio-upload-ok-product-01.png"])
+        self.assertTrue((self.root / "cdn_assets" / "images" / "biosensing" / "BP-CHIP" / "bio-upload-ok-product-01.png").exists())
+
         too_many = {
             "slug": "upload_limit",
             "files": [

@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhone 17 - 元芯传感</title>
+    <link rel="stylesheet" href="../../assets/css/yx-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Product Detail Page - Premium Styles */
+        .vs-product-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            padding: 120px 0 80px;
+            color: white;
+        }
+
+        .vs-product-hero__inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        /* Image Gallery */
+        .vs-product-gallery {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .vs-gallery-main {
+            width: 100%;
+            height: 380px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .vs-gallery-main img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .vs-gallery-thumbs {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            justify-content: center;
+            padding: 8px 0;
+        }
+
+        .vs-gallery-thumb {
+            width: 72px;
+            height: 72px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vs-gallery-thumb:hover,
+        .vs-gallery-thumb.active {
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-gallery-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .vs-gallery-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.68);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, background 0.2s ease;
+            z-index: 2;
+        }
+
+        .vs-gallery-main:hover .vs-gallery-nav {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .vs-gallery-nav:hover {
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .vs-gallery-nav--prev {
+            left: 12px;
+        }
+
+        .vs-gallery-nav--next {
+            right: 12px;
+        }
+
+        .vs-product-hero__content h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .vs-product-hero__desc {
+            font-size: 18px;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 28px;
+        }
+
+        .vs-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .vs-feature-list li {
+            padding: 12px 16px 12px 44px;
+            position: relative;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .vs-feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 16px;
+            color: #4ADE80;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Section Styles */
+        .vs-product-section {
+            padding: 108px 0;
+        }
+
+        .vs-product-section.alt-bg {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .vs-product-section__title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 40px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .vs-product-section__title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-orange), #ff9500);
+            border-radius: 2px;
+        }
+
+        .vs-product-section__content {
+            font-size: 17px;
+            line-height: 2;
+            color: #4a5568;
+            max-width: 1160px;
+        }
+
+        .vs-product-section__content--full {
+            max-width: none;
+            width: 100%;
+            text-align: justify;
+            text-justify: inter-ideograph;
+        }
+
+        .vs-product-section__content p {
+            margin-bottom: 22px;
+        }
+
+        /* Advantages Grid */
+        .vs-advantages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+            align-items: stretch;
+        }
+
+        .vs-advantage-card {
+            background: white;
+            padding: 38px 30px 34px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 1px solid #f1f5f9;
+            min-height: 238px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-advantage-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-advantage-card i {
+            font-size: 40px;
+            color: var(--color-accent-orange);
+            margin-bottom: 18px;
+            display: block;
+        }
+
+        .vs-advantage-card h4 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0b3f6d;
+            margin-bottom: 12px;
+        }
+
+        .vs-advantage-card p {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.85;
+            margin-top: auto;
+        }
+
+        /* Certificate Images */
+        .vs-certificates {
+            display: flex;
+            gap: 32px;
+            margin-top: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .vs-certificate {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .vs-certificate img {
+            max-width: 540px;
+            height: auto;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .vs-certificate:hover img {
+            transform: scale(1.02);
+        }
+
+        .vs-certificate p {
+            text-align: center;
+            margin-top: 12px;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        /* Application Cards */
+        .vs-applications-intro {
+            margin-bottom: 38px;
+            max-width: 980px;
+        }
+
+        .vs-application-highlights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            align-items: stretch;
+        }
+
+        .vs-application-highlight {
+            background: white;
+            padding: 36px 30px 28px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 1px solid #f1f5f9;
+            display: flex;
+            min-height: 308px;
+        }
+
+        .vs-application-highlight:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-accent-orange);
+        }
+
+        .vs-application-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .vs-application-content__head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .vs-application-content__head i {
+            font-size: 20px;
+            color: var(--color-accent-orange);
+            width: 26px;
+            text-align: center;
+        }
+
+        .vs-application-content h4 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .vs-application-content p {
+            margin: 0;
+            font-size: 17px;
+            line-height: 1.95;
+            color: #64748b;
+            flex: 1;
+        }
+
+        .vs-application-scenarios {
+            margin-top: 18px;
+            font-size: 15px;
+            line-height: 1.85;
+            color: #566b82;
+            border-top: 1px dashed #d9e3ec;
+            padding-top: 14px;
+            min-height: 64px;
+        }
+
+        /* Specs Table */
+        .vs-specs-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #d8e4ef;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.10);
+            background: #ffffff;
+            margin-top: 8px;
+        }
+
+        .vs-specs-table td {
+            padding: 22px 28px;
+            border-bottom: 1px solid #dde6ef;
+            font-size: 16px;
+            transition: background-color 0.2s ease;
+        }
+
+        .vs-specs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .vs-specs-table tr td:first-child {
+            background: linear-gradient(180deg, #0b3f6d 0%, #0a4a7c 100%);
+            color: white;
+            font-weight: 700;
+            width: 220px;
+            letter-spacing: 0.2px;
+        }
+
+        .vs-specs-table tr td:last-child {
+            background: white;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .vs-specs-table tr:nth-child(even) td:last-child {
+            background: #f6f9fc;
+        }
+
+        .vs-specs-table tr:hover td:last-child {
+            background: #edf5ff;
+        }
+
+        .vs-specs-table tr:hover td:first-child {
+            background: linear-gradient(180deg, #0c477a 0%, #0b5187 100%);
+        }
+
+        /* Related Products */
+        .vs-related-products {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 108px 0;
+        }
+
+        .vs-related-products h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .vs-related-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 28px;
+        }
+
+        .vs-related-item {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            min-height: 304px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vs-related-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-related-item img {
+            width: 100%;
+            height: 196px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 24px;
+        }
+
+        .vs-related-item h4 {
+            padding: 22px 16px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: center;
+            line-height: 1.6;
+            margin-top: auto;
+        }
+
+        /* Related News */
+        .vs-related-news {
+            padding: 108px 0;
+        }
+
+        .vs-related-news h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .vs-news-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 36px;
+        }
+
+        .vs-news-item {
+            display: flex;
+            gap: 24px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            min-height: 220px;
+        }
+
+        .vs-news-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .vs-news-item img {
+            width: 232px;
+            height: 220px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .vs-news-item__content {
+            padding: 28px 28px 28px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .vs-news-item__content h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 14px;
+            line-height: 1.5;
+        }
+
+        .vs-news-item__content p {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.85;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* CTA Section */
+        .vs-cta-section {
+            background: transparent;
+            padding: 64px 0 72px;
+            text-align: center;
+        }
+
+        .vs-cta-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            background: linear-gradient(140deg, #0a3a63 0%, #082c4b 58%, #0b4573 100%);
+            padding: 52px 52px 48px;
+            color: #f4f9ff;
+            box-shadow: 0 16px 38px rgba(9, 31, 53, 0.20);
+        }
+
+        .vs-cta-panel::before {
+            content: '';
+            position: absolute;
+            right: -120px;
+            top: -120px;
+            width: 340px;
+            height: 340px;
+            background: radial-gradient(circle, rgba(126, 197, 255, 0.28) 0%, rgba(126, 197, 255, 0) 70%);
+            pointer-events: none;
+        }
+
+        .vs-cta-section h3 {
+            font-size: 36px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-cta-section p {
+            font-size: 18px;
+            line-height: 1.9;
+            color: #d9e8f7;
+            max-width: 900px;
+            margin: 0 auto 26px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #ffffff;
+            color: #0b3c67;
+            border: none;
+            border-radius: 999px;
+            padding: 14px 34px;
+            font-size: 17px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 10px 24px rgba(8, 32, 54, 0.26);
+            position: relative;
+            z-index: 1;
+        }
+
+        .vs-cta-btn:hover {
+            background: #eaf3ff;
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(8, 32, 54, 0.32);
+            color: #0b3c67;
+        }
+
+        /* Feedback Hub */
+        .vs-feedback-hub {
+            padding: 64px 0 78px;
+            background: #f7fafd;
+            border-top: 1px solid #e5edf5;
+        }
+
+        .vs-feedback-hub__tools {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 26px;
+        }
+
+        .vs-tool-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 40px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid #c7d7e8;
+            background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+            color: #1d3f5f;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #c7d8ea, 0 10px 18px rgba(20, 54, 87, 0.12);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            overflow: hidden;
+        }
+
+        .vs-tool-btn::before {
+            content: '';
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            top: 2px;
+            height: 38%;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 100%);
+            pointer-events: none;
+        }
+
+        .vs-tool-btn:hover {
+            border-color: #9fc0df;
+            color: #113453;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 0 #b8cce1, 0 16px 26px rgba(20, 54, 87, 0.18);
+        }
+
+        .vs-tool-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #bfd0e3, 0 8px 14px rgba(20, 54, 87, 0.16);
+        }
+
+        .vs-wechat-wrap {
+            position: relative;
+        }
+
+        .vs-wechat-pop {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 190px;
+            background: #ffffff;
+            border: 1px solid #d7e4f1;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(15, 36, 62, 0.16);
+            padding: 12px;
+            display: none;
+            z-index: 5;
+        }
+
+        .vs-wechat-pop.is-open {
+            display: block;
+        }
+
+        .vs-wechat-pop img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .vs-wechat-pop p {
+            margin: 8px 0 0;
+            text-align: center;
+            font-size: 12px;
+            color: #4f6479;
+        }
+
+        .vs-feedback-hub h3 {
+            text-align: center;
+            font-size: 34px;
+            color: #0d3f6c;
+            margin: 0 0 16px;
+        }
+
+        .vs-feedback-sub {
+            text-align: center;
+            font-size: 17px;
+            color: #5c7288;
+            margin: 0 0 24px;
+        }
+
+        .vs-feedback-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .vs-feedback-chip {
+            position: relative;
+            border: 1px solid #d7e4ef;
+            background: linear-gradient(180deg, #ffffff 0%, #f4f8fd 100%);
+            color: #264965;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #d5e1ec, 0 8px 14px rgba(21, 55, 88, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            overflow: hidden;
+        }
+
+        .vs-feedback-chip::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            top: 1px;
+            height: 42%;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 100%);
+            pointer-events: none;
+        }
+
+        .vs-feedback-chip:hover {
+            transform: translateY(-2px);
+            border-color: #b7cde4;
+            box-shadow: 0 3px 0 #c8d7e6, 0 12px 20px rgba(22, 58, 92, 0.14);
+        }
+
+        .vs-feedback-chip:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #cfdeeb, 0 6px 10px rgba(22, 58, 92, 0.12);
+        }
+
+        .vs-feedback-chip.is-active {
+            background: linear-gradient(180deg, #175286 0%, #0d3f6c 100%);
+            border-color: #0d3f6c;
+            color: #fff;
+            box-shadow: 0 3px 0 #0a3457, 0 12px 20px rgba(10, 46, 77, 0.24);
+        }
+
+        .vs-feedback-panel {
+            margin-top: 18px;
+            background: #fff;
+            border: 1px solid #dce8f3;
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+            box-shadow: 0 10px 26px rgba(15, 36, 62, 0.10);
+        }
+
+        .vs-feedback-panel[hidden] {
+            display: none;
+        }
+
+        .vs-feedback-panel h4 {
+            margin: 0 0 8px;
+            color: #0d3f6c;
+            font-size: 20px;
+        }
+
+        .vs-feedback-panel p {
+            margin: 0 0 10px;
+            color: #5c7288;
+            font-size: 14px;
+        }
+
+        .vs-feedback-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .vs-feedback-panel input,
+        .vs-feedback-panel textarea {
+            width: 100%;
+            border: 1px solid #d6e2ed;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #31475d;
+            background: #fbfdff;
+            outline: none;
+        }
+
+        .vs-feedback-panel input:focus,
+        .vs-feedback-panel textarea:focus {
+            border-color: #86a9cc;
+            background: #fff;
+        }
+
+        .vs-feedback-panel textarea {
+            min-height: 108px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        .vs-feedback-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 999px;
+            background: #0d3f6c;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 24px;
+            cursor: pointer;
+        }
+
+        .vs-feedback-submit:hover {
+            background: #0b365c;
+        }
+
+        .vs-feedback-msg {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #3f5d78;
+        }
+
+        .vs-feedback-msg.is-error {
+            color: #b53a3a;
+        }
+
+        .vs-breadcrumb {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            padding-left: 32px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vs-breadcrumb a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none !important;
+            border-bottom: none !important;
+            display: inline-block;
+        }
+
+        .vs-breadcrumb a:hover {
+            color: white;
+        }
+
+        .vs-breadcrumb span {
+            margin: 0;
+            opacity: 0.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .vs-related-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .vs-application-highlights {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vs-product-section {
+                padding: 72px 0;
+            }
+
+            .vs-product-section__title {
+                font-size: 30px;
+                margin-bottom: 32px;
+            }
+
+            .vs-product-section__content {
+                font-size: 16px;
+                line-height: 1.9;
+            }
+
+            .vs-advantage-card,
+            .vs-application-highlight {
+                min-height: auto;
+                padding: 30px 22px 24px;
+            }
+
+            .vs-application-content h4 {
+                font-size: 22px;
+            }
+
+            .vs-application-content p {
+                font-size: 16px;
+                line-height: 1.85;
+            }
+
+            .vs-application-scenarios {
+                font-size: 14px;
+                min-height: auto;
+            }
+
+            .vs-related-news,
+            .vs-related-products {
+                padding: 72px 0;
+            }
+
+            .vs-news-item {
+                min-height: auto;
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .vs-news-item img {
+                width: 100%;
+                height: 200px;
+            }
+
+            .vs-news-item__content {
+                padding: 20px 18px 22px;
+            }
+
+            .vs-related-item {
+                min-height: 280px;
+            }
+
+            .vs-related-item img {
+                height: 182px;
+            }
+
+            .vs-product-hero__inner {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .vs-product-hero__content h1 {
+                font-size: 32px;
+            }
+
+            .vs-news-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-related-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vs-application-highlights {
+                grid-template-columns: 1fr;
+            }
+
+            .vs-specs-table {
+                border: none;
+                background: transparent;
+                box-shadow: none;
+            }
+
+            .vs-specs-table tr {
+                display: block;
+                margin-bottom: 12px;
+                border-radius: 14px;
+                overflow: hidden;
+                box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+            }
+
+            .vs-specs-table td {
+                display: block;
+                width: 100%;
+                border-bottom: none;
+            }
+
+            .vs-specs-table tr td:first-child {
+                width: 100%;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+                border-radius: 14px 14px 0 0;
+            }
+
+            .vs-specs-table tr td:last-child {
+                border-radius: 0 0 14px 14px;
+                background: #ffffff;
+            }
+
+            .vs-cta-section {
+                padding: 56px 0 62px;
+            }
+
+            .vs-cta-panel {
+                border-radius: 16px;
+                padding: 42px 20px 40px;
+            }
+
+            .vs-cta-section h3 {
+                font-size: 30px;
+                margin-bottom: 14px;
+            }
+
+            .vs-cta-section p {
+                font-size: 17px;
+                line-height: 1.8;
+                margin-bottom: 24px;
+            }
+
+            .vs-cta-btn {
+                font-size: 16px;
+                padding: 12px 26px;
+            }
+
+            .vs-feedback-hub h3 {
+                font-size: 28px;
+            }
+
+            .vs-feedback-sub {
+                font-size: 16px;
+            }
+
+            .vs-feedback-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .vs-related-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    
+
+        /* Product Specs Mobile Guard */
+        @media (max-width: 900px) {
+            .vs-specs-table {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border: 0 !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .vs-specs-table tbody {
+                display: grid !important;
+                width: 100% !important;
+                gap: 12px !important;
+            }
+
+            .vs-specs-table tr {
+                display: grid !important;
+                grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+                width: 100% !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                border-radius: 14px !important;
+                background: #ffffff !important;
+                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+            }
+
+            .vs-specs-table td {
+                display: flex !important;
+                align-items: center !important;
+                width: auto !important;
+                min-width: 0 !important;
+                min-height: 64px !important;
+                padding: 16px 18px !important;
+                border: 0 !important;
+                line-height: 1.65 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+            }
+
+            .vs-specs-table tr td:first-child {
+                border-radius: 0 !important;
+                border-bottom: 0 !important;
+                background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
+                color: #ffffff !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+            }
+
+            .vs-specs-table tr td:last-child {
+                border-radius: 0 !important;
+                background: #ffffff !important;
+                color: #26364d !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+            }
+        }
+
+
+        /* Product Hero Layout Guard */
+        @media (min-width: 600px) and (max-width: 900px) {
+            .vs-product-hero__inner {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 40px !important;
+                align-items: start !important;
+                min-width: 0 !important;
+            }
+        }
+</style>
+  <!-- Site Search -->
+  <link rel="stylesheet" href="../../assets/css/search.css">
+<meta name="description" content="搭载高性能碳基传感芯片，MC-LD-H2型氢气检测仪以极速响应和超高灵敏度，为各类涉氢场景提供精准、可靠的氢气泄漏快速检测与安全预警。">
+<link rel="canonical" href="https://www.hnmetachip.cn/api/products/code/download">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="icon" href="/favicon.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://www.hnmetachip.cn/"}, {"@type": "ListItem", "position": 2, "name": "MC-LD-H2型手持氢气检测仪", "item": "https://www.hnmetachip.cn/api/products/code/download"}]}</script>
+<script src="/assets/js/nav-loader.js"></script>
+
+    <meta name="product-name" content="iPhone 17" />
+    <meta name="product-short-name" content="iPhone 17" />
+    <meta name="product-image" content="/cdn_assets/images/gassensing/IPHONE17/iphone-17-product-01.jpeg" />
+    <meta name="product-description" content="兼具 120Hz 流畅体验、A19 系列性能与全面影像升级的新一代日常旗舰。" />
+    <meta name="product-category" content="detector" />
+
+</head>
+
+<body>
+
+    <div id="mc-nav-root" data-nav-profile="gas"></div>
+<noscript><div class="mc-nav-noscript">
+  <a href="/index.html">首页</a> |
+  <a href="/pages/gassensing/all-products.html">产品</a> |
+  <a href="/pages/solutions/solutions-index.html">解决方案</a> |
+  <a href="/pages/research/index.html">科研服务</a> |
+  <a href="/pages/gassensing/service-cases.html">服务案例</a> |
+  <a href="/pages/about/about.html">公司简介</a> |
+  <a href="/pages/contact/contact.html">联系我们</a>
+</div>
+</noscript>
+<script src="/assets/js/nav-loader.js?v=1782461357"></script>
+
+    
+
+    <main style="padding-top: 90px;">
+        <div style="background: var(--color-primary);">
+            <div class="vs-container vs-breadcrumb">
+                <a href="../../index.html">首页</a><span>|</span>
+                <a href="../../pages/gassensing/all-products.html">气体传感产品</a><span>|</span>
+                
+                MC-LD-H2型手持氢气检测仪
+            </div>
+        </div>
+
+        <!-- Product Hero with Gallery -->
+        <section class="vs-product-hero">
+            <div class="vs-container">
+                <div class="vs-product-hero__inner">
+                    <!-- Image Gallery -->
+                    <div class="vs-product-gallery">
+                        <div class="vs-gallery-main">
+                            <button type="button" class="vs-gallery-nav vs-gallery-nav--prev" onclick="prevImage()"
+                                aria-label="上一张">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <img id="mainImage"
+                                src="/cdn_assets/images/gassensing/IPHONE17/iphone-17-product-01.jpeg"
+                                alt="MC-LD-H2型手持氢气检测仪">
+                            <button type="button" class="vs-gallery-nav vs-gallery-nav--next" onclick="nextImage()"
+                                aria-label="下一张">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="vs-gallery-thumbs">
+                            <div class="vs-gallery-thumb active"
+                                onclick="changeImage(this, '/cdn_assets/images/gassensing/IPHONE17/iphone-17-product-01.jpeg')">
+                                <img src="/cdn_assets/images/gassensing/IPHONE17/iphone-17-product-01.jpeg"
+                                    alt="产品图1">
+                            </div>
+                            <div class="vs-gallery-thumb"
+                                onclick="changeImage(this, '/cdn_assets/images/gassensing/IPHONE17/iphone-17-product-02.avif')">
+                                <img src="/cdn_assets/images/gassensing/IPHONE17/iphone-17-product-02.avif"
+                                    alt="产品图2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Info -->
+                    <div class="vs-product-hero__content">
+                        <h1>iPhone 17</h1>
+                        <p class="vs-product-hero__desc">兼具 120Hz 流畅体验、A19 系列性能与全面影像升级的新一代日常旗舰。</p>
+                        <ul class="vs-feature-list">
+                            <li>全系列标配 120Hz ProMotion，日常滑动与游戏体验更顺畅。</li>
+                            <li>48MP 影像系统升级，前置 Center Stage 相机让自拍与合影更自然。</li>
+                            <li>A19 / A19 Pro 芯片带来稳定性能表现，并强化 Apple Intelligence 体验。</li>
+                            <li>Ceramic Shield 2 提升抗刮与耐用性，适合高频日常使用。</li>
+                        </ul>
+                        <div>
+                            <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary"
+                                style="padding: 14px 32px; font-size: 16px; border-radius: 999px;">
+                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价 电话：18807329836/13974993326
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Details -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品详情</h2>
+                <div class="vs-product-section__content vs-product-section__content--full">
+                    <p>iPhone 17 系列在外观、屏幕、性能、影像和续航等方面进行了全面升级。标准款延续经典方正设计，采用铝金属一体成型机身，并提供黑色、白色、雾蓝、鼠尾草绿、薰衣草紫等配色选择。</p>
+                    <p>屏幕体验是本代的重要提升点，全系列首次标配 120Hz ProMotion。无论是信息流浏览、页面滚动，还是游戏画面切换，都能获得更顺滑的视觉反馈。标准款屏幕提升至 6.3 英寸，Pro 系列则搭载更高规格的超 Retina XDR 显示效果。</p>
+                    <p>性能方面，iPhone 17 系列搭载 A19 / A19 Pro 芯片，面向日常使用、游戏娱乐、多任务处理与 Apple Intelligence 功能提供更稳定的性能基础。Pro 系列还结合一体式热锻铝金属机身与蒸汽室散热设计，更适合高负载游戏与专业创作场景。</p>
+                    <p>影像系统是本代另一大升级。标准款配备 48MP 主摄与 48MP 超广角，并加入 Center Stage 前置相机，支持更自然的自拍、合影以及双向同步录像。Pro 系列升级为 48MP 三摄系统，并提供 8 倍光学变焦、ProRes RAW、Apple Log 2 等专业视频能力。</p>
+                    <p>续航与充电方面，iPhone 17 系列续航表现进一步提升，标准款视频播放时长提升明显，Pro 系列在电池容量与实际续航上表现更强。同时支持约 20 分钟充至 50% 的快充体验，满足高频移动使用需求。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Advantages -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">产品优势</h2>
+                <div class="vs-advantages-grid">
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-mobile-screen-button"></i>
+                        <h4>顺滑屏幕体验</h4>
+                        <p>全系列标配 120Hz ProMotion，让浏览、滑动、动画切换与游戏画面更加流畅。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-camera"></i>
+                        <h4>影像全面升级</h4>
+                        <p>48MP 主摄、超广角与 Center Stage 前置相机组合，覆盖日常拍摄、自拍、合影与视频记录需求。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-microchip"></i>
+                        <h4>性能稳定强劲</h4>
+                        <p>A19 / A19 Pro 芯片为多任务处理、游戏娱乐与智能功能提供充足性能支持。</p>
+                    </div>
+                    <div class="vs-advantage-card">
+                        <i class="fas fa-battery-full"></i>
+                        <h4>续航与快充提升</h4>
+                        <p>续航表现进一步增强，并支持约 20 分钟充至 50%，更适合全天候移动使用。</p>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Main Applications -->
+        <section class="vs-product-section">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">主要应用</h2>
+                <div class="vs-product-section__content vs-applications-intro">
+                    iPhone 17 面向日常通信、移动娱乐、内容创作与高效办公等多类场景，兼顾流畅体验、影像能力与便携使用。
+                </div>
+                <div class="vs-application-highlights">
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-user"></i>
+                                <h4>日常旗舰使用</h4>
+                            </div>
+                            <p>适合日常社交、拍照、视频、导航、支付与信息处理等高频场景，120Hz 屏幕与更大存储起步提升长期使用体验。</p>
+                            <div class="vs-application-scenarios">重点场景：日常通勤、社交沟通、移动生活</div>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-gamepad"></i>
+                                <h4>游戏与影音娱乐</h4>
+                            </div>
+                            <p>高刷新率屏幕与 A19 系列芯片带来更顺滑的游戏和影音体验，Pro 系列散热能力提升后更适合长时间高负载运行。</p>
+                            <div class="vs-application-scenarios">重点场景：手游、视频播放、流媒体娱乐</div>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-video"></i>
+                                <h4>影像创作</h4>
+                            </div>
+                            <p>48MP 影像系统、前置 Center Stage 相机以及 Pro 系列专业视频能力，适合短视频、Vlog、旅行拍摄与创作者工作流。</p>
+                            <div class="vs-application-scenarios">重点场景：短视频拍摄、旅行记录、专业视频创作</div>
+                        </div>
+                    </article>
+                    <article class="vs-application-highlight">
+                        <div class="vs-application-content">
+                            <div class="vs-application-content__head">
+                                <i class="fas fa-briefcase"></i>
+                                <h4>移动办公</h4>
+                            </div>
+                            <p>稳定性能、长续航与 Apple Intelligence 能力可辅助文档处理、会议沟通、信息整理和多任务协作。</p>
+                            <div class="vs-application-scenarios">重点场景：移动会议、资料处理、商务沟通</div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Specifications -->
+        <section class="vs-product-section alt-bg">
+            <div class="vs-container">
+                <h2 class="vs-product-section__title">技术指标</h2>
+                <table class="vs-specs-table">
+                    <tr>
+                        <td>产品型号</td>
+                        <td>iPhone 17</td>
+                    </tr>
+                    <tr>
+                        <td>产品系列</td>
+                        <td>iPhone 17 系列</td>
+                    </tr>
+                    <tr>
+                        <td>屏幕刷新率</td>
+                        <td>120Hz ProMotion</td>
+                    </tr>
+                    <tr>
+                        <td>标准款屏幕尺寸</td>
+                        <td>6.3 英寸</td>
+                    </tr>
+                    <tr>
+                        <td>芯片</td>
+                        <td>A19 / A19 Pro</td>
+                    </tr>
+                    <tr>
+                        <td>标准款后置相机</td>
+                        <td>48MP 主摄 + 48MP 超广角</td>
+                    </tr>
+                    <tr>
+                        <td>前置相机</td>
+                        <td>Center Stage 前置相机</td>
+                    </tr>
+                    <tr>
+                        <td>Pro 系列相机</td>
+                        <td>48MP 三摄，最高 8 倍光学变焦</td>
+                    </tr>
+                    <tr>
+                        <td>快充</td>
+                        <td>约 20 分钟充至 50%</td>
+                    </tr>
+                    <tr>
+                        <td>存储起步</td>
+                        <td>256GB 起</td>
+                    </tr>
+                    <tr>
+                        <td>机身颜色</td>
+                        <td>黑色、白色、雾蓝、鼠尾草绿、薰衣草紫</td>
+                    </tr>
+                    <tr>
+                        <td>耐用性</td>
+                        <td>Ceramic Shield 2</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- Related News -->
+        <section class="vs-related-news">
+            <div class="vs-container">
+                <h2>相关新闻</h2>
+                <div class="vs-news-grid">
+                </div>
+            </div>
+        </section>
+
+        <!-- Related Products -->
+        <section class="vs-related-products">
+            <div class="vs-container">
+                <h2>相关产品</h2>
+                <div class="vs-related-grid" id="randomRelatedProducts">
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="vs-cta-section">
+            <div class="vs-container">
+                <div class="vs-cta-panel">
+                    <h3>了解 iPhone 17 方案与配置</h3>
+                    <p>如需了解 iPhone 17 不同版本、颜色、存储容量或应用场景适配建议，欢迎联系我们获取更多信息。</p>
+                    <a href="../../pages/contact/contact.html" class="vs-cta-btn">
+                        <i class="fas fa-phone"></i>联系技术顾问
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feedback Hub -->
+        <section class="vs-feedback-hub" id="feedbackHub">
+            <div class="vs-container">
+                <div class="vs-feedback-hub__tools">
+                    <button type="button" class="vs-tool-btn" id="feedbackPrintBtn">
+                        <i class="fas fa-print"></i>打印页面
+                    </button>
+                    <div class="vs-wechat-wrap">
+                        <button type="button" class="vs-tool-btn" id="feedbackWechatBtn" aria-expanded="false"
+                            aria-controls="feedbackWechatPop">
+                            <i class="fab fa-weixin"></i>微信咨询
+                        </button>
+                        <div class="vs-wechat-pop" id="feedbackWechatPop" role="dialog" aria-label="微信二维码">
+                            <img src="/cdn_assets/images/common/62292aa79686.jpg?v=1775480406" alt="微信二维码">
+                            <p>扫码添加微信，获取一对一支持</p>
+                        </div>
+                    </div>
+                    <a href="mailto:stacey_1987@163.com?subject=MC-LD-H2%E4%BA%A7%E5%93%81%E8%AF%A6%E6%83%85%E9%A1%B5%E5%92%A8%E8%AF%A2"
+                        class="vs-tool-btn">
+                        <i class="fas fa-envelope"></i>发送邮件
+                    </a>
+                </div>
+
+                <h3>您找到需要的信息了吗？</h3>
+                <p class="vs-feedback-sub">欢迎告诉我们页面信息是否清晰，我们会持续优化内容呈现与服务体验。</p>
+
+                <div class="vs-feedback-options" id="feedbackOptions">
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="信息很充分，谢谢！">信息很充分，谢谢！</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="有帮助">有帮助</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="我仍有疑问">我仍有疑问</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="没有帮助">没有帮助</button>
+                    <button type="button" class="vs-feedback-chip" data-feedback-type="请联系我们">请联系我们</button>
+                </div>
+
+                <div class="vs-feedback-panel" id="feedbackPanel" hidden>
+                    <h4 id="feedbackPanelTitle">感谢反馈，欢迎告诉我们更多细节</h4>
+                    <p id="feedbackPanelHint">您提交的信息会进入后台留言系统，便于我们更快安排技术人员跟进。</p>
+
+                    <form id="productFeedbackForm">
+                        <input type="hidden" id="feedbackType" value="">
+                        <div class="vs-feedback-form-grid">
+                            <input type="text" id="feedbackName" name="txtUserName" placeholder="您的称呼（选填）">
+                            <input type="text" id="feedbackPhone" name="txtUserTel" placeholder="联系电话（必填）" required>
+                        </div>
+                        <div class="vs-feedback-form-grid">
+                            <input type="email" id="feedbackEmail" name="txtUserEmail" placeholder="电子邮箱（选填）">
+                            <input type="text" id="feedbackTitle" name="txtTitle" value="MC-LD-H2 产品页面反馈">
+                        </div>
+                        <textarea id="feedbackContent" name="txtContent" placeholder="请填写您的意见或需求（必填）"
+                            required></textarea>
+                        <button type="submit" class="vs-feedback-submit" id="feedbackSubmitBtn">提交反馈</button>
+                        <div class="vs-feedback-msg" id="feedbackMsg" aria-live="polite"></div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+<script>
+        // Image Gallery Functionality
+        function changeImage(thumb, src) {
+            // Update main image
+            document.getElementById('mainImage').src = src;
+
+            // Update active thumbnail
+            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        }
+
+        function switchImageByOffset(offset) {
+            const thumbs = Array.from(document.querySelectorAll('.vs-gallery-thumb'));
+            if (!thumbs.length) return;
+
+            let currentIndex = thumbs.findIndex(t => t.classList.contains('active'));
+            if (currentIndex < 0) currentIndex = 0;
+
+            const nextIndex = (currentIndex + offset + thumbs.length) % thumbs.length;
+            const nextThumb = thumbs[nextIndex];
+            const nextSrc = nextThumb.querySelector('img').getAttribute('src');
+            changeImage(nextThumb, nextSrc);
+        }
+
+        function prevImage() {
+            switchImageByOffset(-1);
+        }
+
+        function nextImage() {
+            switchImageByOffset(1);
+        }
+    </script>
+
+    <script>
+        (function () {
+            const relatedProductIds = [
+                'gas_detection_solution',
+                'mc_aga_01',
+                'mc_cgld_01',
+                'mc_gcam_01',
+                'mc_hha_01',
+                'mc_hla_01',
+                'mc_hmv_01',
+                'mc_hp_01',
+                'mc_ld_nh2',
+                'mc_ld_ph2',
+                'mc_mgm_01',
+                'mc_mhm_01',
+                'mc_nghba_01',
+                'mc_odha_01',
+                'mc_odpm_01',
+                'mc_ohpa_01',
+                'mc_pdha_01',
+                'mc_pdpm_01',
+                'mc_pdr_01',
+                'mc_pgd_01',
+                'mc_phpa_01',
+                'mc_rld_01',
+                'mc_sas_01',
+                'mc_sts_01',
+                'mc_td_01',
+                'mc_wd_01',
+                'semiconductor_device_customization',
+                'sensor_instrument_customization'
+            ];
+
+            const fallbackImage = '/cdn_assets/images/gassensing/50c58e816615.webp';
+
+            function shuffle(list) {
+                const arr = [...list];
+                for (let i = arr.length - 1; i > 0; i -= 1) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            function normalizeTitle(id, parsedDoc) {
+                const h1 = parsedDoc.querySelector('.vs-product-hero__content h1');
+                if (h1 && h1.textContent.trim()) return h1.textContent.trim();
+                return id.replace(/_/g, '-').toUpperCase();
+            }
+
+            function pickFirstProductImage(parsedDoc) {
+                const firstThumb = parsedDoc.querySelector('.vs-gallery-thumbs img');
+                const mainImage = parsedDoc.querySelector('#mainImage');
+                const src = (firstThumb && firstThumb.getAttribute('src')) || (mainImage && mainImage.getAttribute('src')) || '';
+                if (!src || src.includes('【')) return fallbackImage;
+                return src;
+            }
+
+            async function fetchProductMeta(id) {
+                const pagePath = `${id}.html`;
+                const res = await fetch(pagePath);
+                if (!res.ok) throw new Error(`Failed to fetch ${pagePath}`);
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                return {
+                    id,
+                    href: pagePath,
+                    title: normalizeTitle(id, doc),
+                    image: pickFirstProductImage(doc)
+                };
+            }
+
+            function renderProducts(products) {
+                const container = document.getElementById('randomRelatedProducts');
+                if (!container) return;
+                if (!products.length) {
+                    container.innerHTML = '<p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">暂无相关产品</p>';
+                    return;
+                }
+                container.innerHTML = products.map(p => `
+                    <a href="${p.href}" class="vs-related-item">
+                        <img src="${p.image}" alt="${p.title}">
+                        <h4>${p.title}</h4>
+                    </a>
+                `).join('');
+            }
+
+            document.addEventListener('DOMContentLoaded', async function () {
+                const shuffledIds = shuffle([...new Set(relatedProductIds)]);
+                const selected = [];
+
+                for (const id of shuffledIds) {
+                    if (selected.length >= 8) break;
+                    try {
+                        const meta = await fetchProductMeta(id);
+                        if (!selected.some(item => item.id === meta.id || item.href === meta.href || item.title === meta.title)) {
+                            selected.push(meta);
+                        }
+                    } catch (e) {
+                        console.warn('Skip product page:', id, e);
+                    }
+                }
+
+                renderProducts(selected);
+            });
+        })();
+    </script>
+
+    <script src="/assets/js/public-turnstile.js?v=1782461357"></script>
+
+    <script>
+        (function () {
+            function initFeedbackHub() {
+                const printBtn = document.getElementById('feedbackPrintBtn');
+                const wechatWrap = document.querySelector('.vs-wechat-wrap');
+                const wechatBtn = document.getElementById('feedbackWechatBtn');
+                const wechatPop = document.getElementById('feedbackWechatPop');
+                const feedbackPanel = document.getElementById('feedbackPanel');
+                const feedbackPanelTitle = document.getElementById('feedbackPanelTitle');
+                const feedbackPanelHint = document.getElementById('feedbackPanelHint');
+                const feedbackTypeInput = document.getElementById('feedbackType');
+                const feedbackTitleInput = document.getElementById('feedbackTitle');
+                const feedbackContentInput = document.getElementById('feedbackContent');
+                const feedbackMsg = document.getElementById('feedbackMsg');
+                const form = document.getElementById('productFeedbackForm');
+                const submitBtn = document.getElementById('feedbackSubmitBtn');
+                const turnstileGuard = window.createPublicTurnstileGuard ? window.createPublicTurnstileGuard({
+                    form: form,
+                    mountBefore: submitBtn,
+                    onError: function (message) {
+                        setMessage(message, true);
+                    }
+                }) : null;
+                const chips = document.querySelectorAll('.vs-feedback-chip');
+
+                if (!form || !feedbackPanel || !feedbackMsg || !submitBtn) return;
+
+                const feedbackCopy = {
+                    '信息很充分，谢谢！': {
+                        title: '感谢认可，欢迎留下您最满意的部分',
+                        hint: '我们会把这些正向反馈用于后续页面优化。',
+                        placeholder: '例如：参数说明清晰、应用场景完整、页面浏览体验好。'
+                    },
+                    '有帮助': {
+                        title: '感谢反馈，欢迎告诉我们还可优化的点',
+                        hint: '您提到的改进方向会直接进入产品页面迭代清单。',
+                        placeholder: '例如：希望补充更多案例细节、增加选型建议等。'
+                    },
+                    '我仍有疑问': {
+                        title: '收到，我们来帮您解答疑问',
+                        hint: '请尽量描述具体场景和问题，技术顾问会更快跟进。',
+                        placeholder: '例如：我的检测范围是xx，是否适合这款产品？'
+                    },
+                    '没有帮助': {
+                        title: '抱歉没有帮到您，请告诉我们问题所在',
+                        hint: '您的建议非常关键，我们会尽快补齐缺失信息。',
+                        placeholder: '例如：缺少价格范围、技术参数解释不够清楚等。'
+                    },
+                    '请联系我们': {
+                        title: '已收到，请填写信息以便我们联系您',
+                        hint: '提交后会进入后台留言系统，技术人员将尽快回访。',
+                        placeholder: '例如：请联系我做选型，项目场景是xx。'
+                    }
+                };
+
+                function setMessage(text, isError) {
+                    feedbackMsg.textContent = text || '';
+                    feedbackMsg.classList.toggle('is-error', Boolean(isError));
+                }
+
+                function openFeedbackPanel(type) {
+                    const pickedType = type || '页面反馈';
+                    const copy = feedbackCopy[pickedType] || feedbackCopy['有帮助'];
+
+                    feedbackTypeInput.value = pickedType;
+                    feedbackTitleInput.value = `MC-LD-H2 页面反馈 - ${pickedType}`;
+                    feedbackPanelTitle.textContent = copy.title;
+                    feedbackPanelHint.textContent = copy.hint;
+                    feedbackContentInput.placeholder = copy.placeholder;
+                    feedbackPanel.hidden = false;
+                    setMessage('');
+                    if (turnstileGuard) {
+                        turnstileGuard.ensureReady();
+                    }
+                    feedbackPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                if (printBtn) {
+                    printBtn.addEventListener('click', function () {
+                        window.print();
+                    });
+                }
+
+                if (wechatBtn && wechatPop) {
+                    wechatBtn.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        const open = wechatPop.classList.toggle('is-open');
+                        wechatBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    });
+
+                    document.addEventListener('click', function (event) {
+                        if (!wechatWrap || !wechatPop.classList.contains('is-open')) return;
+                        if (!wechatWrap.contains(event.target)) {
+                            wechatPop.classList.remove('is-open');
+                            wechatBtn.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                }
+
+                chips.forEach(function (chip) {
+                    chip.addEventListener('click', function () {
+                        chips.forEach(function (item) { item.classList.remove('is-active'); });
+                        chip.classList.add('is-active');
+                        openFeedbackPanel(chip.dataset.feedbackType || chip.textContent.trim());
+                    });
+                });
+
+                form.addEventListener('submit', async function (event) {
+                    event.preventDefault();
+
+                    const name = (document.getElementById('feedbackName').value || '').trim();
+                    const phone = (document.getElementById('feedbackPhone').value || '').trim();
+                    const email = (document.getElementById('feedbackEmail').value || '').trim();
+                    const title = (feedbackTitleInput.value || '').trim();
+                    const content = (feedbackContentInput.value || '').trim();
+                    const feedbackType = feedbackTypeInput.value || '未分类反馈';
+
+                    if (!phone) {
+                        setMessage('请填写联系电话。', true);
+                        return;
+                    }
+                    if (!content) {
+                        setMessage('请填写反馈内容。', true);
+                        return;
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '提交中...';
+                    setMessage('正在提交，请稍候...');
+
+                    try {
+                        const payload = {
+                            txtUserName: name,
+                            txtUserTel: phone,
+                            txtUserEmail: email,
+                            txtTitle: title || `MC-LD-H2 页面反馈 - ${feedbackType}`,
+                            txtContent: `反馈选项：${feedbackType}\n页面：MC-LD-H2型手持氢气检测仪\n反馈内容：${content}`
+                        };
+
+                        if (turnstileGuard) {
+                            await turnstileGuard.decoratePayload(payload);
+                        }
+
+                        const response = await fetch('/api/feedback', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        let data = {};
+                        try {
+                            data = await response.json();
+                        } catch (err) {
+                            data = {};
+                        }
+
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.message || '提交失败，请稍后重试。');
+                        }
+
+                        setMessage(data.message || '提交成功，我们会尽快与您联系。', false);
+                        const keepType = feedbackTypeInput.value;
+                        form.reset();
+                        feedbackTypeInput.value = keepType;
+                        feedbackTitleInput.value = `MC-LD-H2 页面反馈 - ${keepType || '用户反馈'}`;
+                    } catch (error) {
+                        setMessage(error.message || '提交失败，请稍后重试。', true);
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '提交反馈';
+                        if (turnstileGuard) {
+                            turnstileGuard.reset();
+                        }
+                    }
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', initFeedbackHub);
+        })();
+    </script>
+
+  <!-- 全站搜索 -->
+  <script src="../../assets/js/search.js"></script>
+
+    <!-- AI智能客服 -->
+    <script src="../../assets/js/chatbot.js?v=20260604i"></script>
+    
+
+    <!-- 动态产品菜单（从API自动加载，支持自定义名称和新品标记） -->
+    <script>
+        // 从 API 自动获取产品列表并生成菜单
+        document.addEventListener('DOMContentLoaded', async function () {
+            const container = document.getElementById('dynamic-product-list');
+            if (!container) return;
+
+            try {
+                // 使用带设置的 API 获取自定义名称和新品标记
+                const response = await fetch('/api/products/with-settings');
+                const data = await response.json();
+
+                if (!data.products || data.products.length === 0) {
+                    container.innerHTML = '<p style="color:#666;">暂无产品</p>';
+                    return;
+                }
+
+                // 过滤掉定制服务和隐藏的产品
+                const menuProducts = data.products.filter(p => !p.id.includes('../') && !p.hidden);
+
+                // 生成产品链接（使用自定义名称，显示新品标记）
+                const createProductLink = (p) => {
+                    const displayName = p.displayName || p.shortName || p.name;
+                    const newBadge = p.isNew ? '<span style="background:#ff4444;color:white;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:5px;vertical-align:middle;">NEW</span>' : '';
+                    return `<li><a href="../gassensing/${p.id}.html">${displayName}${newBadge}</a></li>`;
+                };
+
+                // 分两列显示
+                const half = Math.ceil(menuProducts.length / 2);
+                const leftProducts = menuProducts.slice(0, half);
+                const rightProducts = menuProducts.slice(half);
+
+                const leftHtml = leftProducts.map(createProductLink).join('');
+                const rightHtml = rightProducts.map(createProductLink).join('');
+
+                container.innerHTML = `
+                    <div><ul class="vs-mega-list-v2">${leftHtml}</ul></div>
+                    <div><ul class="vs-mega-list-v2">${rightHtml}</ul></div>
+                `;
+            } catch (error) {
+                console.error('Failed to load products:', error);
+                container.innerHTML = '<p style="color:#666;">加载产品列表失败</p>';
+            }
+        });
+    </script>
+
+    <!-- 动态加载新品推荐 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                const res = await fetch('/api/recommendations');
+                const data = await res.json();
+
+                // 填充最新发布
+                const latestList = document.getElementById('latestReleasesList');
+                if (latestList && data.latestReleases) {
+                    latestList.innerHTML = data.latestReleases.map(item =>
+                        `<li><a href="${item.url}">${item.name}</a></li>`
+                    ).join('');
+                }
+
+                // 填充应用领域
+                const appList = document.getElementById('applicationAreasList');
+                if (appList && data.applicationAreas) {
+                    appList.innerHTML = data.applicationAreas.map(item =>
+                        `<li><a href="${item.url}">${item.name}</a></li>`
+                    ).join('');
+                }
+            } catch (e) {
+                console.error('Failed to load recommendations:', e);
+            }
+        });
+    </script>
+
+    <!-- 动态加载产品种类 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                const res = await fetch('/api/categories');
+                const data = await res.json();
+
+                if (data.categories && data.categories.length > 0) {
+                    // 分两列显示
+                    const half = Math.ceil(data.categories.length / 2);
+                    const leftCategories = data.categories.slice(0, half);
+                    const rightCategories = data.categories.slice(half);
+
+                    const leftList = document.getElementById('categoriesLeft');
+                    const rightList = document.getElementById('categoriesRight');
+
+                    if (leftList) {
+                        leftList.innerHTML = leftCategories.map(cat =>
+                            `<li><a href="${cat.url}">${cat.name}</a></li>`
+                        ).join('');
+                    }
+
+                    if (rightList) {
+                        rightList.innerHTML = rightCategories.map(cat =>
+                            `<li><a href="${cat.url}">${cat.name}</a></li>`
+                        ).join('');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load categories:', e);
+            }
+        });
+    </script>
+
+<!-- FOOTER_START -->
+  <div id="mc-footer-root"></div>
+  <noscript>
+    <footer class="vs-footer-new">
+      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+        <a href="/index.html">首页</a> |
+        <a href="/pages/about/policy.html">隐私政策</a> |
+        <a href="/pages/about/terms.html">条款与条件</a>
+      </div>
+    </footer>
+  </noscript>
+  <script src="/assets/js/footer-loader.js?v=1782461357"></script>
+  <!-- FOOTER_END -->
+<script src="/assets/js/chem-subscript.js" defer></script>
+<script src="/assets/js/site-analytics.js" defer></script>
+<!-- MC_PRODUCT_ADMIN_DATA:eyJ2ZXJzaW9uIjo0LCJ0aXRsZSI6ImlQaG9uZSAxNyIsInNob3J0X25hbWUiOiJpUGhvbmUgMTciLCJjYXRlZ29yeSI6ImRldGVjdG9yIiwiaW1hZ2VfdXJsIjoiL2Nkbl9hc3NldHMvaW1hZ2VzL2dhc3NlbnNpbmcvSVBIT05FMTcvaXBob25lLTE3LXByb2R1Y3QtMDEuanBlZyIsInN1bW1hcnkiOiLlhbzlhbcgMTIwSHog5rWB55WF5L2T6aqM44CBQTE5IOezu+WIl+aAp+iDveS4juWFqOmdouW9seWDj+WNh+e6p+eahOaWsOS4gOS7o+aXpeW4uOaXl+iIsOOAgiIsImNvbnRlbnRfaHRtbCI6IjxwPuivt+Whq+WGmeS6p+WTgeivpuaDheWGheWuuTwvcD4iLCJ0ZW1wbGF0ZV9maWVsZHMiOnt9LCJzZWN0aW9ucyI6eyJyZWxhdGVkX3Byb2R1Y3RzIjpbXSwiZGV0YWlsIjoiaVBob25lIDE3IOezu+WIl+WcqOWkluinguOAgeWxj+W5leOAgeaAp+iDveOAgeW9seWDj+WSjOe7reiIquetieaWuemdoui/m+ihjOS6huWFqOmdouWNh+e6p+OAguagh+WHhuasvuW7tue7ree7j+WFuOaWueato+iuvuiuoe+8jOmHh+eUqOmTnemHkeWxnuS4gOS9k+aIkOWei+acuui6q++8jOW5tuaPkOS+m+m7keiJsuOAgeeZveiJsuOAgembvuiTneOAgem8oOWwvuiNiee7v+OAgeiWsOiho+iNiee0q+etiemFjeiJsumAieaLqeOAglxuXG7lsY/luZXkvZPpqozmmK/mnKzku6PnmoTph43opoHmj5DljYfngrnvvIzlhajns7vliJfpppbmrKHmoIfphY0gMTIwSHogUHJvTW90aW9u44CC5peg6K665piv5L+h5oGv5rWB5rWP6KeI44CB6aG16Z2i5rua5Yqo77yM6L+Y5piv5ri45oiP55S76Z2i5YiH5o2i77yM6YO96IO96I635b6X5pu06aG65ruR55qE6KeG6KeJ5Y+N6aaI44CC5qCH5YeG5qy+5bGP5bmV5o+Q5Y2H6IezIDYuMyDoi7Hlr7jvvIxQcm8g57O75YiX5YiZ5pCt6L295pu06auY6KeE5qC855qE6LaFIFJldGluYSBYRFIg5pi+56S65pWI5p6c44CCXG5cbuaAp+iDveaWuemdou+8jGlQaG9uZSAxNyDns7vliJfmkK3ovb0gQTE5IC8gQTE5IFBybyDoiq/niYfvvIzpnaLlkJHml6XluLjkvb/nlKjjgIHmuLjmiI/lqLHkuZDjgIHlpJrku7vliqHlpITnkIbkuI4gQXBwbGUgSW50ZWxsaWdlbmNlIOWKn+iDveaPkOS+m+abtOeos+WumueahOaAp+iDveWfuuehgOOAglBybyDns7vliJfov5jnu5PlkIjkuIDkvZPlvI/ng63plLvpk53ph5HlsZ7mnLrouqvkuI7okrjmsb3lrqTmlaPng63orr7orqHvvIzmm7TpgILlkIjpq5jotJ/ovb3muLjmiI/kuI7kuJPkuJrliJvkvZzlnLrmma/jgIJcblxu5b2x5YOP57O757uf5piv5pys5Luj5Y+m5LiA5aSn5Y2H57qn44CC5qCH5YeG5qy+6YWN5aSHIDQ4TVAg5Li75pGE5LiOIDQ4TVAg6LaF5bm/6KeS77yM5bm25Yqg5YWlIENlbnRlciBTdGFnZSDliY3nva7nm7jmnLrvvIzmlK/mjIHmm7Toh6rnhLbnmoToh6rmi43jgIHlkIjlvbHku6Xlj4rlj4zlkJHlkIzmraXlvZXlg4/jgIJQcm8g57O75YiX5Y2H57qn5Li6IDQ4TVAg5LiJ5pGE57O757uf77yM5bm25o+Q5L6bIDgg5YCN5YWJ5a2m5Y+Y54Sm44CBUHJvUmVzIFJBV+OAgUFwcGxlIExvZyAyIOetieS4k+S4muinhumikeiDveWKm+OAglxuXG7nu63oiKrkuI7lhYXnlLXmlrnpnaLvvIxpUGhvbmUgMTcg57O75YiX57ut6Iiq6KGo546w6L+b5LiA5q2l5o+Q5Y2H77yM5qCH5YeG5qy+6KeG6aKR5pKt5pS+5pe26ZW/5o+Q5Y2H5piO5pi+77yMUHJvIOezu+WIl+WcqOeUteaxoOWuuemHj+S4juWunumZhee7reiIquS4iuihqOeOsOabtOW8uuOAguWQjOaXtuaUr+aMgee6piAyMCDliIbpkp/lhYXoh7MgNTAlIOeahOW/q+WFheS9k+mqjO+8jOa7oei2s+mrmOmikeenu+WKqOS9v+eUqOmcgOaxguOAgiIsImRlc2NyaXB0aW9uIjoi5YW85YW3IDEyMEh6IOa1geeVheS9k+mqjOOAgUExOSDns7vliJfmgKfog73kuI7lhajpnaLlvbHlg4/ljYfnuqfnmoTmlrDkuIDku6Pml6XluLjml5foiLDjgIIiLCJuZXdzIjpbXSwiYWR2YW50YWdlcyI6W3siaWNvbiI6ImZhcyBmYS1tb2JpbGUtc2NyZWVuLWJ1dHRvbiIsInRpdGxlIjoi6aG65ruR5bGP5bmV5L2T6aqMIiwiZGVzYyI6IuWFqOezu+WIl+agh+mFjSAxMjBIeiBQcm9Nb3Rpb27vvIzorqnmtY/op4jjgIHmu5HliqjjgIHliqjnlLvliIfmjaLkuI7muLjmiI/nlLvpnaLmm7TliqDmtYHnlYXjgIIifSx7Imljb24iOiJmYXMgZmEtY2FtZXJhIiwidGl0bGUiOiLlvbHlg4/lhajpnaLljYfnuqciLCJkZXNjIjoiNDhNUCDkuLvmkYTjgIHotoXlub/op5LkuI4gQ2VudGVyIFN0YWdlIOWJjee9ruebuOacuue7hOWQiO+8jOimhuebluaXpeW4uOaLjeaRhOOAgeiHquaLjeOAgeWQiOW9seS4juinhumikeiusOW9lemcgOaxguOAgiJ9LHsiaWNvbiI6ImZhcyBmYS1taWNyb2NoaXAiLCJ0aXRsZSI6IuaAp+iDveeos+WumuW8uuWKsiIsImRlc2MiOiJBMTkgLyBBMTkgUHJvIOiKr+eJh+S4uuWkmuS7u+WKoeWkhOeQhuOAgea4uOaIj+WoseS5kOS4juaZuuiDveWKn+iDveaPkOS+m+WFhei2s+aAp+iDveaUr+aMgeOAgiJ9LHsiaWNvbiI6ImZhcyBmYS1iYXR0ZXJ5LWZ1bGwiLCJ0aXRsZSI6Iue7reiIquS4juW/q+WFheaPkOWNhyIsImRlc2MiOiLnu63oiKrooajnjrDov5vkuIDmraXlop7lvLrvvIzlubbmlK/mjIHnuqYgMjAg5YiG6ZKf5YWF6IezIDUwJe+8jOabtOmAguWQiOWFqOWkqeWAmeenu+WKqOS9v+eUqOOAgiJ9XSwiaW1hZ2VzIjpbIi9jZG5fYXNzZXRzL2ltYWdlcy9nYXNzZW5zaW5nL0lQSE9ORTE3L2lwaG9uZS0xNy1wcm9kdWN0LTAxLmpwZWciLCIvY2RuX2Fzc2V0cy9pbWFnZXMvZ2Fzc2Vuc2luZy9JUEhPTkUxNy9pcGhvbmUtMTctcHJvZHVjdC0wMi5hdmlmIl0sImN0YV9kZXNjIjoi5aaC6ZyA5LqG6KejIGlQaG9uZSAxNyDkuI3lkIzniYjmnKzjgIHpopzoibLjgIHlrZjlgqjlrrnph4/miJblupTnlKjlnLrmma/pgILphY3lu7rorq7vvIzmrKLov47ogZTns7vmiJHku6zojrflj5bmm7TlpJrkv6Hmga/jgIIiLCJjdGFfdGl0bGUiOiLkuobop6MgaVBob25lIDE3IOaWueahiOS4jumFjee9riIsImFwcF9pbnRybyI6ImlQaG9uZSAxNyDpnaLlkJHml6XluLjpgJrkv6HjgIHnp7vliqjlqLHkuZDjgIHlhoXlrrnliJvkvZzkuI7pq5jmlYjlip7lhaznrYnlpJrnsbvlnLrmma/vvIzlhbzpob7mtYHnlYXkvZPpqozjgIHlvbHlg4/og73lipvkuI7kvr/mkLrkvb/nlKjjgIIiLCJhcHBsaWNhdGlvbnMiOlt7Imljb24iOiJmYXMgZmEtdXNlciIsInRpdGxlIjoi5pel5bi45peX6Iiw5L2/55SoIiwiZGVzYyI6IumAguWQiOaXpeW4uOekvuS6pOOAgeaLjeeFp+OAgeinhumikeOAgeWvvOiIquOAgeaUr+S7mOS4juS/oeaBr+WkhOeQhuetiemrmOmikeWcuuaZr++8jDEyMEh6IOWxj+W5leS4juabtOWkp+WtmOWCqOi1t+atpeaPkOWNh+mVv+acn+S9v+eUqOS9k+mqjOOAgiIsInNjZW5hcmlvIjoi6YeN54K55Zy65pmv77ya5pel5bi46YCa5Yuk44CB56S+5Lqk5rKf6YCa44CB56e75Yqo55Sf5rS7IiwiaW1nIjoiIn0seyJpY29uIjoiZmFzIGZhLWdhbWVwYWQiLCJ0aXRsZSI6Iua4uOaIj+S4juW9semfs+WoseS5kCIsImRlc2MiOiLpq5jliLfmlrDnjoflsY/luZXkuI4gQTE5IOezu+WIl+iKr+eJh+W4puadpeabtOmhuua7keeahOa4uOaIj+WSjOW9semfs+S9k+mqjO+8jFBybyDns7vliJfmlaPng63og73lipvmj5DljYflkI7mm7TpgILlkIjplb/ml7bpl7Tpq5jotJ/ovb3ov5DooYzjgIIiLCJzY2VuYXJpbyI6IumHjeeCueWcuuaZr++8muaJi+a4uOOAgeinhumikeaSreaUvuOAgea1geWqkuS9k+WoseS5kCIsImltZyI6IiJ9LHsiaWNvbiI6ImZhcyBmYS12aWRlbyIsInRpdGxlIjoi5b2x5YOP5Yib5L2cIiwiZGVzYyI6IjQ4TVAg5b2x5YOP57O757uf44CB5YmN572uIENlbnRlciBTdGFnZSDnm7jmnLrku6Xlj4ogUHJvIOezu+WIl+S4k+S4muinhumikeiDveWKm++8jOmAguWQiOefreinhumikeOAgVZsb2fjgIHml4XooYzmi43mkYTkuI7liJvkvZzogIXlt6XkvZzmtYHjgIIiLCJzY2VuYXJpbyI6IumHjeeCueWcuuaZr++8muefreinhumikeaLjeaRhOOAgeaXheihjOiusOW9leOAgeS4k+S4muinhumikeWIm+S9nCIsImltZyI6IiJ9LHsiaWNvbiI6ImZhcyBmYS1icmllZmNhc2UiLCJ0aXRsZSI6Iuenu+WKqOWKnuWFrCIsImRlc2MiOiLnqLPlrprmgKfog73jgIHplb/nu63oiKrkuI4gQXBwbGUgSW50ZWxsaWdlbmNlIOiDveWKm+WPr+i+heWKqeaWh+aho+WkhOeQhuOAgeS8muiuruayn+mAmuOAgeS/oeaBr+aVtOeQhuWSjOWkmuS7u+WKoeWNj+S9nOOAgiIsInNjZW5hcmlvIjoi6YeN54K55Zy65pmv77ya56e75Yqo5Lya6K6u44CB6LWE5paZ5aSE55CG44CB5ZWG5Yqh5rKf6YCaIiwiaW1nIjoiIn1dLCJzcGVjcyI6W3sia2V5Ijoi5Lqn5ZOB5Z6L5Y+3IiwidmFsdWUiOiJpUGhvbmUgMTcifSx7ImtleSI6IuS6p+WTgeezu+WIlyIsInZhbHVlIjoiaVBob25lIDE3IOezu+WIlyJ9LHsia2V5Ijoi5bGP5bmV5Yi35paw546HIiwidmFsdWUiOiIxMjBIeiBQcm9Nb3Rpb24ifSx7ImtleSI6Iuagh+WHhuasvuWxj+W5leWwuuWvuCIsInZhbHVlIjoiNi4zIOiLseWvuCJ9LHsia2V5Ijoi6Iqv54mHIiwidmFsdWUiOiJBMTkgLyBBMTkgUHJvIn0seyJrZXkiOiLmoIflh4bmrL7lkI7nva7nm7jmnLoiLCJ2YWx1ZSI6IjQ4TVAg5Li75pGEICsgNDhNUCDotoXlub/op5IifSx7ImtleSI6IuWJjee9ruebuOacuiIsInZhbHVlIjoiQ2VudGVyIFN0YWdlIOWJjee9ruebuOacuiJ9LHsia2V5IjoiUHJvIOezu+WIl+ebuOacuiIsInZhbHVlIjoiNDhNUCDkuInmkYTvvIzmnIDpq5ggOCDlgI3lhYnlrablj5jnhKYifSx7ImtleSI6IuW/q+WFhSIsInZhbHVlIjoi57qmIDIwIOWIhumSn+WFheiHsyA1MCUifSx7ImtleSI6IuWtmOWCqOi1t+atpSIsInZhbHVlIjoiMjU2R0Ig6LW3In0seyJrZXkiOiLmnLrouqvpopzoibIiLCJ2YWx1ZSI6Ium7keiJsuOAgeeZveiJsuOAgembvuiTneOAgem8oOWwvuiNiee7v+OAgeiWsOiho+iNiee0qyJ9LHsia2V5Ijoi6ICQ55So5oCnIiwidmFsdWUiOiJDZXJhbWljIFNoaWVsZCAyIn1dLCJoaWdobGlnaHRzIjpbIuWFqOezu+WIl+agh+mFjSAxMjBIeiBQcm9Nb3Rpb27vvIzml6XluLjmu5HliqjkuI7muLjmiI/kvZPpqozmm7TpobrnlYXjgIIiLCI0OE1QIOW9seWDj+ezu+e7n+WNh+e6p++8jOWJjee9riBDZW50ZXIgU3RhZ2Ug55u45py66K6p6Ieq5ouN5LiO5ZCI5b2x5pu06Ieq54S244CCIiwiQTE5IC8gQTE5IFBybyDoiq/niYfluKbmnaXnqLPlrprmgKfog73ooajnjrDvvIzlubblvLrljJYgQXBwbGUgSW50ZWxsaWdlbmNlIOS9k+mqjOOAgiIsIkNlcmFtaWMgU2hpZWxkIDIg5o+Q5Y2H5oqX5Yiu5LiO6ICQ55So5oCn77yM6YCC5ZCI6auY6aKR5pel5bi45L2/55So44CCIl0sInRpdGxlIjoiaVBob25lIDE3In0sInNvdXJjZSI6ImFpLXN0cnVjdHVyZWQtc2VjdGlvbnMifQ== -->
+</body>
+
+</html>
