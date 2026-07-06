@@ -223,6 +223,17 @@ body.admin2-root.sidebar-collapsed .sidebar-toggle-btn {
     min-width: 128px;
 }
 
+.admin2-root .promotion-link-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 260px;
+}
+
+.admin2-root .promotion-link-row-actions .btn-sm {
+    width: auto;
+}
+
 .admin2-root #view-promotion-links .form-group label.metric-with-help {
     display: inline-flex;
     align-items: center;

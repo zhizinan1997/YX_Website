@@ -5007,35 +5007,63 @@
         }
 
         function drawPromotionQrLogo(canvas) {
-            if (!canvas || !canvas.getContext) return;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-            const img = new Image();
-            img.onload = () => {
-                const size = Math.round(Math.min(canvas.width, canvas.height) * 0.24);
-                const pad = Math.round(size * 0.18);
-                const boxSize = size + (pad * 2);
-                const x = Math.round((canvas.width - boxSize) / 2);
-                const y = Math.round((canvas.height - boxSize) / 2);
-                const radius = Math.round(boxSize * 0.18);
-                ctx.save();
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + boxSize - radius, y);
-                ctx.quadraticCurveTo(x + boxSize, y, x + boxSize, y + radius);
-                ctx.lineTo(x + boxSize, y + boxSize - radius);
-                ctx.quadraticCurveTo(x + boxSize, y + boxSize, x + boxSize - radius, y + boxSize);
-                ctx.lineTo(x + radius, y + boxSize);
-                ctx.quadraticCurveTo(x, y + boxSize, x, y + boxSize - radius);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);
-                ctx.closePath();
-                ctx.fill();
-                ctx.drawImage(img, x + pad, y + pad, size, size);
-                ctx.restore();
-            };
-            img.src = PROMOTION_QR_LOGO_SRC;
+            return new Promise((resolve) => {
+                if (!canvas || !canvas.getContext) {
+                    resolve(false);
+                    return;
+                }
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(false);
+                    return;
+                }
+                const img = new Image();
+                img.onload = () => {
+                    const baseSize = Math.min(canvas.width, canvas.height);
+                    const maxLogoWidth = Math.round(baseSize * 0.28);
+                    const ratio = img.naturalWidth && img.naturalHeight ? img.naturalHeight / img.naturalWidth : 0.4;
+                    const logoWidth = maxLogoWidth;
+                    const logoHeight = Math.max(1, Math.round(logoWidth * ratio));
+                    const pad = Math.round(baseSize * 0.03);
+                    const boxWidth = logoWidth + (pad * 2);
+                    const boxHeight = logoHeight + (pad * 2);
+                    const x = Math.round((canvas.width - boxWidth) / 2);
+                    const y = Math.round((canvas.height - boxHeight) / 2);
+                    const radius = Math.round(Math.min(boxWidth, boxHeight) * 0.24);
+                    ctx.save();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(x + radius, y);
+                    ctx.lineTo(x + boxWidth - radius, y);
+                    ctx.quadraticCurveTo(x + boxWidth, y, x + boxWidth, y + radius);
+                    ctx.lineTo(x + boxWidth, y + boxHeight - radius);
+                    ctx.quadraticCurveTo(x + boxWidth, y + boxHeight, x + boxWidth - radius, y + boxHeight);
+                    ctx.lineTo(x + radius, y + boxHeight);
+                    ctx.quadraticCurveTo(x, y + boxHeight, x, y + boxHeight - radius);
+                    ctx.lineTo(x, y + radius);
+                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    const logoCanvas = document.createElement('canvas');
+                    logoCanvas.width = logoWidth;
+                    logoCanvas.height = logoHeight;
+                    const logoCtx = logoCanvas.getContext('2d');
+                    if (logoCtx) {
+                        logoCtx.drawImage(img, 0, 0, logoWidth, logoHeight);
+                        logoCtx.globalCompositeOperation = 'source-in';
+                        logoCtx.fillStyle = '#0f172a';
+                        logoCtx.fillRect(0, 0, logoWidth, logoHeight);
+                        ctx.drawImage(logoCanvas, x + pad, y + pad, logoWidth, logoHeight);
+                    } else {
+                        ctx.drawImage(img, x + pad, y + pad, logoWidth, logoHeight);
+                    }
+                    ctx.restore();
+                    resolve(true);
+                };
+                img.onerror = () => resolve(false);
+                img.src = PROMOTION_QR_LOGO_SRC;
+            });
         }
 
         function renderPromotionQr(url) {
@@ -5059,7 +5087,14 @@
                         colorLight: '#ffffff',
                         correctLevel: QRCode.CorrectLevel.H
                     });
-                    window.setTimeout(() => drawPromotionQrLogo(box.querySelector('canvas')), 0);
+                    window.setTimeout(async () => {
+                        const canvas = box.querySelector('canvas');
+                        const img = box.querySelector('img');
+                        const logoDrawn = await drawPromotionQrLogo(canvas);
+                        if (logoDrawn && canvas && img) {
+                            img.src = canvas.toDataURL('image/png');
+                        }
+                    }, 0);
                     return;
                 } catch (err) {
                     console.warn('QR render failed', err);
@@ -5068,37 +5103,133 @@
             box.textContent = '二维码生成失败';
         }
 
+        async function copyTextToClipboard(value) {
+            const text = String(value || '').trim();
+            if (!text) return false;
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (_) {
+                const field = document.createElement('textarea');
+                field.value = text;
+                field.setAttribute('readonly', '');
+                field.style.position = 'fixed';
+                field.style.left = '-9999px';
+                field.style.top = '0';
+                document.body.appendChild(field);
+                field.select();
+                let copied = false;
+                try {
+                    copied = document.execCommand('copy');
+                } catch (err) {
+                    copied = false;
+                }
+                field.remove();
+                return copied;
+            }
+        }
+
         async function copyPromotionLinkUrl() {
             const value = currentPromotionLinkUrl || document.getElementById('promotionLinkGeneratedUrl')?.value || '';
             if (!value) {
                 showGlobalAlert('请先创建或选择一个推广链接');
                 return;
             }
-            try {
-                await navigator.clipboard.writeText(value);
-                showGlobalAlert('推广链接已复制');
-            } catch (_) {
-                const field = document.getElementById('promotionLinkGeneratedUrl');
-                if (field) {
-                    field.select();
-                    document.execCommand('copy');
-                    showGlobalAlert('推广链接已复制');
+            const copied = await copyTextToClipboard(value);
+            showGlobalAlert(copied ? '推广链接已复制' : '复制失败，请手动复制');
+        }
+
+        async function copyPromotionLinkById(id) {
+            const item = findPromotionLink(id);
+            const value = item?.url || '';
+            if (!value) {
+                showGlobalAlert('未找到该推广链接');
+                return;
+            }
+            const copied = await copyTextToClipboard(value);
+            showGlobalAlert(copied ? '推广链接已复制' : '复制失败，请手动复制');
+        }
+
+        function sanitizePromotionQrFilename(value) {
+            return String(value || 'promotion-link').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'promotion-link';
+        }
+
+        function createPromotionQrCanvas(url, size = 720) {
+            return new Promise((resolve, reject) => {
+                const text = String(url || '').trim();
+                if (!text) {
+                    reject(new Error('请先生成二维码'));
+                    return;
                 }
+                if (typeof QRCode !== 'function') {
+                    reject(new Error('二维码组件未加载'));
+                    return;
+                }
+                const holder = document.createElement('div');
+                holder.style.position = 'fixed';
+                holder.style.left = '-9999px';
+                holder.style.top = '0';
+                holder.style.width = `${size}px`;
+                holder.style.height = `${size}px`;
+                holder.style.pointerEvents = 'none';
+                document.body.appendChild(holder);
+                const cleanup = () => holder.remove();
+                try {
+                    new QRCode(holder, {
+                        text,
+                        width: size,
+                        height: size,
+                        colorDark: '#0f172a',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (err) {
+                    cleanup();
+                    reject(err);
+                    return;
+                }
+                window.setTimeout(async () => {
+                    try {
+                        const canvas = holder.querySelector('canvas');
+                        if (!canvas) throw new Error('二维码生成失败');
+                        await drawPromotionQrLogo(canvas);
+                        resolve({ canvas, cleanup });
+                    } catch (err) {
+                        cleanup();
+                        reject(err);
+                    }
+                }, 0);
+            });
+        }
+
+        async function downloadPromotionQr(url = '', markValue = '') {
+            const value = String(url || currentPromotionLinkUrl || document.getElementById('promotionLinkGeneratedUrl')?.value || '').trim();
+            if (!value) {
+                showGlobalAlert('请先创建或选择一个推广链接');
+                return;
+            }
+            let qr = null;
+            try {
+                qr = await createPromotionQrCanvas(value);
+                const link = document.createElement('a');
+                const mark = markValue || document.getElementById('promotionLinkMark')?.value || 'promotion-link';
+                link.download = `${sanitizePromotionQrFilename(mark)}.png`;
+                link.href = qr.canvas.toDataURL('image/png');
+                link.click();
+            } catch (err) {
+                showGlobalAlert(err.message || '二维码下载失败');
+            } finally {
+                if (qr && typeof qr.cleanup === 'function') qr.cleanup();
             }
         }
 
-        function downloadPromotionQr() {
-            const box = document.getElementById('promotionQrBox');
-            const canvas = box ? box.querySelector('canvas') : null;
-            if (!canvas) {
-                showGlobalAlert('请先生成二维码');
+        async function downloadPromotionQrById(id) {
+            const item = findPromotionLink(id);
+            if (!item?.url) {
+                showGlobalAlert('未找到该推广链接');
                 return;
             }
-            const link = document.createElement('a');
-            const mark = document.getElementById('promotionLinkMark')?.value || 'promotion-link';
-            link.download = `${String(mark || 'promotion-link').replace(/[^A-Za-z0-9._-]+/g, '-')}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            await downloadPromotionQr(item.url, item.promotion_mark || item.name || 'promotion-link');
         }
 
         function promotionStatsByMark(rows) {
@@ -5166,6 +5297,7 @@
                 const rowStats = stats[mark] || {};
                 const channel = getPromotionLinkChannel(item);
                 const statusText = item?.enabled ? '启用' : '停用';
+                const itemId = escapeAttr(item?.id || '');
                 return `
                     <tr>
                         <td>
@@ -5183,9 +5315,13 @@
                             </label>
                         </td>
                         <td>
-                            <button type="button" class="btn-sm" onclick="openPromotionLinkStats('${escapeHtml(item.id)}')">访问数据</button>
-                            <button type="button" class="btn-sm" onclick="editPromotionLink('${escapeHtml(item.id)}')">编辑</button>
-                            <button type="button" class="btn-sm btn-danger" onclick="archivePromotionLink('${escapeHtml(item.id)}')">停用并隐藏</button>
+                            <div class="promotion-link-row-actions">
+                                <button type="button" class="btn-sm" onclick="openPromotionLinkStats('${itemId}')">访问数据</button>
+                                <button type="button" class="btn-sm" onclick="copyPromotionLinkById('${itemId}')">复制推广链接</button>
+                                <button type="button" class="btn-sm" onclick="downloadPromotionQrById('${itemId}')">下载推广二维码</button>
+                                <button type="button" class="btn-sm" onclick="editPromotionLink('${itemId}')">编辑</button>
+                                <button type="button" class="btn-sm btn-danger" onclick="archivePromotionLink('${itemId}')">停用并隐藏</button>
+                            </div>
                         </td>
                     </tr>
                 `;
