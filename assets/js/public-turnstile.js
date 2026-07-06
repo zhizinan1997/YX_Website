@@ -166,6 +166,9 @@
               callback: function (value) {
                 token = String(value || '');
                 clearLocalError();
+                if (typeof opts.onVerified === 'function') {
+                  opts.onVerified(token);
+                }
               },
               'expired-callback': function () {
                 token = '';

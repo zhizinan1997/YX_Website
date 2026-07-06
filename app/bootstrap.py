@@ -440,6 +440,8 @@ def register_all_routes(app):
         login_required=login_required,
         get_config=get_config,
         update_config=update_config,
+        get_turnstile_settings=get_turnstile_settings,
+        verify_turnstile_token=verify_turnstile_token,
         require_super_admin_api=require_super_admin_api,
         get_client_ip=get_client_ip,
         resolve_ip_location=resolve_ip_location,

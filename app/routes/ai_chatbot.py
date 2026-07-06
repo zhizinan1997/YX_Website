@@ -96,6 +96,16 @@ KNOWLEDGE_TEXT_ENTRIES_FILENAME = "knowledge_text_entries.json"
 
 _rate_limit_storage = defaultdict(list)
 _rate_limit_lock = threading.Lock()
+_turnstile_clearance_storage = {}
+_turnstile_clearance_lock = threading.Lock()
+
+
+def _default_turnstile_settings(_config=None):
+    return {}
+
+
+def _default_verify_turnstile_token(*_args, **_kwargs):
+    return False, "人机验证未配置"
 
 CHATBOT_RATE_LIMIT_CONFIG = {
     "requests_per_minute": 3,
@@ -103,6 +113,8 @@ CHATBOT_RATE_LIMIT_CONFIG = {
     "window_seconds": 60,
     "day_window_seconds": 86400,
 }
+
+CHATBOT_TURNSTILE_CLEARANCE_SECONDS = 10 * 60
 
 _LOCAL_API_BASE_BLOCKED_HOSTS = {
     "localhost",
@@ -156,6 +168,8 @@ def configure_ai_chatbot(
     *,
     get_config,
     update_config,
+    get_turnstile_settings=None,
+    verify_turnstile_token=None,
     require_super_admin_api,
     get_client_ip,
     resolve_ip_location,
@@ -178,6 +192,10 @@ def configure_ai_chatbot(
         {
             "get_config": get_config,
             "update_config": update_config,
+            "get_turnstile_settings": get_turnstile_settings
+            or _default_turnstile_settings,
+            "verify_turnstile_token": verify_turnstile_token
+            or _default_verify_turnstile_token,
             "require_super_admin_api": require_super_admin_api,
             "get_client_ip": get_client_ip,
             "resolve_ip_location": resolve_ip_location,
@@ -540,24 +558,230 @@ def _check_rate_limit(identifier, requests_limit, window_seconds):
         return True, 0, len(recent_requests)
 
 
+def _get_rate_limit_snapshot(identifier, window_seconds):
+    current_time = time.time()
+    with _rate_limit_lock:
+        timestamps = _rate_limit_storage[identifier]
+        cutoff_time = current_time - window_seconds
+        recent_requests = [ts for ts in timestamps if ts > cutoff_time]
+        _rate_limit_storage[identifier] = recent_requests
+        if recent_requests:
+            retry_after = int(min(recent_requests) + window_seconds - current_time) + 1
+        else:
+            retry_after = 0
+        return len(recent_requests), max(0, retry_after)
+
+
+def _clean_turnstile_clearance_storage():
+    now_ts = time.time()
+    with _turnstile_clearance_lock:
+        expired = [
+            key
+            for key, expires_at in _turnstile_clearance_storage.items()
+            if float(expires_at or 0) <= now_ts
+        ]
+        for key in expired:
+            _turnstile_clearance_storage.pop(key, None)
+
+
+def _chatbot_turnstile_settings():
+    try:
+        return _dep("get_turnstile_settings")(_dep("get_config")() or {}) or {}
+    except Exception:
+        return {}
+
+
+def _chatbot_turnstile_enabled(settings):
+    return bool(
+        settings
+        and settings.get("enabled")
+        and settings.get("site_key")
+        and settings.get("secret_key")
+    )
+
+
+def _chatbot_risk_threshold(limit, mode):
+    try:
+        value = int(limit)
+    except Exception:
+        value = 1
+    value = max(1, value)
+    if value <= 1:
+        return 1
+    if mode == "minute":
+        return max(1, min(value - 1, (value * 2 + 2) // 3))
+    return max(1, min(value - 1, value // 2))
+
+
+def _chatbot_risk_triggered(minute_count, day_count, minute_limit, day_limit):
+    minute_threshold = _chatbot_risk_threshold(minute_limit, "minute")
+    day_threshold = _chatbot_risk_threshold(day_limit, "day")
+    return minute_count >= minute_threshold or day_count >= day_threshold
+
+
+def _chatbot_turnstile_clearance_key(client_ip, session_id):
+    safe_ip = str(client_ip or "unknown").strip() or "unknown"
+    safe_session = re.sub(r"[^A-Za-z0-9_.:-]", "", str(session_id or "").strip())[:80]
+    return f"{safe_ip}:{safe_session or 'anonymous'}"
+
+
+def _has_chatbot_turnstile_clearance(clearance_key):
+    now_ts = time.time()
+    with _turnstile_clearance_lock:
+        expires_at = float(_turnstile_clearance_storage.get(clearance_key) or 0)
+        if expires_at > now_ts:
+            return True
+        _turnstile_clearance_storage.pop(clearance_key, None)
+    return False
+
+
+def _grant_chatbot_turnstile_clearance(clearance_key):
+    with _turnstile_clearance_lock:
+        _turnstile_clearance_storage[clearance_key] = (
+            time.time() + CHATBOT_TURNSTILE_CLEARANCE_SECONDS
+        )
+
+
+def _extract_chatbot_turnstile_token(payload):
+    if not isinstance(payload, dict):
+        return ""
+    for key in ("turnstileToken", "cf_turnstile_response", "cf-turnstile-response"):
+        value = str(payload.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _chatbot_turnstile_challenge_response(settings, message):
+    return jsonify(
+        {
+            "success": False,
+            "requires_turnstile": True,
+            "message": message or "当前请求需要先完成人机验证。",
+            "turnstile": {
+                "enabled": True,
+                "site_key": settings.get("site_key", ""),
+            },
+        }
+    ), 403
+
+
+def _require_chatbot_turnstile_if_needed(
+    *,
+    client_ip,
+    session_id,
+    payload,
+    minute_count,
+    day_count,
+    minute_limit,
+    day_limit,
+):
+    settings = _chatbot_turnstile_settings()
+    if not _chatbot_turnstile_enabled(settings):
+        return None
+    if not _chatbot_risk_triggered(minute_count, day_count, minute_limit, day_limit):
+        return None
+
+    clearance_key = _chatbot_turnstile_clearance_key(client_ip, session_id)
+    if _has_chatbot_turnstile_clearance(clearance_key):
+        return None
+
+    token = _extract_chatbot_turnstile_token(payload)
+    if not token:
+        return _chatbot_turnstile_challenge_response(
+            settings,
+            "智能客服请求较频繁，请先完成人机验证。",
+        )
+
+    try:
+        ok, detail = _dep("verify_turnstile_token")(
+            secret_key=settings.get("secret_key", ""),
+            token=token,
+            remote_ip=client_ip,
+        )
+    except Exception as exc:
+        ok, detail = False, f"人机验证服务暂时不可用：{exc}"
+
+    if ok:
+        _grant_chatbot_turnstile_clearance(clearance_key)
+        return None
+
+    return _chatbot_turnstile_challenge_response(
+        settings,
+        detail or "人机验证未通过，请重新验证。",
+    )
+
+
 def rate_limit_chatbot(max_per_minute=10, max_per_day=100):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             _clean_rate_limit_storage()
+            _clean_turnstile_clearance_storage()
             client_ip = "unknown"
             try:
                 client_ip = str(_dep("get_client_ip")() or "").strip() or "unknown"
             except Exception:
                 pass
             ip_key = f"ip:{client_ip}"
+            minute_limit = CHATBOT_RATE_LIMIT_CONFIG.get(
+                "requests_per_minute", max_per_minute
+            )
+            minute_window = CHATBOT_RATE_LIMIT_CONFIG.get("window_seconds", 60)
+            day_limit = CHATBOT_RATE_LIMIT_CONFIG.get("requests_per_day", max_per_day)
+            day_window = CHATBOT_RATE_LIMIT_CONFIG.get("day_window_seconds", 86400)
+            payload = request.get_json(silent=True) or {}
+            session_id = ""
+            if isinstance(payload, dict):
+                session_id = str(payload.get("session_id") or "").strip()
+
+            minute_identifier = f"{ip_key}:minute"
+            day_identifier = f"{ip_key}:day"
+            minute_count, retry_after_ip_minute = _get_rate_limit_snapshot(
+                minute_identifier,
+                minute_window,
+            )
+            if minute_count >= int(minute_limit):
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": f"请求过于频繁，请 {retry_after_ip_minute} 秒后再试",
+                        "retry_after": retry_after_ip_minute,
+                        "rate_limit": "ip_per_minute",
+                    }
+                ), 429
+
+            day_count, retry_after_ip_day = _get_rate_limit_snapshot(
+                day_identifier,
+                day_window,
+            )
+            if day_count >= int(day_limit):
+                return jsonify(
+                    {
+                        "success": False,
+                        "message": "智能客服请求已达到今日上限，请稍后再试",
+                        "retry_after": retry_after_ip_day,
+                        "rate_limit": "ip_per_day",
+                    }
+                ), 429
+
+            turnstile_response = _require_chatbot_turnstile_if_needed(
+                client_ip=client_ip,
+                session_id=session_id,
+                payload=payload,
+                minute_count=minute_count,
+                day_count=day_count,
+                minute_limit=minute_limit,
+                day_limit=day_limit,
+            )
+            if turnstile_response is not None:
+                return turnstile_response
+
             is_allowed_ip_minute, retry_after_ip_minute, count_ip_minute = (
                 _check_rate_limit(
-                    f"{ip_key}:minute",
-                    CHATBOT_RATE_LIMIT_CONFIG.get(
-                        "requests_per_minute", max_per_minute
-                    ),
-                    CHATBOT_RATE_LIMIT_CONFIG.get("window_seconds", 60),
+                    minute_identifier,
+                    minute_limit,
+                    minute_window,
                 )
             )
             if not is_allowed_ip_minute:
@@ -570,9 +794,9 @@ def rate_limit_chatbot(max_per_minute=10, max_per_day=100):
                     }
                 ), 429
             is_allowed_ip_day, retry_after_ip_day, count_ip_day = _check_rate_limit(
-                f"{ip_key}:day",
-                CHATBOT_RATE_LIMIT_CONFIG.get("requests_per_day", max_per_day),
-                CHATBOT_RATE_LIMIT_CONFIG.get("day_window_seconds", 86400),
+                day_identifier,
+                day_limit,
+                day_window,
             )
             if not is_allowed_ip_day:
                 return jsonify(
@@ -1916,6 +2140,8 @@ def register_ai_chatbot_routes(
     login_required,
     get_config,
     update_config,
+    get_turnstile_settings=None,
+    verify_turnstile_token=None,
     require_super_admin_api,
     get_client_ip,
     resolve_ip_location,
@@ -1936,6 +2162,8 @@ def register_ai_chatbot_routes(
     configure_ai_chatbot(
         get_config=get_config,
         update_config=update_config,
+        get_turnstile_settings=get_turnstile_settings,
+        verify_turnstile_token=verify_turnstile_token,
         require_super_admin_api=require_super_admin_api,
         get_client_ip=get_client_ip,
         resolve_ip_location=resolve_ip_location,

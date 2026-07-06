@@ -19,6 +19,7 @@
     const TYPEWRITER_DELAY_MS = 18;
     const CHATBOT_REQUEST_TIMEOUT_MS = 90000;
     const RECOMMENDATIONS_REVEAL_DELAY_MS = 520;
+    const PUBLIC_TURNSTILE_SCRIPT_SRC = '/assets/js/public-turnstile.js';
 
     // 会话ID（每次页面加载时生成新的）
     let sessionId = generateSessionId();
@@ -27,7 +28,7 @@
     let conversationHistory = [];
 
     // DOM Elements
-    let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton, suggestionTrack, resizeHandle;
+    let chatbotTrigger, chatbotWindow, messagesContainer, inputField, sendButton, suggestionTrack, resizeHandle, turnstileMount;
     let hideWindowTimer = null;
     let lastTouchToggleAt = 0;
     let ignoreOutsideClickUntil = 0;
@@ -35,6 +36,11 @@
     let resizeStartX = 0;
     let resizeStartWidth = 0;
     let chatbotCustomWidth = null;
+    let publicTurnstileScriptPromise = null;
+    let chatbotTurnstileGuard = null;
+    let pendingTurnstileToken = '';
+    let pendingTurnstileRetry = null;
+    let retryingAfterTurnstile = false;
 
     // 输入区预设问题（滚动展示，可一键发送）
     const PRESET_QUESTIONS = [
@@ -155,6 +161,7 @@
                     <div class="chatbot-suggestion-ticker" aria-label="可点击发送的预设问题">
                         <div class="chatbot-suggestion-track" id="chatbotSuggestionTrack"></div>
                     </div>
+                    <div class="chatbot-turnstile" id="chatbotTurnstile" hidden></div>
                     <div class="chatbot-input-row">
                         <textarea class="chatbot-input" id="chatbotInput" placeholder="输入您的问题..." rows="1"></textarea>
                         <button class="chatbot-send" id="chatbotSend" aria-label="发送">
@@ -178,6 +185,7 @@
         sendButton = document.getElementById('chatbotSend');
         suggestionTrack = document.getElementById('chatbotSuggestionTrack');
         resizeHandle = document.getElementById('chatbotResizeHandle');
+        turnstileMount = document.getElementById('chatbotTurnstile');
     }
 
     function renderPresetQuestions() {
@@ -496,6 +504,8 @@
         // Disable input while processing
         setInputEnabled(false);
 
+        const turnstileTokenForRequest = pendingTurnstileToken;
+        pendingTurnstileToken = '';
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), CHATBOT_REQUEST_TIMEOUT_MS);
 
@@ -510,15 +520,24 @@
                     session_id: sessionId,
                     page_url: window.location.pathname + window.location.search,
                     page_title: document.title || '',
+                    turnstileToken: turnstileTokenForRequest,
                     history: conversationHistory.slice(-10) // Send last 10 messages for context
                 }),
                 signal: controller.signal
             });
 
+            if (!response.ok && await handleChatbotTurnstileResponse(response.clone(), message, typingEl)) {
+                return;
+            }
+
             if (!response.ok) {
                 removeTypingIndicator(typingEl);
                 appendError(await getResponseErrorMessage(response));
                 return;
+            }
+
+            if (turnstileTokenForRequest) {
+                hideChatbotTurnstile();
             }
 
             // Check if it's a streaming response
@@ -559,6 +578,118 @@
             setInputEnabled(true);
             inputField.focus();
         }
+    }
+
+    function retractPendingUserMessage(message) {
+        const lastHistory = conversationHistory[conversationHistory.length - 1];
+        if (lastHistory && lastHistory.role === 'user' && lastHistory.content === message) {
+            conversationHistory.pop();
+        }
+        const userMessages = messagesContainer.querySelectorAll('.chat-message.user');
+        const lastUserMessage = userMessages[userMessages.length - 1];
+        if (lastUserMessage) {
+            lastUserMessage.remove();
+        }
+    }
+
+    function ensurePublicTurnstileScript() {
+        if (window.createPublicTurnstileGuard) return Promise.resolve();
+        if (publicTurnstileScriptPromise) return publicTurnstileScriptPromise;
+
+        publicTurnstileScriptPromise = new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[data-chatbot-turnstile-loader="1"],script[src*="public-turnstile.js"]');
+            if (existing) {
+                if (window.createPublicTurnstileGuard) {
+                    resolve();
+                    return;
+                }
+                existing.addEventListener('load', () => resolve(), { once: true });
+                existing.addEventListener('error', () => reject(new Error('Turnstile helper load failed')), { once: true });
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = PUBLIC_TURNSTILE_SCRIPT_SRC;
+            script.async = true;
+            script.defer = true;
+            script.dataset.chatbotTurnstileLoader = '1';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Turnstile helper load failed'));
+            document.head.appendChild(script);
+        }).catch((error) => {
+            publicTurnstileScriptPromise = null;
+            throw error;
+        });
+
+        return publicTurnstileScriptPromise;
+    }
+
+    async function ensureChatbotTurnstileGuard() {
+        if (chatbotTurnstileGuard) return chatbotTurnstileGuard;
+        if (!turnstileMount) throw new Error('Turnstile mount missing');
+
+        await ensurePublicTurnstileScript();
+        if (!window.createPublicTurnstileGuard) {
+            throw new Error('Turnstile helper unavailable');
+        }
+
+        chatbotTurnstileGuard = window.createPublicTurnstileGuard({
+            mount: turnstileMount,
+            onVerified: (token) => {
+                pendingTurnstileToken = String(token || '');
+                retryPendingTurnstileMessage();
+            },
+            onError: (message) => {
+                if (message) appendError(message);
+            }
+        });
+        return chatbotTurnstileGuard;
+    }
+
+    function hideChatbotTurnstile() {
+        if (turnstileMount) {
+            turnstileMount.hidden = true;
+        }
+        if (chatbotTurnstileGuard) {
+            chatbotTurnstileGuard.reset();
+        }
+    }
+
+    async function retryPendingTurnstileMessage() {
+        if (retryingAfterTurnstile || !pendingTurnstileRetry || !pendingTurnstileToken) return;
+        const retryMessage = pendingTurnstileRetry.message || '';
+        pendingTurnstileRetry = null;
+        retryingAfterTurnstile = true;
+        try {
+            inputField.value = retryMessage;
+            await sendMessage();
+        } finally {
+            retryingAfterTurnstile = false;
+        }
+    }
+
+    async function handleChatbotTurnstileResponse(response, message, typingEl) {
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (error) {
+            data = null;
+        }
+        if (!data || !data.requires_turnstile) return false;
+
+        removeTypingIndicator(typingEl);
+        retractPendingUserMessage(message);
+        pendingTurnstileRetry = { message };
+        appendMessage('bot', data.message || '为了保护智能客服，请先完成人机验证。验证通过后，我会继续处理刚才的问题。');
+
+        try {
+            if (turnstileMount) turnstileMount.hidden = false;
+            const guard = await ensureChatbotTurnstileGuard();
+            await guard.ensureReady();
+        } catch (error) {
+            appendError('人机验证暂时无法加载，请稍后重试。');
+        }
+        return true;
     }
 
     async function getResponseErrorMessage(response) {
