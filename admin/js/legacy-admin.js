@@ -11309,6 +11309,21 @@
                             ${item.type === 'video' ? '视频' : '图片'} · ${item.source === 'upload' ? '本地上传' : 'CDN链接'}
                         </div>
                         <div class="hero-url">${escapeHtml(item.url)}</div>
+                        <div class="hero-link-row" style="margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; cursor: pointer; white-space: nowrap;">
+                                <span>点击跳转</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" class="hero-link-toggle" ${item.link_enabled ? 'checked' : ''}
+                                        onchange="toggleHeroLinkInput(this)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </label>
+                            <input type="text" class="form-control hero-link-url"
+                                value="${escapeHtml(item.link_url || '')}"
+                                placeholder="https://..."
+                                style="flex: 1; min-width: 200px; font-size: 13px; padding: 6px 10px;
+                                    ${item.link_enabled ? '' : 'display: none;'}">
+                        </div>
                     </div>
                     <button class="btn-sm btn-danger" onclick="deleteHeroItem('${item.id}')">
                         <i class="fas fa-trash"></i> 删除
@@ -11335,11 +11350,49 @@
             heroConfig.items = ids.map(id => heroConfig.items.find(item => item.id === id)).filter(Boolean);
         }
 
+        function toggleHeroLinkInput(checkbox) {
+            const input = checkbox.closest('.hero-link-row').querySelector('.hero-link-url');
+            if (input) {
+                input.style.display = checkbox.checked ? '' : 'none';
+                if (!checkbox.checked) input.value = '';
+            }
+        }
+
+        function syncHeroLinkData() {
+            const listEl = document.getElementById('heroList');
+            if (!listEl) return;
+            const rows = listEl.querySelectorAll('.hero-item');
+            rows.forEach(row => {
+                const id = row.dataset.id;
+                const item = heroConfig.items.find(i => i.id === id);
+                if (!item) return;
+                const toggle = row.querySelector('.hero-link-toggle');
+                const urlInput = row.querySelector('.hero-link-url');
+                item.link_enabled = toggle ? toggle.checked : false;
+                item.link_url = (item.link_enabled && urlInput) ? (urlInput.value || '').trim() : '';
+            });
+        }
+
         async function saveHeroConfig(silent = false) {
             const msg = document.getElementById('heroSaveMsg');
             if (msg) msg.textContent = '';
 
             syncHeroOrder();
+            syncHeroLinkData();
+
+            const invalidLinks = heroConfig.items.filter(
+                i => i.link_enabled && i.link_url && !i.link_url.startsWith('https://') && !i.link_url.startsWith('http://')
+            );
+            if (invalidLinks.length > 0) {
+                const msg = document.getElementById('heroSaveMsg');
+                if (msg) {
+                    msg.style.color = '#dc3545';
+                    msg.textContent = '跳转链接必须以 https:// 或 http:// 开头';
+                    setTimeout(() => { msg.textContent = ''; }, 5000);
+                }
+                return;
+            }
+
             const interval = parseInt(document.getElementById('heroInterval').value, 10);
             heroConfig.interval_seconds = isNaN(interval) ? 5 : interval;
 
@@ -11419,7 +11472,9 @@
                 id: `url_${Date.now()}_${Math.random().toString(16).slice(2)}`,
                 type,
                 url,
-                source: 'url'
+                source: 'url',
+                link_enabled: false,
+                link_url: ''
             };
         }
 

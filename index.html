@@ -222,6 +222,10 @@
         opacity: 1;
       }
 
+      .hero-slide.has-link {
+        cursor: pointer;
+      }
+
       .hero-slide picture,
       .hero-slide img,
       .hero-slide video {
@@ -405,6 +409,12 @@
             slide.dataset.type = item.type;
             slide.dataset.url = item.url;
             slide.__item = item;
+            if (item.link_enabled && item.link_url) {
+              slide.classList.add('has-link');
+              slide.addEventListener('click', function () {
+                window.open(item.link_url, '_blank', 'noopener,noreferrer');
+              });
+            }
             if (index === 0) {
               ensureSlideMedia(slide, true);
             }

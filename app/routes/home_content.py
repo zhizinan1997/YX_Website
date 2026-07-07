@@ -67,11 +67,15 @@ def get_hero_config(hero_config_file, sanitize_public_media_url):
                 url = sanitize_public_media_url(item.get('url', ''), enforce_remote_public=False)
                 if not url:
                     continue
+                link_enabled = bool(item.get('link_enabled', False))
+                link_url = str(item.get('link_url') or '').strip()
                 merged['items'].append({
                     'id': str(item.get('id') or uuid.uuid4().hex),
                     'type': item_type,
                     'url': url,
                     'source': 'upload' if str(item.get('source') or '').lower() == 'upload' else 'url',
+                    'link_enabled': link_enabled,
+                    'link_url': link_url if link_enabled else '',
                 })
             return merged
         except Exception:
@@ -104,11 +108,22 @@ def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url)
             url = sanitize_public_media_url(item.get('url', ''), enforce_remote_public=True)
             if not url:
                 continue
+            link_enabled = bool(item.get('link_enabled', False))
+            link_url = str(item.get('link_url') or '').strip()
+            if link_enabled and link_url:
+                if not link_url.startswith('https://') and not link_url.startswith('http://'):
+                    link_url = ''
+                    link_enabled = False
+            else:
+                link_url = ''
+                link_enabled = False
             normalized_items.append({
                 'id': item_id,
                 'type': item_type,
                 'url': url,
                 'source': str(item.get('source') or 'url').lower(),
+                'link_enabled': link_enabled,
+                'link_url': link_url,
             })
 
     saved = {
