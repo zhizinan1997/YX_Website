@@ -11,7 +11,7 @@
   <title>湖南元芯传感科技 - 先进生物与化学传感技术解决方案</title>
 
   <!-- YX Style V2.0 -->
-  <link rel="stylesheet" href="assets/css/yx-style.css?v=20260325a" />
+  <link rel="stylesheet" href="assets/css/yx-style.css?v=20260708a" />
 
   <!-- Font Awesome (for icons) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -216,14 +216,25 @@
         transition: opacity 1s ease;
         background-position: center;
         background-size: cover;
+        pointer-events: none;
       }
 
       .hero-slide.is-active {
         opacity: 1;
       }
 
-      .hero-slide.has-link {
+      .hero-slide.is-active.has-link {
         cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .vs-hero__overlay,
+      .vs-hero__top-title {
+        pointer-events: none;
+      }
+
+      .vs-hero.is-link-slide-active .vs-hero__overlay {
+        background: transparent;
       }
 
       .hero-slide picture,
@@ -433,6 +444,7 @@
 
           slides.forEach(slide => slide.classList.remove('is-active'));
           active.classList.add('is-active');
+          updateHeroLinkVisualState(active);
 
           const type = active.dataset.type;
           clearTimer();
@@ -512,6 +524,11 @@
               dot.classList.remove('is-active');
             }
           });
+        }
+
+        function updateHeroLinkVisualState(activeSlide) {
+          if (!heroSection) return;
+          heroSection.classList.toggle('is-link-slide-active', !!activeSlide && activeSlide.classList.contains('has-link'));
         }
 
         function applyHeroCtaVisibility(visible) {

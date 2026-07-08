@@ -11269,6 +11269,7 @@
 
         // --- Hero Carousel Logic ---
         let heroConfig = { interval_seconds: 5, cta_buttons_visible: true, items: [] };
+        let heroLinkAutoSaveTimer = null;
 
         async function loadHeroConfig() {
             const listEl = document.getElementById('heroList');
@@ -11316,13 +11317,16 @@
                                 <span>点击跳转</span>
                                 <label class="toggle-switch">
                                     <input type="checkbox" class="hero-link-toggle" ${item.link_enabled ? 'checked' : ''}
-                                        onchange="toggleHeroLinkInput(this)">
+                                        onchange="handleHeroLinkToggleChange(this)">
                                     <span class="toggle-slider"></span>
                                 </label>
                             </label>
                             <input type="text" class="form-control hero-link-url"
                                 value="${escapeHtml(item.link_url || '')}"
                                 placeholder="https://..."
+                                oninput="scheduleHeroLinkAutoSave(this)"
+                                onchange="scheduleHeroLinkAutoSave(this, true)"
+                                onblur="scheduleHeroLinkAutoSave(this, true)"
                                 style="flex: 1; min-width: 200px; font-size: 13px; padding: 6px 10px;
                                     ${item.link_enabled ? '' : 'display: none;'}">
                         </div>
@@ -11352,11 +11356,64 @@
             heroConfig.items = ids.map(id => heroConfig.items.find(item => item.id === id)).filter(Boolean);
         }
 
-        function toggleHeroLinkInput(checkbox) {
+        function isValidHeroLinkUrl(value) {
+            const text = String(value || '').trim();
+            return text.startsWith('https://') || text.startsWith('http://');
+        }
+
+        function syncHeroLinkRow(row) {
+            if (!row) return null;
+            const id = row.dataset.id;
+            const item = heroConfig.items.find(i => i.id === id);
+            if (!item) return null;
+            const toggle = row.querySelector('.hero-link-toggle');
+            const urlInput = row.querySelector('.hero-link-url');
+            item.link_enabled = toggle ? toggle.checked : false;
+            item.link_url = (item.link_enabled && urlInput) ? (urlInput.value || '').trim() : '';
+            return item;
+        }
+
+        function showHeroAutoSaveMessage(text, ok = true) {
+            const msg = document.getElementById('heroSaveMsg');
+            if (!msg) return;
+            msg.style.color = ok ? '#28a745' : '#dc3545';
+            msg.textContent = text;
+            clearTimeout(showHeroAutoSaveMessage._timer);
+            showHeroAutoSaveMessage._timer = setTimeout(() => { msg.textContent = ''; }, ok ? 1800 : 5000);
+        }
+
+        async function autoSaveHeroLinkSettings() {
+            const ok = await saveHeroConfig(true);
+            if (ok) showHeroAutoSaveMessage('✓ 跳转设置已自动保存');
+        }
+
+        function scheduleHeroLinkAutoSave(input, immediate = false) {
+            const row = input ? input.closest('.hero-item') : null;
+            const item = syncHeroLinkRow(row);
+            if (!item || !item.link_enabled) return;
+            if (!item.link_url) return;
+            if (!isValidHeroLinkUrl(item.link_url)) {
+                if (immediate) showHeroAutoSaveMessage('跳转链接必须以 https:// 或 http:// 开头', false);
+                return;
+            }
+            clearTimeout(heroLinkAutoSaveTimer);
+            heroLinkAutoSaveTimer = setTimeout(autoSaveHeroLinkSettings, immediate ? 0 : 800);
+        }
+
+        function handleHeroLinkToggleChange(checkbox) {
             const input = checkbox.closest('.hero-link-row').querySelector('.hero-link-url');
             if (input) {
                 input.style.display = checkbox.checked ? '' : 'none';
                 if (!checkbox.checked) input.value = '';
+            }
+            const row = checkbox.closest('.hero-item');
+            const item = syncHeroLinkRow(row);
+            if (!item) return;
+            clearTimeout(heroLinkAutoSaveTimer);
+            if (!checkbox.checked) {
+                autoSaveHeroLinkSettings();
+            } else if (item.link_url && isValidHeroLinkUrl(item.link_url)) {
+                autoSaveHeroLinkSettings();
             }
         }
 
@@ -11392,7 +11449,7 @@
                     msg.textContent = '跳转链接必须以 https:// 或 http:// 开头';
                     setTimeout(() => { msg.textContent = ''; }, 5000);
                 }
-                return;
+                return false;
             }
 
             const interval = parseInt(document.getElementById('heroInterval').value, 10);
@@ -11415,6 +11472,7 @@
                         setTimeout(() => { msg.textContent = ''; }, 3000);
                     }
                     renderHeroList();
+                    return true;
                 } else if (!silent && msg) {
                     msg.style.color = '#dc3545';
                     msg.textContent = data.message || '保存失败';
@@ -11425,6 +11483,7 @@
                     msg.textContent = '网络错误';
                 }
             }
+            return false;
         }
 
         function addHeroUrlItem() {

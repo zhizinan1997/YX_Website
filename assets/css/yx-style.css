@@ -315,6 +315,11 @@ li {
             rgba(0, 30, 50, 0.2) 40%,
             rgba(0, 30, 50, 0.2) 100%);
     z-index: 1;
+    pointer-events: none;
+}
+
+.vs-hero.is-link-slide-active .vs-hero__overlay {
+    background: transparent;
 }
 
 .vs-hero__content {
@@ -413,6 +418,7 @@ li {
     font-family: var(--font-stack);
     letter-spacing: 1px;
     text-transform: capitalize;
+    pointer-events: none;
 }
 
 .vs-hero__content-new {
@@ -439,6 +445,10 @@ li {
     gap: 80px;
     padding: 0 5%;
     z-index: 10;
+}
+
+.vs-hero__bottom-controls[hidden] {
+    display: none !important;
 }
 
 .vs-hero__btn-block {
