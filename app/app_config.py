@@ -549,6 +549,8 @@ def get_config():
         'turnstile_enabled': env_bool('TURNSTILE_ENABLED', False),
         'turnstile_site_key': (os.environ.get('TURNSTILE_SITE_KEY') or '').strip(),
         'turnstile_secret_key': (os.environ.get('TURNSTILE_SECRET_KEY') or '').strip(),
+        'turnstile_proxy_fallback_enabled': env_bool('TURNSTILE_PROXY_FALLBACK_ENABLED', False),
+        'turnstile_proxy_url': (os.environ.get('TURNSTILE_PROXY_URL') or '').strip(),
         'admin_login_geo_enabled': env_bool('ADMIN_LOGIN_GEO_ENABLED', True),
         'admin_login_geo_continents': {
             'asia': 'allow',

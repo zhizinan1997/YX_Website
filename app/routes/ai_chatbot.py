@@ -698,6 +698,8 @@ def _require_chatbot_turnstile_if_needed(
             secret_key=settings.get("secret_key", ""),
             token=token,
             remote_ip=client_ip,
+            proxy_url=settings.get("proxy_url", ""),
+            proxy_fallback_enabled=settings.get("proxy_fallback_enabled", False),
         )
     except Exception as exc:
         ok, detail = False, f"人机验证服务暂时不可用：{exc}"

@@ -77,6 +77,7 @@ import os
 import re
 import secrets
 import smtplib
+import socket
 import subprocess
 import threading
 import time
@@ -84,8 +85,9 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlparse
+from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener, urlopen
 import ssl
 
 from flask import jsonify, make_response, request, send_from_directory, session
@@ -125,6 +127,9 @@ ADMIN_USERS_LOCK = threading.RLock()
 EMAIL_AUTH_STATE_LOCK = threading.RLock()
 SMTP_REMINDER_THREAD_LOCK = threading.Lock()
 TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+TURNSTILE_DIRECT_TIMEOUT_SECONDS = 6
+TURNSTILE_PROXY_TIMEOUT_SECONDS = 15
+TURNSTILE_CONNECTIVITY_TEST_TOKEN = 'yx-connectivity-test'
 ADMIN_SESSION_MAX_AGE_SECONDS = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
 ADMIN_SESSION_SCHEMA_VERSION = 4
 LOGIN_DELAY_SECONDS = [60, 180]
@@ -1367,19 +1372,34 @@ def _is_ip_country_allowed(ip: str, geo_settings: dict, resolve_country_code_fun
 
 
 def _get_turnstile_settings(config):
-    enabled = _parse_bool(config.get('turnstile_enabled', False), False)
-    site_key = str(config.get('turnstile_site_key', '') or '').strip()
-    secret_key = str(config.get('turnstile_secret_key', '') or '').strip()
+    safe = config if isinstance(config, dict) else {}
+    enabled = _parse_bool(safe.get('turnstile_enabled', False), False)
+    site_key = str(safe.get('turnstile_site_key', '') or '').strip()
+    secret_key = str(safe.get('turnstile_secret_key', '') or '').strip()
+    proxy_url = str(safe.get('turnstile_proxy_url', '') or '').strip()
+    proxy_fallback_enabled = _parse_bool(safe.get('turnstile_proxy_fallback_enabled', False), False)
     if enabled and (not site_key or not secret_key):
         enabled = False
     return {
         'enabled': enabled,
         'site_key': site_key,
         'secret_key': secret_key,
+        'proxy_url': proxy_url,
+        'proxy_fallback_enabled': proxy_fallback_enabled,
     }
 
 
-def _verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
+def _normalize_turnstile_proxy_url(raw_value: str) -> str:
+    proxy_url = str(raw_value or '').strip()
+    if not proxy_url:
+        return ''
+    parsed = urlparse(proxy_url)
+    if parsed.scheme not in {'http', 'https'} or not parsed.netloc:
+        return ''
+    return proxy_url
+
+
+def _build_turnstile_verify_request(secret_key: str, token: str, remote_ip: str = ''):
     payload = {
         'secret': secret_key,
         'response': token,
@@ -1387,37 +1407,130 @@ def _verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
     if remote_ip:
         payload['remoteip'] = remote_ip
 
-    req = Request(
+    return Request(
         TURNSTILE_VERIFY_URL,
         data=urlencode(payload).encode('utf-8'),
         headers={'Content-Type': 'application/x-www-form-urlencoded'},
         method='POST',
     )
+
+
+def _get_turnstile_ssl_context():
     ssl_context = None
     if CERTIFI_AVAILABLE and certifi is not None:
         try:
             ssl_context = ssl.create_default_context(cafile=certifi.where())
         except Exception:
             ssl_context = None
+    return ssl_context
 
+
+def _open_turnstile_request(req, *, timeout: int, ssl_context=None, proxy_url: str = ''):
+    normalized_proxy = _normalize_turnstile_proxy_url(proxy_url)
+    if not normalized_proxy:
+        return urlopen(req, timeout=timeout, context=ssl_context)
+
+    handlers = [ProxyHandler({'http': normalized_proxy, 'https': normalized_proxy})]
+    if ssl_context is not None:
+        handlers.append(HTTPSHandler(context=ssl_context))
+    opener = build_opener(*handlers)
+    return opener.open(req, timeout=timeout)
+
+
+def _load_turnstile_response_json(resp):
+    body = resp.read().decode('utf-8', errors='ignore')
+    return json.loads(body) if body else {}
+
+
+def _request_turnstile_siteverify(
+    secret_key: str,
+    token: str,
+    *,
+    remote_ip: str = '',
+    timeout: int = TURNSTILE_DIRECT_TIMEOUT_SECONDS,
+    proxy_url: str = '',
+):
+    req = _build_turnstile_verify_request(secret_key=secret_key, token=token, remote_ip=remote_ip)
     try:
-        with urlopen(req, timeout=30, context=ssl_context) as resp:
-            body = resp.read().decode('utf-8', errors='ignore')
-        result = json.loads(body) if body else {}
-    except Exception as exc:
-        return False, f'验证码服务请求失败: {exc}'
+        with _open_turnstile_request(
+            req,
+            timeout=timeout,
+            ssl_context=_get_turnstile_ssl_context(),
+            proxy_url=proxy_url,
+        ) as resp:
+            result = _load_turnstile_response_json(resp)
+            return result if isinstance(result, dict) else {}
+    except HTTPError as exc:
+        result = _load_turnstile_response_json(exc)
+        if isinstance(result, dict):
+            result['_http_status'] = exc.code
+            return result
+        raise
 
-    if bool(result.get('success')):
+
+def _is_turnstile_network_error(exc: Exception) -> bool:
+    if isinstance(exc, HTTPError):
+        return False
+    return isinstance(exc, (
+        TimeoutError,
+        socket.timeout,
+        ConnectionError,
+        ConnectionResetError,
+        OSError,
+        URLError,
+        ssl.SSLError,
+    ))
+
+
+def _format_turnstile_error_codes(codes) -> str:
+    if isinstance(codes, list):
+        return ','.join(str(x) for x in codes if x)
+    return str(codes or '').strip()
+
+
+def _parse_turnstile_verify_result(result):
+    if bool((result or {}).get('success')):
         return True, ''
 
-    codes = result.get('error-codes') or []
-    if isinstance(codes, list):
-        code_text = ','.join(str(x) for x in codes if x)
-    else:
-        code_text = str(codes or '').strip()
+    code_text = _format_turnstile_error_codes((result or {}).get('error-codes') or [])
     if code_text:
         return False, f'验证码校验未通过({code_text})'
     return False, '验证码校验未通过'
+
+
+def _verify_turnstile_token(
+    secret_key: str,
+    token: str,
+    remote_ip: str = '',
+    *,
+    proxy_url: str = '',
+    proxy_fallback_enabled: bool = False,
+):
+    normalized_proxy = _normalize_turnstile_proxy_url(proxy_url)
+
+    try:
+        result = _request_turnstile_siteverify(
+            secret_key=secret_key,
+            token=token,
+            remote_ip=remote_ip,
+            timeout=TURNSTILE_DIRECT_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:
+        if proxy_fallback_enabled and normalized_proxy and _is_turnstile_network_error(exc):
+            try:
+                result = _request_turnstile_siteverify(
+                    secret_key=secret_key,
+                    token=token,
+                    remote_ip=remote_ip,
+                    timeout=TURNSTILE_PROXY_TIMEOUT_SECONDS,
+                    proxy_url=normalized_proxy,
+                )
+            except Exception as proxy_exc:
+                return False, f'验证码服务直连失败，代理重试也失败: {proxy_exc}'
+        else:
+            return False, f'验证码服务请求失败: {exc}'
+
+    return _parse_turnstile_verify_result(result)
 
 
 def get_turnstile_settings(config):
@@ -1425,9 +1538,40 @@ def get_turnstile_settings(config):
     return _get_turnstile_settings(config)
 
 
-def verify_turnstile_token(secret_key: str, token: str, remote_ip: str = ''):
+def verify_turnstile_token(
+    secret_key: str,
+    token: str,
+    remote_ip: str = '',
+    *,
+    proxy_url: str = '',
+    proxy_fallback_enabled: bool = False,
+):
     """校验公共流程与后台流程共用的 Turnstile 令牌。"""
-    return _verify_turnstile_token(secret_key=secret_key, token=token, remote_ip=remote_ip)
+    return _verify_turnstile_token(
+        secret_key=secret_key,
+        token=token,
+        remote_ip=remote_ip,
+        proxy_url=proxy_url,
+        proxy_fallback_enabled=proxy_fallback_enabled,
+    )
+
+
+def _build_turnstile_connectivity_result(*, secret_key: str, proxy_url: str = ''):
+    normalized_proxy = _normalize_turnstile_proxy_url(proxy_url)
+    timeout = TURNSTILE_PROXY_TIMEOUT_SECONDS if normalized_proxy else TURNSTILE_DIRECT_TIMEOUT_SECONDS
+    result = _request_turnstile_siteverify(
+        secret_key=secret_key,
+        token=TURNSTILE_CONNECTIVITY_TEST_TOKEN,
+        timeout=timeout,
+        proxy_url=normalized_proxy,
+    )
+    codes = result.get('error-codes') or []
+    return {
+        'success': True,
+        'cloudflare_success': bool(result.get('success')),
+        'error_codes': _format_turnstile_error_codes(codes),
+        'http_status': result.get('_http_status') or 200,
+    }
 
 
 def _create_pending_login(root: Path, username: str, ip_addr: str):
@@ -2112,7 +2256,9 @@ def register_admin_routes(
         return jsonify({
             'enabled': settings['enabled'],
             'site_key': settings['site_key'],
-            'secret_key': secret_masked
+            'secret_key': secret_masked,
+            'proxy_url': settings.get('proxy_url', ''),
+            'proxy_fallback_enabled': bool(settings.get('proxy_fallback_enabled', False)),
         })
 
     @app.route('/api/admin/security/turnstile', methods=['POST'])
@@ -2127,6 +2273,8 @@ def register_admin_routes(
         enabled = _parse_bool(data.get('enabled', False), False)
         site_key = str(data.get('site_key', '') or '').strip()
         secret_key_input = str(data.get('secret_key', '') or '').strip()
+        proxy_url = str(data.get('proxy_url', '') or '').strip()
+        proxy_fallback_enabled = _parse_bool(data.get('proxy_fallback_enabled', False), False)
 
         config = get_config()
         existing_secret = str(config.get('turnstile_secret_key', '') or '').strip()
@@ -2138,13 +2286,64 @@ def register_admin_routes(
 
         if enabled and (not site_key or not secret_key):
             return jsonify({'success': False, 'message': '启用 Turnstile 时必须填写站点密钥和服务端密钥'}), 400
+        if proxy_url and not _normalize_turnstile_proxy_url(proxy_url):
+            return jsonify({'success': False, 'message': '代理地址必须以 http:// 或 https:// 开头，并包含有效主机。'}), 400
+        if proxy_fallback_enabled and not proxy_url:
+            return jsonify({'success': False, 'message': '启用代理重试兜底前，请先填写代理地址。'}), 400
 
         update_config({
             'turnstile_enabled': bool(enabled),
             'turnstile_site_key': site_key,
-            'turnstile_secret_key': secret_key
+            'turnstile_secret_key': secret_key,
+            'turnstile_proxy_url': proxy_url,
+            'turnstile_proxy_fallback_enabled': bool(proxy_fallback_enabled),
         })
         return jsonify({'success': True, 'message': '登录验证设置已保存'})
+
+    @app.route('/api/admin/security/turnstile/test-direct', methods=['POST'])
+    @login_required
+    def admin_turnstile_test_direct():
+        if not _is_super_admin_session(session):
+            return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+        settings = _get_turnstile_settings(get_config() or {})
+        secret_key = settings.get('secret_key', '')
+        if not secret_key:
+            return jsonify({'success': False, 'message': '请先填写并保存服务端密钥。'}), 400
+        try:
+            result = _build_turnstile_connectivity_result(secret_key=secret_key)
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'直连 Cloudflare Turnstile 失败：{exc}'}), 400
+        return jsonify({
+            **result,
+            'message': '直连 Cloudflare Turnstile 可达。',
+        })
+
+    @app.route('/api/admin/security/turnstile/test-proxy', methods=['POST'])
+    @login_required
+    def admin_turnstile_test_proxy():
+        if not _is_super_admin_session(session):
+            return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
+        data = request.get_json(silent=True) or {}
+        settings = _get_turnstile_settings(get_config() or {})
+        secret_key = settings.get('secret_key', '')
+        proxy_url = str(data.get('proxy_url') or settings.get('proxy_url', '') or '').strip()
+        normalized_proxy = _normalize_turnstile_proxy_url(proxy_url)
+        if not secret_key:
+            return jsonify({'success': False, 'message': '请先填写并保存服务端密钥。'}), 400
+        if not normalized_proxy:
+            return jsonify({'success': False, 'message': '请先填写有效的代理地址，例如 http://glash:7890。'}), 400
+        try:
+            result = _build_turnstile_connectivity_result(secret_key=secret_key, proxy_url=normalized_proxy)
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'代理访问 Cloudflare Turnstile 失败：{exc}'}), 400
+        return jsonify({
+            **result,
+            'message': '代理访问 Cloudflare Turnstile 可达。',
+        })
 
     @app.route('/api/admin/email-auth/public', methods=['GET'])
     def admin_email_auth_public():
@@ -2324,6 +2523,8 @@ def register_admin_routes(
                     secret_key=turnstile_settings['secret_key'],
                     token=turnstile_token,
                     remote_ip=ip_addr,
+                    proxy_url=turnstile_settings.get('proxy_url', ''),
+                    proxy_fallback_enabled=turnstile_settings.get('proxy_fallback_enabled', False),
                 )
                 if not turnstile_ok:
                     turnstile_fail_reason = detail or '人机验证失败，请重试。'
@@ -2499,6 +2700,8 @@ def register_admin_routes(
                     secret_key=turnstile_settings['secret_key'],
                     token=turnstile_token,
                     remote_ip=ip_addr,
+                    proxy_url=turnstile_settings.get('proxy_url', ''),
+                    proxy_fallback_enabled=turnstile_settings.get('proxy_fallback_enabled', False),
                 )
                 if not turnstile_ok:
                     turnstile_fail_reason = detail or '人机验证失败，请重试。'
@@ -2807,6 +3010,8 @@ def register_admin_routes(
                     secret_key=turnstile_settings['secret_key'],
                     token=turnstile_token,
                     remote_ip=ip_addr,
+                    proxy_url=turnstile_settings.get('proxy_url', ''),
+                    proxy_fallback_enabled=turnstile_settings.get('proxy_fallback_enabled', False),
                 )
                 if not turnstile_ok:
                     turnstile_fail_reason = detail or '人机验证失败，请重试。'

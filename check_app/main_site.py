@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import json
+import socket
+import ssl
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.error import URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlparse
+from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener, urlopen
 
 from .config import MAIN_DATA_DIR
 
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+TURNSTILE_DIRECT_TIMEOUT_SECONDS = 6
+TURNSTILE_PROXY_TIMEOUT_SECONDS = 15
 
 
 @dataclass(frozen=True)
@@ -30,6 +34,8 @@ class TurnstileSettings:
     enabled: bool
     site_key: str = ""
     secret_key: str = ""
+    proxy_url: str = ""
+    proxy_fallback_enabled: bool = False
 
 
 def _load_json(path: Path) -> dict:
@@ -93,19 +99,51 @@ def get_turnstile_settings(main_data_dir: Path | None = None) -> TurnstileSettin
     site_key = str(cfg.get("turnstile_site_key") or "").strip()
     secret_key = str(cfg.get("turnstile_secret_key") or "").strip()
     enabled = bool_from_config(cfg.get("turnstile_enabled"), False)
+    proxy_url = str(cfg.get("turnstile_proxy_url") or "").strip()
+    proxy_fallback_enabled = bool_from_config(cfg.get("turnstile_proxy_fallback_enabled"), False)
     if enabled and (not site_key or not secret_key):
         enabled = False
-    return TurnstileSettings(enabled=enabled, site_key=site_key, secret_key=secret_key)
+    return TurnstileSettings(
+        enabled=enabled,
+        site_key=site_key,
+        secret_key=secret_key,
+        proxy_url=proxy_url,
+        proxy_fallback_enabled=proxy_fallback_enabled,
+    )
 
 
-def verify_turnstile_token(secret_key: str, token: str, remote_ip: str = "") -> tuple[bool, str]:
-    secret_key = str(secret_key or "").strip()
-    token = str(token or "").strip()
-    if not secret_key:
-        return False, "人机验证密钥缺失"
-    if not token:
-        return False, "请先完成人机验证"
+def _normalize_turnstile_proxy_url(raw_value: str) -> str:
+    proxy_url = str(raw_value or "").strip()
+    if not proxy_url:
+        return ""
+    parsed = urlparse(proxy_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return proxy_url
 
+
+def _turnstile_network_error(exc: Exception) -> bool:
+    if isinstance(exc, HTTPError):
+        return False
+    return isinstance(exc, (
+        TimeoutError,
+        socket.timeout,
+        ConnectionError,
+        ConnectionResetError,
+        OSError,
+        URLError,
+        ssl.SSLError,
+    ))
+
+
+def _request_turnstile_siteverify(
+    secret_key: str,
+    token: str,
+    *,
+    remote_ip: str = "",
+    timeout: int = TURNSTILE_DIRECT_TIMEOUT_SECONDS,
+    proxy_url: str = "",
+) -> dict:
     payload = {"secret": secret_key, "response": token}
     if remote_ip:
         payload["remoteip"] = remote_ip
@@ -115,17 +153,30 @@ def verify_turnstile_token(secret_key: str, token: str, remote_ip: str = "") -> 
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         method="POST",
     )
+    normalized_proxy = _normalize_turnstile_proxy_url(proxy_url)
     try:
-        with urlopen(req, timeout=30) as resp:
+        if normalized_proxy:
+            opener = build_opener(ProxyHandler({"http": normalized_proxy, "https": normalized_proxy}), HTTPSHandler())
+            resp_ctx = opener.open(req, timeout=timeout)
+        else:
+            resp_ctx = urlopen(req, timeout=timeout)
+        with resp_ctx as resp:
             body = resp.read().decode("utf-8", errors="ignore")
         result = json.loads(body) if body else {}
-    except (OSError, URLError, ValueError, json.JSONDecodeError):
-        return False, "人机验证服务请求失败，请稍后重试"
+        return result if isinstance(result, dict) else {}
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="ignore")
+        result = json.loads(body) if body else {}
+        if isinstance(result, dict):
+            result["_http_status"] = exc.code
+            return result
+        raise
 
-    if bool(result.get("success")):
+
+def _parse_turnstile_verify_result(result: dict) -> tuple[bool, str]:
+    if bool((result or {}).get("success")):
         return True, ""
-
-    codes = result.get("error-codes") or []
+    codes = (result or {}).get("error-codes") or []
     if isinstance(codes, list):
         code_text = ",".join(str(item) for item in codes if item)
     else:
@@ -133,6 +184,50 @@ def verify_turnstile_token(secret_key: str, token: str, remote_ip: str = "") -> 
     if code_text:
         return False, "人机验证校验未通过，请重新验证"
     return False, "人机验证校验未通过"
+
+
+def verify_turnstile_token(
+    secret_key: str,
+    token: str,
+    remote_ip: str = "",
+    *,
+    proxy_url: str = "",
+    proxy_fallback_enabled: bool = False,
+) -> tuple[bool, str]:
+    secret_key = str(secret_key or "").strip()
+    token = str(token or "").strip()
+    if not secret_key:
+        return False, "人机验证密钥缺失"
+    if not token:
+        return False, "请先完成人机验证"
+
+    normalized_proxy = _normalize_turnstile_proxy_url(proxy_url)
+    try:
+        result = _request_turnstile_siteverify(
+            secret_key,
+            token,
+            remote_ip=remote_ip,
+            timeout=TURNSTILE_DIRECT_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:
+        if proxy_fallback_enabled and normalized_proxy and _turnstile_network_error(exc):
+            try:
+                result = _request_turnstile_siteverify(
+                    secret_key,
+                    token,
+                    remote_ip=remote_ip,
+                    timeout=TURNSTILE_PROXY_TIMEOUT_SECONDS,
+                    proxy_url=normalized_proxy,
+                )
+            except Exception:
+                return False, "人机验证服务请求失败，请稍后重试"
+        else:
+            return False, "人机验证服务请求失败，请稍后重试"
+
+    try:
+        return _parse_turnstile_verify_result(result)
+    except (ValueError, json.JSONDecodeError):
+        return False, "人机验证服务请求失败，请稍后重试"
 
 
 def get_verified_admins(main_data_dir: Path | None = None) -> list[dict]:

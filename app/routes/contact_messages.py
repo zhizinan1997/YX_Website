@@ -626,6 +626,8 @@ def require_public_turnstile_check(ip: str = ''):
         secret_key=settings.get('secret_key', ''),
         token=token,
         remote_ip=ip or _dep('get_client_ip')(),
+        proxy_url=settings.get('proxy_url', ''),
+        proxy_fallback_enabled=settings.get('proxy_fallback_enabled', False),
     )
     if ok:
         return None

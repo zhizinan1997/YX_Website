@@ -57,7 +57,13 @@ def _verify_login_turnstile(data: dict):
         or data.get("cf-turnstile-response")
         or ""
     ).strip()
-    ok, detail = main_site.verify_turnstile_token(settings.secret_key, token, _request_ip(request))
+    ok, detail = main_site.verify_turnstile_token(
+        settings.secret_key,
+        token,
+        _request_ip(request),
+        proxy_url=settings.proxy_url,
+        proxy_fallback_enabled=settings.proxy_fallback_enabled,
+    )
     if ok:
         return None
     return jsonify({"success": False, "message": detail or "人机验证失败，请重新验证"}), 403

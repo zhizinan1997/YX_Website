@@ -1242,6 +1242,13 @@
                                             value="5">
                                         <div class="form-hint">仅对图片生效，视频会播放到结束后切换。</div>
                                     </div>
+                                    <div class="form-group">
+                                        <label style="display:flex; align-items:center; gap:10px;">
+                                            <input type="checkbox" id="heroCtaButtonsVisible" checked>
+                                            <span>显示首页主屏两个大按钮</span>
+                                        </label>
+                                        <div class="form-hint">控制首页首屏“生化传感事业部”和“先进氢气传感解决方案”两个按钮是否显示。</div>
+                                    </div>
                                     <button class="btn-primary" style="width: auto; padding: 10px 24px;"
                                         onclick="saveHeroConfig()">保存设置</button>
                                     <div id="heroSaveMsg" style="margin-top: 10px; color: #28a745;"></div>
@@ -2973,8 +2980,22 @@
                                 <input type="password" id="turnstileSecretKey" class="form-control"
                                     placeholder="留空表示保持当前密钥不变">
                             </div>
+                            <div class="form-group">
+                                <label>代理地址</label>
+                                <input type="text" id="turnstileProxyUrl" class="form-control"
+                                    placeholder="http://glash:7890">
+                                <div class="form-hint">仅用于服务端校验 Cloudflare Turnstile 失败后的兜底重试，不影响 SMTP 或其他外部接口。</div>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="turnstileProxyFallbackEnabled">
+                                    <span>启用直连失败后的代理重试兜底</span>
+                                </label>
+                            </div>
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                                 <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存设置</button>
+                                <button type="button" id="turnstileDirectTestBtn" class="btn-primary" style="width:auto; padding:12px 20px; background:#4b5563;">测试直连 Cloudflare</button>
+                                <button type="button" id="turnstileProxyTestBtn" class="btn-primary" style="width:auto; padding:12px 20px; background:#4b5563;">测试代理连通性</button>
                                 <span id="turnstileStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
                             </div>
                             <div id="turnstileSettingsMsg" class="error-message" style="color: #28a745;"></div>

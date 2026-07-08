@@ -11268,7 +11268,7 @@
         }
 
         // --- Hero Carousel Logic ---
-        let heroConfig = { interval_seconds: 5, items: [] };
+        let heroConfig = { interval_seconds: 5, cta_buttons_visible: true, items: [] };
 
         async function loadHeroConfig() {
             const listEl = document.getElementById('heroList');
@@ -11278,8 +11278,10 @@
             try {
                 const res = await fetch(`/api/hero?admin_t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
-                heroConfig = data || { interval_seconds: 5, items: [] };
+                heroConfig = data || { interval_seconds: 5, cta_buttons_visible: true, items: [] };
                 document.getElementById('heroInterval').value = heroConfig.interval_seconds || 5;
+                const ctaVisibleEl = document.getElementById('heroCtaButtonsVisible');
+                if (ctaVisibleEl) ctaVisibleEl.checked = heroConfig.cta_buttons_visible !== false;
                 renderHeroList();
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">加载失败</div>';
@@ -11395,6 +11397,8 @@
 
             const interval = parseInt(document.getElementById('heroInterval').value, 10);
             heroConfig.interval_seconds = isNaN(interval) ? 5 : interval;
+            const ctaVisibleEl = document.getElementById('heroCtaButtonsVisible');
+            heroConfig.cta_buttons_visible = ctaVisibleEl ? ctaVisibleEl.checked : heroConfig.cta_buttons_visible !== false;
 
             try {
                 const res = await fetch('/api/hero', {
@@ -15970,7 +15974,7 @@
             }
         }
 
-        function updateTurnstileStatusText(enabled, siteKey) {
+        function updateTurnstileStatusText(enabled, siteKey, proxyFallbackEnabled) {
             const statusEl = document.getElementById('turnstileStatusText');
             if (!statusEl) return;
             if (!enabled) {
@@ -15978,14 +15982,66 @@
                 statusEl.style.color = '#666';
                 return;
             }
-            statusEl.textContent = siteKey ? '当前状态：已开启' : '当前状态：配置不完整';
+            statusEl.textContent = siteKey
+                ? `当前状态：已开启${proxyFallbackEnabled ? '，代理兜底已启用' : ''}`
+                : '当前状态：配置不完整';
             statusEl.style.color = siteKey ? '#2e7d32' : '#d97706';
+        }
+
+        function isValidTurnstileProxyUrl(value) {
+            const text = String(value || '').trim();
+            if (!text) return false;
+            try {
+                const url = new URL(text);
+                return (url.protocol === 'http:' || url.protocol === 'https:') && !!url.host;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function testTurnstileConnectivity(mode, btn) {
+            const msg = document.getElementById('turnstileSettingsMsg');
+            const proxyUrl = String(document.getElementById('turnstileProxyUrl')?.value || '').trim();
+            const isProxy = mode === 'proxy';
+
+            if (msg) {
+                msg.textContent = '';
+                msg.style.color = '#dc3545';
+            }
+            if (isProxy && !isValidTurnstileProxyUrl(proxyUrl)) {
+                if (msg) msg.textContent = '请先填写有效的代理地址，例如 http://glash:7890';
+                return;
+            }
+
+            if (btn) btn.disabled = true;
+            try {
+                const res = await fetch(`/api/admin/security/turnstile/test-${isProxy ? 'proxy' : 'direct'}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(isProxy ? { proxy_url: proxyUrl } : {})
+                });
+                const data = await parseJsonSafe(res);
+                if (res.ok && data.success) {
+                    if (msg) {
+                        msg.style.color = '#28a745';
+                        msg.textContent = data.message || (isProxy ? '代理连通性测试成功' : '直连 Cloudflare 测试成功');
+                    }
+                } else if (msg) {
+                    msg.textContent = data.message || (isProxy ? '代理连通性测试失败' : '直连 Cloudflare 测试失败');
+                }
+            } catch (e) {
+                if (msg) msg.textContent = isProxy ? '网络错误，代理连通性测试失败' : '网络错误，直连测试失败';
+            } finally {
+                if (btn) btn.disabled = false;
+            }
         }
 
         async function loadTurnstileAdminConfig() {
             const enabledEl = document.getElementById('turnstileEnabled');
             const siteEl = document.getElementById('turnstileSiteKey');
             const secretEl = document.getElementById('turnstileSecretKey');
+            const proxyUrlEl = document.getElementById('turnstileProxyUrl');
+            const proxyFallbackEl = document.getElementById('turnstileProxyFallbackEnabled');
             const msgEl = document.getElementById('turnstileSettingsMsg');
             if (!enabledEl || !siteEl || !secretEl) return;
 
@@ -16001,9 +16057,11 @@
                 siteEl.value = data.site_key || '';
                 secretEl.value = '';
                 secretEl.placeholder = data.secret_key ? `${data.secret_key}（留空不修改）` : '留空表示保持当前密钥不变';
-                updateTurnstileStatusText(enabledEl.checked, siteEl.value.trim());
+                if (proxyUrlEl) proxyUrlEl.value = data.proxy_url || '';
+                if (proxyFallbackEl) proxyFallbackEl.checked = data.proxy_fallback_enabled === true;
+                updateTurnstileStatusText(enabledEl.checked, siteEl.value.trim(), !!proxyFallbackEl?.checked);
             } catch (e) {
-                updateTurnstileStatusText(false, '');
+                updateTurnstileStatusText(false, '', false);
                 if (msgEl) {
                     msgEl.style.color = '#dc3545';
                     msgEl.textContent = '登录验证设置加载失败';
@@ -16126,14 +16184,24 @@
         if (turnstileEnabledEl) {
             turnstileEnabledEl.addEventListener('change', function () {
                 const site = document.getElementById('turnstileSiteKey')?.value.trim() || '';
-                updateTurnstileStatusText(this.checked, site);
+                const proxyFallback = !!document.getElementById('turnstileProxyFallbackEnabled')?.checked;
+                updateTurnstileStatusText(this.checked, site, proxyFallback);
             });
         }
         const turnstileSiteKeyEl = document.getElementById('turnstileSiteKey');
         if (turnstileSiteKeyEl) {
             turnstileSiteKeyEl.addEventListener('input', function () {
                 const enabled = !!document.getElementById('turnstileEnabled')?.checked;
-                updateTurnstileStatusText(enabled, this.value.trim());
+                const proxyFallback = !!document.getElementById('turnstileProxyFallbackEnabled')?.checked;
+                updateTurnstileStatusText(enabled, this.value.trim(), proxyFallback);
+            });
+        }
+        const turnstileProxyFallbackEl = document.getElementById('turnstileProxyFallbackEnabled');
+        if (turnstileProxyFallbackEl) {
+            turnstileProxyFallbackEl.addEventListener('change', function () {
+                const enabled = !!document.getElementById('turnstileEnabled')?.checked;
+                const site = document.getElementById('turnstileSiteKey')?.value.trim() || '';
+                updateTurnstileStatusText(enabled, site, this.checked);
             });
         }
 
@@ -16146,6 +16214,8 @@
                 const enabled = !!document.getElementById('turnstileEnabled')?.checked;
                 const siteKey = String(document.getElementById('turnstileSiteKey')?.value || '').trim();
                 const secretKey = String(document.getElementById('turnstileSecretKey')?.value || '').trim();
+                const proxyUrl = String(document.getElementById('turnstileProxyUrl')?.value || '').trim();
+                const proxyFallbackEnabled = !!document.getElementById('turnstileProxyFallbackEnabled')?.checked;
 
                 if (msg) {
                     msg.textContent = '';
@@ -16154,6 +16224,14 @@
 
                 if (enabled && !siteKey) {
                     if (msg) msg.textContent = '启用登录验证时必须填写站点密钥';
+                    return;
+                }
+                if (proxyUrl && !isValidTurnstileProxyUrl(proxyUrl)) {
+                    if (msg) msg.textContent = '代理地址必须以 http:// 或 https:// 开头，并包含有效主机';
+                    return;
+                }
+                if (proxyFallbackEnabled && !proxyUrl) {
+                    if (msg) msg.textContent = '启用代理重试兜底前，请先填写代理地址';
                     return;
                 }
 
@@ -16165,7 +16243,9 @@
                         body: JSON.stringify({
                             enabled: enabled,
                             site_key: siteKey,
-                            secret_key: secretKey
+                            secret_key: secretKey,
+                            proxy_url: proxyUrl,
+                            proxy_fallback_enabled: proxyFallbackEnabled
                         })
                     });
                     const data = await res.json();
@@ -16185,6 +16265,22 @@
                 } finally {
                     if (btn) btn.disabled = false;
                 }
+            });
+        }
+
+        const turnstileDirectTestBtn = document.getElementById('turnstileDirectTestBtn');
+        if (turnstileDirectTestBtn && turnstileDirectTestBtn.dataset.bound !== '1') {
+            turnstileDirectTestBtn.dataset.bound = '1';
+            turnstileDirectTestBtn.addEventListener('click', async () => {
+                await testTurnstileConnectivity('direct', turnstileDirectTestBtn);
+            });
+        }
+
+        const turnstileProxyTestBtn = document.getElementById('turnstileProxyTestBtn');
+        if (turnstileProxyTestBtn && turnstileProxyTestBtn.dataset.bound !== '1') {
+            turnstileProxyTestBtn.dataset.bound = '1';
+            turnstileProxyTestBtn.addEventListener('click', async () => {
+                await testTurnstileConnectivity('proxy', turnstileProxyTestBtn);
             });
         }
 

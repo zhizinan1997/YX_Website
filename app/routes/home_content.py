@@ -47,6 +47,7 @@ def get_hero_config(hero_config_file, sanitize_public_media_url):
     hero_config_path = Path(hero_config_file)
     default_config = {
         'interval_seconds': 5,
+        'cta_buttons_visible': True,
         'items': [],
     }
 
@@ -57,6 +58,7 @@ def get_hero_config(hero_config_file, sanitize_public_media_url):
             items = merged.get('items', [])
             if not isinstance(items, list):
                 items = []
+            merged['cta_buttons_visible'] = bool(merged.get('cta_buttons_visible', True))
             merged['items'] = []
             for item in items:
                 if not isinstance(item, dict):
@@ -94,6 +96,7 @@ def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url)
     except Exception:
         interval_seconds = 5
     interval_seconds = min(max(interval_seconds, 1), 60)
+    cta_buttons_visible = bool(new_config.get('cta_buttons_visible', config.get('cta_buttons_visible', True)))
 
     items = new_config.get('items', config.get('items', []))
     normalized_items = []
@@ -128,6 +131,7 @@ def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url)
 
     saved = {
         'interval_seconds': interval_seconds,
+        'cta_buttons_visible': cta_buttons_visible,
         'items': normalized_items,
     }
     Path(hero_config_file).write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
@@ -432,6 +436,7 @@ def build_hero_api_payload(
 
     return {
         'interval_seconds': config.get('interval_seconds', 5),
+        'cta_buttons_visible': bool(config.get('cta_buttons_visible', True)),
         'items': payload_items,
     }
 

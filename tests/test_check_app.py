@@ -25,6 +25,8 @@ class MainSiteConfigTests(unittest.TestCase):
                         "turnstile_enabled": True,
                         "turnstile_site_key": "site-key",
                         "turnstile_secret_key": "secret-key",
+                        "turnstile_proxy_url": "http://glash:7890",
+                        "turnstile_proxy_fallback_enabled": True,
                     }
                 ),
                 encoding="utf-8",
@@ -61,6 +63,8 @@ class MainSiteConfigTests(unittest.TestCase):
             self.assertTrue(turnstile.enabled)
             self.assertEqual(turnstile.site_key, "site-key")
             self.assertEqual(turnstile.secret_key, "secret-key")
+            self.assertEqual(turnstile.proxy_url, "http://glash:7890")
+            self.assertTrue(turnstile.proxy_fallback_enabled)
 
     def test_turnstile_requires_complete_keys(self):
         with tempfile.TemporaryDirectory() as td:

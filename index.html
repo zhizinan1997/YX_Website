@@ -278,6 +278,7 @@
         let dots = [];
         let controls = null;
         let switching = false;
+        let ctaButtonsVisible = true;
 
         function clearTimer() {
           if (timer) {
@@ -513,9 +514,20 @@
           });
         }
 
+        function applyHeroCtaVisibility(visible) {
+          ctaButtonsVisible = visible !== false;
+          const ctaControls = document.getElementById('heroCtaButtons');
+          if (ctaControls) ctaControls.hidden = !ctaButtonsVisible;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          applyHeroCtaVisibility(ctaButtonsVisible);
+        });
+
         function startCarousel(config) {
           items = (config.items || []).filter(i => i && i.url);
           intervalSeconds = parseInt(config.interval_seconds, 10) || 5;
+          applyHeroCtaVisibility(config.cta_buttons_visible !== false);
           if (items.length === 0) items = fallbackItems;
 
           buildSlides(items);
@@ -525,7 +537,7 @@
         }
 
         // Paint first frame immediately, then replace with real config.
-        startCarousel({ items: fallbackItems, interval_seconds: 5 });
+        startCarousel({ items: fallbackItems, interval_seconds: 5, cta_buttons_visible: true });
         fetch('/api/hero')
           .then(res => res.json())
           .then(startCarousel)
@@ -540,7 +552,7 @@
     </div>
 
     <!-- Bottom Controls (MOVED OUTSIDE CONTAINER to position relative to HERO section) -->
-    <div class="vs-hero__bottom-controls">
+    <div class="vs-hero__bottom-controls" id="heroCtaButtons">
       <a href="pages/biosensing/index.html?filter=sensor" class="vs-hero__btn-block">生化传感事业部</a>
       <a href="pages/gassensing/index.html" class="vs-hero__btn-block">先进氢气传感解决方案</a>
     </div>
