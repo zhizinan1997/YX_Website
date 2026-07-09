@@ -165,9 +165,6 @@
   "../biosensing/ion_detector": {
     "hidden": true
   },
-  "macbook_air": {
-    "hidden": false
-  },
   "模板": {
     "hidden": true
   },
@@ -294,10 +291,5 @@
   "mc_mgm_01_new": {
     "cardTitle": "MC-MGM-01便携式动态配气仪",
     "cardSummary": "MC-MGM-01便携式动态配气仪是针对现场气体标准物质配制需求，搭载高精度MFC质量流量控制器，内置自主研发温度压力双补偿算法；依托核心流量控制算法与集成化设计开发的可移动精准配气设备，满足各类气体检测仪器现场校准、应急气体配置与实验室多梯度浓度气体即时用气需求。"
-  },
-  "iphone_17": {
-    "industryCategories": [
-      "industry-5"
-    ]
   }
 }
