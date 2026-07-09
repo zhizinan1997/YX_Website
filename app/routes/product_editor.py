@@ -54,6 +54,8 @@ from pathlib import Path
 
 from flask import Response, jsonify, request, send_file, session, stream_with_context
 
+from app.asset_versioning import clear_asset_version_cache, get_asset_version, inject_version_into_url
+
 try:
     import httpx
     HTTPX_SUPPORT = True
@@ -3408,6 +3410,8 @@ def register_product_editor_routes(
             return jsonify({'success': False, 'message': '产品文件不存在'}), 404
         try:
             page_html = filepath.read_text(encoding='utf-8', errors='ignore')
+            clear_asset_version_cache()
+            sections = version_product_section_image_urls(sections)
             patched = patch_vs_product_sections(page_html, sections)
             patched = ensure_product_responsive_guards(patched)
             filepath.write_text(patched, encoding='utf-8')
@@ -3628,6 +3632,63 @@ def extract_vs_product_sections(page_html: str) -> dict:
         'cta_title': cta_title,
         'cta_desc': cta_desc,
     }
+
+
+def version_local_asset_url(url: str) -> str:
+    """为本地 assets/cdn_assets 图片 URL 写入当前文件 mtime 版本号。"""
+    value = str(url or '').strip()
+    if not value:
+        return ''
+    stripped = value.lstrip()
+    if stripped.startswith(('http://', 'https://', '//', 'data:', 'blob:', 'mailto:', 'javascript:', '#')):
+        return value
+
+    path_check = value.split('?', 1)[0].split('#', 1)[0]
+    if not (
+        path_check.startswith('/assets/')
+        or path_check.startswith('/cdn_assets/')
+        or path_check.startswith('assets/')
+        or path_check.startswith('cdn_assets/')
+        or '/assets/' in path_check
+        or '/cdn_assets/' in path_check
+    ):
+        return value
+
+    try:
+        version = get_asset_version(value, _dep('app_root'))
+    except Exception:
+        version = ''
+    if not version:
+        return value
+    return inject_version_into_url(value, version)
+
+
+def version_product_section_image_urls(sections: dict) -> dict:
+    """给手动编辑区块里的本地图片 URL 加版本号，绕过浏览器/CDN 旧图缓存。"""
+    if not isinstance(sections, dict):
+        return sections
+    updated = dict(sections)
+
+    images = updated.get('images')
+    if isinstance(images, list):
+        updated['images'] = [version_local_asset_url(item) for item in images]
+
+    for list_key in ('applications', 'news', 'related_products'):
+        items = updated.get(list_key)
+        if not isinstance(items, list):
+            continue
+        next_items = []
+        for item in items:
+            if not isinstance(item, dict):
+                next_items.append(item)
+                continue
+            next_item = dict(item)
+            if 'img' in next_item:
+                next_item['img'] = version_local_asset_url(next_item.get('img'))
+            next_items.append(next_item)
+        updated[list_key] = next_items
+
+    return updated
 
 
 def patch_vs_product_sections(page_html: str, sections: dict) -> str:

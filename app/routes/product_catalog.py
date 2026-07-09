@@ -90,6 +90,13 @@ _PRODUCTS_CACHE = {'data': None, 'expires_at': 0.0}
 _PRODUCTS_CACHE_TTL = 30
 
 
+def invalidate_products_cache():
+    """清空产品列表缓存，确保后台设置保存后前台立即读取最新顺序。"""
+    with _PRODUCTS_CACHE_LOCK:
+        _PRODUCTS_CACHE['data'] = None
+        _PRODUCTS_CACHE['expires_at'] = 0.0
+
+
 
 # 依赖注入配置入口。
 def configure_product_catalog(
@@ -553,6 +560,7 @@ __all__ = [
     'get_gassensing_products_with_settings',
     'get_product_images_list',
     'get_products_with_settings_data',
+    'invalidate_products_cache',
     'normalize_scanned_image_path',
     'register_product_catalog_routes',
 ]

@@ -42,12 +42,41 @@
     });
   }
 
+  function applyConsultButtonPhone() {
+    var path = window.location.pathname || '';
+    var isBio = path.indexOf('/biosensing/') !== -1;
+    var isGas = path.indexOf('/gassensing/') !== -1;
+    if (!isBio && !isGas) return;
+
+    var apiPath = isBio
+      ? '/api/bio-products/consult-button'
+      : '/api/products/consult-button';
+
+    var btn = document.querySelector('.vs-product-hero__content a.vs-btn--primary');
+    if (!btn) return;
+
+    if (!btn.dataset.consultOriginalHtml) {
+      btn.dataset.consultOriginalHtml = btn.innerHTML;
+    }
+
+    fetch(apiPath, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .then(function (cfg) {
+        btn.innerHTML = btn.dataset.consultOriginalHtml;
+        if (cfg && cfg.phoneVisible && cfg.phoneText) {
+          btn.appendChild(document.createTextNode(' ' + String(cfg.phoneText)));
+        }
+      })
+      .catch(function (e) { console.error('[consult-button]', e); });
+  }
+
   function boot() {
     if (/^\/admin(?:\/|$)/.test(window.location.pathname)) {
       return;
     }
 
     ensureChatbotScript();
+    applyConsultButtonPhone();
 
     var root = document.getElementById(ROOT_ID);
     if (!root) return;
@@ -72,4 +101,8 @@
   } else {
     boot();
   }
+
+  window.addEventListener('pageshow', function () {
+    applyConsultButtonPhone();
+  });
 })();

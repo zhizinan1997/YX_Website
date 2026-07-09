@@ -371,6 +371,7 @@ def register_all_routes(app):
         get_products_with_settings_data=get_products_with_settings_data,
         get_biosensing_products_with_settings_data=get_biosensing_products_with_settings_data,
         product_card_uploads_dir=PRODUCT_CARD_UPLOADS_DIR,
+        cdn_assets_dir=CDN_ASSETS_DIR,
         allowed_product_card_extensions=ALLOWED_PRODUCT_CARD_EXTENSIONS,
         validate_uploaded_image_extension=validate_uploaded_image_extension,
     )

@@ -24,6 +24,23 @@ _CACHE_TTL_SECONDS = 60
 # mtime 缓存: {abs_path_str: (version_str, cached_at_monotonic)}
 _mtime_cache: dict[str, tuple[str, float]] = {}
 
+
+def clear_asset_version_cache(urls: list[str] | tuple[str, ...] | None = None, app_root: Path | None = None, request_path: str = '') -> None:
+    """清理资源版本号缓存。
+
+    不传 urls 时清空全部缓存；传入 urls 时仅清理能解析到的本地资源。
+    """
+    if not urls:
+        _mtime_cache.clear()
+        return
+    if app_root is None:
+        _mtime_cache.clear()
+        return
+    for url in urls:
+        fs_path = resolve_asset_path(str(url or ''), Path(app_root), request_path)
+        if fs_path is not None:
+            _mtime_cache.pop(str(fs_path), None)
+
 # ── 路径解析 ──────────────────────────────────────────
 
 # 这些目录的文件可以被版本化（安全地 stat）。
@@ -79,8 +96,10 @@ def resolve_asset_path(url: str, app_root: Path, request_path: str = '') -> Path
             base_dir = app_root
         fs_path = (base_dir / path_part).resolve()
 
-    # 安全检查：确保解析后的路径在 APP_ROOT 内
+    # 安全检查：确保解析后的路径在 APP_ROOT 内。
+    # macOS 上 /var 会解析到 /private/var，比较前需要统一 resolve。
     try:
+        fs_path = fs_path.resolve()
         fs_path.relative_to(app_root.resolve())
     except (ValueError, RuntimeError):
         return None

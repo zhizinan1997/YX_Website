@@ -8721,9 +8721,133 @@
             }
         }
 
+        async function setupConsultButtonPanel(category) {
+            const isBio = category === 'bio';
+            const apiPath = isBio ? '/api/bio-products/consult-button' : '/api/products/consult-button';
+            const visibleEl = document.getElementById(isBio ? 'bioConsultPhoneVisible' : 'gasConsultPhoneVisible');
+            const textEl = document.getElementById(isBio ? 'bioConsultPhoneText' : 'gasConsultPhoneText');
+            const saveBtn = document.getElementById(isBio ? 'bioConsultSaveBtn' : 'gasConsultSaveBtn');
+            const previewPhoneEl = document.getElementById(isBio ? 'bioConsultPreviewPhone' : 'gasConsultPreviewPhone');
+            const previewStateEl = document.getElementById(isBio ? 'bioConsultPreviewState' : 'gasConsultPreviewState');
+            if (!visibleEl || !textEl || !saveBtn) return;
+
+            const refreshPreview = () => {
+                const phoneText = textEl.value.trim();
+                const shouldShow = visibleEl.checked && !!phoneText;
+                if (previewPhoneEl) {
+                    previewPhoneEl.textContent = shouldShow ? ` ${phoneText}` : '';
+                }
+                if (previewStateEl) {
+                    previewStateEl.textContent = visibleEl.checked
+                        ? (phoneText ? '电话将显示在按钮后' : '已开启，请填写电话文案')
+                        : '未显示电话';
+                }
+            };
+
+            try {
+                const res = await fetch(apiPath, { cache: 'no-store' });
+                const cfg = await res.json();
+                visibleEl.checked = !!cfg.phoneVisible;
+                textEl.value = cfg.phoneText || '';
+            } catch (e) {
+                console.error('加载咨询按钮设置失败:', e);
+            }
+
+            refreshPreview();
+            visibleEl.onchange = refreshPreview;
+            textEl.oninput = refreshPreview;
+
+            const doSave = async () => {
+                try {
+                    const res = await fetch(apiPath, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            phoneVisible: visibleEl.checked,
+                            phoneText: textEl.value.trim(),
+                        }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        refreshPreview();
+                        alert('咨询按钮设置已保存');
+                    } else {
+                        alert(data.message || '保存失败');
+                    }
+                } catch (e) {
+                    alert('保存失败：' + (e?.message || e));
+                }
+            };
+
+            saveBtn.onclick = doSave;
+        }
+
+        function buildProductOrderControls(productId, index, total, className) {
+            const pid = escapeHtml(productId);
+            return `
+                <div class="product-order-controls" aria-label="调整产品排序">
+                    <button type="button" class="product-order-btn ${className}" data-id="${pid}" data-direction="up"
+                        ${index <= 0 ? 'disabled' : ''} title="上移" aria-label="上移">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                    <button type="button" class="product-order-btn ${className}" data-id="${pid}" data-direction="down"
+                        ${index >= total - 1 ? 'disabled' : ''} title="下移" aria-label="下移">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        async function saveProductListSortOrder(family, order) {
+            const endpoint = family === 'bio' ? '/api/bio-products/settings/sort' : '/api/products/settings/sort';
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order })
+            });
+            const result = await res.json();
+            if (!res.ok || !result.success) {
+                throw new Error(result.message || '排序保存失败');
+            }
+        }
+
+        async function moveProductListItem(family, productId, direction) {
+            const isBio = family === 'bio';
+            const rows = isBio ? bioProductsData : productsData;
+            const index = rows.findIndex(item => String(item?.id || '') === String(productId));
+            if (index < 0) return;
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+            if (targetIndex < 0 || targetIndex >= rows.length) return;
+
+            const [item] = rows.splice(index, 1);
+            rows.splice(targetIndex, 0, item);
+            const order = rows.map(row => row.id);
+            rows.forEach((row, idx) => {
+                row.sortOrder = idx;
+            });
+
+            try {
+                await saveProductListSortOrder(family, order);
+                if (isBio) {
+                    await loadBioProducts();
+                } else {
+                    await loadProducts();
+                }
+            } catch (e) {
+                console.error('Product order save failed:', e);
+                alert(e?.message || '排序保存失败，请刷新后重试');
+                if (isBio) {
+                    await loadBioProducts();
+                } else {
+                    await loadProducts();
+                }
+            }
+        }
+
         async function loadProducts() {
             const tbody = document.getElementById('productsTableBody');
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            setupConsultButtonPanel('gas');
 
             try {
                 const [res, newsRes] = await Promise.all([
@@ -8744,19 +8868,23 @@
                 });
 
                 if (productsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无产品数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无产品数据</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = productsData.map(p => {
+                tbody.innerHTML = productsData.map((p, index) => {
                     const relatedNews = normalizeRelatedNewsLinks(p.relatedNews || []);
                     const news1 = relatedNews[0] || '';
                     const news2 = relatedNews[1] || '';
                     const pidEsc = escapeHtml(p.id);
+                    const previewImage = p.cardImage || p.image || '';
                     return `
                     <tr style="${p.hidden ? 'opacity: 0.5;' : ''}">
+                        <td class="cell-order">
+                            ${buildProductOrderControls(p.id, index, productsData.length, 'product-order-move-btn')}
+                        </td>
                         <td class="cell-image">
-                            <img src="${p.image}" alt="${p.name}" 
+                            <img src="${escapeHtml(previewImage)}" alt="${escapeHtml(p.name || '')}" 
                                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 40%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/><text x=%2230%22 y=%2225%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%228%22>无图</text></svg>'">
                         </td>
                         <td class="cell-name"><strong>${p.name}</strong></td>
@@ -8807,14 +8935,26 @@
                 `;
                 }).join('');
 
+                tbody.querySelectorAll('.product-order-move-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        moveProductListItem('gas', btn.dataset.id, btn.dataset.direction);
+                    });
+                });
                 tbody.querySelectorAll('.product-card-title').forEach(input => {
                     input.addEventListener('change', (e) => {
                         saveProductSetting(e.target.dataset.id, 'cardTitle', e.target.value);
                     });
                 });
                 tbody.querySelectorAll('.product-card-image').forEach(input => {
-                    input.addEventListener('change', (e) => {
-                        saveProductSetting(e.target.dataset.id, 'cardImage', e.target.value);
+                    input.addEventListener('change', async (e) => {
+                        const value = e.target.value;
+                        await saveProductSetting(e.target.dataset.id, 'cardImage', value);
+                        const row = e.target.closest('tr');
+                        const product = productsData.find(p => String(p.id) === String(e.target.dataset.id));
+                        const preview = row ? row.querySelector('.cell-image img') : null;
+                        if (preview) {
+                            preview.src = value || (product && product.image) || '';
+                        }
                     });
                 });
                 tbody.querySelectorAll('.product-card-summary').forEach(input => {
@@ -8897,14 +9037,15 @@
 
             } catch (e) {
                 console.error('Load products error:', e);
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="no-data">加载失败，请刷新重试</td></tr>';
             }
         }
 
         async function loadBioProducts() {
             const tbody = document.getElementById('bioProductsTableBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            setupConsultButtonPanel('bio');
 
             try {
                 const res = await fetch('/api/bio-products/with-settings');
@@ -8924,19 +9065,23 @@
                 }
 
                 if (bioProductsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无生物产品数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无生物产品数据</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = bioProductsData.map(p => {
+                tbody.innerHTML = bioProductsData.map((p, index) => {
                     const relatedNews = normalizeRelatedNewsLinks(p.relatedNews || []);
                     const news1 = relatedNews[0] || '';
                     const news2 = relatedNews[1] || '';
                     const pidEsc = escapeHtml(p.id);
+                    const previewImage = p.cardImage || p.image || '';
                     return `
                     <tr style="${p.hidden ? 'opacity: 0.5;' : ''}">
+                        <td class="cell-order">
+                            ${buildProductOrderControls(p.id, index, bioProductsData.length, 'bio-product-order-move-btn')}
+                        </td>
                         <td class="cell-image">
-                            <img src="${p.image}" alt="${p.name}" 
+                            <img src="${escapeHtml(previewImage)}" alt="${escapeHtml(p.name || '')}" 
                                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 60 40%22><rect fill=%22%23eee%22 width=%2260%22 height=%2240%22/><text x=%2230%22 y=%2225%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%228%22>无图</text></svg>'">
                         </td>
                         <td class="cell-name"><strong>${p.name}</strong></td>
@@ -8986,14 +9131,26 @@
                 `;
                 }).join('');
 
+                tbody.querySelectorAll('.bio-product-order-move-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        moveProductListItem('bio', btn.dataset.id, btn.dataset.direction);
+                    });
+                });
                 tbody.querySelectorAll('.bio-product-card-title').forEach(input => {
                     input.addEventListener('change', (e) => {
                         saveBioProductSetting(e.target.dataset.id, 'cardTitle', e.target.value);
                     });
                 });
                 tbody.querySelectorAll('.bio-product-card-image').forEach(input => {
-                    input.addEventListener('change', (e) => {
-                        saveBioProductSetting(e.target.dataset.id, 'cardImage', e.target.value);
+                    input.addEventListener('change', async (e) => {
+                        const value = e.target.value;
+                        await saveBioProductSetting(e.target.dataset.id, 'cardImage', value);
+                        const row = e.target.closest('tr');
+                        const product = bioProductsData.find(p => String(p.id) === String(e.target.dataset.id));
+                        const preview = row ? row.querySelector('.cell-image img') : null;
+                        if (preview) {
+                            preview.src = value || (product && product.image) || '';
+                        }
                     });
                 });
                 tbody.querySelectorAll('.bio-product-card-summary').forEach(input => {
@@ -9064,7 +9221,7 @@
                 await loadBioIndustryFilters();
             } catch (e) {
                 console.error('Load bio products error:', e);
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">加载失败，请刷新重试</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="no-data">加载失败，请刷新重试</td></tr>';
             }
         }
 
@@ -9115,6 +9272,11 @@
                     imageInput.value = result.url;
                 }
                 await saveBioProductSetting(productId, 'cardImage', result.url);
+                const row = imageInput ? imageInput.closest('tr') : null;
+                const preview = row ? row.querySelector('.cell-image img') : null;
+                if (preview) {
+                    preview.src = result.url;
+                }
 
                 if (msgEl) {
                     msgEl.style.color = '#2e7d32';
@@ -10689,6 +10851,11 @@
                     imageInput.value = result.url;
                 }
                 await saveProductSetting(productId, 'cardImage', result.url);
+                const row = imageInput ? imageInput.closest('tr') : null;
+                const preview = row ? row.querySelector('.cell-image img') : null;
+                if (preview) {
+                    preview.src = result.url;
+                }
 
                 if (msgEl) {
                     msgEl.style.color = '#2e7d32';

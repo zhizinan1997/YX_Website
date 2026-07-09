@@ -133,6 +133,10 @@ class ProductAiStructuredTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         _write_reference_pages(self.root)
+        (self.root / "assets").mkdir(parents=True)
+        (self.root / "assets" / "test-product.png").write_bytes(b"\x89PNG\r\n\x1a\nproduct")
+        (self.root / "assets" / "news.png").write_bytes(b"\x89PNG\r\n\x1a\nnews")
+        (self.root / "assets" / "related.png").write_bytes(b"\x89PNG\r\n\x1a\nrelated")
         self.ai_response = "{}"
         self.ai_calls = []
         self._original_call = pe.call_openai_api_sync_with_custom_config
@@ -404,6 +408,18 @@ class ProductAiStructuredTests(unittest.TestCase):
         response = self.client.post("/api/products/ai-create-from-sections", json=payload)
         self.assertEqual(response.status_code, 400)
         self.assertIn("HTML源码模式", response.get_json()["message"])
+
+    def test_manual_page_sections_save_versions_local_images(self):
+        self._login(super_admin=True)
+        response = self.client.post("/api/products/page-sections", json={
+            "productId": "mc_ld_h2",
+            "sections": self._sample_sections(),
+        })
+        self.assertEqual(response.status_code, 200)
+        written = (self.root / "pages" / "gassensing" / "mc_ld_h2.html").read_text(encoding="utf-8")
+        self.assertIn("/assets/test-product.png?v=", written)
+        self.assertIn("/assets/news.png?v=", written)
+        self.assertIn("/assets/related.png?v=", written)
 
     def test_create_html_updates_draft_and_writes_same_html_mode(self):
         self._login(super_admin=True)

@@ -27,7 +27,7 @@
    - 分类图片删除
 
 4. 产品卡片
-   - 卡片图片上传
+   - 卡片图片上传到对应 CDN 素材目录
    - 卡片配置保存
    - 自动生成缩略图
 
@@ -232,8 +232,8 @@ def _normalize_related_news_links(value):
 def _versionize_product_images(settings: dict) -> dict:
     """为产品设置中的 cardImage / image 路径追加 mtime 版本号。
 
-    只处理指向 /cdn_assets/ 或 /media/product-cards/ 的本地路径，
-    外部 URL 和已有 ?v= 的路径保持不变（已有版本号说明是刚上传的新文件）。
+    只处理指向 /cdn_assets/ 或历史 /media/product-cards/ 的本地路径，
+    外部 URL 和已有 ?v= 的路径保持不变。
     """
     if not isinstance(settings, dict):
         return settings
@@ -280,12 +280,51 @@ def save_product_settings(settings):
     """保存产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
     PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
+    try:
+        from app.routes.product_catalog import invalidate_products_cache
+        invalidate_products_cache()
+    except Exception:
+        pass
 
 
 def save_bio_product_settings(settings):
     """保存生物传感产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
     BIO_PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
+    try:
+        from app.routes.product_catalog import invalidate_products_cache
+        invalidate_products_cache()
+    except Exception:
+        pass
+
+
+def _default_consult_button_config():
+    """咨询按钮（产品页橙色主按钮）默认配置。"""
+    return {'phoneVisible': False, 'phoneText': ''}
+
+
+def get_consult_button_config(settings):
+    """从产品设置中读取咨询按钮配置，缺省返回默认结构。"""
+    if not isinstance(settings, dict):
+        return _default_consult_button_config()
+    cfg = settings.get('consultButton')
+    if not isinstance(cfg, dict):
+        return _default_consult_button_config()
+    return {
+        'phoneVisible': bool(cfg.get('phoneVisible', False)),
+        'phoneText': str(cfg.get('phoneText', '') or ''),
+    }
+
+
+def set_consult_button_config(settings, data):
+    """将咨询按钮配置写入产品设置对象（原地修改）。"""
+    phone_visible = bool(data.get('phoneVisible', False))
+    phone_text = _SANITIZE_PUBLIC_TEXT(str(data.get('phoneText', '') or ''), max_length=60)
+    settings['consultButton'] = {
+        'phoneVisible': phone_visible,
+        'phoneText': phone_text,
+    }
+    return settings
 
 
 def _build_filter_preview_map(products, fallback_categories):
@@ -524,6 +563,7 @@ def register_product_settings_routes(
     get_products_with_settings_data,
     get_biosensing_products_with_settings_data,
     product_card_uploads_dir,
+    cdn_assets_dir=None,
     allowed_product_card_extensions,
     validate_uploaded_image_extension,
 ):
@@ -546,13 +586,20 @@ def register_product_settings_routes(
     _GET_PRODUCTS_WITH_SETTINGS_DATA = get_products_with_settings_data
     _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA = get_biosensing_products_with_settings_data
     product_card_uploads_path = Path(product_card_uploads_dir)
+    cdn_product_images_root = Path(cdn_assets_dir or (APP_ROOT / 'cdn_assets')) / 'images'
     allowed_card_extensions = set(allowed_product_card_extensions or set())
+
+    def _resolve_product_card_upload_target():
+        family_dir = 'biosensing' if request.path.startswith('/api/bio-products/') else 'gassensing'
+        target_dir = cdn_product_images_root / family_dir
+        target_dir.mkdir(parents=True, exist_ok=True)
+        return family_dir, target_dir
 
     @app.route('/api/products/card-image/upload', methods=['POST'])
     @app.route('/api/bio-products/card-image/upload', methods=['POST'])
     @login_required
     def upload_product_card_image():
-        """上传产品卡片图片并返回可访问 URL。"""
+        """上传产品卡片图片到对应 CDN 目录并返回可访问 URL。"""
         if 'file' not in request.files:
             return jsonify({'success': False, 'message': '未找到上传文件'}), 400
 
@@ -565,11 +612,13 @@ def register_product_settings_routes(
             return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP 图片'}), 400
 
         saved_name = f'{uuid.uuid4().hex}{ext}'
-        save_path = product_card_uploads_path / saved_name
+        family_dir, target_dir = _resolve_product_card_upload_target()
+        save_path = target_dir / saved_name
         file.save(save_path)
         return jsonify({
             'success': True,
-            'url': f'/media/product-cards/{saved_name}',
+            'url': f'/cdn_assets/images/{family_dir}/{saved_name}',
+            'folder': f'images/{family_dir}',
         })
 
     @app.route('/media/product-cards/<path:filename>')
@@ -608,6 +657,36 @@ def register_product_settings_routes(
             return jsonify({'success': False, 'message': error[0]}), error[1]
         save_bio_product_settings(settings)
         return jsonify({'success': True, 'settings': settings})
+
+    @app.route('/api/products/consult-button', methods=['GET'])
+    def get_product_consult_button_api():
+        """获取气体产品页橙色按钮的电话配置（公开）。"""
+        return jsonify(get_consult_button_config(get_product_settings()))
+
+    @app.route('/api/products/consult-button', methods=['POST'])
+    @login_required
+    def update_product_consult_button_api():
+        """更新气体产品页橙色按钮的电话配置。"""
+        data = request.json or {}
+        settings = get_product_settings()
+        set_consult_button_config(settings, data)
+        save_product_settings(settings)
+        return jsonify({'success': True, 'config': get_consult_button_config(settings)})
+
+    @app.route('/api/bio-products/consult-button', methods=['GET'])
+    def get_bio_product_consult_button_api():
+        """获取生物产品页橙色按钮的电话配置（公开）。"""
+        return jsonify(get_consult_button_config(get_bio_product_settings()))
+
+    @app.route('/api/bio-products/consult-button', methods=['POST'])
+    @login_required
+    def update_bio_product_consult_button_api():
+        """更新生物产品页橙色按钮的电话配置。"""
+        data = request.json or {}
+        settings = get_bio_product_settings()
+        set_consult_button_config(settings, data)
+        save_bio_product_settings(settings)
+        return jsonify({'success': True, 'config': get_consult_button_config(settings)})
 
     @app.route('/api/products/settings/sort', methods=['POST'])
     @login_required

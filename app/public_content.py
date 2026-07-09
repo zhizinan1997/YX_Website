@@ -147,6 +147,8 @@ def sanitize_public_product_settings(settings):
         if 'relatedNews' in cfg:
             item['relatedNews'] = _normalize_related_news_links(cfg.get('relatedNews', []))
         cleaned[pid] = item
+    if 'consultButton' in raw:
+        cleaned['consultButton'] = raw['consultButton']
     return cleaned
 
 

@@ -1115,6 +1115,17 @@
                 font-weight: 500 !important;
             }
         }
+
+
+        /* Product Hero Layout Guard */
+        @media (min-width: 600px) and (max-width: 900px) {
+            .vs-product-hero__inner {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 40px !important;
+                align-items: start !important;
+                min-width: 0 !important;
+            }
+        }
 </style>
   <!-- Site Search -->
   <link rel="stylesheet" href="../../assets/css/search.css">
@@ -1165,7 +1176,7 @@
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             <img id="mainImage"
-                                src="/cdn_assets/images/gassensing/4fadd37d699a.webp?v=1775480406"
+                                src="/cdn_assets/images/gassensing/0064823f2b9242ed8cdb23ab505523ce.png?v=1783585263"
                                 alt="MC-MGM-01型动态配气系统">
                             <button type="button" class="vs-gallery-nav vs-gallery-nav--next" onclick="nextImage()"
                                 aria-label="下一张">
@@ -1174,13 +1185,13 @@
                         </div>
                         <div class="vs-gallery-thumbs">
                             <div class="vs-gallery-thumb active"
-                                onclick="changeImage(this, '/cdn_assets/images/gassensing/4fadd37d699a.webp')">
-                                <img src="/cdn_assets/images/gassensing/4fadd37d699a.webp?v=1775480406"
+                                onclick="changeImage(this, '/cdn_assets/images/gassensing/0064823f2b9242ed8cdb23ab505523ce.png?v=1783585263')">
+                                <img src="/cdn_assets/images/gassensing/0064823f2b9242ed8cdb23ab505523ce.png?v=1783585263"
                                     alt="产品图1">
                             </div>
                             <div class="vs-gallery-thumb"
-                                onclick="changeImage(this, '/cdn_assets/images/gassensing/11844b930bc1.webp')">
-                                <img src="/cdn_assets/images/gassensing/11844b930bc1.webp?v=1775480406"
+                                onclick="changeImage(this, '/cdn_assets/images/gassensing/11844b930bc1.webp?v=1780034084')">
+                                <img src="/cdn_assets/images/gassensing/11844b930bc1.webp?v=1780034084"
                                     alt="产品图2">
                             </div>
                         </div>
@@ -1201,7 +1212,7 @@
                         <div>
                             <a href="../../pages/contact/feedback.html" class="vs-btn vs-btn--primary"
                                 style="padding: 14px 32px; font-size: 16px; border-radius: 999px;">
-                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价 电话：18807329836/13974993326
+                                <i class="fas fa-envelope" style="margin-right: 10px;"></i>咨询报价
                             </a>
                         </div>
                     </div>
@@ -1249,6 +1260,7 @@
                         <h4>数据管理便捷</h4>
                         <p>多接口支持数据集成，便于测试数据管理与分析。</p>
                     </div>
+
                 </div>
 
             </div>
@@ -1376,19 +1388,17 @@
                 <h2>相关新闻</h2>
                 <div class="vs-news-grid">
                     <a href="../../pages/news/news_show.aspx_id_35.html" class="vs-news-item">
-                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/d5c6c6d962b3.webp?v=1775480406"
-                            alt="新闻图片">
+                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/d5c6c6d962b3.webp?v=1780034083" alt="新闻图片">
                         <div class="vs-news-item__content">
                             <h4>致力氢能安全，元芯传感氢气监测系列产品通过国家防爆与计量认证！</h4>
                             <p>元芯传感多款氢气监测产品通过国家防爆与中国计量院检测认证，兼顾快速响应与高灵敏检测能力。</p>
                         </div>
                     </a>
                     <a href="../../pages/news/news_show.aspx_id_33.html" class="vs-news-item">
-                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/fd01267e1953.webp?v=1775480406"
-                            alt="新闻图片">
+                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/fd01267e1953.webp?v=1780034083" alt="新闻图片">
                         <div class="vs-news-item__content">
-                            <h4>元芯传感--2024国际传感器&仪器仪表&物联网展览会</h4>
-                            <p>闪耀国际传感器展览会，创新力量引领行业未来！ 2024年6月28日--30日，2024国际传感器&仪器仪表&物联网展览会在湖南长沙国际会展中心成功举办。</p>
+                            <h4>元芯传感--2024国际传感器&amp;仪器仪表&amp;物联网展览会</h4>
+                            <p>闪耀国际传感器展览会，创新力量引领行业未来！ 2024年6月28日--30日，2024国际传感器&amp;仪器仪表&amp;物联网展览会在湖南长沙国际会展中心成功举办。</p>
                         </div>
                     </a>
                 </div>
@@ -1926,7 +1936,7 @@
       </div>
     </footer>
   </noscript>
-  <script src="/assets/js/footer-loader.js?v=1782461357"></script>
+  <script src="/assets/js/footer-loader.js"></script>
   <!-- FOOTER_END -->
 <script src="/assets/js/chem-subscript.js" defer></script>
 <script src="/assets/js/site-analytics.js" defer></script>

@@ -169,72 +169,89 @@
     "hidden": true
   },
   "mc_ld_nh2": {
+    "sortOrder": 19,
     "industryCategories": [
       "leak"
     ]
   },
   "mc_wd_01": {
+    "sortOrder": 18,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_tm_01": {
+    "sortOrder": 17,
+    "cardImage": "/cdn_assets/images/gassensing/9c2104bdb6ff4ee8b4b4de377304b38f.jpg?v=1783583446",
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_td_01": {
+    "sortOrder": 16,
+    "cardImage": "/cdn_assets/images/gassensing/3e39581347fc4c02a316274a3f528372.png?v=1783583076",
     "industryCategories": [
       "leak"
     ]
   },
   "mc_pdr_01": {
+    "sortOrder": 14,
     "industryCategories": [
       "industry-4"
     ]
   },
   "mc_pa_h1": {
+    "sortOrder": 13,
+    "cardImage": "/cdn_assets/images/gassensing/dbe51d8dcdf844ed8f38fc6c15b06f6c.png?v=1783585229",
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_ol_h1": {
+    "sortOrder": 11,
+    "cardImage": "/cdn_assets/images/gassensing/5d01e6dbd4724cd488221a0cbab0ede9.jpg?v=1783583434",
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_od_h1": {
+    "sortOrder": 10,
     "industryCategories": [
       "industry-3"
     ]
   },
   "mc_mgm_01": {
+    "sortOrder": 9,
+    "cardImage": "/cdn_assets/images/gassensing/200a149aaf3742d08be995ba429a3955.png?v=1783582930",
     "industryCategories": [
       "industry-4"
     ]
   },
   "mc_ld_w1": {
+    "sortOrder": 8,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_ld_ph2": {
+    "sortOrder": 7,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_ld_h2": {
-    "industryCategories": [
-      "hydrogen"
-    ]
+    "isNew": true,
+    "sortOrder": 6
   },
   "mc_la_h1": {
-    "cardImage": "/media/product-cards/3bdd0ac1d2e54aab81d590f2202dcc47.png",
+    "sortOrder": 5,
+    "cardImage": "/cdn_assets/images/gassensing/3bdd0ac1d2e54aab81d590f2202dcc47.png?v=1782099192",
     "industryCategories": [
       "industry-3"
     ]
   },
   "mc_hp_1_0": {
+    "sortOrder": 4,
     "industryCategories": [
       "hydrogen"
     ]
@@ -242,36 +259,43 @@
   "mc_ba_h1": {
     "isNew": true,
     "hidden": false,
+    "sortOrder": 1,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_hha_01": {
     "isNew": false,
+    "sortOrder": 2,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "mc_hla_01": {
     "isNew": false,
+    "sortOrder": 3,
     "industryCategories": [
       "hydrogen"
     ]
   },
   "../customization/semiconductor_device_customization": {
+    "sortOrder": 22,
     "cardTitle": "半导体器件与微纳工艺定制化服务",
-    "cardImage": "/cdn_assets/images/customization/6090d145d024.png?v=1775480406",
+    "cardImage": "/cdn_assets/images/gassensing/8b706ddacb6243a2b9422e40be8a60e3.png?v=1783585192",
     "industryCategories": [
       "industry-5"
     ]
   },
   "mc_pgd_01": {
     "displayName": "MC-PGD-01型手持泵吸式可燃气体检测仪",
+    "sortOrder": 15,
+    "cardImage": "/cdn_assets/images/gassensing/4b8810010b9b48b1a55273d6b9d94a47.jpg?v=1783583381",
     "industryCategories": []
   },
   "mc_ld_r1": {
     "displayName": "MC-LD-R1型冷媒泄漏检漏仪",
     "hidden": false,
+    "sortOrder": 20,
     "cardTitle": "MC-LD-R1型冷媒泄漏检漏仪",
     "cardImage": "/cdn_assets/images/gassensing/a5616561db97.webp?v=1775480406",
     "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。"
@@ -279,17 +303,28 @@
   "mc_gd_01": {
     "displayName": "MC-GD-01型可燃气体检漏仪",
     "isNew": true,
-    "cardImage": "/media/product-cards/d349f4009088436681fb15ba3e94b53f.png",
+    "sortOrder": 0,
+    "cardImage": "/cdn_assets/images/gassensing/b43c8d060e3147ce85d6bbd944dcb989.png?v=1783582818",
     "industryCategories": [
       "hydrogen",
       "leak"
     ]
   },
   "mc_ol_w1": {
-    "displayName": "MC-OL-W1在线式露点分析仪"
+    "displayName": "MC-OL-W1在线式露点分析仪",
+    "sortOrder": 12
   },
   "mc_mgm_01_new": {
+    "sortOrder": 21,
     "cardTitle": "MC-MGM-01便携式动态配气仪",
-    "cardSummary": "MC-MGM-01便携式动态配气仪是针对现场气体标准物质配制需求，搭载高精度MFC质量流量控制器，内置自主研发温度压力双补偿算法；依托核心流量控制算法与集成化设计开发的可移动精准配气设备，满足各类气体检测仪器现场校准、应急气体配置与实验室多梯度浓度气体即时用气需求。"
+    "cardSummary": "MC-MGM-01便携式动态配气仪是针对现场气体标准物质配制需求，搭载高精度MFC质量流量控制器，内置自主研发温度压力双补偿算法；依托核心流量控制算法与集成化设计开发的可移动精准配气设备，满足各类气体检测仪器现场校准、应急气体配置与实验室多梯度浓度气体即时用气需求。",
+    "industryCategories": [
+      "hydrogen",
+      "industry-4"
+    ]
+  },
+  "consultButton": {
+    "phoneVisible": false,
+    "phoneText": "19251109410/18822027082"
   }
 }

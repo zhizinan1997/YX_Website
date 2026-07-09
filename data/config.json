@@ -10,6 +10,8 @@
   "turnstile_enabled": false,
   "turnstile_site_key": "0x4AAAAAACwKu-2HPFYY3XaB",
   "turnstile_secret_key": "0x4AAAAAACwKuxfpGhJXKGtu1PhTl9ANq24",
+  "turnstile_proxy_fallback_enabled": false,
+  "turnstile_proxy_url": "",
   "admin_login_geo_enabled": true,
   "admin_login_geo_continents": {
     "asia": "allow",

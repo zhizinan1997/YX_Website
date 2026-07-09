@@ -1053,7 +1053,80 @@
                 grid-template-columns: 1fr;
             }
         }
-    </style>
+    
+
+        /* Product Hero Layout Guard */
+        @media (min-width: 600px) and (max-width: 900px) {
+            .vs-product-hero__inner {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 40px !important;
+                align-items: start !important;
+                min-width: 0 !important;
+            }
+        }
+
+
+        /* Product Specs Mobile Guard */
+        @media (max-width: 900px) {
+            .vs-specs-table {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border: 0 !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .vs-specs-table tbody {
+                display: grid !important;
+                width: 100% !important;
+                gap: 12px !important;
+            }
+
+            .vs-specs-table tr {
+                display: grid !important;
+                grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+                width: 100% !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                border-radius: 14px !important;
+                background: #ffffff !important;
+                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+            }
+
+            .vs-specs-table td {
+                display: flex !important;
+                align-items: center !important;
+                width: auto !important;
+                min-width: 0 !important;
+                min-height: 64px !important;
+                padding: 16px 18px !important;
+                border: 0 !important;
+                line-height: 1.65 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+            }
+
+            .vs-specs-table tr td:first-child {
+                border-radius: 0 !important;
+                border-bottom: 0 !important;
+                background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
+                color: #ffffff !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+            }
+
+            .vs-specs-table tr td:last-child {
+                border-radius: 0 !important;
+                background: #ffffff !important;
+                color: #26364d !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+            }
+        }
+</style>
   <!-- Site Search -->
   <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
@@ -1097,7 +1170,7 @@
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             <img id="mainImage"
-                                src="/cdn_assets/images/gassensing/05b4bf5edca4.webp"
+                                src="/cdn_assets/images/gassensing/352d2d38cb2345c9b656217f14fe60b2.png?v=1783585076"
                                 alt="MC-LA-H1型便携式溶解氢分析仪">
                             <button type="button" class="vs-gallery-nav vs-gallery-nav--next" onclick="nextImage()"
                                 aria-label="下一张">
@@ -1106,8 +1179,8 @@
                         </div>
                         <div class="vs-gallery-thumbs">
                             <div class="vs-gallery-thumb active"
-                                onclick="changeImage(this, '/cdn_assets/images/gassensing/05b4bf5edca4.webp')">
-                                <img src="/cdn_assets/images/gassensing/05b4bf5edca4.webp"
+                                onclick="changeImage(this, '/cdn_assets/images/gassensing/352d2d38cb2345c9b656217f14fe60b2.png?v=1783585076')">
+                                <img src="/cdn_assets/images/gassensing/352d2d38cb2345c9b656217f14fe60b2.png?v=1783585076"
                                     alt="产品图1">
                             </div>
                         </div>
@@ -1176,6 +1249,7 @@
                         <h4>维护成本低</h4>
                         <p>传感器结构经加固设计，抗跌落性能好，且标定过程简单，极大地降低了后期使用压力。</p>
                     </div>
+
                 </div>
 
             </div>
@@ -1287,19 +1361,17 @@
                 <h2>相关新闻</h2>
                 <div class="vs-news-grid">
                     <a href="../../pages/news/news_show.aspx_id_35.html" class="vs-news-item">
-                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/d5c6c6d962b3.webp"
-                            alt="新闻图片">
+                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/d5c6c6d962b3.webp?v=1780034083" alt="新闻图片">
                         <div class="vs-news-item__content">
                             <h4>致力氢能安全，元芯传感氢气监测系列产品通过国家防爆与计量认证！</h4>
                             <p>元芯传感多款氢气监测产品通过国家防爆与中国计量院检测认证，兼顾快速响应与高灵敏检测能力。</p>
                         </div>
                     </a>
                     <a href="../../pages/news/news_show.aspx_id_33.html" class="vs-news-item">
-                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/fd01267e1953.webp"
-                            alt="新闻图片">
+                        <img src="/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/fd01267e1953.webp?v=1780034083" alt="新闻图片">
                         <div class="vs-news-item__content">
-                            <h4>元芯传感--2024国际传感器&仪器仪表&物联网展览会</h4>
-                            <p>闪耀国际传感器展览会，创新力量引领行业未来！ 2024年6月28日--30日，2024国际传感器&仪器仪表&物联网展览会在湖南长沙国际会展中心成功举办。</p>
+                            <h4>元芯传感--2024国际传感器&amp;仪器仪表&amp;物联网展览会</h4>
+                            <p>闪耀国际传感器展览会，创新力量引领行业未来！ 2024年6月28日--30日，2024国际传感器&amp;仪器仪表&amp;物联网展览会在湖南长沙国际会展中心成功举办。</p>
                         </div>
                     </a>
                 </div>
@@ -1837,7 +1909,7 @@
       </div>
     </footer>
   </noscript>
-  <script src="/assets/js/footer-loader.js?v=20260415c"></script>
+  <script src="/assets/js/footer-loader.js"></script>
   <!-- FOOTER_END -->
 </body>
 

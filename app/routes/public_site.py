@@ -1157,6 +1157,9 @@ def register_public_site_routes(
                 return response
 
             response.headers.setdefault('Content-Security-Policy', public_html_content_security_policy)
+            response.headers['Cache-Control'] = 'no-cache, max-age=0, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
             response.direct_passthrough = False
             html_body = response.get_data(as_text=True)
             if not html_body:

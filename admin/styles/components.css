@@ -223,6 +223,230 @@ body.admin2-root.sidebar-collapsed .sidebar-toggle-btn {
     min-width: 128px;
 }
 
+.admin2-root .consult-panel {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    margin-bottom: 18px;
+}
+
+.admin2-root .consult-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(135deg, rgba(255, 149, 0, 0.11), transparent 28%),
+        radial-gradient(circle at 96% 0%, rgba(39, 199, 217, 0.18), transparent 34%);
+}
+
+.admin2-root .consult-panel__header,
+.admin2-root .consult-panel__body {
+    position: relative;
+    z-index: 1;
+}
+
+.admin2-root .consult-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid rgba(14, 41, 78, 0.08);
+}
+
+.admin2-root .consult-panel__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.admin2-root .consult-panel__icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #ff9500, #ffb84d);
+    box-shadow: 0 12px 24px rgba(255, 149, 0, 0.22);
+}
+
+.admin2-root .consult-panel__title h3 {
+    margin: 0;
+    color: var(--admin2-primary-strong);
+    font-size: 17px;
+    line-height: 1.25;
+}
+
+.admin2-root .consult-panel__title p {
+    margin: 4px 0 0;
+    color: var(--admin2-text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.admin2-root .consult-panel__scope {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(18, 61, 113, 0.08);
+    color: var(--admin2-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.admin2-root .consult-panel__body {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.35fr) minmax(230px, 0.9fr) auto;
+    gap: 14px;
+    align-items: end;
+    padding: 16px 22px 20px;
+}
+
+.admin2-root .consult-panel__switch,
+.admin2-root .consult-panel__field,
+.admin2-root .consult-panel__preview {
+    min-height: 72px;
+    border: 1px solid rgba(14, 41, 78, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.admin2-root .consult-panel__switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+}
+
+.admin2-root .consult-panel__switch strong,
+.admin2-root .consult-panel__field > span,
+.admin2-root .consult-panel__preview > span {
+    display: block;
+    color: var(--admin2-primary-strong);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.admin2-root .consult-panel__switch small {
+    display: block;
+    margin-top: 4px;
+    color: var(--admin2-text-muted);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.admin2-root .consult-panel__switch .toggle-switch {
+    flex: 0 0 50px;
+}
+
+.admin2-root .consult-panel__field {
+    display: block;
+    padding: 11px 14px 12px;
+}
+
+.admin2-root .consult-panel__input-row {
+    position: relative;
+    margin-top: 8px;
+}
+
+.admin2-root .consult-panel__input-row i {
+    position: absolute;
+    top: 50%;
+    left: 13px;
+    transform: translateY(-50%);
+    color: #ff9500;
+    font-size: 13px;
+    pointer-events: none;
+}
+
+.admin2-root .consult-panel__input-row .form-control {
+    min-height: 40px;
+    padding-left: 36px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.admin2-root .consult-panel__preview {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 14px 12px;
+}
+
+.admin2-root .consult-panel__preview strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 8px 12px;
+    border-radius: 999px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #ff9500, #ff7a1a);
+    box-shadow: 0 10px 20px rgba(255, 149, 0, 0.22);
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.admin2-root .consult-panel__preview strong span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin2-root .consult-panel__preview em {
+    color: var(--admin2-text-muted);
+    font-size: 12px;
+    font-style: normal;
+}
+
+.admin2-root .consult-panel__save {
+    width: auto;
+    min-height: 72px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 22px;
+    white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+    .admin2-root .consult-panel__body {
+        grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.2fr);
+    }
+
+    .admin2-root .consult-panel__save {
+        min-height: 48px;
+    }
+}
+
+@media (max-width: 720px) {
+    .admin2-root .consult-panel__header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .admin2-root .consult-panel__body {
+        grid-template-columns: 1fr;
+    }
+
+    .admin2-root .consult-panel__save {
+        width: 100%;
+    }
+}
+
 .admin2-root .promotion-link-row-actions {
     display: flex;
     flex-wrap: wrap;

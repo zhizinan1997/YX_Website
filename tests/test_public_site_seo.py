@@ -128,6 +128,7 @@ class PublicSiteSeoTests(unittest.TestCase):
     def test_public_page_replaces_api_canonical_pollution(self):
         response = self.client.get("/pages/gassensing/mc_ld_h2.html")
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Cache-Control"), "no-cache, max-age=0, must-revalidate")
         body = response.get_data(as_text=True)
         response.close()
         self.assertNotIn("/api/products/code/download", body)

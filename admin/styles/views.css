@@ -2085,7 +2085,7 @@
         }
 
         .products-manage-table {
-            min-width: 2100px;
+            min-width: 2186px;
             table-layout: fixed;
         }
 
@@ -2100,6 +2100,39 @@
         .products-manage-table td {
             padding: 12px 14px;
             vertical-align: top;
+        }
+
+        .products-manage-table .cell-order {
+            text-align: center;
+            padding-top: 14px;
+        }
+
+        .product-order-controls {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .product-order-btn {
+            width: 34px;
+            height: 28px;
+            border: 1px solid #d7e0ec;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #1f4f82;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .product-order-btn:hover:not(:disabled) {
+            background: #edf6ff;
+            border-color: #9dc3ed;
+        }
+
+        .product-order-btn:disabled {
+            color: #aeb8c5;
+            cursor: not-allowed;
+            background: #f6f8fb;
         }
 
         .products-manage-table .cell-image {
