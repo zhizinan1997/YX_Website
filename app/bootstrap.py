@@ -175,6 +175,7 @@ from app.routes.product_catalog import (
     get_biosensing_products_with_settings_data,
     get_gassensing_products_with_settings,
     get_products_with_settings_data,
+    invalidate_products_cache,
     normalize_scanned_image_path,
     register_product_catalog_routes,
 )
@@ -437,6 +438,7 @@ def register_all_routes(app):
         normalize_ai_product_image_extension=normalize_ai_product_image_extension,
         infer_ai_product_image_extension_from_mime=infer_ai_product_image_extension_from_mime,
         allowed_ai_product_image_mime_types=ALLOWED_AI_PRODUCT_IMAGE_MIME_TYPES,
+        invalidate_products_cache=invalidate_products_cache,
     )
 
     register_ai_chatbot_routes(

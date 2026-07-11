@@ -56,6 +56,7 @@ from urllib.parse import quote
 from flask import jsonify, request, send_from_directory
 
 from app.asset_versioning import get_asset_version, inject_version_into_url
+from app.upload_utils import get_uploaded_file_size
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = APP_ROOT / 'data'
@@ -71,6 +72,7 @@ _SANITIZE_PUBLIC_MEDIA_URL = lambda value, **_kwargs: value or ''
 _SANITIZE_PUBLIC_LINK_URL = lambda value, **_kwargs: value or ''
 _GET_PRODUCTS_WITH_SETTINGS_DATA = lambda: []
 _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA = lambda: []
+MAX_PRODUCT_CARD_IMAGE_BYTES = 10 * 1024 * 1024
 
 DEFAULT_INDUSTRY_FILTERS = [
     {'key': 'hydrogen', 'name': '氢能源产品'},
@@ -279,7 +281,9 @@ def get_bio_product_settings():
 def save_product_settings(settings):
     """保存产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
-    PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
+    temp_path = PRODUCT_SETTINGS_FILE.with_suffix(PRODUCT_SETTINGS_FILE.suffix + f'.tmp-{uuid.uuid4().hex}')
+    temp_path.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
+    temp_path.replace(PRODUCT_SETTINGS_FILE)
     try:
         from app.routes.product_catalog import invalidate_products_cache
         invalidate_products_cache()
@@ -290,7 +294,9 @@ def save_product_settings(settings):
 def save_bio_product_settings(settings):
     """保存生物传感产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
-    BIO_PRODUCT_SETTINGS_FILE.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
+    temp_path = BIO_PRODUCT_SETTINGS_FILE.with_suffix(BIO_PRODUCT_SETTINGS_FILE.suffix + f'.tmp-{uuid.uuid4().hex}')
+    temp_path.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
+    temp_path.replace(BIO_PRODUCT_SETTINGS_FILE)
     try:
         from app.routes.product_catalog import invalidate_products_cache
         invalidate_products_cache()
@@ -610,6 +616,12 @@ def register_product_settings_routes(
         ext = validate_uploaded_image_extension(file, allowed_extensions=allowed_card_extensions)
         if not ext:
             return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP 图片'}), 400
+
+        file_size = get_uploaded_file_size(file)
+        if file_size is None:
+            return jsonify({'success': False, 'message': '无法读取上传文件大小'}), 400
+        if file_size > MAX_PRODUCT_CARD_IMAGE_BYTES:
+            return jsonify({'success': False, 'message': '产品卡片图片不能超过 10MB'}), 413
 
         saved_name = f'{uuid.uuid4().hex}{ext}'
         family_dir, target_dir = _resolve_product_card_upload_target()

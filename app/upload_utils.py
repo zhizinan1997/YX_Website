@@ -252,6 +252,25 @@ def peek_upload_bytes(file_storage, max_bytes: int = 8192) -> bytes:
     return sample or b''
 
 
+def get_uploaded_file_size(file_storage) -> int | None:
+    """从文件流计算真实字节数，不信任客户端提供的 Content-Length。"""
+    stream = getattr(file_storage, 'stream', None)
+    if stream is None:
+        return None
+    try:
+        current_pos = stream.tell()
+        stream.seek(0, 2)
+        size = int(stream.tell())
+        stream.seek(current_pos)
+        return max(0, size)
+    except Exception:
+        try:
+            stream.seek(0)
+        except Exception:
+            pass
+        return None
+
+
 def infer_video_extension_from_bytes(sample: bytes) -> str:
     sample = sample or b''
     if len(sample) >= 12 and sample[4:8] == b'ftyp':

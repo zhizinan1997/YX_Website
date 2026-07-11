@@ -667,7 +667,20 @@
                                             placeholder="例如：mc_ld_h2（仅小写字母/数字/下划线，留空可自动生成）">
                                     </div>
                                     <div class="form-group">
-                                        <label>产品分类</label>
+                                        <label>产品类型</label>
+                                        <select id="aiProductBaseCategory" class="form-control">
+                                            <option value="sensor">传感器</option>
+                                            <option value="module">检测模块</option>
+                                            <option value="detector" selected>检测仪</option>
+                                            <option value="alarm">报警器</option>
+                                            <option value="system">系统</option>
+                                            <option value="probe">探头</option>
+                                            <option value="iot">物联网设备</option>
+                                            <option value="service">服务</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>领域分类</label>
                                         <select id="aiProductCategory" class="form-control">
                                             <option value="">加载领域分类中...</option>
                                         </select>
@@ -729,10 +742,10 @@
                             <textarea id="aiProductSectionsJson" class="form-control" rows="18"
                                 placeholder="点击“AI 生成页面内容”后自动填充结构化 JSON，可手工微调字段。"></textarea>
                             <details style="margin-top:12px;">
-                                <summary style="cursor:pointer; color:#475569; font-size:13px; font-weight:600;">高级源码模式（完整 HTML 兜底）</summary>
+                                <summary style="cursor:pointer; color:#475569; font-size:13px; font-weight:600;">高级源码模式（仅允许无脚本 HTML）</summary>
                                 <textarea id="aiProductFieldsJson" class="form-control" rows="12"
                                     style="margin-top:10px;"
-                                    placeholder="仅在特殊页面需要手工调整完整 HTML 时使用。"></textarea>
+                                    placeholder="仅在特殊页面需要手工调整完整 HTML；script、iframe、内联事件和脚本协议将被拒绝发布。"></textarea>
                             </details>
                             <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d1d5db;">
                                 <label style="font-size: 13px; color:#374151; font-weight:600;">AI 修改意见（支持多轮）</label>
@@ -1044,7 +1057,18 @@
                                             placeholder="例如：blood_potassium_chip（仅小写字母/数字/下划线，留空可自动生成）">
                                     </div>
                                     <div class="form-group">
-                                        <label>产品分类</label>
+                                        <label>产品类型</label>
+                                        <select id="bioAiProductBaseCategory" class="form-control">
+                                            <option value="sensor" selected>传感器</option>
+                                            <option value="module">检测模块</option>
+                                            <option value="detector">检测仪</option>
+                                            <option value="system">系统</option>
+                                            <option value="probe">探头</option>
+                                            <option value="service">服务</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>领域分类</label>
                                         <select id="bioAiProductCategory" class="form-control">
                                             <option value="">加载领域分类中...</option>
                                         </select>
@@ -1106,10 +1130,10 @@
                             <textarea id="bioAiProductSectionsJson" class="form-control" rows="18"
                                 placeholder="点击“AI 生成页面内容”后自动填充结构化 JSON，可手工微调字段。"></textarea>
                             <details style="margin-top:12px;">
-                                <summary style="cursor:pointer; color:#475569; font-size:13px; font-weight:600;">高级源码模式（完整 HTML 兜底）</summary>
+                                <summary style="cursor:pointer; color:#475569; font-size:13px; font-weight:600;">高级源码模式（仅允许无脚本 HTML）</summary>
                                 <textarea id="bioAiProductFieldsJson" class="form-control" rows="12"
                                     style="margin-top:10px;"
-                                    placeholder="仅在特殊页面需要手工调整完整 HTML 时使用。"></textarea>
+                                    placeholder="仅在特殊页面需要手工调整完整 HTML；script、iframe、内联事件和脚本协议将被拒绝发布。"></textarea>
                             </details>
                             <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d1d5db;">
                                 <label style="font-size: 13px; color:#374151; font-weight:600;">AI 修改意见（支持多轮）</label>

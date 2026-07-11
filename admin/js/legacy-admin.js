@@ -6041,14 +6041,18 @@
         let aiUploadedImageUrls = [];
         let aiProductSectionsData = {};
         let aiProductCurrentDraftId = '';
+        let aiProductCurrentDraftRevision = 0;
         let aiProductDraftSaveTimer = null;
+        let aiProductDraftSavePromise = Promise.resolve();
         let aiProductDraftsCache = [];
         let aiProductMode = 'structured';
         let bioAiProductEventsBound = false;
         let bioAiUploadedImageUrls = [];
         let bioAiProductSectionsData = {};
         let bioAiProductCurrentDraftId = '';
+        let bioAiProductCurrentDraftRevision = 0;
         let bioAiProductDraftSaveTimer = null;
+        let bioAiProductDraftSavePromise = Promise.resolve();
         let bioAiProductDraftsCache = [];
         let bioAiProductMode = 'structured';
         let aiProductNewsOptionsCache = [];
@@ -6972,7 +6976,7 @@
                 title: title || slug || '未命名产品',
                 short_name: shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
                 slug: slug,
-                category: 'detector',
+                category: document.getElementById('aiProductBaseCategory')?.value || 'detector',
                 industryCategories: industryCategoryValue ? [industryCategoryValue] : [],
                 image_url: imageUrl,
                 detail_image_urls: imageUrls.join('\n'),
@@ -7018,6 +7022,7 @@
                 shortNameId: isBio ? 'bioAiProductShortName' : 'aiProductShortName',
                 summaryId: isBio ? 'bioAiProductSummary' : 'aiProductSummary',
                 categoryId: isBio ? 'bioAiProductCategory' : 'aiProductCategory',
+                baseCategoryId: isBio ? 'bioAiProductBaseCategory' : 'aiProductBaseCategory',
                 newsSelectIds: isBio ? ['bioAiProductNews1', 'bioAiProductNews2'] : ['aiProductNews1', 'aiProductNews2'],
                 relatedProductsId: isBio ? 'bioAiProductRelatedProducts' : 'aiProductRelatedProducts',
                 previewFrameId: isBio ? 'bioAiProductPreviewFrame' : 'aiProductPreviewFrame',
@@ -7036,6 +7041,17 @@
                 setCurrentDraftId: (value) => {
                     if (isBio) bioAiProductCurrentDraftId = value || '';
                     else aiProductCurrentDraftId = value || '';
+                },
+                getCurrentDraftRevision: () => isBio ? bioAiProductCurrentDraftRevision : aiProductCurrentDraftRevision,
+                setCurrentDraftRevision: (value) => {
+                    const revision = Math.max(0, Number(value) || 0);
+                    if (isBio) bioAiProductCurrentDraftRevision = revision;
+                    else aiProductCurrentDraftRevision = revision;
+                },
+                getSavePromise: () => isBio ? bioAiProductDraftSavePromise : aiProductDraftSavePromise,
+                setSavePromise: (promise) => {
+                    if (isBio) bioAiProductDraftSavePromise = promise;
+                    else aiProductDraftSavePromise = promise;
                 },
                 getSectionsData: () => isBio ? bioAiProductSectionsData : aiProductSectionsData,
                 setSectionsData: (value) => {
@@ -7139,7 +7155,8 @@
                 page_html: overrides.page_html != null ? overrides.page_html : (htmlBox?.value || ''),
                 mode: overrides.mode || config.getMode(),
                 status: overrides.status || (Object.keys(sections || {}).length ? 'generated' : 'draft'),
-                published_link: overrides.published_link || ''
+                published_link: overrides.published_link || '',
+                expected_revision: config.getCurrentDraftId() ? config.getCurrentDraftRevision() : undefined
             };
         }
 
@@ -7154,31 +7171,38 @@
         }
 
         async function saveAiProductDraftNow(config, overrides = {}) {
-            let payload = null;
-            try {
-                payload = collectAiStructuredDraftPayload(config, overrides);
-            } catch (e) {
-                setAiDraftMessage(config, e?.message || '草稿内容有误，无法同步。', '#dc2626');
-                throw e;
-            }
-            if (!hasMeaningfulAiDraft(payload)) return null;
+            const queuedSave = config.getSavePromise().catch(() => null).then(async () => {
+                let payload = null;
+                try {
+                    payload = collectAiStructuredDraftPayload(config, overrides);
+                } catch (e) {
+                    setAiDraftMessage(config, e?.message || '草稿内容有误，无法同步。', '#dc2626');
+                    throw e;
+                }
+                if (!hasMeaningfulAiDraft(payload)) return null;
 
-            const currentId = config.getCurrentDraftId();
-            const url = currentId ? `${config.apiPrefix}/ai-drafts/${encodeURIComponent(currentId)}` : `${config.apiPrefix}/ai-drafts`;
-            const method = currentId ? 'PUT' : 'POST';
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                const currentId = config.getCurrentDraftId();
+                const url = currentId ? `${config.apiPrefix}/ai-drafts/${encodeURIComponent(currentId)}` : `${config.apiPrefix}/ai-drafts`;
+                const method = currentId ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || '草稿同步失败');
+                }
+                if (data.draft?.id) {
+                    config.setCurrentDraftId(data.draft.id);
+                    config.setCurrentDraftRevision(data.draft.revision);
+                }
+                setAiDraftMessage(config, `草稿已同步 ${new Date().toLocaleTimeString()}`, '#16a34a');
+                await loadAiProductDrafts(config);
+                return data.draft || null;
             });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.success) {
-                throw new Error(data.message || '草稿同步失败');
-            }
-            if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
-            setAiDraftMessage(config, `草稿已同步 ${new Date().toLocaleTimeString()}`, '#16a34a');
-            await loadAiProductDrafts(config);
-            return data.draft || null;
+            config.setSavePromise(queuedSave);
+            return queuedSave;
         }
 
         function scheduleAiProductDraftSave(config, overrides = {}) {
@@ -7285,12 +7309,14 @@
         async function applyAiProductDraft(config, draft) {
             if (!draft) return;
             config.setCurrentDraftId(draft.id || '');
+            config.setCurrentDraftRevision(draft.revision || 0);
             const slugInput = document.getElementById(config.slugId);
             const fullInput = document.getElementById(config.fullContentId);
             const titleInput = document.getElementById(config.titleId);
             const shortNameInput = document.getElementById(config.shortNameId);
             const summaryInput = document.getElementById(config.summaryId);
             const categoryInput = document.getElementById(config.categoryId);
+            const baseCategoryInput = document.getElementById(config.baseCategoryId);
             if (config.family === 'gas') {
                 await loadAiProductIndustryCategoryOptions((draft.industryCategories || [])[0] || '');
             } else if (config.family === 'bio') {
@@ -7307,6 +7333,7 @@
             } else if (categoryInput && draft.category) {
                 categoryInput.value = draft.category;
             }
+            if (baseCategoryInput && draft.category) baseCategoryInput.value = draft.category;
             config.setImageUrls(Array.isArray(draft.image_urls) ? draft.image_urls : []);
             config.setMode(draft.mode || 'structured');
             config.renderImages();
@@ -7375,12 +7402,14 @@
 
         async function createBlankAiProductDraft(config) {
             config.setCurrentDraftId('');
+            config.setCurrentDraftRevision(0);
             const slugInput = document.getElementById(config.slugId);
             const fullInput = document.getElementById(config.fullContentId);
             const titleInput = document.getElementById(config.titleId);
             const shortNameInput = document.getElementById(config.shortNameId);
             const summaryInput = document.getElementById(config.summaryId);
             const categoryInput = document.getElementById(config.categoryId);
+            const baseCategoryInput = document.getElementById(config.baseCategoryId);
             if (slugInput) slugInput.value = '';
             if (fullInput) fullInput.value = '';
             if (titleInput) titleInput.value = '';
@@ -7388,6 +7417,7 @@
             if (summaryInput) summaryInput.value = '';
             if (categoryInput && config.family === 'gas') await loadAiProductIndustryCategoryOptions();
             if (categoryInput && config.family === 'bio') await loadBioAiProductIndustryCategoryOptions();
+            if (baseCategoryInput) baseCategoryInput.value = config.family === 'bio' ? 'sensor' : 'detector';
             config.setImageUrls([]);
             config.setMode('structured');
             config.renderImages();
@@ -7695,7 +7725,10 @@
                 config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || {});
                 setAiGeneratedHtmlOutput(data.page_html || '');
-                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
+                if (data.draft?.id) {
+                    config.setCurrentDraftId(data.draft.id);
+                    config.setCurrentDraftRevision(data.draft.revision);
+                }
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = '✓ AI 页面内容生成完成';
@@ -7774,7 +7807,10 @@
                 config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || currentSections);
                 setAiGeneratedHtmlOutput(data.page_html || '');
-                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
+                if (data.draft?.id) {
+                    config.setCurrentDraftId(data.draft.id);
+                    config.setCurrentDraftRevision(data.draft.revision);
+                }
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = '✓ AI 修改完成';
@@ -7866,7 +7902,10 @@
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.success) throw new Error(data.message || '生成失败');
                 if (data.page_html) setAiGeneratedHtmlOutput(data.page_html);
-                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
+                if (data.draft?.id) {
+                    config.setCurrentDraftId(data.draft.id);
+                    config.setCurrentDraftRevision(data.draft.revision);
+                }
 
                 if (msg) {
                     msg.style.color = '#16a34a';
@@ -7908,7 +7947,8 @@
                     if (guessed) slugInput.value = guessed;
                 });
             }
-            [fullContentInput, slugInput, titleInput, shortNameInput, summaryInput, categoryInput].forEach(el => {
+            const baseCategoryInput = document.getElementById('aiProductBaseCategory');
+            [fullContentInput, slugInput, titleInput, shortNameInput, summaryInput, baseCategoryInput, categoryInput].forEach(el => {
                 if (!el) return;
                 el.addEventListener('input', () => scheduleAiProductDraftSave(flowConfig));
                 el.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
@@ -7936,7 +7976,7 @@
                 window.__aiProductPreviewHeightBound = true;
             }
 
-            ['aiProductSlug', 'aiProductFullContent', 'aiProductTitle', 'aiProductShortName', 'aiProductSummary', 'aiProductCategory', 'aiProductFieldsJson']
+            ['aiProductSlug', 'aiProductFullContent', 'aiProductTitle', 'aiProductShortName', 'aiProductSummary', 'aiProductBaseCategory', 'aiProductCategory', 'aiProductFieldsJson']
                 .forEach(id => {
                     const el = document.getElementById(id);
                     if (!el) return;
@@ -8110,7 +8150,7 @@
                 title: title || slug || '未命名产品',
                 short_name: shortName || (slug ? slug.replace(/_/g, '-').toUpperCase() : 'UNKNOWN'),
                 slug: slug,
-                category: 'sensor',
+                category: document.getElementById('bioAiProductBaseCategory')?.value || 'sensor',
                 industryCategories: industryCategoryValue ? [industryCategoryValue] : [],
                 image_url: imageUrl,
                 detail_image_urls: imageUrls.join('\n'),
@@ -8221,7 +8261,10 @@
                 config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || {});
                 setBioAiGeneratedHtmlOutput(data.page_html || '');
-                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
+                if (data.draft?.id) {
+                    config.setCurrentDraftId(data.draft.id);
+                    config.setCurrentDraftRevision(data.draft.revision);
+                }
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = '✓ AI 页面内容生成完成';
@@ -8300,7 +8343,10 @@
                 config.setMode('structured');
                 setAiProductSectionsJson(config, data.sections || currentSections);
                 setBioAiGeneratedHtmlOutput(data.page_html || '');
-                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
+                if (data.draft?.id) {
+                    config.setCurrentDraftId(data.draft.id);
+                    config.setCurrentDraftRevision(data.draft.revision);
+                }
                 if (msg) {
                     msg.style.color = '#16a34a';
                     msg.textContent = '✓ AI 修改完成';
@@ -8392,7 +8438,10 @@
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.success) throw new Error(data.message || '生成失败');
                 if (data.page_html) setBioAiGeneratedHtmlOutput(data.page_html);
-                if (data.draft?.id) config.setCurrentDraftId(data.draft.id);
+                if (data.draft?.id) {
+                    config.setCurrentDraftId(data.draft.id);
+                    config.setCurrentDraftRevision(data.draft.revision);
+                }
 
                 if (msg) {
                     msg.style.color = '#16a34a';
@@ -8423,6 +8472,7 @@
             const shortNameInput = document.getElementById('bioAiProductShortName');
             const summaryInput = document.getElementById('bioAiProductSummary');
             const categoryInput = document.getElementById('bioAiProductCategory');
+            const baseCategoryInput = document.getElementById('bioAiProductBaseCategory');
             if (fullContentInput) {
                 fullContentInput.addEventListener('input', () => {
                     const parsed = aiParseProductFromFullText(fullContentInput.value || '');
@@ -8434,7 +8484,7 @@
                     if (guessed) slugInput.value = guessed;
                 });
             }
-            [fullContentInput, slugInput, titleInput, shortNameInput, summaryInput, categoryInput].forEach(el => {
+            [fullContentInput, slugInput, titleInput, shortNameInput, summaryInput, baseCategoryInput, categoryInput].forEach(el => {
                 if (!el) return;
                 el.addEventListener('input', () => scheduleAiProductDraftSave(flowConfig));
                 el.addEventListener('change', () => scheduleAiProductDraftSave(flowConfig));
@@ -8462,7 +8512,7 @@
                 window.__aiProductPreviewHeightBound = true;
             }
 
-            ['bioAiProductSlug', 'bioAiProductFullContent', 'bioAiProductTitle', 'bioAiProductShortName', 'bioAiProductSummary', 'bioAiProductCategory', 'bioAiProductFieldsJson']
+            ['bioAiProductSlug', 'bioAiProductFullContent', 'bioAiProductTitle', 'bioAiProductShortName', 'bioAiProductSummary', 'bioAiProductBaseCategory', 'bioAiProductCategory', 'bioAiProductFieldsJson']
                 .forEach(id => {
                     const el = document.getElementById(id);
                     if (!el) return;

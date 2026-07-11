@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import os
 import re
 import threading
 import time
@@ -74,6 +75,8 @@ from flask import (
     session,
     stream_with_context,
 )
+
+from app.request_security import validate_safe_remote_fetch_url
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
@@ -856,16 +859,18 @@ def sanitize_ai_api_base_url(raw_url: str) -> str:
     elif "." not in hostname:
         return ""
 
-    return parsed._replace(fragment="").geturl()
+    normalized = parsed._replace(fragment="").geturl().rstrip("/")
+    ok, _, safe_url = validate_safe_remote_fetch_url(normalized)
+    return safe_url.rstrip("/") if ok else ""
 
 
 def get_chatbot_config():
     """从共享站点配置中读取聊天机器人配置。"""
     config = _dep("get_config")()
     return {
-        "api_key": config.get("chatbot_api_key", ""),
-        "api_base": config.get("chatbot_api_base", "https://api.openai.com/v1"),
-        "model": config.get("chatbot_model", "gpt-3.5-turbo"),
+        "api_key": (os.environ.get("CHATBOT_API_KEY") or config.get("chatbot_api_key", "")),
+        "api_base": (os.environ.get("CHATBOT_API_BASE") or config.get("chatbot_api_base", "https://api.openai.com/v1")),
+        "model": (os.environ.get("CHATBOT_MODEL") or config.get("chatbot_model", "gpt-3.5-turbo")),
         "enabled": config.get("chatbot_enabled", True),
     }
 
@@ -875,9 +880,9 @@ def get_product_page_ai_config():
     config = _dep("get_config")()
     return {
         "enabled": config.get("product_ai_enabled", False),
-        "api_key": config.get("product_ai_api_key", ""),
-        "api_base": config.get("product_ai_api_base", "https://api.openai.com/v1"),
-        "model": config.get("product_ai_model", "gpt-4o-mini"),
+        "api_key": (os.environ.get("PRODUCT_AI_API_KEY") or config.get("product_ai_api_key", "")),
+        "api_base": (os.environ.get("PRODUCT_AI_API_BASE") or config.get("product_ai_api_base", "https://api.openai.com/v1")),
+        "model": (os.environ.get("PRODUCT_AI_MODEL") or config.get("product_ai_model", "gpt-4o-mini")),
     }
 
 
@@ -2927,7 +2932,7 @@ def register_ai_chatbot_routes(
     @app.route("/api/product-ai/config", methods=["GET"])
     @login_required
     def get_product_ai_config_api():
-        denied = _require_chatbot_admin_api()
+        denied = _dep("require_super_admin_api")()
         if denied:
             return denied
         config = get_product_page_ai_config()
@@ -2942,7 +2947,7 @@ def register_ai_chatbot_routes(
     @app.route("/api/product-ai/config", methods=["POST"])
     @login_required
     def update_product_ai_config():
-        denied = _require_chatbot_admin_api()
+        denied = _dep("require_super_admin_api")()
         if denied:
             return denied
         data = request.json or {}
@@ -2955,6 +2960,11 @@ def register_ai_chatbot_routes(
             updates["product_ai_api_key"] = str(data["api_key"]).strip()
         if "api_base" in data:
             safe_api_base = sanitize_ai_api_base_url(data["api_base"])
+            if not safe_api_base:
+                current_api_base = str(get_product_page_ai_config().get("api_base") or "").rstrip("/")
+                submitted_api_base = str(data.get("api_base") or "").strip().rstrip("/")
+                if submitted_api_base and submitted_api_base == current_api_base:
+                    safe_api_base = current_api_base
             if not safe_api_base:
                 return jsonify(
                     {

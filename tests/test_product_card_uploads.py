@@ -8,7 +8,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, session
 
-from app.routes.product_settings import register_product_settings_routes
+from app.routes.product_settings import MAX_PRODUCT_CARD_IMAGE_BYTES, register_product_settings_routes
 from app.upload_utils import validate_uploaded_image_extension
 
 
@@ -80,6 +80,17 @@ class ProductCardUploadTests(unittest.TestCase):
         self.assertTrue((self.cdn_assets / bio_data["url"].replace("/cdn_assets/", "")).exists())
 
         self.assertEqual(list(self.legacy_uploads.iterdir()), [])
+
+    def test_product_card_upload_rejects_oversized_file(self):
+        oversized = BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * (MAX_PRODUCT_CARD_IMAGE_BYTES + 1))
+        response = self.client.post(
+            "/api/products/card-image/upload",
+            data={"file": (oversized, "oversized.png")},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 413)
+        self.assertIn("10MB", response.get_json()["message"])
+        self.assertEqual(list((self.cdn_assets / "images" / "gassensing").glob("*")), [])
 
 
 if __name__ == "__main__":

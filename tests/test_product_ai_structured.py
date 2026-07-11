@@ -154,6 +154,7 @@ class ProductAiStructuredTests(unittest.TestCase):
         app.secret_key = "test-secret"
         self.product_settings = {}
         self.bio_product_settings = {}
+        self.cache_invalidations = 0
 
         def login_required(fn):
             @wraps(fn)
@@ -184,6 +185,9 @@ class ProductAiStructuredTests(unittest.TestCase):
         def infer_test_ai_image_extension_from_mime(mime):
             return ".png" if str(mime or "").split(";")[0].strip().lower() == "image/png" else ""
 
+        def invalidate_products_cache():
+            self.cache_invalidations += 1
+
         pe.register_product_editor_routes(
             app,
             login_required=login_required,
@@ -210,6 +214,7 @@ class ProductAiStructuredTests(unittest.TestCase):
             normalize_ai_product_image_extension=normalize_test_ai_image_extension,
             infer_ai_product_image_extension_from_mime=infer_test_ai_image_extension_from_mime,
             allowed_ai_product_image_mime_types={"image/png"},
+            invalidate_products_cache=invalidate_products_cache,
         )
         self.app = app
         self.client = app.test_client()
@@ -218,11 +223,12 @@ class ProductAiStructuredTests(unittest.TestCase):
         pe.call_openai_api_sync_with_custom_config = self._original_call
         self.tmp.cleanup()
 
-    def _login(self, *, super_admin=True):
+    def _login(self, *, super_admin=True, username="admin", permissions=None):
         with self.client.session_transaction() as sess:
             sess["admin_logged_in"] = True
-            sess["admin_username"] = "admin"
+            sess["admin_username"] = username
             sess["admin_is_super_admin"] = super_admin
+            sess["admin_permissions"] = list(permissions or (["products", "bio-products"] if not super_admin else []))
 
     def _sample_sections(self):
         return {
@@ -264,11 +270,43 @@ class ProductAiStructuredTests(unittest.TestCase):
         updated = self.client.put(f"/api/products/ai-drafts/{draft['id']}", json={"title": "更新后草稿"})
         self.assertEqual(updated.status_code, 200)
         self.assertEqual(updated.get_json()["draft"]["title"], "更新后草稿")
+        revision = updated.get_json()["draft"]["revision"]
+        conflict = self.client.put(
+            f"/api/products/ai-drafts/{draft['id']}",
+            json={"title": "过期覆盖", "expected_revision": revision - 1},
+        )
+        self.assertEqual(conflict.status_code, 409)
+        self.assertEqual(conflict.get_json()["current_revision"], revision)
 
         self.assertEqual(self.client.get("/api/products/ai-drafts/bad").status_code, 400)
         deleted = self.client.delete(f"/api/products/ai-drafts/{draft['id']}")
         self.assertEqual(deleted.status_code, 200)
         self.assertEqual(self.client.get("/api/products/ai-drafts").get_json()["count"], 0)
+
+    def test_drafts_are_isolated_by_owner_and_product_permission(self):
+        self._login(super_admin=False, username="alice", permissions=["products"])
+        created = self.client.post("/api/products/ai-drafts", json={
+            "slug": "private_draft",
+            "title": "Alice 草稿",
+            "source_text": "内部产品资料",
+            "sections": self._sample_sections(),
+        })
+        self.assertEqual(created.status_code, 200)
+        draft = created.get_json()["draft"]
+        self.assertEqual(draft["owner"], "alice")
+
+        self._login(super_admin=False, username="bob", permissions=["products"])
+        self.assertEqual(self.client.get("/api/products/ai-drafts").get_json()["count"], 0)
+        self.assertEqual(self.client.get(f"/api/products/ai-drafts/{draft['id']}").status_code, 404)
+        self.assertEqual(self.client.put(f"/api/products/ai-drafts/{draft['id']}", json={"title": "篡改"}).status_code, 404)
+
+        self._login(super_admin=False, username="charlie", permissions=["messages"])
+        self.assertEqual(self.client.get("/api/products/ai-drafts").status_code, 403)
+
+        self._login(super_admin=True, username="root")
+        visible = self.client.get(f"/api/products/ai-drafts/{draft['id']}")
+        self.assertEqual(visible.status_code, 200)
+        self.assertEqual(visible.get_json()["draft"]["source_text"], "内部产品资料")
 
     def test_render_product_page_from_sections(self):
         self._login()
@@ -287,6 +325,31 @@ class ProductAiStructuredTests(unittest.TestCase):
         self.assertIn("0-1000 ppm", page_html)
         self.assertIn("mc_ld_h2.html", page_html)
         self.assertIn("MC_PRODUCT_ADMIN_DATA:", page_html)
+
+    def test_structured_product_urls_reject_xss_protocols_and_event_breakout(self):
+        sections = self._sample_sections()
+        sections["images"] = ["x');alert(document.domain);//", "/assets/test-product.png"]
+        sections["news"] = [{
+            "href": "javascript:alert(document.domain)",
+            "img": "data:image/svg+xml,<svg onload=alert(1)>",
+            "title": "恶意新闻",
+            "desc": "测试",
+        }]
+        sections["related_products"] = [{
+            "href": "vbscript:msgbox(1)",
+            "img": "file:///etc/passwd",
+            "title": "恶意产品",
+        }]
+
+        normalized = pe._normalize_product_sections(sections)
+        rendered = pe.patch_vs_product_sections(REFERENCE_HTML, normalized)
+
+        self.assertNotIn("javascript:", rendered.lower())
+        self.assertNotIn("vbscript:", rendered.lower())
+        self.assertNotIn("data:image", rendered.lower())
+        self.assertNotIn("alert(document.domain)", rendered)
+        self.assertIn('data-image-src="/assets/test-product.png"', rendered)
+        self.assertIn('onclick="changeImage(this, this.dataset.imageSrc)"', rendered)
 
     def test_responsive_guards_preserve_tablet_hero_grid(self):
         html = """<!DOCTYPE html>
@@ -370,6 +433,7 @@ class ProductAiStructuredTests(unittest.TestCase):
         self.assertEqual(created.status_code, 200)
         self.assertTrue((self.root / "pages" / "gassensing" / "mc_test_product.html").exists())
         self.assertEqual(self.product_settings["mc_test_product"]["industryCategories"], ["hydrogen", "leak"])
+        self.assertGreater(self.cache_invalidations, 0)
 
         duplicate = self.client.post("/api/products/ai-create-from-sections", json=payload)
         self.assertEqual(duplicate.status_code, 409)
@@ -474,6 +538,40 @@ class ProductAiStructuredTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 403)
 
+    def test_create_html_rejects_active_content(self):
+        self._login(super_admin=True)
+        response = self.client.post("/api/products/ai-create-html", json={
+            "title": "危险源码产品",
+            "short_name": "UNSAFE",
+            "category": "detector",
+            "slug": "unsafe_html_product",
+            "summary": "危险源码测试",
+            "page_html": "<!DOCTYPE html><html><body><script>alert(document.domain)</script></body></html>",
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("危险内容", response.get_json()["message"])
+        self.assertFalse((self.root / "pages" / "gassensing" / "unsafe_html_product.html").exists())
+
+    def test_publish_rolls_back_page_when_settings_save_fails(self):
+        self._login(super_admin=True)
+        original_save = pe._DEPS["save_product_settings"]
+        pe._DEPS["save_product_settings"] = lambda _settings: (_ for _ in ()).throw(RuntimeError("disk failure"))
+        try:
+            response = self.client.post("/api/products/ai-create-from-sections", json={
+                "title": "回滚测试产品",
+                "short_name": "ROLLBACK",
+                "category": "module",
+                "slug": "rollback_product",
+                "summary": "测试发布回滚",
+                "industryCategories": ["hydrogen"],
+                "sections": self._sample_sections(),
+            })
+        finally:
+            pe._DEPS["save_product_settings"] = original_save
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("已回滚", response.get_json()["message"])
+        self.assertFalse((self.root / "pages" / "gassensing" / "rollback_product.html").exists())
+
     def test_ai_upload_images_limits_count_size_and_format(self):
         self._login()
         uploaded = self.client.post(
@@ -488,6 +586,23 @@ class ProductAiStructuredTests(unittest.TestCase):
         uploaded_data = uploaded.get_json()
         self.assertEqual(uploaded_data["urls"], ["/cdn_assets/images/gassensing/UPLOAD-OK/upload-ok-product-01.png"])
         self.assertTrue((self.root / "cdn_assets" / "images" / "gassensing" / "UPLOAD-OK" / "upload-ok-product-01.png").exists())
+
+        traversal = self.client.post(
+            "/api/products/ai-upload-images",
+            data={
+                "slug": "safe_folder",
+                "short_name": "..",
+                "files": [(BytesIO(b"\x89PNG\r\n\x1a\nsafe"), "safe.png")],
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(traversal.status_code, 200)
+        traversal_data = traversal.get_json()
+        self.assertEqual(
+            traversal_data["urls"],
+            ["/cdn_assets/images/gassensing/SAFE-FOLDER/safe-folder-product-01.png"],
+        )
+        self.assertFalse((self.root / "cdn_assets" / "images" / "safe-folder-product-01.png").exists())
 
         bio_uploaded = self.client.post(
             "/api/bio-products/ai-upload-images",

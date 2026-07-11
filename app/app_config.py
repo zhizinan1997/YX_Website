@@ -139,6 +139,11 @@ def create_app():
     # 后台页面和模板查找行为与拆分前保持一致。
     flask_app = Flask(__name__, static_folder=None, root_path=str(APP_ROOT))
     flask_app.secret_key = load_or_create_secret_key()
+    try:
+        max_upload_bytes = int((os.environ.get('MAX_CONTENT_LENGTH') or str(128 * 1024 * 1024)).strip())
+    except Exception:
+        max_upload_bytes = 128 * 1024 * 1024
+    flask_app.config['MAX_CONTENT_LENGTH'] = max(10 * 1024 * 1024, max_upload_bytes)
     flask_app.config['SESSION_COOKIE_HTTPONLY'] = True
     flask_app.config['SESSION_COOKIE_SAMESITE'] = (os.environ.get('SESSION_COOKIE_SAMESITE') or 'Lax').strip() or 'Lax'
     flask_app.config['SESSION_COOKIE_PERMANENT'] = False

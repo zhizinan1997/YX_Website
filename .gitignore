@@ -35,6 +35,7 @@ tmp_*.html
 
 # Runtime generated files
 /data/.flask_secret_key
+/data/.*.lock
 /data/config.json
 /data/admin_login_attempts.json
 /data/admin_login_logs.json
