@@ -127,89 +127,6 @@
             linux: { label: 'Linux', icon: 'fab fa-linux' },
             unknown: { label: '未知', icon: 'fas fa-question-circle' }
         };
-        const CHINA_PROVINCE_SVG_URL = '/assets/vendor/svg-maps/china.svg';
-        const CHINA_PROVINCE_SVG_IDS = {
-            '安徽省': 'anhui',
-            '北京市': 'beijing',
-            '重庆市': 'chongqing',
-            '福建省': 'fujian',
-            '甘肃省': 'gansu',
-            '广东省': 'guangdong',
-            '广西壮族自治区': 'guangxi-zhuang',
-            '贵州省': 'guizhou',
-            '海南省': 'hainan',
-            '河北省': 'hebei',
-            '黑龙江省': 'heilongjiang',
-            '河南省': 'henan',
-            '香港特别行政区': 'hong-kong',
-            '湖北省': 'hubei',
-            '湖南省': 'hunan',
-            '江苏省': 'jiangsu',
-            '江西省': 'jiangxi',
-            '吉林省': 'jilin',
-            '辽宁省': 'liaoning',
-            '澳门特别行政区': 'macau',
-            '内蒙古自治区': 'nei-mongol',
-            '宁夏回族自治区': 'ningxia-hui',
-            '青海省': 'quinghai',
-            '陕西省': 'shaanxi',
-            '山东省': 'shandong',
-            '上海市': 'shanghai',
-            '山西省': 'shanxi',
-            '四川省': 'sichuan',
-            '台湾省': 'taiwan',
-            '天津市': 'tianjin',
-            '新疆维吾尔自治区': 'xinjiang-uygur',
-            '西藏自治区': 'xizang',
-            '云南省': 'yunnan',
-            '浙江省': 'zhejiang'
-        };
-        const CHINA_PROVINCE_SVG_EXTRA_PATHS = {
-            taiwan: {
-                ariaLabel: '台湾',
-                // SVG source lacks Taiwan; inject a coastline-based outline here.
-                d: 'M 596.57 509.90 L 597.77 511.12 L 598.45 512.98 L 598.55 516.20 L 599.03 517.84 L 600.50 518.50 L 601.69 508.53 L 602.18 506.62 L 603.88 504.76 L 605.96 499.09 L 605.83 498.18 L 608.14 485.62 L 607.99 484.22 L 609.57 480.49 L 610.29 477.53 L 609.90 472.78 L 611.50 470.24 L 610.88 469.76 L 610.59 468.12 L 608.94 467.76 L 607.41 465.50 L 606.08 466.10 L 605.38 467.82 L 602.08 469.68 L 600.82 473.91 L 598.88 476.51 L 594.66 488.28 L 593.99 488.80 L 593.29 490.44 L 593.35 496.00 L 592.50 500.15 L 593.60 501.27 L 594.94 508.07 Z'
-            }
-        };
-        let chinaProvinceSvgPromise = null;
-        let chinaProvinceMapRenderToken = 0;
-        const CHINA_PROVINCE_TILES = [
-            { name: '新疆维吾尔自治区', short: '新疆', x: 0, y: 1, w: 2 },
-            { name: '西藏自治区', short: '西藏', x: 1, y: 5, w: 2 },
-            { name: '青海省', short: '青海', x: 3, y: 4 },
-            { name: '甘肃省', short: '甘肃', x: 4, y: 3 },
-            { name: '宁夏回族自治区', short: '宁夏', x: 5, y: 3 },
-            { name: '内蒙古自治区', short: '内蒙古', x: 5, y: 1, w: 2 },
-            { name: '黑龙江省', short: '黑龙江', x: 10, y: 0, w: 2 },
-            { name: '吉林省', short: '吉林', x: 10, y: 1 },
-            { name: '辽宁省', short: '辽宁', x: 9, y: 2 },
-            { name: '北京市', short: '北京', x: 8, y: 3 },
-            { name: '天津市', short: '天津', x: 9, y: 3 },
-            { name: '河北省', short: '河北', x: 8, y: 4 },
-            { name: '山西省', short: '山西', x: 7, y: 4 },
-            { name: '陕西省', short: '陕西', x: 5, y: 4 },
-            { name: '山东省', short: '山东', x: 10, y: 4 },
-            { name: '河南省', short: '河南', x: 7, y: 5 },
-            { name: '江苏省', short: '江苏', x: 10, y: 5 },
-            { name: '上海市', short: '上海', x: 11, y: 6 },
-            { name: '安徽省', short: '安徽', x: 9, y: 6 },
-            { name: '湖北省', short: '湖北', x: 7, y: 6 },
-            { name: '浙江省', short: '浙江', x: 10, y: 7 },
-            { name: '福建省', short: '福建', x: 10, y: 8 },
-            { name: '江西省', short: '江西', x: 8, y: 7 },
-            { name: '湖南省', short: '湖南', x: 7, y: 7 },
-            { name: '重庆市', short: '重庆', x: 5, y: 6 },
-            { name: '四川省', short: '四川', x: 4, y: 6 },
-            { name: '贵州省', short: '贵州', x: 5, y: 7 },
-            { name: '云南省', short: '云南', x: 3, y: 8 },
-            { name: '广西壮族自治区', short: '广西', x: 6, y: 9 },
-            { name: '广东省', short: '广东', x: 8, y: 9 },
-            { name: '海南省', short: '海南', x: 8, y: 11 },
-            { name: '台湾省', short: '台湾', x: 11, y: 9 },
-            { name: '香港特别行政区', short: '香港', x: 9, y: 10 },
-            { name: '澳门特别行政区', short: '澳门', x: 8, y: 10 }
-        ];
-
         function updateTopbarAccountDisplay() {
             const usernameEl = document.getElementById('topbarUsername');
             const menuUsernameEl = document.getElementById('accountMenuUsername');
@@ -2779,383 +2696,6 @@
             return value;
         }
 
-        function getSiteReportMapColor(value, maxValue) {
-            const current = Math.max(0, Number(value || 0));
-            const max = Math.max(1, Number(maxValue || 0));
-            if (!current) return '#e5edf7';
-            const ratio = Math.min(1, current / max);
-            if (ratio < 0.2) return '#d8e7fb';
-            if (ratio < 0.4) return '#b9d3f7';
-            if (ratio < 0.6) return '#8fb8f1';
-            if (ratio < 0.8) return '#5d95e7';
-            return '#2563eb';
-        }
-
-        const WORLD_CONTINENT_PANELS = {
-            west: {
-                containerId: 'worldMapWestContainer',
-                ariaLabel: '世界地图西半球访问热度图',
-                footnote: '按中国以外访客会话聚合到洲，颜色越深表示热度越高。',
-                continents: [
-                    {
-                        key: 'north-america',
-                        label: '北美洲',
-                        short: '北美',
-                        path: 'M58 66 C73 47 101 41 123 46 C141 51 161 56 172 71 C180 82 178 94 166 102 C157 108 151 120 137 123 C125 126 112 122 100 129 C86 137 67 136 56 124 C46 113 42 96 45 82 C47 75 51 70 58 66 Z',
-                        labelX: 110,
-                        labelY: 92,
-                        valueX: 110,
-                        valueY: 107,
-                    },
-                    {
-                        key: 'south-america',
-                        label: '南美洲',
-                        short: '南美',
-                        path: 'M119 149 C134 147 147 154 154 166 C161 177 159 190 153 200 C148 209 146 221 145 234 C143 248 135 263 124 271 C117 276 110 273 107 264 C102 250 98 236 90 224 C84 214 82 201 86 191 C91 177 103 158 119 149 Z',
-                        labelX: 118,
-                        labelY: 211,
-                        valueX: 118,
-                        valueY: 226,
-                    },
-                ],
-            },
-            east: {
-                containerId: 'worldMapEastContainer',
-                ariaLabel: '世界地图东半球访问热度图',
-                footnote: '按中国以外访客会话聚合到洲，颜色越深表示热度越高。',
-                continents: [
-                    {
-                        key: 'europe',
-                        label: '欧洲',
-                        short: '欧洲',
-                        path: 'M63 70 C70 61 82 57 94 60 C105 63 112 71 112 81 C112 88 104 94 94 94 C84 94 74 90 67 84 C62 80 60 75 63 70 Z',
-                        labelX: 89,
-                        labelY: 79,
-                        valueX: 89,
-                        valueY: 94,
-                    },
-                    {
-                        key: 'africa',
-                        label: '非洲',
-                        short: '非洲',
-                        path: 'M86 114 C99 109 114 113 124 124 C132 133 134 146 130 159 C126 174 124 188 118 201 C111 214 98 223 88 218 C79 214 76 202 74 190 C71 174 63 163 63 149 C63 132 71 120 86 114 Z',
-                        labelX: 97,
-                        labelY: 164,
-                        valueX: 97,
-                        valueY: 179,
-                    },
-                    {
-                        key: 'asia',
-                        label: '亚洲',
-                        short: '亚洲',
-                        path: 'M116 60 C134 45 165 45 190 53 C207 59 218 74 219 92 C221 107 213 121 199 130 C187 138 179 151 166 159 C151 168 132 169 116 161 C102 154 96 140 94 126 C91 110 95 92 101 79 C104 72 109 66 116 60 Z',
-                        labelX: 160,
-                        labelY: 107,
-                        valueX: 160,
-                        valueY: 122,
-                    },
-                    {
-                        key: 'oceania',
-                        label: '大洋洲',
-                        short: '大洋',
-                        path: 'M178 207 C187 201 200 201 208 208 C214 214 214 223 208 228 C201 235 189 238 179 234 C172 231 169 224 171 217 C172 213 174 210 178 207 Z',
-                        labelX: 191,
-                        labelY: 219,
-                        valueX: 191,
-                        valueY: 234,
-                    },
-                ],
-            },
-        };
-
-        function loadChinaProvinceSvgMarkup() {
-            if (!chinaProvinceSvgPromise) {
-                chinaProvinceSvgPromise = fetch(CHINA_PROVINCE_SVG_URL, { cache: 'force-cache' })
-                    .then((response) => {
-                        if (!response.ok) throw new Error(`china svg http ${response.status}`);
-                        return response.text();
-                    });
-            }
-            return chinaProvinceSvgPromise;
-        }
-
-        function buildHeatMapLegendHtml(footnoteText, tooltipId = '') {
-            const tooltipAttr = tooltipId ? ` id="${escapeHtml(tooltipId)}"` : '';
-            return `
-                <div class="china-map-legend">
-                    <span class="china-map-legend-label">低</span>
-                    <div class="china-map-legend-bar" aria-hidden="true">
-                        <span style="background:#e5edf7"></span>
-                        <span style="background:#d8e7fb"></span>
-                        <span style="background:#b9d3f7"></span>
-                        <span style="background:#8fb8f1"></span>
-                        <span style="background:#5d95e7"></span>
-                        <span style="background:#2563eb"></span>
-                    </div>
-                    <span class="china-map-legend-label">高</span>
-                </div>
-                <div class="china-map-footnote">${escapeHtml(footnoteText)}</div>
-                <div class="china-map-tooltip"${tooltipAttr}></div>
-            `;
-        }
-
-        function buildChinaProvinceMapLegendHtml() {
-            return buildHeatMapLegendHtml('按中国省级行政区聚合访问会话数，颜色越深表示热度越高。', 'chinaMapTooltip');
-        }
-
-        function ensureChinaProvinceSvgExtraPaths(svgEl) {
-            if (!svgEl) return;
-            const svgNs = 'http://www.w3.org/2000/svg';
-            const svgDoc = svgEl.ownerDocument || document;
-            Object.entries(CHINA_PROVINCE_SVG_EXTRA_PATHS).forEach(([pathId, config]) => {
-                if (svgEl.querySelector(`[id="${pathId}"]`)) return;
-                const pathEl = svgDoc.createElementNS(svgNs, 'path');
-                pathEl.setAttribute('id', pathId);
-                pathEl.setAttribute('aria-label', config.ariaLabel || pathId);
-                pathEl.setAttribute('d', config.d);
-                if (config.transform) {
-                    pathEl.setAttribute('transform', config.transform);
-                }
-                pathEl.setAttribute('stroke-linejoin', 'round');
-                pathEl.setAttribute('stroke-linecap', 'round');
-                svgEl.appendChild(pathEl);
-            });
-        }
-
-        function bindChinaProvinceMapTooltip(mapWrap) {
-            const tooltip = mapWrap.querySelector('#chinaMapTooltip');
-            if (!tooltip) return;
-            const regions = mapWrap.querySelectorAll('[data-province]');
-            regions.forEach((region) => {
-                const province = String(region.getAttribute('data-province') || '').trim();
-                const sessions = Number(region.getAttribute('data-sessions') || 0);
-                const ratio = Number(region.getAttribute('data-ratio') || 0);
-                region.addEventListener('mousemove', (event) => {
-                    const bounds = mapWrap.getBoundingClientRect();
-                    tooltip.textContent = `${province}: ${formatSiteReportNumber(sessions)} 次会话 (${formatSiteReportPercent(ratio)})`;
-                    tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
-                    tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
-                    tooltip.classList.add('visible');
-                });
-                region.addEventListener('mouseleave', () => {
-                    tooltip.classList.remove('visible');
-                });
-            });
-        }
-
-        function bindWorldContinentMapTooltip(mapWrap) {
-            const tooltip = mapWrap.querySelector('.china-map-tooltip');
-            if (!tooltip) return;
-            const regions = mapWrap.querySelectorAll('[data-continent]');
-            regions.forEach((region) => {
-                const continent = String(region.getAttribute('data-continent') || '').trim();
-                const sessions = Number(region.getAttribute('data-sessions') || 0);
-                const ratio = Number(region.getAttribute('data-ratio') || 0);
-                region.addEventListener('mousemove', (event) => {
-                    const bounds = mapWrap.getBoundingClientRect();
-                    tooltip.textContent = `${continent}: ${formatSiteReportNumber(sessions)} 次会话 (${formatSiteReportPercent(ratio)})`;
-                    tooltip.style.left = `${event.clientX - bounds.left + 14}px`;
-                    tooltip.style.top = `${event.clientY - bounds.top + 14}px`;
-                    tooltip.classList.add('visible');
-                });
-                region.addEventListener('mouseleave', () => {
-                    tooltip.classList.remove('visible');
-                });
-            });
-        }
-
-        function buildWorldContinentSummaryHtml(continentDefs, continentMap) {
-            return `
-                <div class="world-map-summary">
-                    ${continentDefs.map((continentDef) => {
-                        const item = continentMap[continentDef.key] || { sessions: 0, ratio: 0, continent: continentDef.label };
-                        return `
-                            <div class="world-map-summary-item">
-                                <div class="world-map-summary-name">${escapeHtml(continentDef.label)}</div>
-                                <div class="world-map-summary-metrics">
-                                    <strong>${formatSiteReportNumber(item.sessions)}</strong>
-                                    <span>${formatSiteReportPercent(item.ratio)}</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        }
-
-        function renderWorldContinentPanel(panelKey, continentMap, maxValue) {
-            const panel = WORLD_CONTINENT_PANELS[panelKey];
-            if (!panel) return;
-            const mapWrap = document.getElementById(panel.containerId);
-            if (!mapWrap) return;
-
-            const shapesHtml = panel.continents.map((continentDef) => {
-                const item = continentMap[continentDef.key] || { sessions: 0, ratio: 0, continent: continentDef.label };
-                const fill = getSiteReportMapColor(item.sessions, maxValue);
-                const title = `${continentDef.label}：${formatSiteReportNumber(item.sessions)} 次会话，占比 ${formatSiteReportPercent(item.ratio)}`;
-                return `
-                    <g class="world-map-continent-group">
-                        <path d="${continentDef.path}" fill="${fill}" data-continent="${escapeHtml(continentDef.label)}" data-sessions="${item.sessions}" data-ratio="${Number(item.ratio || 0).toFixed(2)}">
-                            <title>${escapeHtml(title)}</title>
-                        </path>
-                        <text class="world-map-label" x="${continentDef.labelX}" y="${continentDef.labelY}" text-anchor="middle">${escapeHtml(continentDef.short)}</text>
-                        <text class="world-map-value" x="${continentDef.valueX}" y="${continentDef.valueY}" text-anchor="middle">${escapeHtml(formatSiteReportNumber(item.sessions))}</text>
-                    </g>
-                `;
-            }).join('');
-
-            mapWrap.innerHTML = `
-                <svg class="world-map-svg" viewBox="0 0 260 280" role="img" aria-label="${panel.ariaLabel}">
-                    <ellipse class="world-map-globe-bg" cx="130" cy="140" rx="108" ry="122"></ellipse>
-                    <ellipse class="world-map-globe-guide" cx="130" cy="140" rx="78" ry="122"></ellipse>
-                    <ellipse class="world-map-globe-guide" cx="130" cy="140" rx="46" ry="122"></ellipse>
-                    <line class="world-map-globe-guide" x1="22" y1="140" x2="238" y2="140"></line>
-                    ${shapesHtml}
-                </svg>
-                ${buildWorldContinentSummaryHtml(panel.continents, continentMap)}
-                ${buildHeatMapLegendHtml(panel.footnote)}
-            `;
-            bindWorldContinentMapTooltip(mapWrap);
-        }
-
-        function renderWorldContinentHeatMaps(rawRows) {
-            const westWrap = document.getElementById(WORLD_CONTINENT_PANELS.west.containerId);
-            const eastWrap = document.getElementById(WORLD_CONTINENT_PANELS.east.containerId);
-            if (!westWrap && !eastWrap) return;
-            const rows = Array.isArray(rawRows) ? rawRows : [];
-            const normalizedRows = rows.map((item) => ({
-                key: String(item?.continent_key || '').trim(),
-                continent: String(item?.continent || '').trim(),
-                sessions: Math.max(0, Number(item?.sessions || 0)),
-                ratio: Number(item?.ratio || 0),
-            })).filter(item => item.key);
-
-            if (!normalizedRows.length) {
-                const noDataHtml = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
-                if (westWrap) westWrap.innerHTML = noDataHtml;
-                if (eastWrap) eastWrap.innerHTML = noDataHtml;
-                return;
-            }
-
-            const continentMap = {};
-            normalizedRows.forEach((item) => {
-                continentMap[item.key] = item;
-            });
-            const maxValue = Math.max(1, ...normalizedRows.map(item => item.sessions));
-            renderWorldContinentPanel('west', continentMap, maxValue);
-            renderWorldContinentPanel('east', continentMap, maxValue);
-        }
-
-        function renderChinaProvinceTileHeatMap(normalizedRows) {
-            const mapWrap = document.getElementById('chinaMapContainer');
-            if (!mapWrap) return;
-            const provinceMap = {};
-            normalizedRows.forEach((item) => {
-                provinceMap[item.name] = item;
-            });
-
-            const maxValue = Math.max(1, ...normalizedRows.map(item => item.sessions));
-            const tileWidth = 54;
-            const tileHeight = 34;
-            const gap = 8;
-            const cols = 13;
-            const rowsCount = 12;
-            const width = cols * tileWidth + (cols - 1) * gap + 24;
-            const height = rowsCount * tileHeight + (rowsCount - 1) * gap + 24;
-
-            const tilesHtml = CHINA_PROVINCE_TILES.map((tile) => {
-                const item = provinceMap[tile.name] || { sessions: 0, ratio: 0 };
-                const tileX = 12 + tile.x * (tileWidth + gap);
-                const tileY = 12 + tile.y * (tileHeight + gap);
-                const tileW = (tile.w || 1) * tileWidth + Math.max(0, (tile.w || 1) - 1) * gap;
-                const fill = getSiteReportMapColor(item.sessions, maxValue);
-                const title = `${tile.name}：${formatSiteReportNumber(item.sessions)} 次会话，占比 ${formatSiteReportPercent(item.ratio)}`;
-                return `
-                    <g class="china-map-province" data-province="${escapeHtml(tile.name)}" data-sessions="${item.sessions}" data-ratio="${Number(item.ratio || 0).toFixed(2)}">
-                        <title>${escapeHtml(title)}</title>
-                        <rect x="${tileX}" y="${tileY}" width="${tileW}" height="${tileHeight}" rx="10" ry="10" fill="${fill}" data-province="${escapeHtml(tile.name)}"></rect>
-                        <text class="china-map-tile-label" x="${(tileX + tileW / 2).toFixed(2)}" y="${(tileY + tileHeight / 2 + 3).toFixed(2)}" text-anchor="middle">${escapeHtml(tile.short)}</text>
-                    </g>
-                `;
-            }).join('');
-
-            mapWrap.innerHTML = `
-                <svg class="china-map-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="中国省份访问热度图">
-                    ${tilesHtml}
-                </svg>
-                ${buildChinaProvinceMapLegendHtml()}
-            `;
-
-            bindChinaProvinceMapTooltip(mapWrap);
-        }
-
-        function renderChinaProvinceHeatMap(rawRows) {
-            const mapWrap = document.getElementById('chinaMapContainer');
-            if (!mapWrap) return;
-            const rows = Array.isArray(rawRows) ? rawRows : [];
-            const normalizedRows = rows.map((item) => ({
-                name: normalizeProvinceName(item?.province || item?.name || ''),
-                sessions: Math.max(0, Number(item?.sessions || item?.value || 0)),
-                ratio: Number(item?.ratio || 0)
-            })).filter(item => item.name);
-
-            if (!normalizedRows.length) {
-                mapWrap.innerHTML = '<div class="china-map-no-data">暂无地理分布数据</div>';
-                return;
-            }
-
-            const provinceMap = {};
-            normalizedRows.forEach((item) => {
-                provinceMap[item.name] = item;
-            });
-            const maxValue = Math.max(1, ...normalizedRows.map(item => item.sessions));
-            const renderToken = ++chinaProvinceMapRenderToken;
-
-            mapWrap.innerHTML = '<div class="china-map-no-data">中国地图加载中...</div>';
-
-            loadChinaProvinceSvgMarkup()
-                .then((svgMarkup) => {
-                    if (renderToken !== chinaProvinceMapRenderToken) return;
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(svgMarkup, 'image/svg+xml');
-                    const svgEl = doc.documentElement;
-                    if (!svgEl || String(svgEl.nodeName || '').toLowerCase() !== 'svg') {
-                        throw new Error('invalid china svg');
-                    }
-                    svgEl.classList.add('china-map-svg', 'is-outline');
-                    svgEl.setAttribute('role', 'img');
-                    svgEl.setAttribute('aria-label', '中国省份访问热度图');
-                    ensureChinaProvinceSvgExtraPaths(svgEl);
-
-                    let matchedCount = 0;
-                    Object.entries(CHINA_PROVINCE_SVG_IDS).forEach(([provinceName, pathId]) => {
-                        const pathEl = svgEl.querySelector(`[id="${pathId}"]`);
-                        if (!pathEl) return;
-                        matchedCount += 1;
-                        const item = provinceMap[provinceName] || { sessions: 0, ratio: 0 };
-                        pathEl.setAttribute('fill', getSiteReportMapColor(item.sessions, maxValue));
-                        pathEl.setAttribute('data-province', provinceName);
-                        pathEl.setAttribute('data-sessions', String(item.sessions));
-                        pathEl.setAttribute('data-ratio', Number(item.ratio || 0).toFixed(2));
-                        pathEl.setAttribute('vector-effect', 'non-scaling-stroke');
-                    });
-
-                    if (!matchedCount) {
-                        throw new Error('no province paths matched');
-                    }
-
-                    mapWrap.innerHTML = '';
-                    mapWrap.appendChild(svgEl);
-                    mapWrap.insertAdjacentHTML('beforeend', buildChinaProvinceMapLegendHtml());
-                    bindChinaProvinceMapTooltip(mapWrap);
-                })
-                .catch((error) => {
-                    console.warn('Render china svg map failed, fallback to tile map:', error);
-                    if (renderToken !== chinaProvinceMapRenderToken) return;
-                    renderChinaProvinceTileHeatMap(normalizedRows);
-                });
-        }
-
         const SITE_REPORT_METRIC_HELP = {
             pv: {
                 title: '页面浏览量 (PV)',
@@ -3197,6 +2737,30 @@
                 scope: '一个会话里即使发生了多次转化，转化率分子也只记 1 次；只有至少浏览过 1 个页面的会话才会进入总会话统计。',
                 example: '例如共有 100 个会话，其中 8 个会话至少发生过 1 次转化；即使这 8 个会话总共产生了 15 次转化事件，转化率仍然是 8%。',
                 note: '因此转化率不等于“转化事件 ÷ UV”，也不等于“转化事件 ÷ 会话数”。如果你想看每次访问平均产生多少转化，要单独看转化事件总数。'
+            },
+            crawler_sessions: {
+                title: '爬虫会话',
+                meaning: '统计范围内，被系统识别为搜索引擎、AI 抓取器或其他自动程序的访问会话数量。',
+                formula: '爬虫会话 = 爬虫流量中去重(session_id) 计数',
+                note: '该指标属于技术流量，用于观察抓取和异常访问，不计入上方真人会话、UV、跳出率和转化率。'
+            },
+            crawler_pageviews: {
+                title: '爬虫页面抓取 (PV)',
+                meaning: '统计范围内，已识别爬虫请求产生的页面浏览或抓取总次数。',
+                formula: '爬虫页面抓取 = 爬虫会话中的 pageview 事件总数',
+                note: '同一爬虫重复抓取同一页面会重复计数；该数值不属于真人页面浏览量。'
+            },
+            crawler_unique_ips: {
+                title: '爬虫独立 IP',
+                meaning: '统计范围内，爬虫访问所使用的去重 IP 地址数量。',
+                formula: '爬虫独立 IP = 去重(爬虫访问 IP) 计数',
+                note: '同一个爬虫可能使用多个 IP，同一个 IP 也可能承载多个自动程序，因此该指标不等同于爬虫数量。'
+            },
+            crawler_sources: {
+                title: '爬虫来源类型',
+                meaning: '统计范围内识别到的爬虫来源类别数量，例如 Googlebot、Bingbot 或其他自动抓取器。',
+                formula: '来源类型 = 去重(标准化 crawler_name) 计数',
+                note: '具体来源、厂商、User-Agent 和抓取页面可在下方“爬虫访问”详情中查看。'
             },
             trend: {
                 title: '趋势图',
@@ -3647,8 +3211,9 @@
                 : '<i class="fas fa-sync-alt"></i> 刷新报表';
         }
 
-        function renderSiteReportKpis(summary) {
+        function renderSiteReportKpis(summary, crawlerSummary) {
             const safe = summary && typeof summary === 'object' ? summary : {};
+            const crawlerSafe = crawlerSummary && typeof crawlerSummary === 'object' ? crawlerSummary : {};
             const setText = (id, value) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
@@ -3660,6 +3225,10 @@
             setText('siteReportBounceRate', formatSiteReportPercent(safe.bounce_rate));
             setText('siteReportConversions', formatSiteReportNumber(safe.conversion_events));
             setText('siteReportConversionRate', formatSiteReportPercent(safe.conversion_rate));
+            setText('siteReportCrawlerSessionsTop', formatSiteReportNumber(crawlerSafe.sessions));
+            setText('siteReportCrawlerPageviewsTop', formatSiteReportNumber(crawlerSafe.pageviews));
+            setText('siteReportCrawlerUniqueIpsTop', formatSiteReportNumber(crawlerSafe.unique_ips));
+            setText('siteReportCrawlerSourcesTop', formatSiteReportNumber(crawlerSafe.sources));
         }
 
         function renderSiteReportTrend(rows, meta = {}) {
@@ -3817,19 +3386,21 @@
             const sourceBody = document.getElementById('siteReportSourceBody');
             const deviceBody = document.getElementById('siteReportDeviceBody');
             const osBody = document.getElementById('siteReportOsBody');
+            const crawlerBody = document.getElementById('siteReportCrawlerBody');
+            const crawlerRecentBody = document.getElementById('siteReportCrawlerRecentBody');
+            const crawlerSummary = document.getElementById('siteReportCrawlerSummary');
             const provinceBody = document.getElementById('siteReportProvinceBody');
+            const continentBody = document.getElementById('siteReportContinentBody');
             const pagesBody = document.getElementById('siteReportPagesBody');
-            const worldWestWrap = document.getElementById('worldMapWestContainer');
-            const worldEastWrap = document.getElementById('worldMapEastContainer');
             if (sourceBody) sourceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
             if (deviceBody) deviceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
             if (osBody) osBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
+            if (crawlerBody) crawlerBody.innerHTML = '<tr><td colspan="7" class="no-data">暂无爬虫数据</td></tr>';
+            if (crawlerRecentBody) crawlerRecentBody.innerHTML = '<tr><td colspan="6" class="no-data">暂无爬虫访问记录</td></tr>';
+            if (crawlerSummary) crawlerSummary.textContent = '暂无爬虫数据';
             if (provinceBody) provinceBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
+            if (continentBody) continentBody.innerHTML = '<tr><td colspan="3" class="no-data">暂无数据</td></tr>';
             if (pagesBody) pagesBody.innerHTML = '<tr><td colspan="4" class="no-data">暂无数据</td></tr>';
-            const mapWrap = document.getElementById('chinaMapContainer');
-            if (mapWrap) mapWrap.innerHTML = '<div class="china-map-no-data">暂无地理分布数据</div>';
-            if (worldWestWrap) worldWestWrap.innerHTML = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
-            if (worldEastWrap) worldEastWrap.innerHTML = '<div class="china-map-no-data">暂无中国以外地理分布数据</div>';
             siteReportEventRowsAll = [];
             siteReportProvinceRowsAll = [];
             siteReportCountryRowsAll = [];
@@ -3910,6 +3481,25 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function renderSiteReportContinentTable(rawRows) {
+            const tbody = document.getElementById('siteReportContinentBody');
+            if (!tbody) return;
+
+            const rows = Array.isArray(rawRows) ? rawRows : [];
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="no-data">暂无海外洲别数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((item) => `
+                <tr>
+                    <td>${escapeHtml(String(item?.continent || '未知'))}</td>
+                    <td>${formatSiteReportNumber(item?.sessions)}</td>
+                    <td>${formatSiteReportPercent(item?.ratio)}</td>
+                </tr>
+            `).join('');
         }
 
         function renderSiteReportCountryTablePage() {
@@ -4026,7 +3616,7 @@
                 unknown: '未知'
             };
 
-            renderSiteReportKpis(data.summary || {});
+            renderSiteReportKpis(data.summary || {}, data.crawler_summary || {});
             renderSiteReportTrend(data.trend || [], {
                 granularity: data.granularity || siteReportsGranularity,
                 rangeLabel: data.range_label || ''
@@ -4160,18 +3750,80 @@
                 }
             }
 
+            const crawlerSummary = data?.crawler_summary && typeof data.crawler_summary === 'object'
+                ? data.crawler_summary
+                : {};
+            const crawlerSummaryEl = document.getElementById('siteReportCrawlerSummary');
+            if (crawlerSummaryEl) {
+                crawlerSummaryEl.textContent = Number(crawlerSummary.sessions || 0) > 0
+                    ? `来源 ${formatSiteReportNumber(crawlerSummary.sources)} · 会话 ${formatSiteReportNumber(crawlerSummary.sessions)} · PV ${formatSiteReportNumber(crawlerSummary.pageviews)} · 独立 IP ${formatSiteReportNumber(crawlerSummary.unique_ips)}`
+                    : '暂无爬虫数据';
+            }
+
+            const crawlerBody = document.getElementById('siteReportCrawlerBody');
+            const crawlerRows = Array.isArray(data.crawler_breakdown) ? data.crawler_breakdown : [];
+            if (crawlerBody) {
+                if (!crawlerRows.length) {
+                    crawlerBody.innerHTML = '<tr><td colspan="7" class="no-data">暂无爬虫数据</td></tr>';
+                } else {
+                    crawlerBody.innerHTML = crawlerRows.map((item) => {
+                        const paths = Array.isArray(item?.top_paths) ? item.top_paths : [];
+                        const agents = Array.isArray(item?.user_agents) ? item.user_agents : [];
+                        const countries = Array.isArray(item?.countries) ? item.countries : [];
+                        const pathHtml = paths.length
+                            ? paths.map((row) => `<div><code>${escapeHtml(row?.path || '/')}</code><span>${formatSiteReportNumber(row?.pageviews)} PV</span></div>`).join('')
+                            : '<span class="form-hint">暂无页面记录</span>';
+                        const agentHtml = agents.length
+                            ? `<details class="crawler-detail"><summary>查看 ${formatSiteReportNumber(agents.length)} 种 UA</summary>${agents.map((row) => `<div class="crawler-agent"><span>${formatSiteReportNumber(row?.sessions)} 次</span>${escapeHtml(row?.user_agent || '-')}</div>`).join('')}</details>`
+                            : '<span class="form-hint">未记录 UA</span>';
+                        const countryText = countries.map((row) => `${row?.country || '未知'} ${formatSiteReportNumber(row?.sessions)}`).join(' · ');
+                        return `
+                            <tr>
+                                <td>
+                                    <span class="crawler-source-badge"><i class="fas fa-robot" aria-hidden="true"></i>${escapeHtml(item?.crawler_name || '其他爬虫')}</span>
+                                    <div class="form-hint">${escapeHtml(item?.crawler_vendor || '未知来源')}${countryText ? ` · ${escapeHtml(countryText)}` : ''}</div>
+                                </td>
+                                <td><strong>${formatSiteReportNumber(item?.sessions)}</strong><div class="form-hint">${formatSiteReportPercent(item?.ratio)}</div></td>
+                                <td><strong>PV ${formatSiteReportNumber(item?.pageviews)}</strong><div class="form-hint">事件 ${formatSiteReportNumber(item?.events)}</div></td>
+                                <td>${formatSiteReportNumber(item?.unique_ips)}</td>
+                                <td><div class="crawler-path-list">${pathHtml}</div></td>
+                                <td>${agentHtml}</td>
+                                <td><strong>${escapeHtml(item?.last_seen || '-')}</strong><div class="form-hint">首次 ${escapeHtml(item?.first_seen || '-')}</div></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const crawlerRecentBody = document.getElementById('siteReportCrawlerRecentBody');
+            const crawlerRecentRows = Array.isArray(data.crawler_recent) ? data.crawler_recent : [];
+            if (crawlerRecentBody) {
+                if (!crawlerRecentRows.length) {
+                    crawlerRecentBody.innerHTML = '<tr><td colspan="6" class="no-data">暂无爬虫访问记录</td></tr>';
+                } else {
+                    crawlerRecentBody.innerHTML = crawlerRecentRows.map((item) => `
+                        <tr>
+                            <td>${escapeHtml(item?.last_seen || '-')}</td>
+                            <td><strong>${escapeHtml(item?.crawler_name || '其他爬虫')}</strong><div class="form-hint">${escapeHtml(item?.crawler_vendor || '未知来源')}</div></td>
+                            <td><code>${escapeHtml(item?.ip || '-')}</code><div class="form-hint">${escapeHtml(item?.location || '-')}</div></td>
+                            <td><code>${escapeHtml(item?.landing_path || '/')}</code></td>
+                            <td>${formatSiteReportNumber(item?.pageviews)}</td>
+                            <td><div class="crawler-agent crawler-agent-compact">${escapeHtml(item?.user_agent || '-')}</div></td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
             const provinceRows = Array.isArray(data.province_breakdown) ? data.province_breakdown : [];
             siteReportProvinceRowsAll = provinceRows;
             siteReportProvincePage = 1;
             renderSiteReportProvinceTablePage();
+            renderSiteReportContinentTable(Array.isArray(data.continent_breakdown) ? data.continent_breakdown : []);
 
             const countryRows = Array.isArray(data.country_breakdown) ? data.country_breakdown : [];
             siteReportCountryRowsAll = countryRows;
             siteReportCountryPage = 1;
             renderSiteReportCountryTablePage();
-
-            renderChinaProvinceHeatMap(provinceRows);
-            renderWorldContinentHeatMaps(Array.isArray(data.continent_breakdown) ? data.continent_breakdown : []);
 
             const pagesBody = document.getElementById('siteReportPagesBody');
             const pageRows = Array.isArray(data.top_pages) ? data.top_pages : [];
@@ -5767,7 +5419,7 @@
             const result = await showGlobalActionModal({
                 mode: 'confirm',
                 title: '确认删除推广链接',
-                message: `确认删除「${label}」吗？\n\n删除后，之前所有使用该推广链接访问的入口都将不可使用；这条链接也会被停用并从列表中隐藏。\n\n请慎重操作。`,
+                message: `确认删除「${label}」吗？\n\n删除后，之前所有使用该推广链接访问的入口都将不可使用；对应访问与事件统计也会永久删除，并不再计入首页数据统计。\n\n请慎重操作。`,
                 okText: '确认删除',
                 cancelText: '取消',
                 waitSeconds: 3
@@ -5778,7 +5430,7 @@
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || data.success === false) throw new Error(data.message || '删除失败');
                 await loadPromotionLinks(true);
-                showGlobalAlert('推广链接已停用并隐藏');
+                showGlobalAlert('推广链接及对应统计数据已删除');
             } catch (err) {
                 showGlobalAlert(err.message || '删除失败');
             }
@@ -6068,6 +5720,12 @@
         const AI_STREAM_TOTAL_TIMEOUT_MS = 7 * 60 * 1000;
         const AI_PRODUCT_MAX_IMAGES = 12;
         const AI_PRODUCT_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+        const PRODUCT_IMAGE_RECOMMENDED_WIDTH = 2370;
+        const PRODUCT_IMAGE_RECOMMENDED_HEIGHT = 1140;
+        const PRODUCT_IMAGE_MIN_WIDTH = 1580;
+        const PRODUCT_IMAGE_MIN_HEIGHT = 760;
+        const PRODUCT_IMAGE_TARGET_RATIO = PRODUCT_IMAGE_RECOMMENDED_WIDTH / PRODUCT_IMAGE_RECOMMENDED_HEIGHT;
+        const PRODUCT_IMAGE_RATIO_TOLERANCE = 0.03;
         const AI_PRODUCT_CATEGORIES = ['sensor', 'module', 'detector', 'alarm', 'system', 'iot', 'service', 'probe'];
         const AI_PRODUCT_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff', 'heic', 'heif', 'avif'];
         const AI_PRODUCT_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif', 'image/tiff', 'image/heic', 'image/heif', 'image/avif'];
@@ -6913,6 +6571,7 @@
                 }
                 return;
             }
+            if (!await confirmProductImageQuality(fileList)) return;
 
             if (msg) {
                 msg.style.color = '#2563eb';
@@ -7009,6 +6668,46 @@
             if (ext && AI_PRODUCT_IMAGE_EXTENSIONS.includes(ext)) return '';
             if (mime && AI_PRODUCT_IMAGE_MIME_TYPES.includes(mime)) return '';
             return `不支持的图片格式：${name || mime || '未知文件'}。${AI_PRODUCT_IMAGE_FORMAT_HINT}`;
+        }
+
+        async function confirmProductImageQuality(files) {
+            const fileList = Array.from(files || []).filter(Boolean);
+            if (!fileList.length) return true;
+            const warnings = [];
+
+            for (const file of fileList) {
+                const fileName = file.name || '未命名图片';
+                try {
+                    const dimensions = await readLocalImageDimensions(file);
+                    const ratio = dimensions.height > 0 ? dimensions.width / dimensions.height : 0;
+                    const issues = [];
+                    if (dimensions.width < PRODUCT_IMAGE_MIN_WIDTH || dimensions.height < PRODUCT_IMAGE_MIN_HEIGHT) {
+                        issues.push(`分辨率低于 ${PRODUCT_IMAGE_MIN_WIDTH}×${PRODUCT_IMAGE_MIN_HEIGHT} px`);
+                    }
+                    if (!ratio || Math.abs(ratio - PRODUCT_IMAGE_TARGET_RATIO) / PRODUCT_IMAGE_TARGET_RATIO > PRODUCT_IMAGE_RATIO_TOLERANCE) {
+                        issues.push(`比例为 ${ratio ? ratio.toFixed(2) : '未知'}:1，不是建议的 2.08:1`);
+                    }
+                    if (issues.length) {
+                        warnings.push(`「${fileName}」：${dimensions.width}×${dimensions.height} px；${issues.join('；')}。`);
+                    }
+                } catch (_) {
+                    warnings.push(`「${fileName}」：无法读取图片分辨率和比例，请确认文件完整有效。`);
+                }
+            }
+
+            if (!warnings.length) return true;
+            const visibleWarnings = warnings.slice(0, 6);
+            if (warnings.length > visibleWarnings.length) {
+                visibleWarnings.push(`另有 ${warnings.length - visibleWarnings.length} 张图片不符合建议规格。`);
+            }
+            const result = await showGlobalActionModal({
+                mode: 'confirm',
+                title: '产品图片规格提醒',
+                message: `${visibleWarnings.join('\n\n')}\n\n建议比例 2.08:1，推荐 ${PRODUCT_IMAGE_RECOMMENDED_WIDTH}×${PRODUCT_IMAGE_RECOMMENDED_HEIGHT} px，至少 ${PRODUCT_IMAGE_MIN_WIDTH}×${PRODUCT_IMAGE_MIN_HEIGHT} px。\n\n图片仍可正常上传，是否继续？`,
+                okText: '继续上传',
+                cancelText: '取消上传'
+            });
+            return !!result.ok;
         }
 
         function getAiProductFlowConfig(family) {
@@ -8087,6 +7786,7 @@
                 }
                 return;
             }
+            if (!await confirmProductImageQuality(fileList)) return;
 
             if (msg) {
                 msg.style.color = '#2563eb';
@@ -11250,6 +10950,9 @@
             uploadBtn.textContent = '上传';
             uploadBtn.className = 'btn-sm me-image-upload-btn';
             uploadBtn.style.cssText = 'white-space:nowrap; padding:4px 10px; font-size:12px; cursor:pointer; background:#2563eb; color:#fff; border:none; border-radius:4px;';
+            const imageSpecHint = document.createElement('span');
+            imageSpecHint.className = 'product-image-spec-hint product-image-spec-hint--compact';
+            imageSpecHint.textContent = '建议 2.08:1 · 2370×1140 px';
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/png,image/jpeg,image/webp';
@@ -11258,6 +10961,10 @@
             fileInput.addEventListener('change', async () => {
                 const file = fileInput.files && fileInput.files[0];
                 if (!file) return;
+                if (!await confirmProductImageQuality([file])) {
+                    fileInput.value = '';
+                    return;
+                }
                 uploadBtn.disabled = true;
                 uploadBtn.textContent = '上传中...';
                 try {
@@ -11295,6 +11002,7 @@
             del.onclick = () => row.remove();
             row.appendChild(inp);
             row.appendChild(uploadBtn);
+            row.appendChild(imageSpecHint);
             row.appendChild(fileInput);
             row.appendChild(img);
             row.appendChild(del);
@@ -11710,6 +11418,16 @@
                             ${item.type === 'video' ? '视频' : '图片'} · ${item.source === 'upload' ? '本地上传' : 'CDN链接'}
                         </div>
                         <div class="hero-url">${escapeHtml(item.url)}</div>
+                        ${item.type === 'image' && item.mobile_url ? `
+                            <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <img src="${escapeHtml(item.mobile_url)}" alt="手机端图片预览"
+                                    style="width: 42px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #dfe5ec;">
+                                <div style="min-width: 0;">
+                                    <div style="font-size: 12px; font-weight: 600; color: #17835f;">手机端图片已上传</div>
+                                    <div class="hero-url">${escapeHtml(item.mobile_url)}</div>
+                                </div>
+                            </div>
+                        ` : ''}
                         <div class="hero-link-row" style="margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                             <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; cursor: pointer; white-space: nowrap;">
                                 <span>点击跳转</span>
@@ -11729,9 +11447,23 @@
                                     ${item.link_enabled ? '' : 'display: none;'}">
                         </div>
                     </div>
-                    <button class="btn-sm btn-danger" onclick="deleteHeroItem('${item.id}')">
-                        <i class="fas fa-trash"></i> 删除
-                    </button>
+                    <div class="hero-actions">
+                        ${item.type === 'image' ? `
+                            <button type="button" class="btn-sm"
+                                title="推荐 1080 × 1920 px（9:16），优先 WebP，建议 500KB–2MB"
+                                onclick="triggerHeroMobileImageUpload('${item.id}')">
+                                <i class="fas fa-mobile-alt"></i> ${item.mobile_url ? '更换手机端图片' : '手机端图片上传'}
+                            </button>
+                            ${item.mobile_url ? `
+                                <button type="button" class="btn-sm" onclick="deleteHeroMobileImage('${item.id}')">
+                                    <i class="fas fa-times"></i> 删除手机图
+                                </button>
+                            ` : ''}
+                        ` : ''}
+                        <button type="button" class="btn-sm btn-danger" onclick="deleteHeroItem('${item.id}')">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
                 </div>
             `).join('');
 
@@ -11953,6 +11685,128 @@
             }
         }
 
+        function triggerHeroMobileImageUpload(itemId) {
+            const input = document.getElementById('heroMobileImageFileInput');
+            if (!input) return;
+            input.value = '';
+            input.dataset.itemId = itemId;
+            input.click();
+        }
+
+        function readLocalImageDimensions(file) {
+            return new Promise((resolve, reject) => {
+                const objectUrl = URL.createObjectURL(file);
+                const image = new Image();
+                image.onload = () => {
+                    const dimensions = { width: image.naturalWidth, height: image.naturalHeight };
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(dimensions);
+                };
+                image.onerror = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(new Error('无法读取图片尺寸'));
+                };
+                image.src = objectUrl;
+            });
+        }
+
+        async function confirmHeroImageQuality(file, target = 'desktop') {
+            const name = (file.name || '').toLowerCase();
+            const type = (file.type || '').toLowerCase();
+            const isWebp = type === 'image/webp' || name.endsWith('.webp');
+            const recommendations = target === 'mobile'
+                ? { width: 1080, height: 1920, label: '手机端图片' }
+                : { width: 2560, height: 1440, label: '电脑端图片' };
+            const warnings = [];
+
+            try {
+                const dimensions = await readLocalImageDimensions(file);
+                if (dimensions.width < recommendations.width || dimensions.height < recommendations.height) {
+                    warnings.push(
+                        `当前分辨率为 ${dimensions.width} × ${dimensions.height} px，建议不低于 ` +
+                        `${recommendations.width} × ${recommendations.height} px，显示时可能不够清晰。`
+                    );
+                }
+            } catch (_) {
+                warnings.push('无法读取图片分辨率，请确认图片文件完整有效。');
+            }
+
+            if (!isWebp) {
+                warnings.push('当前图片不是 WebP 格式，文件体积可能较大，可能影响网页加载速度。');
+            }
+            if (warnings.length === 0) return true;
+
+            const result = await showGlobalActionModal({
+                mode: 'confirm',
+                title: `${recommendations.label}规格提醒`,
+                message: `${warnings.join('\n\n')}\n\n仍然要继续上传吗？`,
+                okText: '继续上传',
+                cancelText: '取消上传'
+            });
+            return !!result.ok;
+        }
+
+        async function uploadHeroMobileImage(input) {
+            const itemId = input && input.dataset ? input.dataset.itemId : '';
+            const file = input && input.files ? input.files[0] : null;
+            if (!itemId || !file) return;
+
+            const name = (file.name || '').toLowerCase();
+            const type = (file.type || '').toLowerCase();
+            const nameOk = (/\.(webp|png|jpg|jpeg)$/i).test(name);
+            const typeOk = ['image/webp', 'image/png', 'image/jpeg'].includes(type);
+            if (!nameOk && !typeOk) {
+                alert('手机端图片只支持 WebP/PNG/JPG/JPEG 文件');
+                input.value = '';
+                return;
+            }
+            if (!await confirmHeroImageQuality(file, 'mobile')) {
+                input.value = '';
+                delete input.dataset.itemId;
+                return;
+            }
+
+            showHeroAutoSaveMessage('正在上传手机端图片...');
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch(`/api/hero/items/${encodeURIComponent(itemId)}/mobile-image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showHeroAutoSaveMessage(data.message || '手机端图片上传失败', false);
+                    return;
+                }
+                showHeroAutoSaveMessage('✓ 手机端图片上传成功');
+                await loadHeroConfig();
+            } catch (e) {
+                showHeroAutoSaveMessage('手机端图片上传失败：网络错误', false);
+            } finally {
+                input.value = '';
+                delete input.dataset.itemId;
+            }
+        }
+
+        async function deleteHeroMobileImage(itemId) {
+            if (!await showGlobalConfirm('确定删除该手机端图片吗？删除后竖屏将使用桌面图片裁切显示。')) return;
+            try {
+                const res = await fetch(`/api/hero/items/${encodeURIComponent(itemId)}/mobile-image`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    showHeroAutoSaveMessage(data.message || '手机端图片删除失败', false);
+                    return;
+                }
+                showHeroAutoSaveMessage('✓ 手机端图片已删除');
+                await loadHeroConfig();
+            } catch (e) {
+                showHeroAutoSaveMessage('手机端图片删除失败：网络错误', false);
+            }
+        }
+
         // Hero file upload handling
         const heroUploadZone = document.getElementById('heroUploadZone');
         const heroFileInput = document.getElementById('heroFileInput');
@@ -11990,6 +11844,12 @@
             const typeOk = (type === 'image/webp' || type === 'image/png' || type === 'image/jpeg' || type === 'video/mp4');
             if (!nameOk && !typeOk) {
                 alert('只支持 WebP/PNG/JPG/JPEG/MP4 文件');
+                return;
+            }
+
+            const isVideo = type === 'video/mp4' || name.endsWith('.mp4');
+            if (!isVideo && !await confirmHeroImageQuality(file, 'desktop')) {
+                if (heroFileInput) heroFileInput.value = '';
                 return;
             }
 

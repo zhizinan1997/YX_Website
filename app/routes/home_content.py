@@ -71,14 +71,22 @@ def get_hero_config(hero_config_file, sanitize_public_media_url):
                     continue
                 link_enabled = bool(item.get('link_enabled', False))
                 link_url = str(item.get('link_url') or '').strip()
-                merged['items'].append({
+                normalized_item = {
                     'id': str(item.get('id') or uuid.uuid4().hex),
                     'type': item_type,
                     'url': url,
                     'source': 'upload' if str(item.get('source') or '').lower() == 'upload' else 'url',
                     'link_enabled': link_enabled,
                     'link_url': link_url if link_enabled else '',
-                })
+                }
+                if item_type == 'image':
+                    mobile_url = sanitize_public_media_url(
+                        item.get('mobile_url', ''),
+                        enforce_remote_public=False,
+                    )
+                    if mobile_url:
+                        normalized_item['mobile_url'] = mobile_url
+                merged['items'].append(normalized_item)
             return merged
         except Exception:
             pass
@@ -120,14 +128,22 @@ def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url)
             else:
                 link_url = ''
                 link_enabled = False
-            normalized_items.append({
+            normalized_item = {
                 'id': item_id,
                 'type': item_type,
                 'url': url,
                 'source': str(item.get('source') or 'url').lower(),
                 'link_enabled': link_enabled,
                 'link_url': link_url,
-            })
+            }
+            if item_type == 'image':
+                mobile_url = sanitize_public_media_url(
+                    item.get('mobile_url', ''),
+                    enforce_remote_public=True,
+                )
+                if mobile_url:
+                    normalized_item['mobile_url'] = mobile_url
+            normalized_items.append(normalized_item)
 
     saved = {
         'interval_seconds': interval_seconds,
@@ -359,21 +375,12 @@ def build_hero_api_payload(
     if not isinstance(manifest_items, dict):
         manifest_items = {}
 
-    payload_items = []
-    for raw_item in items:
-        if not isinstance(raw_item, dict):
-            continue
-        item = dict(raw_item)
-        if str(item.get('type') or '').lower() != 'image':
-            payload_items.append(item)
-            continue
-
-        fallback = str(item.get('url') or '').strip()
-        item['fallback'] = fallback
-        source_name = hero_source_filename_from_url(fallback)
+    def image_payload_for_url(raw_url):
+        fallback_url = str(raw_url or '').strip()
+        result = {'fallback': fallback_url}
+        source_name = hero_source_filename_from_url(fallback_url)
         if not source_name:
-            payload_items.append(item)
-            continue
+            return result
 
         entry = manifest_items.get(source_name)
         if not isinstance(entry, dict) and pil_support:
@@ -393,20 +400,18 @@ def build_hero_api_payload(
             if isinstance(entry, dict):
                 manifest_items[source_name] = entry
         if not isinstance(entry, dict):
-            payload_items.append(item)
-            continue
+            return result
 
         width = int(entry.get('width') or 0)
         height = int(entry.get('height') or 0)
         if width > 0:
-            item['width'] = width
+            result['width'] = width
         if height > 0:
-            item['height'] = height
+            result['height'] = height
 
         variants = entry.get('variants', {})
         if not isinstance(variants, dict):
-            payload_items.append(item)
-            continue
+            return result
 
         sources = []
         for fmt in hero_derived_formats:
@@ -422,16 +427,37 @@ def build_hero_api_payload(
                 if not variant_name or variant_width <= 0:
                     continue
                 srcset_parts.append(f'/media/hero-derived/{variant_name} {variant_width}w')
-            if not srcset_parts:
-                continue
-            sources.append({
-                'type': f'image/{fmt}',
-                'srcset': ', '.join(srcset_parts),
-                'sizes': '100vw',
-            })
-
+            if srcset_parts:
+                sources.append({
+                    'type': f'image/{fmt}',
+                    'srcset': ', '.join(srcset_parts),
+                    'sizes': '100vw',
+                })
         if sources:
-            item['sources'] = sources
+            result['sources'] = sources
+        return result
+
+    payload_items = []
+    for raw_item in items:
+        if not isinstance(raw_item, dict):
+            continue
+        item = dict(raw_item)
+        if str(item.get('type') or '').lower() != 'image':
+            payload_items.append(item)
+            continue
+
+        desktop_payload = image_payload_for_url(item.get('url'))
+        item.update(desktop_payload)
+        mobile_url = str(item.get('mobile_url') or '').strip()
+        if mobile_url:
+            mobile_payload = image_payload_for_url(mobile_url)
+            item['mobile_fallback'] = mobile_payload.get('fallback', mobile_url)
+            if mobile_payload.get('sources'):
+                item['mobile_sources'] = mobile_payload['sources']
+            if mobile_payload.get('width'):
+                item['mobile_width'] = mobile_payload['width']
+            if mobile_payload.get('height'):
+                item['mobile_height'] = mobile_payload['height']
         payload_items.append(item)
 
     return {
@@ -557,6 +583,23 @@ def register_home_content_routes(
 ):
     """注册首页 Hero、合作伙伴与区块显示控制相关路由。"""
 
+    def remove_uploaded_hero_image(media_url):
+        url = str(media_url or '').strip()
+        if not url.startswith('/media/hero/'):
+            return
+        filename = url.replace('/media/hero/', '', 1)
+        remove_hero_variants_for_source(
+            filename,
+            hero_derived_dir=hero_derived_dir,
+            hero_derived_manifest_file=hero_derived_manifest_file,
+        )
+        file_path = Path(hero_uploads_dir) / filename
+        if file_path.exists():
+            try:
+                file_path.unlink()
+            except Exception:
+                pass
+
     @app.route('/api/hero', methods=['GET'])
     def get_hero():
         payload = build_hero_api_payload(
@@ -647,6 +690,92 @@ def register_home_content_routes(
 
         return jsonify({'success': True, 'item': item})
 
+    @app.route('/api/hero/items/<item_id>/mobile-image', methods=['POST'])
+    @login_required
+    def upload_hero_mobile_image(item_id):
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': '没有上传文件'}), 400
+
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+        ext = validate_uploaded_image_extension(
+            file,
+            allowed_extensions={'.webp', '.png', '.jpg', '.jpeg'},
+        )
+        if not ext or ext not in allowed_hero_extensions:
+            return jsonify({'success': False, 'message': '手机端图片只支持 WebP/PNG/JPG/JPEG 文件'}), 400
+
+        config = get_hero_config(hero_config_file, sanitize_public_media_url)
+        items = config.get('items', [])
+        target_item = next(
+            (item for item in items if isinstance(item, dict) and item.get('id') == item_id),
+            None,
+        )
+        if not target_item:
+            return jsonify({'success': False, 'message': '轮播项不存在'}), 404
+        if str(target_item.get('type') or '').lower() != 'image':
+            return jsonify({'success': False, 'message': '只有图片轮播项可以上传手机端图片'}), 400
+
+        saved_name = f'{uuid.uuid4().hex}{ext}'
+        save_path = Path(hero_uploads_dir) / saved_name
+        file.save(str(save_path))
+        generate_hero_variants_for_source(
+            saved_name,
+            pil_support=pil_support,
+            image_module=image_module,
+            image_ops_module=image_ops_module,
+            pil_features=pil_features,
+            hero_uploads_dir=hero_uploads_dir,
+            hero_derived_dir=hero_derived_dir,
+            hero_derived_manifest_file=hero_derived_manifest_file,
+            hero_source_image_extensions=hero_source_image_extensions,
+            hero_derived_widths=hero_derived_widths,
+            hero_derived_formats=hero_derived_formats,
+        )
+
+        old_mobile_url = target_item.get('mobile_url', '')
+        target_item['mobile_url'] = f'/media/hero/{saved_name}'
+        config['items'] = items
+        saved_config = save_hero_config(
+            config,
+            hero_config_file=hero_config_file,
+            sanitize_public_media_url=sanitize_public_media_url,
+        )
+        if old_mobile_url and old_mobile_url != target_item['mobile_url']:
+            remove_uploaded_hero_image(old_mobile_url)
+        saved_item = next(
+            (item for item in saved_config.get('items', []) if item.get('id') == item_id),
+            target_item,
+        )
+        return jsonify({'success': True, 'item': saved_item})
+
+    @app.route('/api/hero/items/<item_id>/mobile-image', methods=['DELETE'])
+    @login_required
+    def delete_hero_mobile_image(item_id):
+        config = get_hero_config(hero_config_file, sanitize_public_media_url)
+        items = config.get('items', [])
+        target_item = next(
+            (item for item in items if isinstance(item, dict) and item.get('id') == item_id),
+            None,
+        )
+        if not target_item:
+            return jsonify({'success': False, 'message': '轮播项不存在'}), 404
+        if str(target_item.get('type') or '').lower() != 'image':
+            return jsonify({'success': False, 'message': '该轮播项不是图片'}), 400
+
+        old_mobile_url = target_item.pop('mobile_url', '')
+        config['items'] = items
+        save_hero_config(
+            config,
+            hero_config_file=hero_config_file,
+            sanitize_public_media_url=sanitize_public_media_url,
+        )
+        if old_mobile_url:
+            remove_uploaded_hero_image(old_mobile_url)
+        return jsonify({'success': True, 'alreadyDeleted': not bool(old_mobile_url)})
+
     @app.route('/api/hero/items/<item_id>', methods=['DELETE'])
     @login_required
     def delete_hero_item(item_id):
@@ -667,20 +796,8 @@ def register_home_content_routes(
             return jsonify({'success': True, 'alreadyDeleted': True, 'message': '项目已不存在'})
 
         if deleted_item.get('source') == 'upload':
-            url = deleted_item.get('url', '')
-            if url.startswith('/media/hero/'):
-                filename = url.replace('/media/hero/', '', 1)
-                file_path = Path(hero_uploads_dir) / filename
-                remove_hero_variants_for_source(
-                    filename,
-                    hero_derived_dir=hero_derived_dir,
-                    hero_derived_manifest_file=hero_derived_manifest_file,
-                )
-                if file_path.exists():
-                    try:
-                        file_path.unlink()
-                    except Exception:
-                        pass
+            remove_uploaded_hero_image(deleted_item.get('url', ''))
+        remove_uploaded_hero_image(deleted_item.get('mobile_url', ''))
 
         config['items'] = remaining
         save_hero_config(

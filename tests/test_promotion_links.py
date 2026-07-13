@@ -61,8 +61,18 @@ class PromotionLinksTests(unittest.TestCase):
         duplicate = self.client.post('/api/admin/promotion-links', json=payload)
         self.assertEqual(duplicate.status_code, 400)
 
+        analytics_file = self.data_dir / 'site_analytics_events.jsonl'
+        analytics_file.write_text(
+            '{"event_type":"pageview","promotion_mark":"wechat-article-a","session_id":"s1"}\n'
+            '{"event_type":"event","session_id":"s1"}\n'
+            '{"event_type":"pageview","promotion_mark":"other-link","session_id":"s2"}\n',
+            encoding='utf-8',
+        )
         archived = self.client.delete(f"/api/admin/promotion-links/{item['id']}")
         self.assertEqual(archived.status_code, 200)
+        self.assertEqual(archived.get_json()['deleted_analytics_records'], 2)
+        self.assertIn('other-link', analytics_file.read_text(encoding='utf-8'))
+        self.assertNotIn('wechat-article-a', analytics_file.read_text(encoding='utf-8'))
         listed = self.client.get('/api/admin/promotion-links')
         self.assertEqual(listed.get_json()['items'], [])
 

@@ -274,6 +274,67 @@
         background: rgba(255, 255, 255, 0.95);
         box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
       }
+
+      .hero-nav-button {
+        position: absolute;
+        top: 50%;
+        width: 50px;
+        height: 50px;
+        padding: 0 0 4px;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 50%;
+        background: rgba(15, 30, 50, 0.28);
+        color: #fff;
+        font-size: 42px;
+        font-family: Arial, sans-serif;
+        line-height: 1;
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.48);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.34);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        cursor: pointer;
+        z-index: 12;
+        transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .hero-nav-button--prev {
+        left: 24px;
+      }
+
+      .hero-nav-button--next {
+        right: 24px;
+      }
+
+      .hero-nav-button:hover {
+        background: rgba(15, 30, 50, 0.52);
+        transform: translateY(-50%) scale(1.06);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.42);
+      }
+
+      .hero-nav-button:focus-visible {
+        outline: 3px solid rgba(255, 255, 255, 0.95);
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 768px) {
+        .hero-nav-button {
+          width: 44px;
+          height: 44px;
+          font-size: 36px;
+        }
+
+        .hero-nav-button--prev {
+          left: 10px;
+        }
+
+        .hero-nav-button--next {
+          right: 10px;
+        }
+      }
     </style>
     <script>
       (function () {
@@ -328,6 +389,22 @@
             slide.appendChild(video);
           } else {
             const picture = document.createElement('picture');
+            const mobileSources = Array.isArray(item.mobile_sources) ? item.mobile_sources : [];
+            mobileSources.forEach(sourceDef => {
+              if (!sourceDef || !sourceDef.srcset) return;
+              const source = document.createElement('source');
+              source.media = '(orientation: portrait)';
+              source.srcset = sourceDef.srcset;
+              if (sourceDef.type) source.type = sourceDef.type;
+              if (sourceDef.sizes) source.sizes = sourceDef.sizes;
+              picture.appendChild(source);
+            });
+            if (item.mobile_fallback) {
+              const mobileFallback = document.createElement('source');
+              mobileFallback.media = '(orientation: portrait)';
+              mobileFallback.srcset = toMediaFetchUrl(item.mobile_fallback);
+              picture.appendChild(mobileFallback);
+            }
             const sources = Array.isArray(item.sources) ? item.sources : [];
             sources.forEach(sourceDef => {
               if (!sourceDef || !sourceDef.srcset) return;
@@ -418,17 +495,19 @@
         function buildSlides(list) {
           container.innerHTML = '';
           list.forEach((item, index) => {
-            const slide = document.createElement('div');
+            const hasLink = !!(item.link_enabled && item.link_url);
+            const slide = document.createElement(hasLink ? 'a' : 'div');
             slide.className = 'hero-slide' + (index === 0 ? ' is-active' : '');
             slide.dataset.index = String(index);
             slide.dataset.type = item.type;
             slide.dataset.url = item.url;
             slide.__item = item;
-            if (item.link_enabled && item.link_url) {
+            if (hasLink) {
               slide.classList.add('has-link');
-              slide.addEventListener('click', function () {
-                window.open(item.link_url, '_blank', 'noopener,noreferrer');
-              });
+              slide.href = item.link_url;
+              slide.setAttribute('aria-label', '打开首页推荐内容');
+              slide.dataset.analyticsEvent = 'hero_slide_click';
+              slide.dataset.analyticsLabel = '首页首屏图片';
             }
             if (index === 0) {
               ensureSlideMedia(slide, true);
@@ -498,9 +577,31 @@
           }
         }
 
+        async function goPrevious() {
+          if (switching || !items.length) return;
+          switching = true;
+          try {
+            const slides = Array.from(container.querySelectorAll('.hero-slide'));
+            if (!slides.length) return;
+            const previousIndex = (currentIndex - 1 + items.length) % items.length;
+            const previousSlide = slides[previousIndex];
+            if (!previousSlide) return;
+
+            ensureSlideMedia(previousSlide, true);
+            const ready = await waitForSlideReady(previousSlide, 9000);
+            if (!ready) return;
+
+            currentIndex = previousIndex;
+            activateSlide(currentIndex);
+          } finally {
+            switching = false;
+          }
+        }
+
         function buildControls() {
           if (!heroSection) return;
           if (controls) controls.remove();
+          heroSection.querySelectorAll('.hero-nav-button').forEach(button => button.remove());
 
           controls = document.createElement('div');
           controls.className = 'hero-controls';
@@ -516,6 +617,25 @@
           });
 
           heroSection.appendChild(controls);
+
+          if (items.length > 1) {
+            const previousButton = document.createElement('button');
+            previousButton.type = 'button';
+            previousButton.className = 'hero-nav-button hero-nav-button--prev';
+            previousButton.setAttribute('aria-label', '上一张轮播图');
+            previousButton.textContent = '‹';
+            previousButton.addEventListener('click', goPrevious);
+
+            const nextButton = document.createElement('button');
+            nextButton.type = 'button';
+            nextButton.className = 'hero-nav-button hero-nav-button--next';
+            nextButton.setAttribute('aria-label', '下一张轮播图');
+            nextButton.textContent = '›';
+            nextButton.addEventListener('click', goNext);
+
+            heroSection.appendChild(previousButton);
+            heroSection.appendChild(nextButton);
+          }
         }
 
         function updateDots() {

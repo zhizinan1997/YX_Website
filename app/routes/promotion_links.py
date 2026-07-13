@@ -338,7 +338,22 @@ def register_promotion_link_routes(
             updated['updated_at'] = updated['archived_at']
             items[index] = updated
             _save_promotion_links(items, PROMOTION_LINKS_FILE)
-        return jsonify({'success': True, 'item': _public_item(updated, base_url=base)})
+        try:
+            from app.routes.site_analytics import delete_site_analytics_records_by_promotion_mark
+            deleted_records = delete_site_analytics_records_by_promotion_mark(
+                updated.get('promotion_mark'),
+                file_path=Path(data_dir) / 'site_analytics_events.jsonl',
+            )
+        except Exception:
+            return jsonify({
+                'success': False,
+                'message': '推广链接已删除，但关联统计数据清理失败，请联系管理员处理',
+            }), 500
+        return jsonify({
+            'success': True,
+            'item': _public_item(updated, base_url=base),
+            'deleted_analytics_records': deleted_records,
+        })
 
     @app.route('/api/admin/promotion-links/stats', methods=['GET'])
     @login_required

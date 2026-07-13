@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260713-product-sort-v2">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260713-product-sort-v2-image-spec-v2">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
     <link rel="stylesheet" href="/admin/styles/components.css?v=20260701-source-detail">
@@ -707,6 +707,7 @@
                                     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                                         <button type="button" class="btn-sm" id="aiProductUploadImagesBtn"
                                             style="width:auto; padding:10px 18px;">上传产品图</button>
+                                        <span class="product-image-spec-hint">建议比例 2.08:1 · 推荐 2370×1140 px（至少 1580×760 px）</span>
                                         <input type="file" id="aiProductImagesInput"
                                             accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,.heic,.heif,.avif,image/png,image/jpeg,image/webp,image/bmp,image/gif,image/tiff,image/heic,image/heif,image/avif" multiple
                                             style="display:none;">
@@ -1099,6 +1100,7 @@
                                     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                                         <button type="button" class="btn-sm" id="bioAiProductUploadImagesBtn"
                                             style="width:auto; padding:10px 18px;">上传产品图</button>
+                                        <span class="product-image-spec-hint">建议比例 2.08:1 · 推荐 2370×1140 px（至少 1580×760 px）</span>
                                         <input type="file" id="bioAiProductImagesInput"
                                             accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,.heic,.heif,.avif,image/png,image/jpeg,image/webp,image/bmp,image/gif,image/tiff,image/heic,image/heif,image/avif" multiple
                                             style="display:none;">
@@ -1378,6 +1380,7 @@
                             <h3 class="section-header">上传媒体</h3>
                             <div class="form-hint" style="margin-bottom: 12px; line-height: 1.7;">
                                 首屏图片推荐：<strong>2560 × 1440 px（16:9）</strong>，优先使用 <strong>WebP</strong> 格式，建议文件大小控制在 <strong>500KB–2MB</strong>。重要主体请尽量放在画面中央，避免在不同屏幕上被裁切。
+                                上传时会自动检查格式和分辨率；不符合推荐规格时会提醒，但仍可选择继续上传。
                             </div>
                             <div class="file-upload-zone" id="heroUploadZone">
                                 <i class="fas fa-cloud-upload-alt"></i>
@@ -1419,6 +1422,9 @@
                         <div class="card" style="padding: 30px; margin-top: 20px;">
                             <h3 class="section-header">轮播顺序</h3>
                             <div id="heroList" class="hero-list"></div>
+                            <input type="file" id="heroMobileImageFileInput"
+                                accept=".webp,.png,.jpg,.jpeg,image/webp,image/png,image/jpeg"
+                                style="display: none;" onchange="uploadHeroMobileImage(this)">
                         </div>
                     </div>
 
@@ -3239,42 +3245,85 @@
                             </div>
                         </div>
 
-                        <div class="stats-grid" id="siteReportKpiGrid">
-                            <div class="stat-card">
-                                <div class="stat-label metric-with-help">页面浏览量 (PV)<button type="button" class="metric-help-btn"
-                                        onclick="showSiteMetricHelp('pv')" aria-label="页面浏览量说明">?</button></div>
-                                <div class="stat-value" id="siteReportPv">-</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label metric-with-help">独立访客 (UV)<button type="button" class="metric-help-btn"
-                                        onclick="showSiteMetricHelp('uv')" aria-label="独立访客说明">?</button></div>
-                                <div class="stat-value" id="siteReportUv">-</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label metric-with-help">会话数<button type="button" class="metric-help-btn"
-                                        onclick="showSiteMetricHelp('sessions')" aria-label="会话数说明">?</button></div>
-                                <div class="stat-value" id="siteReportSessions">-</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label metric-with-help">平均会话时长<button type="button" class="metric-help-btn"
-                                        onclick="showSiteMetricHelp('avg_session_duration')" aria-label="平均会话时长说明">?</button></div>
-                                <div class="stat-value" id="siteReportAvgSession">-</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label metric-with-help">跳出率<button type="button" class="metric-help-btn"
-                                        onclick="showSiteMetricHelp('bounce_rate')" aria-label="跳出率说明">?</button></div>
-                                <div class="stat-value" id="siteReportBounceRate">-</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label metric-with-help">转化事件<button type="button" class="metric-help-btn"
-                                        onclick="showSiteMetricHelp('conversion_events')" aria-label="转化事件说明">?</button></div>
-                                <div class="stat-value" id="siteReportConversions">-</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-label metric-with-help">转化率<button type="button" class="metric-help-btn"
-                                        onclick="showSiteMetricHelp('conversion_rate')" aria-label="转化率说明">?</button></div>
-                                <div class="stat-value" id="siteReportConversionRate">-</div>
-                            </div>
+                        <div class="site-report-audience-summary">
+                            <section class="site-report-audience-section site-report-human-section" aria-labelledby="siteReportHumanTitle">
+                                <div class="site-report-audience-header">
+                                    <div>
+                                        <h4 id="siteReportHumanTitle"><i class="fas fa-user-friends" aria-hidden="true"></i> 真人有效访问</h4>
+                                        <p>用于经营与营销判断，已排除能够识别的爬虫和站点自检程序。</p>
+                                    </div>
+                                    <span class="site-report-audience-tag">经营口径</span>
+                                </div>
+                                <div class="stats-grid site-report-human-kpi-grid" id="siteReportKpiGrid">
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">页面浏览量 (PV)<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('pv')" aria-label="页面浏览量说明">?</button></div>
+                                        <div class="stat-value" id="siteReportPv">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">独立访客 (UV)<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('uv')" aria-label="独立访客说明">?</button></div>
+                                        <div class="stat-value" id="siteReportUv">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">会话数<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('sessions')" aria-label="会话数说明">?</button></div>
+                                        <div class="stat-value" id="siteReportSessions">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">平均会话时长<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('avg_session_duration')" aria-label="平均会话时长说明">?</button></div>
+                                        <div class="stat-value" id="siteReportAvgSession">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">跳出率<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('bounce_rate')" aria-label="跳出率说明">?</button></div>
+                                        <div class="stat-value" id="siteReportBounceRate">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">转化事件<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('conversion_events')" aria-label="转化事件说明">?</button></div>
+                                        <div class="stat-value" id="siteReportConversions">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">转化率<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('conversion_rate')" aria-label="转化率说明">?</button></div>
+                                        <div class="stat-value" id="siteReportConversionRate">-</div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="site-report-audience-section site-report-bot-section" aria-labelledby="siteReportBotTitle">
+                                <div class="site-report-audience-header">
+                                    <div>
+                                        <h4 id="siteReportBotTitle"><i class="fas fa-robot" aria-hidden="true"></i> 爬虫技术流量</h4>
+                                        <p>用于观察搜索引擎抓取、SEO收录和异常访问，不计入真人转化表现。</p>
+                                    </div>
+                                    <span class="site-report-audience-tag">技术口径</span>
+                                </div>
+                                <div class="stats-grid site-report-bot-kpi-grid" id="siteReportBotKpiGrid">
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">爬虫会话<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('crawler_sessions')" aria-label="爬虫会话说明">?</button></div>
+                                        <div class="stat-value" id="siteReportCrawlerSessionsTop">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">页面抓取 (PV)<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('crawler_pageviews')" aria-label="爬虫页面抓取说明">?</button></div>
+                                        <div class="stat-value" id="siteReportCrawlerPageviewsTop">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">独立 IP<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('crawler_unique_ips')" aria-label="爬虫独立IP说明">?</button></div>
+                                        <div class="stat-value" id="siteReportCrawlerUniqueIpsTop">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label metric-with-help">来源类型<button type="button" class="metric-help-btn"
+                                                onclick="showSiteMetricHelp('crawler_sources')" aria-label="爬虫来源类型说明">?</button></div>
+                                        <div class="stat-value" id="siteReportCrawlerSourcesTop">-</div>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
 
                         <div id="siteReportLastUpdated" class="site-report-meta">-</div>
@@ -3309,36 +3358,64 @@
                     </div>
 
                     <div class="card site-report-card" style="margin-top: 18px;">
-                        <h3 class="section-header"><i class="fas fa-map-marked-alt" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源地图（中国按省 / 海外按洲）</h3>
+                        <h3 class="section-header"><i class="fas fa-table" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源统计（中国按省 / 海外按洲）</h3>
                         <div class="site-report-alert"><i class="fas fa-exclamation-triangle"></i> 提示：如短期内出现大量国外访问，请留意是否为网络攻击，及时处理。</div>
-                        <div class="geo-map-layout">
-                            <div class="world-map-panel">
-                                <div class="map-panel-header">
-                                    <div class="map-panel-title">世界分布 · 西半球</div>
-                                    <div class="map-panel-desc">北美洲与南美洲按中国以外会话聚合</div>
+                        <div class="site-report-geo-tables">
+                            <section class="site-report-geo-table" aria-labelledby="siteReportProvinceTitle">
+                                <div class="site-report-geo-table-header">
+                                    <h4 id="siteReportProvinceTitle">中国省份分布</h4>
+                                    <span>按省级行政区统计访问会话</span>
                                 </div>
-                                <div class="world-map-container" id="worldMapWestContainer">
-                                    <div class="china-map-no-data">暂无中国以外地理分布数据</div>
+                                <div class="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th><span class="metric-with-help">省份<button type="button" class="metric-help-btn"
+                                                            onclick="showSiteMetricHelp('province')" aria-label="省份说明">?</button></span></th>
+                                                <th><span class="metric-with-help">会话数<button type="button" class="metric-help-btn"
+                                                            onclick="showSiteMetricHelp('province_sessions')" aria-label="省份会话数说明">?</button></span></th>
+                                                <th><span class="metric-with-help">占比<button type="button" class="metric-help-btn"
+                                                            onclick="showSiteMetricHelp('province_ratio')" aria-label="省份占比说明">?</button></span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="siteReportProvinceBody">
+                                            <tr>
+                                                <td colspan="3" class="no-data">暂无数据</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </div>
-                            <div class="china-map-column">
-                                <div class="map-panel-header">
-                                    <div class="map-panel-title">中国分布</div>
-                                    <div class="map-panel-desc">按省级行政区聚合访问会话，颜色越深表示热度越高</div>
+                                <div class="site-report-pagination">
+                                    <button type="button" class="site-report-page-btn" id="siteReportProvincePrevBtn"
+                                        onclick="changeSiteReportProvincePage(-1)">上一页</button>
+                                    <span class="site-report-page-info" id="siteReportProvincePageInfo">第 0 / 0 页</span>
+                                    <button type="button" class="site-report-page-btn" id="siteReportProvinceNextBtn"
+                                        onclick="changeSiteReportProvincePage(1)">下一页</button>
                                 </div>
-                                <div class="china-map-container" id="chinaMapContainer">
-                                    <div class="china-map-no-data">暂无地理分布数据</div>
+                            </section>
+
+                            <section class="site-report-geo-table" aria-labelledby="siteReportContinentTitle">
+                                <div class="site-report-geo-table-header">
+                                    <h4 id="siteReportContinentTitle">海外洲别分布</h4>
+                                    <span>中国以外会话按洲聚合</span>
                                 </div>
-                            </div>
-                            <div class="world-map-panel">
-                                <div class="map-panel-header">
-                                    <div class="map-panel-title">世界分布 · 东半球</div>
-                                    <div class="map-panel-desc">欧洲、非洲、亚洲与大洋洲按中国以外会话聚合</div>
+                                <div class="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>洲别</th>
+                                                <th>会话数</th>
+                                                <th>海外占比</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="siteReportContinentBody">
+                                            <tr>
+                                                <td colspan="3" class="no-data">暂无数据</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div class="world-map-container" id="worldMapEastContainer">
-                                    <div class="china-map-no-data">暂无中国以外地理分布数据</div>
-                                </div>
-                            </div>
+                            </section>
                         </div>
                     </div>
 
@@ -3441,20 +3518,17 @@
                         </div>
 
                         <div class="card site-report-card">
-                            <h3 class="section-header">省份分布</h3>
+                            <h3 class="section-header">国家分布</h3>
                             <div class="table-container">
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th><span class="metric-with-help">省份<button type="button" class="metric-help-btn"
-                                                        onclick="showSiteMetricHelp('province')" aria-label="省份说明">?</button></span></th>
-                                            <th><span class="metric-with-help">会话数<button type="button" class="metric-help-btn"
-                                                        onclick="showSiteMetricHelp('province_sessions')" aria-label="省份会话数说明">?</button></span></th>
-                                            <th><span class="metric-with-help">占比<button type="button" class="metric-help-btn"
-                                                        onclick="showSiteMetricHelp('province_ratio')" aria-label="省份占比说明">?</button></span></th>
+                                            <th>国家</th>
+                                            <th>会话数</th>
+                                            <th>占比</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="siteReportProvinceBody">
+                                    <tbody id="siteReportCountryBody">
                                         <tr>
                                             <td colspan="3" class="no-data">暂无数据</td>
                                         </tr>
@@ -3462,39 +3536,65 @@
                                 </table>
                             </div>
                             <div class="site-report-pagination">
-                                <button type="button" class="site-report-page-btn" id="siteReportProvincePrevBtn"
-                                    onclick="changeSiteReportProvincePage(-1)">上一页</button>
-                                <span class="site-report-page-info" id="siteReportProvincePageInfo">第 0 / 0 页</span>
-                                <button type="button" class="site-report-page-btn" id="siteReportProvinceNextBtn"
-                                    onclick="changeSiteReportProvincePage(1)">下一页</button>
+                                <button type="button" class="site-report-page-btn" id="siteReportCountryPrevBtn"
+                                    onclick="changeSiteReportCountryPage(-1)">上一页</button>
+                                <span class="site-report-page-info" id="siteReportCountryPageInfo">第 0 / 0 页</span>
+                                <button type="button" class="site-report-page-btn" id="siteReportCountryNextBtn"
+                                    onclick="changeSiteReportCountryPage(1)">下一页</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card site-report-card">
-                        <h3 class="section-header">国家分布</h3>
+                    <div class="card site-report-card site-report-crawler-card" style="margin-top: 18px;">
+                        <div class="site-report-crawler-header">
+                            <div>
+                                <h3 class="section-header"><i class="fas fa-robot" aria-hidden="true"></i> 爬虫访问</h3>
+                                <p>爬虫已从真人 PV、UV、会话、来源、设备、操作系统、地域和转化指标中剥离；站点自检程序不写入访问记录。</p>
+                            </div>
+                            <div class="site-report-crawler-summary" id="siteReportCrawlerSummary" aria-live="polite">
+                                暂无爬虫数据
+                            </div>
+                        </div>
+                        <h4 class="site-report-subsection-title">爬虫来源汇总</h4>
                         <div class="table-container">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>国家</th>
-                                        <th>会话数</th>
-                                        <th>占比</th>
+                                        <th>爬虫来源</th>
+                                        <th>会话 / 占比</th>
+                                        <th>PV / 事件</th>
+                                        <th>独立 IP</th>
+                                        <th>主要访问页面</th>
+                                        <th>User-Agent</th>
+                                        <th>首次 / 最近访问</th>
                                     </tr>
                                 </thead>
-                                <tbody id="siteReportCountryBody">
+                                <tbody id="siteReportCrawlerBody">
                                     <tr>
-                                        <td colspan="3" class="no-data">暂无数据</td>
+                                        <td colspan="7" class="no-data">暂无爬虫数据</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        <div class="site-report-pagination">
-                            <button type="button" class="site-report-page-btn" id="siteReportCountryPrevBtn"
-                                onclick="changeSiteReportCountryPage(-1)">上一页</button>
-                            <span class="site-report-page-info" id="siteReportCountryPageInfo">第 0 / 0 页</span>
-                            <button type="button" class="site-report-page-btn" id="siteReportCountryNextBtn"
-                                onclick="changeSiteReportCountryPage(1)">下一页</button>
+                        <h4 class="site-report-subsection-title">最近爬虫访问记录</h4>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>来源</th>
+                                        <th>IP / 位置</th>
+                                        <th>入口页面</th>
+                                        <th>PV</th>
+                                        <th>User-Agent</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="siteReportCrawlerRecentBody">
+                                    <tr>
+                                        <td colspan="6" class="no-data">暂无爬虫访问记录</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -3973,7 +4073,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260713-product-sort-v2"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260713-product-sort-v2-image-spec-v2"></script>
     <script src="/admin/js/app.js"></script>
 </body>
 </html>

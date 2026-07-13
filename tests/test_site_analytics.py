@@ -177,6 +177,200 @@ class SiteAnalyticsTests(unittest.TestCase):
         context = sa.build_site_analytics_ai_report_context(period="month")
         self.assertEqual(context["current"]["promotion_breakdown"][0]["promotion_mark"], "wechat-article-a")
 
+    def test_automated_agent_classification_and_openharmony(self):
+        baidu = sa._analytics_classify_automated_agent(
+            "Mozilla/5.0 (compatible; Baiduspider-render/2.0; +http://www.baidu.com/search/spider.html)"
+        )
+        self.assertEqual(baidu["traffic_type"], "crawler")
+        self.assertEqual(baidu["crawler_key"], "baidu")
+        internal = sa._analytics_classify_automated_agent(
+            "Mozilla/5.0 (compatible; MetachipCheck/1.0; +https://check.hnmetachip.cn)"
+        )
+        self.assertEqual(internal["traffic_type"], "internal_check")
+        self.assertEqual(
+            sa._analytics_classify_os("Mozilla/5.0 (Phone; OpenHarmony 6.1) AppleWebKit/537.36"),
+            "harmonyos",
+        )
+
+    def test_internal_checker_is_discarded_and_crawler_is_tagged(self):
+        app = Flask(__name__)
+        app.secret_key = "test-secret"
+        sa.register_site_analytics_routes(
+            app,
+            login_required=lambda f: f,
+            data_dir=self.data_dir,
+            get_client_ip=lambda: "127.0.0.1",
+            resolve_ip_location=lambda _ip: "unknown",
+            beijing_tz=sa.BEIJING_TZ,
+            get_config=lambda: {},
+            requests_support=False,
+            requests_module=None,
+            httpx_support=False,
+            httpx_module=None,
+        )
+        response = app.test_client().post(
+            "/api/analytics/collect",
+            json={"event_type": "pageview", "page_path": "/", "visitor_id": "v-check", "session_id": "s-check"},
+            headers={"User-Agent": "Mozilla/5.0 (compatible; MetachipCheck/1.0; +https://check.hnmetachip.cn)"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["accepted"], 0)
+        self.assertEqual(sa._iter_site_analytics_records(), [])
+        crawler_response = app.test_client().post(
+            "/api/analytics/collect",
+            json={"event_type": "pageview", "page_path": "/news", "visitor_id": "v-bot", "session_id": "s-bot"},
+            headers={"User-Agent": "Mozilla/5.0 AppleWebKit/537.36 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)"},
+        )
+        self.assertEqual(crawler_response.status_code, 200)
+        self.assertEqual(crawler_response.get_json()["accepted"], 1)
+        crawler_record = sa._iter_site_analytics_records()[0]
+        self.assertEqual(crawler_record["traffic_type"], "crawler")
+        self.assertEqual(crawler_record["crawler_key"], "bing")
+        self.assertIn("bingbot", crawler_record["crawler_user_agent"])
+
+    def test_crawler_sessions_are_separated_from_human_metrics(self):
+        now_ts = int(sa.time.time())
+        sa._append_site_analytics_records([
+            {
+                "ts": now_ts,
+                "event_type": "pageview",
+                "page_path": "/human",
+                "source": "direct",
+                "device": "desktop",
+                "os": "windows",
+                "traffic_type": "human",
+                "ip": "203.0.113.10",
+                "visitor_id": "v-human",
+                "session_id": "s-human",
+            },
+            {
+                "ts": now_ts,
+                "event_type": "pageview",
+                "page_path": "/crawler-entry",
+                "source": "direct",
+                "device": "desktop",
+                "os": "unknown",
+                "traffic_type": "crawler",
+                "crawler_key": "baidu",
+                "crawler_name": "百度爬虫",
+                "crawler_vendor": "百度",
+                "crawler_user_agent": "Baiduspider-render/2.0",
+                "ip": "220.181.141.40",
+                "country": "中国",
+                "location": "中国 / 北京",
+                "visitor_id": "v-bot",
+                "session_id": "s-bot",
+            },
+        ])
+        report = sa.build_site_analytics_report(range_days=7)
+        self.assertEqual(report["summary"]["sessions"], 1)
+        self.assertEqual(report["summary"]["pageviews"], 1)
+        self.assertEqual(report["os_breakdown"], [{"os": "windows", "sessions": 1, "ratio": 100.0}])
+        self.assertEqual(report["top_pages"][0]["path"], "/human")
+        self.assertEqual(report["crawler_summary"]["sessions"], 1)
+        self.assertEqual(report["crawler_summary"]["pageviews"], 1)
+        self.assertEqual(report["crawler_breakdown"][0]["crawler_key"], "baidu")
+        self.assertEqual(report["crawler_breakdown"][0]["top_paths"][0]["path"], "/crawler-entry")
+        self.assertEqual(report["crawler_recent"][0]["ip"], "220.181.141.40")
+
+    def test_ai_report_context_storage_and_html_include_crawler_data(self):
+        current_report = {
+            "summary": {"pageviews": 100, "unique_visitors": 30, "sessions": 40},
+            "trend": [],
+            "source_breakdown": [],
+            "campaign_breakdown": [],
+            "promotion_breakdown": [],
+            "device_breakdown": [],
+            "os_breakdown": [],
+            "province_breakdown": [],
+            "continent_breakdown": [],
+            "country_breakdown": [],
+            "top_pages": [],
+            "top_events": [],
+            "crawler_summary": {"sessions": 12, "pageviews": 20, "events": 3, "unique_ips": 8, "sources": 1},
+            "crawler_breakdown": [{
+                "crawler_key": "baidu",
+                "crawler_name": "百度爬虫",
+                "crawler_vendor": "百度",
+                "sessions": 12,
+                "pageviews": 20,
+                "events": 3,
+                "unique_ips": 8,
+                "ratio": 100.0,
+                "first_seen": "2026-06-01 01:00:00",
+                "last_seen": "2026-06-01 02:00:00",
+                "top_paths": [{"path": "/news", "pageviews": 15}],
+                "countries": [{"country": "中国", "sessions": 12}],
+                "user_agents": [{"user_agent": "Baiduspider-render/2.0", "sessions": 12}],
+            }],
+        }
+        previous_report = {
+            **current_report,
+            "summary": {"pageviews": 80, "unique_visitors": 25, "sessions": 32},
+            "crawler_summary": {"sessions": 6, "pageviews": 9, "events": 1, "unique_ips": 4, "sources": 1},
+            "crawler_breakdown": [],
+        }
+        reports = iter([current_report, previous_report])
+        old_builder = sa.build_site_analytics_report
+        sa.build_site_analytics_report = lambda **_kwargs: next(reports)
+        try:
+            context = sa.build_site_analytics_ai_report_context(period="month", anchor_date="2026-06-01")
+        finally:
+            sa.build_site_analytics_report = old_builder
+
+        self.assertEqual(context["current"]["crawler_summary"]["sessions"], 12)
+        self.assertEqual(context["current"]["crawler_breakdown"][0]["crawler_key"], "baidu")
+        self.assertNotIn("user_agents", context["current"]["crawler_breakdown"][0])
+        self.assertEqual(context["crawler_comparison"]["sessions"]["change"], 6)
+        messages = sa._build_site_analytics_ai_messages(context)
+        self.assertIn("真人访问指标已经排除已识别爬虫", messages[1]["content"])
+        self.assertIn("crawler_comparison", messages[1]["content"])
+        self.assertNotIn("可能包含爬虫或测试访问", sa.SITE_ANALYTICS_AI_SYSTEM_PROMPT)
+
+        record = sa._build_site_analytics_ai_report_record(
+            "## 爬虫与技术流量\n百度爬虫抓取增加。",
+            context,
+            "test-model",
+            "2026-06-01T12:00:00+08:00",
+        )
+        self.assertEqual(record["crawler_comparison"]["sessions"]["current"], 12)
+        self.assertEqual(record["current_detail"]["crawler_summary"]["sessions"], 12)
+        self.assertEqual(record["current_detail"]["crawler_breakdown"][0]["crawler_name"], "百度爬虫")
+        public_row = sa._analytics_public_ai_report_row(record)
+        self.assertEqual(public_row["current_crawler_summary"]["sessions"], 12)
+        self.assertEqual(public_row["crawler_comparison"]["sessions"]["change"], 6)
+        html = sa._build_site_analytics_ai_report_html(record)
+        self.assertIn("爬虫与技术流量", html)
+        self.assertIn("百度爬虫", html)
+        self.assertIn("已与真人经营指标分离", html)
+        email_html = sa._build_report_email_html(
+            title="月度报告",
+            period_label="月报",
+            range_label="2026-06-01 至 2026-06-30",
+            comparison=context["comparison"],
+            crawler_summary=context["current"]["crawler_summary"],
+        )
+        email_text = sa._build_report_email_text(
+            title="月度报告",
+            period_label="月报",
+            range_label="2026-06-01 至 2026-06-30",
+            crawler_summary=context["current"]["crawler_summary"],
+        )
+        self.assertIn("爬虫与技术流量已独立统计", email_html)
+        self.assertIn("已从真人访问指标中剥离", email_text)
+
+    def test_delete_promotion_analytics_removes_entire_linked_session(self):
+        sa._append_site_analytics_records([
+            {"event_type": "pageview", "promotion_mark": "link-a", "session_id": "session-a"},
+            {"event_type": "event", "session_id": "session-a"},
+            {"event_type": "pageview", "promotion_mark": "link-b", "session_id": "session-b"},
+        ])
+        deleted = sa.delete_site_analytics_records_by_promotion_mark("link-a")
+        self.assertEqual(deleted, 2)
+        records = sa._iter_site_analytics_records()
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["promotion_mark"], "link-b")
+
     def test_report_store_prunes_and_deletes(self):
         sa.SITE_ANALYTICS_AI_REPORTS_PER_PERIOD_LIMIT = 2
         sa._append_site_analytics_ai_report_record(self._sample_record("old", created_ts=1))

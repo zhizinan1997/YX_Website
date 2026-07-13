@@ -109,8 +109,26 @@ SITE_ANALYTICS_AI_JOB_LOCK_TTL_SECONDS = 20 * 60
 SITE_ANALYTICS_AI_PDF_LOCK_TTL_SECONDS = 3 * 60
 SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS = 2200
 SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE = 0.2
-SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION = 'v20260701'
+SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION = 'v20260713-crawler'
 SITE_ANALYTICS_ALLOWED_EVENT_TYPES = {'pageview', 'event', 'session_end'}
+
+_ANALYTICS_INTERNAL_CHECK_SIGNATURES = ('metachipcheck',)
+_ANALYTICS_CRAWLER_SIGNATURES = (
+    ('baidu', '百度爬虫', '百度', ('baiduspider',)),
+    ('yisou', '神马搜索爬虫', '神马搜索', ('yisouspider',)),
+    ('bing', 'Bing 爬虫', 'Microsoft', ('bingbot', 'adidxbot')),
+    ('sogou', '搜狗爬虫', '搜狗', ('sogou web spider', 'sogou spider')),
+    ('google', 'Google 爬虫', 'Google', ('googlebot',)),
+    ('bytespider', '字节跳动爬虫', '字节跳动', ('bytespider',)),
+    ('petal', 'PetalBot', '华为', ('petalbot',)),
+    ('apple', 'Applebot', 'Apple', ('applebot',)),
+    ('yandex', 'Yandex 爬虫', 'Yandex', ('yandexbot', 'yandexrenderresourcesbot')),
+    ('semrush', 'SemrushBot', 'Semrush', ('semrushbot',)),
+    ('ahrefs', 'AhrefsBot', 'Ahrefs', ('ahrefsbot',)),
+    ('dataprovider', 'Dataprovider', 'Dataprovider.com', ('dataprovider.com',)),
+    ('duckduckgo', 'DuckDuckBot', 'DuckDuckGo', ('duckduckbot',)),
+    ('yahoo', 'Yahoo Slurp', 'Yahoo', ('yahoo! slurp', 'slurp')),
+)
 
 # ── 定时报告调度相关 ──
 SCHEDULED_REPORTS_DIR = Path(__file__).resolve().parents[2] / 'data' / 'scheduled_reports'
@@ -255,11 +273,50 @@ def _analytics_classify_device(user_agent: str) -> str:
     return 'desktop'
 
 
+def _analytics_classify_automated_agent(user_agent: str):
+    """识别站点自检与常见爬虫；普通访客返回 None。"""
+    ua = str(user_agent or '').strip()
+    ua_lower = ua.lower()
+    if not ua_lower:
+        return None
+    if any(signature in ua_lower for signature in _ANALYTICS_INTERNAL_CHECK_SIGNATURES):
+        return {
+            'traffic_type': 'internal_check',
+            'crawler_key': 'metachip_check',
+            'crawler_name': '站点自检程序',
+            'crawler_vendor': '元芯传感',
+        }
+    for crawler_key, crawler_name, crawler_vendor, signatures in _ANALYTICS_CRAWLER_SIGNATURES:
+        if any(signature in ua_lower for signature in signatures):
+            return {
+                'traffic_type': 'crawler',
+                'crawler_key': crawler_key,
+                'crawler_name': crawler_name,
+                'crawler_vendor': crawler_vendor,
+            }
+    if re.search(r'(^|[\s/;+(])(?:bot|spider|crawler)(?:[\s/;)+]|$)', ua_lower):
+        return {
+            'traffic_type': 'crawler',
+            'crawler_key': 'other',
+            'crawler_name': '其他爬虫',
+            'crawler_vendor': '未知来源',
+        }
+    return None
+
+
+def _analytics_is_automated_record(record) -> bool:
+    if not isinstance(record, dict):
+        return False
+    traffic_type = _analytics_clean_text(record.get('traffic_type'), max_length=24).lower()
+    crawler_key = _analytics_clean_text(record.get('crawler_key'), max_length=48).lower()
+    return traffic_type in {'crawler', 'internal_check'} or bool(crawler_key)
+
+
 def _analytics_classify_os(user_agent: str) -> str:
     ua = str(user_agent or '').lower()
     if not ua:
         return 'unknown'
-    if 'harmonyos' in ua or 'hongmeng' in ua or 'hmos' in ua:
+    if 'openharmony' in ua or 'harmonyos' in ua or 'hongmeng' in ua or 'hmos' in ua:
         return 'harmonyos'
     if 'windows nt' in ua or 'win64' in ua or 'wow64' in ua:
         return 'windows'
@@ -959,6 +1016,7 @@ def _build_site_analytics_report_from_buckets(
     event_counter = {}
     visitor_set = set()
     recent_events = []
+    crawler_sessions = {}
     promotion_lookup = _analytics_load_promotion_lookup()
 
     records = _iter_site_analytics_records()
@@ -988,8 +1046,14 @@ def _build_site_analytics_report_from_buckets(
         promotion_mark = normalize_promotion_mark(item.get('promotion_mark') or utm_id)
         device = _analytics_clean_text(item.get('device'), max_length=32).lower() or 'unknown'
         os_name = _analytics_clean_text(item.get('os'), max_length=32).lower() or 'unknown'
+        traffic_type = _analytics_clean_text(item.get('traffic_type'), max_length=24).lower() or 'human'
+        crawler_key = _analytics_clean_text(item.get('crawler_key'), max_length=48).lower()
+        crawler_name = _analytics_clean_text(item.get('crawler_name'), max_length=80)
+        crawler_vendor = _analytics_clean_text(item.get('crawler_vendor'), max_length=80)
+        crawler_user_agent = _analytics_clean_text(item.get('crawler_user_agent'), max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH)
         province = _analytics_extract_record_province(item)
         country = _analytics_extract_record_country(item)
+        location = _analytics_clean_text(item.get('location'), max_length=120)
         ip_addr = _analytics_clean_text(item.get('ip'), max_length=45)
         visitor_id = _analytics_clean_id(item.get('visitor_id'), max_length=64)
         session_id = _analytics_clean_id(item.get('session_id'), max_length=64)
@@ -997,6 +1061,51 @@ def _build_site_analytics_report_from_buckets(
             visitor_id = 'anonymous'
         if not session_id:
             session_id = f'anon_{visitor_id}_{_analytics_day_key(ts)}'
+
+        if traffic_type == 'internal_check' or crawler_key == 'metachip_check':
+            continue
+
+        if traffic_type == 'crawler' or crawler_key:
+            crawler_key = crawler_key or 'other'
+            crawler_name = crawler_name or '其他爬虫'
+            crawler_vendor = crawler_vendor or '未知来源'
+            crawler_session = crawler_sessions.get(session_id)
+            if not crawler_session:
+                crawler_session = {
+                    'session_id': session_id,
+                    'first_ts': ts,
+                    'last_ts': ts,
+                    'pageviews': 0,
+                    'events': 0,
+                    'crawler_key': crawler_key,
+                    'crawler_name': crawler_name,
+                    'crawler_vendor': crawler_vendor,
+                    'crawler_user_agent': crawler_user_agent,
+                    'ip': ip_addr,
+                    'location': location,
+                    'country': country,
+                    'landing_path': page_path,
+                    'path_counts': {},
+                }
+                crawler_sessions[session_id] = crawler_session
+            else:
+                crawler_session['first_ts'] = min(int(crawler_session.get('first_ts') or ts), ts)
+                crawler_session['last_ts'] = max(int(crawler_session.get('last_ts') or ts), ts)
+                if not crawler_session.get('crawler_user_agent') and crawler_user_agent:
+                    crawler_session['crawler_user_agent'] = crawler_user_agent
+                if not crawler_session.get('ip') and ip_addr:
+                    crawler_session['ip'] = ip_addr
+                if not crawler_session.get('location') and location:
+                    crawler_session['location'] = location
+                if not crawler_session.get('country') and country:
+                    crawler_session['country'] = country
+            if event_type == 'pageview':
+                crawler_session['pageviews'] += 1
+                path_counts = crawler_session['path_counts']
+                path_counts[page_path] = path_counts.get(page_path, 0) + 1
+            elif event_type == 'event':
+                crawler_session['events'] += 1
+            continue
 
         visitor_set.add(visitor_id)
         buckets[bucket_key]['visitors'].add(visitor_id)
@@ -1356,6 +1465,84 @@ def _build_site_analytics_report_from_buckets(
     top_events.sort(key=lambda item: item['count'], reverse=True)
     top_events = top_events[:12]
 
+    tracked_crawler_sessions = [
+        item for item in crawler_sessions.values()
+        if int(item.get('pageviews') or 0) > 0
+    ]
+    crawler_stats = {}
+    for item in tracked_crawler_sessions:
+        crawler_key = item.get('crawler_key') or 'other'
+        stats = crawler_stats.setdefault(crawler_key, {
+            'crawler_key': crawler_key,
+            'crawler_name': item.get('crawler_name') or '其他爬虫',
+            'crawler_vendor': item.get('crawler_vendor') or '未知来源',
+            'sessions': 0,
+            'pageviews': 0,
+            'events': 0,
+            'ips': set(),
+            'countries': {},
+            'paths': {},
+            'user_agents': {},
+            'first_ts': 0,
+            'last_ts': 0,
+        })
+        stats['sessions'] += 1
+        stats['pageviews'] += int(item.get('pageviews') or 0)
+        stats['events'] += int(item.get('events') or 0)
+        if item.get('ip'):
+            stats['ips'].add(item['ip'])
+        if item.get('country'):
+            country_key = item['country']
+            stats['countries'][country_key] = stats['countries'].get(country_key, 0) + 1
+        for path_key, count in (item.get('path_counts') or {}).items():
+            stats['paths'][path_key] = stats['paths'].get(path_key, 0) + int(count or 0)
+        if item.get('crawler_user_agent'):
+            ua_key = item['crawler_user_agent']
+            stats['user_agents'][ua_key] = stats['user_agents'].get(ua_key, 0) + 1
+        first_ts = int(item.get('first_ts') or 0)
+        last_ts = int(item.get('last_ts') or 0)
+        if first_ts and (not stats['first_ts'] or first_ts < stats['first_ts']):
+            stats['first_ts'] = first_ts
+        if last_ts > stats['last_ts']:
+            stats['last_ts'] = last_ts
+
+    crawler_total_sessions = len(tracked_crawler_sessions)
+    crawler_rows = []
+    for stats in crawler_stats.values():
+        top_paths = sorted(stats['paths'].items(), key=lambda row: row[1], reverse=True)[:5]
+        top_user_agents = sorted(stats['user_agents'].items(), key=lambda row: row[1], reverse=True)[:3]
+        top_countries = sorted(stats['countries'].items(), key=lambda row: row[1], reverse=True)[:5]
+        crawler_rows.append({
+            'crawler_key': stats['crawler_key'],
+            'crawler_name': stats['crawler_name'],
+            'crawler_vendor': stats['crawler_vendor'],
+            'sessions': stats['sessions'],
+            'pageviews': stats['pageviews'],
+            'events': stats['events'],
+            'unique_ips': len(stats['ips']),
+            'ratio': round((stats['sessions'] * 100.0 / crawler_total_sessions), 2) if crawler_total_sessions else 0.0,
+            'first_seen': _analytics_local_datetime(stats['first_ts']).strftime('%Y-%m-%d %H:%M:%S') if stats['first_ts'] else '',
+            'last_seen': _analytics_local_datetime(stats['last_ts']).strftime('%Y-%m-%d %H:%M:%S') if stats['last_ts'] else '',
+            'top_paths': [{'path': path, 'pageviews': count} for path, count in top_paths],
+            'user_agents': [{'user_agent': ua, 'sessions': count} for ua, count in top_user_agents],
+            'countries': [{'country': country, 'sessions': count} for country, count in top_countries],
+        })
+    crawler_rows.sort(key=lambda item: (item['sessions'], item['pageviews']), reverse=True)
+
+    crawler_recent = []
+    for item in sorted(tracked_crawler_sessions, key=lambda row: int(row.get('last_ts') or 0), reverse=True)[:50]:
+        crawler_recent.append({
+            'crawler_key': item.get('crawler_key') or 'other',
+            'crawler_name': item.get('crawler_name') or '其他爬虫',
+            'crawler_vendor': item.get('crawler_vendor') or '未知来源',
+            'last_seen': _analytics_local_datetime(int(item.get('last_ts') or 0)).strftime('%Y-%m-%d %H:%M:%S'),
+            'ip': item.get('ip') or '',
+            'location': item.get('location') or item.get('country') or '',
+            'landing_path': item.get('landing_path') or '/',
+            'pageviews': int(item.get('pageviews') or 0),
+            'user_agent': item.get('crawler_user_agent') or '',
+        })
+
     trend = []
     for bucket_key in bucket_keys:
         row = buckets.get(bucket_key, {})
@@ -1389,6 +1576,15 @@ def _build_site_analytics_report_from_buckets(
         'promotion_breakdown': promotion_rows,
         'device_breakdown': device_rows,
         'os_breakdown': os_rows,
+        'crawler_summary': {
+            'sessions': crawler_total_sessions,
+            'pageviews': sum(int(item.get('pageviews') or 0) for item in tracked_crawler_sessions),
+            'events': sum(int(item.get('events') or 0) for item in tracked_crawler_sessions),
+            'unique_ips': len({item.get('ip') for item in tracked_crawler_sessions if item.get('ip')}),
+            'sources': len(crawler_rows),
+        },
+        'crawler_breakdown': crawler_rows,
+        'crawler_recent': crawler_recent,
         'province_breakdown': province_rows,
         'continent_breakdown': continent_rows,
         'country_breakdown': country_rows,
@@ -1402,6 +1598,10 @@ def _build_site_analytics_report_from_buckets(
 
 def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, request_ip: str):
     if not isinstance(raw_event, dict):
+        return None
+
+    automated_agent = _analytics_classify_automated_agent(request_ua)
+    if automated_agent and automated_agent.get('traffic_type') == 'internal_check':
         return None
 
     event_type = _analytics_clean_text(raw_event.get('event_type') or raw_event.get('type'), max_length=24).lower()
@@ -1450,7 +1650,7 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
     event_target_url = _analytics_clean_text(raw_event.get('event_target_url') or raw_event.get('target_url'), max_length=260)
 
     now_ts = int(time.time())
-    return {
+    record = {
         'ts': now_ts,
         'day': _analytics_day_key(now_ts),
         'event_type': event_type,
@@ -1481,6 +1681,17 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
         'event_target_text': event_target_text,
         'event_target_url': event_target_url,
     }
+    if automated_agent and automated_agent.get('traffic_type') == 'crawler':
+        record.update({
+            'traffic_type': 'crawler',
+            'crawler_key': automated_agent.get('crawler_key') or 'other',
+            'crawler_name': automated_agent.get('crawler_name') or '其他爬虫',
+            'crawler_vendor': automated_agent.get('crawler_vendor') or '未知来源',
+            'crawler_user_agent': _analytics_clean_text(request_ua, max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH),
+        })
+    else:
+        record['traffic_type'] = 'human'
+    return record
 
 
 def _append_site_analytics_records(records):
@@ -1515,6 +1726,60 @@ def _iter_site_analytics_records():
         if isinstance(obj, dict):
             output.append(obj)
     return output
+
+
+def delete_site_analytics_records_by_promotion_mark(promotion_mark, file_path=None):
+    """删除指定推广链接及其关联会话的全部埋点记录。"""
+    mark = normalize_promotion_mark(promotion_mark)
+    log_file = Path(file_path or SITE_ANALYTICS_LOG_FILE)
+    if not mark or not log_file.exists():
+        return 0
+    with SITE_ANALYTICS_LOCK:
+        try:
+            lines = log_file.read_text(encoding='utf-8').splitlines()
+        except Exception:
+            return 0
+        parsed_lines = []
+        matched_sessions = set()
+        for line in lines:
+            raw_line = str(line or '').strip()
+            if not raw_line:
+                continue
+            try:
+                record = json.loads(raw_line)
+            except Exception:
+                parsed_lines.append((raw_line, None))
+                continue
+            if not isinstance(record, dict):
+                parsed_lines.append((raw_line, None))
+                continue
+            parsed_lines.append((raw_line, record))
+            record_mark = normalize_promotion_mark(record.get('promotion_mark') or record.get('utm_id'))
+            if record_mark == mark:
+                session_id = _analytics_clean_id(record.get('session_id'), max_length=64)
+                if session_id:
+                    matched_sessions.add(session_id)
+        kept_lines = []
+        deleted_count = 0
+        for raw_line, record in parsed_lines:
+            if record is None:
+                kept_lines.append(raw_line)
+                continue
+            record_mark = normalize_promotion_mark(record.get('promotion_mark') or record.get('utm_id'))
+            session_id = _analytics_clean_id(record.get('session_id'), max_length=64)
+            if record_mark == mark or (session_id and session_id in matched_sessions):
+                deleted_count += 1
+            else:
+                kept_lines.append(raw_line)
+        if not deleted_count:
+            return 0
+        temp_path = log_file.with_suffix(
+            log_file.suffix + f'.tmp-{uuid.uuid4().hex}'
+        )
+        content = '\n'.join(kept_lines)
+        temp_path.write_text(f'{content}\n' if content else '', encoding='utf-8')
+        temp_path.replace(log_file)
+        return deleted_count
 
 
 def _analytics_report_safe_id(value: str) -> str:
@@ -1703,7 +1968,14 @@ def _analytics_report_index_item(record):
         'current_range': safe_record.get('current_range') if isinstance(safe_record.get('current_range'), dict) else {},
         'previous_range': safe_record.get('previous_range') if isinstance(safe_record.get('previous_range'), dict) else {},
         'comparison': safe_record.get('comparison') if isinstance(safe_record.get('comparison'), dict) else {},
+        'crawler_comparison': safe_record.get('crawler_comparison') if isinstance(safe_record.get('crawler_comparison'), dict) else {},
         'current_summary': safe_record.get('current_summary') if isinstance(safe_record.get('current_summary'), dict) else {},
+        'current_crawler_summary': (
+            safe_record.get('current_detail', {}).get('crawler_summary', {})
+            if isinstance(safe_record.get('current_detail'), dict)
+            and isinstance(safe_record.get('current_detail', {}).get('crawler_summary'), dict)
+            else {}
+        ),
     }
 
 
@@ -1880,7 +2152,10 @@ def _analytics_public_ai_report_row(record):
     current_range = record.get('current_range') if isinstance(record.get('current_range'), dict) else {}
     previous_range = record.get('previous_range') if isinstance(record.get('previous_range'), dict) else {}
     comparison = record.get('comparison') if isinstance(record.get('comparison'), dict) else {}
+    crawler_comparison = record.get('crawler_comparison') if isinstance(record.get('crawler_comparison'), dict) else {}
     current_summary = record.get('current_summary') if isinstance(record.get('current_summary'), dict) else {}
+    current_detail = record.get('current_detail') if isinstance(record.get('current_detail'), dict) else {}
+    current_crawler_summary = current_detail.get('crawler_summary') if isinstance(current_detail.get('crawler_summary'), dict) else {}
     return {
         'id': _analytics_report_safe_id(record.get('id')),
         'period': _analytics_clean_text(record.get('period'), max_length=20),
@@ -1892,7 +2167,9 @@ def _analytics_public_ai_report_row(record):
         'current_range': current_range,
         'previous_range': previous_range,
         'comparison': comparison,
+        'crawler_comparison': crawler_comparison,
         'current_summary': current_summary,
+        'current_crawler_summary': current_crawler_summary,
         'download_url': f"/api/admin/site-reports/ai-reports/{_analytics_report_safe_id(record.get('id'))}/download",
     }
 
@@ -1976,6 +2253,7 @@ def _build_site_analytics_ai_report_record(report_text: str, context, model: str
         'current_range': safe_context.get('current_range') if isinstance(safe_context.get('current_range'), dict) else {},
         'previous_range': safe_context.get('previous_range') if isinstance(safe_context.get('previous_range'), dict) else {},
         'comparison': safe_context.get('comparison') if isinstance(safe_context.get('comparison'), dict) else {},
+        'crawler_comparison': safe_context.get('crawler_comparison') if isinstance(safe_context.get('crawler_comparison'), dict) else {},
         'current_summary': current.get('summary') if isinstance(current.get('summary'), dict) else {},
         'current_detail': _analytics_report_detail_from_context(safe_context),
     }
@@ -2051,6 +2329,8 @@ def _analytics_report_detail_from_context(context):
         'promotion_breakdown': _analytics_top_rows(current.get('promotion_breakdown'), 12),
         'device_breakdown': _analytics_top_rows(current.get('device_breakdown'), 8),
         'os_breakdown': _analytics_top_rows(current.get('os_breakdown'), 8),
+        'crawler_summary': current.get('crawler_summary') if isinstance(current.get('crawler_summary'), dict) else {},
+        'crawler_breakdown': _analytics_compact_crawler_rows(current.get('crawler_breakdown'), 12),
         'province_breakdown': _analytics_top_rows(current.get('province_breakdown'), 10),
         'continent_breakdown': _analytics_top_rows(current.get('continent_breakdown'), 8),
         'country_breakdown': _analytics_top_rows(current.get('country_breakdown'), 10),
@@ -2398,6 +2678,49 @@ def _analytics_promotion_table_html(rows):
     return ''.join(output)
 
 
+def _analytics_crawler_table_html(summary, rows):
+    safe_summary = summary if isinstance(summary, dict) else {}
+    safe_rows = [row for row in (rows if isinstance(rows, list) else []) if isinstance(row, dict)][:10]
+    sessions = int(safe_summary.get('sessions') or 0)
+    if sessions <= 0 and not safe_rows:
+        return '<div class="empty-block">本周期未识别到爬虫访问</div>'
+    summary_html = (
+        '<div class="crawler-kpi-grid">'
+        f'<div class="crawler-kpi"><span>爬虫会话</span><strong>{sessions:,}</strong></div>'
+        f'<div class="crawler-kpi"><span>页面抓取</span><strong>{int(safe_summary.get("pageviews") or 0):,}</strong></div>'
+        f'<div class="crawler-kpi"><span>独立 IP</span><strong>{int(safe_summary.get("unique_ips") or 0):,}</strong></div>'
+        f'<div class="crawler-kpi"><span>来源类型</span><strong>{int(safe_summary.get("sources") or 0):,}</strong></div>'
+        '</div>'
+    )
+    if not safe_rows:
+        return summary_html
+    output = [
+        summary_html,
+        '<table class="data-table crawler-data-table"><thead><tr>'
+        '<th>爬虫来源</th><th>会话/PV</th><th>独立 IP</th><th>占比</th><th>主要抓取页面</th><th>最近访问</th>'
+        '</tr></thead><tbody>',
+    ]
+    for row in safe_rows:
+        paths = [item for item in (row.get('top_paths') if isinstance(row.get('top_paths'), list) else []) if isinstance(item, dict)]
+        path_text = '；'.join(
+            f'{_analytics_clean_text(item.get("path"), max_length=46) or "/"} ({int(item.get("pageviews") or 0)} PV)'
+            for item in paths[:3]
+        ) or '-'
+        output.append(
+            '<tr>'
+            f'<td><strong>{html.escape(_analytics_clean_text(row.get("crawler_name"), max_length=36) or "其他爬虫")}</strong>'
+            f'<small>{html.escape(_analytics_clean_text(row.get("crawler_vendor"), max_length=36) or "未知来源")}</small></td>'
+            f'<td>{int(row.get("sessions") or 0):,} / {int(row.get("pageviews") or 0):,}</td>'
+            f'<td>{int(row.get("unique_ips") or 0):,}</td>'
+            f'<td>{float(row.get("ratio") or 0):.2f}%</td>'
+            f'<td>{html.escape(path_text)}</td>'
+            f'<td>{html.escape(_analytics_clean_text(row.get("last_seen"), max_length=24) or "-")}</td>'
+            '</tr>'
+        )
+    output.append('</tbody></table>')
+    return ''.join(output)
+
+
 def _analytics_plain_int(value):
     try:
         return int(round(float(value or 0)))
@@ -2540,6 +2863,10 @@ def _analytics_build_plain_report_interpretation(record, detail=None):
     event_name = _analytics_plain_event_name(top_event.get('name'))
     event_count = _analytics_plain_int(top_event.get('count'))
     duration_text = _analytics_plain_duration(duration)
+    crawler_summary = detail.get('crawler_summary') if isinstance(detail.get('crawler_summary'), dict) else {}
+    crawler_sessions = _analytics_plain_int(crawler_summary.get('sessions'))
+    crawler_pageviews = _analytics_plain_int(crawler_summary.get('pageviews'))
+    crawler_sources = _analytics_plain_int(crawler_summary.get('sources'))
 
     if visitors <= 0 or pageviews <= 0:
         headline = '当前周期网站有效访问偏少，建议优先核查推广动作是否持续，以及统计代码是否正常工作。'
@@ -2580,6 +2907,12 @@ def _analytics_build_plain_report_interpretation(record, detail=None):
         f'主要来源为“{source_name}”，对应 {_analytics_plain_number(source_sessions)} 次访问；如来源长期无法识别，建议为推广链接补充追踪参数。',
         f'最高频行为事件为“{event_name}”，共发生 {_analytics_plain_number(event_count)} 次；如咨询类点击偏少，需要增强页面行动引导。',
     ]
+    if crawler_sessions > 0:
+        points.append(
+            f'技术流量另记录 {_analytics_plain_number(crawler_sessions)} 个爬虫会话、'
+            f'{_analytics_plain_number(crawler_pageviews)} 次页面抓取，来自 {_analytics_plain_number(crawler_sources)} 类爬虫；'
+            '这些数据已从上述真人访问与转化指标中剥离。'
+        )
 
     actions = [
         '把访问最多的页面当成重点入口，在页面中加醒目的“获取方案 / 联系技术工程师 / 下载资料”。',
@@ -2699,6 +3032,20 @@ def _build_site_analytics_ai_report_html(record):
     events_html = _analytics_top_events_table_html(detail.get('top_events'))
     province_html = _analytics_bar_list_html(detail.get('province_breakdown'), label_key='province', empty_text='暂无省份数据')
     country_html = _analytics_bar_list_html(detail.get('country_breakdown'), label_key='country', empty_text='暂无国家数据')
+    crawler_summary = detail.get('crawler_summary') if isinstance(detail.get('crawler_summary'), dict) else {}
+    crawler_rows = detail.get('crawler_breakdown') if isinstance(detail.get('crawler_breakdown'), list) else []
+    crawler_html = _analytics_crawler_table_html(crawler_summary, crawler_rows)
+    crawler_page_html = ''
+    if int(crawler_summary.get('sessions') or 0) > 0 or crawler_rows:
+        crawler_page_html = (
+            '<section class="report-page">'
+            '<div class="section-head"><h2>爬虫与技术流量</h2><span>已与真人经营指标分离</span></div>'
+            '<div class="panel"><h3>识别结果与主要来源</h3>'
+            '<p class="crawler-note">本页仅反映搜索引擎抓取、SEO 收录和技术访问情况，不代表客户增长、推广成效或转化。</p>'
+            f'{crawler_html}</div>'
+            '<div class="footer"><span>MetaChip Website Analytics</span><span>Technical Traffic</span></div>'
+            '</section>'
+        )
     css = """
 <style>
 @page { size: A4; margin: 0; }
@@ -2774,6 +3121,12 @@ body {
 .data-table th, .md-table th { background: #f1f7ff; color: #123d71; font-weight: 800; }
 .data-table td:not(:first-child), .md-table td:not(:first-child) { white-space: nowrap; }
 .data-table small { display: block; color: #94a3b8; font-size: 10px; margin-top: 2px; word-break: break-all; }
+.crawler-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0 14px; }
+.crawler-kpi { border: 1px solid #fed7aa; border-radius: 8px; background: #fff7ed; padding: 10px 12px; }
+.crawler-kpi span { display: block; color: #9a3412; font-size: 10px; font-weight: 700; }
+.crawler-kpi strong { display: block; color: #7c2d12; font-size: 20px; margin-top: 3px; }
+.crawler-note { color: #64748b; font-size: 11px; margin: 0 0 8px; }
+.crawler-data-table td:nth-child(5) { white-space: normal; min-width: 54mm; }
 .plain-page { padding-top: 15mm; }
 .plain-hero { margin: 4mm 0 8mm; padding: 18px 20px; border-radius: 8px; background: #10233d; color: #fff; }
 .plain-hero span { display: block; color: #a7f3d0; font-size: 12px; font-weight: 800; margin-bottom: 7px; }
@@ -3061,6 +3414,7 @@ pre { white-space: pre-wrap; background: #0f172a; color: #e2e8f0; border-radius:
   </div>
   <div class="footer"><span>MetaChip Website Analytics</span><span>Data Overview</span></div>
 </section>
+{crawler_page_html}
 {ai_pages_html}
 {pagination_js}
 </body>
@@ -3371,7 +3725,8 @@ def _generate_site_analytics_ai_report_pdf_reportlab(record):
         ]))
         story.append(KeepTogether([table, Spacer(1, 8)]))
 
-    plain = _analytics_build_plain_report_interpretation(record)
+    detail = _analytics_report_detail(record)
+    plain = _analytics_build_plain_report_interpretation(record, detail)
     story.append(PageBreak())
     story.append(Paragraph('简要总结', styles['ReportTitle']))
     story.append(Paragraph('面向经营决策的关键解读', styles['ReportMeta']))
@@ -3423,6 +3778,72 @@ def _generate_site_analytics_ai_report_pdf_reportlab(record):
     ]
     if plain_actions:
         story.append(ListFlowable(plain_actions, bulletType='1', leftIndent=14, bulletFontName=base_font))
+
+    crawler_summary = detail.get('crawler_summary') if isinstance(detail.get('crawler_summary'), dict) else {}
+    crawler_rows = [
+        item for item in (detail.get('crawler_breakdown') if isinstance(detail.get('crawler_breakdown'), list) else [])
+        if isinstance(item, dict)
+    ][:10]
+    if int(crawler_summary.get('sessions') or 0) > 0 or crawler_rows:
+        story.append(PageBreak())
+        story.append(Paragraph('爬虫与技术流量', styles['ReportTitle']))
+        story.append(Paragraph('已与真人经营指标分离，仅用于 SEO 抓取、异常流量与服务器压力判断', styles['ReportMeta']))
+        crawler_kpis = [[
+            Paragraph(f'<font color="#64748b">爬虫会话</font><br/><font size="14" color="#9a3412">{int(crawler_summary.get("sessions") or 0):,}</font>', styles['ReportBody']),
+            Paragraph(f'<font color="#64748b">页面抓取</font><br/><font size="14" color="#9a3412">{int(crawler_summary.get("pageviews") or 0):,}</font>', styles['ReportBody']),
+            Paragraph(f'<font color="#64748b">独立 IP</font><br/><font size="14" color="#9a3412">{int(crawler_summary.get("unique_ips") or 0):,}</font>', styles['ReportBody']),
+            Paragraph(f'<font color="#64748b">来源类型</font><br/><font size="14" color="#9a3412">{int(crawler_summary.get("sources") or 0):,}</font>', styles['ReportBody']),
+        ]]
+        crawler_kpi_table = Table(crawler_kpis, colWidths=[40 * mm] * 4)
+        crawler_kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fff7ed')),
+            ('BOX', (0, 0), (-1, -1), 0.7, colors.HexColor('#fed7aa')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#fed7aa')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ]))
+        story.append(crawler_kpi_table)
+        story.append(Spacer(1, 10))
+        if crawler_rows:
+            crawler_table_data = [[
+                Paragraph('爬虫来源', styles['ReportSmall']),
+                Paragraph('会话 / PV', styles['ReportSmall']),
+                Paragraph('独立 IP', styles['ReportSmall']),
+                Paragraph('主要抓取页面', styles['ReportSmall']),
+                Paragraph('最近访问', styles['ReportSmall']),
+            ]]
+            for item in crawler_rows:
+                paths = [row for row in (item.get('top_paths') if isinstance(item.get('top_paths'), list) else []) if isinstance(row, dict)]
+                path_text = '；'.join(
+                    f'{_analytics_clean_text(row.get("path"), max_length=42) or "/"} ({int(row.get("pageviews") or 0)} PV)'
+                    for row in paths[:3]
+                ) or '-'
+                crawler_table_data.append([
+                    Paragraph(
+                        f'<b>{_analytics_inline_markdown_to_reportlab(item.get("crawler_name") or "其他爬虫")}</b><br/>'
+                        f'{_analytics_inline_markdown_to_reportlab(item.get("crawler_vendor") or "未知来源")}',
+                        styles['ReportSmall'],
+                    ),
+                    Paragraph(f'{int(item.get("sessions") or 0):,} / {int(item.get("pageviews") or 0):,}', styles['ReportSmall']),
+                    Paragraph(f'{int(item.get("unique_ips") or 0):,}', styles['ReportSmall']),
+                    Paragraph(_analytics_inline_markdown_to_reportlab(path_text), styles['ReportSmall']),
+                    Paragraph(_analytics_inline_markdown_to_reportlab(item.get('last_seen') or '-'), styles['ReportSmall']),
+                ])
+            crawler_table = Table(crawler_table_data, repeatRows=1, colWidths=[34 * mm, 25 * mm, 18 * mm, 55 * mm, 28 * mm])
+            crawler_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fff7ed')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#9a3412')),
+                ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#fed7aa')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ]))
+            story.append(crawler_table)
 
     story.append(PageBreak())
     story.append(Paragraph('AI 运营分析', styles['ReportTitle']))
@@ -3735,6 +4156,8 @@ def build_site_source_detail_stats(source_key, start_date=None, end_date=None, r
     visitors = set()
 
     for item in _iter_site_analytics_records():
+        if _analytics_is_automated_record(item):
+            continue
         ts = _analytics_to_int(item.get('ts'), default=0)
         if ts < since_ts or ts >= until_ts_exclusive:
             continue
@@ -4012,6 +4435,8 @@ def build_promotion_link_detail_stats(promotion_mark, start_date=None, end_date=
 
     raw_records = []
     for item in _iter_site_analytics_records():
+        if _analytics_is_automated_record(item):
+            continue
         ts = _analytics_to_int(item.get('ts'), default=0)
         if ts <= 0:
             continue
@@ -4478,11 +4903,13 @@ SITE_ANALYTICS_AI_SYSTEM_PROMPT = """你是企业官网运营数据分析师，�
 1. 只使用用户提供的聚合数据，不要编造未提供的渠道、客户身份、订单或收入。
 2. 报告要面向经营和营销决策，覆盖流量规模、访客质量、渠道来源、推广链接/活动表现、设备/系统、地域分布、热门内容、行为事件、转化表现和环比变化。
 3. 分析推广链接时，要优先使用 promotion_breakdown 和 campaign_breakdown，明确总结具体来源平台、媒介、活动名称、内容标识/文章/二维码、推广标记，以及会话、PV、UV、点击事件、行为事件、转化事件、转化会话、转化率、跳出率、平均停留、页/会话等质量指标。
-4. 明确指出数据采集口径限制：统计来自站内埋点，可能包含爬虫或测试访问；没有收入、订单、客户姓名、手机号等业务成交数据。
-5. 输出结构：标题、核心结论、关键指标与环比、流量与渠道分析、推广链接表现、内容与行为分析、地域/设备洞察、风险与异常、下阶段行动建议。
-6. 行动建议要具体，可执行，适合 B2B 传感器官网运营。
-7. 使用中文，专业、清晰，避免营销套话。
-8. 标题与小标题使用正式书面语，例如“简要总结”“当前需重点关注”“核心观察”；不要使用面向个人称呼或过度口语化、不适合正式汇报的表述。
+4. summary、trend、source_breakdown、device_breakdown、os_breakdown、地域、页面、事件、推广和转化数据均为真人访问口径，已排除已识别爬虫；站点自检程序不写入统计。不得把 crawler_summary 或 crawler_breakdown 中的技术流量解释为客户、潜在客户、推广成效或转化增长。
+5. 使用 crawler_summary、crawler_breakdown 和 crawler_comparison 单独撰写“爬虫与技术流量”分析，说明主要爬虫来源、会话/PV、独立 IP、主要抓取页面和环比变化；这部分只用于 SEO 抓取、异常流量和服务器压力判断。
+6. 明确指出数据采集口径限制：爬虫依赖 User-Agent 规则识别，伪装成普通浏览器的爬虫仍可能无法识别；没有收入、订单、客户姓名、手机号等业务成交数据。
+7. 输出结构：标题、核心结论、关键指标与环比、流量与渠道分析、推广链接表现、内容与行为分析、地域/设备洞察、爬虫与技术流量、风险与异常、下阶段行动建议。
+8. 行动建议要具体，可执行，适合 B2B 传感器官网运营。
+9. 使用中文，专业、清晰，避免营销套话。
+10. 标题与小标题使用正式书面语，例如“简要总结”“当前需重点关注”“核心观察”；不要使用面向个人称呼或过度口语化、不适合正式汇报的表述。
 """
 
 
@@ -4717,6 +5144,48 @@ def _analytics_build_comparison(current_report, previous_report):
     return output
 
 
+def _analytics_build_crawler_comparison(current_report, previous_report):
+    current = current_report.get('crawler_summary') if isinstance(current_report, dict) else {}
+    previous = previous_report.get('crawler_summary') if isinstance(previous_report, dict) else {}
+    current = current if isinstance(current, dict) else {}
+    previous = previous if isinstance(previous, dict) else {}
+    metric_defs = (
+        ('sessions', '爬虫会话', 0),
+        ('pageviews', '爬虫页面浏览量', 0),
+        ('unique_ips', '爬虫独立 IP', 0),
+        ('sources', '爬虫来源数', 0),
+    )
+    return {
+        key: {
+            'label': label,
+            **_analytics_compare_metric(current.get(key, 0), previous.get(key, 0), digits=digits),
+        }
+        for key, label, digits in metric_defs
+    }
+
+
+def _analytics_compact_crawler_rows(rows, limit=12):
+    output = []
+    for row in _analytics_top_rows(rows, limit):
+        if not isinstance(row, dict):
+            continue
+        output.append({
+            'crawler_key': row.get('crawler_key') or 'other',
+            'crawler_name': row.get('crawler_name') or '其他爬虫',
+            'crawler_vendor': row.get('crawler_vendor') or '未知来源',
+            'sessions': int(row.get('sessions') or 0),
+            'pageviews': int(row.get('pageviews') or 0),
+            'events': int(row.get('events') or 0),
+            'unique_ips': int(row.get('unique_ips') or 0),
+            'ratio': float(row.get('ratio') or 0),
+            'first_seen': row.get('first_seen') or '',
+            'last_seen': row.get('last_seen') or '',
+            'top_paths': _analytics_top_rows(row.get('top_paths'), 5),
+            'countries': _analytics_top_rows(row.get('countries'), 5),
+        })
+    return output
+
+
 def _analytics_compact_report_for_ai(report):
     safe = report if isinstance(report, dict) else {}
     return {
@@ -4731,6 +5200,8 @@ def _analytics_compact_report_for_ai(report):
         'promotion_breakdown': _analytics_top_rows(safe.get('promotion_breakdown'), 12),
         'device_breakdown': _analytics_top_rows(safe.get('device_breakdown'), 8),
         'os_breakdown': _analytics_top_rows(safe.get('os_breakdown'), 8),
+        'crawler_summary': safe.get('crawler_summary') if isinstance(safe.get('crawler_summary'), dict) else {},
+        'crawler_breakdown': _analytics_compact_crawler_rows(safe.get('crawler_breakdown'), 12),
         'province_breakdown': _analytics_top_rows(safe.get('province_breakdown'), 10),
         'continent_breakdown': _analytics_top_rows(safe.get('continent_breakdown'), 8),
         'country_breakdown': _analytics_top_rows(safe.get('country_breakdown'), 10),
@@ -4792,6 +5263,7 @@ def build_site_analytics_ai_report_context(period='month', anchor_date=None):
             'label': f"{_analytics_format_local_date(previous_start)} 至 {_analytics_format_local_date(previous_end)} · 上一周期",
         },
         'comparison': _analytics_build_comparison(current_report, previous_report),
+        'crawler_comparison': _analytics_build_crawler_comparison(current_report, previous_report),
         'current': _analytics_compact_report_for_ai(current_report),
         'previous': _analytics_compact_report_for_ai(previous_report),
     }
@@ -4803,6 +5275,7 @@ def _build_site_analytics_ai_messages(context):
         '请基于以下官网运营统计数据生成详细网站运营报告。'
         '数据均为聚合口径，不能反推出个人身份；请重点分析当前周期与上一周期的环比变化。'
         '请单独总结各推广来源、具体推广链接、具体文章/二维码的访问质量和转化表现。'
+        '真人访问指标已经排除已识别爬虫；请依据 crawler_summary、crawler_breakdown 和 crawler_comparison 单独分析爬虫技术流量，切勿将其计入客户增长或转化判断。'
         '\n\n'
         f'{compact_json}'
     )
@@ -4881,7 +5354,9 @@ def _build_site_report_ai_success_payload(report_text, context, model, generated
         'current_range': safe_context.get('current_range') if isinstance(safe_context.get('current_range'), dict) else {},
         'previous_range': safe_context.get('previous_range') if isinstance(safe_context.get('previous_range'), dict) else {},
         'comparison': safe_context.get('comparison') if isinstance(safe_context.get('comparison'), dict) else {},
+        'crawler_comparison': safe_context.get('crawler_comparison') if isinstance(safe_context.get('crawler_comparison'), dict) else {},
         'current_summary': current.get('summary') if isinstance(current.get('summary'), dict) else {},
+        'current_crawler_summary': current.get('crawler_summary') if isinstance(current.get('crawler_summary'), dict) else {},
         'report_record': public_record,
         'report_id': public_record.get('id') if isinstance(public_record, dict) else '',
         'download_url': public_record.get('download_url') if isinstance(public_record, dict) else '',
@@ -5164,7 +5639,7 @@ def _generate_scheduled_report(app_obj, period_key, anchor_date):
         return None
 
 
-def _build_report_email_html(*, title, period_label, range_label, comparison=None, generated_at=''):
+def _build_report_email_html(*, title, period_label, range_label, comparison=None, crawler_summary=None, generated_at=''):
     """构建品牌风格的报告推送邮件 HTML。"""
     # ── 关键指标摘要卡片 ──
     metrics_html = ''
@@ -5223,6 +5698,20 @@ def _build_report_email_html(*, title, period_label, range_label, comparison=Non
             </table>
             '''
 
+    safe_crawler_summary = crawler_summary if isinstance(crawler_summary, dict) else {}
+    crawler_sessions = int(safe_crawler_summary.get('sessions') or 0)
+    crawler_html = ''
+    if crawler_sessions > 0:
+        crawler_html = (
+            '<div style="margin-top:20px;padding:18px 20px;border-radius:18px;background:#fff7ed;border:1px solid #fed7aa;">'
+            '<div style="font-size:14px;font-weight:700;color:#9a3412;">爬虫与技术流量已独立统计</div>'
+            '<div style="margin-top:6px;font-size:13px;line-height:1.8;color:#7c2d12;">'
+            f'本周期识别到 {crawler_sessions:,} 个爬虫会话、{int(safe_crawler_summary.get("pageviews") or 0):,} 次页面抓取，'
+            f'涉及 {int(safe_crawler_summary.get("sources") or 0):,} 类来源和 {int(safe_crawler_summary.get("unique_ips") or 0):,} 个独立 IP。'
+            '这些技术流量未计入上方真人访问与转化指标。'
+            '</div></div>'
+        )
+
     # ── 完整 HTML 模板 ──
     return f"""
     <div style="margin:0;padding:0;background:linear-gradient(180deg,#edf4fb 0%,#e6eef9 100%);">
@@ -5250,6 +5739,7 @@ def _build_report_email_html(*, title, period_label, range_label, comparison=Non
           border-top-left-radius:34px;border-top-right-radius:34px;padding:40px 44px 34px;">
           <p style="margin:0 0 20px;font-size:16px;line-height:1.9;color:#10233d;">报告已由系统自动生成，以下是本周期的核心数据概览。</p>
           {metrics_html}
+          {crawler_html}
           <div style="margin-top:28px;padding:22px 24px;border-radius:24px;background:linear-gradient(180deg,#f9fcff 0%,#f1f7fd 100%);border:1px solid rgba(18,61,113,0.08);">
             <div style="margin:0 0 8px;font-size:14px;font-weight:700;color:#123d71;">报告详情</div>
             <div style="font-size:14px;line-height:1.9;color:#5d708b;">
@@ -5276,12 +5766,20 @@ def _build_report_email_html(*, title, period_label, range_label, comparison=Non
     """
 
 
-def _build_report_email_text(*, title, period_label, range_label):
+def _build_report_email_text(*, title, period_label, range_label, crawler_summary=None):
     """构建报告推送邮件的纯文本版本。"""
+    safe_crawler_summary = crawler_summary if isinstance(crawler_summary, dict) else {}
+    crawler_line = ''
+    if int(safe_crawler_summary.get('sessions') or 0) > 0:
+        crawler_line = (
+            f'爬虫技术流量：{int(safe_crawler_summary.get("sessions") or 0):,} 个会话，'
+            f'{int(safe_crawler_summary.get("pageviews") or 0):,} 次页面抓取；已从真人访问指标中剥离。\n'
+        )
     return (
         f'{title}\n'
         f'报告类型：{period_label}\n'
         f'报告周期：{range_label}\n'
+        f'{crawler_line}'
         f'报告已由系统自动生成，详情请登录管理后台「网站数据」页面查看完整分析。'
     )
 
@@ -5317,6 +5815,8 @@ def _send_scheduled_report_emails(app_obj, report_id, recipient_emails):
         end_date = current_range.get('end_date', '')
         range_label = f"{start_date} ~ {end_date}"
         comparison = record.get('comparison') if isinstance(record.get('comparison'), dict) else None
+        current_detail = record.get('current_detail') if isinstance(record.get('current_detail'), dict) else {}
+        crawler_summary = current_detail.get('crawler_summary') if isinstance(current_detail.get('crawler_summary'), dict) else {}
         generated_at = str(record.get('generated_at', ''))[:19].replace('T', ' ') if record.get('generated_at') else ''
 
         # 构建 HTML 邮件正文
@@ -5325,12 +5825,14 @@ def _send_scheduled_report_emails(app_obj, report_id, recipient_emails):
             period_label=period_label,
             range_label=range_label,
             comparison=comparison,
+            crawler_summary=crawler_summary,
             generated_at=generated_at,
         )
         text_body = _build_report_email_text(
             title=title,
             period_label=period_label,
             range_label=range_label,
+            crawler_summary=crawler_summary,
         )
 
         # 尝试获取 PDF 附件 — 使用详细命名：网站运营{周期标签}_{日期范围}.pdf
