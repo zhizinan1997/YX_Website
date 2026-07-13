@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260709-product-order">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260713-product-sort-v2">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
     <link rel="stylesheet" href="/admin/styles/components.css?v=20260701-source-detail">
@@ -589,10 +589,14 @@
                             </div>
                         </div>
                         <div class="card">
+                            <div class="product-sort-toolbar">
+                                <span><i class="fas fa-sort-numeric-down"></i> 可点击箭头移动，也可直接输入序号后按回车或点击空白处。</span>
+                                <span class="product-sort-status" id="gasProductSortStatus" aria-live="polite"></span>
+                            </div>
                             <div class="table-container products-manage-scroll">
                                 <table class="products-manage-table">
                                     <colgroup>
-                                        <col style="width: 86px;">
+                                        <col style="width: 138px;">
                                         <col style="width: 100px;">
                                         <col style="width: 240px;">
                                         <col style="width: 110px;">
@@ -605,7 +609,7 @@
                                     </colgroup>
                                     <thead>
                                         <tr>
-                                            <th>排序</th>
+                                            <th>排序序号</th>
                                             <th>图片</th>
                                             <th>产品名称</th>
                                             <th>显示</th>
@@ -978,10 +982,14 @@
                             </div>
                         </div>
                         <div class="card">
+                            <div class="product-sort-toolbar">
+                                <span><i class="fas fa-sort-numeric-down"></i> 可点击箭头移动，也可直接输入序号后按回车或点击空白处。</span>
+                                <span class="product-sort-status" id="bioProductSortStatus" aria-live="polite"></span>
+                            </div>
                             <div class="table-container products-manage-scroll">
                                 <table class="products-manage-table">
                                     <colgroup>
-                                        <col style="width: 86px;">
+                                        <col style="width: 138px;">
                                         <col style="width: 100px;">
                                         <col style="width: 240px;">
                                         <col style="width: 110px;">
@@ -994,7 +1002,7 @@
                                     </colgroup>
                                     <thead>
                                         <tr>
-                                            <th>排序</th>
+                                            <th>排序序号</th>
                                             <th>图片</th>
                                             <th>产品名称</th>
                                             <th>显示</th>
@@ -1351,16 +1359,16 @@
                                     <div class="form-group">
                                         <label style="display:flex; align-items:center; gap:10px;">
                                             <input type="checkbox" id="heroCtaButtonsVisible" checked>
-                                            <span>显示首页主屏两个大按钮</span>
+                                            <span>显示首页主屏标题和两个大按钮</span>
                                         </label>
-                                        <div class="form-hint">控制首页首屏“生化传感事业部”和“先进氢气传感解决方案”两个按钮是否显示。</div>
+                                        <div class="form-hint">控制首页首屏“碳基电子传感技术的领导者”标题，以及“生化传感事业部”和“先进氢气传感解决方案”两个按钮是否显示。</div>
                                     </div>
                                     <button class="btn-primary" style="width: auto; padding: 10px 24px;"
                                         onclick="saveHeroConfig()">保存设置</button>
                                     <div id="heroSaveMsg" style="margin-top: 10px; color: #28a745;"></div>
                                 </div>
                                 <div style="font-size: 13px; color: #666; line-height: 1.6;">
-                                    支持上传或使用 CDN 链接（PNG/JPG/JPEG/MP4）。<br>
+                                    支持本地上传 WebP/PNG/JPG/JPEG/MP4。<br>
                                     支持拖拽排序调整轮播顺序。
                                 </div>
                             </div>
@@ -1368,12 +1376,15 @@
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
                             <h3 class="section-header">上传媒体</h3>
+                            <div class="form-hint" style="margin-bottom: 12px; line-height: 1.7;">
+                                首屏图片推荐：<strong>2560 × 1440 px（16:9）</strong>，优先使用 <strong>WebP</strong> 格式，建议文件大小控制在 <strong>500KB–2MB</strong>。重要主体请尽量放在画面中央，避免在不同屏幕上被裁切。
+                            </div>
                             <div class="file-upload-zone" id="heroUploadZone">
                                 <i class="fas fa-cloud-upload-alt"></i>
-                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放 PNG/JPG/MP4 文件到此处
+                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放 WebP/PNG/JPG/MP4 文件到此处
                                 </div>
                                 <div style="font-size: 13px; color: #888;">或点击选择文件</div>
-                                <input type="file" id="heroFileInput" accept=".png,.jpg,.jpeg,.mp4"
+                                <input type="file" id="heroFileInput" accept=".webp,.png,.jpg,.jpeg,.mp4"
                                     style="display: none;">
                             </div>
                             <div id="heroUploadProgress" style="display: none; margin-top: 15px;">
@@ -1384,7 +1395,7 @@
                             </div>
                         </div>
 
-                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                        <div class="card" style="display: none; padding: 30px; margin-top: 20px;" aria-hidden="true">
                             <h3 class="section-header">添加 CDN 链接</h3>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                 <select id="heroUrlType" class="form-control" style="max-width: 160px;">
@@ -1398,11 +1409,11 @@
                             </div>
                             <div style="margin-top: 12px;">
                                 <textarea id="heroUrlBatch" class="form-control" rows="4"
-                                    placeholder="一行一个链接，可批量添加（支持 PNG/JPG/JPEG/MP4）"></textarea>
+                                    placeholder="一行一个链接，可批量添加（支持 WebP/PNG/JPG/JPEG/MP4）"></textarea>
                                 <button class="btn-primary" style="width: auto; padding: 10px 20px; margin-top: 8px;"
                                     onclick="addHeroUrlBatch()">批量添加</button>
                             </div>
-                            <div class="form-hint">建议使用可直接访问的资源链接（支持 PNG/JPG/JPEG/MP4）。</div>
+                            <div class="form-hint">建议使用可直接访问的资源链接（支持 WebP/PNG/JPG/JPEG/MP4）。</div>
                         </div>
 
                         <div class="card" style="padding: 30px; margin-top: 20px;">
@@ -1602,11 +1613,11 @@
                         <div class="card" style="padding: 30px;">
                             <h3 class="section-header">氢气首页视频</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                设置氢气首页首屏背景视频（CDN 链接），支持多个视频依次播放并循环。
+                                上传氢气首页首屏背景视频，支持多个视频依次播放并循环。
                             </p>
                         </div>
 
-                        <div class="card" style="padding: 30px; margin-top: 20px;">
+                        <div class="card" style="display: none; padding: 30px; margin-top: 20px;" aria-hidden="true">
                             <h3 class="section-header">添加 CDN 视频链接</h3>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                 <input type="text" id="h2HomeUrlInput" class="form-control" placeholder="https://...mp4"
@@ -3962,7 +3973,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260709-product-order"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260713-product-sort-v2"></script>
     <script src="/admin/js/app.js"></script>
 </body>
 </html>

@@ -193,6 +193,51 @@ class MonitorTests(unittest.TestCase):
 
 
 class AuthRouteTests(unittest.TestCase):
+    def test_reverse_proxy_https_origin_is_accepted(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            main_data_dir = root / "main"
+            check_data_dir = root / "check"
+            main_data_dir.mkdir()
+            check_data_dir.mkdir()
+
+            old_check_data_dir = config.CHECK_DATA_DIR
+            old_main_data_dir = config.MAIN_DATA_DIR
+            old_scheduler_enabled = config.SCHEDULER_ENABLED
+            old_secret_key = config.SECRET_KEY
+            old_trust_proxy_headers = config.TRUST_PROXY_HEADERS
+
+            try:
+                config.CHECK_DATA_DIR = check_data_dir
+                config.MAIN_DATA_DIR = main_data_dir
+                config.SCHEDULER_ENABLED = False
+                config.SECRET_KEY = "test-secret"
+                config.TRUST_PROXY_HEADERS = True
+                app_module = importlib.import_module("check_app.app")
+                flask_app = app_module.create_app()
+                client = flask_app.test_client()
+
+                response = client.post(
+                    "/api/auth/send-code",
+                    base_url="http://127.0.0.1:8000",
+                    headers={
+                        "Origin": "https://check.hnmetachip.cn",
+                        "Referer": "https://check.hnmetachip.cn/admin",
+                        "X-Forwarded-Proto": "https",
+                        "X-Forwarded-Host": "check.hnmetachip.cn",
+                    },
+                    json={"email": "invalid"},
+                )
+
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.get_json()["message"], "请输入有效邮箱")
+            finally:
+                config.CHECK_DATA_DIR = old_check_data_dir
+                config.MAIN_DATA_DIR = old_main_data_dir
+                config.SCHEDULER_ENABLED = old_scheduler_enabled
+                config.SECRET_KEY = old_secret_key
+                config.TRUST_PROXY_HEADERS = old_trust_proxy_headers
+
     def test_verify_code_does_not_require_turnstile_after_email_code_is_sent(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

@@ -21,6 +21,8 @@ docker run -d \
   --network yx-net \
   -p 127.0.0.1:2028:8000 \
   -e CHECK_SECRET_KEY='replace-with-a-random-secret-at-least-32-chars' \
+  -e CHECK_TRUST_PROXY_HEADERS=true \
+  -e CHECK_SESSION_COOKIE_SECURE=true \
   -e CHECK_MAIN_DATA_DIR=/app/main_data \
   -e CHECK_DATA_DIR=/app/check_data \
   -v /root/yxwebsite/data:/app/main_data:ro \
@@ -32,6 +34,16 @@ docker run -d \
 
 ```text
 http://127.0.0.1:2028
+```
+
+反向代理必须透传外部协议和主机名，否则后台登录的同源校验会把外部 HTTPS 请求误判为跨站请求：
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-Host $host;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Real-IP $remote_addr;
 ```
 
 ## 数据和权限
@@ -48,4 +60,3 @@ http://127.0.0.1:2028
 - 首次异常后 1 分钟复测，仍异常则 2 分钟后再次复测。
 - 第三次仍异常时，向主站已验证管理员邮箱发送告警。
 - 同域 CSS、JS、图片、视频、字体、XHR/fetch 失败会计入异常；外链只记录，不触发告警。
-

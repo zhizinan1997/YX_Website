@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Flask, jsonify, redirect, render_template, request, session
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import config, main_site, mailer, storage
 from .time_utils import iso_now
@@ -149,9 +150,12 @@ def _smtp_status_payload(*, run_check: bool = False) -> dict:
 
 def create_app() -> Flask:
     app = Flask(__name__, static_folder="static", template_folder="templates")
+    if config.TRUST_PROXY_HEADERS:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.secret_key = config.SECRET_KEY
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = config.SESSION_COOKIE_SECURE
     app.config["CHECK_DATA_DIR"] = str(config.CHECK_DATA_DIR)
     app.config["CHECK_MAIN_DATA_DIR"] = str(config.MAIN_DATA_DIR)
 

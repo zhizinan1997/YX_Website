@@ -315,8 +315,8 @@ RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
 # 预创建消息目录
 MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
 
-ALLOWED_HERO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.mp4'}
-ALLOWED_HERO_MIME_TYPES = {'image/png', 'image/jpeg', 'video/mp4'}
+ALLOWED_HERO_EXTENSIONS = {'.webp', '.png', '.jpg', '.jpeg', '.mp4'}
+ALLOWED_HERO_MIME_TYPES = {'image/webp', 'image/png', 'image/jpeg', 'video/mp4'}
 ALLOWED_H2_HOME_VIDEO_EXTENSIONS = {'.mp4', '.webm', '.ogg', '.ogv'}
 ALLOWED_H2_HOME_VIDEO_MIME_TYPES = {'video/mp4', 'video/webm', 'video/ogg'}
 ALLOWED_RESUME_EXTENSIONS = {'.pdf', '.doc', '.docx'}

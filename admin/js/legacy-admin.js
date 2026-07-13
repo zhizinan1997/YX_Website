@@ -2222,7 +2222,7 @@
             'home-tab-news': '设置说明：选择首页展示的 3 条资讯，保存后首页资讯区会同步更新。',
             'home-tab-products': '设置说明：选择首页产品展示位的 3 个产品，保存后首页模块立即按此展示。',
             'home-tab-solutions': '设置说明：选择首页解决方案展示位，支持替换为你指定的方案卡片。',
-            'h2-home-tab-video': '设置说明：配置氢气首页首屏视频链接与顺序，保存后用于页面轮播播放。',
+            'h2-home-tab-video': '设置说明：上传氢气首页首屏视频并调整播放顺序，保存后用于页面轮播播放。',
             'h2-home-tab-products': '设置说明：设置氢气首页默认展示产品（未选择分类时显示）。',
             'h2-home-tab-measurement-objects': '设置说明：为测量对象页面分别指定推荐产品，保存后 /pages/measurement 下对应页面底部同步更新。',
             'h2-home-tab-cases': '设置说明：设置氢气首页案例位，支持为每个案例自定义主副标题。',
@@ -6029,6 +6029,10 @@
         let industryFiltersData = [];
         let bioProductsData = [];
         let bioIndustryFiltersData = [];
+        const productSortSaveStates = {
+            gas: { timer: null, savedTimer: null, inFlight: false, pendingOrder: null, retryCount: 0 },
+            bio: { timer: null, savedTimer: null, inFlight: false, pendingOrder: null, retryCount: 0 }
+        };
         let industryFiltersSaveToken = 0;
         let bioIndustryFiltersSaveToken = 0;
         let productEditorMode = 'visual';
@@ -8832,20 +8836,117 @@
             saveBtn.onclick = doSave;
         }
 
-        function buildProductOrderControls(productId, index, total, className) {
+        function buildProductOrderControls(productId, index, total, family) {
             const pid = escapeHtml(productId);
+            const moveClass = family === 'bio' ? 'bio-product-order-move-btn' : 'product-order-move-btn';
             return `
                 <div class="product-order-controls" aria-label="调整产品排序">
-                    <button type="button" class="product-order-btn ${className}" data-id="${pid}" data-direction="up"
-                        ${index <= 0 ? 'disabled' : ''} title="上移" aria-label="上移">
-                        <i class="fas fa-chevron-up"></i>
-                    </button>
-                    <button type="button" class="product-order-btn ${className}" data-id="${pid}" data-direction="down"
-                        ${index >= total - 1 ? 'disabled' : ''} title="下移" aria-label="下移">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
+                    <input type="number" class="product-order-index" data-id="${pid}" data-family="${family}"
+                        value="${index + 1}" min="1" max="${total}" inputmode="numeric"
+                        title="输入排序序号" aria-label="排序序号">
+                    <span class="product-order-buttons">
+                        <button type="button" class="product-order-btn ${moveClass}" data-id="${pid}" data-direction="up"
+                            ${index <= 0 ? 'disabled' : ''} title="上移" aria-label="上移">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                        <button type="button" class="product-order-btn ${moveClass}" data-id="${pid}" data-direction="down"
+                            ${index >= total - 1 ? 'disabled' : ''} title="下移" aria-label="下移">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </span>
                 </div>
             `;
+        }
+
+        function getProductSortContext(family) {
+            const isBio = family === 'bio';
+            return {
+                rows: isBio ? bioProductsData : productsData,
+                tbody: document.getElementById(isBio ? 'bioProductsTableBody' : 'productsTableBody'),
+                status: document.getElementById(isBio ? 'bioProductSortStatus' : 'gasProductSortStatus')
+            };
+        }
+
+        function setProductSortStatus(family, message, stateClass = '') {
+            const { status } = getProductSortContext(family);
+            if (!status) return;
+            status.textContent = message || '';
+            status.className = `product-sort-status${stateClass ? ` ${stateClass}` : ''}`;
+        }
+
+        function refreshProductOrderControls(family) {
+            const { tbody, rows } = getProductSortContext(family);
+            if (!tbody) return;
+            const total = rows.length;
+            tbody.querySelectorAll('tr[data-product-id]').forEach((row, index) => {
+                const input = row.querySelector('.product-order-index');
+                const upBtn = row.querySelector('[data-direction="up"]');
+                const downBtn = row.querySelector('[data-direction="down"]');
+                if (input) {
+                    input.value = String(index + 1);
+                    input.max = String(total);
+                }
+                if (upBtn) upBtn.disabled = index === 0;
+                if (downBtn) downBtn.disabled = index === total - 1;
+            });
+        }
+
+        function animateProductRows(tbody, mutateDom, movedProductId) {
+            if (!tbody) return mutateDom();
+            if (tbody.__productSortAnimationTimer) {
+                clearTimeout(tbody.__productSortAnimationTimer);
+                tbody.__productSortAnimationTimer = null;
+            }
+            tbody.querySelectorAll('tr.product-sort-animating').forEach(row => {
+                row.classList.remove('product-sort-animating');
+                row.style.removeProperty('transition');
+                row.style.removeProperty('transform');
+            });
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const before = new Map();
+            if (!reduceMotion) {
+                tbody.querySelectorAll('tr[data-product-id]').forEach(row => {
+                    before.set(row.dataset.productId, row.getBoundingClientRect().top);
+                });
+            }
+
+            mutateDom();
+            const movedRow = Array.from(tbody.querySelectorAll('tr[data-product-id]'))
+                .find(row => String(row.dataset.productId) === String(movedProductId));
+            if (movedRow) {
+                movedRow.classList.add('product-sort-highlight');
+                window.setTimeout(() => movedRow.classList.remove('product-sort-highlight'), 360);
+            }
+            if (reduceMotion) return;
+
+            const animatedRows = [];
+            tbody.querySelectorAll('tr[data-product-id]').forEach(row => {
+                const previousTop = before.get(row.dataset.productId);
+                if (previousTop === undefined) return;
+                const delta = previousTop - row.getBoundingClientRect().top;
+                if (Math.abs(delta) < 1) return;
+                row.classList.add('product-sort-animating');
+                row.style.transition = 'none';
+                row.style.transform = `translateY(${delta}px)`;
+                animatedRows.push(row);
+            });
+            if (!animatedRows.length) return;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    animatedRows.forEach(row => {
+                        row.style.transition = 'transform 180ms ease-out';
+                        row.style.transform = '';
+                    });
+                });
+            });
+            tbody.__productSortAnimationTimer = window.setTimeout(() => {
+                animatedRows.forEach(row => {
+                    row.classList.remove('product-sort-animating');
+                    row.style.removeProperty('transition');
+                    row.style.removeProperty('transform');
+                });
+                tbody.__productSortAnimationTimer = null;
+            }, 240);
         }
 
         async function saveProductListSortOrder(family, order) {
@@ -8859,39 +8960,125 @@
             if (!res.ok || !result.success) {
                 throw new Error(result.message || '排序保存失败');
             }
+            return result;
         }
 
-        async function moveProductListItem(family, productId, direction) {
-            const isBio = family === 'bio';
-            const rows = isBio ? bioProductsData : productsData;
+        function queueProductListSortSave(family) {
+            const state = productSortSaveStates[family];
+            const { rows } = getProductSortContext(family);
+            state.pendingOrder = rows.map(row => row.id);
+            state.retryCount = 0;
+            if (state.timer) clearTimeout(state.timer);
+            if (state.savedTimer) clearTimeout(state.savedTimer);
+            setProductSortStatus(family, state.inFlight ? '等待保存…' : '即将保存…', 'is-saving');
+            state.timer = window.setTimeout(() => flushProductListSortSave(family), 180);
+        }
+
+        async function flushProductListSortSave(family) {
+            const state = productSortSaveStates[family];
+            state.timer = null;
+            if (state.inFlight || !state.pendingOrder) return;
+            const order = state.pendingOrder.slice();
+            state.pendingOrder = null;
+            state.inFlight = true;
+            setProductSortStatus(family, '正在保存…', 'is-saving');
+            try {
+                await saveProductListSortOrder(family, order);
+                state.retryCount = 0;
+                if (!state.pendingOrder) {
+                    setProductSortStatus(family, '已保存', 'is-saved');
+                    state.savedTimer = window.setTimeout(() => setProductSortStatus(family, ''), 1600);
+                }
+            } catch (e) {
+                console.error('Product order save failed:', e);
+                if (state.retryCount < 1) {
+                    state.retryCount += 1;
+                    state.pendingOrder = state.pendingOrder || order;
+                    setProductSortStatus(family, '保存重试中…', 'is-saving');
+                    state.timer = window.setTimeout(() => flushProductListSortSave(family), 700);
+                } else {
+                    setProductSortStatus(family, '保存失败，请再次调整重试', 'is-error');
+                }
+            } finally {
+                state.inFlight = false;
+                if (state.pendingOrder && !state.timer) {
+                    state.timer = window.setTimeout(() => flushProductListSortSave(family), 0);
+                }
+            }
+        }
+
+        function moveProductListItemToIndex(family, productId, targetIndex) {
+            const { rows, tbody } = getProductSortContext(family);
             const index = rows.findIndex(item => String(item?.id || '') === String(productId));
             if (index < 0) return;
-            const targetIndex = direction === 'up' ? index - 1 : index + 1;
-            if (targetIndex < 0 || targetIndex >= rows.length) return;
+            const normalizedTarget = Math.min(Math.max(Number(targetIndex) || 0, 0), rows.length - 1);
+            if (normalizedTarget === index) {
+                refreshProductOrderControls(family);
+                return;
+            }
 
             const [item] = rows.splice(index, 1);
-            rows.splice(targetIndex, 0, item);
-            const order = rows.map(row => row.id);
+            rows.splice(normalizedTarget, 0, item);
             rows.forEach((row, idx) => {
                 row.sortOrder = idx;
             });
 
-            try {
-                await saveProductListSortOrder(family, order);
-                if (isBio) {
-                    await loadBioProducts();
-                } else {
-                    await loadProducts();
-                }
-            } catch (e) {
-                console.error('Product order save failed:', e);
-                alert(e?.message || '排序保存失败，请刷新后重试');
-                if (isBio) {
-                    await loadBioProducts();
-                } else {
-                    await loadProducts();
-                }
+            animateProductRows(tbody, () => {
+                const rowMap = new Map();
+                tbody.querySelectorAll('tr[data-product-id]').forEach(row => {
+                    rowMap.set(String(row.dataset.productId), row);
+                });
+                const fragment = document.createDocumentFragment();
+                rows.forEach(rowData => {
+                    const row = rowMap.get(String(rowData.id));
+                    if (row) fragment.appendChild(row);
+                });
+                tbody.appendChild(fragment);
+            }, productId);
+            refreshProductOrderControls(family);
+            queueProductListSortSave(family);
+        }
+
+        function moveProductListItem(family, productId, direction) {
+            const { rows } = getProductSortContext(family);
+            const index = rows.findIndex(item => String(item?.id || '') === String(productId));
+            if (index < 0) return;
+            moveProductListItemToIndex(family, productId, direction === 'up' ? index - 1 : index + 1);
+        }
+
+        function commitProductOrderInput(input) {
+            const family = input.dataset.family === 'bio' ? 'bio' : 'gas';
+            const { rows } = getProductSortContext(family);
+            const requestedPosition = Number.parseInt(input.value, 10);
+            if (!Number.isFinite(requestedPosition)) {
+                refreshProductOrderControls(family);
+                return;
             }
+            moveProductListItemToIndex(family, input.dataset.id, requestedPosition - 1);
+        }
+
+        function bindProductOrderEvents(family) {
+            const { tbody } = getProductSortContext(family);
+            if (!tbody) return;
+            tbody.querySelectorAll(family === 'bio' ? '.bio-product-order-move-btn' : '.product-order-move-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    moveProductListItem(family, btn.dataset.id, btn.dataset.direction);
+                });
+            });
+            tbody.querySelectorAll(`.product-order-index[data-family="${family}"]`).forEach(input => {
+                input.addEventListener('change', () => commitProductOrderInput(input));
+                input.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        input.blur();
+                    } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        refreshProductOrderControls(family);
+                        input.blur();
+                    }
+                });
+                input.addEventListener('focus', () => input.select());
+            });
         }
 
         async function loadProducts() {
@@ -8929,9 +9116,9 @@
                     const pidEsc = escapeHtml(p.id);
                     const previewImage = p.cardImage || p.image || '';
                     return `
-                    <tr style="${p.hidden ? 'opacity: 0.5;' : ''}">
+                    <tr data-product-id="${pidEsc}" style="${p.hidden ? 'opacity: 0.5;' : ''}">
                         <td class="cell-order">
-                            ${buildProductOrderControls(p.id, index, productsData.length, 'product-order-move-btn')}
+                            ${buildProductOrderControls(p.id, index, productsData.length, 'gas')}
                         </td>
                         <td class="cell-image">
                             <img src="${escapeHtml(previewImage)}" alt="${escapeHtml(p.name || '')}" 
@@ -8985,11 +9172,7 @@
                 `;
                 }).join('');
 
-                tbody.querySelectorAll('.product-order-move-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        moveProductListItem('gas', btn.dataset.id, btn.dataset.direction);
-                    });
-                });
+                bindProductOrderEvents('gas');
                 tbody.querySelectorAll('.product-card-title').forEach(input => {
                     input.addEventListener('change', (e) => {
                         saveProductSetting(e.target.dataset.id, 'cardTitle', e.target.value);
@@ -9126,9 +9309,9 @@
                     const pidEsc = escapeHtml(p.id);
                     const previewImage = p.cardImage || p.image || '';
                     return `
-                    <tr style="${p.hidden ? 'opacity: 0.5;' : ''}">
+                    <tr data-product-id="${pidEsc}" style="${p.hidden ? 'opacity: 0.5;' : ''}">
                         <td class="cell-order">
-                            ${buildProductOrderControls(p.id, index, bioProductsData.length, 'bio-product-order-move-btn')}
+                            ${buildProductOrderControls(p.id, index, bioProductsData.length, 'bio')}
                         </td>
                         <td class="cell-image">
                             <img src="${escapeHtml(previewImage)}" alt="${escapeHtml(p.name || '')}" 
@@ -9181,11 +9364,7 @@
                 `;
                 }).join('');
 
-                tbody.querySelectorAll('.bio-product-order-move-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        moveProductListItem('bio', btn.dataset.id, btn.dataset.direction);
-                    });
-                });
+                bindProductOrderEvents('bio');
                 tbody.querySelectorAll('.bio-product-card-title').forEach(input => {
                     input.addEventListener('change', (e) => {
                         saveBioProductSetting(e.target.dataset.id, 'cardTitle', e.target.value);
@@ -10831,18 +11010,20 @@
         }
 
         function updatePreviewName(productId) {
-            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            const row = Array.from(document.querySelectorAll('#sortableProductList tr[data-product-id]'))
+                .find(item => String(item.dataset.productId) === String(productId));
             if (!row) return;
             const input = row.querySelector('.product-display-name');
             const preview = row.querySelector('.preview-name');
             const product = productsData.find(p => p.id === productId);
-            if (preview && product) {
+            if (input && preview && product) {
                 preview.textContent = input.value || product.shortName || product.name;
             }
         }
 
         function updatePreviewBadge(productId, isNew) {
-            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            const row = Array.from(document.querySelectorAll('#sortableProductList tr[data-product-id]'))
+                .find(item => String(item.dataset.productId) === String(productId));
             if (!row) return;
             const previewCell = row.querySelector('td:last-child');
             const existingBadge = previewCell.querySelector('span[style*="background: #ff4444"]');
@@ -11805,10 +11986,10 @@
         async function uploadHeroFile(file) {
             const name = (file.name || '').toLowerCase();
             const type = (file.type || '').toLowerCase();
-            const nameOk = (/\.(png|jpg|jpeg|mp4)$/i).test(name);
-            const typeOk = (type === 'image/png' || type === 'image/jpeg' || type === 'video/mp4');
+            const nameOk = (/\.(webp|png|jpg|jpeg|mp4)$/i).test(name);
+            const typeOk = (type === 'image/webp' || type === 'image/png' || type === 'image/jpeg' || type === 'video/mp4');
             if (!nameOk && !typeOk) {
-                alert('只支持 PNG/JPG/JPEG/MP4 文件');
+                alert('只支持 WebP/PNG/JPG/JPEG/MP4 文件');
                 return;
             }
 

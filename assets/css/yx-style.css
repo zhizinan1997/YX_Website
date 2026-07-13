@@ -421,6 +421,10 @@ li {
     pointer-events: none;
 }
 
+.vs-hero__top-title[hidden] {
+    display: none !important;
+}
+
 .vs-hero__content-new {
     position: relative;
     width: 100%;

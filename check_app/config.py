@@ -26,6 +26,18 @@ RETRY_DELAYS_SECONDS = (
 )
 
 SECRET_KEY = os.environ.get("CHECK_SECRET_KEY") or secrets.token_urlsafe(48)
+TRUST_PROXY_HEADERS = os.environ.get("CHECK_TRUST_PROXY_HEADERS", "true").strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+SESSION_COOKIE_SECURE = os.environ.get("CHECK_SESSION_COOKIE_SECURE", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 SCHEDULER_ENABLED = os.environ.get("CHECK_SCHEDULER_ENABLED", "true").strip().lower() not in {"0", "false", "no", "off"}
 DEV_LOGIN_ENABLED = os.environ.get("CHECK_DEV_LOGIN_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
 DEV_LOGIN_EMAIL = os.environ.get("CHECK_DEV_LOGIN_EMAIL", "local-admin@check.local").strip().lower()

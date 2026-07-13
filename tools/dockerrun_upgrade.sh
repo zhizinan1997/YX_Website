@@ -1228,6 +1228,8 @@ recreate_containers() {
     --network-alias "$CHECK_CONTAINER" \
     -p "127.0.0.1:${CHECK_PORT}:8000" \
     -e "CHECK_SECRET_KEY=$CHECK_SECRET_KEY_VAL" \
+    -e "CHECK_TRUST_PROXY_HEADERS=true" \
+    -e "CHECK_SESSION_COOKIE_SECURE=true" \
     -e "CHECK_MAIN_DATA_DIR=/app/main_data" \
     -e "CHECK_DATA_DIR=/app/check_data" \
     -v "$DATA_DIR:/app/main_data:ro" \

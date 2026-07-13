@@ -258,18 +258,21 @@
       }
 
       .hero-dot {
-        width: 6px;
-        height: 6px;
+        width: 9px;
+        height: 9px;
+        padding: 0;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.68);
+        border: 1px solid rgba(255, 255, 255, 0.78);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.42);
         cursor: pointer;
         transition: all 0.2s ease;
       }
 
       .hero-dot.is-active {
-        width: 16px;
+        width: 22px;
         background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
       }
     </style>
     <script>
@@ -533,7 +536,9 @@
 
         function applyHeroCtaVisibility(visible) {
           ctaButtonsVisible = visible !== false;
+          const heroTitle = document.getElementById('heroTopTitle');
           const ctaControls = document.getElementById('heroCtaButtons');
+          if (heroTitle) heroTitle.hidden = !ctaButtonsVisible;
           if (ctaControls) ctaControls.hidden = !ctaButtonsVisible;
         }
 
@@ -565,7 +570,7 @@
 
     <!-- Top Title (Inside Container to be safe, or outside for full width - keeping inside for now but absolute) -->
     <div class="vs-container" style="width: 100%">
-      <div class="vs-hero__top-title">碳基电子传感技术的领导者</div>
+      <div class="vs-hero__top-title" id="heroTopTitle">碳基电子传感技术的领导者</div>
     </div>
 
     <!-- Bottom Controls (MOVED OUTSIDE CONTAINER to position relative to HERO section) -->

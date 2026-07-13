@@ -602,9 +602,9 @@ def register_home_content_routes(
 
         ext = validate_uploaded_video_extension(file, allowed_extensions={'.mp4'})
         if not ext:
-            ext = validate_uploaded_image_extension(file, allowed_extensions={'.png', '.jpg', '.jpeg'})
+            ext = validate_uploaded_image_extension(file, allowed_extensions={'.webp', '.png', '.jpg', '.jpeg'})
         if not ext or ext not in allowed_hero_extensions:
-            return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/MP4 文件'}), 400
+            return jsonify({'success': False, 'message': '只支持 WebP/PNG/JPG/JPEG/MP4 文件'}), 400
 
         saved_name = f'{uuid.uuid4().hex}{ext}'
         save_path = Path(hero_uploads_dir) / saved_name

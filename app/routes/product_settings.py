@@ -545,10 +545,21 @@ def _apply_product_settings_updates(settings, data):
 
 
 def _apply_sort_order(settings, order):
-    if not order:
+    if not isinstance(order, list) or not order:
         return None, ('缺少排序数据', 400)
 
-    for idx, product_id in enumerate(order):
+    normalized_order = []
+    seen = set()
+    for raw_product_id in order:
+        product_id = str(raw_product_id or '').strip()
+        if not product_id:
+            return None, ('排序数据包含无效产品', 400)
+        if product_id in seen:
+            return None, ('排序数据包含重复产品', 400)
+        seen.add(product_id)
+        normalized_order.append(product_id)
+
+    for idx, product_id in enumerate(normalized_order):
         if product_id not in settings:
             settings[product_id] = {}
         settings[product_id]['sortOrder'] = idx
