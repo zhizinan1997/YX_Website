@@ -2536,7 +2536,6 @@ def _analytics_report_detail(record):
         return _analytics_compact_report_for_ai(report)
     except Exception:
         return detail
-    return detail
 
 
 def _analytics_compact_label(value, max_length=34):

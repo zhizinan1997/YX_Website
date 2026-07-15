@@ -172,12 +172,120 @@
     "sortOrder": 19,
     "industryCategories": [
       "leak"
+    ],
+    "seoTitle": "MC-LD-NH2型手持氮氢示踪检漏仪｜气体检漏仪 - 元芯传感",
+    "seoDescription": "MC-LD-NH2型手持氮氢示踪检漏仪，专为检漏场景设计，WC-LD-NH2型检测仪凭借宽量程泵吸功能与极速响应，精准捕捉空气中逸出的氢气，实现泄漏点的快速、高效定位。",
+    "sku": "MC-LD-NH2",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检漏仪",
+    "imageAlt": "MC-LD-NH2型手持氮氢示踪检漏仪气体检漏仪",
+    "imageTitle": "MC-LD-NH2型手持氮氢示踪检漏仪",
+    "imageCaption": "MC-LD-NH2型手持氮氢示踪检漏仪，专为检漏场景设计，WC-LD-NH2型检测仪凭借宽量程泵吸功能与极速响应，精准捕捉空气中逸出的氢气，实现泄漏点的快速、高效定位",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-LD-NH2"
+      },
+      {
+        "name": "传感器技术",
+        "value": "碳基场效应"
+      },
+      {
+        "name": "检测气体",
+        "value": "5%氢/95%氮混合气"
+      },
+      {
+        "name": "续航时间",
+        "value": "≥8小时"
+      },
+      {
+        "name": "响应时间",
+        "value": "＜1 秒"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20℃~45℃"
+      },
+      {
+        "name": "产品重量",
+        "value": "600 克"
+      },
+      {
+        "name": "主机尺寸",
+        "value": "200*60*35 mm （不含管）"
+      }
     ]
   },
   "mc_wd_01": {
     "sortOrder": 18,
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-WD-01型穿戴式氢气检测模块｜氢气检测 - 元芯传感",
+    "seoDescription": "MC-WD-01型穿戴式氢气检测模块，以轻巧机身、长时间精准监测和声光震多重预警，为涉氢作业人员提供贴身、高效的人身安全防护。",
+    "sku": "MC-WD-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "传感检测模块",
+    "imageAlt": "MC-WD-01型穿戴式氢气检测模块传感检测模块",
+    "imageTitle": "MC-WD-01型穿戴式氢气检测模块",
+    "imageCaption": "MC-WD-01型穿戴式氢气检测模块，以轻巧机身、长时间精准监测和声光震多重预警，为涉氢作业人员提供贴身、高效的人身安全防护",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-WD-01"
+      },
+      {
+        "name": "检测气体",
+        "value": "氢气"
+      },
+      {
+        "name": "检测范围",
+        "value": "0~12.5% LEL（可定制）"
+      },
+      {
+        "name": "报警线",
+        "value": "自行设定"
+      },
+      {
+        "name": "运行功耗",
+        "value": "<500 毫瓦"
+      },
+      {
+        "name": "响应时间",
+        "value": "<5 秒"
+      },
+      {
+        "name": "最低检测",
+        "value": "可定制"
+      },
+      {
+        "name": "续航时间",
+        "value": ">6 小时"
+      },
+      {
+        "name": "数据传输",
+        "value": "无线蓝牙"
+      },
+      {
+        "name": "工作湿度",
+        "value": "30~85%RH （无结霜）"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20℃ ~85℃"
+      },
+      {
+        "name": "重量",
+        "value": "108g"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "9*5*2.5cm"
+      }
     ]
   },
   "mc_tm_01": {
@@ -185,6 +293,62 @@
     "cardImage": "/cdn_assets/images/gassensing/9c2104bdb6ff4ee8b4b4de377304b38f.jpg?v=1783583446",
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-TM-01型气体组分分析模块｜传感检测模块 - 元芯传感",
+    "seoDescription": "MC-TM-01型气体组分分析模块，MC-TM-01是一款基于高灵敏度热导原理（TCD）的工业级气体组分分析核心模块，专为OEM集成设计，助力设备厂商快速构建精准、稳定的在线气体监测系统。",
+    "sku": "MC-TM-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "传感检测模块",
+    "imageAlt": "MC-TM-01型气体组分分析模块传感检测模块",
+    "imageTitle": "MC-TM-01型气体组分分析模块",
+    "imageCaption": "MC-TM-01型气体组分分析模块，MC-TM-01是一款基于高灵敏度热导原理（TCD）的工业级气体组分分析核心模块，专为OEM集成设计，助力设备厂商快速构建精准、稳定的在线气体监测系统",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-TM-01"
+      },
+      {
+        "name": "检测原理",
+        "value": "TCD热导原理"
+      },
+      {
+        "name": "采样",
+        "value": "定制"
+      },
+      {
+        "name": "接口",
+        "value": "6mm软管"
+      },
+      {
+        "name": "尺寸 (mm)",
+        "value": "约50x50x80mm"
+      },
+      {
+        "name": "气体压力",
+        "value": "20 bar (绝对值)"
+      },
+      {
+        "name": "供电",
+        "value": "18V to 36V DC / 700mA"
+      },
+      {
+        "name": "环境温度",
+        "value": "-20°C ~ 50°C"
+      },
+      {
+        "name": "响应时间T90（60l/h）",
+        "value": "< 1s"
+      },
+      {
+        "name": "通讯方式",
+        "value": "485等多种通讯，支持定制"
+      },
+      {
+        "name": "模拟输出信号",
+        "value": "2x, 0-10V"
+      }
     ]
   },
   "mc_td_01": {
@@ -192,12 +356,116 @@
     "cardImage": "/cdn_assets/images/gassensing/3e39581347fc4c02a316274a3f528372.png?v=1783583076",
     "industryCategories": [
       "leak"
+    ],
+    "seoTitle": "MC-TD-01型氮氢示踪检漏仪｜气体检漏仪 - 元芯传感",
+    "seoDescription": "MC-TD-01型氮氢示踪检漏仪以安全环保的氮氢混合气为示踪剂，凭借小于1秒的极速响应和低至5 × 10⁻⁷ mbar·L/s的检测灵敏度，为工业场景提供高效、经济、精准的无损检漏方案。",
+    "sku": "MC-TD-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检漏仪",
+    "imageAlt": "MC-TD-01型氮氢示踪检漏仪气体检漏仪",
+    "imageTitle": "MC-TD-01型氮氢示踪检漏仪",
+    "imageCaption": "MC-TD-01型氮氢示踪检漏仪以安全环保的氮氢混合气为示踪剂，凭借小于1秒的极速响应和低至5 × 10⁻⁷ mbar·L/s的检测灵敏度，为工业场景提供高效、经济、精准的无损检漏方案",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-TD-01"
+      },
+      {
+        "name": "探测原理",
+        "value": "碳基场效应"
+      },
+      {
+        "name": "最小可检漏率",
+        "value": "5 × 10⁻⁷ mbar·L/s"
+      },
+      {
+        "name": "检测精度",
+        "value": "0.5 ppm H2"
+      },
+      {
+        "name": "响应时间",
+        "value": "＜1 秒"
+      },
+      {
+        "name": "示踪气体",
+        "value": "5%氢/95%氮 混合气"
+      },
+      {
+        "name": "供电电源",
+        "value": "220V AC"
+      },
+      {
+        "name": "工作湿度",
+        "value": "10~90% RH （无凝结）"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20℃~45℃"
+      },
+      {
+        "name": "产品重量",
+        "value": "<5 kg"
+      },
+      {
+        "name": "主机尺寸",
+        "value": "33*25*15cm"
+      }
     ]
   },
   "mc_pdr_01": {
     "sortOrder": 14,
     "industryCategories": [
       "industry-4"
+    ],
+    "seoTitle": "MC-PDR-01型便携式传感器采集模块｜传感检测模块 - 元芯传感",
+    "seoDescription": "MC-PDR-01型便携式传感器采集模块，以其轻巧设计、无线传输和高精度智能控制，为气体传感器测试与气敏研究提供突破空间限制的全场景自动化解决方案。",
+    "sku": "MC-PDR-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "传感检测模块",
+    "imageAlt": "MC-PDR-01型便携式传感器采集模块传感检测模块",
+    "imageTitle": "MC-PDR-01型便携式传感器采集模块",
+    "imageCaption": "MC-PDR-01型便携式传感器采集模块，以其轻巧设计、无线传输和高精度智能控制，为气体传感器测试与气敏研究提供突破空间限制的全场景自动化解决方案",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-PDR-01"
+      },
+      {
+        "name": "通道",
+        "value": "8个"
+      },
+      {
+        "name": "电阻采集",
+        "value": "可定制"
+      },
+      {
+        "name": "电压采集",
+        "value": "可定制"
+      },
+      {
+        "name": "电流采集",
+        "value": "可定制"
+      },
+      {
+        "name": "电池容量",
+        "value": "6000 mA"
+      },
+      {
+        "name": "数据传输",
+        "value": "USB/无线传输"
+      },
+      {
+        "name": "加热电流",
+        "value": "0-200 mA"
+      },
+      {
+        "name": "外形尺寸",
+        "value": "24*16*5.5CM"
+      }
     ]
   },
   "mc_pa_h1": {
@@ -205,6 +473,62 @@
     "cardImage": "/cdn_assets/images/gassensing/dbe51d8dcdf844ed8f38fc6c15b06f6c.png?v=1783585229",
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-PA-H1便携式氢气纯度分析仪｜气体分析仪 - 元芯传感",
+    "seoDescription": "MC-PA-H1便携式氢气纯度分析仪，便携式氢气纯度分析仪，基于热导传感原理，以其小巧轻便、快速响应和高精度特点，为氢能源、工业气体等多个领域提供随时随地的现场氢气纯度快速检测。",
+    "sku": "MC-PA-H1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体分析仪",
+    "imageAlt": "MC-PA-H1便携式氢气纯度分析仪气体分析仪",
+    "imageTitle": "MC-PA-H1便携式氢气纯度分析仪",
+    "imageCaption": "MC-PA-H1便携式氢气纯度分析仪，便携式氢气纯度分析仪，基于热导传感原理，以其小巧轻便、快速响应和高精度特点，为氢能源、工业气体等多个领域提供随时随地的现场氢气纯度快速检测",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-PA-H1"
+      },
+      {
+        "name": "测量组份",
+        "value": "H2具体可灵活搭配（空气氢气、氮气氢气等）"
+      },
+      {
+        "name": "分析原理",
+        "value": "H2热导原理"
+      },
+      {
+        "name": "量程范围",
+        "value": "H2/Air：0-100%（量程可根据客户需求进行定制）"
+      },
+      {
+        "name": "响应时间",
+        "value": "T90≤15秒"
+      },
+      {
+        "name": "工作环境",
+        "value": "温度－25℃～＋55℃；湿度≤90%RH（无凝结）"
+      },
+      {
+        "name": "样气压力",
+        "value": "0.05 MPa≤入口压力≤0.1MPa(出气口必须为常压)"
+      },
+      {
+        "name": "样气流量",
+        "value": "400±10ml/min"
+      },
+      {
+        "name": "工作电源",
+        "value": "220VAC±10%，50Hz±5%（充电电源）；仪器自带可充电电池"
+      },
+      {
+        "name": "数据记录",
+        "value": "500-3000条"
+      },
+      {
+        "name": "操作方式",
+        "value": "触摸屏操作"
+      }
     ]
   },
   "mc_ol_h1": {
@@ -212,12 +536,160 @@
     "cardImage": "/cdn_assets/images/gassensing/5d01e6dbd4724cd488221a0cbab0ede9.jpg?v=1783583434",
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-OL-H1型在线氢气纯度分析仪｜气体分析仪 - 元芯传感",
+    "seoDescription": "MC-OL-H1型在线氢气纯度分析仪，采用热导原理传感器，提供高精度、连续实时的氢气纯度自动化分析，实现与工业控制系统无缝集成，保障关键工艺安全与产品品质。",
+    "sku": "MC-OL-H1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体分析仪",
+    "imageAlt": "MC-OL-H1型在线氢气纯度分析仪气体分析仪",
+    "imageTitle": "MC-OL-H1型在线氢气纯度分析仪",
+    "imageCaption": "MC-OL-H1型在线氢气纯度分析仪，采用热导原理传感器，提供高精度、连续实时的氢气纯度自动化分析，实现与工业控制系统无缝集成，保障关键工艺安全与产品品质",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-OL-H1"
+      },
+      {
+        "name": "检测气体",
+        "value": "氢气"
+      },
+      {
+        "name": "检测原理",
+        "value": "热导原理"
+      },
+      {
+        "name": "量程",
+        "value": "（0~100）%Vol（量程可定制）"
+      },
+      {
+        "name": "最大允许误差",
+        "value": "±0.2% F.S"
+      },
+      {
+        "name": "响应时间",
+        "value": "<15秒"
+      },
+      {
+        "name": "工作流量",
+        "value": "0.4~0.6 L/min"
+      },
+      {
+        "name": "信号输出方式",
+        "value": "RS-485总线制，（4~20）mA三线制"
+      },
+      {
+        "name": "电源电压",
+        "value": "（24±2）V DC; （220±22）VAC"
+      },
+      {
+        "name": "工作环境",
+        "value": "-10~40℃，≤90%RH"
+      },
+      {
+        "name": "采样压力",
+        "value": "预处理口系统进气压力：0.1-10MPa；传感单元：<0.1Mpa"
+      },
+      {
+        "name": "尺寸",
+        "value": "180⨯140⨯65 cm3"
+      }
     ]
   },
   "mc_od_h1": {
     "sortOrder": 10,
     "industryCategories": [
       "industry-3"
+    ],
+    "seoTitle": "MC-OD-H1型在线式溶解氢分析仪｜气体分析仪 - 元芯传感",
+    "seoDescription": "MC-OD-H1型在线式溶解氢分析仪，MC-OD-H1是一款专为实时监控水体中溶解氢浓度设计的高精度在线分析仪表，通过智能传感技术与自动化补偿算法，确保能源、电力及医疗健康领域水质指标的稳定与安全。",
+    "sku": "MC-OD-H1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体分析仪",
+    "imageAlt": "MC-OD-H1型在线式溶解氢分析仪气体分析仪",
+    "imageTitle": "MC-OD-H1型在线式溶解氢分析仪",
+    "imageCaption": "MC-OD-H1型在线式溶解氢分析仪，MC-OD-H1是一款专为实时监控水体中溶解氢浓度设计的高精度在线分析仪表，通过智能传感技术与自动化补偿算法，确保能源、电力及医疗健康领域水质指标的稳定与安全",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-OD-H1"
+      },
+      {
+        "name": "显示",
+        "value": "192X64点阵液晶，可选择显示中文或英文"
+      },
+      {
+        "name": "测量范围",
+        "value": "(0-10)μg/L，(0-100)μg/L"
+      },
+      {
+        "name": "分辨力",
+        "value": "1ppm"
+      },
+      {
+        "name": "示值误差",
+        "value": "≤±3%FS或0.5mg/L取大值"
+      },
+      {
+        "name": "响应时间(T90)",
+        "value": "5s"
+      },
+      {
+        "name": "大气压测量精度",
+        "value": "±1mbar"
+      },
+      {
+        "name": "样品要求",
+        "value": "流量范围：(50-350)mL/h；温度范围：(5.0-45.0)℃；水样允许固体成分：≤5μm(不允许有胶状物、无油脂)"
+      },
+      {
+        "name": "环境温度",
+        "value": "(5.0-45.0)℃"
+      },
+      {
+        "name": "环境湿度",
+        "value": "≤90%RH(无冷凝)"
+      },
+      {
+        "name": "储运温度",
+        "value": "(-25-55)℃(不含电极，电极应高于0℃)"
+      },
+      {
+        "name": "输出电流",
+        "value": "(0-10)mA、(0-20)mA或(4-20)mA(二路隔离输出)"
+      },
+      {
+        "name": "供电电源",
+        "value": "AC(220)V，(50-60)Hz"
+      },
+      {
+        "name": "功率",
+        "value": "≤8W"
+      },
+      {
+        "name": "绝缘强度",
+        "value": "电源对地1500V，1min内无飞弧"
+      },
+      {
+        "name": "数据通讯",
+        "value": "RS485总线，USB读取数据升级程序"
+      },
+      {
+        "name": "外形尺寸",
+        "value": "690mm x 450mm x 215mm(宽X高X深)"
+      },
+      {
+        "name": "开孔尺寸",
+        "value": "645mm x 410mm"
+      },
+      {
+        "name": "重量",
+        "value": "22kg"
+      }
     ]
   },
   "mc_mgm_01": {
@@ -225,35 +697,399 @@
     "cardImage": "/cdn_assets/images/gassensing/200a149aaf3742d08be995ba429a3955.png?v=1783582930",
     "industryCategories": [
       "industry-4"
+    ],
+    "seoTitle": "MC-MGM-01型动态配气系统｜动态配气系统 - 元芯传感",
+    "seoDescription": "MC-MGM-01型动态配气系统搭载高精度流量计，实现多路气体的全自动精准混配，支持宽范围稀释比例与湿度控制，为科研及工业测试提供高效、便捷、定制化的标准气体环境。",
+    "sku": "MC-MGM-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "动态配气系统",
+    "imageAlt": "MC-MGM-01型动态配气系统",
+    "imageTitle": "MC-MGM-01型动态配气系统",
+    "imageCaption": "MC-MGM-01型动态配气系统搭载高精度流量计，实现多路气体的全自动精准混配，支持宽范围稀释比例与湿度控制，为科研及工业测试提供高效、便捷、定制化的标准气体环境",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-MGM-01"
+      },
+      {
+        "name": "气体通道",
+        "value": "最大20路"
+      },
+      {
+        "name": "流量范围",
+        "value": "0-1000 sccm （可定制）"
+      },
+      {
+        "name": "重复精度",
+        "value": "±0.2% F.S."
+      },
+      {
+        "name": "工作环境温度",
+        "value": "（5~45）℃"
+      },
+      {
+        "name": "管路材质",
+        "value": "316L 不锈钢 /PFA/PTFE"
+      },
+      {
+        "name": "信号采集精度",
+        "value": "0.1% F.S."
+      },
+      {
+        "name": "线性",
+        "value": "±0.5% F.S."
+      },
+      {
+        "name": "耐压",
+        "value": "0.4 MPa"
+      },
+      {
+        "name": "电源",
+        "value": "220 V 市电"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "400*440*220 mm"
+      }
     ]
   },
   "mc_ld_w1": {
     "sortOrder": 8,
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-LD-W1便携式露点分析仪｜气体分析仪 - 元芯传感",
+    "seoDescription": "MC-LD-W1便携式露点分析仪集精确测量与快速响应于一身，为工业现场、巡检和应急抽样提供灵活、高效的微量水（露点）检测解决方案。",
+    "sku": "MC-LD-W1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体分析仪",
+    "imageAlt": "MC-LD-W1便携式露点分析仪气体分析仪",
+    "imageTitle": "MC-LD-W1便携式露点分析仪",
+    "imageCaption": "MC-LD-W1便携式露点分析仪集精确测量与快速响应于一身，为工业现场、巡检和应急抽样提供灵活、高效的微量水（露点）检测解决方案",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-LD-W1"
+      },
+      {
+        "name": "测量范围",
+        "value": "-80 ~ +20°C 露点（可定制）"
+      },
+      {
+        "name": "测量精度",
+        "value": "±2°C"
+      },
+      {
+        "name": "工业连接",
+        "value": "G 1/2” 螺纹 (ISO 228/1)"
+      },
+      {
+        "name": "响应时间",
+        "value": "5 分钟 到 T95 (从干到湿)"
+      },
+      {
+        "name": "重复性",
+        "value": "0.5°C 露点"
+      },
+      {
+        "name": "数据存储",
+        "value": "SD卡"
+      },
+      {
+        "name": "测量介质",
+        "value": "非腐蚀性气体"
+      },
+      {
+        "name": "信号输出",
+        "value": "4~20mA/RS485"
+      },
+      {
+        "name": "工作流量",
+        "value": "2L/min流过传感器"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20 ~ +70°C"
+      },
+      {
+        "name": "工作压力",
+        "value": "50 bar （最大350Bar）"
+      },
+      {
+        "name": "工作湿度",
+        "value": "0~99%RH，非冷凝"
+      },
+      {
+        "name": "外壳材质",
+        "value": "316L不锈钢"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "约185x250x320mm"
+      },
+      {
+        "name": "防护等级",
+        "value": "IP66"
+      }
     ]
   },
   "mc_ld_ph2": {
     "sortOrder": 7,
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-LD-PH2型氢气检测仪｜氢气检测 - 元芯传感",
+    "seoDescription": "MC-LD-PH2型氢气检测仪创新搭载全新传感技术，提供0-100%LEL的超宽检测量程，实现从微量泄漏到爆炸下限的全浓度范围精准监测，大幅提升涉氢场景的适用性与安全防护。",
+    "sku": "MC-LD-PH2",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检测仪",
+    "imageAlt": "MC-LD-PH2型氢气检测仪气体检测仪",
+    "imageTitle": "MC-LD-PH2型氢气检测仪",
+    "imageCaption": "MC-LD-PH2型氢气检测仪创新搭载全新传感技术，提供0-100%LEL的超宽检测量程，实现从微量泄漏到爆炸下限的全浓度范围精准监测，大幅提升涉氢场景的适用性与安全防护",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-LD-PH2"
+      },
+      {
+        "name": "响应时间",
+        "value": "<1 秒"
+      },
+      {
+        "name": "检测气体",
+        "value": "氢气"
+      },
+      {
+        "name": "最低检测",
+        "value": "≤1 ppm"
+      },
+      {
+        "name": "检测范围",
+        "value": "0~100%LEL"
+      },
+      {
+        "name": "续航时间",
+        "value": "≥6 小时"
+      },
+      {
+        "name": "测量方式",
+        "value": "泵吸式"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20℃~85℃"
+      },
+      {
+        "name": "最大功耗",
+        "value": "<2 瓦"
+      },
+      {
+        "name": "数据传输",
+        "value": "蓝牙"
+      },
+      {
+        "name": "产品重量",
+        "value": "约600 克"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "200*60*35 mm（不含管）"
+      },
+      {
+        "name": "防爆认证",
+        "value": "Ex ib IIC T3 Gb"
+      },
+      {
+        "name": "计量认证",
+        "value": "国家计量院检测认证"
+      }
     ]
   },
   "mc_ld_h2": {
     "isNew": true,
-    "sortOrder": 6
+    "sortOrder": 6,
+    "seoTitle": "MC-LD-H2型手持氢气检测仪｜氢气检测 - 元芯传感",
+    "seoDescription": "MC-LD-H2型手持氢气检测仪，搭载高性能碳基传感芯片，MC-LD-H2型氢气检测仪以极速响应和超高灵敏度，为各类涉氢场景提供精准、可靠的氢气泄漏快速检测与安全预警。",
+    "sku": "MC-LD-H2",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检测仪",
+    "imageAlt": "MC-LD-H2型手持氢气检测仪气体检测仪",
+    "imageTitle": "MC-LD-H2型手持氢气检测仪",
+    "imageCaption": "MC-LD-H2型手持氢气检测仪，搭载高性能碳基传感芯片，MC-LD-H2型氢气检测仪以极速响应和超高灵敏度，为各类涉氢场景提供精准、可靠的氢气泄漏快速检测与安全预警",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-LD-H2"
+      },
+      {
+        "name": "响应时间",
+        "value": "<1 秒"
+      },
+      {
+        "name": "检测气体",
+        "value": "氢气"
+      },
+      {
+        "name": "最低检测",
+        "value": "<1 ppm"
+      },
+      {
+        "name": "检测范围",
+        "value": "0~1000 ppm"
+      },
+      {
+        "name": "续航时间",
+        "value": "≥8 小时"
+      },
+      {
+        "name": "测量方式",
+        "value": "泵吸式"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20℃~85℃"
+      },
+      {
+        "name": "最大功耗",
+        "value": "<2 瓦"
+      },
+      {
+        "name": "数据传输",
+        "value": "蓝牙"
+      },
+      {
+        "name": "产品重量",
+        "value": "约600 克"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "200*60*35 mm（不含管）"
+      },
+      {
+        "name": "防爆认证",
+        "value": "Ex ib IIC T3 Gb"
+      },
+      {
+        "name": "计量认证",
+        "value": "国家计量院检测认证"
+      }
+    ]
   },
   "mc_la_h1": {
     "sortOrder": 5,
     "cardImage": "/cdn_assets/images/gassensing/3bdd0ac1d2e54aab81d590f2202dcc47.png?v=1782099192",
     "industryCategories": [
       "industry-3"
+    ],
+    "seoTitle": "MC-LA-H1型便携式溶解氢分析仪｜气体分析仪 - 元芯传感",
+    "seoDescription": "MC-LA-H1型便携式溶解氢分析仪，MC-LA-H1是一款集高精度传感与轻量化设计于一体的掌上型分析仪，专为现场快速测定水体中溶解氢浓度而设计，提供实验室级的即时检测体验。",
+    "sku": "MC-LA-H1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体分析仪",
+    "imageAlt": "MC-LA-H1型便携式溶解氢分析仪气体分析仪",
+    "imageTitle": "MC-LA-H1型便携式溶解氢分析仪",
+    "imageCaption": "MC-LA-H1型便携式溶解氢分析仪，MC-LA-H1是一款集高精度传感与轻量化设计于一体的掌上型分析仪，专为现场快速测定水体中溶解氢浓度而设计，提供实验室级的即时检测体验",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-LA-H1"
+      },
+      {
+        "name": "电位量测范围",
+        "value": "-2000 mV ~ 2000 mV"
+      },
+      {
+        "name": "分辨率",
+        "value": "1 ppm"
+      },
+      {
+        "name": "精度",
+        "value": "±2 ppm"
+      },
+      {
+        "name": "供电电源",
+        "value": "2节4号（AAA）电池"
+      },
+      {
+        "name": "使用环境",
+        "value": "-5 °C～60 °C；相对湿度﹤90%"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "约185x250x320mm"
+      }
     ]
   },
   "mc_hp_1_0": {
     "sortOrder": 4,
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-HP-1.0型车载氢气检测模块｜氢气检测 - 元芯传感",
+    "seoDescription": "MC-HP-1.0型车载氢气检测模块，搭载高精度氢气传感器，以1秒极速响应和卓越稳定性，为氢能源汽车及锂电池热失控提供关键、可靠的氢气监测与安全保障。",
+    "sku": "MC-HP-1.0",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "传感检测模块",
+    "imageAlt": "MC-HP-1.0型车载氢气检测模块传感检测模块",
+    "imageTitle": "MC-HP-1.0型车载氢气检测模块",
+    "imageCaption": "MC-HP-1.0型车载氢气检测模块，搭载高精度氢气传感器，以1秒极速响应和卓越稳定性，为氢能源汽车及锂电池热失控提供关键、可靠的氢气监测与安全保障",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-HP-1.0"
+      },
+      {
+        "name": "检测原理",
+        "value": "接触燃烧式"
+      },
+      {
+        "name": "检测对象",
+        "value": "氢气"
+      },
+      {
+        "name": "响应速度",
+        "value": "<1 秒"
+      },
+      {
+        "name": "模块功耗",
+        "value": "<100 mW"
+      },
+      {
+        "name": "供电电压",
+        "value": "24 V"
+      },
+      {
+        "name": "检测范围",
+        "value": "0~100% LEL"
+      },
+      {
+        "name": "重复性",
+        "value": "±10%"
+      },
+      {
+        "name": "寿命",
+        "value": "10 年"
+      },
+      {
+        "name": "通讯方式",
+        "value": "CAN通讯"
+      },
+      {
+        "name": "工作环境",
+        "value": "-20°C ~ +60°C, ≤95% RH（无结霜）"
+      }
     ]
   },
   "mc_ba_h1": {
@@ -262,6 +1098,50 @@
     "sortOrder": 1,
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-BA-H1型天然气掺氢分析仪｜气体分析仪 - 元芯传感",
+    "seoDescription": "MC-BA-H1型天然气掺氢分析仪，专为“掺氢天然气”场景设计，高精度实时监测天然气中氢气掺混比例，确保能源安全高效利用，助推城市燃气绿色低碳转型。",
+    "sku": "MC-BA-H1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体分析仪",
+    "imageAlt": "MC-BA-H1型天然气掺氢分析仪气体分析仪",
+    "imageTitle": "MC-BA-H1型天然气掺氢分析仪",
+    "imageCaption": "MC-BA-H1型天然气掺氢分析仪，专为“掺氢天然气”场景设计，高精度实时监测天然气中氢气掺混比例，确保能源安全高效利用，助推城市燃气绿色低碳转型",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-BA-H1"
+      },
+      {
+        "name": "量程",
+        "value": "0~100%VOL"
+      },
+      {
+        "name": "分辨率",
+        "value": "0.1 %"
+      },
+      {
+        "name": "响应速度",
+        "value": "T90<20秒"
+      },
+      {
+        "name": "样气流量",
+        "value": "100-300毫升/分钟"
+      },
+      {
+        "name": "样气压力",
+        "value": "标准大气压"
+      },
+      {
+        "name": "入口和出口",
+        "value": "1/4英寸（或6mm不锈钢卡套接头）"
+      },
+      {
+        "name": "模拟输出",
+        "value": "4-20mA(可编程)"
+      }
     ]
   },
   "mc_hha_01": {
@@ -269,6 +1149,70 @@
     "sortOrder": 2,
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-HHA-01型家用氢气报警器｜气体报警器 - 元芯传感",
+    "seoDescription": "MC-HHA-01型家用氢气报警器，是一款专为“氢进万家”趋势下家庭用氢安全设计的智能监测设备，提供高灵敏度、快速响应的氢气泄漏预警，全方位守护居家安全。",
+    "sku": "MC-HHA-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体报警器",
+    "imageAlt": "MC-HHA-01型家用氢气报警器气体报警器",
+    "imageTitle": "MC-HHA-01型家用氢气报警器",
+    "imageCaption": "MC-HHA-01型家用氢气报警器，是一款专为“氢进万家”趋势下家庭用氢安全设计的智能监测设备，提供高灵敏度、快速响应的氢气泄漏预警，全方位守护居家安全",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-HHA-01"
+      },
+      {
+        "name": "检测气体",
+        "value": "氢气"
+      },
+      {
+        "name": "检测范围",
+        "value": "0~100%LEL"
+      },
+      {
+        "name": "使用环境条件",
+        "value": "温度：0~40℃；湿度：<95RH 无凝结"
+      },
+      {
+        "name": "采样方式",
+        "value": "自然扩散"
+      },
+      {
+        "name": "报警设定值",
+        "value": "自行设定"
+      },
+      {
+        "name": "预热时间",
+        "value": "180s"
+      },
+      {
+        "name": "使用寿命",
+        "value": "5年（正常使用环境条件下）"
+      },
+      {
+        "name": "工作电压",
+        "value": "5V±0.1V"
+      },
+      {
+        "name": "重量",
+        "value": "108g"
+      },
+      {
+        "name": "外形尺寸",
+        "value": "10*10*3cm"
+      },
+      {
+        "name": "报警方式",
+        "value": "声、光报警"
+      },
+      {
+        "name": "报警音量",
+        "value": "≥70dB"
+      }
     ]
   },
   "mc_hla_01": {
@@ -276,6 +1220,66 @@
     "sortOrder": 3,
     "industryCategories": [
       "hydrogen"
+    ],
+    "seoTitle": "MC-HLA-01型固定式氢气报警器｜气体报警器 - 元芯传感",
+    "seoDescription": "MC-HLA-01型固定式氢气报警器以高灵敏、快速响应的特性，提供管道、密闭空间及大气环境中的氢气浓度在线监测与预警，持续守护涉氢场所安全。",
+    "sku": "MC-HLA-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体报警器",
+    "imageAlt": "MC-HLA-01型固定式氢气报警器气体报警器",
+    "imageTitle": "MC-HLA-01型固定式氢气报警器",
+    "imageCaption": "MC-HLA-01型固定式氢气报警器以高灵敏、快速响应的特性，提供管道、密闭空间及大气环境中的氢气浓度在线监测与预警，持续守护涉氢场所安全",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-HLA-01"
+      },
+      {
+        "name": "检测气体",
+        "value": "氢气（可定制）"
+      },
+      {
+        "name": "检测范围",
+        "value": "0~100% LEL"
+      },
+      {
+        "name": "供电电源",
+        "value": "DC 24 V"
+      },
+      {
+        "name": "响应时间",
+        "value": "<5 秒"
+      },
+      {
+        "name": "最低检测",
+        "value": "定制"
+      },
+      {
+        "name": "防护等级",
+        "value": "IP65"
+      },
+      {
+        "name": "数据传输",
+        "value": "RS485协议/4G（可定制）"
+      },
+      {
+        "name": "工作湿度",
+        "value": "0~95%RH （无冷凝）"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20℃~55℃"
+      },
+      {
+        "name": "防爆等级",
+        "value": "Ex Db IIC T6 Gb"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "199*252*91 mm"
+      }
     ]
   },
   "../customization/semiconductor_device_customization": {
@@ -284,13 +1288,117 @@
     "cardImage": "/cdn_assets/images/gassensing/8b706ddacb6243a2b9422e40be8a60e3.png?v=1783585192",
     "industryCategories": [
       "industry-5"
+    ],
+    "seoTitle": "半导体器件与微纳工艺定制化服务｜工业安全监测 - 元芯传感",
+    "seoDescription": "半导体器件与微纳工艺定制化服务，湖南元芯传感提供从气敏芯片设计、MEMS微热板加工、敏感薄膜沉积到封装测试的全链条定制服务，致力于为全球科研与工业用户打造高灵敏度、低功耗的新型气体传感器件。",
+    "sku": "SEMICONDUCTOR-DEVICE-CUSTOMIZATION",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "半导体器件",
+    "imageAlt": "半导体器件与微纳工艺定制化服务",
+    "imageTitle": "半导体器件与微纳工艺定制化服务",
+    "imageCaption": "半导体器件与微纳工艺定制化服务，湖南元芯传感提供从气敏芯片设计、MEMS微热板加工、敏感薄膜沉积到封装测试的全链条定制服务，致力于为全球科研与工业用户打造高灵敏度、低功耗的新型气体传感器件",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "光刻机性能",
+        "value": "线条精度1 um"
+      },
+      {
+        "name": "可镀金属",
+        "value": "Ti、Pd、Au、Ag、Y等常用金属"
+      },
+      {
+        "name": "绝缘介质",
+        "value": "氧化硅、氧化铪、氧化钇"
+      },
+      {
+        "name": "可刻蚀材料",
+        "value": "氧化硅、硅、氧化钇、氧化铪、碳纳米管等"
+      },
+      {
+        "name": "加工尺寸",
+        "value": "4英寸晶圆，向下兼容"
+      }
     ]
   },
   "mc_pgd_01": {
     "displayName": "MC-PGD-01型手持泵吸式可燃气体检测仪",
     "sortOrder": 15,
     "cardImage": "/cdn_assets/images/gassensing/4b8810010b9b48b1a55273d6b9d94a47.jpg?v=1783583381",
-    "industryCategories": []
+    "industryCategories": [],
+    "seoTitle": "MC-PGD-01型手持泵吸式可燃气体检测仪｜气体检测 - 元芯传感",
+    "seoDescription": "MC-PGD-01型手持泵吸式可燃气体检测仪，凭借高效内置采样泵与多气体兼容特性，实现对多种可燃气体的精准快速检测与预警，为复杂、密闭及难以进入空间提供可靠的便携式安全防护。",
+    "sku": "MC-PGD-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检测仪",
+    "imageAlt": "MC-PGD-01型手持泵吸式可燃气体检测仪",
+    "imageTitle": "MC-PGD-01型手持泵吸式可燃气体检测仪",
+    "imageCaption": "MC-PGD-01型手持泵吸式可燃气体检测仪，凭借高效内置采样泵与多气体兼容特性，实现对多种可燃气体的精准快速检测与预警，为复杂、密闭及难以进入空间提供可靠的便携式安全防护",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-PGD-01"
+      },
+      {
+        "name": "检测气体",
+        "value": "甲烷、丙烷、氢气等可燃气体"
+      },
+      {
+        "name": "检测范围",
+        "value": "0~100%LEL"
+      },
+      {
+        "name": "检测方式",
+        "value": "内置泵吸式，流量500毫升/分钟"
+      },
+      {
+        "name": "显示方式",
+        "value": "2.31寸320X240高清彩屏显示"
+      },
+      {
+        "name": "检测精度",
+        "value": "≤±3% F.S"
+      },
+      {
+        "name": "报警方式",
+        "value": "声光报警"
+      },
+      {
+        "name": "电池容量",
+        "value": "4500mA大容量可充电锂电池"
+      },
+      {
+        "name": "使用环境",
+        "value": "温度-40℃~+70℃；相对湿度≤0-99%RH"
+      },
+      {
+        "name": "数据存储",
+        "value": "标配10万条数据容量"
+      },
+      {
+        "name": "通讯接口",
+        "value": "USB，选配RS485或RS232通讯接口"
+      },
+      {
+        "name": "界面语言",
+        "value": "中英文"
+      },
+      {
+        "name": "防护等级",
+        "value": "IP65"
+      },
+      {
+        "name": "外型尺寸",
+        "value": "160×70×28mm(L×W×H)"
+      },
+      {
+        "name": "重量",
+        "value": "300g"
+      }
+    ]
   },
   "mc_ld_r1": {
     "displayName": "MC-LD-R1型冷媒泄漏检漏仪",
@@ -298,7 +1406,47 @@
     "sortOrder": 20,
     "cardTitle": "MC-LD-R1型冷媒泄漏检漏仪",
     "cardImage": "/cdn_assets/images/gassensing/a5616561db97.webp?v=1775480406",
-    "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。"
+    "cardSummary": "专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。",
+    "seoTitle": "MC-LD-R1型冷媒泄漏检漏仪｜气体检漏仪 - 元芯传感",
+    "seoDescription": "MC-LD-R1型冷媒泄漏检漏仪，MC-LD-R1是一款专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案。",
+    "sku": "MC-LD-R1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检漏仪",
+    "imageAlt": "MC-LD-R1型冷媒泄漏检漏仪气体检漏仪",
+    "imageTitle": "MC-LD-R1型冷媒泄漏检漏仪",
+    "imageCaption": "MC-LD-R1型冷媒泄漏检漏仪，MC-LD-R1是一款专为新一代HFOs环保制冷剂设计的高灵敏度手持检漏仪，具备极速响应与多重报警功能，为汽车空调与精密制冷系统提供精准、安全的绿色维护检测方案",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-LD-R1"
+      },
+      {
+        "name": "测量对象",
+        "value": "冷媒检测，制冷行业"
+      },
+      {
+        "name": "测量范围",
+        "value": "R-22, R-134a, R-404a, R-410a, R-507 (AZ-50) 和全部CFC"
+      },
+      {
+        "name": "工作温度",
+        "value": "-10-70 (℃)"
+      },
+      {
+        "name": "电源",
+        "value": "NiMH 电池(可充电)"
+      },
+      {
+        "name": "类型",
+        "value": "便携式检漏仪"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "约42x182x31mm"
+      }
+    ]
   },
   "mc_gd_01": {
     "displayName": "MC-GD-01型可燃气体检漏仪",
@@ -308,11 +1456,123 @@
     "industryCategories": [
       "hydrogen",
       "leak"
+    ],
+    "seoTitle": "MC-GD-01型可燃气体检漏仪｜气体检测 - 元芯传感",
+    "seoDescription": "搭载高精度传感技术，MC-GD-01型可燃气体检漏仪凭借极速响应与精准探测，为燃气管网、工业场站及复杂受限空间提供专业级的可燃气体泄漏快速筛查与安全保障。",
+    "sku": "MC-GD-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检漏仪",
+    "imageAlt": "MC-GD-01型可燃气体检漏仪",
+    "imageTitle": "MC-GD-01型可燃气体检漏仪",
+    "imageCaption": "搭载高精度传感技术，MC-GD-01型可燃气体检漏仪凭借极速响应与精准探测，为燃气管网、工业场站及复杂受限空间提供专业级的可燃气体泄漏快速筛查与安全保障",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-GD-01"
+      },
+      {
+        "name": "检测气体",
+        "value": "可燃气体"
+      },
+      {
+        "name": "响应时间",
+        "value": "<1秒"
+      },
+      {
+        "name": "续航时间",
+        "value": "＞6小时"
+      },
+      {
+        "name": "工作温度",
+        "value": "-20℃~45℃"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "约(42x182x31mm)"
+      }
     ]
   },
   "mc_ol_w1": {
     "displayName": "MC-OL-W1在线式露点分析仪",
-    "sortOrder": 12
+    "sortOrder": 12,
+    "seoTitle": "MC-OL-W1在线式露点分析仪｜气体分析仪 - 元芯传感",
+    "seoDescription": "MC-OL-W1在线式露点分析仪结构紧凑、响应迅速，为压缩空气、金属处理、塑料干燥和消防气体等工业应用提供精确、快速的微量水（露点）在线测量。",
+    "sku": "MC-OL-W1",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体分析仪",
+    "imageAlt": "MC-OL-W1在线式露点分析仪气体分析仪",
+    "imageTitle": "MC-OL-W1在线式露点分析仪",
+    "imageCaption": "MC-OL-W1在线式露点分析仪结构紧凑、响应迅速，为压缩空气、金属处理、塑料干燥和消防气体等工业应用提供精确、快速的微量水（露点）在线测量",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-OL-W1"
+      },
+      {
+        "name": "传感器类型",
+        "value": "电容式氧化铝二氧化硅混合介质技术"
+      },
+      {
+        "name": "测量范围",
+        "value": "-80℃~+20℃（支持定制）"
+      },
+      {
+        "name": "测量精度",
+        "value": "±2℃td(>-60℃td)"
+      },
+      {
+        "name": "工业连接",
+        "value": "G 1/2” 螺纹 (ISO 228/1)"
+      },
+      {
+        "name": "响应时间",
+        "value": "T90<15s"
+      },
+      {
+        "name": "测量介质",
+        "value": "非腐蚀性气体"
+      },
+      {
+        "name": "信号输出",
+        "value": "4~20mA/RS485"
+      },
+      {
+        "name": "工作流量",
+        "value": "2L/min流过传感器"
+      },
+      {
+        "name": "工作温度",
+        "value": "-30~+60℃"
+      },
+      {
+        "name": "工作压力",
+        "value": "< 50bar（可扩展至 < 150bar）"
+      },
+      {
+        "name": "工作湿度",
+        "value": "0~99%RH，非冷凝"
+      },
+      {
+        "name": "外壳材质",
+        "value": "316L不锈钢"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "约180x140x60mm"
+      },
+      {
+        "name": "显示",
+        "value": "液晶显示"
+      },
+      {
+        "name": "防护等级",
+        "value": "IP65"
+      }
+    ]
   },
   "mc_mgm_01_new": {
     "sortOrder": 21,

@@ -8,10 +8,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260713-product-sort-v2-image-spec-v2">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260715-image-seo-modal-v1">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
-    <link rel="stylesheet" href="/admin/styles/components.css?v=20260701-source-detail">
+    <link rel="stylesheet" href="/admin/styles/components.css?v=20260715-image-seo-xlsx-v1">
 </head>
 <body class="admin2-root">
 <!-- LOGIN PAGE -->
@@ -46,6 +46,14 @@
                     <span>账号登录</span>
                 </div>
                 <p class="login-subtitle" id="loginSubtitle">仅授权管理员可访问，请使用已验证邮箱快捷登录。</p>
+                <div id="passkeyLoginWrap" class="passkey-login-wrap" hidden>
+                    <button type="button" id="passkeyLoginBtn" class="passkey-login-btn">
+                        <i class="fas fa-fingerprint"></i>
+                        <span><strong>使用 Passkey 登录</strong><small>指纹、面容识别或设备 PIN</small></span>
+                    </button>
+                    <div id="passkeyLoginMsg" class="form-hint" aria-live="polite"></div>
+                    <div class="passkey-login-divider"><span>或使用其他方式</span></div>
+                </div>
                 <form id="loginForm">
                     <div class="form-group" id="loginEmailWrap">
                         <label>邮箱</label>
@@ -159,6 +167,9 @@
                 <div class="menu-item" data-view="home" onclick="switchView('home')">
                     <i class="fas fa-home"></i> 首页设置
                 </div>
+                <div class="menu-item" data-view="image-seo" onclick="switchView('image-seo')">
+                    <i class="fas fa-images"></i> 图片 SEO
+                </div>
                 <div class="menu-item" data-view="promotion-links" onclick="switchView('promotion-links')">
                     <i class="fas fa-bullhorn"></i> 推广链接
                 </div>
@@ -204,8 +215,11 @@
                 <div class="menu-item" data-view="chatbot" onclick="switchView('chatbot')">
                     <i class="fas fa-robot"></i> AI 与知识库
                 </div>
-                <div class="menu-item" data-view="site-settings" onclick="switchView('site-settings')">
-                    <i class="fas fa-globe"></i> 站点设置
+                <div class="menu-item" data-view="chatbot-knowledge" onclick="switchView('chatbot-knowledge')">
+                    <i class="fas fa-book"></i> 知识库管理
+                </div>
+                <div class="menu-item" data-view="chatbot-history" onclick="switchView('chatbot-history')">
+                    <i class="fas fa-comments"></i> 历史对话
                 </div>
                 <div class="menu-item" data-view="settings" onclick="switchView('settings')">
                     <i class="fas fa-cog"></i> 账号设置
@@ -215,6 +229,9 @@
                 </div>
                 <div class="menu-item" data-view="log-records" onclick="switchView('log-records')">
                     <i class="fas fa-clipboard-list"></i> 系统日志
+                </div>
+                <div class="menu-item" data-view="site-settings" onclick="switchView('site-settings')">
+                    <i class="fas fa-globe"></i> 站点设置
                 </div>
                 <div class="menu-item" id="sidebarLogoutItem" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> 退出登录
@@ -602,6 +619,7 @@
                                         <col style="width: 110px;">
                                         <col style="width: 280px;">
                                         <col style="width: 360px;">
+                                        <col style="width: 420px;">
                                         <col style="width: 360px;">
                                         <col style="width: 220px;">
                                         <col style="width: 320px;">
@@ -616,6 +634,7 @@
                                             <th>卡片标题（产品页）</th>
                                             <th>卡片图片（产品页）</th>
                                             <th>卡片摘要（产品页）</th>
+                                            <th>SEO 信息</th>
                                             <th>文件标识</th>
                                             <th>相关新闻</th>
                                             <th>操作</th>
@@ -996,6 +1015,7 @@
                                         <col style="width: 110px;">
                                         <col style="width: 280px;">
                                         <col style="width: 360px;">
+                                        <col style="width: 420px;">
                                         <col style="width: 360px;">
                                         <col style="width: 220px;">
                                         <col style="width: 320px;">
@@ -1010,6 +1030,7 @@
                                             <th>卡片标题（产品页）</th>
                                             <th>卡片图片（产品页）</th>
                                             <th>卡片摘要（产品页）</th>
+                                            <th>SEO 信息</th>
                                             <th>文件标识</th>
                                             <th>相关新闻</th>
                                             <th>操作</th>
@@ -1017,7 +1038,7 @@
                                     </thead>
                                     <tbody id="bioProductsTableBody">
                                         <tr>
-                                            <td colspan="10" style="text-align:center; padding: 20px;">加载中...</td>
+                                            <td colspan="11" style="text-align:center; padding: 20px;">加载中...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -2584,8 +2605,6 @@
                     <div class="tabs">
                         <button class="tab-btn active" onclick="switchChatbotTab('config', this)">智能客服接口</button>
                         <button class="tab-btn" onclick="switchChatbotTab('product-ai', this)">产品页编程 AI</button>
-                        <button class="tab-btn" onclick="switchChatbotTab('knowledge', this)">知识库管理</button>
-                        <button class="tab-btn" onclick="switchChatbotTab('history', this)">历史对话</button>
                     </div>
 
                     <!-- API Config Tab -->
@@ -2721,9 +2740,11 @@
                             </form>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Knowledge Base Tab -->
-                    <div id="chatbot-tab-knowledge" class="tab-content">
+                <!-- Knowledge Base View -->
+                <div id="view-chatbot-knowledge" class="view-section">
+                    <div id="chatbot-tab-knowledge" class="tab-content active">
                         <div class="card" style="padding: 30px;">
                             <h3 class="section-header">知识库管理</h3>
                             <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
@@ -2775,9 +2796,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Chat History Tab -->
-                    <div id="chatbot-tab-history" class="tab-content">
+                <!-- Chat History View -->
+                <div id="view-chatbot-history" class="view-section">
+                    <div id="chatbot-tab-history" class="tab-content active">
                         <div class="card" style="padding: 30px;">
                             <div class="chatbot-history-toolbar">
                                 <div>
@@ -2826,10 +2849,10 @@
                                         </select>
                                         条
                                     </label>
-                                </div>
-                            </div>
                         </div>
                     </div>
+                </div>
+                </div>
                 </div>
 
                 <!-- Settings View -->
@@ -2859,6 +2882,33 @@
                             <button type="button" id="bindingVerifyBtn" class="btn-primary" style="width:auto; padding:12px 22px;">确认绑定邮箱</button>
                         </div>
                         <div id="bindingMsg" class="error-message" style="color:#28a745;"></div>
+                    </div>
+
+                    <div class="card" id="passkeySecurityCard" style="padding: 30px; margin-bottom: 20px;" hidden>
+                        <div style="display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+                            <div>
+                                <h3 class="section-header" style="margin-bottom:8px;">Passkey 与登录设备</h3>
+                                <p style="margin:0; color:#666; font-size:14px; line-height:1.75;">
+                                    使用指纹、面容识别或设备 PIN 快速登录。同步型 Passkey 可能通过系统密码管理器同步到您的其他设备。
+                                </p>
+                            </div>
+                            <button type="button" id="passkeyAddBtn" class="btn-primary" style="width:auto; padding:11px 20px;">
+                                <i class="fas fa-plus"></i> 添加 Passkey
+                            </button>
+                        </div>
+                        <div id="passkeySecurityStatus" class="form-hint" style="margin:14px 0;">正在加载…</div>
+                        <div id="passkeyStepUpPanel" class="passkey-step-up-panel" hidden>
+                            <strong>请先完成安全验证</strong>
+                            <p id="passkeyStepUpHint">首次添加使用安全邮箱验证码；已有设备可直接使用 Passkey 验证。</p>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                                <button type="button" id="passkeyStepUpPasskeyBtn" class="btn-sm">使用已有 Passkey</button>
+                                <button type="button" id="passkeyStepUpEmailSendBtn" class="btn-sm">发送邮箱验证码</button>
+                                <input type="text" id="passkeyStepUpEmailCode" class="form-control" placeholder="6 位验证码" inputmode="numeric" maxlength="6" style="max-width:180px;">
+                                <button type="button" id="passkeyStepUpEmailVerifyBtn" class="btn-sm">验证邮箱</button>
+                            </div>
+                            <div id="passkeyStepUpMsg" class="error-message"></div>
+                        </div>
+                        <div id="passkeyDeviceList" class="passkey-device-list"></div>
                     </div>
 
                     <div class="card" style="padding: 30px;">
@@ -2895,7 +2945,7 @@
 
                         <div id="subAccountsManageArea" style="display:none;">
                             <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                                权限与侧边栏一一对应：<code>网站数据、推广链接、留言系统、首页设置、氢气首页、氢气产品、生物产品、行业方案、添加资讯、招聘信息、AI 与知识库、站点设置、账号设置、CDN 素材、系统日志</code>。
+                                功能权限控制对应后台模块；“AI 与知识库”权限同时控制 AI 设置、知识库管理和历史对话。
                             </div>
 
                             <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
@@ -2955,12 +3005,13 @@
                                             <th>应聘推送</th>
                                             <th>最近登录</th>
                                             <th>更新时间</th>
+                                            <th>Passkey</th>
                                             <th>操作</th>
                                         </tr>
                                     </thead>
                                     <tbody id="subAccountsListBody">
                                         <tr>
-                                            <td colspan="9" class="no-data">暂无子账号</td>
+                                            <td colspan="10" class="no-data">暂无子账号</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -3064,6 +3115,39 @@
                                 <span id="adminLoginGeoStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
                             </div>
                             <div id="adminLoginGeoSettingsMsg" class="error-message" style="color:#28a745;"></div>
+                        </form>
+                    </div>
+
+                    <div class="card" id="passkeyAdminSettingsCard" style="padding:30px; margin-bottom:20px; display:none;">
+                        <h3 class="section-header">Passkey 快速登录</h3>
+                        <p style="margin-bottom:16px; color:#666; font-size:14px; line-height:1.75;">
+                            为管理员和子管理员启用指纹、面容识别或设备 PIN 登录。Origin 和 RP ID 自动取自正式环境的 <code>PUBLIC_BASE_URL</code>，无需配置 Docker Passkey 环境变量。
+                        </p>
+                        <form id="passkeyAdminSettingsForm">
+                            <div class="form-group">
+                                <label style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="passkeyAdminEnabled">
+                                    <span>启用 Passkey 快速登录</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>正式访问地址（Origin）</label>
+                                <input type="text" id="passkeyAdminOrigin" class="form-control" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>依赖方域名（RP ID）</label>
+                                <input type="text" id="passkeyAdminRpId" class="form-control" readonly>
+                                <div class="form-hint">Passkey 与此域名绑定。正式启用后不要随意更换域名，否则原有 Passkey 可能无法使用。</div>
+                            </div>
+                            <div class="form-group">
+                                <label>每个账号最多绑定设备数</label>
+                                <input type="number" id="passkeyAdminMaxCredentials" class="form-control" min="1" max="50" value="10">
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                <button type="submit" id="passkeyAdminSaveBtn" class="btn-primary" style="width:auto; padding:12px 30px;">保存并应用</button>
+                                <span id="passkeyAdminStatusText" style="font-size:13px; color:#666;">当前状态：未加载</span>
+                            </div>
+                            <div id="passkeyAdminSettingsMsg" class="error-message"></div>
                         </form>
                     </div>
 
@@ -3853,6 +3937,51 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                 </div>
 
                 <!-- Log Records View -->
+                <div id="view-image-seo" class="view-section">
+                    <div class="card image-seo-panel">
+                        <div class="image-seo-toolbar">
+                            <div>
+                                <h3 class="section-header" style="margin-bottom:4px;">全站图片 SEO 资产中心</h3>
+                                <p class="form-hint">扫描只读取页面与图片，不删除文件、不批量改写 HTML。Alt 草稿必须人工确认后保存。</p>
+                            </div>
+                            <div class="image-seo-actions">
+                                <button type="button" class="btn-sm" onclick="showImageSeoHelp('scan')">扫描说明</button>
+                                <button type="button" class="btn-sm" onclick="showImageSeoHelp('save')">保存说明</button>
+                                <button type="button" class="btn-sm" onclick="showImageSeoHelp('ignore')">忽略说明</button>
+                                <button type="button" class="btn-sm image-seo-hover-help" data-help="Excel 文件会嵌入图片缩略图，并为图片角色、允许索引和已忽略提供中文下拉框；适合人工审核后回传。" onclick="downloadImageSeoExcel()"><i class="fas fa-file-excel"></i> 导出 Excel</button>
+                                <button type="button" class="btn-sm image-seo-hover-help" data-help="上传已编辑的 Excel，按资产编号或图片地址覆盖 SEO 元数据；不会上传、删除或替换图片文件。" onclick="confirmImageSeoCsvUpload()"><i class="fas fa-file-arrow-up"></i> 上传覆盖 Excel</button>
+                                <input type="file" id="imageSeoCsvInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onchange="importImageSeoCsv(this)">
+                                <button type="button" class="btn-primary image-seo-hover-help" data-help="重新读取全站页面和图片，更新引用、尺寸和问题报告；不会删除图片或改写 HTML。" id="imageSeoScanBtn" onclick="runImageSeoScan()"><i class="fas fa-search"></i> 重新扫描</button>
+                            </div>
+                        </div>
+                        <div id="imageSeoSummary" class="image-seo-summary"></div>
+                        <div class="image-seo-status-tabs" role="tablist" aria-label="图片 SEO 状态">
+                            <button type="button" id="imageSeoActiveTab" class="active" onclick="switchImageSeoMode('active')">待处理图片</button>
+                            <button type="button" id="imageSeoIgnoredTab" onclick="switchImageSeoMode('ignored')">忽略区 <span id="imageSeoIgnoredBadge">0</span></button>
+                        </div>
+                        <div class="image-seo-filters">
+                            <input id="imageSeoQuery" class="form-control" placeholder="搜索 URL、页面或 Alt" oninput="scheduleImageSeoLoad()">
+                            <select id="imageSeoPageType" class="form-control" onchange="loadImageSeoAssets(1)">
+                                <option value="">全部页面</option><option value="product">产品</option><option value="news">新闻</option><option value="solution">解决方案</option><option value="case">案例</option><option value="home">首页</option><option value="page">其他页面</option>
+                            </select>
+                            <select id="imageSeoRole" class="form-control" onchange="loadImageSeoAssets(1)">
+                                <option value="">全部角色</option><option value="primary">产品主图</option><option value="detail">产品详情图</option><option value="application">应用场景图</option><option value="diagram">原理／结构图</option><option value="news">新闻资讯图</option><option value="decorative">页面装饰图</option><option value="logo">品牌标识</option><option value="qrcode">二维码</option>
+                            </select>
+                            <select id="imageSeoIssue" class="form-control" onchange="loadImageSeoAssets(1)">
+                                <option value="">全部问题</option><option value="missing_alt">缺少 Alt</option><option value="generic_alt">泛化 Alt</option><option value="duplicate_alt">重复 Alt</option><option value="keyword_stuffing">关键词重复</option><option value="missing_owner_page">无归属页面</option><option value="missing_file">文件不存在</option><option value="large_file">文件过大</option><option value="missing_dimensions">缺少尺寸</option><option value="duplicate_content">重复内容</option><option value="unreferenced_asset">未引用资产</option>
+                            </select>
+                            <select id="imageSeoIndexable" class="form-control" onchange="loadImageSeoAssets(1)"><option value="">全部索引状态</option><option value="true">可索引</option><option value="false">不索引</option></select>
+                        </div>
+                        <div class="table-container image-seo-table-wrap">
+                            <table class="image-seo-table">
+                                <thead><tr><th>预览/文件</th><th>归属页面</th><th>角色与索引</th><th>Alt / 标题 / 说明</th><th>尺寸与问题</th><th>操作</th></tr></thead>
+                                <tbody id="imageSeoTableBody"><tr><td colspan="6" class="no-data">进入本页后加载图片资产</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination"><button class="btn-sm" onclick="changeImageSeoPage(-1)">上一页</button><span id="imageSeoPageInfo">1 / 1</span><button class="btn-sm" onclick="changeImageSeoPage(1)">下一页</button></div>
+                    </div>
+                </div>
+
                 <div id="view-log-records" class="view-section">
                     <div class="card changelog-card">
                         <div class="changelog-hero">
@@ -4066,14 +4195,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             </div>
         </div>
     </div>
-    <script src="/admin/js/state.js"></script>
+    <script src="/admin/js/state.js?v=20260715-image-seo-v2"></script>
     <script src="/admin/js/api.js"></script>
     <script src="/admin/js/auth.js"></script>
-    <script src="/admin/js/components/shell.js"></script>
+    <script src="/admin/js/components/shell.js?v=20260715-image-seo-v2"></script>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260713-product-sort-v2-image-spec-v2"></script>
-    <script src="/admin/js/app.js"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260715-image-seo-xlsx-v1"></script>
+    <script src="/admin/js/passkeys.js?v=20260715-passkey-v1"></script>
+    <script src="/admin/js/app.js?v=20260715-image-seo-v2"></script>
 </body>
 </html>

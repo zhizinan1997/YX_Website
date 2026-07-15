@@ -492,6 +492,15 @@
             background: rgba(2, 21, 44, 0.45);
         }
 
+        #globalActionModal {
+            z-index: 20000 !important;
+        }
+
+        #globalActionModal .login-fail-dialog {
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
         .login-fail-modal[hidden] {
             display: none !important;
         }
@@ -2086,12 +2095,15 @@
 
         .table-container.products-manage-scroll {
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: visible;
             padding-bottom: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            background: #fff;
         }
 
         .products-manage-table {
-            min-width: 2238px;
+            min-width: 2700px;
             table-layout: fixed;
         }
 
@@ -2133,16 +2145,36 @@
         }
 
         .products-manage-table th {
-            background: #f3f6fa;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            background: #f7f9fc;
             text-transform: none;
             white-space: nowrap;
             letter-spacing: 0;
             font-size: 12px;
+            color: #52657d;
+            border-bottom: 1px solid #dce5ef;
         }
 
         .products-manage-table td {
-            padding: 12px 14px;
-            vertical-align: top;
+            padding: 16px 14px;
+            vertical-align: middle;
+            border-bottom-color: #e8eef5;
+            background: #fff;
+            transition: background-color .18s ease, box-shadow .18s ease;
+        }
+
+        .products-manage-table tbody tr:nth-child(even) td {
+            background: #fbfcfe;
+        }
+
+        .products-manage-table tbody tr:hover td {
+            background: #f4f9ff;
+        }
+
+        .products-manage-table tbody tr:hover td:first-child {
+            box-shadow: inset 3px 0 0 #2784d7;
         }
 
         .products-manage-table .cell-order {
@@ -2232,18 +2264,20 @@
         }
 
         .products-manage-table .cell-image img {
-            width: 72px;
-            height: 48px;
+            width: 76px;
+            height: 58px;
             object-fit: contain;
-            background: #f3f4f6;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            background: linear-gradient(145deg, #fff, #f3f7fb);
+            border-radius: 12px;
+            border: 1px solid #dce6f0;
+            box-shadow: 0 5px 14px rgba(30, 64, 100, .08);
         }
 
         .products-manage-table .cell-name strong {
             display: block;
             line-height: 1.45;
             color: #0f172a;
+            font-size: 14px;
         }
 
         .products-manage-table .cell-visible {
@@ -2272,12 +2306,131 @@
 
         .products-manage-table .form-control {
             min-width: 0;
+            border-color: #dbe4ee;
+            border-radius: 10px;
+            background: #fff;
+            transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+        }
+
+        .products-manage-table .form-control:hover {
+            border-color: #b7c8da;
+        }
+
+        .products-manage-table .form-control:focus {
+            border-color: #4c96d7;
+            box-shadow: 0 0 0 3px rgba(39, 132, 215, .12);
+            background: #fff;
         }
 
         .products-manage-table textarea.form-control {
-            min-height: 84px;
+            min-height: 72px;
             line-height: 1.5;
             resize: vertical;
+        }
+
+        .products-manage-table .cell-seo {
+            padding-top: 12px;
+            padding-bottom: 12px;
+        }
+
+        .product-seo-editor {
+            border: 1px solid #dce6f0;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, .9);
+            box-shadow: 0 4px 14px rgba(30, 64, 100, .06);
+            overflow: hidden;
+        }
+
+        .product-seo-editor summary {
+            min-height: 66px;
+            padding: 11px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+            transition: background .16s ease;
+        }
+
+        .product-seo-editor summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .product-seo-editor summary:hover {
+            background: #f3f8fd;
+        }
+
+        .product-seo-editor[open] summary {
+            background: #eef6ff;
+            border-bottom: 1px solid #dce6f0;
+        }
+
+        .product-seo-summary-main {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .product-seo-summary-main > i {
+            width: 32px;
+            height: 32px;
+            flex: 0 0 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #e5f2ff;
+            color: #1871bd;
+        }
+
+        .product-seo-summary-main span {
+            min-width: 0;
+        }
+
+        .product-seo-summary-main strong,
+        .product-seo-summary-main small {
+            display: block;
+        }
+
+        .product-seo-summary-main strong {
+            margin-bottom: 4px;
+            color: #18324d;
+            font-size: 12px;
+        }
+
+        .product-seo-summary-main small {
+            max-width: 275px;
+            overflow: hidden;
+            color: #718096;
+            font-size: 11px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .product-seo-status {
+            flex: 0 0 auto;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .product-seo-status.is-complete {
+            color: #137347;
+            background: #e1f7eb;
+        }
+
+        .product-seo-status.is-partial {
+            color: #a15c08;
+            background: #fff2d9;
+        }
+
+        .product-seo-editor-body {
+            padding: 14px;
+            background: #fff;
         }
 
         .btn-sm {

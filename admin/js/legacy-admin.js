@@ -69,11 +69,14 @@
             { key: 'settings', label: '账号设置' },
             { key: 'backup', label: '备份恢复' },
             { key: 'cdn-assets', label: 'CDN 素材' },
+            { key: 'image-seo', label: '图片 SEO' },
             { key: 'log-records', label: '系统日志' }
         ];
         const LEGACY_PERMISSION_KEY_MAP = {
             'changelog': 'log-records',
-            'docker-logs': 'log-records'
+            'docker-logs': 'log-records',
+            'chatbot-knowledge': 'chatbot',
+            'chatbot-history': 'chatbot'
         };
         let pendingKnowledgeFiles = [];
         let savedKnowledgeFiles = [];
@@ -113,6 +116,11 @@
         let promotionLinksCache = [];
         let promotionLinkStatsCache = {};
         let currentPromotionLinkUrl = '';
+        let imageSeoItems = [];
+        let imageSeoSelected = new Set();
+        let imageSeoPage = 1;
+        let imageSeoTotal = 0;
+        let imageSeoMode = 'active';
         const PROMOTION_QR_LOGO_SRC = '/cdn_assets/images/common/f1dcc87cdcca.png';
         let siteReportEventPage = 1;
         let siteReportProvincePage = 1;
@@ -1136,7 +1144,7 @@
 
         function canEditView(viewName) {
             if (currentAdminAuth.is_super_admin) return true;
-            return currentAdminAuth.permissions.includes(String(viewName || '').trim());
+            return currentAdminAuth.permissions.includes(normalizePermissionKey(viewName));
         }
 
         function getSidebarMenuGroup(groupKey) {
@@ -2111,6 +2119,9 @@
         }
 
         function showDashboard() {
+            if (window.AdminPasskeys && typeof window.AdminPasskeys.refresh === 'function') {
+                window.AdminPasskeys.refresh();
+            }
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('dashboard').style.display = 'flex';
             syncSidebarModeForViewport();
@@ -5487,6 +5498,250 @@
             }
         }
 
+        let imageSeoLoadTimer = null;
+        function scheduleImageSeoLoad() {
+            clearTimeout(imageSeoLoadTimer);
+            imageSeoLoadTimer = setTimeout(() => loadImageSeoAssets(1), 300);
+        }
+
+        function imageSeoIssueLabel(issue) {
+            return ({
+                missing_alt: '缺少 Alt', generic_alt: '泛化 Alt', duplicate_alt: '重复 Alt',
+                keyword_stuffing: '关键词重复', missing_owner_page: '无归属页面', missing_file: '文件不存在',
+                large_file: '文件过大', missing_dimensions: '缺少尺寸', duplicate_content: '重复内容',
+                unreferenced_asset: '未引用资产'
+            })[issue] || issue;
+        }
+
+        function imageSeoRoleLabel(role) {
+            return ({
+                primary: '产品主图',
+                detail: '产品详情图',
+                application: '应用场景图',
+                diagram: '原理／结构图',
+                news: '新闻资讯图',
+                decorative: '页面装饰图',
+                logo: '品牌标识',
+                qrcode: '二维码'
+            })[role] || role;
+        }
+
+        function showImageSeoHelp(topic) {
+            const guides = {
+                export: ['导出 CSV 说明', '下载当前图片资产的完整数据，包括 URL、归属页面、角色、索引状态、Alt、标题、说明、尺寸、文件大小、重复内容标识和问题项。导出不会修改任何数据。'],
+                scan: ['重新扫描说明', '重新读取 index.html、pages、assets 和 cdn_assets，更新图片引用、尺寸、MIME、文件大小、重复内容和问题报告。扫描不会删除图片、不会改写 HTML，并会保留已审核内容和忽略状态。'],
+                draft: ['Alt 草稿说明', '根据归属页面、文件名和图片角色生成 Alt 建议，只填写到当前页面的空白输入框，不会自动保存。操作人员需要逐张核对图片真实内容，再点击“保存”。'],
+                role: ['图片角色说明', '主图用于页面核心展示；详情图展示外观或部件；应用场景图表达使用环境；原理图表达结构或技术逻辑；新闻图用于资讯内容；装饰图、Logo 和二维码默认不参与图片搜索。批量应用只修改已勾选图片。'],
+                indexable: ['索引状态说明', '“允许索引”表示图片可以进入图片 Sitemap 和结构化数据；“禁止索引”表示不主动向搜索引擎提供该图片。禁止索引不会删除图片，也不会影响页面正常显示。'],
+                ignore: ['忽略区说明', '移入忽略区后，图片不再出现在待处理列表，不进入图片 Sitemap，也不参与页面 SEO 自动增强。忽略状态会在重新扫描后保留，并可随时从忽略区恢复。'],
+                owner: ['官网页面网址填写说明', '填写图片最主要、最权威的官网页面完整网址，例如 https://www.hnmetachip.cn/pages/gassensing/mc_ld_h2.html。系统保存时会自动提取页面路径；如果误填图片地址，系统会根据引用记录自动寻找对应官网页面。'],
+                alt: ['Alt 填写说明', '描述图片中真实可见的内容。推荐“型号/对象 + 图片内容或场景”，例如“MC-LD-H2 手持式氢气检测仪正面产品图”。避免只写“图片”“产品图”，也不要重复堆砌关键词。'],
+                title: ['图片标题填写说明', '填写简短的人类可读标题，可使用产品名称、新闻主题或图表名称。该字段为可选项，不能代替 Alt。示例：“MC-LD-H2 手持式氢气检测仪”。'],
+                caption: ['图片说明填写说明', '填写页面可见或用于 Sitemap 的补充说明，描述用途、场景或图中重点。建议 20–80 字，不要复制整段产品介绍。示例：“适用于加氢站管路和储运设备的便携式氢泄漏检测”。'],
+                save: ['保存说明', '只保存当前这一张图片的归属页面、角色、索引状态、Alt、标题和说明。保存后会异步提交归属页面 URL；第三方提交失败不会影响本次保存。']
+            };
+            const guide = guides[topic] || ['图片 SEO 操作说明', '请根据图片真实内容填写，保存前确认归属页面和索引状态。'];
+            showGlobalActionModal({ mode: 'alert', title: guide[0], message: guide[1], okText: '知道了' });
+        }
+
+        function updateImageSeoSelection() {
+            const el = document.getElementById('imageSeoSelectedCount');
+            if (el) el.textContent = `已选择 ${imageSeoSelected.size} 项`;
+        }
+
+        function toggleImageSeoAsset(assetId, checked) {
+            if (checked) imageSeoSelected.add(assetId); else imageSeoSelected.delete(assetId);
+            updateImageSeoSelection();
+        }
+
+        function toggleAllImageSeo(checked) {
+            imageSeoItems.forEach(item => checked ? imageSeoSelected.add(item.assetId) : imageSeoSelected.delete(item.assetId));
+            document.querySelectorAll('.image-seo-row-check').forEach(input => { input.checked = checked; });
+            updateImageSeoSelection();
+        }
+
+        function switchImageSeoMode(mode) {
+            imageSeoMode = mode === 'ignored' ? 'ignored' : 'active';
+            imageSeoSelected.clear();
+            document.getElementById('imageSeoActiveTab')?.classList.toggle('active', imageSeoMode === 'active');
+            document.getElementById('imageSeoIgnoredTab')?.classList.toggle('active', imageSeoMode === 'ignored');
+            const ignoreBtn = document.getElementById('imageSeoBulkIgnoreBtn');
+            const restoreBtn = document.getElementById('imageSeoBulkRestoreBtn');
+            if (ignoreBtn) ignoreBtn.hidden = imageSeoMode === 'ignored';
+            if (restoreBtn) restoreBtn.hidden = imageSeoMode !== 'ignored';
+            loadImageSeoAssets(1);
+        }
+
+        function renderImageSeoAssets() {
+            const tbody = document.getElementById('imageSeoTableBody');
+            if (!tbody) return;
+            if (!imageSeoItems.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">没有符合筛选条件的图片</td></tr>';
+                return;
+            }
+            tbody.innerHTML = imageSeoItems.map(item => {
+                const issues = Array.isArray(item.issues) ? item.issues : [];
+                const sizeMb = (Number(item.fileSize || 0) / 1024 / 1024).toFixed(2);
+                const preview = String(item.url || '').startsWith('/') ? item.url : '';
+                const locked = imageSeoMode === 'ignored' ? 'disabled' : '';
+                const action = imageSeoMode === 'ignored'
+                    ? `<div class="image-seo-row-actions"><button type="button" class="btn-sm image-seo-hover-help" data-help="恢复到待处理区，之后可重新填写和启用图片 SEO。" onclick="setImageSeoIgnored('${escapeHtml(item.assetId)}',false)"><i class="fas fa-undo"></i> 移出忽略区</button></div>`
+                    : `<div class="image-seo-row-actions"><button type="button" class="btn-sm image-seo-hover-help" data-help="保存当前图片的归属页面、角色、索引状态、Alt、标题和说明。" onclick="saveImageSeoAsset('${escapeHtml(item.assetId)}')"><i class="fas fa-save"></i> 保存</button><button type="button" class="btn-sm btn-danger image-seo-hover-help" data-help="移入忽略区后不再参与图片 SEO，可随时恢复。" onclick="setImageSeoIgnored('${escapeHtml(item.assetId)}',true)"><i class="fas fa-eye-slash"></i> 忽略</button></div>`;
+                return `<tr data-asset-id="${escapeHtml(item.assetId)}">
+                    <td>${preview ? `<button type="button" class="image-seo-preview image-seo-preview-button" onclick="previewImageSeo('${escapeHtml(preview)}')" title="点击放大预览"><img src="${escapeHtml(preview)}" alt="" loading="lazy"><span><i class="fas fa-magnifying-glass-plus"></i></span></button>` : '<div class="image-seo-preview"><i class="fas fa-link"></i></div>'}<code title="${escapeHtml(item.url || '')}">${escapeHtml(item.url || '-')}</code></td>
+                    <td><div class="image-seo-field-label"><strong>官网页面网址</strong><button type="button" onclick="showImageSeoHelp('owner')">填写说明</button></div><input class="form-control image-seo-owner" value="${escapeHtml(item.ownerPage || '')}" placeholder="示例：https://www.hnmetachip.cn/pages/gassensing/mc_ld_h2.html" ${locked}><div class="image-seo-field-help">填写官网完整网址；保存时自动转换为页面路径。当前引用 ${Array.isArray(item.references) ? item.references.length : 0} 个页面。</div></td>
+                    <td><div class="image-seo-field-label"><strong>图片角色</strong><button type="button" onclick="showImageSeoHelp('role')">选择说明</button></div><select class="form-control image-seo-role" ${locked}>${['primary','detail','application','diagram','news','decorative','logo','qrcode'].map(role => `<option value="${role}" ${item.role === role ? 'selected' : ''}>${imageSeoRoleLabel(role)}</option>`).join('')}</select><div class="image-seo-field-help">按图片真实用途选择；页面装饰图、品牌标识和二维码通常不参与搜索。</div><label class="image-seo-index"><input type="checkbox" class="image-seo-indexable" ${item.indexable ? 'checked' : ''} ${locked}> 允许搜索引擎索引</label><button type="button" class="image-seo-inline-help" onclick="showImageSeoHelp('indexable')">索引说明</button>${item.ignoredAt ? `<div class="form-hint">忽略时间：${escapeHtml(item.ignoredAt)}</div>` : ''}</td>
+                    <td><div class="image-seo-field-label"><strong>Alt 替代文本</strong><button type="button" onclick="showImageSeoHelp('alt')">填写说明</button></div><input class="form-control image-seo-alt" value="${escapeHtml(item.alt || '')}" maxlength="220" placeholder="示例：MC-LD-H2 手持式氢气检测仪正面产品图" ${locked}><div class="image-seo-field-help">描述图片真实内容，推荐“型号/对象 + 画面内容或使用场景”。</div><div class="image-seo-field-label"><strong>图片标题（可选）</strong><button type="button" onclick="showImageSeoHelp('title')">填写说明</button></div><input class="form-control image-seo-title" value="${escapeHtml(item.title || '')}" maxlength="220" placeholder="示例：MC-LD-H2 手持式氢气检测仪" ${locked}><div class="image-seo-field-help">简短名称，不能替代 Alt。</div><div class="image-seo-field-label"><strong>图片说明（可选）</strong><button type="button" onclick="showImageSeoHelp('caption')">填写说明</button></div><textarea class="form-control image-seo-caption" rows="2" maxlength="500" placeholder="示例：适用于加氢站管路和储运设备的便携式氢泄漏检测" ${locked}>${escapeHtml(item.caption || '')}</textarea><div class="image-seo-field-help">补充图片用途、场景或重点，建议 20–80 字。</div></td>
+                    <td><div>${Number(item.width || 0)} × ${Number(item.height || 0)}</div><div class="form-hint">${escapeHtml(item.mimeType || '-')} · ${sizeMb} MB</div><div class="image-seo-issues">${issues.map(issue => `<span>${escapeHtml(imageSeoIssueLabel(issue))}</span>`).join('') || '<em>无问题</em>'}</div></td>
+                    <td>${action}</td>
+                </tr>`;
+            }).join('');
+            updateImageSeoSelection();
+        }
+
+        async function loadImageSeoSummary() {
+            try {
+                const res = await fetch('/api/admin/image-seo/report', { cache: 'no-store' });
+                const data = await res.json();
+                const summary = data?.report?.summary || {};
+                const el = document.getElementById('imageSeoSummary');
+                if (el) el.innerHTML = [
+                    ['资产总数', summary.total || 0], ['已引用', summary.referenced || 0],
+                    ['可索引', summary.indexable || 0], ['存在问题', summary.withIssues || 0], ['已忽略', summary.ignored || 0]
+                ].map(([label, value]) => `<div><strong>${formatSiteReportNumber(value)}</strong><span>${label}</span></div>`).join('');
+                const badge = document.getElementById('imageSeoIgnoredBadge');
+                if (badge) badge.textContent = String(summary.ignored || 0);
+            } catch (_) {}
+        }
+
+        async function loadImageSeoAssets(page = imageSeoPage) {
+            const tbody = document.getElementById('imageSeoTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载中...</td></tr>';
+            imageSeoPage = Math.max(1, Number(page) || 1);
+            const params = new URLSearchParams({ page: String(imageSeoPage), page_size: '50', scan_if_empty: '1', status: imageSeoMode });
+            [['q','imageSeoQuery'],['page_type','imageSeoPageType'],['role','imageSeoRole'],['issue','imageSeoIssue'],['indexable','imageSeoIndexable']].forEach(([key,id]) => {
+                const value = document.getElementById(id)?.value?.trim(); if (value) params.set(key, value);
+            });
+            try {
+                const res = await fetch(`/api/admin/image-seo/assets?${params}`, { cache: 'no-store' });
+                const data = await res.json();
+                if (!res.ok || data.success === false) throw new Error(data.message || '加载失败');
+                imageSeoItems = Array.isArray(data.items) ? data.items : [];
+                imageSeoTotal = Number(data.total || 0);
+                const totalPages = Math.max(1, Math.ceil(imageSeoTotal / Number(data.page_size || 50)));
+                document.getElementById('imageSeoPageInfo').textContent = `${imageSeoPage} / ${totalPages}（${imageSeoTotal} 项）`;
+                renderImageSeoAssets();
+                loadImageSeoSummary();
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" class="no-data">${escapeHtml(err.message || '加载失败')}</td></tr>`;
+            }
+        }
+
+        function changeImageSeoPage(delta) {
+            const totalPages = Math.max(1, Math.ceil(imageSeoTotal / 50));
+            const next = imageSeoPage + Number(delta || 0);
+            if (next >= 1 && next <= totalPages) loadImageSeoAssets(next);
+        }
+
+        async function runImageSeoScan() {
+            const btn = document.getElementById('imageSeoScanBtn');
+            if (btn) btn.disabled = true;
+            try {
+                const res = await fetch('/api/admin/image-seo/scan', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok || data.success === false) throw new Error(data.message || '扫描失败');
+                imageSeoSelected.clear();
+                await loadImageSeoAssets(1);
+                showGlobalAlert(`扫描完成，共发现 ${data.report?.summary?.total || 0} 个图片资产`);
+            } catch (err) { showGlobalAlert(err.message || '扫描失败'); }
+            finally { if (btn) btn.disabled = false; }
+        }
+
+        async function saveImageSeoAsset(assetId) {
+            const row = document.querySelector(`tr[data-asset-id="${CSS.escape(assetId)}"]`);
+            if (!row) return;
+            const payload = {
+                ownerPage: row.querySelector('.image-seo-owner')?.value || '', role: row.querySelector('.image-seo-role')?.value || 'detail',
+                indexable: row.querySelector('.image-seo-indexable')?.checked === true, alt: row.querySelector('.image-seo-alt')?.value || '',
+                title: row.querySelector('.image-seo-title')?.value || '', caption: row.querySelector('.image-seo-caption')?.value || ''
+            };
+            try {
+                const res = await fetch(`/api/admin/image-seo/assets/${encodeURIComponent(assetId)}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json(); if (!res.ok || data.success === false) throw new Error(data.message || '保存失败');
+                showGlobalAlert('图片 SEO 信息已保存'); await loadImageSeoAssets(imageSeoPage);
+            } catch (err) { showGlobalAlert(err.message || '保存失败'); }
+        }
+
+        async function setImageSeoIgnored(assetId, ignored) {
+            try {
+                const res = await fetch(`/api/admin/image-seo/assets/${encodeURIComponent(assetId)}`, {
+                    method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ignored: !!ignored})
+                });
+                const data = await res.json();
+                if (!res.ok || data.success === false) throw new Error(data.message || '操作失败');
+                imageSeoSelected.delete(assetId);
+                showGlobalAlert(ignored ? '图片已移入忽略区' : '图片已移出忽略区');
+                await loadImageSeoAssets(imageSeoPage);
+            } catch (err) { showGlobalAlert(err.message || '操作失败'); }
+        }
+
+        async function bulkUpdateImageSeo(field, value) {
+            if (!imageSeoSelected.size) return showGlobalAlert('请先选择图片');
+            if (field === 'role') { value = document.getElementById('imageSeoBulkRole')?.value || ''; if (!value) return showGlobalAlert('请选择批量角色'); }
+            try {
+                const res = await fetch('/api/admin/image-seo/assets/bulk', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({assetIds:[...imageSeoSelected], patch:{[field]:value}}) });
+                const data = await res.json(); if (!res.ok || data.success === false) throw new Error(data.message || '批量更新失败');
+                imageSeoSelected.clear();
+                showGlobalAlert(`已更新 ${data.updated || 0} 项`); await loadImageSeoAssets(imageSeoPage);
+            } catch (err) { showGlobalAlert(err.message || '批量更新失败'); }
+        }
+
+        async function generateImageSeoDrafts() {
+            if (!imageSeoSelected.size) return showGlobalAlert('请先选择图片');
+            try {
+                const res = await fetch('/api/admin/image-seo/alt-drafts', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({assetIds:[...imageSeoSelected]}) });
+                const data = await res.json(); if (!res.ok || data.success === false) throw new Error(data.message || '生成失败');
+                (data.drafts || []).forEach(draft => { const row = document.querySelector(`tr[data-asset-id="${CSS.escape(draft.assetId)}"]`); const input = row?.querySelector('.image-seo-alt'); if (input && !input.value.trim()) input.value = draft.alt || ''; });
+                showGlobalAlert('Alt 草稿已填入当前表格，请逐项检查并点击保存；草稿尚未写入服务器。');
+            } catch (err) { showGlobalAlert(err.message || '生成失败'); }
+        }
+
+        function downloadImageSeoExcel() { window.location.href = '/api/admin/image-seo/report.xlsx'; }
+
+        async function confirmImageSeoCsvUpload() {
+            const result = await showGlobalActionModal({
+                mode: 'confirm',
+                title: '慎重：上传覆盖图片 SEO Excel',
+                message: '此操作会按照 Excel 中的资产编号或图片地址，覆盖已有图片的归属页面、角色、索引状态、忽略状态、Alt、图片标题和图片说明。\n\n不会上传、替换或删除图片文件，也不会自动新增未知图片资产；无法匹配的行会被跳过并报告。\n\n如果表格内容填写错误，可能导致图片被错误索引、忽略或出现错误文案。建议先保留当前导出的 Excel 文件作为备份，再继续操作。',
+                okText: '继续上传覆盖',
+                cancelText: '取消',
+                waitSeconds: 3
+            });
+            if (result.ok) document.getElementById('imageSeoCsvInput')?.click();
+        }
+
+        async function importImageSeoCsv(input) {
+            const file = input?.files?.[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/admin/image-seo/import-csv', { method: 'POST', body: formData });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || data.success === false) throw new Error(data.message || 'CSV 上传失败');
+                const errors = Number(data.errorCount || 0);
+                showGlobalAlert(`Excel 覆盖完成：更新 ${data.updated || 0} 项${errors ? `，${errors} 行未匹配` : ''}`);
+                imageSeoSelected.clear();
+                await loadImageSeoAssets(imageSeoPage);
+                loadImageSeoSummary();
+            } catch (err) {
+                showGlobalAlert(err.message || 'CSV 上传失败');
+            } finally {
+                if (input) input.value = '';
+            }
+        }
+
         // --- Navigation ---
         function switchView(viewName, options = {}) {
             if (viewName === 'changelog' || viewName === 'docker-logs') {
@@ -5529,11 +5784,14 @@
                 'news-create': '添加资讯',
                 'jobs': '招聘信息',
                 'chatbot': 'AI 与知识库',
+                'chatbot-knowledge': '知识库管理',
+                'chatbot-history': '历史对话',
                 'site-settings': '站点设置',
                 'site-reports': '网站数据',
                 'settings': '账号设置',
                 'backup': '备份恢复',
                 'cdn-assets': 'CDN 素材',
+                'image-seo': '图片 SEO',
                 'log-records': '系统日志'
             };
             document.getElementById('pageTitle').textContent = titles[viewName] || viewName;
@@ -5557,6 +5815,8 @@
             if (viewName === 'news-create') updateNewsPreview();
             if (viewName === 'jobs') loadJobsAdmin();
             if (viewName === 'chatbot') loadChatbotConfig();
+            if (viewName === 'chatbot-knowledge') loadKnowledgeFiles();
+            if (viewName === 'chatbot-history') loadChatbotConversationLogs();
             if (viewName === 'site-settings') {
                 loadAdminLoginGeoSettings();
                 loadTurnstileAdminConfig();
@@ -5575,6 +5835,7 @@
                 loadDockerLogs();
             }
             if (viewName === 'cdn-assets') loadCdnAssets();
+            if (viewName === 'image-seo') loadImageSeoAssets(1);
 
             renderGuidesForView(viewName);
 
@@ -8783,7 +9044,7 @@
 
         async function loadProducts() {
             const tbody = document.getElementById('productsTableBody');
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 20px;">加载中...</td></tr>';
             setupConsultButtonPanel('gas');
 
             try {
@@ -8805,7 +9066,7 @@
                 });
 
                 if (productsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无产品数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="11" class="no-data">暂无产品数据</td></tr>';
                     return;
                 }
 
@@ -8849,6 +9110,28 @@
                         <td class="cell-summary">
                             <textarea class="form-control product-card-summary" data-id="${pidEsc}" rows="2"
                                 placeholder="${escapeHtml(p.description || '')}">${escapeHtml(p.cardSummary || '')}</textarea>
+                        </td>
+                        <td class="cell-seo">
+                            <details class="product-seo-editor">
+                            <summary>
+                                <span class="product-seo-summary-main"><i class="fas fa-magnifying-glass-chart"></i><span><strong>搜索展示设置</strong><small>${p.seoTitle ? escapeHtml(p.seoTitle) : '使用系统自动生成内容'}</small></span></span>
+                                <span class="product-seo-status ${p.seoTitle && p.seoDescription && p.sku && p.imageAlt ? 'is-complete' : 'is-partial'}">${p.seoTitle && p.seoDescription && p.sku && p.imageAlt ? '已完善' : '待完善'}</span>
+                            </summary>
+                            <div class="product-seo-editor-body">
+                            <label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">SEO 标题</label>
+                            <input type="text" class="form-control product-seo-title" data-id="${pidEsc}" value="${escapeHtml(p.seoTitle || '')}" placeholder="例：MC-GD-01可燃气体检测仪｜气体检测 - 元芯传感" title="填写搜索结果中显示的页面标题。建议包含产品型号、产品类型或核心用途和品牌名；每个产品保持唯一，建议不超过 35 个中文字符。" style="margin-bottom:2px;">
+                            <div style="font-size:11px;line-height:1.45;color:#64748b;margin-bottom:7px;">搜索结果标题：写“型号 + 产品名称/核心用途 + 元芯传感”，保持唯一，建议不超过 35 个中文字符。</div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">Meta 描述</label>
+                            <textarea class="form-control product-seo-description" data-id="${pidEsc}" rows="3" placeholder="例：MC-GD-01用于可燃气体泄漏检测，具备快速响应、高灵敏度等特点，适用于燃气管网和工业安全巡检。" title="填写搜索结果标题下方的页面摘要。建议说明产品型号、检测对象、核心优势和适用场景，使用自然完整的句子，避免关键词堆砌。" style="margin-bottom:2px;">${escapeHtml(p.seoDescription || '')}</textarea>
+                            <div style="font-size:11px;line-height:1.45;color:#64748b;margin-bottom:7px;">搜索摘要：说明“产品是什么、能做什么、核心优势、适用场景”，建议 70–155 个中文字符。</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:2px;">
+                                <div><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">产品型号 / SKU</label><input type="text" class="form-control product-sku" data-id="${pidEsc}" value="${escapeHtml(p.sku || '')}" placeholder="例：MC-GD-01" title="填写产品正式型号或内部唯一 SKU。应与产品页、铭牌和技术参数中的型号保持一致。"></div>
+                                <div><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">主图替代文本（Alt）</label><input type="text" class="form-control product-image-alt" data-id="${pidEsc}" value="${escapeHtml(p.imageAlt || '')}" placeholder="例：MC-GD-01可燃气体检测仪" title="用于搜索引擎理解图片以及图片无法显示时的文字说明。描述图片中的具体产品，不要填写“产品图1”或堆砌关键词。"></div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;line-height:1.45;color:#64748b;margin-bottom:7px;"><span>填写正式且唯一的产品型号，与页面参数保持一致。</span><span>写“型号 + 产品名称/图片内容”，不要写“产品图1”。</span></div>
+                            <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" class="product-indexable" data-id="${pidEsc}" ${p.indexable !== false ? 'checked' : ''}>允许搜索引擎索引</label>
+                            </div>
+                            </details>
                         </td>
                         <td class="cell-fileid"><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">${p.id}</code></td>
                         <td class="cell-news">
@@ -8895,6 +9178,10 @@
                         saveProductSetting(e.target.dataset.id, 'cardSummary', e.target.value);
                     });
                 });
+                [['.product-seo-title','seoTitle'],['.product-seo-description','seoDescription'],['.product-sku','sku'],['.product-image-alt','imageAlt']].forEach(([selector, field]) => {
+                    tbody.querySelectorAll(selector).forEach(input => input.addEventListener('change', e => saveProductSetting(e.target.dataset.id, field, e.target.value)));
+                });
+                tbody.querySelectorAll('.product-indexable').forEach(input => input.addEventListener('change', e => saveProductSetting(e.target.dataset.id, 'indexable', e.target.checked)));
                 tbody.querySelectorAll('.product-list-visible').forEach(checkbox => {
                     checkbox.addEventListener('change', (e) => {
                         const hidden = !e.target.checked;
@@ -8970,14 +9257,14 @@
 
             } catch (e) {
                 console.error('Load products error:', e);
-                tbody.innerHTML = '<tr><td colspan="10" class="no-data">加载失败，请刷新重试</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="no-data">加载失败，请刷新重试</td></tr>';
             }
         }
 
         async function loadBioProducts() {
             const tbody = document.getElementById('bioProductsTableBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 20px;">加载中...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 20px;">加载中...</td></tr>';
             setupConsultButtonPanel('bio');
 
             try {
@@ -8998,7 +9285,7 @@
                 }
 
                 if (bioProductsData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无生物产品数据</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="11" class="no-data">暂无生物产品数据</td></tr>';
                     return;
                 }
 
@@ -9042,6 +9329,28 @@
                         <td class="cell-summary">
                             <textarea class="form-control bio-product-card-summary" data-id="${pidEsc}" rows="2"
                                 placeholder="${escapeHtml(p.description || '')}">${escapeHtml(p.cardSummary || '')}</textarea>
+                        </td>
+                        <td class="cell-seo">
+                            <details class="product-seo-editor">
+                            <summary>
+                                <span class="product-seo-summary-main"><i class="fas fa-magnifying-glass-chart"></i><span><strong>搜索展示设置</strong><small>${p.seoTitle ? escapeHtml(p.seoTitle) : '使用系统自动生成内容'}</small></span></span>
+                                <span class="product-seo-status ${p.seoTitle && p.seoDescription && p.sku && p.imageAlt ? 'is-complete' : 'is-partial'}">${p.seoTitle && p.seoDescription && p.sku && p.imageAlt ? '已完善' : '待完善'}</span>
+                            </summary>
+                            <div class="product-seo-editor-body">
+                            <label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">SEO 标题</label>
+                            <input type="text" class="form-control bio-product-seo-title" data-id="${pidEsc}" value="${escapeHtml(p.seoTitle || '')}" placeholder="例：MC-BW-01生物传感工作站｜科研检测 - 元芯传感" title="填写搜索结果中显示的页面标题。建议包含产品型号、产品类型或核心用途和品牌名；每个产品保持唯一，建议不超过 35 个中文字符。" style="margin-bottom:2px;">
+                            <div style="font-size:11px;line-height:1.45;color:#64748b;margin-bottom:7px;">搜索结果标题：写“型号 + 产品名称/核心用途 + 元芯传感”，保持唯一，建议不超过 35 个中文字符。</div>
+                            <label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">Meta 描述</label>
+                            <textarea class="form-control bio-product-seo-description" data-id="${pidEsc}" rows="3" placeholder="例：MC-BW-01面向生物传感研究与检测实验，支持芯片测试、数据采集和科研应用。" title="填写搜索结果标题下方的页面摘要。建议说明产品型号、检测对象、核心优势和适用场景，使用自然完整的句子，避免关键词堆砌。" style="margin-bottom:2px;">${escapeHtml(p.seoDescription || '')}</textarea>
+                            <div style="font-size:11px;line-height:1.45;color:#64748b;margin-bottom:7px;">搜索摘要：说明“产品是什么、能做什么、核心优势、适用场景”，建议 70–155 个中文字符。</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:2px;">
+                                <div><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">产品型号 / SKU</label><input type="text" class="form-control bio-product-sku" data-id="${pidEsc}" value="${escapeHtml(p.sku || '')}" placeholder="例：MC-BW-01" title="填写产品正式型号或内部唯一 SKU。应与产品页、铭牌和技术参数中的型号保持一致。"></div>
+                                <div><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;">主图替代文本（Alt）</label><input type="text" class="form-control bio-product-image-alt" data-id="${pidEsc}" value="${escapeHtml(p.imageAlt || '')}" placeholder="例：MC-BW-01生物传感工作站" title="用于搜索引擎理解图片以及图片无法显示时的文字说明。描述图片中的具体产品，不要填写“产品图1”或堆砌关键词。"></div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;line-height:1.45;color:#64748b;margin-bottom:7px;"><span>填写正式且唯一的产品型号，与页面参数保持一致。</span><span>写“型号 + 产品名称/图片内容”，不要写“产品图1”。</span></div>
+                            <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" class="bio-product-indexable" data-id="${pidEsc}" ${p.indexable !== false ? 'checked' : ''}>允许搜索引擎索引</label>
+                            </div>
+                            </details>
                         </td>
                         <td class="cell-fileid"><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 4px;">${p.id}</code></td>
                         <td class="cell-news">
@@ -9087,6 +9396,10 @@
                         saveBioProductSetting(e.target.dataset.id, 'cardSummary', e.target.value);
                     });
                 });
+                [['.bio-product-seo-title','seoTitle'],['.bio-product-seo-description','seoDescription'],['.bio-product-sku','sku'],['.bio-product-image-alt','imageAlt']].forEach(([selector, field]) => {
+                    tbody.querySelectorAll(selector).forEach(input => input.addEventListener('change', e => saveBioProductSetting(e.target.dataset.id, field, e.target.value)));
+                });
+                tbody.querySelectorAll('.bio-product-indexable').forEach(input => input.addEventListener('change', e => saveBioProductSetting(e.target.dataset.id, 'indexable', e.target.checked)));
                 tbody.querySelectorAll('.bio-product-list-visible').forEach(checkbox => {
                     checkbox.addEventListener('change', (e) => {
                         const hidden = !e.target.checked;
@@ -9150,7 +9463,24 @@
                 await loadBioIndustryFilters();
             } catch (e) {
                 console.error('Load bio products error:', e);
-                tbody.innerHTML = '<tr><td colspan="10" class="no-data">加载失败，请刷新重试</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="no-data">加载失败，请刷新重试</td></tr>';
+            }
+        }
+
+        function refreshProductSeoSummary(tableBodyId, productId, product) {
+            const tbody = document.getElementById(tableBodyId);
+            if (!tbody || !product) return;
+            const row = Array.from(tbody.querySelectorAll('tr[data-product-id]'))
+                .find(item => String(item.dataset.productId) === String(productId));
+            if (!row) return;
+            const preview = row.querySelector('.product-seo-summary-main small');
+            const status = row.querySelector('.product-seo-status');
+            if (preview) preview.textContent = product.seoTitle || '使用系统自动生成内容';
+            if (status) {
+                const complete = !!(product.seoTitle && product.seoDescription && product.sku && product.imageAlt);
+                status.textContent = complete ? '已完善' : '待完善';
+                status.classList.toggle('is-complete', complete);
+                status.classList.toggle('is-partial', !complete);
             }
         }
 
@@ -9170,7 +9500,10 @@
                     return;
                 }
                 const target = bioProductsData.find(p => String(p.id) === String(productId));
-                if (target) target[field] = value;
+                if (target) {
+                    target[field] = value;
+                    refreshProductSeoSummary('bioProductsTableBody', productId, target);
+                }
             } catch (e) {
                 console.error('Save bio product setting error:', e);
             }
@@ -10751,7 +11084,10 @@
                     return;
                 }
                 const target = productsData.find(p => String(p.id) === String(productId));
-                if (target) target[field] = value;
+                if (target) {
+                    target[field] = value;
+                    refreshProductSeoSummary('productsTableBody', productId, target);
+                }
             } catch (e) {
                 console.error('Save error:', e);
             }
@@ -16867,7 +17203,7 @@
                 countEl.textContent = String(subAccountsCache.length || 0);
             }
             if (!subAccountsCache.length) {
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">暂无子账号</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无子账号</td></tr>';
                 return;
             }
 
@@ -16902,6 +17238,11 @@
                         <td><span style="font-weight:700; color:${notifyJobColor};">${notifyJobText}</span></td>
                         <td>${escapeHtml(loginText)}</td>
                         <td>${escapeHtml(updateText)}</td>
+                        <td>
+                            <button type="button" class="btn-sm" onclick="window.AdminPasskeys && window.AdminPasskeys.openSubaccountPasskeys('${escapeHtml(username)}')">
+                                ${Number(item.passkey_count || 0)} 个
+                            </button>
+                        </td>
                         <td>
                             <button type="button" class="btn-sm sub-account-edit-btn" data-username="${escapeHtml(username)}">编辑</button>
                         </td>
@@ -17229,12 +17570,6 @@
 
                 updateStatusIndicator(config.enabled !== false);
                 loadProductPageAiConfig();
-
-                // Also load knowledge files
-                loadKnowledgeFiles();
-                if (document.getElementById('chatbot-tab-history')?.classList.contains('active')) {
-                    loadChatbotConversationLogs();
-                }
             } catch (e) {
                 console.error('Failed to load chatbot config:', e);
             }
@@ -18174,6 +18509,7 @@
 
         // --- CDN Preview ---
         let _cdnPreviewPath = '';
+        let _cdnPreviewDirectUrl = '';
 
         const _cdnImageExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico', 'avif'];
         const _cdnVideoExts = ['mp4', 'webm', 'mov', 'ogg'];
@@ -18196,6 +18532,7 @@
 
         function previewCdnFile(filePath, fileName) {
             _cdnPreviewPath = filePath;
+            _cdnPreviewDirectUrl = '';
             const overlay = document.getElementById('cdnPreviewOverlay');
             const content = document.getElementById('cdnPreviewContent');
             const nameEl = document.getElementById('cdnPreviewFileName');
@@ -18251,6 +18588,22 @@
             }
         }
 
+        function previewImageSeo(imageUrl) {
+            const url = String(imageUrl || '').trim();
+            if (!url || !url.startsWith('/')) return;
+            _cdnPreviewDirectUrl = url;
+            _cdnPreviewPath = url.startsWith('/cdn_assets/') ? url.slice('/cdn_assets/'.length) : '';
+            const overlay = document.getElementById('cdnPreviewOverlay');
+            const content = document.getElementById('cdnPreviewContent');
+            const nameEl = document.getElementById('cdnPreviewFileName');
+            if (!overlay || !content) return;
+            if (nameEl) nameEl.textContent = url;
+            content.innerHTML = `<img src="${escapeHtml(url)}" alt="图片 SEO 大图预览" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.4);user-select:none;" ondragstart="return false">`;
+            overlay.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', _cdnPreviewKeyHandler);
+        }
+
         function closeCdnPreview(event) {
             if (event && event.target && event.target.id !== 'cdnPreviewOverlay') return;
             const overlay = document.getElementById('cdnPreviewOverlay');
@@ -18265,6 +18618,7 @@
             document.body.style.overflow = '';
             document.removeEventListener('keydown', _cdnPreviewKeyHandler);
             _cdnPreviewPath = '';
+            _cdnPreviewDirectUrl = '';
         }
 
         function _cdnPreviewKeyHandler(e) {
@@ -18272,11 +18626,21 @@
         }
 
         function cdnPreviewCopyUrl() {
+            if (_cdnPreviewDirectUrl) {
+                const absoluteUrl = new URL(_cdnPreviewDirectUrl, window.location.origin).href;
+                copyToClipboard(absoluteUrl);
+                showGlobalAlert('链接已复制：' + absoluteUrl);
+                return;
+            }
             if (!_cdnPreviewPath) return;
             copyCdnUrl(_cdnPreviewPath);
         }
 
         function cdnPreviewDownload() {
+            if (_cdnPreviewDirectUrl && !_cdnPreviewPath) {
+                window.open(_cdnPreviewDirectUrl, '_blank', 'noopener');
+                return;
+            }
             if (!_cdnPreviewPath) return;
             downloadCdnFile(_cdnPreviewPath);
         }

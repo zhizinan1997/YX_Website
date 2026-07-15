@@ -203,9 +203,17 @@ proxy_cache_bypass 1;
 
 ```bash
 SECRET_KEY=replace-with-a-random-secret-key-at-least-32-chars
-PUBLIC_BASE_URL=https://your-domain.example.com
+PUBLIC_BASE_URL=https://www.hnmetachip.cn
 TRUST_PROXY_HEADERS=true
 SESSION_COOKIE_SECURE=true
+# Passkey 可在后台「站点设置」中直接启用；以下仅用于运维层强制覆盖
+# PASSKEY_ENABLED=true
+# PASSKEY_ORIGIN=https://www.hnmetachip.cn
+# PASSKEY_RP_ID=hnmetachip.cn
+# PASSKEY_RP_NAME=元芯传感管理后台
+# PASSKEY_DB_PATH=/app/data/admin_passkeys.sqlite3
+# PASSKEY_CHALLENGE_TTL_SECONDS=300
+# PASSKEY_MAX_CREDENTIALS_PER_USER=10
 ADMIN_USERNAME=admin
 # 二选一：推荐直接提供哈希；或首次启动时临时提供明文密码
 ADMIN_PASSWORD_HASH=
@@ -217,6 +225,7 @@ MAIN_PORT=2026
 说明：
 
 - `SECRET_KEY`、`PUBLIC_BASE_URL` 是生产启动必填项。
+- Passkey 可由超级管理员在后台「站点设置 → Passkey 快速登录」直接启用，Origin 和 RP ID 默认从 `PUBLIC_BASE_URL` 自动生成，无需额外 Docker 环境变量。上述 `PASSKEY_*` 环境变量仅用于运维层强制覆盖；数据库默认保存在持久化的 `data/admin_passkeys.sqlite3`。
 - 首次部署时必须提供 `ADMIN_PASSWORD_HASH` 或 `ADMIN_PASSWORD`；已有持久化管理员数据后可移除。
 - 如必须允许 `admin123` 这类弱密码初始化，可额外设置 `ALLOW_WEAK_ADMIN_PASSWORDS=true`。
 - 部署脚本默认持久化 `data/`、`pages/` 与 `cdn_assets/`，以兼容客户后台编辑、上传素材和升级备份。
@@ -255,6 +264,8 @@ docker run -d \
   -e PUBLIC_BASE_URL='https://your-domain.example.com' \
   -e TRUST_PROXY_HEADERS=true \
   -e SESSION_COOKIE_SECURE=true \
+  -e INDEXNOW_KEY='' \
+  -e BAIDU_PUSH_TOKEN='' \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD='replace-with-a-strong-bootstrap-password' \
   -e ALLOW_WEAK_ADMIN_PASSWORDS=false \
@@ -299,11 +310,13 @@ http://127.0.0.1:2028
 ## 📡 ESA 缓存建议
 
 - 阿里云 ESA 只接管主站一个域名即可，代码中的资源路径保持 `/cdn_assets/...`。
+- SEO 唯一主域名使用 `www.hnmetachip.cn`；在 ESA 配置永久重定向规则，将 `hnmetachip.cn/*` 重定向到 `https://www.hnmetachip.cn/$request_uri`。GET/HEAD 使用 `301`，如规则支持按方法区分，其他方法使用 `308` 以保留请求体；应用层包含同样的兜底跳转。
 - `/cdn_assets/*`、`/assets/*`：建议长缓存；如果文件名带 hash，可设置更长 TTL。
 - 图片、视频、字体、CSS、JS：建议长缓存。
 - `/admin/*`、`/api/*`、登录相关接口：建议绕过缓存。
 - HTML 页面：建议短缓存或遵循源站。
 - 从旧双域名方案切换期间，不要缓存历史 `302`。
+- 新版本发布后清理 `robots.txt`、`sitemap*.xml` 和 HTML 缓存，再确认裸域名跳转以及各站点地图均已生效。
 
 ## 🔐 Admin 登录防机器人（Turnstile）
 
@@ -320,6 +333,13 @@ http://127.0.0.1:2028
 - **访问地址**: `http://localhost:2026/admin`
 - **初始化方式**: 首次部署没有默认密码，需通过 `ADMIN_PASSWORD_HASH` 或一次性 `ADMIN_PASSWORD` 初始化超级管理员。
 - **默认账号名**: 若未显式设置 `ADMIN_USERNAME`，默认仍为 `admin`
+
+### 图片 SEO 资产中心
+
+- 后台“图片 SEO”会扫描 `index.html`、`pages/`、`assets/` 与 `cdn_assets/`，生成图片引用、Alt、尺寸、MIME、重复内容与未引用资产报告。
+- 扫描只读取页面和图片，不删除文件，也不会批量改写 HTML；图片元数据保存在 `data/image_seo_assets.json`。
+- `INDEXNOW_KEY` 与 `BAIDU_PUSH_TOKEN` 均为可选环境变量。未配置或第三方提交失败时，不影响内容与图片 SEO 元数据保存。
+- 新增的 `data/image_seo_assets.json`、`data/image_seo_scan_report.json` 和 `data/image_seo_audit.json` 应与其他 `data/` 内容一起备份和持久化。
 
 ## ✨ 功能特性
 

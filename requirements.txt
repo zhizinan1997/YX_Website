@@ -1,7 +1,10 @@
 flask==3.0.0
 gunicorn==21.2.0
 werkzeug==3.0.1
+webauthn==2.7.0
 PyPDF2==3.0.1
 requests==2.31.0
 markdown==3.6
 reportlab==4.4.9
+openpyxl==3.1.5
+Pillow==11.3.0

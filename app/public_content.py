@@ -146,6 +146,33 @@ def sanitize_public_product_settings(settings):
             item['industryCategories'] = [str(v or '').strip() for v in values if str(v or '').strip()]
         if 'relatedNews' in cfg:
             item['relatedNews'] = _normalize_related_news_links(cfg.get('relatedNews', []))
+        for field, max_length in {
+            'seoTitle': 180,
+            'seoDescription': 320,
+            'sku': 120,
+            'brand': 120,
+            'manufacturer': 180,
+            'seoCategory': 120,
+            'imageAlt': 220,
+            'imageTitle': 220,
+            'imageCaption': 320,
+        }.items():
+            if field in cfg:
+                item[field] = sanitize_public_text(cfg.get(field, ''), max_length=max_length)
+        if 'indexable' in cfg:
+            item['indexable'] = bool(cfg.get('indexable', True))
+        if 'technicalProperties' in cfg:
+            properties = []
+            for prop in cfg.get('technicalProperties', []) if isinstance(cfg.get('technicalProperties'), list) else []:
+                if not isinstance(prop, dict):
+                    continue
+                name = sanitize_public_text(prop.get('name', ''), max_length=120)
+                value = sanitize_public_text(prop.get('value', ''), max_length=220)
+                if name and value:
+                    properties.append({'name': name, 'value': value})
+                if len(properties) >= 40:
+                    break
+            item['technicalProperties'] = properties
         cleaned[pid] = item
     if 'consultButton' in raw:
         cleaned['consultButton'] = raw['consultButton']

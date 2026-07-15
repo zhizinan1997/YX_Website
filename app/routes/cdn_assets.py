@@ -74,6 +74,8 @@ cdn_assets/
 import os
 import json
 import shutil
+import re
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from flask import Blueprint, request, jsonify, send_from_directory, session
@@ -153,6 +155,14 @@ def _build_file_url(relative_to_cdn: str) -> str:
     """构建素材文件的完整访问地址。"""
     cdn_path = f'/cdn_assets/{relative_to_cdn}'
     return cdn_path
+
+
+def _semantic_upload_name(original_name: str) -> str:
+    path = Path(str(original_name or 'asset'))
+    stem = path.stem.lower().strip()
+    stem = re.sub(r'[^a-z0-9]+', '-', stem).strip('-')[:80] or 'asset'
+    suffix = re.sub(r'[^a-z0-9.]', '', path.suffix.lower())[:12]
+    return f'{stem}-{uuid.uuid4().hex[:10]}{suffix}'
 
 
 @cdn_assets_bp.route('/api/cdn/assets/list', methods=['GET'])
@@ -258,7 +268,7 @@ def upload_cdn_asset():
     target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        filename = file.filename
+        filename = _semantic_upload_name(file.filename)
         filepath = target_dir / filename
 
         # 避免覆盖已有文件：自动重命名。
@@ -275,6 +285,12 @@ def upload_cdn_asset():
         rel = filepath.relative_to(cdn_dir.resolve())
         relative_path = f'/cdn_assets/{rel.as_posix()}'
         full_url = _build_file_url(rel.as_posix())
+        if filepath.suffix.lower() in {'.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'}:
+            try:
+                from app.routes.image_seo import register_uploaded_image
+                register_uploaded_image(relative_path, filepath)
+            except Exception:
+                pass
 
         return jsonify({
             'success': True,

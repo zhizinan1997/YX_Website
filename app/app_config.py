@@ -573,6 +573,8 @@ def get_config():
             'TW': 'allow',
         },
         'email_auth_enabled': env_bool('EMAIL_AUTH_ENABLED', False),
+        'passkey_enabled': env_bool('PASSKEY_ENABLED', False),
+        'passkey_max_credentials_per_user': int((os.environ.get('PASSKEY_MAX_CREDENTIALS_PER_USER') or '10').strip() or '10'),
         'smtp_host': (os.environ.get('SMTP_HOST') or '').strip(),
         'smtp_port': int((os.environ.get('SMTP_PORT') or '465').strip() or '465'),
         'smtp_username': (os.environ.get('SMTP_USERNAME') or '').strip(),

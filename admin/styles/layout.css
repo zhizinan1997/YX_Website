@@ -41,13 +41,35 @@
     margin-bottom: 18px;
 }
 
-.admin2-root .sidebar-section-label {
+.admin2-root .sidebar-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
     padding: 0 14px 8px;
     color: rgba(210, 227, 244, 0.54);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+}
+
+.admin2-root .sidebar-section-toggle:hover {
+    color: rgba(241, 248, 255, 0.9);
+}
+
+.admin2-root .sidebar-section-caret {
+    font-size: 10px;
+    transition: transform 0.18s ease;
+}
+
+.admin2-root .sidebar-section.is-collapsed .sidebar-section-caret {
+    transform: rotate(-90deg);
 }
 
 .admin2-root .top-bar {

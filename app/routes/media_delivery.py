@@ -38,6 +38,7 @@
 作者：元芯传感技术团队
 """
 
+import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -73,6 +74,22 @@ CDN_CONNECTIVITY_CHECK_HEADERS = {
     'Cache-Control': 'no-cache',
     'Pragma': 'no-cache',
 }
+
+PUBLIC_IMAGE_MIME_TYPES = {
+    '.avif': 'image/avif',
+    '.gif': 'image/gif',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+}
+
+
+def public_asset_mimetype(filename: str) -> str:
+    """Return a deterministic MIME type for CDN assets across OS images."""
+    suffix = Path(str(filename or '')).suffix.lower()
+    return PUBLIC_IMAGE_MIME_TYPES.get(suffix) or mimetypes.guess_type(str(filename or ''))[0] or 'application/octet-stream'
 
 
 def normalize_cdn_domain(raw_value: str) -> str:
@@ -410,7 +427,11 @@ def register_media_delivery_routes(
         if not relative_path:
             return jsonify({'error': '文件路径不能为空'}), 400
 
-        response = send_from_directory(str(_CDN_ASSETS_DIR), relative_path)
+        response = send_from_directory(
+            str(_CDN_ASSETS_DIR),
+            relative_path,
+            mimetype=public_asset_mimetype(relative_path),
+        )
         response.headers['Cache-Control'] = _MEDIA_IMMUTABLE_CACHE_CONTROL
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response

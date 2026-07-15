@@ -84,10 +84,7 @@ a,a:hover{text-decoration: none;color: #000}
     margin:0 10px 0 10px;
 }
 .jobs > .w1200{ overflow:hidden; margin-bottom: 90px;}
-.mc:before{background: url("../images/jobs/mc.png") no-repeat center;}
-.lb:before{background: url("../images/jobs/lb.png") no-repeat center;}
-.dd:before{background: url("../images/jobs/dd.png") no-repeat center;}
-.rq:before{background: url("../images/jobs/rq.png") no-repeat center;}
+.mc:before,.lb:before,.dd:before,.rq:before{background: #dbeafe; border-radius: 50%;}
 .jobs_list li{border-bottom: 1px solid #eee;cursor:pointer;}
 .jobs_show{width: 100%; line-height: 50px;position: relative;    padding: 10px 0;overflow: hidden;}
 .jobs_show:after{
@@ -98,10 +95,13 @@ a,a:hover{text-decoration: none;color: #000}
     position: absolute;
     right: 40px;
     top:30px;
-    background: url("../images/jobs/jt.png") no-repeat center;
+    background: none;
+    border-right: 2px solid #64748b;
+    border-bottom: 2px solid #64748b;
+    transform: rotate(45deg);
 }
 .active .jobs_show{background: #eee}
-.active .jobs_show:after{background: url("../images/jobs/jt_hover.png") no-repeat center;}
+.active .jobs_show:after{background: none; transform: rotate(225deg);}
 .jobs_show span{float: left;width: 25%;padding-left: 39px;box-sizing: border-box;font-size: 14px}
 .jobs_hide{
     padding: 25px;
@@ -245,8 +245,12 @@ a,a:hover{text-decoration: none;color: #000}
 .jobs_show:after {
     right: 18px;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-70%) rotate(45deg);
     opacity: 0.6;
+}
+
+.active .jobs_show:after {
+    transform: translateY(-30%) rotate(225deg);
 }
 
 .active .jobs_show {

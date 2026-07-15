@@ -48,10 +48,14 @@
 """
 
 import json
+import os
 import re
+import threading
+import time
 import uuid
 from pathlib import Path
 from urllib.parse import quote
+from urllib.request import Request, urlopen
 
 from flask import jsonify, request, send_from_directory
 
@@ -73,6 +77,74 @@ _SANITIZE_PUBLIC_LINK_URL = lambda value, **_kwargs: value or ''
 _GET_PRODUCTS_WITH_SETTINGS_DATA = lambda: []
 _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA = lambda: []
 MAX_PRODUCT_CARD_IMAGE_BYTES = 10 * 1024 * 1024
+_SEO_SUBMISSION_LOCK = threading.Lock()
+_SEO_SUBMISSION_RECENT = {}
+_SEO_SUBMISSION_STATUS = {'last_run': 0, 'last_urls': [], 'indexnow': 'not_configured', 'baidu': 'not_configured'}
+
+
+def _public_product_path(product_id: str, *, bio: bool = False) -> str:
+    clean = str(product_id or '').strip()
+    if not clean:
+        return ''
+    if clean.startswith('../biosensing/') or bio:
+        return f'/pages/biosensing/{clean.rsplit("/", 1)[-1]}.html'
+    if clean.startswith('../customization/'):
+        return f'/pages/customization/{clean.rsplit("/", 1)[-1]}.html'
+    return f'/pages/gassensing/{clean}.html'
+
+
+def _semantic_image_upload_name(original_name: str, extension: str) -> str:
+    stem = Path(str(original_name or 'product-image')).stem.lower().strip()
+    stem = re.sub(r'[^a-z0-9]+', '-', stem).strip('-')[:72] or 'product-image'
+    return f'{stem}-{uuid.uuid4().hex[:10]}{extension}'
+
+
+def queue_search_engine_submission(paths: list[str]):
+    """Submit changed public URLs asynchronously when deployment credentials exist."""
+    base_url = (os.environ.get('PUBLIC_BASE_URL') or '').strip().rstrip('/')
+    if not base_url:
+        return
+    now = time.time()
+    urls = []
+    with _SEO_SUBMISSION_LOCK:
+        for path in paths:
+            url = f'{base_url}{path}'
+            if now - float(_SEO_SUBMISSION_RECENT.get(url, 0)) < 300:
+                continue
+            _SEO_SUBMISSION_RECENT[url] = now
+            urls.append(url)
+    if not urls:
+        return
+
+    def worker():
+        indexnow_key = (os.environ.get('INDEXNOW_KEY') or '').strip()
+        baidu_token = (os.environ.get('BAIDU_PUSH_TOKEN') or '').strip()
+        host = base_url.split('://', 1)[-1].split('/', 1)[0]
+        statuses = {'last_run': int(time.time()), 'last_urls': urls}
+        if indexnow_key:
+            try:
+                body = json.dumps({'host': host, 'key': indexnow_key, 'urlList': urls}).encode('utf-8')
+                request_obj = Request('https://api.indexnow.org/indexnow', data=body, headers={'Content-Type': 'application/json; charset=utf-8'})
+                with urlopen(request_obj, timeout=8) as response:
+                    statuses['indexnow'] = f'ok:{response.status}'
+            except Exception as exc:
+                statuses['indexnow'] = f'error:{type(exc).__name__}'
+        else:
+            statuses['indexnow'] = 'not_configured'
+        if baidu_token:
+            try:
+                endpoint = f'https://data.zz.baidu.com/urls?site={base_url}&token={quote(baidu_token)}'
+                request_obj = Request(endpoint, data=('\n'.join(urls)).encode('utf-8'), headers={'Content-Type': 'text/plain'})
+                with urlopen(request_obj, timeout=8) as response:
+                    statuses['baidu'] = f'ok:{response.status}'
+            except Exception as exc:
+                statuses['baidu'] = f'error:{type(exc).__name__}'
+        else:
+            statuses['baidu'] = 'not_configured'
+        with _SEO_SUBMISSION_LOCK:
+            _SEO_SUBMISSION_STATUS.update(statuses)
+
+    threading.Thread(target=worker, name='seo-url-submit', daemon=True).start()
 
 DEFAULT_INDUSTRY_FILTERS = [
     {'key': 'hydrogen', 'name': '氢能源产品'},
@@ -541,6 +613,34 @@ def _apply_product_settings_updates(settings, data):
         )
     if 'relatedNews' in data:
         settings[product_id]['relatedNews'] = _normalize_related_news_links(data['relatedNews'])
+    seo_text_fields = {
+        'seoTitle': 180,
+        'seoDescription': 320,
+        'sku': 120,
+        'brand': 120,
+        'manufacturer': 180,
+        'seoCategory': 120,
+        'imageAlt': 220,
+        'imageTitle': 220,
+        'imageCaption': 320,
+    }
+    for field, max_length in seo_text_fields.items():
+        if field in data:
+            settings[product_id][field] = _SANITIZE_PUBLIC_TEXT(data[field], max_length=max_length)
+    if 'indexable' in data:
+        settings[product_id]['indexable'] = bool(data['indexable'])
+    if 'technicalProperties' in data:
+        properties = []
+        for item in data['technicalProperties'] if isinstance(data['technicalProperties'], list) else []:
+            if not isinstance(item, dict):
+                continue
+            name = _SANITIZE_PUBLIC_TEXT(item.get('name', ''), max_length=120)
+            value = _SANITIZE_PUBLIC_TEXT(item.get('value', ''), max_length=220)
+            if name and value:
+                properties.append({'name': name, 'value': value})
+            if len(properties) >= 40:
+                break
+        settings[product_id]['technicalProperties'] = properties
     return settings, None
 
 
@@ -634,13 +734,19 @@ def register_product_settings_routes(
         if file_size > MAX_PRODUCT_CARD_IMAGE_BYTES:
             return jsonify({'success': False, 'message': '产品卡片图片不能超过 10MB'}), 413
 
-        saved_name = f'{uuid.uuid4().hex}{ext}'
+        saved_name = _semantic_image_upload_name(file.filename, ext)
         family_dir, target_dir = _resolve_product_card_upload_target()
         save_path = target_dir / saved_name
         file.save(save_path)
+        public_url = f'/cdn_assets/images/{family_dir}/{saved_name}'
+        try:
+            from app.routes.image_seo import register_uploaded_image
+            register_uploaded_image(public_url, save_path, role='primary')
+        except Exception:
+            pass
         return jsonify({
             'success': True,
-            'url': f'/cdn_assets/images/{family_dir}/{saved_name}',
+            'url': public_url,
             'folder': f'images/{family_dir}',
         })
 
@@ -668,6 +774,7 @@ def register_product_settings_routes(
         if error:
             return jsonify({'success': False, 'message': error[0]}), error[1]
         save_product_settings(settings)
+        queue_search_engine_submission([_public_product_path(data.get('id'))])
         return jsonify({'success': True, 'settings': settings})
 
     @app.route('/api/bio-products/settings', methods=['POST'])
@@ -679,7 +786,55 @@ def register_product_settings_routes(
         if error:
             return jsonify({'success': False, 'message': error[0]}), error[1]
         save_bio_product_settings(settings)
+        queue_search_engine_submission([_public_product_path(data.get('id'), bio=True)])
         return jsonify({'success': True, 'settings': settings})
+
+    @app.route('/api/products/seo-submission/status', methods=['GET'])
+    @login_required
+    def get_seo_submission_status():
+        with _SEO_SUBMISSION_LOCK:
+            return jsonify({'success': True, 'status': dict(_SEO_SUBMISSION_STATUS)})
+
+    @app.route('/api/products/seo-status', methods=['GET'])
+    @login_required
+    def get_products_seo_status():
+        family = str(request.args.get('family') or 'gas').strip().lower()
+        products = (
+            _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA()
+            if family == 'bio'
+            else _GET_PRODUCTS_WITH_SETTINGS_DATA()
+        )
+        title_counts = {}
+        description_counts = {}
+        for product in products:
+            title = str(product.get('seoTitle') or product.get('displayName') or product.get('name') or '').strip()
+            description = str(product.get('seoDescription') or product.get('cardSummary') or product.get('description') or '').strip()
+            title_counts[title] = title_counts.get(title, 0) + 1
+            description_counts[description] = description_counts.get(description, 0) + 1
+        rows = []
+        for product in products:
+            title = str(product.get('seoTitle') or product.get('displayName') or product.get('name') or '').strip()
+            description = str(product.get('seoDescription') or product.get('cardSummary') or product.get('description') or '').strip()
+            image = str(product.get('cardImage') or product.get('image') or '').strip()
+            warnings = []
+            if not description:
+                warnings.append('missing_description')
+            elif description_counts.get(description, 0) > 1:
+                warnings.append('duplicate_description')
+            if title_counts.get(title, 0) > 1:
+                warnings.append('duplicate_title')
+            if len(title) > 70:
+                warnings.append('long_title')
+            if not image:
+                warnings.append('missing_image')
+            if not str(product.get('sku') or product.get('shortName') or '').strip():
+                warnings.append('missing_sku')
+            if not str(product.get('imageAlt') or '').strip():
+                warnings.append('missing_image_alt')
+            if product.get('indexable') is False:
+                warnings.append('noindex')
+            rows.append({'id': product.get('id'), 'name': product.get('name'), 'warnings': warnings})
+        return jsonify({'success': True, 'family': family, 'items': rows})
 
     @app.route('/api/products/consult-button', methods=['GET'])
     def get_product_consult_button_api():

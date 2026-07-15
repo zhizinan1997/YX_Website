@@ -16,6 +16,7 @@
             if (!options || options.hash !== false) {
                 window.Admin2Router && window.Admin2Router.writeHashView(viewName);
             }
+            if (window.Admin2Shell) window.Admin2Shell.revealViewSection(viewName);
             updateDocumentTitle(viewName);
             return result;
         };

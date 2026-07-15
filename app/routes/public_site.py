@@ -54,7 +54,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from flask import Response, jsonify, redirect, request, send_file, send_from_directory
 
@@ -457,6 +457,10 @@ def register_public_site_routes(
     seo_section_descriptions,
     seo_breadcrumb_labels,
     seo_breadcrumb_targets,
+    get_gassensing_products_with_settings=lambda: [],
+    get_biosensing_products_with_settings_data=lambda: [],
+    get_image_asset=lambda _url, _owner_page='': None,
+    get_indexable_images_for_page=lambda _owner_page: [],
 ):
     """注册公开站点的 SEO、搜索与静态资源路由。"""
     root = Path(app_root)
@@ -467,6 +471,59 @@ def register_public_site_routes(
         'last_updated': 0.0,
     }
     search_lock = threading.Lock()
+
+    legacy_public_redirects = {
+        '/pages/biosensing/index_page_2.html': '/pages/biosensing/',
+        '/pages/careers/job-detail.html': '/pages/careers/jobs.html',
+        '/pages/contact/feedback.aspx_attach_id.html': '/pages/contact/feedback.html',
+        '/pages/about/history.html': '/pages/about/about.html',
+        '/pages/about/culture.html': '/pages/about/values.html',
+        '/pages/about/micro-nano.html': '/pages/research/micro-nano.html',
+        '/pages/about/research.html': '/pages/research/cooperation.html',
+        '/pages/services/service.html': '/pages/research/',
+        '/pages/services/core-service.html': '/pages/research/development.html',
+        '/pages/honors/honor.html': '/pages/gassensing/service-cases.html',
+        '/pages/honors/honor-page2.html': '/pages/gassensing/service-cases.html',
+        '/pages/news/news_show.aspx_id_75.html': '/pages/news/news_show.aspx_id_76.html',
+        '/pages/news/news_show.aspx_id_50.html': '/pages/news/news_show.aspx_id_47.html',
+        '/pages/news/news_show.aspx_id_32.html': '/pages/news/news.html#industry',
+        '/pages/products/index.html': '/pages/gassensing/all-products.html',
+        '/pages/products/gas_sensors.html': '/pages/gassensing/all-products.html',
+        '/pages/gas_sensors.html': '/pages/gassensing/all-products.html',
+        '/pages/products/products_mems.html': '/pages/research/micro-nano.html',
+        '/pages/products/carbon_bio_platform.html': '/pages/biosensing/carbon_bio_platform.html',
+        '/pages/products/respiratory_virus_chip.html': '/pages/biosensing/respiratory_virus_chip.html',
+        '/pages/products/igzo_device.html': '/pages/biosensing/igzo_device.html',
+        '/pages/solutions/jjfa.html': '/pages/solutions/solutions-index.html',
+        '/pages/news/news.aspx_category_id_43.html': '/pages/news/news.html#science',
+        '/pages/news/news.aspx_category_id_9.html': '/pages/news/news.html#enterprise',
+        '/pages/news/news.aspx_category_id_8.html': '/pages/news/news.html#industry',
+        '/pages/news/index.html': '/pages/news/news.html',
+        '/pages/honors/honor.aspx@category_id=0&page=2.html': '/pages/gassensing/service-cases.html',
+        '/pages/gassensing/mc_mgm_01_new.html': '/pages/gassensing/mc_mgm_01.html',
+    }
+
+    def product_path_from_item(item: dict) -> str:
+        product_id = str((item or {}).get('id') or '').strip()
+        if not product_id:
+            return ''
+        if product_id.startswith('../biosensing/'):
+            return f'/pages/biosensing/{product_id.rsplit("/", 1)[-1]}.html'
+        if product_id.startswith('../customization/'):
+            return f'/pages/customization/{product_id.rsplit("/", 1)[-1]}.html'
+        return f'/pages/gassensing/{product_id}.html'
+
+    def get_product_for_path(path_value: str) -> dict:
+        target = str(path_value or '').strip()
+        try:
+            products = list(get_gassensing_products_with_settings() or [])
+            products.extend(get_biosensing_products_with_settings_data() or [])
+        except Exception:
+            return {}
+        for item in products:
+            if isinstance(item, dict) and product_path_from_item(item) == target:
+                return item
+        return {}
 
     def blocked_disabled_promotion_link_response():
         mark = str(request.args.get('utm_id') or '').strip()
@@ -526,6 +583,49 @@ def register_public_site_routes(
         if not raw_query:
             return ''
         return '?' + raw_query.decode('utf-8', errors='ignore')
+
+    def legacy_redirect_target(path_value: str) -> str:
+        target = legacy_public_redirects.get(str(path_value or '').strip(), '')
+        if not target:
+            return ''
+        target_path, fragment_mark, fragment = target.partition('#')
+        query_suffix = build_request_query_suffix()
+        if fragment_mark:
+            return f'{target_path}{query_suffix}#{fragment}'
+        return f'{target_path}{query_suffix}'
+
+    def is_legacy_redirect_source(path_value: str) -> bool:
+        return str(path_value or '').strip() in legacy_public_redirects
+
+    @app.before_request
+    def redirect_alternate_public_host():
+        """将生产裸域名永久收敛到 PUBLIC_BASE_URL 指定的 www 主域名。"""
+        public_base_url = str(get_public_base_url() or '').strip()
+        if not public_base_url:
+            return None
+        try:
+            parsed_base = urlparse(public_base_url)
+        except Exception:
+            return None
+
+        canonical_host = str(parsed_base.hostname or '').strip().lower()
+        if not canonical_host.startswith('www.') or not parsed_base.scheme or not parsed_base.netloc:
+            return None
+        alternate_host = canonical_host[4:]
+
+        forwarded_host = first_forwarded_value(request.headers.get('X-Forwarded-Host', ''))
+        request_host = str(forwarded_host or request.host or '').strip().lower().split(':', 1)[0]
+        if request_host != alternate_host:
+            return None
+
+        path_and_query = request.full_path or request.path or '/'
+        if path_and_query.endswith('?'):
+            path_and_query = path_and_query[:-1]
+        target = f'{parsed_base.scheme}://{parsed_base.netloc}{path_and_query}'
+        status_code = 301 if request.method in {'GET', 'HEAD'} else 308
+        response = redirect(target, code=status_code)
+        response.headers['Cache-Control'] = 'public, max-age=3600'
+        return response
 
     def absolute_public_url(path_or_url: str, *, base_url: str = '', page_url: str = '') -> str:
         value = str(path_or_url or '').strip()
@@ -588,31 +688,26 @@ def register_public_site_routes(
     def title_override_for_public_path(path_value: str) -> str:
         path_text = str(path_value or '').strip() or '/'
         overrides = {
-            '/pages/biosensing/index_page_2.html': '生物传感产品第 2 页 - 元芯传感',
-            '/pages/careers/job-detail.html': '招聘岗位详情 - 元芯传感',
             '/pages/careers/job.aspx.html': '在线招聘列表 - 元芯传感',
-            '/pages/contact/feedback.aspx_attach_id.html': '在线留言附件 - 元芯传感',
-            '/pages/honors/honor-page2.html': '应用案例第 2 页 - 元芯传感',
-            '/pages/news/news_show.aspx_id_75.html': '兆瓦级氢能飞机株洲首飞安全检测方案 - 湖南元芯传感科技有限责任公司',
         }
+        product = get_product_for_path(path_text)
+        if product:
+            custom_title = str(product.get('seoTitle') or '').strip()
+            if custom_title:
+                return custom_title
         return overrides.get(path_text, '')
 
-    def canonical_path_override_for_public_path(path_value: str) -> str:
-        overrides = {
-            '/pages/news/news_show.aspx_id_75.html': '/pages/news/news_show.aspx_id_76.html',
-        }
-        return overrides.get(str(path_value or '').strip(), '')
-
     def robots_override_for_public_path(path_value: str) -> str:
-        overrides = {
-            '/pages/news/news_show.aspx_id_75.html': 'noindex,follow,max-image-preview:large',
-        }
-        return overrides.get(str(path_value or '').strip(), '')
+        path_text = str(path_value or '').strip()
+        product = get_product_for_path(path_text)
+        if product and product.get('indexable') is False:
+            return 'noindex,follow,max-image-preview:large'
+        return ''
 
     def should_exclude_from_public_sitemap(path_value: str) -> bool:
-        return str(path_value or '').strip() in {
-            '/pages/news/news_show.aspx_id_75.html',
-        }
+        path_text = str(path_value or '').strip()
+        product = get_product_for_path(path_text)
+        return bool(product and product.get('indexable') is False)
 
     def replace_html_title(html_body: str, title_text: str) -> str:
         clean_title = str(title_text or '').strip()
@@ -738,6 +833,101 @@ def register_public_site_routes(
             return normalized[:insert_pos] + '\n' + fallback_h1 + normalized[insert_pos:]
         return fallback_h1 + '\n' + normalized
 
+    def enhance_product_image_markup(html_body: str, path_value: str) -> str:
+        product = get_product_for_path(path_value)
+        if not product:
+            return html_body
+        product_name = str(product.get('displayName') or product.get('name') or '').strip()
+        configured_alt = str(product.get('imageAlt') or '').strip()
+        image_number = 0
+
+        def replace_image(match):
+            nonlocal image_number
+            tag = match.group(0)
+            attrs = extract_html_tag_attributes(tag)
+            src = str(attrs.get('src') or '').strip()
+            lowered = src.lower()
+            if not src or '${' in src or any(token in lowered for token in ('logo', 'favicon', 'qrcode', 'qr-code', 'wechat')):
+                return tag
+            image_number += 1
+            alt = str(attrs.get('alt') or '').strip()
+            if not alt or re.fullmatch(r'(?i)(product|产品图|图片|image|产品图\s*\d+)', alt):
+                replacement_alt = configured_alt if image_number == 1 and configured_alt else f'{product_name}产品图{image_number}'
+                if 'alt=' in tag.lower():
+                    tag = re.sub(r'(?i)\balt\s*=\s*(["\']).*?\1', f'alt="{html.escape(replacement_alt, quote=True)}"', tag, count=1)
+                else:
+                    tag = re.sub(r'\s*/?>$', f' alt="{html.escape(replacement_alt, quote=True)}">', tag)
+            if 'decoding=' not in tag.lower():
+                tag = re.sub(r'\s*/?>$', ' decoding="async">', tag)
+            if image_number == 1:
+                if 'fetchpriority=' not in tag.lower():
+                    tag = re.sub(r'\s*/?>$', ' fetchpriority="high">', tag)
+            elif 'loading=' not in tag.lower():
+                tag = re.sub(r'\s*/?>$', ' loading="lazy">', tag)
+            return tag
+
+        return re.sub(r'(?is)<img\b[^>]*>', replace_image, html_body or '')
+
+    def enhance_all_image_markup(html_body: str, path_value: str) -> str:
+        image_number = 0
+
+        def set_attribute(tag: str, name: str, value: str) -> str:
+            escaped = html.escape(str(value), quote=True)
+            if re.search(rf'(?i)\b{re.escape(name)}\s*=', tag):
+                return re.sub(
+                    rf'(?i)\b{re.escape(name)}\s*=\s*(["\']).*?\1',
+                    f'{name}="{escaped}"',
+                    tag,
+                    count=1,
+                )
+            return re.sub(r'\s*/?>$', f' {name}="{escaped}">', tag)
+
+        def replace_image(match):
+            nonlocal image_number
+            tag = match.group(0)
+            attrs = extract_html_tag_attributes(tag)
+            src = str(attrs.get('src') or '').strip()
+            if not src or src.startswith(('data:', 'blob:')) or '${' in src:
+                return tag
+            image_number += 1
+            try:
+                asset = get_image_asset(src, path_value) or {}
+            except Exception:
+                asset = {}
+            if asset.get('ignored'):
+                return tag
+            role = str(asset.get('role') or '').strip().lower()
+            current_alt = str(attrs.get('alt') or '').strip()
+            generic_alt = (
+                not current_alt
+                or re.fullmatch(r'(?i)(image|img|图片|产品图|新闻图片|news|product|hero)(\s*\d+)?', current_alt)
+                or re.search(r'产品图\s*\d+$', current_alt)
+            )
+            if role in {'decorative', 'logo', 'qrcode'}:
+                tag = set_attribute(tag, 'alt', '')
+            elif asset.get('alt') and generic_alt:
+                tag = set_attribute(tag, 'alt', asset['alt'])
+            elif 'alt' not in attrs:
+                # Every static image must expose an alt attribute; unreviewed
+                # content stays empty until the asset centre approves wording.
+                tag = set_attribute(tag, 'alt', '')
+            if asset.get('title'):
+                tag = set_attribute(tag, 'title', asset['title'])
+            if asset.get('width') and 'width' not in attrs:
+                tag = set_attribute(tag, 'width', str(asset['width']))
+            if asset.get('height') and 'height' not in attrs:
+                tag = set_attribute(tag, 'height', str(asset['height']))
+            if 'decoding' not in attrs:
+                tag = set_attribute(tag, 'decoding', 'async')
+            if image_number == 1 and role not in {'decorative', 'logo', 'qrcode'}:
+                if 'fetchpriority' not in attrs:
+                    tag = set_attribute(tag, 'fetchpriority', 'high')
+            elif 'loading' not in attrs:
+                tag = set_attribute(tag, 'loading', 'lazy')
+            return tag
+
+        return re.sub(r'(?is)<img\b[^>]*>', replace_image, html_body or '')
+
     def looks_like_noise_description(text: str) -> bool:
         candidate = str(text or '').strip()
         if len(candidate) < 24:
@@ -791,6 +981,11 @@ def register_public_site_routes(
         return site_default_description
 
     def build_page_description(path_value: str, html_body: str, title_text: str, heading_text: str) -> str:
+        product = get_product_for_path(path_value)
+        if product:
+            product_description = str(product.get('seoDescription') or '').strip()
+            if product_description:
+                return truncate_seo_text(product_description)
         existing = extract_meta_content(html_body, attr_name='name', attr_value='description')
         if existing:
             return truncate_seo_text(existing)
@@ -826,10 +1021,32 @@ def register_public_site_routes(
         for match in re.finditer(r'(?is)<img\b[^>]*>', html_body or ''):
             attrs = extract_html_tag_attributes(match.group(0))
             src = str(attrs.get('src') or '').strip()
-            if not src or src.startswith('data:'):
+            if (
+                not src or src.startswith(('data:', 'blob:')) or '${' in src
+                or src.lower() in {'undefined', 'null'}
+            ):
                 continue
             return absolute_public_url(src, base_url=base_url, page_url=page_url)
         return absolute_public_url(site_logo_path, base_url=base_url, page_url=page_url)
+
+    def extract_public_image_urls(html_body: str, *, base_url: str, page_url: str, limit: int = 12) -> list[str]:
+        images = []
+        seen = set()
+        for match in re.finditer(r'(?is)<img\b[^>]*>', html_body or ''):
+            attrs = extract_html_tag_attributes(match.group(0))
+            src = str(attrs.get('src') or '').strip()
+            lowered = src.lower()
+            if not src or src.startswith(('data:', 'blob:')) or '${' in src:
+                continue
+            if any(token in lowered for token in ('logo', 'favicon', 'qrcode', 'qr-code', 'wechat')):
+                continue
+            absolute = absolute_public_url(src, base_url=base_url, page_url=page_url)
+            if absolute and absolute not in seen:
+                seen.add(absolute)
+                images.append(absolute)
+            if len(images) >= limit:
+                break
+        return images
 
     def extract_article_date(html_body: str) -> str:
         hero_meta = re.search(r'(?is)<div\b[^>]*class=["\'][^"\']*article-hero__meta[^"\']*["\'][^>]*>(.*?)</div>', html_body or '')
@@ -908,6 +1125,52 @@ def register_public_site_routes(
             return payloads
 
         payloads.extend(build_breadcrumb_data(path_value, canonical_url, page_title))
+        try:
+            reviewed_images = [
+                absolute_public_url(item.get('url', ''), page_url=canonical_url)
+                for item in get_indexable_images_for_page(path_value) or []
+                if item.get('url')
+            ]
+        except Exception:
+            reviewed_images = []
+
+        product = get_product_for_path(path_value)
+        if product:
+            base_url, _ = absolute_public_base_url()
+            product_images = extract_public_image_urls(
+                html_body,
+                base_url=base_url,
+                page_url=canonical_url,
+            )
+            configured_image = str(product.get('cardImage') or product.get('image') or '').strip()
+            if configured_image:
+                configured_image = absolute_public_url(configured_image, base_url=base_url, page_url=canonical_url)
+                if configured_image and configured_image not in product_images:
+                    product_images.insert(0, configured_image)
+            product_data = {
+                '@context': 'https://schema.org',
+                '@type': 'Product',
+                'name': str(product.get('displayName') or product.get('name') or page_title).strip(),
+                'description': description,
+                'url': canonical_url,
+                'image': reviewed_images or product_images or ([image_url] if image_url else []),
+                'sku': str(product.get('sku') or product.get('shortName') or product.get('id') or '').strip(),
+                'brand': {'@type': 'Brand', 'name': str(product.get('brand') or site_brand_name).strip()},
+                'manufacturer': {'@type': 'Organization', 'name': str(product.get('manufacturer') or site_company_name).strip()},
+                'category': str(product.get('seoCategory') or product.get('category') or '').strip(),
+            }
+            properties = []
+            for item in product.get('technicalProperties') or []:
+                if not isinstance(item, dict) or not item.get('name') or not item.get('value'):
+                    continue
+                properties.append({
+                    '@type': 'PropertyValue',
+                    'name': str(item['name']),
+                    'value': str(item['value']),
+                })
+            if properties:
+                product_data['additionalProperty'] = properties
+            payloads.append(product_data)
 
         if path_value.startswith('/pages/news/news_show'):
             article_data = {
@@ -934,9 +1197,25 @@ def register_public_site_routes(
             if publish_date:
                 article_data['datePublished'] = publish_date
                 article_data['dateModified'] = publish_date
-            if image_url:
-                article_data['image'] = [image_url]
+            article_images = reviewed_images or ([image_url] if image_url else [])
+            if article_images:
+                article_data['image'] = article_images
             payloads.append(article_data)
+
+        if not product and not path_value.startswith('/pages/news/news_show'):
+            page_data = {
+                '@context': 'https://schema.org',
+                '@type': 'WebPage',
+                'name': page_title,
+                'description': description,
+                'url': canonical_url,
+                'inLanguage': 'zh-CN',
+            }
+            page_images = reviewed_images or ([image_url] if image_url else [])
+            if page_images:
+                page_data['primaryImageOfPage'] = {'@type': 'ImageObject', 'url': page_images[0]}
+                page_data['image'] = page_images
+            payloads.append(page_data)
 
         return payloads
 
@@ -975,14 +1254,22 @@ def register_public_site_routes(
         html_body = strip_invalid_existing_seo_markup(html_body)
         base_url, _ = absolute_public_base_url()
         request_canonical_path = canonical_public_path_for_request(request.path or '') or (request.path or '/')
-        canonical_path = canonical_path_override_for_public_path(request_canonical_path) or request_canonical_path
+        canonical_path = request_canonical_path
         canonical_url = absolute_public_url(canonical_path, base_url=base_url)
         html_body = normalize_public_title_markup(html_body, request_canonical_path)
         title_text = extract_html_title(html_body)
         html_body = normalize_public_h1_markup(html_body, title_text)
+        html_body = enhance_product_image_markup(html_body, request_canonical_path)
+        html_body = enhance_all_image_markup(html_body, request_canonical_path)
         heading_text = extract_primary_heading(html_body)
         description = build_page_description(request_canonical_path, html_body, title_text, heading_text)
-        image_url = extract_primary_image_url(html_body, base_url=base_url, page_url=canonical_url)
+        product = get_product_for_path(request_canonical_path)
+        configured_image = str(product.get('cardImage') or product.get('image') or '').strip() if product else ''
+        image_url = (
+            absolute_public_url(configured_image, base_url=base_url, page_url=canonical_url)
+            if configured_image and '${' not in configured_image
+            else extract_primary_image_url(html_body, base_url=base_url, page_url=canonical_url)
+        )
         structured_data = build_structured_data(canonical_path, canonical_url, html_body, title_text, description, image_url)
 
         head_tags: list[str] = []
@@ -1010,7 +1297,12 @@ def register_public_site_routes(
             description=description,
             image_url=image_url,
         )
-        if structured_data and 'application/ld+json' not in html_body.lower():
+        if structured_data:
+            html_body = re.sub(
+                r'(?is)<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>.*?</script>',
+                '',
+                html_body,
+            )
             payload = json.dumps(structured_data[0] if len(structured_data) == 1 else structured_data, ensure_ascii=False)
             payload = payload.replace('</', '<\\/')
             head_tags.append(f'<script type="application/ld+json">{payload}</script>')
@@ -1058,10 +1350,12 @@ def register_public_site_routes(
                 if rel.startswith('admin/'):
                     continue
                 url = f'/{rel}'
+                if is_legacy_redirect_source(url):
+                    continue
                 if should_exclude_from_public_sitemap(url):
                     continue
                 if url.endswith('/index.html'):
-                    url = url[:-10] + '/'
+                    url = url.removesuffix('index.html')
                     if should_exclude_from_public_sitemap(url):
                         continue
                 add_url(url, html_file, changefreq='weekly', priority='0.8' if '/news/' in url else '0.7')
@@ -1098,7 +1392,7 @@ def register_public_site_routes(
             'Disallow: /data/',
             'Disallow: /update_logs/',
             '',
-            f'Sitemap: {base_url}/sitemap.xml',
+            f'Sitemap: {base_url}/sitemap-index.xml',
         ]
         if host_no_port:
             lines.append(f'Host: {host_no_port}')
@@ -1106,11 +1400,10 @@ def register_public_site_routes(
         response.headers['Cache-Control'] = 'public, max-age=3600'
         return response
 
-    @app.route('/sitemap.xml')
-    def sitemap_xml():
+    def render_urlset(entries, *, include_images: bool = False):
         base_url, _ = absolute_public_base_url()
-        entries = collect_public_html_urls()
-        rows = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+        namespace = ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' if include_images else ''
+        rows = ['<?xml version="1.0" encoding="UTF-8"?>', f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"{namespace}>']
         for item in entries:
             path = str(item.get('path') or '/').strip() or '/'
             rows.append('  <url>')
@@ -1118,11 +1411,110 @@ def register_public_site_routes(
             rows.append(f'    <lastmod>{html.escape(str(item.get("lastmod") or ""), quote=True)}</lastmod>')
             rows.append(f'    <changefreq>{html.escape(str(item.get("changefreq") or "weekly"), quote=True)}</changefreq>')
             rows.append(f'    <priority>{html.escape(str(item.get("priority") or "0.7"), quote=True)}</priority>')
+            for image_item in item.get('images', []) if include_images else []:
+                rows.append('    <image:image>')
+                rows.append(f'      <image:loc>{html.escape(str(image_item.get("loc") or ""), quote=True)}</image:loc>')
+                if image_item.get('title'):
+                    rows.append(f'      <image:title>{html.escape(str(image_item["title"]))}</image:title>')
+                if image_item.get('caption'):
+                    rows.append(f'      <image:caption>{html.escape(str(image_item["caption"]))}</image:caption>')
+                rows.append('    </image:image>')
             rows.append('  </url>')
         rows.append('</urlset>')
         response = Response('\n'.join(rows) + '\n', mimetype='application/xml')
         response.headers['Cache-Control'] = 'public, max-age=3600'
         return response
+
+    def sitemap_entries_for_kind(kind: str):
+        entries = collect_public_html_urls()
+        if kind == 'products':
+            return [item for item in entries if get_product_for_path(item['path'])]
+        if kind == 'news':
+            return [item for item in entries if item['path'].startswith('/pages/news/')]
+        if kind == 'pages':
+            return [item for item in entries if not get_product_for_path(item['path']) and not item['path'].startswith('/pages/news/')]
+        return entries
+
+    @app.route('/sitemap-pages.xml')
+    @app.route('/sitemap-products.xml')
+    @app.route('/sitemap-news.xml')
+    def typed_sitemap_xml():
+        kind = request.path.removeprefix('/sitemap-').removesuffix('.xml')
+        return render_urlset(sitemap_entries_for_kind(kind))
+
+    @app.route('/sitemap-images.xml')
+    def image_sitemap_xml():
+        base_url, _ = absolute_public_base_url()
+        entries = []
+        seen_images = set()
+        for item in collect_public_html_urls():
+            file_path = root / item['path'].lstrip('/')
+            if item['path'] == '/':
+                file_path = root / 'index.html'
+            try:
+                html_body = file_path.read_text(encoding='utf-8')
+            except Exception:
+                continue
+            product = get_product_for_path(item['path'])
+            title = str(product.get('displayName') or product.get('name') or extract_primary_heading(html_body) or extract_html_title(html_body)).strip()
+            caption = str(product.get('imageCaption') or product.get('seoDescription') or product.get('description') or '').strip()
+            try:
+                reviewed = list(get_indexable_images_for_page(item['path']) or [])
+            except Exception:
+                reviewed = []
+            urls = []
+            metadata = {}
+            for asset in reviewed:
+                url = absolute_public_url(asset.get('url', ''), base_url=base_url, page_url=f'{base_url}{item["path"]}')
+                if not url or url in seen_images:
+                    continue
+                seen_images.add(url)
+                urls.append(url)
+                metadata[url] = asset
+            if not reviewed:
+                for url in extract_public_image_urls(html_body, base_url=base_url, page_url=f'{base_url}{item["path"]}'):
+                    if url in seen_images:
+                        continue
+                    try:
+                        asset = get_image_asset(url, item['path']) or {}
+                    except Exception:
+                        asset = {}
+                    if asset and not asset.get('indexable', True):
+                        continue
+                    if str(asset.get('role') or '') in {'decorative', 'logo', 'qrcode'}:
+                        continue
+                    seen_images.add(url)
+                    urls.append(url)
+                    metadata[url] = asset
+            configured = str(product.get('cardImage') or product.get('image') or '').strip()
+            if configured:
+                configured = absolute_public_url(configured, base_url=base_url, page_url=f'{base_url}{item["path"]}')
+                if configured and configured not in urls and configured not in seen_images:
+                    urls.insert(0, configured)
+                    seen_images.add(configured)
+            if urls:
+                enriched = dict(item)
+                enriched['images'] = [{
+                    'loc': url,
+                    'title': str(metadata.get(url, {}).get('title') or metadata.get(url, {}).get('alt') or title).strip(),
+                    'caption': str(metadata.get(url, {}).get('caption') or caption).strip(),
+                } for url in urls]
+                entries.append(enriched)
+        return render_urlset(entries, include_images=True)
+
+    @app.route('/sitemap-index.xml')
+    def sitemap_index_xml():
+        base_url, _ = absolute_public_base_url()
+        today = now_beijing().strftime('%Y-%m-%d')
+        rows = ['<?xml version="1.0" encoding="UTF-8"?>', '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+        for name in ('pages', 'products', 'news', 'images'):
+            rows.extend(['  <sitemap>', f'    <loc>{base_url}/sitemap-{name}.xml</loc>', f'    <lastmod>{today}</lastmod>', '  </sitemap>'])
+        rows.append('</sitemapindex>')
+        return Response('\n'.join(rows) + '\n', mimetype='application/xml', headers={'Cache-Control': 'public, max-age=3600'})
+
+    @app.route('/sitemap.xml')
+    def sitemap_xml():
+        return render_urlset(collect_public_html_urls())
 
     @app.after_request
     def inject_public_site_metadata(response):
@@ -1157,7 +1549,10 @@ def register_public_site_routes(
                 return response
 
             response.headers.setdefault('Content-Security-Policy', public_html_content_security_policy)
-            response.headers['Cache-Control'] = 'no-cache, max-age=0, must-revalidate'
+            response.headers['Cache-Control'] = 'no-store, no-cache, max-age=0, must-revalidate'
+            response.headers['CDN-Cache-Control'] = 'no-store'
+            response.headers['Cloudflare-CDN-Cache-Control'] = 'no-store'
+            response.headers['Surrogate-Control'] = 'no-store'
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
             response.direct_passthrough = False
@@ -1192,12 +1587,6 @@ def register_public_site_routes(
             pass
         return response
 
-    def extract_text_from_html(html_content):
-        return extract_public_text_from_html(html_content)
-
-    def extract_title_from_html(html_content):
-        return extract_public_title_from_html(html_content)
-
     def build_search_index():
         with search_lock:
             pages_dir = root / 'pages'
@@ -1217,6 +1606,8 @@ def register_public_site_routes(
                 try:
                     content = html_file.read_text(encoding='utf-8')
                     rel_path = html_file.relative_to(root)
+                    if is_legacy_redirect_source('/' + rel_path.as_posix()):
+                        continue
                     pages.append(build_public_search_page(root, html_file, content, str(rel_path)))
                 except Exception as exc:
                     print(f'Error indexing {html_file}: {exc}')
@@ -1277,6 +1668,9 @@ def register_public_site_routes(
         blocked = blocked_disabled_promotion_link_response()
         if blocked:
             return blocked
+        redirect_target = legacy_redirect_target(request.path or '')
+        if redirect_target:
+            return redirect(redirect_target, code=301)
         canonical_path = canonical_public_path_for_request(path)
         request_path = request.path or ''
         if canonical_path and canonical_path != request_path:

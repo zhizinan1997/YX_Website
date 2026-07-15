@@ -242,6 +242,12 @@ def _merge_products_with_settings(products, settings, *, default_category: str, 
             product['cardImage'] = settings[pid].get('cardImage', '')
             product['cardSummary'] = settings[pid].get('cardSummary', '')
             product['relatedNews'] = normalize_related_news_links(settings[pid].get('relatedNews', []))
+            for field in (
+                'seoTitle', 'seoDescription', 'sku', 'brand', 'manufacturer',
+                'seoCategory', 'imageAlt', 'imageTitle', 'imageCaption',
+                'indexable', 'technicalProperties',
+            ):
+                product[field] = settings[pid].get(field, True if field == 'indexable' else ([] if field == 'technicalProperties' else ''))
             custom_categories = settings[pid].get('categories', [])
             if custom_categories:
                 product['categories'] = custom_categories
@@ -256,6 +262,12 @@ def _merge_products_with_settings(products, settings, *, default_category: str, 
             product['cardImage'] = ''
             product['cardSummary'] = ''
             product['relatedNews'] = []
+            product.update({
+                'seoTitle': '', 'seoDescription': '', 'sku': '', 'brand': '',
+                'manufacturer': '', 'seoCategory': '', 'imageAlt': '',
+                'imageTitle': '', 'imageCaption': '', 'indexable': True,
+                'technicalProperties': [],
+            })
             product['categories'] = [product.get('category', default_category)]
 
         if pid in settings and isinstance(settings[pid].get('industryCategories'), list):

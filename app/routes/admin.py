@@ -82,6 +82,7 @@ import subprocess
 import threading
 import time
 import hashlib
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
@@ -111,6 +112,7 @@ from app.admin_geo import (
     normalize_admin_login_geo_settings,
 )
 from app.request_security import get_request_client_ip, is_same_origin_request
+from app.passkeys import PasskeyStore, load_passkey_config, require_webauthn
 from werkzeug.security import check_password_hash, generate_password_hash
 
 BEIJING_TZ = timezone(timedelta(hours=8))
@@ -158,6 +160,7 @@ ADMIN_PERMISSION_CATALOG = [
     {'key': 'settings', 'label': '账号设置'},
     {'key': 'backup', 'label': '备份恢复'},
     {'key': 'cdn-assets', 'label': 'CDN 素材'},
+    {'key': 'image-seo', 'label': '图片 SEO'},
     {'key': 'log-records', 'label': '系统日志'},
 ]
 ADMIN_PERMISSION_KEYS = [item['key'] for item in ADMIN_PERMISSION_CATALOG]
@@ -546,9 +549,13 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
         return 'settings'
     if p.startswith('/api/admin/account/email-binding'):
         return None
+    if p.startswith('/api/admin/account/passkeys'):
+        return None
     if p.startswith('/api/admin/email-auth'):
         return 'site-settings'
     if p.startswith('/api/admin/security/login-geo'):
+        return 'site-settings'
+    if p.startswith('/api/admin/security/passkeys'):
         return 'site-settings'
     if p.startswith('/api/cdn/assets'):
         return 'cdn-assets'
@@ -754,6 +761,13 @@ def _clear_admin_session(sess):
         'admin_previous_login_ip',
         'admin_current_login_at',
         'admin_current_login_ip',
+        'admin_passkey_step_up_username',
+        'admin_passkey_step_up_until',
+        'admin_passkey_email_code_hash',
+        'admin_passkey_email_code_salt',
+        'admin_passkey_email_code_expires_at',
+        'admin_passkey_email_code_failures',
+        'admin_passkey_email_resend_at',
     ):
         sess.pop(key, None)
     _clear_pending_login_session(sess)
@@ -1192,7 +1206,6 @@ def _load_login_attempts(file_path: Path):
             return data
     except Exception:
         pass
-    _start_smtp_reminder_worker_once(app=app, root=root, get_config=get_config)
     return default_state
 
 
@@ -2158,11 +2171,49 @@ def register_admin_routes(
     project_root=None,
     resolve_ip_location=None,
     resolve_ip_country_code=None,
+    get_public_base_url=None,
 ):
     """向 Flask 应用注册后台管理相关路由。"""
     _resolve_ip_location = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
     _resolve_ip_country_code = resolve_ip_country_code if resolve_ip_country_code else lambda ip: ''
     root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+    passkey_runtime_lock = threading.RLock()
+    passkey_runtime = {'key': None, 'config': None, 'store': None}
+
+    def _load_passkey_runtime():
+        public_url = str(get_public_base_url() if callable(get_public_base_url) else os.environ.get('PUBLIC_BASE_URL', '') or '')
+        config = load_passkey_config(root, public_url, get_config() or {})
+        runtime_key = (
+            config.enabled, config.rp_id, config.rp_name, config.origin, str(config.db_path),
+            config.challenge_ttl_seconds, config.max_credentials_per_user, config.error,
+        )
+        with passkey_runtime_lock:
+            if passkey_runtime['key'] == runtime_key:
+                return passkey_runtime['config'], passkey_runtime['store']
+            store = PasskeyStore(config)
+            if config.enabled:
+                try:
+                    require_webauthn()
+                    store.initialize()
+                except Exception as exc:
+                    app.logger.error('Passkey 初始化失败，功能已关闭：%s', exc)
+                    config = replace(config, enabled=False, error=str(exc))
+                    store = PasskeyStore(config)
+            elif config.error:
+                app.logger.error('Passkey 配置无效，功能已关闭：%s', config.error)
+            passkey_runtime.update({'key': runtime_key, 'config': config, 'store': store})
+            return config, store
+
+    class _PasskeyConfigProxy:
+        def __getattr__(self, name):
+            return getattr(_load_passkey_runtime()[0], name)
+
+    class _PasskeyStoreProxy:
+        def __getattr__(self, name):
+            return getattr(_load_passkey_runtime()[1], name)
+
+    passkey_config = _PasskeyConfigProxy()
+    passkey_store = _PasskeyStoreProxy()
     try:
         _ensure_admin_users_store(root, get_config, update_config)
     except Exception:
@@ -2185,6 +2236,127 @@ def register_admin_routes(
     def admin_page():
         """后台登录页与控制台入口页面。"""
         return _build_admin_html_response('admin')
+
+    def _passkey_session_binding():
+        binding = str(session.get('admin_passkey_browser_binding', '') or '').strip()
+        if not binding:
+            binding = secrets.token_urlsafe(32)
+            session['admin_passkey_browser_binding'] = binding
+        return binding
+
+    def _passkey_unavailable_response():
+        message = passkey_config.error or 'Passkey 登录当前未启用。'
+        return jsonify({'success': False, 'message': message}), 503
+
+    def _passkey_options_payload(options, request_id: str):
+        from webauthn import options_to_json
+        return jsonify({
+            'success': True,
+            'request_id': request_id,
+            'options': json.loads(options_to_json(options)),
+        })
+
+    def _passkey_device_name(raw_value):
+        value = str(raw_value or '').strip()
+        if not value:
+            value = f"Passkey 设备 {now_beijing().strftime('%Y-%m-%d')}"
+        if len(value) > 50:
+            raise ValueError('设备名称不能超过 50 个字符。')
+        return value
+
+    def _passkey_step_up_valid(username: str) -> bool:
+        return (
+            _normalize_username(session.get('admin_passkey_step_up_username', '')) == _normalize_username(username)
+            and int(session.get('admin_passkey_step_up_until', 0) or 0) >= int(time.time())
+        )
+
+    def _set_passkey_step_up(username: str):
+        session['admin_passkey_step_up_username'] = _normalize_username(username)
+        session['admin_passkey_step_up_until'] = int(time.time()) + 10 * 60
+
+    @app.route('/api/admin/passkey/public-config', methods=['GET'])
+    def admin_passkey_public_config():
+        return jsonify({
+            'success': True,
+            'enabled': bool(passkey_config.enabled),
+            'rp_id': passkey_config.rp_id if passkey_config.enabled else '',
+            'platform_supported_hint': True,
+            'message': passkey_config.error if not passkey_config.enabled else '',
+        })
+
+    @app.route('/api/admin/security/passkeys', methods=['GET'])
+    @login_required
+    def admin_passkey_settings_get():
+        config, _store = _load_passkey_runtime()
+        return jsonify({
+            'success': True,
+            'is_super_admin': bool(_is_super_admin_session(session)),
+            'enabled': bool(config.enabled),
+            'configured_enabled': bool((get_config() or {}).get('passkey_enabled', False)),
+            'origin': config.origin,
+            'rp_id': config.rp_id,
+            'rp_name': config.rp_name,
+            'max_credentials_per_user': config.max_credentials_per_user,
+            'error': config.error,
+            'public_base_url': str(get_public_base_url() if callable(get_public_base_url) else os.environ.get('PUBLIC_BASE_URL', '') or ''),
+            'enabled_managed_by_environment': os.environ.get('PASSKEY_ENABLED') is not None,
+            'max_managed_by_environment': os.environ.get('PASSKEY_MAX_CREDENTIALS_PER_USER') is not None,
+        })
+
+    @app.route('/api/admin/security/passkeys', methods=['POST'])
+    @login_required
+    def admin_passkey_settings_update():
+        if not _is_super_admin_session(session):
+            return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        if os.environ.get('PASSKEY_ENABLED') is not None:
+            return jsonify({'success': False, 'message': 'Passkey 开关当前由 Docker 环境变量管理，后台不能覆盖。'}), 409
+        data = request.get_json(silent=True) or {}
+        enabled = _parse_bool(data.get('enabled', False), False)
+        try:
+            maximum = max(1, min(50, int(data.get('max_credentials_per_user', 10) or 10)))
+        except Exception:
+            return jsonify({'success': False, 'message': '每账号设备上限必须是 1 到 50 的整数。'}), 400
+        if os.environ.get('PASSKEY_MAX_CREDENTIALS_PER_USER') is not None:
+            maximum = load_passkey_config(root, str(get_public_base_url() if callable(get_public_base_url) else ''), get_config() or {}).max_credentials_per_user
+        current = get_config() or {}
+        candidate = dict(current)
+        candidate.update({
+            'passkey_enabled': enabled,
+            'passkey_max_credentials_per_user': maximum,
+        })
+        public_url = str(get_public_base_url() if callable(get_public_base_url) else os.environ.get('PUBLIC_BASE_URL', '') or '')
+        candidate_config = load_passkey_config(root, public_url, candidate)
+        if enabled and (not candidate_config.enabled or candidate_config.error):
+            return jsonify({'success': False, 'message': candidate_config.error or 'Passkey 配置校验失败。'}), 400
+        if enabled:
+            try:
+                require_webauthn()
+                PasskeyStore(candidate_config).initialize()
+            except Exception as exc:
+                return jsonify({'success': False, 'message': f'Passkey 初始化失败：{exc}'}), 500
+        update_config({
+            'passkey_enabled': enabled,
+            'passkey_max_credentials_per_user': maximum,
+        })
+        with passkey_runtime_lock:
+            passkey_runtime['key'] = None
+        refreshed, _store = _load_passkey_runtime()
+        append_admin_login_log(
+            operation='passkey_settings', success=True,
+            username=session.get('admin_username', ''),
+            detail=f"Passkey 登录已{'启用' if refreshed.enabled else '关闭'}；每账号上限 {refreshed.max_credentials_per_user}",
+            hidden_account=_is_hidden_admin_session(session),
+        )
+        return jsonify({
+            'success': True,
+            'message': f"Passkey 登录已{'启用' if refreshed.enabled else '关闭'}。",
+            'enabled': refreshed.enabled,
+            'origin': refreshed.origin,
+            'rp_id': refreshed.rp_id,
+            'max_credentials_per_user': refreshed.max_credentials_per_user,
+        })
 
     @app.route('/api/admin/ip-preflight', methods=['GET'])
     def admin_ip_preflight():
@@ -2467,6 +2639,424 @@ def register_admin_routes(
             'current_login_at': current_login_at,
             'current_login_ip': ip_addr,
         })
+
+    @app.route('/admin/passkey/login/options', methods=['POST'])
+    def admin_passkey_login_options():
+        if not passkey_config.enabled:
+            return _passkey_unavailable_response()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        ip_addr = _get_request_ip(request)
+        geo_settings = normalize_admin_login_geo_settings(get_config() or {})
+        allowed, reason = _is_ip_country_allowed(ip_addr, geo_settings, _resolve_ip_country_code)
+        if not allowed:
+            return jsonify({'success': False, 'message': reason}), 403
+        if not passkey_store.check_rate_limit(ip_addr):
+            return jsonify({'success': False, 'message': '请求过于频繁，请稍后再试。'}), 429
+        attempts_file = _get_login_attempts_file(root)
+        now_ts = int(time.time())
+        with LOGIN_ATTEMPTS_LOCK:
+            attempts_state = _load_login_attempts(attempts_file)
+            _prune_login_attempts(attempts_state, now_ts)
+            ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
+            blocked_until = int((ip_item or {}).get('blocked_until', 0) or 0)
+            delay_seconds = _get_login_delay_seconds(attempts_state, ip_addr, now_ts)
+        if blocked_until > now_ts or delay_seconds > 0:
+            return jsonify({'success': False, 'message': '登录尝试过于频繁，请稍后再试。'}), 429
+        try:
+            from webauthn import generate_authentication_options
+            from webauthn.helpers.structs import UserVerificationRequirement
+            options = generate_authentication_options(
+                rp_id=passkey_config.rp_id,
+                user_verification=UserVerificationRequirement.REQUIRED,
+                timeout=60000,
+            )
+            request_id = passkey_store.create_challenge(
+                'login', options.challenge, _passkey_session_binding()
+            )
+            return _passkey_options_payload(options, request_id)
+        except Exception as exc:
+            app.logger.exception('生成 Passkey 登录请求失败')
+            return jsonify({'success': False, 'message': f'无法发起 Passkey 登录：{exc}'}), 500
+
+    @app.route('/admin/passkey/login/verify', methods=['POST'])
+    def admin_passkey_login_verify():
+        if not passkey_config.enabled:
+            return _passkey_unavailable_response()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        request_id = str(data.get('request_id', '') or '').strip()
+        credential = data.get('credential') if isinstance(data.get('credential'), dict) else {}
+        credential_id = str(credential.get('id', '') or '').strip()
+        ip_addr = _get_request_ip(request)
+        geo_settings = normalize_admin_login_geo_settings(get_config() or {})
+        allowed, reason = _is_ip_country_allowed(ip_addr, geo_settings, _resolve_ip_country_code)
+        if not allowed:
+            return jsonify({'success': False, 'message': reason}), 403
+        try:
+            challenge = passkey_store.load_challenge(
+                request_id, 'login', _passkey_session_binding()
+            )
+            stored = passkey_store.get_credential(credential_id)
+            if not stored:
+                raise ValueError('未知 Passkey')
+            with ADMIN_USERS_LOCK:
+                users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+                login_user, _ = _find_user(users_data, stored.get('username', ''))
+                if login_user is not None:
+                    login_user = dict(login_user)
+            if login_user is None or not bool(login_user.get('enabled', True)):
+                raise ValueError('账号不可用')
+            from webauthn import verify_authentication_response
+            verification = verify_authentication_response(
+                credential=credential,
+                expected_challenge=challenge,
+                expected_rp_id=passkey_config.rp_id,
+                expected_origin=passkey_config.origin,
+                credential_public_key=bytes(stored['public_key']),
+                credential_current_sign_count=int(stored.get('sign_count', 0) or 0),
+                require_user_verification=True,
+            )
+            passkey_store.update_usage(
+                credential_id,
+                verification.new_sign_count,
+                ip_addr,
+                bool(getattr(verification, 'credential_backed_up', stored.get('backup_state', False))),
+            )
+            passkey_store.consume_challenge(request_id)
+            with LOGIN_ATTEMPTS_LOCK:
+                attempts_file = _get_login_attempts_file(root)
+                attempts_state = _load_login_attempts(attempts_file)
+                _prune_login_attempts(attempts_state, int(time.time()))
+                _reset_login_attempts_for_ip(attempts_state, ip_addr)
+                _save_login_attempts(attempts_file, attempts_state)
+            return _finalize_login_success(login_user, ip_addr, detail_suffix='Passkey 验证通过')
+        except Exception as exc:
+            with LOGIN_ATTEMPTS_LOCK:
+                attempts_file = _get_login_attempts_file(root)
+                attempts_state = _load_login_attempts(attempts_file)
+                now_ts = int(time.time())
+                _prune_login_attempts(attempts_state, now_ts)
+                blocked_now, _blocked_until, _remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
+                if not blocked_now:
+                    _set_login_delay(attempts_state, ip_addr, now_ts)
+                _save_login_attempts(attempts_file, attempts_state)
+            app.logger.warning('Passkey 登录验证失败 [%s]：%s', credential_id[:12], exc)
+            append_admin_login_log(
+                operation='admin_login', success=False, username='',
+                detail=f'Passkey 验证失败；credential: {credential_id[:8]}', hidden_account=False,
+            )
+            return jsonify({'success': False, 'message': 'Passkey 验证失败，请改用邮箱验证码或账号密码。'}), 401
+
+    @app.route('/api/admin/account/passkeys/confirm/email/send', methods=['POST'])
+    @login_required
+    def admin_passkey_confirm_email_send():
+        if not passkey_config.enabled:
+            return _passkey_unavailable_response()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        username = _normalize_username(session.get('admin_username', ''))
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            user, _ = _find_user(users_data, username)
+        if user is None or not _has_verified_email(user):
+            return jsonify({'success': False, 'message': '当前账号尚未绑定已验证安全邮箱。'}), 400
+        smtp_settings = _get_email_auth_settings(get_config() or {})
+        if not smtp_settings['enabled'] or not _smtp_ready_for_email_auth(smtp_settings):
+            return jsonify({'success': False, 'message': '邮箱验证当前不可用，请联系管理员。'}), 503
+        now_ts = int(time.time())
+        resend_at = int(session.get('admin_passkey_email_resend_at', 0) or 0)
+        if resend_at > now_ts:
+            return jsonify({'success': False, 'message': f'请等待 {resend_at - now_ts} 秒后重试。'}), 429
+        code = _generate_email_code()
+        salt = secrets.token_hex(16)
+        try:
+            _send_smtp_mail(
+                smtp_settings,
+                to_email=user.get('email', ''),
+                subject='元芯传感后台 Passkey 安全验证',
+                text_body=f'您正在为后台账号 {username} 管理 Passkey。验证码：{code}，5 分钟内有效。若非本人操作，请忽略。',
+                html_body=f'<p>您正在为后台账号 <strong>{username}</strong> 管理 Passkey。</p><p>验证码：<strong style="font-size:24px">{code}</strong></p><p>5 分钟内有效。若非本人操作，请忽略。</p>',
+            )
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'验证码发送失败：{exc}'}), 400
+        session['admin_passkey_email_code_hash'] = _email_code_hash(code, salt)
+        session['admin_passkey_email_code_salt'] = salt
+        session['admin_passkey_email_code_expires_at'] = now_ts + EMAIL_CODE_EXPIRES_SECONDS
+        session['admin_passkey_email_code_failures'] = 0
+        session['admin_passkey_email_resend_at'] = now_ts + EMAIL_CODE_RESEND_COOLDOWN_SECONDS
+        return jsonify({
+            'success': True, 'message': '验证码已发送。',
+            'email_masked': _mask_email_address(user.get('email', '')),
+            'resend_after': EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
+        })
+
+    @app.route('/api/admin/account/passkeys/confirm/email/verify', methods=['POST'])
+    @login_required
+    def admin_passkey_confirm_email_verify():
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        code = str((request.get_json(silent=True) or {}).get('code', '') or '').strip()
+        username = _normalize_username(session.get('admin_username', ''))
+        now_ts = int(time.time())
+        failures = int(session.get('admin_passkey_email_code_failures', 0) or 0)
+        expected = str(session.get('admin_passkey_email_code_hash', '') or '')
+        salt = str(session.get('admin_passkey_email_code_salt', '') or '')
+        expires_at = int(session.get('admin_passkey_email_code_expires_at', 0) or 0)
+        if not code or not expected or expires_at < now_ts or failures >= EMAIL_CODE_MAX_VERIFY_FAILURES:
+            return jsonify({'success': False, 'message': '验证码已失效，请重新发送。'}), 400
+        if not secrets.compare_digest(expected, _email_code_hash(code, salt)):
+            session['admin_passkey_email_code_failures'] = failures + 1
+            return jsonify({'success': False, 'message': '验证码错误。'}), 400
+        for key in ('admin_passkey_email_code_hash', 'admin_passkey_email_code_salt',
+                    'admin_passkey_email_code_expires_at', 'admin_passkey_email_code_failures'):
+            session.pop(key, None)
+        _set_passkey_step_up(username)
+        return jsonify({'success': True, 'message': '安全验证通过。', 'valid_for': 600})
+
+    @app.route('/api/admin/account/passkeys/verify/options', methods=['POST'])
+    @login_required
+    def admin_passkey_step_up_options():
+        if not passkey_config.enabled:
+            return _passkey_unavailable_response()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        username = _normalize_username(session.get('admin_username', ''))
+        if not passkey_store.check_rate_limit(_get_request_ip(request)):
+            return jsonify({'success': False, 'message': '请求过于频繁，请稍后再试。'}), 429
+        ids = passkey_store.credential_ids(username)
+        if not ids:
+            return jsonify({'success': False, 'message': '当前账号尚未绑定 Passkey，请使用邮箱验证码。'}), 400
+        try:
+            from webauthn import generate_authentication_options
+            from webauthn.helpers.structs import PublicKeyCredentialDescriptor, UserVerificationRequirement
+            options = generate_authentication_options(
+                rp_id=passkey_config.rp_id,
+                allow_credentials=[PublicKeyCredentialDescriptor(id=item) for item in ids],
+                user_verification=UserVerificationRequirement.REQUIRED,
+                timeout=60000,
+            )
+            request_id = passkey_store.create_challenge(
+                'step_up', options.challenge, _passkey_session_binding(), username
+            )
+            return _passkey_options_payload(options, request_id)
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'无法发起安全验证：{exc}'}), 500
+
+    @app.route('/api/admin/account/passkeys/verify', methods=['POST'])
+    @login_required
+    def admin_passkey_step_up_verify():
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        credential = data.get('credential') if isinstance(data.get('credential'), dict) else {}
+        credential_id = str(credential.get('id', '') or '').strip()
+        request_id = str(data.get('request_id', '') or '').strip()
+        username = _normalize_username(session.get('admin_username', ''))
+        try:
+            challenge = passkey_store.load_challenge(
+                request_id, 'step_up', _passkey_session_binding(), username
+            )
+            stored = passkey_store.get_credential(credential_id)
+            if not stored or _normalize_username(stored.get('username', '')) != username:
+                raise ValueError('Passkey 不属于当前账号')
+            from webauthn import verify_authentication_response
+            verification = verify_authentication_response(
+                credential=credential, expected_challenge=challenge,
+                expected_rp_id=passkey_config.rp_id, expected_origin=passkey_config.origin,
+                credential_public_key=bytes(stored['public_key']),
+                credential_current_sign_count=int(stored.get('sign_count', 0) or 0),
+                require_user_verification=True,
+            )
+            passkey_store.update_usage(credential_id, verification.new_sign_count, _get_request_ip(request),
+                                       bool(getattr(verification, 'credential_backed_up', stored.get('backup_state', False))))
+            passkey_store.consume_challenge(request_id)
+            _set_passkey_step_up(username)
+            return jsonify({'success': True, 'message': '安全验证通过。', 'valid_for': 600})
+        except Exception as exc:
+            app.logger.warning('Passkey 二次验证失败 [%s]：%s', credential_id[:12], exc)
+            return jsonify({'success': False, 'message': 'Passkey 安全验证失败。'}), 401
+
+    @app.route('/api/admin/account/passkeys', methods=['GET'])
+    @login_required
+    def admin_passkeys_list():
+        if not passkey_config.enabled:
+            return _passkey_unavailable_response()
+        username = _normalize_username(session.get('admin_username', ''))
+        items = passkey_store.list_credentials(username)
+        return jsonify({'success': True, 'items': items, 'count': len(items),
+                        'max_credentials': passkey_config.max_credentials_per_user,
+                        'step_up_valid': _passkey_step_up_valid(username)})
+
+    @app.route('/api/admin/account/passkeys/register/options', methods=['POST'])
+    @login_required
+    def admin_passkey_register_options():
+        if not passkey_config.enabled:
+            return _passkey_unavailable_response()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        username = _normalize_username(session.get('admin_username', ''))
+        if not passkey_store.check_rate_limit(_get_request_ip(request)):
+            return jsonify({'success': False, 'message': '请求过于频繁，请稍后再试。'}), 429
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            user, _ = _find_user(users_data, username)
+        if user is None or not bool(user.get('enabled', True)) or not _has_verified_email(user):
+            return jsonify({'success': False, 'message': '账号必须先绑定并验证安全邮箱。'}), 400
+        if not _passkey_step_up_valid(username):
+            method = 'passkey' if passkey_store.count_credentials(username) else 'email'
+            return jsonify({'success': False, 'requires_step_up': True, 'step_up_method': method,
+                            'message': '添加 Passkey 前需要完成安全验证。'}), 403
+        try:
+            from webauthn import generate_registration_options
+            from webauthn.helpers.structs import (
+                AuthenticatorSelectionCriteria, PublicKeyCredentialDescriptor,
+                ResidentKeyRequirement, UserVerificationRequirement,
+            )
+            user_handle = passkey_store.get_or_create_user_handle(username)
+            ids = passkey_store.credential_ids(username)
+            options = generate_registration_options(
+                rp_id=passkey_config.rp_id, rp_name=passkey_config.rp_name,
+                user_id=user_handle, user_name=username, user_display_name=username,
+                exclude_credentials=[PublicKeyCredentialDescriptor(id=item) for item in ids],
+                authenticator_selection=AuthenticatorSelectionCriteria(
+                    resident_key=ResidentKeyRequirement.REQUIRED,
+                    user_verification=UserVerificationRequirement.REQUIRED,
+                ),
+                timeout=60000,
+            )
+            request_id = passkey_store.create_challenge(
+                'register', options.challenge, _passkey_session_binding(), username
+            )
+            return _passkey_options_payload(options, request_id)
+        except Exception as exc:
+            return jsonify({'success': False, 'message': f'无法发起 Passkey 注册：{exc}'}), 500
+
+    @app.route('/api/admin/account/passkeys/register/verify', methods=['POST'])
+    @login_required
+    def admin_passkey_register_verify():
+        if not passkey_config.enabled:
+            return _passkey_unavailable_response()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        data = request.get_json(silent=True) or {}
+        credential = data.get('credential') if isinstance(data.get('credential'), dict) else {}
+        request_id = str(data.get('request_id', '') or '').strip()
+        username = _normalize_username(session.get('admin_username', ''))
+        try:
+            device_name = _passkey_device_name(data.get('device_name'))
+            if not _passkey_step_up_valid(username):
+                raise ValueError('安全验证已过期')
+            challenge = passkey_store.load_challenge(
+                request_id, 'register', _passkey_session_binding(), username
+            )
+            from webauthn import verify_registration_response
+            verification = verify_registration_response(
+                credential=credential, expected_challenge=challenge,
+                expected_rp_id=passkey_config.rp_id, expected_origin=passkey_config.origin,
+                require_user_verification=True,
+            )
+            response_data = credential.get('response') if isinstance(credential.get('response'), dict) else {}
+            transports = response_data.get('transports') if isinstance(response_data.get('transports'), list) else []
+            user_handle = passkey_store.get_or_create_user_handle(username)
+            passkey_store.add_credential(
+                credential_id=verification.credential_id, username=username, user_handle=user_handle,
+                public_key=verification.credential_public_key, sign_count=verification.sign_count,
+                transports=transports,
+                backup_eligible=(getattr(getattr(verification, 'credential_device_type', None), 'value', '') == 'multi_device'),
+                backup_state=bool(getattr(verification, 'credential_backed_up', False)),
+                device_name=device_name,
+            )
+            passkey_store.consume_challenge(request_id)
+            append_admin_login_log(operation='passkey_manage', success=True, username=username,
+                                   detail=f'添加 Passkey：{device_name}', hidden_account=_is_hidden_admin_session(session))
+            return jsonify({'success': True, 'message': 'Passkey 添加成功。'})
+        except Exception as exc:
+            app.logger.warning('Passkey 注册验证失败：%s', exc)
+            return jsonify({'success': False, 'message': f'Passkey 添加失败：{exc}'}), 400
+
+    @app.route('/api/admin/account/passkeys/<credential_id>', methods=['PATCH'])
+    @login_required
+    def admin_passkey_rename(credential_id):
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        username = _normalize_username(session.get('admin_username', ''))
+        try:
+            name = _passkey_device_name((request.get_json(silent=True) or {}).get('device_name'))
+        except ValueError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 400
+        if not passkey_store.rename_credential(username, credential_id, name):
+            return jsonify({'success': False, 'message': '未找到该 Passkey。'}), 404
+        return jsonify({'success': True, 'message': '设备名称已更新。'})
+
+    @app.route('/api/admin/account/passkeys/<credential_id>', methods=['DELETE'])
+    @login_required
+    def admin_passkey_revoke(credential_id):
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        username = _normalize_username(session.get('admin_username', ''))
+        if not _passkey_step_up_valid(username):
+            return jsonify({'success': False, 'requires_step_up': True, 'message': '移除 Passkey 前需要安全验证。'}), 403
+        if not passkey_store.revoke_credential(username, credential_id, username):
+            return jsonify({'success': False, 'message': '未找到该 Passkey。'}), 404
+        append_admin_login_log(operation='passkey_manage', success=True, username=username,
+                               detail=f'移除 Passkey：{credential_id[:8]}', hidden_account=_is_hidden_admin_session(session))
+        return jsonify({'success': True, 'message': 'Passkey 已移除。'})
+
+    @app.route('/api/admin/subaccounts/<username>/passkeys', methods=['GET'])
+    @login_required
+    def admin_subaccount_passkeys(username):
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        target = _normalize_username(username)
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            target_user, _ = _find_user(users_data, target)
+        if target_user is None or _is_hidden_admin_record(target_user) or str(target_user.get('role')) == 'super_admin':
+            return _hidden_admin_not_found_response()
+        items = passkey_store.list_credentials(target) if passkey_config.enabled else []
+        return jsonify({'success': True, 'username': target, 'items': items, 'count': len(items)})
+
+    @app.route('/api/admin/subaccounts/<username>/passkeys/<credential_id>', methods=['DELETE'])
+    @login_required
+    def admin_subaccount_passkey_revoke(username, credential_id):
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        actor = _normalize_username(session.get('admin_username', ''))
+        if not _passkey_step_up_valid(actor):
+            return jsonify({'success': False, 'requires_step_up': True, 'message': '强制吊销前需要安全验证。'}), 403
+        target = _normalize_username(username)
+        if not passkey_store.revoke_credential(target, credential_id, actor):
+            return jsonify({'success': False, 'message': '未找到该 Passkey。'}), 404
+        append_admin_login_log(operation='passkey_manage', success=True, username=actor,
+                               detail=f'强制移除子账号 {target} 的 Passkey：{credential_id[:8]}',
+                               hidden_account=_is_hidden_admin_session(session))
+        return jsonify({'success': True, 'message': '子账号 Passkey 已吊销。'})
+
+    @app.route('/api/admin/subaccounts/<username>/passkeys', methods=['DELETE'])
+    @login_required
+    def admin_subaccount_passkeys_revoke_all(username):
+        if not _is_super_admin_session(session):
+            return _forbidden_subaccount_manage()
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        actor = _normalize_username(session.get('admin_username', ''))
+        if not _passkey_step_up_valid(actor):
+            return jsonify({'success': False, 'requires_step_up': True, 'message': '强制吊销前需要安全验证。'}), 403
+        target = _normalize_username(username)
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            target_user, _ = _find_user(users_data, target)
+        if target_user is None or _is_hidden_admin_record(target_user) or str(target_user.get('role')) == 'super_admin':
+            return _hidden_admin_not_found_response()
+        count = passkey_store.revoke_all(target, actor)
+        append_admin_login_log(operation='passkey_manage', success=True, username=actor,
+                               detail=f'强制移除子账号 {target} 的全部 Passkey（{count} 个）',
+                               hidden_account=_is_hidden_admin_session(session))
+        return jsonify({'success': True, 'message': f'已吊销 {count} 个 Passkey。', 'revoked_count': count})
 
     def _perform_login_start():
         data = request.form if request.form else request.get_json(silent=True) or {}
@@ -2965,199 +3555,6 @@ def register_admin_routes(
     @app.route('/admin/login', methods=['POST'])
     def admin_login():
         return _perform_login_start()
-        """Handle admin login."""
-        data = request.form if request.form else request.get_json(silent=True) or {}
-        username = str(data.get('username', '') or '').strip()
-        password = str(data.get('password', '') or '')
-        turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
-        ip_addr = _get_request_ip(request)
-        now_ts = int(time.time())
-        root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
-        attempts_file = _get_login_attempts_file(root)
-        config = get_config() or {}
-        geo_settings = normalize_admin_login_geo_settings(config)
-        turnstile_settings = _get_turnstile_settings(config)
-
-        with ADMIN_USERS_LOCK:
-            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
-            login_user, _ = _find_user(users_data, username)
-            if login_user is not None:
-                login_user = dict(login_user)
-
-        is_hidden_admin = _is_hidden_admin_record(login_user)
-
-        country_allowed, country_reason = _is_ip_country_allowed(
-            ip_addr, geo_settings, _resolve_ip_country_code
-        )
-        if not country_allowed:
-            append_admin_login_log(
-                operation='admin_login',
-                success=False,
-                username=username,
-                detail=country_reason,
-                hidden_account=is_hidden_admin,
-            )
-            return jsonify({'success': False, 'message': country_reason}), 403
-
-        turnstile_ok = True
-        turnstile_fail_reason = ''
-        if turnstile_settings['enabled']:
-            if not turnstile_token:
-                turnstile_ok = False
-                turnstile_fail_reason = '请先完成人机验证。'
-            else:
-                turnstile_ok, detail = _verify_turnstile_token(
-                    secret_key=turnstile_settings['secret_key'],
-                    token=turnstile_token,
-                    remote_ip=ip_addr,
-                    proxy_url=turnstile_settings.get('proxy_url', ''),
-                    proxy_fallback_enabled=turnstile_settings.get('proxy_fallback_enabled', False),
-                )
-                if not turnstile_ok:
-                    turnstile_fail_reason = detail or '人机验证失败，请重试。'
-
-        user_enabled = bool(login_user and login_user.get('enabled', True))
-        user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
-        password_ok = bool(login_user) and user_enabled and _verify_password(user_password_hash, password)
-        credentials_ok = bool(turnstile_ok and password_ok)
-
-        is_super_admin = bool((login_user or {}).get('role') == 'super_admin')
-        user_permissions = _normalize_permissions((login_user or {}).get('permissions', []), is_super_admin=is_super_admin)
-        login_username = _normalize_username((login_user or {}).get('username', '') or username)
-
-        if not username and not password:
-            fail_reason = '用户名和密码不能为空。'
-        elif not username:
-            fail_reason = '请输入用户名。'
-        elif not password:
-            fail_reason = '请输入密码。'
-        elif turnstile_settings['enabled'] and not turnstile_ok:
-            fail_reason = turnstile_fail_reason or '人机验证失败，请重试。'
-        elif login_user and not user_enabled:
-            fail_reason = '该账号已被停用，请联系管理员。'
-        else:
-            fail_reason = '用户名或密码错误。'
-
-        failed_payload = None
-        failed_status = 401
-        failed_detail = ''
-
-        with LOGIN_ATTEMPTS_LOCK:
-            attempts_state = _load_login_attempts(attempts_file)
-            _prune_login_attempts(attempts_state, now_ts)
-            ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
-            blocked_until = int(ip_item.get('blocked_until', 0) or 0) if isinstance(ip_item, dict) else 0
-            delay_seconds = _get_login_delay_seconds(attempts_state, ip_addr, now_ts)
-
-            if blocked_until > now_ts:
-                _save_login_attempts(attempts_file, attempts_state)
-                blocked_at = _format_blocked_until(blocked_until)
-                failed_payload = {
-                    'success': False,
-                    'message': f'当前登录 IP 已被封禁至 {blocked_at}，请稍后再试。'
-                }
-                failed_status = 429
-                failed_detail = f'IP 已封禁至 {blocked_at or blocked_until}'
-            elif delay_seconds > 0:
-                delay_minutes = delay_seconds // 60
-                delay_secs = delay_seconds % 60
-                if delay_minutes > 0:
-                    wait_hint = f'{delay_minutes}m {delay_secs}s'
-                else:
-                    wait_hint = f'{delay_secs}s'
-                failed_payload = {
-                    'success': False,
-                    'message': f'失败次数过多，请等待 {wait_hint} 后再试。'
-                }
-                failed_status = 429
-                failed_detail = f'登录已触发延迟保护，等待 {wait_hint}'
-                _save_login_attempts(attempts_file, attempts_state)
-            elif credentials_ok:
-                _reset_login_attempts_for_ip(attempts_state, ip_addr)
-                _save_login_attempts(attempts_file, attempts_state)
-            else:
-                is_blocked_now, blocked_until, remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
-                if not is_blocked_now:
-                    _set_login_delay(attempts_state, ip_addr, now_ts)
-                _save_login_attempts(attempts_file, attempts_state)
-                if is_blocked_now:
-                    blocked_at = _format_blocked_until(blocked_until)
-                    failed_payload = {
-                        'success': False,
-                        'message': f'{fail_reason} 同一 IP 在 12 小时内失败达到 {LOGIN_FAIL_LIMIT} 次，已封禁至 {blocked_at}。'
-                    }
-                    failed_status = 429
-                    failed_detail = f'{fail_reason}；已封禁至 {blocked_at or blocked_until}'
-                else:
-                    fail_count = remaining - 1
-                    if fail_count > 0:
-                        fail_payload_msg = f'{fail_reason} 已触发保护延迟，请稍后再试。'
-                    else:
-                        fail_payload_msg = f'{fail_reason} 已触发保护延迟，请等待 3 分钟后再试。'
-                    failed_payload = {
-                        'success': False,
-                        'message': fail_payload_msg
-                    }
-                    failed_status = 400 if fail_reason != '用户名或密码错误。' else 401
-                    failed_detail = f'{fail_reason}；已失败 {fail_count + 1} 次，已触发延迟保护'
-
-        if failed_payload is not None:
-            append_admin_login_log(
-                operation='admin_login',
-                success=False,
-                username=username,
-                detail=failed_detail,
-                hidden_account=is_hidden_admin,
-            )
-            return jsonify(failed_payload), failed_status
-
-        session.clear()
-        session['admin_logged_in'] = True
-        session['admin_username'] = login_username
-        session['admin_is_super_admin'] = bool(is_super_admin)
-        session['admin_is_hidden'] = bool(is_hidden_admin)
-        session['admin_permissions'] = list(user_permissions)
-        session['admin_login_at'] = now_ts
-        session['admin_last_active_at'] = now_ts
-        session['admin_session_ttl'] = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
-        session['admin_session_absolute_ttl'] = ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS
-        session['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
-
-        prev_last_login_at = ''
-        prev_last_login_ip = ''
-        current_login_at = now_beijing().isoformat(timespec='seconds')
-        with ADMIN_USERS_LOCK:
-            users_data, users_file = _ensure_admin_users_store(root, get_config, update_config)
-            user_ref, idx = _find_user(users_data, login_username)
-            if user_ref is not None and idx >= 0:
-                user_ref = dict(user_ref)
-                prev_last_login_at = str(user_ref.get('last_login_at', '') or '').strip()
-                prev_last_login_ip = str(user_ref.get('last_login_ip', '') or '').strip()
-                user_ref['last_login_at'] = current_login_at
-                user_ref['last_login_ip'] = ip_addr
-                user_ref['updated_at'] = current_login_at
-                users_data['users'][idx] = user_ref
-                _save_admin_users(users_file, users_data)
-        session['admin_previous_login_at'] = prev_last_login_at
-        session['admin_previous_login_ip'] = prev_last_login_ip
-        session['admin_current_login_at'] = current_login_at
-        session['admin_current_login_ip'] = ip_addr
-
-        append_admin_login_log(
-            operation='admin_login',
-            success=True,
-            username=login_username,
-            detail=('凭据校验通过；人机验证通过' if turnstile_settings['enabled'] else '凭据校验通过')
-            + ('; role: super_admin' if is_super_admin else '; role: sub_admin'),
-            hidden_account=is_hidden_admin,
-        )
-        return jsonify({
-            'success': True,
-            'last_login_at': prev_last_login_at,
-            'last_login_ip': prev_last_login_ip,
-            'current_login_at': current_login_at,
-            'current_login_ip': ip_addr,
-        })
     @app.route('/admin/change-password', methods=['POST'])
     @login_required
     def change_password():
@@ -3251,8 +3648,13 @@ def register_admin_routes(
             if config_updates:
                 update_config(config_updates)
 
+        if passkey_config.enabled and current_admin != new_username:
+            passkey_store.rename_user(current_admin, new_username)
+
         session['admin_username'] = new_username
         session['admin_is_hidden'] = bool(current_is_hidden)
+        session.pop('admin_passkey_step_up_username', None)
+        session.pop('admin_passkey_step_up_until', None)
         append_admin_login_log(
             operation='admin_profile_update',
             success=True,
@@ -3285,6 +3687,12 @@ def register_admin_routes(
             users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
             users = users_data.get('users', [])
             items = [_public_user_profile(user) for user in users if str(user.get('role') or '') != 'super_admin']
+        if passkey_config.enabled:
+            for item in items:
+                item['passkey_count'] = passkey_store.count_credentials(item.get('username', ''))
+        else:
+            for item in items:
+                item['passkey_count'] = 0
         return jsonify({
             'success': True,
             'items': items,
@@ -3394,6 +3802,9 @@ def register_admin_routes(
             users_data['users'][idx] = _sanitize_user_record(updated, fallback_username=target_name, is_super_admin=False)
             _save_admin_users(users_file, users_data)
 
+        if passkey_config.enabled and not enabled:
+            passkey_store.revoke_all(target_name, _normalize_username(session.get('admin_username', '')))
+
         append_admin_login_log(
             operation='subaccount_manage',
             success=True,
@@ -3430,6 +3841,9 @@ def register_admin_routes(
             users.pop(idx)
             users_data['users'] = users
             _save_admin_users(users_file, users_data)
+
+        if passkey_config.enabled:
+            passkey_store.revoke_all(target_name, _normalize_username(session.get('admin_username', '')))
 
         append_admin_login_log(
             operation='subaccount_manage',

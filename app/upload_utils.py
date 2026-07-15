@@ -6,10 +6,6 @@
 
 主要功能：
 1. MIME类型推断（infer_*_extension_from_mime系列函数）
-   - infer_extension_from_mime: 通用文件扩展名推断
-   - infer_partner_extension_from_mime: 合作伙伴Logo扩展名推断
-   - infer_h2_home_video_extension_from_mime: 氢气首页视频扩展名推断
-   - infer_product_card_extension_from_mime: 产品卡片图片扩展名推断
    - infer_news_image_extension_from_mime: 新闻图片扩展名推断
    - infer_ai_product_image_extension_from_mime: AI产品图片扩展名推断
 
@@ -84,46 +80,6 @@ DEFAULT_AI_PRODUCT_IMAGE_EXTENSIONS = {
     '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif',
     '.tif', '.tiff', '.avif', '.heic', '.heif',
 }
-
-
-def infer_extension_from_mime(mime: str) -> str:
-    if mime == 'image/png':
-        return '.png'
-    if mime == 'image/jpeg':
-        return '.jpg'
-    if mime == 'video/mp4':
-        return '.mp4'
-    return ''
-
-
-def infer_partner_extension_from_mime(mime: str) -> str:
-    if mime == 'image/png':
-        return '.png'
-    if mime == 'image/jpeg':
-        return '.jpg'
-    if mime == 'image/webp':
-        return '.webp'
-    return ''
-
-
-def infer_h2_home_video_extension_from_mime(mime: str) -> str:
-    if mime == 'video/mp4':
-        return '.mp4'
-    if mime == 'video/webm':
-        return '.webm'
-    if mime == 'video/ogg':
-        return '.ogv'
-    return ''
-
-
-def infer_product_card_extension_from_mime(mime: str) -> str:
-    if mime == 'image/png':
-        return '.png'
-    if mime == 'image/jpeg':
-        return '.jpg'
-    if mime == 'image/webp':
-        return '.webp'
-    return ''
 
 
 def infer_news_image_extension_from_mime(mime: str) -> str:

@@ -2,5 +2,448 @@
   "consultButton": {
     "phoneVisible": true,
     "phoneText": "18807329836/13974993326"
+  },
+  "../biosensing/blood_potassium_chip": {
+    "seoTitle": "便携式血钾检测芯片｜生物传感 - 元芯传感",
+    "seoDescription": "便携式血钾检测芯片，采用离子敏感场效应晶体管检测方法，在体外诊断行业为国内首创，开启床旁快速血钾检测新时代。",
+    "sku": "BLOOD-POTASSIUM-CHIP",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "生物传感芯片",
+    "imageAlt": "便携式血钾检测芯片生物传感芯片",
+    "imageTitle": "便携式血钾检测芯片",
+    "imageCaption": "便携式血钾检测芯片，采用离子敏感场效应晶体管检测方法，在体外诊断行业为国内首创，开启床旁快速血钾检测新时代",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "检测范围",
+        "value": "100 μM - 100 mM"
+      },
+      {
+        "name": "检测对象",
+        "value": "血清 / 尿液 / 脑脊液"
+      },
+      {
+        "name": "响应时间",
+        "value": "＜ 60 秒"
+      },
+      {
+        "name": "准确度",
+        "value": "≤ 5%"
+      },
+      {
+        "name": "精密度",
+        "value": "≤ 5%"
+      },
+      {
+        "name": "工作温度",
+        "value": "10℃ - 40℃"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "35mm * 10mm * 5mm"
+      }
+    ]
+  },
+  "../biosensing/carbon_bio_package_chip": {
+    "seoTitle": "MC-PB系列 碳基生物封装芯片｜生物传感 - 元芯传感",
+    "seoDescription": "MC-PB系列 碳基生物封装芯片，采用先进碳基场效应晶体管传感原理，开启微小生物信号数字化即时检测新篇章。",
+    "sku": "MC-PB系列",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "生物传感芯片",
+    "imageAlt": "MC-PB系列 碳基生物封装芯片生物传感芯片",
+    "imageTitle": "MC-PB系列 碳基生物封装芯片",
+    "imageCaption": "MC-PB系列 碳基生物封装芯片，采用先进碳基场效应晶体管传感原理，开启微小生物信号数字化即时检测新篇章",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-PB系列"
+      },
+      {
+        "name": "传感器原理",
+        "value": "碳基场效应 (Carbon-FET)"
+      },
+      {
+        "name": "检测对象",
+        "value": "蛋白质 / 核酸 / 极性生物分子"
+      },
+      {
+        "name": "响应时间",
+        "value": "＜ 60 秒 (常规样本)"
+      },
+      {
+        "name": "检测限 (LOD)",
+        "value": "＜ 1 fM (飞摩)"
+      },
+      {
+        "name": "工作偏压",
+        "value": "﹣0.1V DC (典型值)"
+      },
+      {
+        "name": "工作环境",
+        "value": "生物离子液体 / 缓冲液"
+      },
+      {
+        "name": "工作温度",
+        "value": "10℃ ~ 40℃"
+      },
+      {
+        "name": "芯片尺寸",
+        "value": "35mm * 10mm * 5mm (标准封装)"
+      }
+    ]
+  },
+  "../biosensing/carbon_bio_platform": {
+    "seoTitle": "碳基生物传感平台｜生物传感 - 元芯传感",
+    "seoDescription": "碳基生物传感平台，基于碳基场效应晶体管 (Carbon-FET) 技术构建的通用型生物分子互作分析与检测平台。",
+    "sku": "CARBON-BIO-PLATFORM",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "传感平台",
+    "imageAlt": "碳基生物传感平台",
+    "imageTitle": "碳基生物传感平台",
+    "imageCaption": "碳基生物传感平台，基于碳基场效应晶体管 (Carbon-FET) 技术构建的通用型生物分子互作分析与检测平台",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "检测原理",
+        "value": "碳基场效应晶体管 (Carbon-FET)"
+      },
+      {
+        "name": "晶圆尺寸",
+        "value": "4 英寸 (标准工艺线)"
+      },
+      {
+        "name": "开态电流变异系数",
+        "value": "≤ 15% (高均一性)"
+      },
+      {
+        "name": "开关比",
+        "value": "＞ 10⁵ (高信噪比)"
+      },
+      {
+        "name": "通道数量 (MCB-UPL)",
+        "value": "22 个检测通道"
+      },
+      {
+        "name": "单元尺寸 (MCB-UPL)",
+        "value": "10mm * 10mm"
+      },
+      {
+        "name": "通道数量 (MCB-USP)",
+        "value": "8 个检测通道"
+      },
+      {
+        "name": "单元尺寸 (MCB-USP)",
+        "value": "3.5mm * 3.5mm"
+      }
+    ]
+  },
+  "../biosensing/chlorine_detection_chip": {
+    "seoTitle": "余氯检测芯片｜生物传感 - 元芯传感",
+    "seoDescription": "余氯检测芯片，基于微纳加工工艺与电化学原理的创新型水质监测核心器件，为智慧水务提供高可靠性数据支撑。",
+    "sku": "CHLORINE-DETECTION-CHIP",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "生物传感芯片",
+    "imageAlt": "余氯检测芯片生物传感芯片",
+    "imageTitle": "余氯检测芯片",
+    "imageCaption": "余氯检测芯片，基于微纳加工工艺与电化学原理的创新型水质监测核心器件，为智慧水务提供高可靠性数据支撑",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "检测范围",
+        "value": "0 - 20 mg/L"
+      },
+      {
+        "name": "分辨率",
+        "value": "0.01 mg/L"
+      },
+      {
+        "name": "pH 适用范围",
+        "value": "4 - 9"
+      },
+      {
+        "name": "响应时间",
+        "value": "＜ 30 s"
+      },
+      {
+        "name": "一致性",
+        "value": "≤ 5%"
+      },
+      {
+        "name": "重复性",
+        "value": "≤ 1%"
+      },
+      {
+        "name": "工作温度",
+        "value": "0℃ - 50℃"
+      },
+      {
+        "name": "耐压等级",
+        "value": "常压"
+      },
+      {
+        "name": "产品尺寸",
+        "value": "6mm * 4mm"
+      }
+    ]
+  },
+  "../biosensing/custom_bio_sensor_chip": {
+    "seoTitle": "生物传感芯片定制服务｜生物传感 - 元芯传感",
+    "seoDescription": "生物传感芯片定制服务，基于碳基/氧化物半导体 MEMS 平台，为您提供从芯片结构设计、表面修饰到封装测试的一站式定制解决方案。",
+    "sku": "CUSTOM-BIO-SENSOR-CHIP",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "生物传感芯片",
+    "imageAlt": "生物传感芯片定制服务",
+    "imageTitle": "生物传感芯片定制服务",
+    "imageCaption": "生物传感芯片定制服务，基于碳基/氧化物半导体 MEMS 平台，为您提供从芯片结构设计、表面修饰到封装测试的一站式定制解决方案",
+    "indexable": true,
+    "technicalProperties": []
+  },
+  "../biosensing/igzo_device": {
+    "seoTitle": "IGZO器件｜生物传感 - 元芯传感",
+    "seoDescription": "IGZO器件，采用非晶氧化铟镓锌 (a-IGZO) 薄膜晶体管技术的通用型底栅结构传感器件，兼具卓越电学性能与工艺稳定性。",
+    "sku": "IGZO-DEVICE",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "半导体器件",
+    "imageAlt": "IGZO器件半导体器件",
+    "imageTitle": "IGZO器件",
+    "imageCaption": "IGZO器件，采用非晶氧化铟镓锌 (a-IGZO) 薄膜晶体管技术的通用型底栅结构传感器件，兼具卓越电学性能与工艺稳定性",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "沟道材料",
+        "value": "IGZO (Indium Gallium Zinc Oxide)"
+      },
+      {
+        "name": "晶圆尺寸",
+        "value": "4 英寸"
+      },
+      {
+        "name": "开关比 (On/Off Ratio)",
+        "value": "＞ 10⁶"
+      },
+      {
+        "name": "开态电流变异系数",
+        "value": "＜ 5%"
+      },
+      {
+        "name": "电子迁移率",
+        "value": "10 ~ 16 cm²/(V·s)"
+      },
+      {
+        "name": "工艺良率",
+        "value": "≈ 100% (连续批次验证)"
+      }
+    ]
+  },
+  "../biosensing/ion_detector": {
+    "seoTitle": "离子检测仪｜生物传感 - 元芯传感",
+    "seoDescription": "元芯传感离子检测仪能够进行现场实时分析，实现钠、钾、铅、氢等离子的快速检测。",
+    "sku": "ION-DETECTOR",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检测仪",
+    "imageAlt": "离子检测仪气体检测仪",
+    "imageTitle": "离子检测仪",
+    "imageCaption": "元芯传感离子检测仪能够进行现场实时分析，实现钠、钾、铅、氢等离子的快速检测",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "显示类型",
+        "value": "彩色触控屏"
+      },
+      {
+        "name": "通道数目",
+        "value": "8通道同步检测"
+      },
+      {
+        "name": "检测对象",
+        "value": "钠、钾、铅、氢等离子"
+      },
+      {
+        "name": "数据交互接口",
+        "value": "Type-C"
+      },
+      {
+        "name": "通信方式",
+        "value": "蓝牙通信"
+      },
+      {
+        "name": "供电方式",
+        "value": "5000mAh 锂电池"
+      },
+      {
+        "name": "操作语言",
+        "value": "中文"
+      },
+      {
+        "name": "支持器件",
+        "value": "场效应管 (FET)"
+      },
+      {
+        "name": "采样电流",
+        "value": "1nA - 30μA"
+      }
+    ]
+  },
+  "../biosensing/mc_bw_bio_workstation": {
+    "seoTitle": "MC-BW-01 生物传感工作站｜生物传感 - 元芯传感",
+    "seoDescription": "MC-BW-01 生物传感工作站，新一代便携式医疗诊断系统，助力实现多种生物标志物的分钟级精准定量测量。",
+    "sku": "MC-BW-01",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "生物传感工作站",
+    "imageAlt": "MC-BW-01 生物传感工作站",
+    "imageTitle": "MC-BW-01 生物传感工作站",
+    "imageCaption": "MC-BW-01 生物传感工作站，新一代便携式医疗诊断系统，助力实现多种生物标志物的分钟级精准定量测量",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "显示类型",
+        "value": "彩色工业级 TFT 液晶显示屏"
+      },
+      {
+        "name": "通道数目",
+        "value": "单通道 / 2~8 通道 (同步检测可选)"
+      },
+      {
+        "name": "信号交互接口",
+        "value": "定制快插生物芯片 / SMA / BNC 标准接口"
+      },
+      {
+        "name": "数据传输接口",
+        "value": "USB 2.0 / 蓝牙无线通讯"
+      },
+      {
+        "name": "系统配置",
+        "value": "高精度电压源 × 2，宽幅电流采样单元 × 1"
+      },
+      {
+        "name": "供电方式",
+        "value": "①电源适配器: 220V AC 50Hz ②内置锂电池: 8000 mAh (超长候机)"
+      },
+      {
+        "name": "操作语言",
+        "value": "中文简体 / English (多语可选)"
+      },
+      {
+        "name": "支持芯片类型",
+        "value": "生物场效应管 (Bio-FET) / 电化学传感器"
+      },
+      {
+        "name": "支持测试模块",
+        "value": "转移曲线、输出曲线、I-t 电流时间曲线"
+      },
+      {
+        "name": "电压输出范围",
+        "value": "A 源: -2.5V ~ 2.5V B 源: -2.5V ~ 2.5V"
+      },
+      {
+        "name": "电压调节精度",
+        "value": "1.5 mV"
+      },
+      {
+        "name": "电流采样范围",
+        "value": "100 pA ~ 100 μA"
+      },
+      {
+        "name": "数据保存格式",
+        "value": "CSV (标准表格), TXT (文本), PNG (波形图)"
+      }
+    ]
+  },
+  "../biosensing/portable_bio_detector": {
+    "seoTitle": "便携式手持生物检测仪｜生物传感 - 元芯传感",
+    "seoDescription": "便携式手持生物检测仪，便携式手持生物测试仪具备纳安级（nA）微弱电流测量能力，专为现场快速生化检测而设计。其体积小巧、携带方便，支持手持操作并实时查看测试数据的变化曲线。",
+    "sku": "PORTABLE-BIO-DETECTOR",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "气体检测仪",
+    "imageAlt": "便携式手持生物检测仪气体检测仪",
+    "imageTitle": "便携式手持生物检测仪",
+    "imageCaption": "便携式手持生物检测仪，便携式手持生物测试仪具备纳安级（nA）微弱电流测量能力，专为现场快速生化检测而设计。其体积小巧、携带方便，支持手持操作并实时查看测试数据的变化曲线",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "通道数目",
+        "value": "8通道 (支持单/多通道切换)"
+      },
+      {
+        "name": "信号交互接口",
+        "value": "快插式生物芯片接口"
+      },
+      {
+        "name": "系统配置",
+        "value": "双电压源 (-2.5V~2.5V) + 1 电流采样单元"
+      },
+      {
+        "name": "电源",
+        "value": "内置 3000mAh 锂电池"
+      },
+      {
+        "name": "通信方式",
+        "value": "低功耗蓝牙 (BLE)"
+      },
+      {
+        "name": "支持器件类型",
+        "value": "场效应管 (FET)"
+      },
+      {
+        "name": "测试模式",
+        "value": "I-t (电流-时间) 曲线"
+      },
+      {
+        "name": "电压输出精度",
+        "value": "1.5 mV"
+      },
+      {
+        "name": "电流采样范围",
+        "value": "100 pA ~ 2.5 μA"
+      }
+    ]
+  },
+  "../biosensing/respiratory_virus_chip": {
+    "seoTitle": "急性呼吸道病毒检测芯片｜生物传感 - 元芯传感",
+    "seoDescription": "急性呼吸道病毒检测芯片，基于浮栅型碳纳米管场效应晶体管 (CNT-FET) 的生物传感器芯片，无需扩增即可实现单病毒水平的超灵敏检测。",
+    "sku": "RESPIRATORY-VIRUS-CHIP",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "生物传感芯片",
+    "imageAlt": "急性呼吸道病毒检测芯片生物传感芯片",
+    "imageTitle": "急性呼吸道病毒检测芯片",
+    "imageCaption": "急性呼吸道病毒检测芯片，基于浮栅型碳纳米管场效应晶体管 (CNT-FET) 的生物传感器芯片，无需扩增即可实现单病毒水平的超灵敏检测",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "检测对象",
+        "value": "SARS-CoV-2 病毒抗原及 RNA"
+      },
+      {
+        "name": "样本类型",
+        "value": "鼻咽拭子"
+      },
+      {
+        "name": "阳性检出率",
+        "value": "100% (临床样本测试数据)"
+      },
+      {
+        "name": "响应时间",
+        "value": "＜ 60 s"
+      },
+      {
+        "name": "检测限 (抗原)",
+        "value": "1.45 ag/mL"
+      },
+      {
+        "name": "检测限 (RNA)",
+        "value": "0.05 copies/μL"
+      }
+    ]
   }
 }

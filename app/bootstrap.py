@@ -158,6 +158,11 @@ from app.routes.backup import register_backup_routes
 from app.routes.cdn_assets import register_cdn_assets_routes
 from app.routes.contact_messages import register_contact_message_routes
 from app.routes.home_content import get_hero_config, register_home_content_routes
+from app.routes.image_seo import (
+    get_image_asset,
+    get_indexable_images_for_page,
+    register_image_seo_routes,
+)
 from app.routes.jobs_content import clean_job_text, register_jobs_content_routes
 from app.routes.media_delivery import register_media_delivery_routes
 from app.routes.navigation_content import register_navigation_content_routes
@@ -318,6 +323,7 @@ def register_all_routes(app):
         project_root=APP_ROOT,
         resolve_ip_location=resolve_ip_location,
         resolve_ip_country_code=resolve_ip_country_code,
+        get_public_base_url=get_public_base_url,
     )
 
     register_home_content_routes(
@@ -375,6 +381,14 @@ def register_all_routes(app):
         cdn_assets_dir=CDN_ASSETS_DIR,
         allowed_product_card_extensions=ALLOWED_PRODUCT_CARD_EXTENSIONS,
         validate_uploaded_image_extension=validate_uploaded_image_extension,
+    )
+
+    register_image_seo_routes(
+        app,
+        login_required=login_required,
+        app_root=APP_ROOT,
+        data_dir=DATA_DIR,
+        is_same_origin_request=is_same_origin_request,
     )
 
     register_showcase_content_routes(
@@ -525,6 +539,8 @@ def register_all_routes(app):
         seo_section_descriptions=SEO_SECTION_DESCRIPTIONS,
         seo_breadcrumb_labels=SEO_BREADCRUMB_LABELS,
         seo_breadcrumb_targets=SEO_BREADCRUMB_TARGETS,
+        get_gassensing_products_with_settings=get_gassensing_products_with_settings,
+        get_biosensing_products_with_settings_data=get_biosensing_products_with_settings_data,
     )
 
     return app

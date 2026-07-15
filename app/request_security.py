@@ -34,20 +34,18 @@
 
 5. 防爬虫机制
    - 识别爬虫User-Agent特征
-   - 区分搜索引擎爬虫和恶意爬虫
    - 拦截私有路径上的爬虫访问
+   - 公开页面和静态资源不依据User-Agent做访问限制
    - 设置严格响应头防止爬虫索引
 
 6. 反爬虫守卫（register_strict_anti_crawl_guard）
-   - 在before_request钩子中拦截恶意爬虫
+   - 在before_request钩子中拦截爬虫访问私有路径
    - 保护/admin、/api/admin、/data/等私有路径
-   - 区分公开资源和私有资源
+   - 允许所有客户端抓取公开页面、CSS、JavaScript和媒体资源
 
 安全常量：
 - ANTI_CRAWL_STRICT_PRIVATE_PREFIXES: 需要保护的私有路径前缀
-- ANTI_CRAWL_RESOURCE_PREFIXES: 需要保护的资源路径前缀
 - ANTI_CRAWL_BOT_UA_KEYWORDS: 爬虫UA特征关键词
-- SEARCH_ENGINE_BOT_UA_KEYWORDS: 合法的搜索引擎爬虫
 - REMOTE_FETCH_BLOCKED_HOSTS: 禁止远程访问的主机列表
 
 配置选项：
@@ -72,11 +70,6 @@ ANTI_CRAWL_STRICT_PRIVATE_PREFIXES = (
     '/api/admin',
     '/data/',
     '/update_logs/',
-)
-ANTI_CRAWL_RESOURCE_PREFIXES = (
-    '/assets/',
-    '/cdn_assets/',
-    '/media/',
 )
 ANTI_CRAWL_BOT_UA_KEYWORDS = (
     'bot',
@@ -112,19 +105,6 @@ ANTI_CRAWL_BOT_UA_KEYWORDS = (
     'gptbot',
     'ccbot',
     'claudebot',
-)
-SEARCH_ENGINE_BOT_UA_KEYWORDS = (
-    'googlebot',
-    'bingbot',
-    'bingpreview',
-    'baiduspider',
-    'sogou',
-    '360spider',
-    'yandex',
-    'duckduckbot',
-    'slurp',
-    'bytespider',
-    'petalbot',
 )
 STRICT_ANTI_CRAWL_HEADERS = 'noindex, nofollow, noarchive, nosnippet, noimageindex'
 PUBLIC_HTML_CONTENT_SECURITY_POLICY = "base-uri 'self'; frame-ancestors 'self'; object-src 'none'"
@@ -493,11 +473,6 @@ def is_anti_crawl_strict_private_path(path_value: str) -> bool:
     return any(path_matches_prefix(path_text, item) for item in ANTI_CRAWL_STRICT_PRIVATE_PREFIXES)
 
 
-def is_anti_crawl_resource_path(path_value: str) -> bool:
-    path_text = str(path_value or '').strip() or '/'
-    return any(path_matches_prefix(path_text, item) for item in ANTI_CRAWL_RESOURCE_PREFIXES)
-
-
 def looks_like_crawler_ua(raw_ua: str) -> bool:
     ua = str(raw_ua or '').strip().lower()
     if not ua:
@@ -505,32 +480,16 @@ def looks_like_crawler_ua(raw_ua: str) -> bool:
     return any(keyword in ua for keyword in ANTI_CRAWL_BOT_UA_KEYWORDS)
 
 
-def is_allowed_search_engine_ua(raw_ua: str) -> bool:
-    ua = str(raw_ua or '').strip().lower()
-    if not ua:
-        return False
-    return any(keyword in ua for keyword in SEARCH_ENGINE_BOT_UA_KEYWORDS)
-
-
 def register_strict_anti_crawl_guard(app):
     @app.before_request
     def strict_anti_crawl_guard():
         """拦截私有路径上的明显爬虫，同时保留公开页面的 SEO 抓取能力。"""
         path = request.path or '/'
-        cdn_entry_request = str(request.headers.get('X-YX-CDN-Entry') or '').strip() == '1'
-        if cdn_entry_request and path_matches_prefix(path, '/cdn_assets/'):
-            return None
-
         ua = request.headers.get('User-Agent', '')
         if not looks_like_crawler_ua(ua):
             return None
 
         if is_anti_crawl_strict_private_path(path):
-            if path.startswith('/api/'):
-                return jsonify({'success': False, 'message': 'Forbidden'}), 403
-            return Response('Forbidden', status=403, mimetype='text/plain')
-
-        if is_anti_crawl_resource_path(path) and not is_allowed_search_engine_ua(ua):
             if path.startswith('/api/'):
                 return jsonify({'success': False, 'message': 'Forbidden'}), 403
             return Response('Forbidden', status=403, mimetype='text/plain')

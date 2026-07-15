@@ -11,7 +11,7 @@
   <title>湖南元芯传感科技 - 先进生物与化学传感技术解决方案</title>
 
   <!-- YX Style V2.0 -->
-  <link rel="stylesheet" href="assets/css/yx-style.css?v=20260708a" />
+  <link rel="stylesheet" href="assets/css/yx-style.css?v=20260715c" />
 
   <!-- Font Awesome (for icons) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -22,7 +22,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- AI Chatbot -->
-  <link rel="stylesheet" href="assets/css/chatbot.css?v=20260604i" />
+  <link rel="stylesheet" href="assets/css/chatbot.css?v=20260715c" />
 
   <!-- Site Search -->
   <link rel="stylesheet" href="assets/css/search.css" />
@@ -246,6 +246,36 @@
         display: block;
       }
 
+      @media (max-width: 768px) {
+        .vs-hero.is-mobile-fallback-compact {
+          display: block;
+          height: auto !important;
+          min-height: 0 !important;
+          padding-top: var(--header-height, 90px);
+        }
+
+        .vs-hero.is-mobile-fallback-compact .vs-hero__media {
+          position: relative;
+          top: auto;
+          height: auto;
+        }
+
+        .vs-hero.is-mobile-fallback-compact .hero-slide.is-active.uses-desktop-mobile-fallback {
+          position: relative;
+          height: auto;
+        }
+
+        .vs-hero.is-mobile-fallback-compact .hero-slide.is-active.uses-desktop-mobile-fallback picture,
+        .vs-hero.is-mobile-fallback-compact .hero-slide.is-active.uses-desktop-mobile-fallback img {
+          height: auto;
+        }
+
+        .hero-slide.uses-desktop-mobile-fallback img {
+          object-fit: contain;
+          object-position: center top;
+        }
+      }
+
       .hero-controls {
         position: absolute;
         left: 50%;
@@ -354,6 +384,7 @@
         let controls = null;
         let switching = false;
         let ctaButtonsVisible = true;
+        const mobileHeroQuery = window.matchMedia('(max-width: 768px)');
 
         function clearTimer() {
           if (timer) {
@@ -492,16 +523,40 @@
           return waitForImageReady(slide, timeoutMs);
         }
 
+        function resetMobileFallbackLayout() {
+          if (!heroSection) return;
+          heroSection.classList.remove('is-mobile-fallback-compact');
+        }
+
+        function updateMobileFallbackLayout(activeSlide) {
+          if (!heroSection || !mobileHeroQuery.matches
+            || !activeSlide || !activeSlide.classList.contains('uses-desktop-mobile-fallback')) {
+            resetMobileFallbackLayout();
+            return;
+          }
+
+          heroSection.classList.add('is-mobile-fallback-compact');
+        }
+
         function buildSlides(list) {
           container.innerHTML = '';
           list.forEach((item, index) => {
             const hasLink = !!(item.link_enabled && item.link_url);
+            const hasMobileSources = Array.isArray(item.mobile_sources)
+              && item.mobile_sources.some(sourceDef => sourceDef && sourceDef.srcset);
+            const usesDesktopMobileFallback = item.type === 'image'
+              && !item.mobile_url
+              && !item.mobile_fallback
+              && !hasMobileSources;
             const slide = document.createElement(hasLink ? 'a' : 'div');
             slide.className = 'hero-slide' + (index === 0 ? ' is-active' : '');
             slide.dataset.index = String(index);
             slide.dataset.type = item.type;
             slide.dataset.url = item.url;
             slide.__item = item;
+            if (usesDesktopMobileFallback) {
+              slide.classList.add('uses-desktop-mobile-fallback');
+            }
             if (hasLink) {
               slide.classList.add('has-link');
               slide.href = item.link_url;
@@ -526,6 +581,7 @@
 
           slides.forEach(slide => slide.classList.remove('is-active'));
           active.classList.add('is-active');
+          updateMobileFallbackLayout(active);
           updateHeroLinkVisualState(active);
 
           const type = active.dataset.type;
@@ -664,6 +720,13 @@
 
         document.addEventListener('DOMContentLoaded', () => {
           applyHeroCtaVisibility(ctaButtonsVisible);
+          window.setTimeout(() => {
+            updateMobileFallbackLayout(container.querySelector('.hero-slide.is-active'));
+          }, 300);
+        });
+
+        window.addEventListener('resize', () => {
+          updateMobileFallbackLayout(container.querySelector('.hero-slide.is-active'));
         });
 
         function startCarousel(config) {
@@ -1150,7 +1213,7 @@
   
 
   <!-- AI智能客服 -->
-  <script src="assets/js/chatbot.js?v=20260604i"></script>
+  <script src="assets/js/chatbot.js?v=20260715c"></script>
 
   <!-- 全站搜索 -->
   <script src="assets/js/search.js"></script>

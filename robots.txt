@@ -24,4 +24,4 @@ Disallow: /api/admin
 Disallow: /data/
 Disallow: /update_logs/
 
-Sitemap: /sitemap.xml
+Sitemap: https://www.hnmetachip.cn/sitemap-index.xml

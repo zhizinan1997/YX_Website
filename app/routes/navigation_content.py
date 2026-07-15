@@ -683,11 +683,6 @@ def register_navigation_content_routes(
         """获取下拉选择用的测量页面列表。"""
         return jsonify({'pages': get_measurement_pages()})
 
-    @app.route('/api/measurement-targets', methods=['GET'])
-    def fetch_measurement_targets_api():
-        """获取 Mega Menu 测量对象数据。"""
-        return jsonify(get_measurement_targets())
-
     @app.route('/api/measurement-targets', methods=['POST'])
     @login_required
     def save_measurement_targets_api():
