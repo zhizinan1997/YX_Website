@@ -624,14 +624,32 @@ def register_public_site_routes(
         return urljoin(anchor + ('/' if anchor and not anchor.endswith('/') else ''), value)
 
     def normalize_public_html_links(html_body: str) -> str:
-        """Rewrite root-relative internal links to their final public paths."""
+        """Rewrite internal links that resolve through public redirects."""
+        request_path = canonical_public_path_for_request(request.path or '') or (request.path or '/')
+
+        def normalize_href(raw_url: str) -> str:
+            direct = canonicalize_public_url(raw_url)
+            if direct != raw_url:
+                return direct
+            parsed = urlparse(str(raw_url or '').strip())
+            if (
+                not parsed.path
+                or parsed.scheme
+                or parsed.netloc
+                or str(raw_url or '').startswith(('#', '//'))
+            ):
+                return raw_url
+            resolved = urljoin(request_path, raw_url)
+            normalized = canonicalize_public_url(resolved)
+            return normalized if normalized != resolved else raw_url
+
         def replace_anchor(match):
             tag = match.group(0)
             return re.sub(
                 r'(?is)(\bhref\s*=\s*)(["\'])(.*?)\2',
                 lambda href_match: (
                     f'{href_match.group(1)}{href_match.group(2)}'
-                    f'{canonicalize_public_url(href_match.group(3))}{href_match.group(2)}'
+                    f'{normalize_href(href_match.group(3))}{href_match.group(2)}'
                 ),
                 tag,
             )

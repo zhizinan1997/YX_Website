@@ -36,6 +36,7 @@ class PublicSiteSeoTests(unittest.TestCase):
   <a href="/index.html">首页</a>
   <a href="/pages/research/index.html?from=home#services">科研服务</a>
   <a href="/pages/about/micro-nano.html">旧科研入口</a>
+  <a href="pages/biosensing/index.html?filter=sensor">相对生物传感入口</a>
   <main><p>元芯传感提供先进传感技术解决方案。</p></main>
 </body>
 </html>
@@ -115,7 +116,7 @@ class PublicSiteSeoTests(unittest.TestCase):
         (self.root / "pages" / "research" / "index.html").write_text(
             """<!doctype html>
 <html lang="zh-CN"><head><title>科研服务 - 元芯传感</title></head>
-<body><h1>科研服务</h1><img src="/cdn_assets/research.webp" alt="科研服务平台"></body></html>
+<body><a href="../../index.html">首页</a><h1>科研服务</h1><img src="/cdn_assets/research.webp" alt="科研服务平台"></body></html>
 """,
             encoding="utf-8",
         )
@@ -257,9 +258,14 @@ class PublicSiteSeoTests(unittest.TestCase):
         self.assertIn('href="/"', body)
         self.assertIn('href="/pages/research/?from=home#services"', body)
         self.assertIn('href="/pages/research/micro-nano.html"', body)
+        self.assertIn('href="/pages/biosensing/?filter=sensor"', body)
         self.assertNotIn('href="/index.html"', body)
         self.assertNotIn('/pages/research/index.html', body)
         self.assertNotIn('/pages/about/micro-nano.html', body)
+
+        research_body = self.client.get('/pages/research/').get_data(as_text=True)
+        self.assertIn('href="/"', research_body)
+        self.assertNotIn('../../index.html', research_body)
 
     def test_mgm_system_and_portable_products_remain_independent(self):
         products = (
