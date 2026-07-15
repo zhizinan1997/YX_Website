@@ -18,8 +18,12 @@ class PublicSiteSeoTests(unittest.TestCase):
         (self.root / "pages" / "gassensing").mkdir(parents=True)
         (self.root / "pages" / "news").mkdir(parents=True)
         (self.root / "pages" / "biosensing").mkdir(parents=True)
+        (self.root / "pages" / "research").mkdir(parents=True)
         (self.root / "cdn_assets").mkdir()
         (self.root / "cdn_assets" / "product.webp").write_bytes(b"RIFFtestWEBP")
+        (self.root / "cdn_assets" / "mgm-system.webp").write_bytes(b"RIFFsystemWEBP")
+        (self.root / "cdn_assets" / "mgm-portable.webp").write_bytes(b"RIFFportableWEBP")
+        (self.root / "cdn_assets" / "research.webp").write_bytes(b"RIFFresearchWEBP")
 
         (self.root / "index.html").write_text(
             """<!doctype html>
@@ -29,6 +33,9 @@ class PublicSiteSeoTests(unittest.TestCase):
   <title>湖南元芯传感科技 - 先进生物与化学传感技术解决方案</title>
 </head>
 <body>
+  <a href="/index.html">首页</a>
+  <a href="/pages/research/index.html?from=home#services">科研服务</a>
+  <a href="/pages/about/micro-nano.html">旧科研入口</a>
   <main><p>元芯传感提供先进传感技术解决方案。</p></main>
 </body>
 </html>
@@ -54,10 +61,27 @@ class PublicSiteSeoTests(unittest.TestCase):
 </html>
 """
         (self.root / "pages" / "gassensing" / "mc_ld_h2.html").write_text(polluted_html, encoding="utf-8")
+        (self.root / "pages" / "gassensing" / "mc_mgm_01.html").write_text(
+            """<!doctype html>
+<html lang="zh-CN"><head>
+<title>MC-MGM-01型动态配气系统 - 元芯传感</title>
+<meta name="description" content="MC-MGM-01型动态配气系统用于多路气体自动精准混配与湿度控制。">
+</head><body><main><h1>MC-MGM-01型动态配气系统</h1>
+<p>面向科研和工业测试的多路自动动态配气系统。</p>
+<img src="/cdn_assets/mgm-system.webp" alt="MC-MGM-01型动态配气系统">
+</main></body></html>
+""",
+            encoding="utf-8",
+        )
         (self.root / "pages" / "gassensing" / "mc_mgm_01_new.html").write_text(
             """<!doctype html>
-<html lang="zh-CN"><head><title>旧版动态配气仪 - 元芯传感</title></head>
-<body><h1>旧版动态配气仪</h1><p>该页面仅用于验证旧 URL 重定向与索引排除。</p></body></html>
+<html lang="zh-CN"><head>
+<title>MC-MGM-01便携式动态配气仪 - 元芯传感</title>
+<meta name="description" content="MC-MGM-01便携式动态配气仪用于现场校准、应急配气和实验室即时用气。">
+</head><body><main><h1>MC-MGM-01便携式动态配气仪</h1>
+<p>采用MFC动态稀释和温度压力双补偿的可移动精准配气设备。</p>
+<img src="/cdn_assets/mgm-portable.webp" alt="MC-MGM-01便携式动态配气仪">
+</main></body></html>
 """,
             encoding="utf-8",
         )
@@ -85,6 +109,13 @@ class PublicSiteSeoTests(unittest.TestCase):
         (self.root / "pages" / "biosensing" / "index.html").write_text(
             """<!doctype html>
 <html lang="zh-CN"><head><title>生物传感 - 元芯传感</title></head><body><h1>生物传感</h1></body></html>
+""",
+            encoding="utf-8",
+        )
+        (self.root / "pages" / "research" / "index.html").write_text(
+            """<!doctype html>
+<html lang="zh-CN"><head><title>科研服务 - 元芯传感</title></head>
+<body><h1>科研服务</h1><img src="/cdn_assets/research.webp" alt="科研服务平台"></body></html>
 """,
             encoding="utf-8",
         )
@@ -129,16 +160,40 @@ class PublicSiteSeoTests(unittest.TestCase):
             ),
             seo_breadcrumb_labels={"pages": "", "gassensing": "气体传感", "news": "洞察与资讯", "biosensing": "生物传感"},
             seo_breadcrumb_targets={"gassensing": "/pages/gassensing/", "news": "/pages/news/news.html", "biosensing": "/pages/biosensing/"},
-            get_gassensing_products_with_settings=lambda: [{
-                "id": "mc_ld_h2",
-                "name": "MC-LD-H2型手持氢气检测仪",
-                "description": "用于涉氢场景的快速泄漏检测与安全预警。",
-                "image": "/cdn_assets/product.webp",
-                "sku": "MC-LD-H2",
-                "category": "detector",
-                "indexable": True,
-                "technicalProperties": [{"name": "检测对象", "value": "氢气"}],
-            }],
+            get_gassensing_products_with_settings=lambda: [
+                {
+                    "id": "mc_ld_h2",
+                    "name": "MC-LD-H2型手持氢气检测仪",
+                    "description": "用于涉氢场景的快速泄漏检测与安全预警。",
+                    "image": "/cdn_assets/product.webp",
+                    "sku": "MC-LD-H2",
+                    "category": "detector",
+                    "indexable": True,
+                    "technicalProperties": [{"name": "检测对象", "value": "氢气"}],
+                },
+                {
+                    "id": "mc_mgm_01",
+                    "name": "MC-MGM-01型动态配气系统",
+                    "description": "用于多路气体自动精准混配与湿度控制。",
+                    "image": "/cdn_assets/mgm-system.webp",
+                    "sku": "MC-MGM-01",
+                    "category": "system",
+                    "seoCategory": "动态配气系统",
+                    "indexable": True,
+                    "technicalProperties": [{"name": "气体通道", "value": "最大20路"}],
+                },
+                {
+                    "id": "mc_mgm_01_new",
+                    "name": "MC-MGM-01便携式动态配气仪",
+                    "description": "用于现场校准、应急配气和实验室即时用气。",
+                    "image": "/cdn_assets/mgm-portable.webp",
+                    "sku": "MC-MGM-01-NEW",
+                    "category": "system",
+                    "seoCategory": "便携式动态配气仪",
+                    "indexable": True,
+                    "technicalProperties": [{"name": "续航时长", "value": "≥8H"}],
+                },
+            ],
             get_image_asset=lambda url, owner_page='': {
                 'url': '/cdn_assets/product.webp',
                 'ownerPage': '/pages/gassensing/mc_ld_h2.html',
@@ -149,14 +204,21 @@ class PublicSiteSeoTests(unittest.TestCase):
                 'width': 1200,
                 'height': 900,
             } if 'product.webp' in str(url) else None,
-            get_indexable_images_for_page=lambda path: [{
+            get_indexable_images_for_page=lambda path: ([{
                 'url': '/cdn_assets/product.webp',
                 'alt': 'MC-LD-H2 手持式氢气检测仪主图',
                 'title': 'MC-LD-H2 手持式氢气检测仪',
                 'caption': '适用于涉氢场景的便携检测设备',
                 'role': 'primary',
                 'indexable': True,
-            }] if path == '/pages/gassensing/mc_ld_h2.html' else [],
+            }] if path == '/pages/gassensing/mc_ld_h2.html' else [{
+                'url': '/cdn_assets/research.webp',
+                'alt': '科研服务平台',
+                'title': '科研服务平台',
+                'caption': '传感器微纳加工与原型开发服务',
+                'role': 'primary',
+                'indexable': True,
+            }] if path == '/pages/research/' else []),
         )
         self.client = self.app.test_client()
 
@@ -188,6 +250,56 @@ class PublicSiteSeoTests(unittest.TestCase):
         self.assertIn('height="900"', body)
         self.assertIn('fetchpriority="high"', body)
 
+    def test_rendered_html_rewrites_internal_redirect_links_to_final_urls(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn('href="/"', body)
+        self.assertIn('href="/pages/research/?from=home#services"', body)
+        self.assertIn('href="/pages/research/micro-nano.html"', body)
+        self.assertNotIn('href="/index.html"', body)
+        self.assertNotIn('/pages/research/index.html', body)
+        self.assertNotIn('/pages/about/micro-nano.html', body)
+
+    def test_mgm_system_and_portable_products_remain_independent(self):
+        products = (
+            (
+                "/pages/gassensing/mc_mgm_01.html",
+                "MC-MGM-01型动态配气系统",
+                "MC-MGM-01",
+                "/cdn_assets/mgm-system.webp",
+            ),
+            (
+                "/pages/gassensing/mc_mgm_01_new.html",
+                "MC-MGM-01便携式动态配气仪",
+                "MC-MGM-01-NEW",
+                "/cdn_assets/mgm-portable.webp",
+            ),
+        )
+        bodies = {}
+        for path, product_name, sku, image_url in products:
+            with self.subTest(path=path):
+                response = self.client.get(path, follow_redirects=False)
+                self.assertEqual(response.status_code, 200)
+                body = response.get_data(as_text=True)
+                bodies[path] = body
+                self.assertIn(f'<link rel="canonical" href="https://www.hnmetachip.cn{path}">', body)
+                self.assertIn(f'"name": "{product_name}"', body)
+                self.assertIn(f'"sku": "{sku}"', body)
+                self.assertIn(image_url, body)
+
+        self.assertNotIn("MC-MGM-01便携式动态配气仪", bodies["/pages/gassensing/mc_mgm_01.html"])
+        self.assertNotIn("MC-MGM-01型动态配气系统", bodies["/pages/gassensing/mc_mgm_01_new.html"])
+
+        product_sitemap = self.client.get("/sitemap-products.xml").get_data(as_text=True)
+        self.assertIn("/pages/gassensing/mc_mgm_01.html", product_sitemap)
+        self.assertIn("/pages/gassensing/mc_mgm_01_new.html", product_sitemap)
+
+        search = self.client.get("/api/search?q=动态配气").get_json()
+        result_urls = {item["url"] for item in search["results"]}
+        self.assertIn("/pages/gassensing/mc_mgm_01.html", result_urls)
+        self.assertIn("/pages/gassensing/mc_mgm_01_new.html", result_urls)
+
     def test_split_and_image_sitemaps_are_available(self):
         index_response = self.client.get('/sitemap-index.xml')
         self.assertEqual(index_response.status_code, 200)
@@ -201,6 +313,9 @@ class PublicSiteSeoTests(unittest.TestCase):
         image_body = image_response.get_data(as_text=True)
         self.assertIn('<image:image>', image_body)
         self.assertIn('https://www.hnmetachip.cn/cdn_assets/product.webp', image_body)
+        self.assertIn('<loc>https://www.hnmetachip.cn/pages/research/</loc>', image_body)
+        self.assertIn('https://www.hnmetachip.cn/cdn_assets/research.webp', image_body)
+        self.assertNotIn('/pages/research/index.html', image_body)
 
     def test_robots_points_to_sitemap_index(self):
         response = self.client.get('/robots.txt')
@@ -296,7 +411,6 @@ class PublicSiteSeoTests(unittest.TestCase):
             "/pages/news/news.aspx_category_id_8.html": "/pages/news/news.html#industry",
             "/pages/news/index.html": "/pages/news/news.html",
             "/pages/honors/honor.aspx@category_id=0&page=2.html": "/pages/gassensing/service-cases.html",
-            "/pages/gassensing/mc_mgm_01_new.html": "/pages/gassensing/mc_mgm_01.html",
         }
         for source, target in redirects.items():
             with self.subTest(source=source):
@@ -313,11 +427,8 @@ class PublicSiteSeoTests(unittest.TestCase):
         sitemap = self.client.get("/sitemap.xml").get_data(as_text=True)
         self.assertNotIn("news_show.aspx_id_75.html", sitemap)
         self.assertNotIn("index_page_2.html", sitemap)
-        self.assertNotIn("mc_mgm_01_new.html", sitemap)
         search = self.client.get("/api/search?q=兆瓦级氢能飞机").get_json()
         self.assertTrue(all("news_show.aspx_id_75.html" not in item["url"] for item in search["results"]))
-        alias_search = self.client.get("/api/search?q=旧版动态配气仪").get_json()
-        self.assertTrue(all("mc_mgm_01_new.html" not in item["url"] for item in alias_search["results"]))
 
     def test_api_html_attachment_skips_public_seo_injection(self):
         response = self.client.get("/api/products/code/download")

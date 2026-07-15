@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-15T10:43:36+08:00",
+  "updatedAt": "2026-07-15T13:14:20+08:00",
   "items": [
     {
       "assetId": "img_9779679eac0bce808eb5",
@@ -499,6 +499,29 @@
         "missing_alt",
         "missing_owner_page",
         "unreferenced_asset"
+      ],
+      "sourceAlt": ""
+    },
+    {
+      "assetId": "img_766b3ac99236544a3910",
+      "url": "/cdn_assets/images/biosensing/bio-6d6922287a.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 11,
+      "contentHash": "083b6bf21c127b9a613915d1838cd62fb39d7a2dad52afb993814d3ef8803bda",
+      "updatedAt": "2026-07-15T13:14:20+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
       ],
       "sourceAlt": ""
     },
@@ -7594,6 +7617,29 @@
         "missing_alt",
         "missing_owner_page",
         "unreferenced_asset"
+      ],
+      "sourceAlt": ""
+    },
+    {
+      "assetId": "img_f7374b3371cd98e40503",
+      "url": "/cdn_assets/images/gassensing/gas-a794993568.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 11,
+      "contentHash": "9ef49533f98291931f69d64a33f7daca6d7327e1e2477180a0bd4744b8d331b7",
+      "updatedAt": "2026-07-15T13:14:20+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
       ],
       "sourceAlt": ""
     },

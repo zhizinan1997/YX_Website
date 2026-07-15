@@ -1910,10 +1910,10 @@ def build_news_article_html(title, date, image_url, content_html):
 <body>
     <div id="mc-nav-root" data-nav-profile="home"></div>
     <noscript><div class="mc-nav-noscript">
-      <a href="/index.html">首页</a> |
+      <a href="/">首页</a> |
       <a href="/pages/gassensing/all-products.html">产品</a> |
       <a href="/pages/solutions/solutions-index.html">解决方案</a> |
-      <a href="/pages/research/index.html">科研服务</a> |
+      <a href="/pages/research/">科研服务</a> |
       <a href="/pages/gassensing/service-cases.html">服务案例</a> |
       <a href="/pages/about/about.html">公司简介</a> |
       <a href="/pages/gassensing/online-store.html">线上店铺</a> |

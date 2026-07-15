@@ -18,6 +18,8 @@ from urllib.parse import unquote, urlparse
 
 from flask import Response, jsonify, request, send_file
 
+from app.public_urls import canonicalize_public_path, canonicalize_public_url
+
 
 IMAGE_SUFFIXES = {'.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'}
 ROLES = {'primary', 'detail', 'application', 'diagram', 'news', 'decorative', 'logo', 'qrcode'}
@@ -101,12 +103,12 @@ def _normalize_owner_page(value):
     text = _clean_text(value, MAX_OWNER_PAGE)
     if not text:
         return ''
-    parsed = urlparse(text)
-    if parsed.scheme in {'http', 'https'}:
-        text = parsed.path or '/'
-    if not text.startswith('/'):
-        text = '/' + text.lstrip('./')
-    return text.split('#', 1)[0]
+    normalized = canonicalize_public_url(text, resolve_page_relative=True)
+    parsed = urlparse(normalized)
+    path = parsed.path or '/'
+    if not path.startswith('/'):
+        path = '/' + path.lstrip('./')
+    return canonicalize_public_path(path)
 
 
 def _resolve_owner_page_input(value, current=None):

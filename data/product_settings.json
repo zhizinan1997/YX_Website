@@ -1576,11 +1576,101 @@
   },
   "mc_mgm_01_new": {
     "sortOrder": 21,
+    "displayName": "MC-MGM-01便携式动态配气仪",
     "cardTitle": "MC-MGM-01便携式动态配气仪",
+    "cardImage": "/cdn_assets/images/gassensing/MC-MGM-01/mc-mgm-01-product-04.png",
     "cardSummary": "MC-MGM-01便携式动态配气仪是针对现场气体标准物质配制需求，搭载高精度MFC质量流量控制器，内置自主研发温度压力双补偿算法；依托核心流量控制算法与集成化设计开发的可移动精准配气设备，满足各类气体检测仪器现场校准、应急气体配置与实验室多梯度浓度气体即时用气需求。",
     "industryCategories": [
       "hydrogen",
       "industry-4"
+    ],
+    "seoTitle": "MC-MGM-01便携式动态配气仪｜现场精准配气设备 - 元芯传感",
+    "seoDescription": "MC-MGM-01便携式动态配气仪搭载高精度MFC质量流量控制器与温度压力双补偿算法，适用于现场校准、应急配气及实验室多梯度浓度气体即时配制。",
+    "sku": "MC-MGM-01-NEW",
+    "brand": "元芯传感",
+    "manufacturer": "湖南元芯传感科技有限责任公司",
+    "seoCategory": "便携式动态配气仪",
+    "imageAlt": "MC-MGM-01便携式动态配气仪",
+    "imageTitle": "MC-MGM-01便携式动态配气仪",
+    "imageCaption": "MC-MGM-01便携式动态配气仪采用MFC动态稀释与温度压力双补偿，支持现场校准、应急配气和实验室即时用气。",
+    "indexable": true,
+    "technicalProperties": [
+      {
+        "name": "产品型号",
+        "value": "MC-MGM-01-NEW"
+      },
+      {
+        "name": "稀释原理",
+        "value": "质量流量控制器（MFC）/ 动态稀释法"
+      },
+      {
+        "name": "流量精度",
+        "value": "±0.8%设定点（流量＞30% FS）；±0.5%FS（流量≤30% FS）"
+      },
+      {
+        "name": "流量重复性",
+        "value": "±0.2% FS"
+      },
+      {
+        "name": "稀释比",
+        "value": "1:1—1:1000（可定制）"
+      },
+      {
+        "name": "响应时间",
+        "value": "≤1s"
+      },
+      {
+        "name": "预热时间",
+        "value": "≤20s"
+      },
+      {
+        "name": "稀释气流",
+        "value": "0—10 SLPM；可选0—5 SLPM / 0—20 SLPM，其他量程可定制"
+      },
+      {
+        "name": "标准气流量范围",
+        "value": "0—100 SCCM；可选0—50 SCCM / 0—200 SCCM / 0—500 SCCM，其他量程可定制"
+      },
+      {
+        "name": "管路材质",
+        "value": "316L不锈钢 / PFA / PTFE"
+      },
+      {
+        "name": "气路输入",
+        "value": "2路：1×稀释气输入口；1×标气输入口（更多气路可定制）"
+      },
+      {
+        "name": "气路输出",
+        "value": "2路：1×校准气输出口；1×废气输出口"
+      },
+      {
+        "name": "供电要求",
+        "value": "可充电锂电池供电"
+      },
+      {
+        "name": "续航时长",
+        "value": "≥8H"
+      },
+      {
+        "name": "通信接口",
+        "value": "1×RS485；1×USB；1×RS232"
+      },
+      {
+        "name": "通信协议",
+        "value": "Modbus-RTU（RS232和RS485）"
+      },
+      {
+        "name": "工作温度范围",
+        "value": "-10—60℃"
+      },
+      {
+        "name": "工作湿度范围",
+        "value": "20—95%RH（无冷凝）"
+      },
+      {
+        "name": "质保期",
+        "value": "整机质保24个月，核心部件质保12个月"
+      }
     ]
   },
   "consultButton": {

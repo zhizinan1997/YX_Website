@@ -240,10 +240,10 @@ SEO_BREADCRUMB_TARGETS = {
     'news': '/pages/news/news.html',
     'about': '/pages/about/about.html',
     'contact': '/pages/contact/contact.html',
-    'research': '/pages/research/index.html',
-    'services': '/pages/services/service.html',
+    'research': '/pages/research/',
+    'services': '/pages/research/',
     'careers': '/pages/careers/jobs.html',
-    'honors': '/pages/honors/honor.html',
+    'honors': '/pages/gassensing/service-cases.html',
     'cases': '/pages/gassensing/service-cases.html',
 }
 

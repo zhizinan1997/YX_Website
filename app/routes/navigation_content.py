@@ -48,6 +48,8 @@ from urllib.parse import unquote, urlparse
 
 from flask import jsonify, request
 
+from app.public_urls import canonicalize_public_url
+
 APP_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = APP_ROOT / 'data'
 RECOMMENDATIONS_FILE = DATA_DIR / 'recommendations.json'
@@ -81,7 +83,7 @@ def get_web_dir_prefix_for_filepath(filepath):
 
 def resolve_local_nav_target_path(url):
     """在可能时将导航目标 URL 解析为本地 HTML 文件。"""
-    raw_url = str(url or '').strip()
+    raw_url = canonicalize_public_url(str(url or '').strip(), resolve_page_relative=True)
     if not raw_url or re.match(r'^https?://', raw_url, re.I):
         return None
 
@@ -103,7 +105,9 @@ def resolve_local_nav_target_path(url):
         ):
             normalized = 'pages/' + normalized
 
-    if not normalized.lower().endswith('.html'):
+    if normalized.endswith('/'):
+        normalized += 'index.html'
+    elif not normalized.lower().endswith('.html'):
         return None
 
     candidate = (APP_ROOT / normalized).resolve()
@@ -242,7 +246,7 @@ def serialize_nav_industry_category_items(items):
         if not isinstance(item, dict):
             continue
         name = str(item.get('name') or '').strip()
-        url = str(item.get('url') or '').strip()
+        url = canonicalize_public_url(item.get('url'), resolve_page_relative=True)
         if not name or not url:
             continue
         entry = {'name': name, 'url': url}
@@ -283,7 +287,7 @@ def normalize_recommendation_items(items):
         if not isinstance(item, dict):
             continue
         name = str(item.get('name') or '').strip()
-        url = str(item.get('url') or '').strip()
+        url = canonicalize_public_url(item.get('url'), resolve_page_relative=True)
         if not name or not is_safe_recommendation_url(url):
             continue
         normalized.append({'name': name, 'url': url})
@@ -377,7 +381,7 @@ def normalize_measurement_target_items(items):
         if not isinstance(item, dict):
             continue
         name = str(item.get('name') or '').strip()
-        url = str(item.get('url') or '').strip()
+        url = canonicalize_public_url(item.get('url'), resolve_page_relative=True)
         if not name or not is_safe_recommendation_url(url):
             continue
         entry = {'name': name, 'url': url}
@@ -395,18 +399,9 @@ def serialize_measurement_target_items(items):
         if not isinstance(item, dict):
             continue
         name = str(item.get('name') or '').strip()
-        url = str(item.get('url') or '').strip()
+        url = canonicalize_public_url(item.get('url'), resolve_page_relative=True)
         if not name or not url:
             continue
-        # 将相对路径 (../measurement/xxx.html) 转为绝对路径 (/pages/measurement/xxx.html)
-        # 避免在 /pages/gassensing/cases/ 等深层页面中 .. 解析层级不对导致链接错误
-        if not url.startswith('/') and not url.startswith('http'):
-            clean = url.replace('\\', '/')
-            while clean.startswith('./'):
-                clean = clean[2:]
-            while clean.startswith('../'):
-                clean = clean[3:]
-            url = '/pages/' + clean
         entry = {'name': name, 'url': url}
         custom_image = str(item.get('image') or '').strip()
         if custom_image:
@@ -450,7 +445,7 @@ def serialize_solution_nav_items(items):
         if not isinstance(item, dict):
             continue
         name = str(item.get('name') or '').strip()
-        url = str(item.get('url') or '').strip()
+        url = canonicalize_public_url(item.get('url'), resolve_page_relative=True)
         if not name or not url:
             continue
         preview = infer_nav_target_preview(url)
@@ -519,7 +514,7 @@ def normalize_nav_industry_category_items(items):
         if not isinstance(item, dict):
             continue
         name = str(item.get('name') or '').strip()
-        url = str(item.get('url') or '').strip()
+        url = canonicalize_public_url(item.get('url'), resolve_page_relative=True)
         if not name or not is_safe_recommendation_url(url):
             continue
         entry = {'name': name, 'url': url}
@@ -590,12 +585,18 @@ def get_default_recommendations():
 
 def get_recommendations():
     """加载推荐位设置。"""
+    data = None
     if RECOMMENDATIONS_FILE.exists():
         try:
-            return json.loads(RECOMMENDATIONS_FILE.read_text(encoding='utf-8'))
+            data = json.loads(RECOMMENDATIONS_FILE.read_text(encoding='utf-8'))
         except Exception:
             pass
-    return get_default_recommendations()
+    if not isinstance(data, dict):
+        data = get_default_recommendations()
+    return {
+        'latestReleases': normalize_recommendation_items(data.get('latestReleases', [])),
+        'applicationAreas': normalize_recommendation_items(data.get('applicationAreas', [])),
+    }
 
 
 def save_recommendations(data):

@@ -7,7 +7,13 @@ from pathlib import Path
 
 from flask import Flask
 
-from app.routes.image_seo import _image_dimensions, configure_image_seo, register_image_seo_routes, scan_image_assets
+from app.routes.image_seo import (
+    _image_dimensions,
+    configure_image_seo,
+    get_indexable_images_for_page,
+    register_image_seo_routes,
+    scan_image_assets,
+)
 
 
 class ImageSeoTests(unittest.TestCase):
@@ -114,6 +120,17 @@ class ImageSeoTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()['item']['ownerPage'], '/pages/gassensing/mc_ld_h2.html')
+
+    def test_directory_index_owner_pages_are_normalized_without_bulk_rewrite(self):
+        item = scan_image_assets(persist=True)['items'][0]
+        response = self.client.put(f"/api/admin/image-seo/assets/{item['assetId']}", json={
+            'ownerPage': 'https://www.hnmetachip.cn/pages/research/index.html?source=legacy#section',
+            'indexable': True,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()['item']['ownerPage'], '/pages/research/')
+        matches = get_indexable_images_for_page('/pages/research/')
+        self.assertIn(item['assetId'], {row['assetId'] for row in matches})
 
     def test_mutations_reject_failed_same_origin_check(self):
         app = Flask('image_seo_csrf_test')

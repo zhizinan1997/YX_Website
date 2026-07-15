@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 import unittest
+from unittest.mock import patch
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
-from app.request_security import register_strict_anti_crawl_guard
+from app.request_security import get_trusted_forwarded_host_proto, register_strict_anti_crawl_guard
 
 
 CRAWLER_USER_AGENTS = (
@@ -89,6 +91,30 @@ class StrictAntiCrawlGuardTests(unittest.TestCase):
         headers = {"User-Agent": "Mozilla/5.0 Chrome/136 Safari/537.36"}
         self.assertEqual(self.client.get("/admin", headers=headers).status_code, 200)
         self.assertEqual(self.client.get("/api/admin/settings", headers=headers).status_code, 200)
+
+    def test_proxy_host_and_proto_are_used_only_when_explicitly_trusted(self):
+        headers = {
+            'X-Forwarded-Host': 'www.hnmetachip.cn',
+            'X-Forwarded-Proto': 'https',
+        }
+        with self.app.test_request_context('/', headers=headers):
+            with patch.dict(os.environ, {'TRUST_PROXY_HEADERS': 'false'}):
+                self.assertEqual(get_trusted_forwarded_host_proto(request, default=False), ('', ''))
+            with patch.dict(os.environ, {'TRUST_PROXY_HEADERS': 'true'}):
+                self.assertEqual(
+                    get_trusted_forwarded_host_proto(request, default=False),
+                    ('www.hnmetachip.cn', 'https'),
+                )
+
+    def test_standard_forwarded_header_is_supported_as_fallback(self):
+        with self.app.test_request_context('/', headers={
+            'Forwarded': 'for=203.0.113.9;proto=https;host="www.hnmetachip.cn"',
+        }):
+            with patch.dict(os.environ, {'TRUST_PROXY_HEADERS': 'true'}):
+                self.assertEqual(
+                    get_trusted_forwarded_host_proto(request, default=False),
+                    ('www.hnmetachip.cn', 'https'),
+                )
 
 
 if __name__ == "__main__":

@@ -171,6 +171,49 @@ def first_forwarded_value(raw_value: str) -> str:
     return text.split(',')[0].strip()
 
 
+def normalize_forwarded_host(raw_value: str) -> str:
+    """Validate a forwarded Host value before it is used in public URLs."""
+    value = first_forwarded_value(raw_value).strip().strip('"')
+    if not value or any(char.isspace() for char in value) or any(char in value for char in '/\\@'):
+        return ''
+    try:
+        parsed = urlparse(f'//{value}')
+        parsed.port
+    except Exception:
+        return ''
+    if not parsed.hostname:
+        return ''
+    return parsed.netloc.lower()
+
+
+def parse_standard_forwarded_header(raw_value: str) -> tuple[str, str]:
+    """Extract host and proto from the first RFC 7239 Forwarded entry."""
+    first_entry = first_forwarded_value(raw_value)
+    if not first_entry:
+        return '', ''
+    values = {}
+    for part in first_entry.split(';'):
+        key, separator, value = part.strip().partition('=')
+        if not separator:
+            continue
+        values[key.strip().lower()] = value.strip().strip('"')
+    host = normalize_forwarded_host(values.get('host', ''))
+    proto = str(values.get('proto') or '').strip().lower()
+    return host, proto if proto in {'http', 'https'} else ''
+
+
+def get_trusted_forwarded_host_proto(req, *, default: bool = False) -> tuple[str, str]:
+    """Read proxy host/proto only when proxy headers are explicitly trusted."""
+    if not should_trust_proxy_headers(req, default=default):
+        return '', ''
+    host = normalize_forwarded_host(req.headers.get('X-Forwarded-Host', ''))
+    proto = first_forwarded_value(req.headers.get('X-Forwarded-Proto', '')).lower()
+    if proto not in {'http', 'https'}:
+        proto = ''
+    standard_host, standard_proto = parse_standard_forwarded_header(req.headers.get('Forwarded', ''))
+    return host or standard_host, proto or standard_proto
+
+
 def normalize_ip_text(raw_value: str) -> str:
     text = str(raw_value or '').strip()
     if not text or text.lower() == 'unknown':

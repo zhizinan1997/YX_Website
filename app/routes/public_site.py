@@ -59,6 +59,13 @@ from urllib.parse import urljoin, urlparse
 from flask import Response, jsonify, redirect, request, send_file, send_from_directory
 
 from app.asset_versioning import inject_html_asset_versions, inject_js_asset_versions
+from app.public_urls import (
+    LEGACY_PUBLIC_REDIRECTS,
+    canonicalize_public_path,
+    canonicalize_public_url,
+    is_legacy_public_path,
+)
+from app.request_security import get_trusted_forwarded_host_proto
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
@@ -128,9 +135,7 @@ def canonical_public_search_url(rel_path: str) -> str:
     normalized = str(rel_path or '').replace('\\', '/').lstrip('/')
     if not normalized or normalized == 'index.html':
         return '/'
-    if normalized.endswith('/index.html'):
-        return '/' + normalized[:-10].rstrip('/') + '/'
-    return '/' + normalized
+    return canonicalize_public_path('/' + normalized)
 
 
 def classify_public_search_page(url: str) -> str:
@@ -472,36 +477,7 @@ def register_public_site_routes(
     }
     search_lock = threading.Lock()
 
-    legacy_public_redirects = {
-        '/pages/biosensing/index_page_2.html': '/pages/biosensing/',
-        '/pages/careers/job-detail.html': '/pages/careers/jobs.html',
-        '/pages/contact/feedback.aspx_attach_id.html': '/pages/contact/feedback.html',
-        '/pages/about/history.html': '/pages/about/about.html',
-        '/pages/about/culture.html': '/pages/about/values.html',
-        '/pages/about/micro-nano.html': '/pages/research/micro-nano.html',
-        '/pages/about/research.html': '/pages/research/cooperation.html',
-        '/pages/services/service.html': '/pages/research/',
-        '/pages/services/core-service.html': '/pages/research/development.html',
-        '/pages/honors/honor.html': '/pages/gassensing/service-cases.html',
-        '/pages/honors/honor-page2.html': '/pages/gassensing/service-cases.html',
-        '/pages/news/news_show.aspx_id_75.html': '/pages/news/news_show.aspx_id_76.html',
-        '/pages/news/news_show.aspx_id_50.html': '/pages/news/news_show.aspx_id_47.html',
-        '/pages/news/news_show.aspx_id_32.html': '/pages/news/news.html#industry',
-        '/pages/products/index.html': '/pages/gassensing/all-products.html',
-        '/pages/products/gas_sensors.html': '/pages/gassensing/all-products.html',
-        '/pages/gas_sensors.html': '/pages/gassensing/all-products.html',
-        '/pages/products/products_mems.html': '/pages/research/micro-nano.html',
-        '/pages/products/carbon_bio_platform.html': '/pages/biosensing/carbon_bio_platform.html',
-        '/pages/products/respiratory_virus_chip.html': '/pages/biosensing/respiratory_virus_chip.html',
-        '/pages/products/igzo_device.html': '/pages/biosensing/igzo_device.html',
-        '/pages/solutions/jjfa.html': '/pages/solutions/solutions-index.html',
-        '/pages/news/news.aspx_category_id_43.html': '/pages/news/news.html#science',
-        '/pages/news/news.aspx_category_id_9.html': '/pages/news/news.html#enterprise',
-        '/pages/news/news.aspx_category_id_8.html': '/pages/news/news.html#industry',
-        '/pages/news/index.html': '/pages/news/news.html',
-        '/pages/honors/honor.aspx@category_id=0&page=2.html': '/pages/gassensing/service-cases.html',
-        '/pages/gassensing/mc_mgm_01_new.html': '/pages/gassensing/mc_mgm_01.html',
-    }
+    legacy_public_redirects = dict(LEGACY_PUBLIC_REDIRECTS)
 
     def product_path_from_item(item: dict) -> str:
         product_id = str((item or {}).get('id') or '').strip()
@@ -595,7 +571,7 @@ def register_public_site_routes(
         return f'{target_path}{query_suffix}'
 
     def is_legacy_redirect_source(path_value: str) -> bool:
-        return str(path_value or '').strip() in legacy_public_redirects
+        return is_legacy_public_path(path_value)
 
     @app.before_request
     def redirect_alternate_public_host():
@@ -613,7 +589,7 @@ def register_public_site_routes(
             return None
         alternate_host = canonical_host[4:]
 
-        forwarded_host = first_forwarded_value(request.headers.get('X-Forwarded-Host', ''))
+        forwarded_host, _forwarded_proto = get_trusted_forwarded_host_proto(request, default=False)
         request_host = str(forwarded_host or request.host or '').strip().lower().split(':', 1)[0]
         if request_host != alternate_host:
             return None
@@ -646,6 +622,21 @@ def register_public_site_routes(
             return f'{base_url.rstrip("/")}{value}' if base_url else value
         anchor = page_url or base_url or ''
         return urljoin(anchor + ('/' if anchor and not anchor.endswith('/') else ''), value)
+
+    def normalize_public_html_links(html_body: str) -> str:
+        """Rewrite root-relative internal links to their final public paths."""
+        def replace_anchor(match):
+            tag = match.group(0)
+            return re.sub(
+                r'(?is)(\bhref\s*=\s*)(["\'])(.*?)\2',
+                lambda href_match: (
+                    f'{href_match.group(1)}{href_match.group(2)}'
+                    f'{canonicalize_public_url(href_match.group(3))}{href_match.group(2)}'
+                ),
+                tag,
+            )
+
+        return re.sub(r'(?is)<a\b[^>]*>', replace_anchor, html_body or '')
 
     def canonical_public_path_for_request(raw_path: str) -> str:
         normalized = normalize_public_static_path((raw_path or '').lstrip('/'))
@@ -1009,9 +1000,8 @@ def register_public_site_routes(
             host = explicit.split('://', 1)[1].split('/', 1)[0].split(':', 1)[0].strip().lower()
             return explicit, host
 
-        forwarded_host = first_forwarded_value(request.headers.get('X-Forwarded-Host', ''))
+        forwarded_host, forwarded_proto = get_trusted_forwarded_host_proto(request, default=False)
         host = (forwarded_host or request.host or '').strip()
-        forwarded_proto = first_forwarded_value(request.headers.get('X-Forwarded-Proto', '')).lower()
         scheme = forwarded_proto if forwarded_proto in {'http', 'https'} else (request.scheme or 'https')
         if not host:
             host = fallback or 'localhost:8000'
@@ -1362,6 +1352,22 @@ def register_public_site_routes(
 
         return output
 
+    def public_html_file_for_path(path_value: str) -> Path | None:
+        """Resolve a canonical public page URL to its backing HTML file."""
+        canonical_path = canonicalize_public_path(str(path_value or '').strip() or '/')
+        if canonical_path == '/':
+            candidate = root / 'index.html'
+        elif canonical_path.endswith('/'):
+            candidate = root / canonical_path.lstrip('/') / 'index.html'
+        else:
+            candidate = root / canonical_path.lstrip('/')
+        try:
+            resolved = candidate.resolve()
+            resolved.relative_to(root.resolve())
+        except (OSError, ValueError):
+            return None
+        return resolved if resolved.is_file() and resolved.suffix.lower() == '.html' else None
+
     @app.route('/robots.txt')
     def robots_txt():
         base_url, host_no_port = absolute_public_base_url()
@@ -1448,9 +1454,9 @@ def register_public_site_routes(
         entries = []
         seen_images = set()
         for item in collect_public_html_urls():
-            file_path = root / item['path'].lstrip('/')
-            if item['path'] == '/':
-                file_path = root / 'index.html'
+            file_path = public_html_file_for_path(item['path'])
+            if file_path is None:
+                continue
             try:
                 html_body = file_path.read_text(encoding='utf-8')
             except Exception:
@@ -1560,6 +1566,7 @@ def register_public_site_routes(
             if not html_body:
                 return response
 
+            html_body = normalize_public_html_links(html_body)
             html_body = inject_seo_head_markup(html_body)
 
             # ── 为 HTML 中所有 href/src 引用的本地静态资源注入 mtime 版本号 ──
