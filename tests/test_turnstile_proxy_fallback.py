@@ -173,6 +173,12 @@ class AdminTurnstileProxyRouteTests(unittest.TestCase):
         self.assertEqual(data["proxy_url"], "http://glash:7890")
         self.assertTrue(data["proxy_fallback_enabled"])
 
+    def test_config_get_returns_legacy_cloudflare_provider(self):
+        response = self.client.get("/api/admin/security/turnstile")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["provider"], "cloudflare")
+
     def test_config_post_saves_proxy_fields(self):
         response = self._post("/api/admin/security/turnstile", {
             "enabled": True,
@@ -188,6 +194,36 @@ class AdminTurnstileProxyRouteTests(unittest.TestCase):
         self.assertEqual(self.config["turnstile_secret_key"], "secret-key")
         self.assertEqual(self.config["turnstile_proxy_url"], "http://proxy.local:7890")
         self.assertTrue(self.config["turnstile_proxy_fallback_enabled"])
+
+    def test_config_post_saves_aliyun_esa_provider(self):
+        response = self._post("/api/admin/security/turnstile", {
+            "enabled": True,
+            "provider": "aliyun_esa",
+            "site_key": "",
+            "secret_key": "",
+            "esa_identity": "esa-identity",
+            "esa_scene_id": "scene-id",
+            "esa_region": "cn",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.get_json()["success"])
+        self.assertEqual(self.config["admin_captcha_provider"], "aliyun_esa")
+        self.assertEqual(self.config["admin_esa_identity"], "esa-identity")
+        self.assertEqual(self.config["admin_esa_scene_id"], "scene-id")
+
+    def test_aliyun_esa_accepts_captcha_param_without_cloudflare_request(self):
+        settings = admin_routes._get_admin_captcha_settings({
+            "turnstile_enabled": True,
+            "admin_captcha_provider": "aliyun_esa",
+            "admin_esa_identity": "identity",
+            "admin_esa_scene_id": "scene",
+        })
+
+        ok, detail = admin_routes._verify_admin_captcha(settings, "captcha-param")
+
+        self.assertTrue(ok)
+        self.assertEqual(detail, "")
 
     def test_config_post_rejects_fallback_without_proxy_url(self):
         response = self._post("/api/admin/security/turnstile", {

@@ -1402,6 +1402,44 @@ def _get_turnstile_settings(config):
     }
 
 
+def _get_admin_captcha_settings(config):
+    """读取后台登录使用的验证码提供商配置。
+
+    未设置 provider 时兼容历史配置，默认继续使用 Cloudflare Turnstile。
+    ESA 由边缘规则完成验签，应用只负责把前端返回的验签参数带入业务请求。
+    """
+    safe = config if isinstance(config, dict) else {}
+    provider = str(safe.get('admin_captcha_provider') or 'cloudflare').strip().lower()
+    if provider not in {'cloudflare', 'aliyun_esa'}:
+        provider = 'cloudflare'
+    enabled = _parse_bool(safe.get('turnstile_enabled', False), False)
+    site_key = str(safe.get('turnstile_site_key', '') or '').strip()
+    secret_key = str(safe.get('turnstile_secret_key', '') or '').strip()
+    proxy_url = str(safe.get('turnstile_proxy_url', '') or '').strip()
+    proxy_fallback_enabled = _parse_bool(safe.get('turnstile_proxy_fallback_enabled', False), False)
+    esa_identity = str(safe.get('admin_esa_identity', '') or '').strip()
+    esa_scene_id = str(safe.get('admin_esa_scene_id', '') or '').strip()
+    esa_region = str(safe.get('admin_esa_region', '') or 'cn').strip().lower() or 'cn'
+    if esa_region not in {'cn', 'sgp'}:
+        esa_region = 'cn'
+    if enabled:
+        if provider == 'cloudflare' and (not site_key or not secret_key):
+            enabled = False
+        elif provider == 'aliyun_esa' and (not esa_identity or not esa_scene_id):
+            enabled = False
+    return {
+        'enabled': enabled,
+        'provider': provider,
+        'site_key': site_key,
+        'secret_key': secret_key,
+        'proxy_url': proxy_url,
+        'proxy_fallback_enabled': proxy_fallback_enabled,
+        'esa_identity': esa_identity,
+        'esa_scene_id': esa_scene_id,
+        'esa_region': esa_region,
+    }
+
+
 def _normalize_turnstile_proxy_url(raw_value: str) -> str:
     proxy_url = str(raw_value or '').strip()
     if not proxy_url:
@@ -1566,6 +1604,39 @@ def verify_turnstile_token(
         remote_ip=remote_ip,
         proxy_url=proxy_url,
         proxy_fallback_enabled=proxy_fallback_enabled,
+    )
+
+
+def _extract_admin_captcha_param(request, data):
+    payload = data if isinstance(data, dict) else {}
+    return str(
+        payload.get('captchaVerifyParam')
+        or payload.get('captcha_verify_param')
+        or request.headers.get('captcha-verify-param', '')
+        or request.args.get('captcha_verify_param', '')
+        or ''
+    ).strip()
+
+
+def _verify_admin_captcha(settings, token, remote_ip=''):
+    """验证后台登录挑战。
+
+    Cloudflare 由源站调用 siteverify；ESA 的验签由边缘规则完成，应用只
+    检查前端确实提交了 ESA 返回的 captchaVerifyParam，避免未配置边缘规则
+    时完全绕过挑战。
+    """
+    if not settings.get('enabled'):
+        return True, ''
+    if not token:
+        return False, '请先完成人机验证。'
+    if settings.get('provider') == 'aliyun_esa':
+        return True, ''
+    return _verify_turnstile_token(
+        secret_key=settings.get('secret_key', ''),
+        token=token,
+        remote_ip=remote_ip,
+        proxy_url=settings.get('proxy_url', ''),
+        proxy_fallback_enabled=settings.get('proxy_fallback_enabled', False),
     )
 
 
@@ -2408,29 +2479,37 @@ def register_admin_routes(
 
     @app.route('/api/admin/security/turnstile/public', methods=['GET'])
     def admin_turnstile_public_config():
-        """获取登录页 Turnstile 组件使用的公开配置。"""
+        """获取登录页验证码组件使用的公开配置。"""
         config = get_config()
-        settings = _get_turnstile_settings(config)
+        settings = _get_admin_captcha_settings(config)
         return jsonify({
             'enabled': settings['enabled'],
-            'site_key': settings['site_key'] if settings['enabled'] else ''
+            'provider': settings['provider'],
+            'site_key': settings['site_key'] if settings['enabled'] and settings['provider'] == 'cloudflare' else '',
+            'esa_identity': settings['esa_identity'] if settings['enabled'] and settings['provider'] == 'aliyun_esa' else '',
+            'esa_scene_id': settings['esa_scene_id'] if settings['enabled'] and settings['provider'] == 'aliyun_esa' else '',
+            'esa_region': settings['esa_region'],
         })
 
     @app.route('/api/admin/security/turnstile', methods=['GET'])
     @login_required
     def admin_turnstile_config():
-        """获取后台面板使用的 Turnstile 配置。"""
-        settings = _get_turnstile_settings(get_config())
+        """获取后台面板使用的验证码配置。"""
+        settings = _get_admin_captcha_settings(get_config())
         secret_masked = ''
         if settings['secret_key']:
             secret = settings['secret_key']
             secret_masked = f"{secret[:6]}...{secret[-4:]}" if len(secret) > 12 else '***'
         return jsonify({
             'enabled': settings['enabled'],
+            'provider': settings['provider'],
             'site_key': settings['site_key'],
             'secret_key': secret_masked,
             'proxy_url': settings.get('proxy_url', ''),
             'proxy_fallback_enabled': bool(settings.get('proxy_fallback_enabled', False)),
+            'esa_identity': settings.get('esa_identity', ''),
+            'esa_scene_id': settings.get('esa_scene_id', ''),
+            'esa_region': settings.get('esa_region', 'cn'),
         })
 
     @app.route('/api/admin/security/turnstile', methods=['POST'])
@@ -2443,10 +2522,19 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
         data = request.get_json(silent=True) or {}
         enabled = _parse_bool(data.get('enabled', False), False)
+        provider = str(data.get('provider') or 'cloudflare').strip().lower()
         site_key = str(data.get('site_key', '') or '').strip()
         secret_key_input = str(data.get('secret_key', '') or '').strip()
         proxy_url = str(data.get('proxy_url', '') or '').strip()
         proxy_fallback_enabled = _parse_bool(data.get('proxy_fallback_enabled', False), False)
+        esa_identity = str(data.get('esa_identity', '') or '').strip()
+        esa_scene_id = str(data.get('esa_scene_id', '') or '').strip()
+        esa_region = str(data.get('esa_region') or 'cn').strip().lower() or 'cn'
+
+        if provider not in {'cloudflare', 'aliyun_esa'}:
+            return jsonify({'success': False, 'message': '不支持的验证码提供商。'}), 400
+        if esa_region not in {'cn', 'sgp'}:
+            return jsonify({'success': False, 'message': 'ESA 地区只能选择 cn 或 sgp。'}), 400
 
         config = get_config()
         existing_secret = str(config.get('turnstile_secret_key', '') or '').strip()
@@ -2456,19 +2544,25 @@ def register_admin_routes(
         else:
             secret_key = existing_secret
 
-        if enabled and (not site_key or not secret_key):
-            return jsonify({'success': False, 'message': '启用 Turnstile 时必须填写站点密钥和服务端密钥'}), 400
-        if proxy_url and not _normalize_turnstile_proxy_url(proxy_url):
+        if enabled and provider == 'cloudflare' and (not site_key or not secret_key):
+            return jsonify({'success': False, 'message': '启用 Cloudflare Turnstile 时必须填写站点密钥和服务端密钥。'}), 400
+        if enabled and provider == 'aliyun_esa' and (not esa_identity or not esa_scene_id):
+            return jsonify({'success': False, 'message': '启用阿里云 ESA 时必须填写身份标和场景 ID。'}), 400
+        if provider == 'cloudflare' and proxy_url and not _normalize_turnstile_proxy_url(proxy_url):
             return jsonify({'success': False, 'message': '代理地址必须以 http:// 或 https:// 开头，并包含有效主机。'}), 400
-        if proxy_fallback_enabled and not proxy_url:
+        if provider == 'cloudflare' and proxy_fallback_enabled and not proxy_url:
             return jsonify({'success': False, 'message': '启用代理重试兜底前，请先填写代理地址。'}), 400
 
         update_config({
             'turnstile_enabled': bool(enabled),
+            'admin_captcha_provider': provider,
             'turnstile_site_key': site_key,
             'turnstile_secret_key': secret_key,
             'turnstile_proxy_url': proxy_url,
             'turnstile_proxy_fallback_enabled': bool(proxy_fallback_enabled),
+            'admin_esa_identity': esa_identity,
+            'admin_esa_scene_id': esa_scene_id,
+            'admin_esa_region': esa_region,
         })
         return jsonify({'success': True, 'message': '登录验证设置已保存'})
 
@@ -2479,7 +2573,9 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
         if not _is_same_origin_request(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
-        settings = _get_turnstile_settings(get_config() or {})
+        settings = _get_admin_captcha_settings(get_config() or {})
+        if settings.get('provider') != 'cloudflare':
+            return jsonify({'success': False, 'message': '当前验证码提供商不是 Cloudflare，无需测试 Turnstile 直连。'}), 400
         secret_key = settings.get('secret_key', '')
         if not secret_key:
             return jsonify({'success': False, 'message': '请先填写并保存服务端密钥。'}), 400
@@ -2500,7 +2596,9 @@ def register_admin_routes(
         if not _is_same_origin_request(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
         data = request.get_json(silent=True) or {}
-        settings = _get_turnstile_settings(get_config() or {})
+        settings = _get_admin_captcha_settings(get_config() or {})
+        if settings.get('provider') != 'cloudflare':
+            return jsonify({'success': False, 'message': '当前验证码提供商不是 Cloudflare，无需测试 Turnstile 代理。'}), 400
         secret_key = settings.get('secret_key', '')
         proxy_url = str(data.get('proxy_url') or settings.get('proxy_url', '') or '').strip()
         normalized_proxy = _normalize_turnstile_proxy_url(proxy_url)
@@ -3072,12 +3170,13 @@ def register_admin_routes(
                 email = _normalize_email(account)
         password = str(data.get('password', '') or '')
         turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
+        captcha_verify_param = _extract_admin_captcha_param(request, data)
         ip_addr = _get_request_ip(request)
         now_ts = int(time.time())
         attempts_file = _get_login_attempts_file(root)
         config = get_config() or {}
         geo_settings = normalize_admin_login_geo_settings(config)
-        turnstile_settings = _get_turnstile_settings(config)
+        turnstile_settings = _get_admin_captcha_settings(config)
         smtp_settings = _get_email_auth_settings(config)
 
         with ADMIN_USERS_LOCK:
@@ -3102,22 +3201,12 @@ def register_admin_routes(
             )
             return jsonify({'success': False, 'message': country_reason}), 403
 
-        turnstile_ok = True
-        turnstile_fail_reason = ''
-        if turnstile_settings['enabled']:
-            if not turnstile_token:
-                turnstile_ok = False
-                turnstile_fail_reason = '请先完成人机验证。'
-            else:
-                turnstile_ok, detail = _verify_turnstile_token(
-                    secret_key=turnstile_settings['secret_key'],
-                    token=turnstile_token,
-                    remote_ip=ip_addr,
-                    proxy_url=turnstile_settings.get('proxy_url', ''),
-                    proxy_fallback_enabled=turnstile_settings.get('proxy_fallback_enabled', False),
-                )
-                if not turnstile_ok:
-                    turnstile_fail_reason = detail or '人机验证失败，请重试。'
+        captcha_token = captcha_verify_param if turnstile_settings.get('provider') == 'aliyun_esa' else turnstile_token
+        turnstile_ok, turnstile_fail_reason = _verify_admin_captcha(
+            turnstile_settings,
+            captcha_token,
+            remote_ip=ip_addr,
+        )
 
         user_enabled = bool(login_user and login_user.get('enabled', True))
         user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
@@ -3253,12 +3342,13 @@ def register_admin_routes(
         data = request.get_json(silent=True) or {}
         email = _normalize_email(data.get('email', ''))
         turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
+        captcha_verify_param = _extract_admin_captcha_param(request, data)
         ip_addr = _get_request_ip(request)
         now_ts = int(time.time())
         attempts_file = _get_login_attempts_file(root)
         config = get_config() or {}
         geo_settings = normalize_admin_login_geo_settings(config)
-        turnstile_settings = _get_turnstile_settings(config)
+        turnstile_settings = _get_admin_captcha_settings(config)
         smtp_settings = _get_email_auth_settings(config)
 
         if not email:
@@ -3279,22 +3369,12 @@ def register_admin_routes(
             )
             return jsonify({'success': False, 'message': country_reason}), 403
 
-        turnstile_ok = True
-        turnstile_fail_reason = ''
-        if turnstile_settings['enabled']:
-            if not turnstile_token:
-                turnstile_ok = False
-                turnstile_fail_reason = '请先完成人机验证。'
-            else:
-                turnstile_ok, detail = _verify_turnstile_token(
-                    secret_key=turnstile_settings['secret_key'],
-                    token=turnstile_token,
-                    remote_ip=ip_addr,
-                    proxy_url=turnstile_settings.get('proxy_url', ''),
-                    proxy_fallback_enabled=turnstile_settings.get('proxy_fallback_enabled', False),
-                )
-                if not turnstile_ok:
-                    turnstile_fail_reason = detail or '人机验证失败，请重试。'
+        captcha_token = captcha_verify_param if turnstile_settings.get('provider') == 'aliyun_esa' else turnstile_token
+        turnstile_ok, turnstile_fail_reason = _verify_admin_captcha(
+            turnstile_settings,
+            captcha_token,
+            remote_ip=ip_addr,
+        )
 
         with ADMIN_USERS_LOCK:
             users_data, _ = _ensure_admin_users_store(root, get_config, update_config)

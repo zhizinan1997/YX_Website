@@ -70,6 +70,7 @@
                     <div id="loginTurnstileWrap" class="form-group" style="display:none;">
                         <label>人机验证</label>
                         <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
+                        <button type="button" id="loginCaptchaTriggerBtn" class="btn-primary" style="display:none; width:auto; margin-top:10px;">点击完成安全验证</button>
                         <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
                     </div>
                     <div class="form-group" id="loginEmailCodeWrap" style="display:none;">
@@ -3152,9 +3153,9 @@
                     </div>
 
                     <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">登录人机验证（Cloudflare Turnstile）</h3>
+                        <h3 class="section-header">登录人机验证（Cloudflare / 阿里云 ESA）</h3>
                         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                            启用后，后台登录必须先通过 Turnstile 验证。无需变更你的域名解析，只需填写站点密钥。
+                            启用后，后台登录必须先通过所选的人机验证。Cloudflare 由源站验签；阿里云 ESA 由边缘规则验签。
                         </p>
                         <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:18px; color:#2f3b4f; font-size:13px; line-height:1.75;">
                             <div style="font-weight:700; color:#0f2f5f; margin-bottom:6px;">Cloudflare 密钥申请全流程</div>
@@ -3173,6 +3174,13 @@
                         </div>
                         <form id="turnstileSettingsForm">
                             <div class="form-group">
+                                <label>验证服务商</label>
+                                <select id="captchaProvider" class="form-control">
+                                    <option value="cloudflare">Cloudflare Turnstile</option>
+                                    <option value="aliyun_esa">阿里云 ESA AI 验证码</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label style="display: flex; align-items: center; gap: 10px;">
                                     <input type="checkbox" id="turnstileEnabled">
                                     <span>启用 Turnstile 登录保护</span>
@@ -3187,6 +3195,24 @@
                                 <label>服务端密钥（后端）</label>
                                 <input type="password" id="turnstileSecretKey" class="form-control"
                                     placeholder="留空表示保持当前密钥不变">
+                            </div>
+                            <div id="aliyunEsaFields" style="display:none;">
+                                <div class="form-group">
+                                    <label>ESA 身份标（IDENTITY）</label>
+                                    <input type="text" id="aliyunEsaIdentity" class="form-control" placeholder="esa-...">
+                                </div>
+                                <div class="form-group">
+                                    <label>ESA 场景 ID（SceneId）</label>
+                                    <input type="text" id="aliyunEsaSceneId" class="form-control" placeholder="控制台验证码规则中的场景 ID">
+                                </div>
+                                <div class="form-group">
+                                    <label>ESA 地区</label>
+                                    <select id="aliyunEsaRegion" class="form-control">
+                                        <option value="cn">中国内地（cn）</option>
+                                        <option value="sgp">新加坡（sgp）</option>
+                                    </select>
+                                </div>
+                                <div class="form-hint">ESA 还需要在控制台为实际登录接口配置验证码规则，并将 captchaVerifyParam 作为 URI 参数带入请求；ESA 验签成功后才会放行请求。</div>
                             </div>
                             <div class="form-group">
                                 <label>代理地址</label>

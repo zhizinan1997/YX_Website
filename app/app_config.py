@@ -556,6 +556,10 @@ def get_config():
         'turnstile_secret_key': (os.environ.get('TURNSTILE_SECRET_KEY') or '').strip(),
         'turnstile_proxy_fallback_enabled': env_bool('TURNSTILE_PROXY_FALLBACK_ENABLED', False),
         'turnstile_proxy_url': (os.environ.get('TURNSTILE_PROXY_URL') or '').strip(),
+        'admin_captcha_provider': (os.environ.get('ADMIN_CAPTCHA_PROVIDER') or 'cloudflare').strip().lower(),
+        'admin_esa_identity': (os.environ.get('ADMIN_ESA_IDENTITY') or '').strip(),
+        'admin_esa_scene_id': (os.environ.get('ADMIN_ESA_SCENE_ID') or '').strip(),
+        'admin_esa_region': (os.environ.get('ADMIN_ESA_REGION') or 'cn').strip().lower() or 'cn',
         'admin_login_geo_enabled': env_bool('ADMIN_LOGIN_GEO_ENABLED', True),
         'admin_login_geo_continents': {
             'asia': 'allow',

@@ -26,10 +26,13 @@
         let changelogHistory = [];
         let changelogPage = 1;
         let adminSessionCheckTimer = null;
-        let turnstilePublicConfig = { enabled: false, site_key: '' };
+        let turnstilePublicConfig = { enabled: false, provider: 'cloudflare', site_key: '', esa_identity: '', esa_scene_id: '', esa_region: 'cn' };
         let turnstileWidgetId = null;
         let turnstileToken = '';
         let turnstileScriptPromise = null;
+        let aliyunCaptchaScriptPromise = null;
+        let aliyunCaptchaInstance = null;
+        let aliyunCaptchaInitialized = false;
         let emailAuthAdminConfig = { email_auth_enabled: false, smtp_configured: false, smtp_password_expired: false };
         let adminLoginGeoConfig = {
             enabled: true,
@@ -1352,6 +1355,7 @@
 
         // --- Auth Functions ---
         const TURNSTILE_LOAD_TIMEOUT_MS = 30000;
+        const ALIYUN_CAPTCHA_SCRIPT_SRC = 'https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js';
 
         async function initLoginSecurity() {
             const wrap = document.getElementById('loginTurnstileWrap');
@@ -1366,10 +1370,17 @@
                 const data = await parseJsonSafe(res);
                 turnstilePublicConfig = {
                     enabled: data.enabled === true,
-                    site_key: String(data.site_key || '').trim()
+                    provider: String(data.provider || 'cloudflare').trim().toLowerCase(),
+                    site_key: String(data.site_key || '').trim(),
+                    esa_identity: String(data.esa_identity || '').trim(),
+                    esa_scene_id: String(data.esa_scene_id || '').trim(),
+                    esa_region: String(data.esa_region || 'cn').trim().toLowerCase()
                 };
 
-                if (!turnstilePublicConfig.enabled || !turnstilePublicConfig.site_key) {
+                const configReady = turnstilePublicConfig.provider === 'aliyun_esa'
+                    ? !!(turnstilePublicConfig.esa_identity && turnstilePublicConfig.esa_scene_id)
+                    : !!turnstilePublicConfig.site_key;
+                if (!turnstilePublicConfig.enabled || !configReady) {
                     turnstileToken = '';
                     setLoginSubmitState(false, '登 录');
                     updateLoginActionState();
@@ -1377,16 +1388,61 @@
                 }
 
                 if (wrap) wrap.style.display = 'block';
-                await ensureTurnstileScriptLoaded();
-                renderLoginTurnstile();
+                if (turnstilePublicConfig.provider === 'aliyun_esa') {
+                    const trigger = document.getElementById('loginCaptchaTriggerBtn');
+                    if (trigger) trigger.style.display = 'inline-block';
+                    const widget = document.getElementById('loginTurnstileWidget');
+                    if (widget) {
+                        widget.style.display = 'none';
+                        widget.style.minHeight = '0';
+                    }
+                    await ensureAliyunCaptchaScriptLoaded();
+                    renderLoginAliyunCaptcha();
+                } else {
+                    const trigger = document.getElementById('loginCaptchaTriggerBtn');
+                    if (trigger) trigger.style.display = 'none';
+                    const widget = document.getElementById('loginTurnstileWidget');
+                    if (widget) {
+                        widget.style.display = 'flex';
+                        widget.style.minHeight = '66px';
+                    }
+                    await ensureTurnstileScriptLoaded();
+                    renderLoginTurnstile();
+                }
                 setLoginSubmitState(true, '请先完成人机验证');
                 updateLoginActionState();
             } catch (e) {
-                const isCfTimeout = e && e.message && e.message.includes('Turnstile');
-                if (errEl) errEl.textContent = 'Cloudflare 人机挑战验证暂时无法连通，请稍后再次尝试或者更换网络。';
+                if (errEl) errEl.textContent = turnstilePublicConfig.provider === 'aliyun_esa'
+                    ? '阿里云 ESA 人机验证暂时无法加载，请检查网络或配置。'
+                    : 'Cloudflare 人机挑战验证暂时无法连通，请稍后再次尝试或者更换网络。';
                 setLoginSubmitState(true, '人机验证不可用');
                 updateLoginActionState();
             }
+        }
+
+        function ensureAliyunCaptchaScriptLoaded() {
+            if (window.initAliyunCaptcha) return Promise.resolve();
+            if (aliyunCaptchaScriptPromise) return aliyunCaptchaScriptPromise;
+            aliyunCaptchaScriptPromise = new Promise((resolve, reject) => {
+                const existing = document.querySelector('script[data-aliyun-captcha="1"]');
+                if (existing) {
+                    existing.addEventListener('load', () => resolve(), { once: true });
+                    existing.addEventListener('error', () => reject(new Error('ESA captcha script load failed')), { once: true });
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = ALIYUN_CAPTCHA_SCRIPT_SRC;
+                script.async = true;
+                script.defer = true;
+                script.dataset.aliyunCaptcha = '1';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('ESA captcha script load failed'));
+                document.head.appendChild(script);
+            }).catch(error => {
+                aliyunCaptchaScriptPromise = null;
+                throw error;
+            });
+            return aliyunCaptchaScriptPromise;
         }
 
         function ensureTurnstileScriptLoaded() {
@@ -1451,6 +1507,41 @@
             });
         }
 
+        function renderLoginAliyunCaptcha() {
+            const target = document.getElementById('loginTurnstileWidget');
+            const errEl = document.getElementById('loginTurnstileError');
+            if (!target || !window.initAliyunCaptcha || !turnstilePublicConfig.esa_identity || !turnstilePublicConfig.esa_scene_id) return;
+            target.innerHTML = '';
+            window.AliyunCaptchaConfig = {
+                region: turnstilePublicConfig.esa_region || 'cn',
+                prefix: turnstilePublicConfig.esa_identity
+            };
+            aliyunCaptchaInstance = null;
+            aliyunCaptchaInitialized = true;
+            window.initAliyunCaptcha({
+                SceneId: turnstilePublicConfig.esa_scene_id,
+                mode: 'popup',
+                element: '#loginTurnstileWidget',
+                button: '#loginCaptchaTriggerBtn',
+                success: function (captchaVerifyParam) {
+                    turnstileToken = String(captchaVerifyParam || '');
+                    if (errEl) errEl.textContent = '';
+                    setLoginSubmitState(false, '登 录');
+                    updateLoginActionState();
+                },
+                fail: function () {
+                    turnstileToken = '';
+                    if (errEl) errEl.textContent = '阿里云 ESA 人机验证未通过，请重试';
+                    setLoginSubmitState(true, '请先完成人机验证');
+                    updateLoginActionState();
+                },
+                getInstance: function (instance) {
+                    aliyunCaptchaInstance = instance;
+                },
+                server: ['captcha-esa-open.aliyuncs.com', 'captcha-esa-open-b.aliyuncs.com']
+            });
+        }
+
         function resetLoginTurnstile() {
             turnstileToken = '';
             const errEl = document.getElementById('loginTurnstileError');
@@ -1462,6 +1553,9 @@
                 try {
                     window.turnstile.reset(turnstileWidgetId);
                 } catch (_) { }
+            }
+            if (turnstilePublicConfig.provider === 'aliyun_esa' && aliyunCaptchaInstance && typeof aliyunCaptchaInstance.refresh === 'function') {
+                try { aliyunCaptchaInstance.refresh(); } catch (_) { }
             }
             updateLoginActionState();
         }
@@ -1779,6 +1873,9 @@
                 password: document.getElementById('password')?.value || '',
                 turnstileToken: turnstileToken
             };
+            if (turnstilePublicConfig.provider === 'aliyun_esa') {
+                payload.captchaVerifyParam = turnstileToken;
+            }
             if (loginAuthMode === 'account_password') {
                 payload.account = document.getElementById('username')?.value || '';
             } else if (loginAuthMode === 'email_password') {
@@ -1787,6 +1884,12 @@
                 payload.username = document.getElementById('username')?.value || '';
             }
             return payload;
+        }
+
+        function getAdminCaptchaRequestUrl(path) {
+            if (turnstilePublicConfig.provider !== 'aliyun_esa' || !turnstileToken) return path;
+            const separator = path.includes('?') ? '&' : '?';
+            return `${path}${separator}captcha_verify_param=${encodeURIComponent(turnstileToken)}`;
         }
 
         async function handleLoginStart() {
@@ -1814,7 +1917,7 @@
             await new Promise(r => setTimeout(r, 800));
             closeIpPreflightModal();
 
-            const res = await fetch('/admin/login/start', {
+            const res = await fetch(getAdminCaptchaRequestUrl('/admin/login/start'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(getPasswordLoginPayload())
@@ -1878,10 +1981,14 @@
                     await new Promise(r => setTimeout(r, 800));
                     closeIpPreflightModal();
 
-                    const startRes = await fetch('/admin/login/email-code/send', {
+                    const startRes = await fetch(getAdminCaptchaRequestUrl('/admin/login/email-code/send'), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, turnstileToken: turnstileToken })
+                        body: JSON.stringify({
+                            email,
+                            turnstileToken: turnstileToken,
+                            captchaVerifyParam: turnstilePublicConfig.provider === 'aliyun_esa' ? turnstileToken : ''
+                        })
                     });
                     const startData = await parseJsonSafe(startRes);
                     if (!startRes.ok || !startData.success) {
@@ -16627,7 +16734,7 @@
             }
         }
 
-        function updateTurnstileStatusText(enabled, siteKey, proxyFallbackEnabled) {
+        function updateTurnstileStatusText(enabled, siteKey, proxyFallbackEnabled, provider, esaIdentity, esaSceneId) {
             const statusEl = document.getElementById('turnstileStatusText');
             if (!statusEl) return;
             if (!enabled) {
@@ -16635,10 +16742,37 @@
                 statusEl.style.color = '#666';
                 return;
             }
-            statusEl.textContent = siteKey
-                ? `当前状态：已开启${proxyFallbackEnabled ? '，代理兜底已启用' : ''}`
+            const isEsa = provider === 'aliyun_esa';
+            const configured = isEsa ? !!(esaIdentity && esaSceneId) : !!siteKey;
+            statusEl.textContent = configured
+                ? `当前状态：已开启（${isEsa ? '阿里云 ESA' : 'Cloudflare Turnstile'}）${!isEsa && proxyFallbackEnabled ? '，代理兜底已启用' : ''}`
                 : '当前状态：配置不完整';
-            statusEl.style.color = siteKey ? '#2e7d32' : '#d97706';
+            statusEl.style.color = configured ? '#2e7d32' : '#d97706';
+        }
+
+        function updateCaptchaProviderFields() {
+            const provider = String(document.getElementById('captchaProvider')?.value || 'cloudflare').trim();
+            const esaFields = document.getElementById('aliyunEsaFields');
+            const cfFields = document.querySelectorAll('#turnstileSiteKey, #turnstileSecretKey, #turnstileProxyUrl, #turnstileProxyFallbackEnabled');
+            const showEsa = provider === 'aliyun_esa';
+            if (esaFields) esaFields.style.display = showEsa ? 'block' : 'none';
+            cfFields.forEach((el) => {
+                const group = el.closest('.form-group');
+                if (group) group.style.display = showEsa ? 'none' : '';
+            });
+            const directBtn = document.getElementById('turnstileDirectTestBtn');
+            const proxyBtn = document.getElementById('turnstileProxyTestBtn');
+            if (directBtn) directBtn.style.display = showEsa ? 'none' : '';
+            if (proxyBtn) proxyBtn.style.display = showEsa ? 'none' : '';
+            const enabled = !!document.getElementById('turnstileEnabled')?.checked;
+            updateTurnstileStatusText(
+                enabled,
+                document.getElementById('turnstileSiteKey')?.value.trim() || '',
+                !!document.getElementById('turnstileProxyFallbackEnabled')?.checked,
+                provider,
+                document.getElementById('aliyunEsaIdentity')?.value.trim() || '',
+                document.getElementById('aliyunEsaSceneId')?.value.trim() || ''
+            );
         }
 
         function isValidTurnstileProxyUrl(value) {
@@ -16707,12 +16841,20 @@
                 const res = await fetch('/api/admin/security/turnstile', { cache: 'no-store' });
                 const data = await res.json();
                 enabledEl.checked = data.enabled === true;
+                const providerEl = document.getElementById('captchaProvider');
+                if (providerEl) providerEl.value = data.provider || 'cloudflare';
                 siteEl.value = data.site_key || '';
                 secretEl.value = '';
                 secretEl.placeholder = data.secret_key ? `${data.secret_key}（留空不修改）` : '留空表示保持当前密钥不变';
                 if (proxyUrlEl) proxyUrlEl.value = data.proxy_url || '';
                 if (proxyFallbackEl) proxyFallbackEl.checked = data.proxy_fallback_enabled === true;
-                updateTurnstileStatusText(enabledEl.checked, siteEl.value.trim(), !!proxyFallbackEl?.checked);
+                const esaIdentityEl = document.getElementById('aliyunEsaIdentity');
+                const esaSceneIdEl = document.getElementById('aliyunEsaSceneId');
+                const esaRegionEl = document.getElementById('aliyunEsaRegion');
+                if (esaIdentityEl) esaIdentityEl.value = data.esa_identity || '';
+                if (esaSceneIdEl) esaSceneIdEl.value = data.esa_scene_id || '';
+                if (esaRegionEl) esaRegionEl.value = data.esa_region || 'cn';
+                updateCaptchaProviderFields();
             } catch (e) {
                 updateTurnstileStatusText(false, '', false);
                 if (msgEl) {
@@ -16838,23 +16980,25 @@
             turnstileEnabledEl.addEventListener('change', function () {
                 const site = document.getElementById('turnstileSiteKey')?.value.trim() || '';
                 const proxyFallback = !!document.getElementById('turnstileProxyFallbackEnabled')?.checked;
-                updateTurnstileStatusText(this.checked, site, proxyFallback);
+                updateTurnstileStatusText(this.checked, site, proxyFallback, document.getElementById('captchaProvider')?.value, document.getElementById('aliyunEsaIdentity')?.value.trim(), document.getElementById('aliyunEsaSceneId')?.value.trim());
             });
         }
+        const captchaProviderEl = document.getElementById('captchaProvider');
+        if (captchaProviderEl) captchaProviderEl.addEventListener('change', updateCaptchaProviderFields);
         const turnstileSiteKeyEl = document.getElementById('turnstileSiteKey');
         if (turnstileSiteKeyEl) {
             turnstileSiteKeyEl.addEventListener('input', function () {
-                const enabled = !!document.getElementById('turnstileEnabled')?.checked;
-                const proxyFallback = !!document.getElementById('turnstileProxyFallbackEnabled')?.checked;
-                updateTurnstileStatusText(enabled, this.value.trim(), proxyFallback);
+                updateCaptchaProviderFields();
             });
         }
+        ['aliyunEsaIdentity', 'aliyunEsaSceneId'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', updateCaptchaProviderFields);
+        });
         const turnstileProxyFallbackEl = document.getElementById('turnstileProxyFallbackEnabled');
         if (turnstileProxyFallbackEl) {
             turnstileProxyFallbackEl.addEventListener('change', function () {
-                const enabled = !!document.getElementById('turnstileEnabled')?.checked;
-                const site = document.getElementById('turnstileSiteKey')?.value.trim() || '';
-                updateTurnstileStatusText(enabled, site, this.checked);
+                updateCaptchaProviderFields();
             });
         }
 
@@ -16865,25 +17009,33 @@
                 const btn = e.target.querySelector('button[type="submit"]');
                 const msg = document.getElementById('turnstileSettingsMsg');
                 const enabled = !!document.getElementById('turnstileEnabled')?.checked;
+                const provider = String(document.getElementById('captchaProvider')?.value || 'cloudflare').trim();
                 const siteKey = String(document.getElementById('turnstileSiteKey')?.value || '').trim();
                 const secretKey = String(document.getElementById('turnstileSecretKey')?.value || '').trim();
                 const proxyUrl = String(document.getElementById('turnstileProxyUrl')?.value || '').trim();
                 const proxyFallbackEnabled = !!document.getElementById('turnstileProxyFallbackEnabled')?.checked;
+                const esaIdentity = String(document.getElementById('aliyunEsaIdentity')?.value || '').trim();
+                const esaSceneId = String(document.getElementById('aliyunEsaSceneId')?.value || '').trim();
+                const esaRegion = String(document.getElementById('aliyunEsaRegion')?.value || 'cn').trim();
 
                 if (msg) {
                     msg.textContent = '';
                     msg.style.color = '#dc3545';
                 }
 
-                if (enabled && !siteKey) {
-                    if (msg) msg.textContent = '启用登录验证时必须填写站点密钥';
+                if (enabled && provider === 'cloudflare' && !siteKey) {
+                    if (msg) msg.textContent = '启用 Cloudflare Turnstile 时必须填写站点密钥';
                     return;
                 }
-                if (proxyUrl && !isValidTurnstileProxyUrl(proxyUrl)) {
+                if (enabled && provider === 'aliyun_esa' && (!esaIdentity || !esaSceneId)) {
+                    if (msg) msg.textContent = '启用阿里云 ESA 时必须填写身份标和场景 ID';
+                    return;
+                }
+                if (provider === 'cloudflare' && proxyUrl && !isValidTurnstileProxyUrl(proxyUrl)) {
                     if (msg) msg.textContent = '代理地址必须以 http:// 或 https:// 开头，并包含有效主机';
                     return;
                 }
-                if (proxyFallbackEnabled && !proxyUrl) {
+                if (provider === 'cloudflare' && proxyFallbackEnabled && !proxyUrl) {
                     if (msg) msg.textContent = '启用代理重试兜底前，请先填写代理地址';
                     return;
                 }
@@ -16895,10 +17047,14 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             enabled: enabled,
+                            provider: provider,
                             site_key: siteKey,
                             secret_key: secretKey,
                             proxy_url: proxyUrl,
-                            proxy_fallback_enabled: proxyFallbackEnabled
+                            proxy_fallback_enabled: proxyFallbackEnabled,
+                            esa_identity: esaIdentity,
+                            esa_scene_id: esaSceneId,
+                            esa_region: esaRegion
                         })
                     });
                     const data = await res.json();
