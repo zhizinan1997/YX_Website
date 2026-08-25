@@ -1,2 +1,28 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files; repo stores and checks out LF on every platform.
+# Docker 镜像直接 COPY 工作区文件：统一 LF 可保证镜像内容与 Linux 服务器上的
+# 数据卷字节一致，避免 dockerrun_upgrade.sh 三方合并时因换行符差异产生假冲突。
+* text=auto eol=lf
+
+# 二进制资源一律不做换行符处理
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.mp4 binary
+*.webm binary
+*.ogg binary
+*.ogv binary
+*.mp3 binary
+*.wav binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.sqlite3 binary
