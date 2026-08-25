@@ -41,6 +41,8 @@ from pathlib import Path
 
 from flask import jsonify, request, send_from_directory, session
 
+from app.atomic_io import atomic_write_text
+
 
 def get_hero_config(hero_config_file, sanitize_public_media_url):
     """从文件或默认值加载 Hero 轮播配置。"""
@@ -91,7 +93,7 @@ def get_hero_config(hero_config_file, sanitize_public_media_url):
         except Exception:
             pass
 
-    hero_config_path.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(hero_config_path, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
 
@@ -150,7 +152,7 @@ def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url)
         'cta_buttons_visible': cta_buttons_visible,
         'items': normalized_items,
     }
-    Path(hero_config_file).write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(Path(hero_config_file), json.dumps(saved, indent=2, ensure_ascii=False))
     return saved
 
 
@@ -175,9 +177,9 @@ def load_hero_derived_manifest(hero_derived_manifest_file):
 def save_hero_derived_manifest(manifest, *, hero_derived_manifest_file):
     """将 Hero 派生图片清单持久化到磁盘。"""
     payload = manifest if isinstance(manifest, dict) else {'version': 1, 'items': {}}
-    Path(hero_derived_manifest_file).write_text(
+    atomic_write_text(
+        Path(hero_derived_manifest_file),
         json.dumps(payload, indent=2, ensure_ascii=False),
-        encoding='utf-8',
     )
 
 
@@ -500,7 +502,7 @@ def get_partners_config(partners_config_file, sanitize_public_media_url):
         except Exception:
             pass
 
-    partners_config_path.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(partners_config_path, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
 
@@ -510,7 +512,7 @@ def save_partners_config(new_config, *, partners_config_file, sanitize_public_me
     items = new_config.get('items', config.get('items', []))
     normalized_items = sanitize_public_partner_items(items if isinstance(items, list) else [], sanitize_public_media_url)
     saved = {'items': normalized_items}
-    Path(partners_config_file).write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(Path(partners_config_file), json.dumps(saved, indent=2, ensure_ascii=False))
     return saved
 
 
@@ -535,7 +537,7 @@ def get_home_section_visibility_config(home_section_visibility_file):
                 }
         except Exception:
             pass
-    visibility_path.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(visibility_path, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
 
@@ -548,7 +550,7 @@ def save_home_section_visibility_config(new_config, *, home_section_visibility_f
         'news': bool(new_config.get('news', existing.get('news', True))),
         'solutions': bool(new_config.get('solutions', existing.get('solutions', True))),
     }
-    Path(home_section_visibility_file).write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(Path(home_section_visibility_file), json.dumps(saved, indent=2, ensure_ascii=False))
     return saved
 
 
@@ -625,7 +627,7 @@ def register_home_content_routes(
     @app.route('/api/hero', methods=['POST'])
     @login_required
     def update_hero():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         config = save_hero_config(
             data,
             hero_config_file=hero_config_file,
@@ -832,7 +834,7 @@ def register_home_content_routes(
     @app.route('/api/partners', methods=['POST'])
     @login_required
     def update_partners():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         config = save_partners_config(
             data,
             partners_config_file=partners_config_file,
@@ -927,7 +929,7 @@ def register_home_content_routes(
     @app.route('/api/home/section-visibility', methods=['POST'])
     @login_required
     def update_home_section_visibility():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         config = save_home_section_visibility_config(
             data,
             home_section_visibility_file=home_section_visibility_file,

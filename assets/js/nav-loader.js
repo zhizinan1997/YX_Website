@@ -721,6 +721,22 @@
             .replace(/'/g, '&#39;');
     }
 
+    function safeNavUrl(value, fallback) {
+        var raw = String(value || '').trim();
+        var defaultValue = fallback || '#';
+        if (!raw) return defaultValue;
+        if (raw.charAt(0) === '#' || raw.charAt(0) === '/' || raw.indexOf('./') === 0 || raw.indexOf('../') === 0) {
+            return raw;
+        }
+        try {
+            var parsed = new URL(raw, window.location.origin);
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return raw;
+        } catch (error) {
+            // 无效链接回落为不可跳转占位符。
+        }
+        return defaultValue;
+    }
+
     function detectCurrentProductId() {
         var path = String(window.location.pathname || '');
         var m = path.match(/^\/pages\/gassensing\/([a-z0-9_]+)\.html$/i);
@@ -740,13 +756,13 @@
         var grid = document.querySelector('.vs-related-news .vs-news-grid');
         if (!grid || !Array.isArray(items) || !items.length) return;
         var html = items.slice(0, 2).map(function (item) {
-            var link = (item && item.link) ? String(item.link) : '#';
-            var title = (item && item.title) ? String(item.title) : '鐩稿叧鏂伴椈';
-            var image = (item && item.image) ? String(item.image) : '/cdn_assets/images/common/f1dcc87cdcca.png';
+            var link = safeNavUrl(item && item.link, '#');
+            var title = (item && item.title) ? String(item.title) : '相关新闻';
+            var image = safeNavUrl(item && item.image, '/cdn_assets/images/common/f1dcc87cdcca.png');
             var desc = (item && item.desc) ? String(item.desc) : '';
             return '' +
-                '<a href="' + link + '" class="vs-news-item">' +
-                '  <img src="' + image + '" alt="鏂伴椈鍥剧墖">' +
+                '<a href="' + escapeHtmlText(link) + '" class="vs-news-item">' +
+                '  <img src="' + escapeHtmlText(image) + '" alt="新闻图片">' +
                 '  <div class="vs-news-item__content">' +
                 '    <h4>' + escapeHtmlText(title) + '</h4>' +
                 '    <p>' + escapeHtmlText(desc) + '</p>' +
@@ -783,7 +799,7 @@
 
     function normalizeProductCardTitle(product) {
         return String(
-            (product && (product.cardTitle || product.displayName || product.shortName || product.name)) || '浜у搧'
+            (product && (product.cardTitle || product.displayName || product.shortName || product.name)) || '产品'
         );
     }
 
@@ -796,17 +812,17 @@
         var grid = document.querySelector('.vs-related-products .vs-related-grid');
         if (!grid) return;
         if (!Array.isArray(items) || !items.length) {
-            grid.innerHTML = '<p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">鏆傛棤鐩稿叧浜у搧</p>';
+            grid.innerHTML = '<p style="grid-column: 1 / -1; color: #64748b; text-align: center; margin: 24px 0;">暂无相关产品</p>';
             return;
         }
 
         var html = items.map(function (item) {
-            var href = buildProductHref(item);
+            var href = safeNavUrl(buildProductHref(item), '#');
             var title = normalizeProductCardTitle(item);
-            var image = normalizeProductCardImage(item);
+            var image = safeNavUrl(normalizeProductCardImage(item), '/cdn_assets/images/common/f1dcc87cdcca.png');
             return '' +
-                '<a href="' + href + '" class="vs-related-item">' +
-                '  <img src="' + image + '" alt="' + escapeHtmlText(title) + '">' +
+                '<a href="' + escapeHtmlText(href) + '" class="vs-related-item">' +
+                '  <img src="' + escapeHtmlText(image) + '" alt="' + escapeHtmlText(title) + '">' +
                 '  <h4>' + escapeHtmlText(title) + '</h4>' +
                 '</a>';
         }).join('');
@@ -910,22 +926,22 @@
                             var latestItems = Array.isArray(data.latestReleases) ? data.latestReleases : [];
                             safeSetHtml('latestReleasesList', latestItems.map(function (item) {
                                 return buildRecommendationCard(item, recommendationProductMap, '\u67e5\u770b\u65b0\u54c1');
-                            }).join('') || '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
+                            }).join('') || '<li><a href="#">暂无数据</a></li>');
                         }
 
                         var appListEl = document.getElementById('applicationAreasList');
                         if (appListEl) {
                             appListEl.classList.remove('vs-mega-list-v2--cards');
-                            safeSetHtml('applicationAreasList', (data.applicationAreas || []).map(buildRecommendationLink).join('') || '<li><a href="#">鏆傛棤鏁版嵁</a></li>');
+                            safeSetHtml('applicationAreasList', (data.applicationAreas || []).map(buildRecommendationLink).join('') || '<li><a href="#">暂无数据</a></li>');
                         }
                     })
                     .catch(function () {
                         var latestListEl = document.getElementById('latestReleasesList');
                         if (latestListEl) {
                             latestListEl.classList.add('vs-mega-list-v2--cards');
-                            safeSetHtml('latestReleasesList', '<li><a href="#">鍔犺浇澶辫触</a></li>');
+                            safeSetHtml('latestReleasesList', '<li><a href="#">加载失败</a></li>');
                         }
-                        if (document.getElementById('applicationAreasList')) safeSetHtml('applicationAreasList', '<li><a href="#">鍔犺浇澶辫触</a></li>');
+                        if (document.getElementById('applicationAreasList')) safeSetHtml('applicationAreasList', '<li><a href="#">加载失败</a></li>');
                     })
             );
         }

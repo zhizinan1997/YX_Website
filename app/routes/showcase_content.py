@@ -49,6 +49,8 @@ from pathlib import Path
 
 from flask import jsonify, request, session
 
+from app.atomic_io import atomic_write_text
+
 # 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 MEASUREMENT_PRODUCT_LIMIT = 4
@@ -127,7 +129,7 @@ def get_featured_products_config():
                 return config
         except Exception:
             pass
-    product_featured_file.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(product_featured_file, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
 
@@ -146,7 +148,7 @@ def save_featured_products_config(new_config):
         seen.add(product_id)
         normalized.append(product_id)
     saved = {'ids': normalized[:3]}
-    _dep('product_featured_file').write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(_dep('product_featured_file'), json.dumps(saved, indent=2, ensure_ascii=False))
     return saved
 
 
@@ -161,7 +163,7 @@ def get_featured_solutions_config():
                 return config
         except Exception:
             pass
-    solutions_featured_file.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(solutions_featured_file, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
 
@@ -180,7 +182,7 @@ def save_featured_solutions_config(new_config):
         seen.add(solution_id)
         normalized.append(solution_id)
     saved = {'ids': normalized[:3]}
-    _dep('solutions_featured_file').write_text(json.dumps(saved, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(_dep('solutions_featured_file'), json.dumps(saved, indent=2, ensure_ascii=False))
     return saved
 
 
@@ -335,7 +337,7 @@ def get_h2_home_config():
                 }
         except Exception:
             pass
-    h2_home_file.write_text(json.dumps(default_config, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(h2_home_file, json.dumps(default_config, ensure_ascii=False, indent=2))
     return default_config
 
 
@@ -362,7 +364,7 @@ def save_h2_home_config(config):
         'news': existing.get('news', []),
         'measurementProducts': existing.get('measurementProducts', {}),
     }
-    _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(_dep('h2_home_file'), json.dumps(saved, ensure_ascii=False, indent=2))
     return saved
 
 
@@ -386,7 +388,7 @@ def save_h2_home_products(product_ids):
         'news': existing.get('news', []),
         'measurementProducts': existing.get('measurementProducts', {}),
     }
-    _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(_dep('h2_home_file'), json.dumps(saved, ensure_ascii=False, indent=2))
     return saved
 
 
@@ -422,7 +424,7 @@ def save_h2_home_cases(items):
         'news': existing.get('news', []),
         'measurementProducts': existing.get('measurementProducts', {}),
     }
-    _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(_dep('h2_home_file'), json.dumps(saved, ensure_ascii=False, indent=2))
     return saved
 
 
@@ -447,7 +449,7 @@ def save_h2_home_measurement_products(items):
         'news': existing.get('news', []),
         'measurementProducts': cleaned,
     }
-    _dep('h2_home_file').write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(_dep('h2_home_file'), json.dumps(saved, ensure_ascii=False, indent=2))
     return saved
 
 
@@ -574,9 +576,9 @@ def get_hydrogen_solution_products_config():
 
 def save_hydrogen_solution_products_config(new_config):
     normalized = normalize_hydrogen_solution_products_config(new_config)
-    _dep('hydrogen_solutions_config_file').write_text(
+    atomic_write_text(
+        _dep('hydrogen_solutions_config_file'),
         json.dumps(normalized, ensure_ascii=False, indent=2),
-        encoding='utf-8',
     )
     return normalized
 
@@ -698,7 +700,7 @@ def register_showcase_content_routes(
     @login_required
     def update_hydrogen_solutions_admin_config():
         """持久化保存后台编辑的方案关联产品 ID。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         saved = save_hydrogen_solution_products_config(data)
         return jsonify({'success': True, 'config': saved})
 
@@ -735,7 +737,7 @@ def register_showcase_content_routes(
     @app.route('/api/products/featured', methods=['POST'])
     @login_required
     def update_featured_products():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         config = save_featured_products_config(data)
         return jsonify({'success': True, 'config': config})
 
@@ -788,7 +790,7 @@ def register_showcase_content_routes(
     @app.route('/api/solutions/featured', methods=['POST'])
     @login_required
     def update_featured_solutions():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         config = save_featured_solutions_config(data)
         return jsonify({'success': True, 'config': config})
 
@@ -833,7 +835,7 @@ def register_showcase_content_routes(
     @app.route('/api/h2-home', methods=['POST'])
     @login_required
     def update_h2_home():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         config = save_h2_home_config(data)
         return jsonify({'success': True, 'config': config})
 
@@ -864,7 +866,7 @@ def register_showcase_content_routes(
     @app.route('/api/h2-home/products', methods=['POST'])
     @login_required
     def update_h2_home_products():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         ids = data.get('ids', [])
         config = save_h2_home_products(ids)
         return jsonify({'success': True, 'config': config})
@@ -964,7 +966,7 @@ def register_showcase_content_routes(
     @app.route('/api/h2-home/measurement-products', methods=['POST'])
     @login_required
     def update_h2_home_measurement_products():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         items = data.get('items', [])
         config = save_h2_home_measurement_products(items)
         return jsonify({'success': True, 'config': config})
@@ -972,7 +974,7 @@ def register_showcase_content_routes(
     @app.route('/api/h2-home/cases', methods=['POST'])
     @login_required
     def update_h2_home_cases():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         items = data.get('items', [])
         if not items and data.get('ids'):
             items = [{'id': case_id} for case_id in data.get('ids', [])]

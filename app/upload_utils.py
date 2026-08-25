@@ -249,8 +249,6 @@ def validate_uploaded_image_extension(file_storage, *, allowed_extensions: set[s
         detected_ext = infer_ai_product_image_extension_from_bytes(sample)
         if _normalized_ext(detected_ext) == '.svg' and named_ext in allowed_extensions:
             return named_ext
-    if named_ext in allowed_extensions and named_ext in {'.svg'} and _normalized_ext(detected_ext) == named_ext:
-        return named_ext
     return ''
 
 

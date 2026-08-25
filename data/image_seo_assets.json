@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-15T13:14:20+08:00",
+  "updatedAt": "2026-08-25T14:28:58+08:00",
   "items": [
     {
       "assetId": "img_9779679eac0bce808eb5",
@@ -503,6 +503,29 @@
       "sourceAlt": ""
     },
     {
+      "assetId": "img_4a1288ebf4c898c6410f",
+      "url": "/cdn_assets/images/biosensing/bio-18ad1110f2.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 11,
+      "contentHash": "083b6bf21c127b9a613915d1838cd62fb39d7a2dad52afb993814d3ef8803bda",
+      "updatedAt": "2026-08-20T13:57:25+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
       "assetId": "img_766b3ac99236544a3910",
       "url": "/cdn_assets/images/biosensing/bio-6d6922287a.png",
       "ownerPage": "",
@@ -519,6 +542,29 @@
       "fileSize": 11,
       "contentHash": "083b6bf21c127b9a613915d1838cd62fb39d7a2dad52afb993814d3ef8803bda",
       "updatedAt": "2026-07-15T13:14:20+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
+      "assetId": "img_99ae9a0951b562bff70c",
+      "url": "/cdn_assets/images/biosensing/bio-f56ad31cb4.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 11,
+      "contentHash": "083b6bf21c127b9a613915d1838cd62fb39d7a2dad52afb993814d3ef8803bda",
+      "updatedAt": "2026-08-25T13:49:24+08:00",
       "references": [],
       "issues": [
         "missing_alt"
@@ -7644,6 +7690,52 @@
       "sourceAlt": ""
     },
     {
+      "assetId": "img_fec7ce03e07c56e9aaa0",
+      "url": "/cdn_assets/images/gassensing/gas-caf52d9640.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 11,
+      "contentHash": "9ef49533f98291931f69d64a33f7daca6d7327e1e2477180a0bd4744b8d331b7",
+      "updatedAt": "2026-08-25T13:49:24+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
+      "assetId": "img_901e55e4d3fd619c7aa8",
+      "url": "/cdn_assets/images/gassensing/gas-e72a221a36.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 11,
+      "contentHash": "9ef49533f98291931f69d64a33f7daca6d7327e1e2477180a0bd4744b8d331b7",
+      "updatedAt": "2026-08-20T13:57:25+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
       "assetId": "img_aa658f064e1fb10973c1",
       "url": "/cdn_assets/images/gassensing/online-store/online-store-hero-bg.png",
       "ownerPage": "",
@@ -10564,6 +10656,75 @@
       "sourceAlt": ""
     },
     {
+      "assetId": "img_93cb648b8231c29f86d8",
+      "url": "/cdn_assets/ok-0931879c78.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 10,
+      "contentHash": "19fe871727a36b6ba9c5cb79cd561955be2163384665506c1cdf84d073363f21",
+      "updatedAt": "2026-08-25T14:18:10+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
+      "assetId": "img_9267b671a5c5e0168025",
+      "url": "/cdn_assets/ok-b5e21123af.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 10,
+      "contentHash": "19fe871727a36b6ba9c5cb79cd561955be2163384665506c1cdf84d073363f21",
+      "updatedAt": "2026-08-25T14:28:58+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
+      "assetId": "img_64b1fb0f084ba2ad89e5",
+      "url": "/cdn_assets/ok-d972ac85c7.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 0,
+      "height": 0,
+      "mimeType": "image/png",
+      "fileSize": 10,
+      "contentHash": "19fe871727a36b6ba9c5cb79cd561955be2163384665506c1cdf84d073363f21",
+      "updatedAt": "2026-08-25T14:18:06+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
       "assetId": "img_2151679888cbe08235db",
       "url": "/cdn_assets/images/about/2e1bbbff78f0.webp",
       "ownerPage": "/pages/about/about.html",
@@ -10630,7 +10791,7 @@
       "updatedAt": "2026-07-15T10:43:36+08:00",
       "references": [
         "/pages/about/about.html",
-        "/pages/research/index.html"
+        "/pages/research/"
       ],
       "issues": [],
       "sourceAlt": "ISO"
@@ -11636,7 +11797,7 @@
     {
       "assetId": "img_ce01821662321fc00316",
       "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/693d8dddb7ee.webp",
-      "ownerPage": "/pages/customization/index.html",
+      "ownerPage": "/pages/customization/",
       "alt": "微纳加工服务",
       "title": "",
       "caption": "",
@@ -11651,7 +11812,7 @@
       "contentHash": "0a630ca9269c6f77f8c7dc0df6cb83b67935f989d0b3386accec87320ab4969c",
       "updatedAt": "2026-07-15T10:43:36+08:00",
       "references": [
-        "/pages/customization/index.html"
+        "/pages/customization/"
       ],
       "issues": [],
       "sourceAlt": "微纳加工服务"
@@ -11659,7 +11820,7 @@
     {
       "assetId": "img_ac96902e76a871e20bf5",
       "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/8f132a2f456b.webp",
-      "ownerPage": "/pages/customization/index.html",
+      "ownerPage": "/pages/customization/",
       "alt": "定制气体传感模组",
       "title": "",
       "caption": "",
@@ -11674,7 +11835,7 @@
       "contentHash": "0ea4a14a40e70c0b3e27ebddc91606a51ba01ef0416f6b6fdab1c16a6f150851",
       "updatedAt": "2026-07-15T10:43:36+08:00",
       "references": [
-        "/pages/customization/index.html"
+        "/pages/customization/"
       ],
       "issues": [],
       "sourceAlt": "定制气体传感模组"
@@ -11682,7 +11843,7 @@
     {
       "assetId": "img_18cb3a1982c58197c704",
       "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/bfb25a200caa.webp",
-      "ownerPage": "/pages/customization/index.html",
+      "ownerPage": "/pages/customization/",
       "alt": "定制仪器仪表开发",
       "title": "",
       "caption": "",
@@ -11697,7 +11858,7 @@
       "contentHash": "4e154b7ff32c94bd69e716512c13f3fcdc75d9f32a603fd9e598e918b25dfeef",
       "updatedAt": "2026-07-15T10:43:36+08:00",
       "references": [
-        "/pages/customization/index.html"
+        "/pages/customization/"
       ],
       "issues": [],
       "sourceAlt": "定制仪器仪表开发"
@@ -21403,6 +21564,491 @@
       "sourceAlt": ""
     },
     {
+      "assetId": "img_0ac4e25b49dbb7e64bcc",
+      "url": "/cdn_assets/images/common/15fd06dc7b59.jpg",
+      "ownerPage": "/pages/research/",
+      "alt": "定制化传感器开发、测试与应用",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 380,
+      "height": 400,
+      "mimeType": "image/jpeg",
+      "fileSize": 29213,
+      "contentHash": "279da1217d02ea27cee4ff0b5844cc1d3f130a5d2b1ebfd5403e5e70e3307e64",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "定制化传感器开发、测试与应用"
+    },
+    {
+      "assetId": "img_cd787627feb264d96fc7",
+      "url": "/cdn_assets/images/common/19dcf7b13b11.jpg",
+      "ownerPage": "/pages/research/",
+      "alt": "传感器微纳加工服务",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 380,
+      "height": 400,
+      "mimeType": "image/jpeg",
+      "fileSize": 13587,
+      "contentHash": "62133223b17202ab814b68cabcc87bb421e375e1c8bcdd28a3863c87ed0ca87d",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "传感器微纳加工服务"
+    },
+    {
+      "assetId": "img_19950d9df43aaa2d76e2",
+      "url": "/cdn_assets/images/common/1b32f848b5e5.jpg",
+      "ownerPage": "/pages/research/",
+      "alt": "灵活响应服务",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 1140,
+      "height": 250,
+      "mimeType": "image/jpeg",
+      "fileSize": 26525,
+      "contentHash": "d2cd02afa8c8583f5c5e4cd9a47ad7fec69d37f15a6bfb8f324c3af28ff3d01b",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "灵活响应服务"
+    },
+    {
+      "assetId": "img_5e7840c981fc14218e8f",
+      "url": "/cdn_assets/images/common/63917dcd7f5a.jpg",
+      "ownerPage": "/pages/research/",
+      "alt": "产学研深度合作",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 380,
+      "height": 400,
+      "mimeType": "image/jpeg",
+      "fileSize": 20451,
+      "contentHash": "aff114c63efe37e4e27eb986fd469250f0af0bff5c02436d21585231ae88af4e",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "产学研深度合作"
+    },
+    {
+      "assetId": "img_a66dc151a277930f65c2",
+      "url": "/cdn_assets/images/common/f4a5dc42cd04.jpg",
+      "ownerPage": "/pages/research/",
+      "alt": "质量控制生产现场",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 1200,
+      "height": 370,
+      "mimeType": "image/jpeg",
+      "fileSize": 91503,
+      "contentHash": "7e4722d1928385050d174097d3763ea29f5c366e2acc2b1561625fedda05a1fd",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "质量控制生产现场"
+    },
+    {
+      "assetId": "img_7002f9918c379bd317ad",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/031c3e1f01fb.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "仪器仪表",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 384,
+      "height": 232,
+      "mimeType": "image/webp",
+      "fileSize": 22120,
+      "contentHash": "4926e86147f13c0965a1d6c05408c0e6a499e0d8ba9b4960b28a92b3df56b72f",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "仪器仪表"
+    },
+    {
+      "assetId": "img_c99566311ed9b3b00ae7",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/1db55bcdba09.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "南京大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 4528,
+      "contentHash": "59c4a93f8fff570ef1af51b153a8aa3eaacad9dead32dd7524a4cbb992beb8eb",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "南京大学"
+    },
+    {
+      "assetId": "img_8a59262d6f331dae000b",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/3cdc7ad4b5c7.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "中国中车",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 3052,
+      "contentHash": "9d4eb9400c48aff609c74d3a74e62a79d2e48f9392cb316dd798d1bcc88c6714",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "中国中车"
+    },
+    {
+      "assetId": "img_6941b873ae9e3626a456",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/54173cc745f9.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "上海交通大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 6282,
+      "contentHash": "b6aa2a91c6ec670967ddb6edd2cc54de0d651f8c6758e493f225f8677fc07274",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "上海交通大学"
+    },
+    {
+      "assetId": "img_42c43f0c4465e86d08a4",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5c6ec4a575c8.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "华中科技大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 5152,
+      "contentHash": "4d44d97f8a5cf636a906bbc716b5550887706c39f55de603b5f7006f0da50b92",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "华中科技大学"
+    },
+    {
+      "assetId": "img_f6b56b33a426f01881a6",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5de0723936b1.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "北京交通大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 5886,
+      "contentHash": "5e216b6793b6f11396e2780d8c2b8abb2642989735617c93670e6fd357c71b72",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "北京交通大学"
+    },
+    {
+      "assetId": "img_a8a6c75932fbc2c5b8d3",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/672b21f0abbc.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "生物传感器",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 380,
+      "height": 230,
+      "mimeType": "image/webp",
+      "fileSize": 17130,
+      "contentHash": "4451f20d6f47eda9cf65cdbe4889809324a580a14d0f719ce4caa25e2e8f2769",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [
+        "duplicate_alt"
+      ],
+      "sourceAlt": "生物传感器"
+    },
+    {
+      "assetId": "img_c9123b48417ea601f3ed",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/75cb12d06a91.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "北京理工大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 5036,
+      "contentHash": "067c8c496b2663b1ff9989ecae9604db7571b2c679afca23c2edf06ec93b6ed2",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "北京理工大学"
+    },
+    {
+      "assetId": "img_4aa2b4bf94fb6c20893e",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/7dece97d2ce9.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "中国科学院",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 4530,
+      "contentHash": "7d544ed33c207f7f45e205347658f023605673a2ab639164fdde79cd76f336e8",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "中国科学院"
+    },
+    {
+      "assetId": "img_219c3d2f4bc847f450a7",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/8e1bf87b86cf.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "北京大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 5764,
+      "contentHash": "ebac9edc81cfa34535f14b8776e82774f2300057cf5af8bb5c01b3c3c686d0f4",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "北京大学"
+    },
+    {
+      "assetId": "img_31feea1c27e33af6402c",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/9ef238e4ab00.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "清华大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 6538,
+      "contentHash": "0b4d5f54b4fe7a1674bd0547bdf91a127884d6d907a3a45fb3628d3ec92efbff",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "清华大学"
+    },
+    {
+      "assetId": "img_f790148c3761b2b46b63",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/a60c0356cb6f.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "化学传感器",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 384,
+      "height": 232,
+      "mimeType": "image/webp",
+      "fileSize": 13874,
+      "contentHash": "628f44c6852c4c7fce017db613c447c7feac3ad690e3b0860c0893109e9315ee",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "化学传感器"
+    },
+    {
+      "assetId": "img_9c1bd5b1aeacb5dd921f",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ba98e4a15f59.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "湖南大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 4284,
+      "contentHash": "617de4ef535ae150fcdfab7cc0822c5687c1cffced181e9e833fc78081eb251f",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "湖南大学"
+    },
+    {
+      "assetId": "img_94c4d5173833885a7248",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ed3334045814.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "香港理工大学",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 4884,
+      "contentHash": "1d571493f70141ab10f04d74e1000c56d5cae53b4b77836f9605ccd91d8ae956",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "香港理工大学"
+    },
+    {
+      "assetId": "img_1c1368d8decb84bbe9c2",
+      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/f819428a3b94.webp",
+      "ownerPage": "/pages/research/",
+      "alt": "中船重工",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 290,
+      "height": 110,
+      "mimeType": "image/webp",
+      "fileSize": 4560,
+      "contentHash": "e0d3af85da20cf32675da33ed5454e1c1d26d54d1fa68ba837f4d05e77077ddf",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "中船重工"
+    },
+    {
+      "assetId": "img_fbca8c819b3596645843",
+      "url": "/cdn_assets/images/services/202508261410148591.jpg",
+      "ownerPage": "/pages/research/",
+      "alt": "元芯传感科研服务核心方案展示",
+      "title": "",
+      "caption": "",
+      "role": "detail",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 1920,
+      "height": 950,
+      "mimeType": "image/jpeg",
+      "fileSize": 247167,
+      "contentHash": "c1b947117e9eddb189ed100f5d9984e9713f3a7fb3166fc04d938f30fb434773",
+      "updatedAt": "2026-07-15T10:43:36+08:00",
+      "references": [
+        "/pages/research/"
+      ],
+      "issues": [],
+      "sourceAlt": "元芯传感科研服务核心方案展示"
+    },
+    {
       "assetId": "img_f22fddf26e3c8a6c21c9",
       "url": "/cdn_assets/images/research/cooperation/collaborative-ip.png",
       "ownerPage": "/pages/research/cooperation.html",
@@ -22535,491 +23181,6 @@
       ],
       "issues": [],
       "sourceAlt": "检测模块"
-    },
-    {
-      "assetId": "img_0ac4e25b49dbb7e64bcc",
-      "url": "/cdn_assets/images/common/15fd06dc7b59.jpg",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "定制化传感器开发、测试与应用",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 380,
-      "height": 400,
-      "mimeType": "image/jpeg",
-      "fileSize": 29213,
-      "contentHash": "279da1217d02ea27cee4ff0b5844cc1d3f130a5d2b1ebfd5403e5e70e3307e64",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "定制化传感器开发、测试与应用"
-    },
-    {
-      "assetId": "img_cd787627feb264d96fc7",
-      "url": "/cdn_assets/images/common/19dcf7b13b11.jpg",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "传感器微纳加工服务",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 380,
-      "height": 400,
-      "mimeType": "image/jpeg",
-      "fileSize": 13587,
-      "contentHash": "62133223b17202ab814b68cabcc87bb421e375e1c8bcdd28a3863c87ed0ca87d",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "传感器微纳加工服务"
-    },
-    {
-      "assetId": "img_19950d9df43aaa2d76e2",
-      "url": "/cdn_assets/images/common/1b32f848b5e5.jpg",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "灵活响应服务",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 1140,
-      "height": 250,
-      "mimeType": "image/jpeg",
-      "fileSize": 26525,
-      "contentHash": "d2cd02afa8c8583f5c5e4cd9a47ad7fec69d37f15a6bfb8f324c3af28ff3d01b",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "灵活响应服务"
-    },
-    {
-      "assetId": "img_5e7840c981fc14218e8f",
-      "url": "/cdn_assets/images/common/63917dcd7f5a.jpg",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "产学研深度合作",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 380,
-      "height": 400,
-      "mimeType": "image/jpeg",
-      "fileSize": 20451,
-      "contentHash": "aff114c63efe37e4e27eb986fd469250f0af0bff5c02436d21585231ae88af4e",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "产学研深度合作"
-    },
-    {
-      "assetId": "img_a66dc151a277930f65c2",
-      "url": "/cdn_assets/images/common/f4a5dc42cd04.jpg",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "质量控制生产现场",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 1200,
-      "height": 370,
-      "mimeType": "image/jpeg",
-      "fileSize": 91503,
-      "contentHash": "7e4722d1928385050d174097d3763ea29f5c366e2acc2b1561625fedda05a1fd",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "质量控制生产现场"
-    },
-    {
-      "assetId": "img_7002f9918c379bd317ad",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/031c3e1f01fb.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "仪器仪表",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 384,
-      "height": 232,
-      "mimeType": "image/webp",
-      "fileSize": 22120,
-      "contentHash": "4926e86147f13c0965a1d6c05408c0e6a499e0d8ba9b4960b28a92b3df56b72f",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "仪器仪表"
-    },
-    {
-      "assetId": "img_c99566311ed9b3b00ae7",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/1db55bcdba09.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "南京大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 4528,
-      "contentHash": "59c4a93f8fff570ef1af51b153a8aa3eaacad9dead32dd7524a4cbb992beb8eb",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "南京大学"
-    },
-    {
-      "assetId": "img_8a59262d6f331dae000b",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/3cdc7ad4b5c7.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "中国中车",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 3052,
-      "contentHash": "9d4eb9400c48aff609c74d3a74e62a79d2e48f9392cb316dd798d1bcc88c6714",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "中国中车"
-    },
-    {
-      "assetId": "img_6941b873ae9e3626a456",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/54173cc745f9.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "上海交通大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 6282,
-      "contentHash": "b6aa2a91c6ec670967ddb6edd2cc54de0d651f8c6758e493f225f8677fc07274",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "上海交通大学"
-    },
-    {
-      "assetId": "img_42c43f0c4465e86d08a4",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5c6ec4a575c8.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "华中科技大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 5152,
-      "contentHash": "4d44d97f8a5cf636a906bbc716b5550887706c39f55de603b5f7006f0da50b92",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "华中科技大学"
-    },
-    {
-      "assetId": "img_f6b56b33a426f01881a6",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/5de0723936b1.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "北京交通大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 5886,
-      "contentHash": "5e216b6793b6f11396e2780d8c2b8abb2642989735617c93670e6fd357c71b72",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "北京交通大学"
-    },
-    {
-      "assetId": "img_a8a6c75932fbc2c5b8d3",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/672b21f0abbc.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "生物传感器",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 380,
-      "height": 230,
-      "mimeType": "image/webp",
-      "fileSize": 17130,
-      "contentHash": "4451f20d6f47eda9cf65cdbe4889809324a580a14d0f719ce4caa25e2e8f2769",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [
-        "duplicate_alt"
-      ],
-      "sourceAlt": "生物传感器"
-    },
-    {
-      "assetId": "img_c9123b48417ea601f3ed",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/75cb12d06a91.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "北京理工大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 5036,
-      "contentHash": "067c8c496b2663b1ff9989ecae9604db7571b2c679afca23c2edf06ec93b6ed2",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "北京理工大学"
-    },
-    {
-      "assetId": "img_4aa2b4bf94fb6c20893e",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/7dece97d2ce9.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "中国科学院",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 4530,
-      "contentHash": "7d544ed33c207f7f45e205347658f023605673a2ab639164fdde79cd76f336e8",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "中国科学院"
-    },
-    {
-      "assetId": "img_219c3d2f4bc847f450a7",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/8e1bf87b86cf.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "北京大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 5764,
-      "contentHash": "ebac9edc81cfa34535f14b8776e82774f2300057cf5af8bb5c01b3c3c686d0f4",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "北京大学"
-    },
-    {
-      "assetId": "img_31feea1c27e33af6402c",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/9ef238e4ab00.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "清华大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 6538,
-      "contentHash": "0b4d5f54b4fe7a1674bd0547bdf91a127884d6d907a3a45fb3628d3ec92efbff",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "清华大学"
-    },
-    {
-      "assetId": "img_f790148c3761b2b46b63",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/a60c0356cb6f.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "化学传感器",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 384,
-      "height": 232,
-      "mimeType": "image/webp",
-      "fileSize": 13874,
-      "contentHash": "628f44c6852c4c7fce017db613c447c7feac3ad690e3b0860c0893109e9315ee",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "化学传感器"
-    },
-    {
-      "assetId": "img_9c1bd5b1aeacb5dd921f",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ba98e4a15f59.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "湖南大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 4284,
-      "contentHash": "617de4ef535ae150fcdfab7cc0822c5687c1cffced181e9e833fc78081eb251f",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "湖南大学"
-    },
-    {
-      "assetId": "img_94c4d5173833885a7248",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/ed3334045814.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "香港理工大学",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 4884,
-      "contentHash": "1d571493f70141ab10f04d74e1000c56d5cae53b4b77836f9605ccd91d8ae956",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "香港理工大学"
-    },
-    {
-      "assetId": "img_1c1368d8decb84bbe9c2",
-      "url": "/cdn_assets/images/external-cache/wstx.web.vleader.net.cn/f819428a3b94.webp",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "中船重工",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 290,
-      "height": 110,
-      "mimeType": "image/webp",
-      "fileSize": 4560,
-      "contentHash": "e0d3af85da20cf32675da33ed5454e1c1d26d54d1fa68ba837f4d05e77077ddf",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "中船重工"
-    },
-    {
-      "assetId": "img_fbca8c819b3596645843",
-      "url": "/cdn_assets/images/services/202508261410148591.jpg",
-      "ownerPage": "/pages/research/index.html",
-      "alt": "元芯传感科研服务核心方案展示",
-      "title": "",
-      "caption": "",
-      "role": "detail",
-      "ignored": false,
-      "ignoredAt": "",
-      "indexable": true,
-      "width": 1920,
-      "height": 950,
-      "mimeType": "image/jpeg",
-      "fileSize": 247167,
-      "contentHash": "c1b947117e9eddb189ed100f5d9984e9713f3a7fb3166fc04d938f30fb434773",
-      "updatedAt": "2026-07-15T10:43:36+08:00",
-      "references": [
-        "/pages/research/index.html"
-      ],
-      "issues": [],
-      "sourceAlt": "元芯传感科研服务核心方案展示"
     },
     {
       "assetId": "img_751b72c4135a6c03ea74",

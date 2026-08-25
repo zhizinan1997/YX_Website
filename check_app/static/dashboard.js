@@ -7,6 +7,27 @@
     pending: '等待检测'
   };
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function safeHttpUrl(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '#';
+    try {
+      const parsed = new URL(raw, window.location.origin);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return raw;
+    } catch (_) {
+      // Invalid URLs are rendered as inert placeholders.
+    }
+    return '#';
+  }
+
   function fmtTime(value) {
     if (!value) return '-';
     const date = new Date(value);
@@ -67,7 +88,7 @@
     return '<div class="timeline-wrap">' + scale + '<div class="timeline">' + buckets.map((point) => {
       const cls = point ? statusClass(point.status) : '';
       const title = point ? `${fmtTime(point.t)} ${statusLabel[point.status] || '未知状态'} ${fmtLatency(point.latency_ms)}` : '本小时暂无检测数据';
-      return `<span class="${cls}" title="${title}"></span>`;
+      return `<span class="${cls}" title="${escapeHtml(title)}"></span>`;
     }).join('') + '</div></div>';
   }
 
@@ -80,21 +101,27 @@
     el.innerHTML = targets.map((target, index) => {
       const status = target.last_status || 'pending';
       const statusModifier = status === 'ok' ? 'ok' : status === 'degraded' ? 'degraded' : status === 'pending' ? 'pending' : 'down';
+      const name = escapeHtml(target.name || '-');
+      const url = escapeHtml(safeHttpUrl(target.url));
+      const lastChecked = escapeHtml(fmtTime(target.last_checked_at));
+      const latency = escapeHtml(fmtLatency(target.last_latency_ms));
+      const uptime = escapeHtml(target.uptime_percent === null ? '-' : `${target.uptime_percent}%`);
+      const error = target.last_error ? `<span>摘要：<strong>${escapeHtml(formatSummary(target.last_error))}</strong></span>` : '';
       return `
         <article class="target-card target-card--${statusModifier}" style="animation-delay:${index * 0.06}s">
           <div class="target-card__head">
             <div>
-              <div class="target-title"><i class="bi bi-globe2 target-icon"></i><span class="status-dot status-dot--${statusModifier}"></span>${target.name}</div>
-              <div class="target-url">${target.url}</div>
+              <div class="target-title"><i class="bi bi-globe2 target-icon"></i><span class="status-dot status-dot--${statusModifier}"></span>${name}</div>
+              <div class="target-url">${url}</div>
             </div>
             <span class="status-pill ${statusClass(status)}">${statusLabel[status] || '未知状态'}</span>
           </div>
           ${renderTimeline(target.points || [], referenceTime)}
           <div class="target-meta">
-            <span>最近检测：<strong>${fmtTime(target.last_checked_at)}</strong></span>
-            <span>响应延迟：<strong>${fmtLatency(target.last_latency_ms)}</strong></span>
-            <span>24小时正常率：<strong>${target.uptime_percent === null ? '-' : `${target.uptime_percent}%`}</strong></span>
-            ${target.last_error ? `<span>摘要：<strong>${formatSummary(target.last_error)}</strong></span>` : ''}
+            <span>最近检测：<strong>${lastChecked}</strong></span>
+            <span>响应延迟：<strong>${latency}</strong></span>
+            <span>24小时正常率：<strong>${uptime}</strong></span>
+            ${error}
           </div>
         </article>
       `;
@@ -112,13 +139,13 @@
         <div>
           <strong>${item.status === 'resolved'
             ? '<i class="bi bi-check-circle incident-icon incident-icon--resolved"></i>'
-            : '<i class="bi bi-exclamation-triangle incident-icon incident-icon--down"></i>'}${item.target_name}</strong>
-          <div class="target-url">${item.url}</div>
-          <div class="muted">${formatSummary(item.last_error)}</div>
+            : '<i class="bi bi-exclamation-triangle incident-icon incident-icon--down"></i>'}${escapeHtml(item.target_name || '-')}</strong>
+          <div class="target-url">${escapeHtml(safeHttpUrl(item.url))}</div>
+          <div class="muted">${escapeHtml(formatSummary(item.last_error))}</div>
         </div>
         <div>
           <span class="status-pill ${item.status === 'resolved' ? 'status-ok' : 'status-down'}">${item.status === 'resolved' ? '已恢复' : '处理中'}</span>
-          <div class="muted">${fmtTime(item.opened_at)}</div>
+          <div class="muted">${escapeHtml(fmtTime(item.opened_at))}</div>
         </div>
       </div>
     `).join('');
@@ -152,5 +179,7 @@
   loadStatus().catch((error) => {
     document.getElementById('targetList').innerHTML = '<div class="empty-block">监测数据加载失败，请稍后重试。</div>';
   });
-  window.setInterval(loadStatus, 60000);
+  window.setInterval(() => {
+    loadStatus().catch(() => { /* 轮询失败静默，等待下一轮 */ });
+  }, 60000);
 })();

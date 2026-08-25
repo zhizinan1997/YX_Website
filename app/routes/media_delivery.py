@@ -294,7 +294,7 @@ def register_media_delivery_routes(
         if not _IS_SAME_ORIGIN_REQUEST(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         domain = normalize_cdn_domain(str(data.get('cdn_domain') or ''))
 
         if domain:
@@ -315,7 +315,7 @@ def register_media_delivery_routes(
         if not _IS_SAME_ORIGIN_REQUEST(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         settings = get_cdn_settings()
         domain = normalize_cdn_domain(str(data.get('cdn_domain') or settings.get('cdn_domain') or ''))
         asset_path = str(data.get('asset_path') or '/cdn_assets/images/common/f1dcc87cdcca.png').strip()
@@ -434,4 +434,11 @@ def register_media_delivery_routes(
         )
         response.headers['Cache-Control'] = _MEDIA_IMMUTABLE_CACHE_CONTROL
         response.headers['Access-Control-Allow-Origin'] = '*'
+        # SVG 属于可执行脚本内容：即使上传侧已拒绝新增 SVG，也必须防止
+        # 存量 SVG 在主域上下文中执行脚本。
+        if relative_path.lower().endswith('.svg'):
+            response.headers['Content-Security-Policy'] = (
+                "default-src 'none'; style-src 'unsafe-inline'; script-src 'none'"
+            )
+            response.headers['X-Content-Type-Options'] = 'nosniff'
         return response

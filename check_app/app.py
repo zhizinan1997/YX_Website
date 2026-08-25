@@ -15,7 +15,7 @@ from .time_utils import iso_now
 from .workflow import CheckRunner, Scheduler
 
 
-def _same_origin_request(req) -> bool:
+def _same_origin_request(req, *, allow_missing: bool = False) -> bool:
     origin = req.headers.get("Origin") or ""
     referer = req.headers.get("Referer") or ""
     host_url = req.host_url.rstrip("/")
@@ -29,7 +29,8 @@ def _same_origin_request(req) -> bool:
         candidate_origin = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
         if candidate_origin == host_url:
             return True
-    return not origin and not referer
+    # 已登录管理写操作不允许缺少来源头；未登录认证流程允许兼容无来源头的客户端。
+    return bool(allow_missing and not origin and not referer)
 
 
 def _is_loopback_request(req) -> bool:
@@ -201,7 +202,6 @@ def create_app() -> Flask:
             {
                 "smtp_configured": smtp.configured,
                 "verified_admin_count": len(admins),
-                "main_data_dir": str(config.MAIN_DATA_DIR),
                 "dev_login_enabled": bool(config.DEV_LOGIN_ENABLED and _is_loopback_request(request)),
                 "turnstile_enabled": turnstile.enabled,
             }
@@ -233,7 +233,7 @@ def create_app() -> Flask:
 
     @app.route("/api/auth/send-code", methods=["POST"])
     def send_code():
-        if not _same_origin_request(request):
+        if not _same_origin_request(request, allow_missing=True):
             return jsonify({"success": False, "message": "请求来源校验失败，请刷新页面后重试"}), 403
         data = request.get_json(silent=True) or {}
         email = str(data.get("email") or "").strip().lower()
@@ -262,7 +262,7 @@ def create_app() -> Flask:
 
     @app.route("/api/auth/verify-code", methods=["POST"])
     def verify_code():
-        if not _same_origin_request(request):
+        if not _same_origin_request(request, allow_missing=True):
             return jsonify({"success": False, "message": "请求来源校验失败，请刷新页面后重试"}), 403
         data = request.get_json(silent=True) or {}
         email = str(data.get("email") or "").strip().lower()
@@ -284,7 +284,7 @@ def create_app() -> Flask:
             return jsonify({"success": False, "message": "本地开发登录未启用"}), 404
         if not _is_loopback_request(request):
             return jsonify({"success": False, "message": "本地开发登录仅允许本机访问"}), 403
-        if not _same_origin_request(request):
+        if not _same_origin_request(request, allow_missing=True):
             return jsonify({"success": False, "message": "请求来源校验失败，请刷新页面后重试"}), 403
         session.clear()
         session["check_admin_email"] = config.DEV_LOGIN_EMAIL

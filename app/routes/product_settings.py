@@ -59,6 +59,8 @@ from urllib.request import Request, urlopen
 
 from flask import jsonify, request, send_from_directory
 
+from app.atomic_io import atomic_write_text
+
 from app.asset_versioning import get_asset_version, inject_version_into_url
 from app.upload_utils import get_uploaded_file_size
 
@@ -188,9 +190,9 @@ def get_product_category_images():
 
 def save_product_category_images(images_data):
     """保存产品分类图片映射。"""
-    PRODUCT_CATEGORY_IMAGES_FILE.write_text(
+    atomic_write_text(
+        PRODUCT_CATEGORY_IMAGES_FILE,
         json.dumps(images_data, ensure_ascii=False, indent=2),
-        encoding='utf-8',
     )
 
 
@@ -492,9 +494,9 @@ def save_industry_filters(data):
     cleaned = _normalize_filter_items(raw_categories, DEFAULT_INDUSTRY_FILTERS)
 
     saved = {'categories': cleaned}
-    PRODUCT_INDUSTRY_FILTERS_FILE.write_text(
+    atomic_write_text(
+        PRODUCT_INDUSTRY_FILTERS_FILE,
         json.dumps(saved, ensure_ascii=False, indent=2),
-        encoding='utf-8',
     )
 
     valid_keys = {item['key'] for item in cleaned}
@@ -552,9 +554,9 @@ def save_bio_industry_filters(data):
     )
 
     saved = {'categories': cleaned}
-    BIO_PRODUCT_INDUSTRY_FILTERS_FILE.write_text(
+    atomic_write_text(
+        BIO_PRODUCT_INDUSTRY_FILTERS_FILE,
         json.dumps(saved, ensure_ascii=False, indent=2),
-        encoding='utf-8',
     )
 
     valid_keys = {item['key'] for item in cleaned}
@@ -769,7 +771,7 @@ def register_product_settings_routes(
     @login_required
     def update_product_settings_api():
         """更新产品菜单设置。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         settings, error = _apply_product_settings_updates(get_product_settings(), data)
         if error:
             return jsonify({'success': False, 'message': error[0]}), error[1]
@@ -781,7 +783,7 @@ def register_product_settings_routes(
     @login_required
     def update_bio_product_settings_api():
         """更新生物传感产品设置。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         settings, error = _apply_product_settings_updates(get_bio_product_settings(), data)
         if error:
             return jsonify({'success': False, 'message': error[0]}), error[1]
@@ -845,7 +847,7 @@ def register_product_settings_routes(
     @login_required
     def update_product_consult_button_api():
         """更新气体产品页橙色按钮的电话配置。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         settings = get_product_settings()
         set_consult_button_config(settings, data)
         save_product_settings(settings)
@@ -860,7 +862,7 @@ def register_product_settings_routes(
     @login_required
     def update_bio_product_consult_button_api():
         """更新生物产品页橙色按钮的电话配置。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         settings = get_bio_product_settings()
         set_consult_button_config(settings, data)
         save_bio_product_settings(settings)
@@ -870,7 +872,7 @@ def register_product_settings_routes(
     @login_required
     def update_product_sort_order():
         """批量更新产品排序。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         settings, error = _apply_sort_order(get_product_settings(), data.get('order', []))
         if error:
             return jsonify({'success': False, 'message': error[0]}), error[1]
@@ -881,7 +883,7 @@ def register_product_settings_routes(
     @login_required
     def update_bio_product_sort_order():
         """批量更新生物传感产品排序。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         settings, error = _apply_sort_order(get_bio_product_settings(), data.get('order', []))
         if error:
             return jsonify({'success': False, 'message': error[0]}), error[1]
@@ -902,7 +904,7 @@ def register_product_settings_routes(
     @login_required
     def save_category_images_api():
         """保存产品分类图片。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         images = data.get('images', {})
         if not isinstance(images, dict):
             return jsonify({'success': False, 'message': '无效的图片数据'}), 400
@@ -923,7 +925,7 @@ def register_product_settings_routes(
     @login_required
     def save_industry_filters_api():
         """更新全产品页行业筛选配置。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         saved = save_industry_filters(data)
         return jsonify({'success': True, 'categories': saved.get('categories', [])})
 
@@ -931,6 +933,6 @@ def register_product_settings_routes(
     @login_required
     def save_bio_industry_filters_api():
         """更新生物传感行业筛选配置。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         saved = save_bio_industry_filters(data)
         return jsonify({'success': True, 'categories': saved.get('categories', [])})

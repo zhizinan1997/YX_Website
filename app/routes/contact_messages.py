@@ -44,12 +44,13 @@ import mimetypes
 import os
 import re
 import threading
-import time
 from html import escape as html_escape
 from pathlib import Path
 from urllib.parse import quote, unquote
 
 from flask import jsonify, request, send_file
+
+from app.atomic_io import atomic_write_text
 from werkzeug.utils import secure_filename
 
 from app.routes.admin import (
@@ -58,13 +59,10 @@ from app.routes.admin import (
     _normalize_email,
     _send_smtp_mail,
 )
+from app.rate_limit_store import check_and_record
 
 # 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
-_RATE_LIMIT_CLEANUP_INTERVAL = 300
-_rate_limit_lock = threading.Lock()
-_rate_limit_storage: dict[str, list[float]] = {}
-_rate_limit_last_cleanup = 0.0
 
 
 
@@ -582,14 +580,14 @@ def get_messages_meta():
             return merged
         except Exception:
             pass
-    messages_meta_file.write_text(json.dumps(default_meta, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(messages_meta_file, json.dumps(default_meta, indent=2, ensure_ascii=False))
     return default_meta
 
 
 def save_messages_meta(meta):
     """持久化保存消息元数据。"""
     safe_meta = {'deleted_count': max(0, int((meta or {}).get('deleted_count', 0)))}
-    _dep('messages_meta_file').write_text(json.dumps(safe_meta, indent=2, ensure_ascii=False), encoding='utf-8')
+    atomic_write_text(_dep('messages_meta_file'), json.dumps(safe_meta, indent=2, ensure_ascii=False))
     return safe_meta
 
 
@@ -636,29 +634,13 @@ def require_public_turnstile_check(ip: str = ''):
 
 def check_rate_limit(ip: str) -> bool:
     """检查当前 IP 是否仍在限流阈值内，允许时返回 True。"""
-    global _rate_limit_last_cleanup
-    now = time.time()
     ip_key = str(ip or '').strip() or 'unknown'
-    rate_limit_window = _dep('rate_limit_window')
-    rate_limit_max = _dep('rate_limit_max')
-
-    with _rate_limit_lock:
-        if now - _rate_limit_last_cleanup > _RATE_LIMIT_CLEANUP_INTERVAL:
-            keys_to_remove = [
-                key for key, timestamps in _rate_limit_storage.items()
-                if not any(now - ts < rate_limit_window for ts in timestamps)
-            ]
-            for key in keys_to_remove:
-                del _rate_limit_storage[key]
-            _rate_limit_last_cleanup = now
-
-        entries = [ts for ts in _rate_limit_storage.get(ip_key, []) if now - ts < rate_limit_window]
-        if len(entries) >= rate_limit_max:
-            _rate_limit_storage[ip_key] = entries
-            return False
-        entries.append(now)
-        _rate_limit_storage[ip_key] = entries
-    return True
+    allowed, _retry_after, _count = check_and_record(
+        f'contact:{ip_key}',
+        limit=_dep('rate_limit_max'),
+        window=_dep('rate_limit_window'),
+    )
+    return allowed
 
 
 
@@ -720,7 +702,7 @@ def register_contact_message_routes(
                 'message': '提交过于频繁，请稍后再试。每小时最多提交5条留言。',
             }), 429
 
-        data = request.form if request.form else request.json or {}
+        data = request.form if request.form else request.get_json(silent=True) or {}
         phone = data.get('txtUserTel', '').strip()
         content = data.get('txtContent', '').strip()
 
@@ -745,7 +727,7 @@ def register_contact_message_routes(
         }
 
         filepath = _dep('messages_dir') / f"{message['id']}.json"
-        filepath.write_text(json.dumps(message, ensure_ascii=False, indent=2), encoding='utf-8')
+        atomic_write_text(filepath, json.dumps(message, ensure_ascii=False, indent=2))
         _start_admin_notification(message, app.logger)
         return jsonify({
             'success': True,
@@ -829,7 +811,7 @@ def register_contact_message_routes(
         try:
             msg = json.loads(filepath.read_text(encoding='utf-8'))
             msg['is_read'] = True
-            filepath.write_text(json.dumps(msg, ensure_ascii=False, indent=2), encoding='utf-8')
+            atomic_write_text(filepath, json.dumps(msg, ensure_ascii=False, indent=2))
             return jsonify({'success': True})
         except Exception:
             return jsonify({'success': False, 'message': '更新失败'}), 500
@@ -968,7 +950,7 @@ def register_contact_message_routes(
         }
 
         filepath = _dep('messages_dir') / f'{message_id}.json'
-        filepath.write_text(json.dumps(message, ensure_ascii=False, indent=2), encoding='utf-8')
+        atomic_write_text(filepath, json.dumps(message, ensure_ascii=False, indent=2))
         _start_admin_notification(message, app.logger)
         return jsonify({
             'success': True,

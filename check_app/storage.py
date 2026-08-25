@@ -214,7 +214,8 @@ def create_target(payload: dict, data_dir: Path | None = None) -> dict:
             """,
             (name, url, enabled, interval, timeout_ms, now, now, now),
         )
-        return get_target(cur.lastrowid, data_dir)
+        row = conn.execute("SELECT * FROM targets WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return row_to_dict(row)
 
 
 def update_target(target_id: int, payload: dict, data_dir: Path | None = None) -> dict:

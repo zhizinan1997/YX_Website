@@ -12,6 +12,10 @@ YX Website 的 Flask 入口文件与组合根。
 
 import os
 
+# 直接运行 server.py 时默认进入本地开发模式；被 WSGI 导入时不改变生产配置。
+if __name__ == '__main__':
+    os.environ.setdefault('APP_ENV', 'development')
+
 from app.app_config import APP_ROOT, MESSAGES_DIR, create_app, ensure_required_runtime_config
 from app.bootstrap import register_all_routes
 from app.request_security import register_strict_anti_crawl_guard
@@ -68,4 +72,7 @@ if __name__ == '__main__':
 
     app.logger.info("Flask application started successfully")
     print("=" * 50)
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    debug_mode = (os.environ.get('APP_ENV') or os.environ.get('FLASK_ENV') or '').strip().lower() in {
+        'dev', 'development', 'local', 'test', 'testing'
+    }
+    app.run(host='0.0.0.0', port=8000, debug=debug_mode)

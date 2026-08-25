@@ -2195,7 +2195,7 @@ def register_ai_chatbot_routes(
         if not config["enabled"]:
             return jsonify({"success": False, "message": "智能客服暂时不可用"}), 503
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         user_message = str(data.get("message") or "").strip()
         history = data.get("history", [])
         if not isinstance(history, list):
@@ -2569,7 +2569,7 @@ def register_ai_chatbot_routes(
                 {
                     "name": pdf_path.name,
                     "size": stat.st_size,
-                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "modified": datetime.fromtimestamp(stat.st_mtime, tz=BEIJING_TZ).isoformat(),
                 }
             )
         text_entries = [
@@ -2832,7 +2832,7 @@ def register_ai_chatbot_routes(
         denied = _require_chatbot_admin_api()
         if denied:
             return denied
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         updates = {}
         if (
             "api_key" in data
@@ -2877,7 +2877,7 @@ def register_ai_chatbot_routes(
         denied = _require_chatbot_admin_api()
         if denied:
             return denied
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         if not isinstance(data, dict):
             return jsonify({"success": False, "message": "配置数据无效"}), 400
         if "requests_per_minute" in data:
@@ -2950,7 +2950,7 @@ def register_ai_chatbot_routes(
         denied = _dep("require_super_admin_api")()
         if denied:
             return denied
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         updates = {}
         if (
             "api_key" in data

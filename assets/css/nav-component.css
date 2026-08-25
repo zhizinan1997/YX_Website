@@ -19,11 +19,33 @@
 }
 
 .vs-nav__link {
-  font-size: 17px;
+  font-size: 20px;
 }
 
 .vs-logo img {
   height: 52px;
+}
+
+.vs-logo:hover img {
+  animation: mcNavLogoBounce 0.6s ease;
+}
+
+@keyframes mcNavLogoBounce {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  35% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+  65% {
+    transform: translateY(1px) rotate(1deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-logo:hover img {
+    animation: none;
+  }
 }
 
 .mc-nav-actions {

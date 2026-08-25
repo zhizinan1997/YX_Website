@@ -1096,6 +1096,9 @@
 
         function setAdminAuthFromCheck(data) {
             const safe = data && typeof data === 'object' ? data : {};
+            if (window.Admin2Api && typeof window.Admin2Api.setCsrfToken === 'function') {
+                window.Admin2Api.setCsrfToken(safe.csrf_token);
+            }
             currentAdminAuth = {
                 username: String(safe.username || ''),
                 is_super_admin: safe.is_super_admin === true,
@@ -1391,21 +1394,11 @@
                 if (turnstilePublicConfig.provider === 'aliyun_esa') {
                     const trigger = document.getElementById('loginCaptchaTriggerBtn');
                     if (trigger) trigger.style.display = 'inline-block';
-                    const widget = document.getElementById('loginTurnstileWidget');
-                    if (widget) {
-                        widget.style.display = 'none';
-                        widget.style.minHeight = '0';
-                    }
                     await ensureAliyunCaptchaScriptLoaded();
                     renderLoginAliyunCaptcha();
                 } else {
                     const trigger = document.getElementById('loginCaptchaTriggerBtn');
                     if (trigger) trigger.style.display = 'none';
-                    const widget = document.getElementById('loginTurnstileWidget');
-                    if (widget) {
-                        widget.style.display = 'flex';
-                        widget.style.minHeight = '66px';
-                    }
                     await ensureTurnstileScriptLoaded();
                     renderLoginTurnstile();
                 }
@@ -1646,9 +1639,9 @@
                 <div class="ip-preflight-icon-ok is-ok"><i class="fas fa-circle-check"></i></div>
                 <div class="ip-preflight-status">IP 核验通过，正在登录…</div>
                 <div class="ip-preflight-detail">
-                    <span class="ip-addr">${ip}</span>
+                    <span class="ip-addr">${escapeHtml(String(ip || ''))}</span>
                     <span style="margin:0 4px;">·</span>
-                    <span class="ip-location">${location}</span>
+                    <span class="ip-location">${escapeHtml(String(location || ''))}</span>
                 </div>
             `;
         }
@@ -1668,7 +1661,7 @@
                 <div class="ip-preflight-detail" style="text-align:left;">
                     <div class="ip-preflight-warn">
                         <div class="warn-title"><i class="fas fa-triangle-exclamation"></i> 禁止登录</div>
-                        您的 IP <span class="ip-addr">${ip}</span> 归属地为 <span class="ip-location">${location}</span>，不符合当前后台地域访问规则，已被禁止登录。
+                        您的 IP <span class="ip-addr">${escapeHtml(String(ip || ''))}</span> 归属地为 <span class="ip-location">${escapeHtml(String(location || ''))}</span>，不符合当前后台地域访问规则，已被禁止登录。
                         <br><br>
                         <span style="color:#7f1d1d;font-weight:600;">⚠ 您的登录 IP 已被记录在系统中！</span>
                     </div>
@@ -6756,9 +6749,11 @@
 
             if (!window.__productPreviewHeightBound) {
                 window.addEventListener('message', (event) => {
+                    // 只接受产品预览 iframe 自身发来的消息，防止任意页面操纵高度。
+                    const iframe = document.getElementById('productPreviewFrame');
+                    if (!iframe || event.source !== iframe.contentWindow) return;
                     const data = event.data || {};
                     if (data.type === 'product-preview-height' && data.height) {
-                        const iframe = document.getElementById('productPreviewFrame');
                         if (iframe) iframe.style.height = `${Math.max(560, Number(data.height) || 560)}px`;
                     }
                 });
@@ -8754,7 +8749,7 @@
         function triggerProductCodeDownload(productId, endpoint = '/api/products/code/download') {
             if (!productId) return;
             const url = `${endpoint}?id=${encodeURIComponent(productId)}`;
-            window.open(url, '_blank');
+            window.open(url, '_blank', 'noopener');
         }
 
         async function uploadProductCodeFile(
@@ -16678,7 +16673,7 @@
 
         // --- Settings Logic ---
         function downloadFullBackup() {
-            window.open('/api/backup/download', '_blank');
+            window.open('/api/backup/download', '_blank', 'noopener');
         }
 
         async function restoreFromBackup() {
@@ -17967,7 +17962,7 @@
 
         function downloadKnowledgeFile(filename) {
             if (!filename) return;
-            window.open(`/api/chatbot/knowledge/${encodeURIComponent(filename)}/download`, '_blank');
+            window.open(`/api/chatbot/knowledge/${encodeURIComponent(filename)}/download`, '_blank', 'noopener');
         }
 
         function setKnowledgeUploadMessage(message, type = 'success') {

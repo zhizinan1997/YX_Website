@@ -23,6 +23,9 @@ fi
 # shellcheck disable=SC1091
 source .venv/bin/activate
 
+# 与启动提示保持一致，确保 server.py 使用本地开发配置。
+export APP_ENV="${APP_ENV:-development}"
+
 # 安装/更新依赖（已安装会很快跳过）
 # 使用国内镜像源加速；--trusted-host 跳过本机缺失 CA 根证书导致的 SSL 校验失败（本地开发可接受）
 PIP_MIRROR="https://pypi.tuna.tsinghua.edu.cn/simple"

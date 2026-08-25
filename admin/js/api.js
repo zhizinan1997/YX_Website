@@ -1,7 +1,9 @@
 (function () {
     const ADMIN_ACTIVITY_WINDOW_MS = 2 * 60 * 1000;
     const ADMIN_ACTIVITY_HEADER = 'X-Admin-User-Active';
+    const CSRF_HEADER = 'X-CSRF-Token';
     let lastAdminUserActivityAt = 0;
+    let adminCsrfToken = '';
 
     function isHtmlResponse(response) {
         const contentType = String(response.headers.get('content-type') || '').toLowerCase();
@@ -28,6 +30,28 @@
         return String((input && input.url) || '');
     }
 
+    function getRequestMethod(input, init) {
+        return String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+    }
+
+    function rememberCsrfToken(response) {
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        if (!contentType.includes('application/json')) return;
+        response.clone().json().then((data) => {
+            const token = String(data && data.csrf_token || '').trim();
+            if (!token) return;
+            adminCsrfToken = token;
+            window.__adminCsrfToken = token;
+        }).catch(() => {});
+    }
+
+    function setCsrfToken(token) {
+        const value = String(token || '').trim();
+        if (!value) return;
+        adminCsrfToken = value;
+        window.__adminCsrfToken = value;
+    }
+
     function getSameOriginPath(url) {
         try {
             const parsed = new URL(url, window.location.origin);
@@ -51,14 +75,22 @@
     }
 
     function withActivityHeader(input, init, url) {
-        if (!shouldAttachActivityHeader(url)) {
+        const method = getRequestMethod(input, init);
+        const path = getSameOriginPath(url);
+        const shouldAttachCsrf = adminCsrfToken
+            && method !== 'GET'
+            && method !== 'HEAD'
+            && method !== 'OPTIONS'
+            && (path.startsWith('/admin/') || path.startsWith('/api/'));
+        if (!shouldAttachActivityHeader(url) && !shouldAttachCsrf) {
             return { input, init };
         }
         const headers = new Headers(input && input.headers ? input.headers : undefined);
         if (init && init.headers) {
             new Headers(init.headers).forEach((value, key) => headers.set(key, value));
         }
-        headers.set(ADMIN_ACTIVITY_HEADER, '1');
+        if (shouldAttachActivityHeader(url)) headers.set(ADMIN_ACTIVITY_HEADER, '1');
+        if (shouldAttachCsrf) headers.set(CSRF_HEADER, adminCsrfToken);
         return {
             input,
             init: Object.assign({}, init || {}, { headers }),
@@ -73,6 +105,7 @@
             const url = getRequestUrl(input);
             const requestOptions = withActivityHeader(input, init, url);
             const response = await previousFetch(requestOptions.input, requestOptions.init);
+            rememberCsrfToken(response);
             const isAdminRequest = isAdminRequestUrl(url);
             if (isAdminRequest && (response.status === 401 || response.redirected || isHtmlResponse(response))) {
                 if (window.Admin2Auth && typeof window.Admin2Auth.forceRelogin === 'function') {
@@ -88,5 +121,6 @@
         installGlobalFetchGuard,
         installUserActivityTracker,
         markUserActivity,
+        setCsrfToken,
     };
 })();

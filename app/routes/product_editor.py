@@ -2686,7 +2686,7 @@ def register_product_editor_routes(
     @product_ai_request_guard
     def ai_generate_product_html():
         """以页面模板为参考，通过 AI 生成完整产品页代码。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         product_family = _get_product_family_from_request()
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -2847,7 +2847,7 @@ def register_product_editor_routes(
     @product_ai_request_guard
     def ai_generate_product_html_stream():
         """以流式方式生成完整产品 HTML，并支持自动续写。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         product_family = _get_product_family_from_request()
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -2931,7 +2931,7 @@ def register_product_editor_routes(
     @product_ai_request_guard
     def ai_revise_product_html_stream():
         """按用户指令流式修订已生成的 HTML。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip() or '产品页面'
         category = (data.get('category') or 'sensor').strip()
         image_url = (data.get('image_url') or '').strip()
@@ -3019,7 +3019,7 @@ def register_product_editor_routes(
     @product_ai_request_guard
     def ai_revise_product_html():
         """按用户指令修订已生成的 HTML，作为非流式兜底。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip() or '产品页面'
         category = (data.get('category') or 'sensor').strip()
         image_url = (data.get('image_url') or '').strip()
@@ -3085,7 +3085,7 @@ def register_product_editor_routes(
         super_admin_denied = _dep('require_super_admin_api')()
         if super_admin_denied:
             return super_admin_denied
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         product_family = _get_product_family_from_request()
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
@@ -3219,7 +3219,7 @@ def register_product_editor_routes(
     @product_ai_request_guard
     def ai_generate_product_template_fields():
         """通过产品页编码 AI 生成模板字段。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
         category = (data.get('category') or 'sensor').strip()
@@ -3302,7 +3302,7 @@ def register_product_editor_routes(
     @login_required
     def ai_create_gassensing_product():
         """使用 AI 生成的模板字段创建产品 HTML。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
         category = (data.get('category') or '').strip()
@@ -3343,7 +3343,7 @@ def register_product_editor_routes(
     @login_required
     def create_gassensing_product():
         """通过后台可视化表单创建气体传感产品详情页。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip()
         short_name = (data.get('short_name') or '').strip()
         category = (data.get('category') or '').strip()
@@ -3410,7 +3410,7 @@ def register_product_editor_routes(
     @login_required
     def update_gassensing_product():
         """更新已有的气体传感产品详情页。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         original_slug = (data.get('original_slug') or '').strip()
         slug = (data.get('slug') or '').strip()
         title = (data.get('title') or '').strip()
@@ -3475,7 +3475,7 @@ def register_product_editor_routes(
     @login_required
     def preview_product_page():
         """为后台实时预览渲染完整产品页 HTML。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip() or '产品标题'
         short_name = (data.get('short_name') or '').strip() or title
         category = (data.get('category') or '').strip() or 'sensor'

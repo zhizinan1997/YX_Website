@@ -70,6 +70,7 @@ from urllib.parse import urlparse
 
 from flask import current_app, jsonify, request, send_file, session
 
+from app.rate_limit_store import check_and_record
 from app.routes.promotion_links import load_promotion_links, normalize_promotion_mark
 
 SITE_ANALYTICS_LOG_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_events.jsonl'
@@ -101,6 +102,8 @@ _site_report_httpx_module = None
 _site_report_update_config_fn = None
 
 SITE_ANALYTICS_MAX_BATCH_SIZE = 25
+SITE_ANALYTICS_RATE_LIMIT = 120
+SITE_ANALYTICS_RATE_WINDOW_SECONDS = 60
 SITE_ANALYTICS_MAX_EVENT_NAME_LENGTH = 80
 SITE_ANALYTICS_MAX_TEXT_LENGTH = 300
 SITE_ANALYTICS_MAX_PATH_LENGTH = 260
@@ -6010,6 +6013,17 @@ def register_site_analytics_routes(
     @app.route('/api/analytics/collect', methods=['POST'])
     def collect_site_analytics():
         """收集公开站点的统计事件。"""
+        request_ip = get_client_ip()
+        allowed, retry_after, _count = check_and_record(
+            f'analytics:{request_ip}',
+            limit=SITE_ANALYTICS_RATE_LIMIT,
+            window=SITE_ANALYTICS_RATE_WINDOW_SECONDS,
+        )
+        if not allowed:
+            response = jsonify({'success': False, 'message': '请求过于频繁，请稍后再试'})
+            response.headers['Retry-After'] = str(max(1, retry_after))
+            return response, 429
+
         content_len = int(request.content_length or 0)
         if content_len and content_len > 64 * 1024:
             return jsonify({'success': False, 'message': 'payload too large'}), 413
@@ -6026,8 +6040,6 @@ def register_site_analytics_routes(
 
         request_host = str(request.host or '').split(':', 1)[0].strip().lower()
         request_ua = str(request.headers.get('User-Agent') or '').strip()
-        request_ip = get_client_ip()
-
         records = []
         for raw in raw_events[:SITE_ANALYTICS_MAX_BATCH_SIZE]:
             item = _analytics_sanitize_event(raw, request_host=request_host, request_ua=request_ua, request_ip=request_ip)

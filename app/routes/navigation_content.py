@@ -48,6 +48,8 @@ from urllib.parse import unquote, urlparse
 
 from flask import jsonify, request
 
+from app.atomic_io import atomic_write_text
+
 from app.public_urls import canonicalize_public_url
 
 APP_ROOT = Path(__file__).resolve().parents[2]
@@ -540,9 +542,9 @@ def get_nav_industry_categories():
 
 def save_nav_industry_categories(data):
     """保存气体导航行业分类设置。"""
-    NAV_INDUSTRY_CATEGORIES_FILE.write_text(
+    atomic_write_text(
+        NAV_INDUSTRY_CATEGORIES_FILE,
         json.dumps(data, ensure_ascii=False, indent=2),
-        encoding='utf-8',
     )
 
 
@@ -561,9 +563,9 @@ def get_measurement_targets():
 
 def save_measurement_targets(data):
     """保存测量对象设置。"""
-    MEASUREMENT_TARGETS_FILE.write_text(
+    atomic_write_text(
+        MEASUREMENT_TARGETS_FILE,
         json.dumps(data, ensure_ascii=False, indent=2),
-        encoding='utf-8',
     )
 
 
@@ -601,7 +603,7 @@ def get_recommendations():
 
 def save_recommendations(data):
     """保存推荐位设置。"""
-    RECOMMENDATIONS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(RECOMMENDATIONS_FILE, json.dumps(data, ensure_ascii=False, indent=2))
 
 
 
@@ -641,7 +643,7 @@ def register_navigation_content_routes(
     @login_required
     def update_recommendations_api():
         """更新 Mega Menu 推荐位数据。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         recommendations = get_recommendations()
 
         if 'latestReleases' in data:
@@ -688,7 +690,7 @@ def register_navigation_content_routes(
     @login_required
     def save_measurement_targets_api():
         """更新 Mega Menu 测量对象数据。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         items = normalize_measurement_target_items(data.get('items', []))
         if not items:
             return jsonify({'success': False, 'message': '请至少提供 1 条有效测量对象（名称 + 相对路径或 http(s) 链接）'}), 400
@@ -711,7 +713,7 @@ def register_navigation_content_routes(
     @login_required
     def save_nav_industry_categories_api():
         """更新气体导航行业分类数据。"""
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         items = normalize_nav_industry_category_items(data.get('items', []))
         if not items:
             return jsonify({'success': False, 'message': '请至少提供 1 条有效行业分类（名称 + 相对路径或 http(s) 链接）'}), 400

@@ -49,7 +49,9 @@
 - REMOTE_FETCH_BLOCKED_HOSTS: 禁止远程访问的主机列表
 
 配置选项：
-- TRUST_PROXY_HEADERS: 是否信任代理头（默认关闭，需显式开启）
+- TRUST_PROXY_HEADERS: 是否信任代理头（默认开启，站点部署在 CDN/反向代理之后
+  时必须保持开启，否则客户端真实 IP 会变成代理 IP；直接暴露时建议显式设为
+  false，防止伪造 XFF 绕过限流）
 
 作者：元芯传感技术团队
 """
@@ -63,7 +65,10 @@ import re
 import socket
 from urllib.parse import urlparse
 
-from flask import Response, jsonify, request
+from flask import Response, jsonify, request, session
+
+CSRF_SESSION_KEY = 'admin_csrf_token'
+CSRF_HEADER_NAME = 'X-CSRF-Token'
 
 ANTI_CRAWL_STRICT_PRIVATE_PREFIXES = (
     '/admin',
@@ -453,7 +458,19 @@ def is_same_origin_request(
     if referer:
         return any(hmac.compare_digest(referer, item) for item in allowed_origins)
 
-    return False
+    # 部分隐私浏览器会剥离 Origin/Referer；此时仍要求不可被跨站读取的
+    # session-bound token，避免把“缺少来源头”直接变成放行条件。
+    expected_token = str(session.get(CSRF_SESSION_KEY, '') or '').strip()
+    provided_token = str(
+        req.headers.get(CSRF_HEADER_NAME)
+        or req.form.get('csrf_token', '')
+        or ''
+    ).strip()
+    return bool(
+        expected_token
+        and provided_token
+        and hmac.compare_digest(expected_token, provided_token)
+    )
 
 
 def get_request_client_ip(

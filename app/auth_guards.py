@@ -63,6 +63,7 @@ from app.routes.admin import (
     ADMIN_PERMISSION_KEYS,
     ADMIN_SESSION_SCHEMA_VERSION,
     is_binding_allowed_path,
+    query_user_min_session_at,
     resolve_permission_for_path,
 )
 
@@ -87,6 +88,15 @@ def login_required(f):
             session.clear()
             if is_api:
                 return jsonify({'success': False, 'message': '会话版本已更新，请重新登录'}), 401
+            return redirect('/admin')
+
+        # 服务端会话吊销：登出/改密后，早于 min_session_at 的旧 cookie 一律失效。
+        login_at = int(session.get('admin_login_at', 0) or 0)
+        min_session_at = query_user_min_session_at(session.get('admin_username', ''))
+        if min_session_at and (not login_at or login_at < min_session_at):
+            session.clear()
+            if is_api:
+                return jsonify({'success': False, 'message': '登录已失效，请重新登录'}), 401
             return redirect('/admin')
 
         if (request.method or 'GET').upper() in WRITE_METHODS and not is_same_origin_request(request):
@@ -120,17 +130,14 @@ def login_required(f):
                     permissions.append(key)
         session['admin_permissions'] = permissions
 
-        is_write_method = method in WRITE_METHODS
-
-        if is_write_method:
-            denied = (
-                required_permission == '__unknown__'
-                or (required_permission and required_permission not in permissions)
-            )
-            if denied:
-                if is_api:
-                    return jsonify({'success': False, 'message': '当前账号无权限执行该操作'}), 403
-                return redirect('/admin')
+        denied = (
+            required_permission == '__unknown__'
+            or (required_permission and required_permission not in permissions)
+        )
+        if denied:
+            if is_api:
+                return jsonify({'success': False, 'message': '当前账号无权限访问该功能'}), 403
+            return redirect('/admin')
 
         maybe_refresh_admin_session(session, request)
         return f(*args, **kwargs)
@@ -145,5 +152,4 @@ def require_super_admin_api():
     if _current_admin_is_super_admin():
         return None
     return jsonify({'success': False, 'message': '仅超级管理员可执行该操作'}), 403
-
 

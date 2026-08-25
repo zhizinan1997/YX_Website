@@ -53,11 +53,13 @@ import os
 import re
 import secrets
 import sys
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, request
+from werkzeug.exceptions import BadRequest
 
 try:
     from zoneinfo import ZoneInfo
@@ -72,7 +74,11 @@ APP_ENV = (os.environ.get('APP_ENV') or os.environ.get('FLASK_ENV') or '').strip
 DEV_ENV_NAMES = {'dev', 'development', 'local', 'test', 'testing'}
 WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 WEAK_ADMIN_PASSWORDS = {'admin123', 'admin', '123456', 'password'}
-PLACEHOLDER_SECRET_KEYS = {'your-secret-key-change-in-production'}
+PLACEHOLDER_SECRET_KEYS = {
+    'your-secret-key-change-in-production',
+    'change-me-in-production',
+    'replace-me-in-production',
+}
 ADMIN_USERNAME_PATTERN = re.compile(r'^[A-Za-z0-9_.-]{3,32}$')
 PUBLIC_STATIC_EXACT_FILES = {'index.html', 'robots.txt'}
 PUBLIC_STATIC_ROOT_DIRS = {'pages', 'assets', 'cdn_assets', 'admin'}
@@ -117,7 +123,7 @@ def load_or_create_secret_key() -> str:
     try:
         if secret_file.exists():
             existing = (secret_file.read_text(encoding='utf-8') or '').strip()
-            if len(existing) >= 32:
+            if len(existing) >= 32 and existing not in PLACEHOLDER_SECRET_KEYS:
                 return existing
 
         secret_file.parent.mkdir(parents=True, exist_ok=True)
@@ -135,9 +141,21 @@ def load_or_create_secret_key() -> str:
 
 def create_app():
     """创建 Flask 应用实例。"""
+    ensure_runtime_directories()
     # 把 Flask 的 root_path 固定到项目根目录，确保既有的静态文件、
     # 后台页面和模板查找行为与拆分前保持一致。
     flask_app = Flask(__name__, static_folder=None, root_path=str(APP_ROOT))
+
+    @flask_app.errorhandler(BadRequest)
+    def handle_bad_request(error):
+        """让 JSON/API 请求的解析错误保持 JSON 响应格式。"""
+        if (request.path or '').startswith('/api/') or request.is_json:
+            return jsonify({
+                'success': False,
+                'message': '请求数据格式无效',
+            }), 400
+        return error
+
     flask_app.secret_key = load_or_create_secret_key()
     try:
         max_upload_bytes = int((os.environ.get('MAX_CONTENT_LENGTH') or str(128 * 1024 * 1024)).strip())
@@ -298,22 +316,24 @@ def now_beijing():
     """返回北京时间对应的当前时间。"""
     return datetime.now(BEIJING_TZ)
 
-# 预创建运行过程中会用到的目录
-KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
-HERO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-HERO_DERIVED_DIR.mkdir(parents=True, exist_ok=True)
-PARTNERS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-PRODUCT_CARD_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-H2_HOME_VIDEO_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-LEGACY_NEWS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-NEWS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-RESUME_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+def ensure_runtime_directories() -> None:
+    """在应用启动时创建运行目录，避免 import 模块产生文件系统副作用。"""
+    for directory in (
+        KNOWLEDGE_DIR,
+        HERO_UPLOADS_DIR,
+        HERO_DERIVED_DIR,
+        PARTNERS_UPLOADS_DIR,
+        PRODUCT_CARD_UPLOADS_DIR,
+        H2_HOME_VIDEO_UPLOADS_DIR,
+        LEGACY_NEWS_UPLOADS_DIR,
+        NEWS_UPLOADS_DIR,
+        RESUME_UPLOADS_DIR,
+        MESSAGES_DIR,
+    ):
+        directory.mkdir(parents=True, exist_ok=True)
 
 RATE_LIMIT_MAX = 5  # Max submissions per IP per hour
 RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
-
-# 预创建消息目录
-MESSAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_HERO_EXTENSIONS = {'.webp', '.png', '.jpg', '.jpeg', '.mp4'}
 ALLOWED_HERO_MIME_TYPES = {'image/webp', 'image/png', 'image/jpeg', 'video/mp4'}
@@ -346,6 +366,27 @@ BACKUP_EXCLUDED_SUFFIXES = (
     '.swp',
     '.tmp',
     '.temp'
+)
+# 备份下载时必须排除的敏感文件：密钥、站点凭据与管理员数据不应离开服务器。
+BACKUP_SENSITIVE_REL_PATHS = {
+    'data/.flask_secret_key',
+    'data/config.json',
+    'data/site_config.json',
+    'data/admin_users.json',
+    'data/admin_login_attempts.json',
+    'data/admin_login_logs.json',
+    'data/admin_email_auth_state.json',
+    'data/messages_meta.json',
+    'data/rate_limits.json',
+    'data/chatbot_conversation_logs.jsonl',
+    'data/site_analytics_events.jsonl',
+}
+# 备份下载时排除的敏感目录（仅限 data/ 下）：客户留言与求职简历等 PII。
+BACKUP_SENSITIVE_DATA_DIRS = {'messages', 'resumes'}
+# 恢复时禁止通过备份包覆盖的文件类型：源码与脚本不允许从 ZIP 写入项目根目录，
+# 防止持有备份权限的账号借“恢复”植入可执行代码。
+RESTORE_BLOCKED_SUFFIXES = (
+    '.py', '.pyc', '.pyo', '.sh', '.bash', '.env',
 )
 ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp'}
@@ -540,6 +581,11 @@ def cached_json_response(payload, max_age: int = CONFIG_JSON_CACHE_SECONDS, stal
     response.make_conditional(request)
     return response
 
+# 配置读取和更新可能互相调用，使用可重入锁避免 update_config() 内部
+# 调用 get_config() 时再次获取同一把锁导致死锁。
+_CONFIG_LOCK = threading.RLock()
+
+
 def get_config():
     """从配置文件或默认值中读取站点配置。"""
     default_config = {
@@ -592,33 +638,47 @@ def get_config():
         'smtp_password_expires_at': (os.environ.get('SMTP_PASSWORD_EXPIRES_AT') or '').strip(),
     }
     
-    if CONFIG_FILE.exists():
+    with _CONFIG_LOCK:
+        if CONFIG_FILE.exists():
+            try:
+                config = json.loads(CONFIG_FILE.read_text(encoding='utf-8'))
+                merged = {**default_config, **config}
+                for key in (
+                    'admin_username',
+                    'admin_password_hash',
+                    'admin_password',
+                    'hidden_admin_username',
+                    'hidden_admin_password_hash',
+                    'hidden_admin_password',
+                ):
+                    env_value = str(default_config.get(key, '') or '').strip()
+                    file_value = str(config.get(key, '') or '').strip() if isinstance(config, dict) else ''
+                    if env_value and not file_value:
+                        merged[key] = env_value
+                return merged
+            except Exception:
+                pass
+
+        tmp = CONFIG_FILE.with_suffix('.tmp')
+        tmp.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
+        tmp.replace(CONFIG_FILE)
         try:
-            config = json.loads(CONFIG_FILE.read_text(encoding='utf-8'))
-            merged = {**default_config, **config}
-            for key in (
-                'admin_username',
-                'admin_password_hash',
-                'admin_password',
-                'hidden_admin_username',
-                'hidden_admin_password_hash',
-                'hidden_admin_password',
-            ):
-                env_value = str(default_config.get(key, '') or '').strip()
-                file_value = str(config.get(key, '') or '').strip() if isinstance(config, dict) else ''
-                if env_value and not file_value:
-                    merged[key] = env_value
-            return merged
-        except Exception:
+            # 配置文件含 SMTP 凭据与管理员口令字段，仅允许属主读取。
+            os.chmod(CONFIG_FILE, 0o600)
+        except OSError:
             pass
-            
-    # 文件不存在时，先落一份默认配置
-    CONFIG_FILE.write_text(json.dumps(default_config, indent=2), encoding='utf-8')
-    return default_config
+        return default_config
 
 def update_config(new_config):
     """更新并保存站点配置。"""
-    config = get_config()
-    config.update(new_config)
-    CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding='utf-8')
-    return config
+    with _CONFIG_LOCK:
+        config = get_config()
+        config.update(new_config)
+        tmp = CONFIG_FILE.with_suffix('.tmp')
+        tmp.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding='utf-8')
+        tmp.replace(CONFIG_FILE)
+        try:
+            os.chmod(CONFIG_FILE, 0o600)
+        except OSError:
+            pass
+        return config

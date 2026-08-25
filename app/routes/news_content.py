@@ -1661,7 +1661,7 @@ def build_news_card_html(
                             <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> {safe_date}</div>
                             <h3 class="vs-card__title">{safe_title}</h3>
                             <p class="vs-card__desc">{safe_summary}</p>
-                            <span class="vs-link-arrow">鏌ョ湅璇︽儏</span>
+                            <span class="vs-link-arrow">查看详情</span>
                         </div>
                     </a>
 """
@@ -1784,7 +1784,7 @@ def build_news_article_html(title, date, image_url, content_html):
     safe_image_url = html.escape(sanitize_news_image_url(image_url) or '/assets/images/logo.png', quote=True)
     hero_background_url = sanitize_news_image_url(image_url)
     if not hero_background_url or hero_background_url == '/assets/images/logo.png':
-        hero_background_url = '/assets/images/section2_bj.jpg'
+        hero_background_url = '/assets/images/logo.png'
     safe_hero_background_url = html.escape(hero_background_url, quote=True)
     safe_content_html = sanitize_news_html_fragment(content_html)
     return f"""<!DOCTYPE html>
@@ -2511,7 +2511,7 @@ def save_h2_home_news(items):
 
 
 
-# 璺敱娉ㄥ唽鍏ュ彛銆?
+# 路由注册入口。
 def register_news_content_routes(
     app,
     *,
@@ -2633,7 +2633,7 @@ def register_news_content_routes(
     @app.route('/api/news/featured', methods=['POST'])
     @login_required
     def update_featured_news():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         config = save_featured_news_config(data)
         return jsonify({'success': True, 'config': config})
 
@@ -2762,7 +2762,7 @@ def register_news_content_routes(
     @app.route('/api/h2-home/news', methods=['POST'])
     @login_required
     def update_h2_home_news():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         items = data.get('items', [])
         config = save_h2_home_news(items)
         return jsonify({'success': True, 'config': config})
@@ -2770,7 +2770,7 @@ def register_news_content_routes(
     @app.route('/api/news/create', methods=['POST'])
     @login_required
     def create_news():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = normalize_news_plain_text(data.get('title', ''), max_length=200)
         date = normalize_news_plain_text(data.get('date', ''), max_length=80)
         category = (data.get('category') or '').strip()
@@ -2828,7 +2828,7 @@ def register_news_content_routes(
     @app.route('/api/news/visibility', methods=['POST'])
     @login_required
     def update_news_visibility():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         link = (data.get('link') or '').strip()
         hidden = bool(data.get('hidden'))
         if not link:
@@ -2871,7 +2871,7 @@ def register_news_content_routes(
     @app.route('/api/news/category', methods=['POST'])
     @login_required
     def update_news_category():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         link = (data.get('link') or '').strip()
         category = (data.get('category') or '').strip()
 
@@ -2916,7 +2916,7 @@ def register_news_content_routes(
     @app.route('/api/news/reorder', methods=['POST'])
     @login_required
     def reorder_news():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         link = (data.get('link') or '').strip()
         direction = (data.get('direction') or '').strip().lower()
 
@@ -2933,7 +2933,7 @@ def register_news_content_routes(
     @app.route('/api/news/delete', methods=['POST'])
     @login_required
     def delete_news():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         link = (data.get('link') or '').strip()
         if not link:
             return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
@@ -2965,7 +2965,7 @@ def register_news_content_routes(
     @app.route('/api/news/update', methods=['POST'])
     @login_required
     def update_news():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         link = (data.get('link') or '').strip()
         title = normalize_news_plain_text(data.get('title', ''), max_length=200)
         date = normalize_news_plain_text(data.get('date', ''), max_length=80)
@@ -3034,7 +3034,7 @@ def register_news_content_routes(
     @app.route('/api/news/preview', methods=['POST'])
     @login_required
     def preview_news_content():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         content = (data.get('content') or '').strip()
         is_html = bool(data.get('content_is_html', False))
         html_body = content if is_html else render_markdown(content)
@@ -3043,7 +3043,7 @@ def register_news_content_routes(
     @app.route('/api/news/preview-page', methods=['POST'])
     @login_required
     def preview_news_page():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = normalize_news_plain_text(data.get('title', ''), max_length=200) or '标题预览'
         date = normalize_news_plain_text(data.get('date', ''), max_length=80) or now_beijing().strftime('%Y-%m-%d')
         image_url = sanitize_news_image_url(data.get('image_url', ''))
@@ -3167,7 +3167,7 @@ body {
         if not config.get('api_key'):
             return jsonify({'success': False, 'message': 'AI 客服未配置'}), 400
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = (data.get('title') or '').strip()
         summary = (data.get('summary') or '').strip()
         content = (data.get('content') or '').strip()
@@ -3230,7 +3230,7 @@ body {
                 parts.append(f"{key}={value!r}")
             app.logger.warning("news feishu import failed | %s", ' | '.join(parts))
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         source_url = (data.get('url') or '').strip()
         if not source_url:
             log_import_failure('missing_url')
@@ -3400,7 +3400,7 @@ body {
                 parts.append(f"{key}={value!r}")
             app.logger.warning("news image import failed | %s", ' | '.join(parts))
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         source_url = (data.get('url') or '').strip()
         if not source_url:
             log_import_failure('missing_url')

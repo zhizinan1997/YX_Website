@@ -36,14 +36,20 @@ tmp_*.html
 # Runtime generated files
 /data/.flask_secret_key
 /data/.*.lock
+/data/*.lock
 /data/config.json
 /data/admin_login_attempts.json
+/data/admin_email_auth_state.json
 /data/admin_login_logs.json
 /data/admin_users.json
 /data/messages/
+/data/messages_meta.json
 /data/resumes/
+/data/rate_limits.json
+/data/chatbot_conversation_logs.jsonl
 /data/site_analytics_events.jsonl
 data/admin_users.json
+data/chatbot_conversation_logs.jsonl
 data/site_analytics_events.jsonl
 /check_data/
 

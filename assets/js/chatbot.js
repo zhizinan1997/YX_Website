@@ -1145,8 +1145,19 @@
         formatted = formatted.replace(/(<li>[\s\S]*?<\/li>)(?:\s*<br>)*(<li>)/g, '$1$2');
         formatted = formatted.replace(/(<li>[\s\S]*?<\/li>)+/g, '<ul>$&</ul>');
 
-        // Links
-        formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+        // Links（先做协议白名单，防止 javascript:/data: 等危险 URL 注入 href）
+        formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (match, text, url) {
+            const safeUrl = sanitizeChatbotHref(url);
+            if (!safeUrl) return text;
+            return '<a href="' + safeUrl + '" target="_blank" rel="noopener">' + text + '</a>';
+        });
+
+        // Auto-link URLs（同样走白名单）
+        formatted = formatted.replace(/(^|[^"'>])(https?:\/\/[^\s<]+)/g, function (match, pre, url) {
+            const safeUrl = sanitizeChatbotHref(url);
+            if (!safeUrl) return pre + url;
+            return pre + '<a href="' + safeUrl + '" target="_blank" rel="noopener">' + safeUrl + '</a>';
+        });
 
         // Auto-link URLs
         formatted = formatted.replace(/(^|[^"'>])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
@@ -1169,6 +1180,28 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    function sanitizeChatbotHref(escapedUrl) {
+        // 输入已经过整体 escapeHtml（& < > 已转义）。仅放行安全协议与站内
+        // 相对地址；其余（javascript:/data:/vbscript: 等）返回空串降级为纯文本。
+        const raw = String(escapedUrl || '').trim();
+        if (!raw) return '';
+        // 还原 & 后做协议判断（escapeHtml 不会引入新的可执行实体）。
+        const decoded = raw.replace(/&amp;/g, '&');
+        let prefix = '';
+        if (/^(https?:|mailto:|tel:)/i.test(decoded)) {
+            // 安全协议，原样保留。
+        } else if (/^[/#]/.test(decoded)) {
+            // 站内相对路径或页内锚点。
+        } else if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(decoded)) {
+            // 无协议的裸域名按 https 处理。
+            prefix = 'https://';
+        } else {
+            return '';
+        }
+        // 消除双引号，防止逃出 href="..." 属性。
+        return prefix + raw.replace(/"/g, '%22');
     }
 
     function escapeAttr(text) {

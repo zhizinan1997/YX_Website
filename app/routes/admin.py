@@ -82,6 +82,7 @@ import subprocess
 import threading
 import time
 import hashlib
+import hmac
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
@@ -91,6 +92,12 @@ from urllib.parse import urlencode, urlparse
 from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener, urlopen
 import ssl
 
+# 多 worker 文件锁支持；非 POSIX 平台退化为纯线程锁。
+try:
+    import fcntl as _FCNTL
+except ImportError:  # pragma: no cover - Windows fallback
+    _FCNTL = None
+
 from flask import jsonify, make_response, request, send_from_directory, session
 from app.admin_feature_unlocks import (
     filter_unlocked_permission_catalog,
@@ -98,6 +105,7 @@ from app.admin_feature_unlocks import (
     is_admin_feature_unlocked,
 )
 from app.admin_session import is_admin_session_expired, maybe_refresh_admin_session
+from app.rate_limit_store import check_and_record
 from app.app_config import (
     ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS,
     ADMIN_SESSION_IDLE_TIMEOUT_SECONDS,
@@ -112,6 +120,7 @@ from app.admin_geo import (
     normalize_admin_login_geo_settings,
 )
 from app.request_security import get_request_client_ip, is_same_origin_request
+from app.request_security import CSRF_SESSION_KEY
 from app.passkeys import PasskeyStore, load_passkey_config, require_webauthn
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -124,9 +133,64 @@ def now_beijing():
 LOGIN_FAIL_WINDOW_SECONDS = 12 * 3600
 LOGIN_FAIL_LIMIT = 3
 LOGIN_BLOCK_SECONDS = 12 * 3600
-LOGIN_ATTEMPTS_LOCK = threading.Lock()
-ADMIN_USERS_LOCK = threading.RLock()
-EMAIL_AUTH_STATE_LOCK = threading.RLock()
+
+
+class _CrossProcessStateLock:
+    """线程锁 + 跨进程 flock 的组合锁。
+
+    登录失败计数、邮箱验证码状态、管理员账号数据均采用
+    “读文件 → 修改 → 整体覆盖写回”的保存方式。Gunicorn 多 worker 部署下
+    仅靠进程内线程锁会出现两个 worker 同时读到旧值并互相覆盖：
+    失败计数丢失（暴力破解阈值被稀释）、验证码 used 标记丢失导致重放。
+    本锁在原线程锁基础上，对数据目录下的同名 .lock 文件追加排他 flock，
+    使 `with LOCK:` 临界区同时跨线程与跨进程互斥。
+    """
+
+    def __init__(self, lock_file_name: str, *, reentrant: bool = False):
+        self._thread_lock = threading.RLock() if reentrant else threading.Lock()
+        self._lock_file_name = lock_file_name
+        self._base_dir = None
+
+    def set_base_dir(self, data_dir) -> None:
+        """由路由注册入口注入实际的数据目录（随部署/测试环境变化）。"""
+        self._base_dir = Path(data_dir) if data_dir else None
+
+    def __enter__(self):
+        self._thread_lock.acquire()
+        self._handle = None
+        try:
+            if self._base_dir is not None:
+                self._base_dir.mkdir(parents=True, exist_ok=True)
+                handle = (self._base_dir / self._lock_file_name).open('a+', encoding='utf-8')
+                try:
+                    if _FCNTL is not None:
+                        _FCNTL.flock(handle.fileno(), _FCNTL.LOCK_EX)
+                except Exception:
+                    handle.close()
+                    raise
+                self._handle = handle
+            return self
+        except Exception:
+            self._thread_lock.release()
+            raise
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            if self._handle is not None:
+                try:
+                    if _FCNTL is not None:
+                        _FCNTL.flock(self._handle.fileno(), _FCNTL.LOCK_UN)
+                finally:
+                    self._handle.close()
+                    self._handle = None
+        finally:
+            self._thread_lock.release()
+        return False
+
+
+LOGIN_ATTEMPTS_LOCK = _CrossProcessStateLock('admin_login_attempts.lock')
+ADMIN_USERS_LOCK = _CrossProcessStateLock('admin_users.lock', reentrant=True)
+EMAIL_AUTH_STATE_LOCK = _CrossProcessStateLock('admin_email_auth_state.lock', reentrant=True)
 SMTP_REMINDER_THREAD_LOCK = threading.Lock()
 TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 TURNSTILE_DIRECT_TIMEOUT_SECONDS = 6
@@ -258,6 +322,74 @@ def _save_admin_users(file_path: Path, data):
     tmp = file_path.with_suffix('.tmp')
     tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
     tmp.replace(file_path)
+    try:
+        # 管理员账号数据含密码哈希与登录 IP，仅允许属主读取。
+        os.chmod(file_path, 0o600)
+    except OSError:
+        pass
+
+
+# ── 服务端会话吊销（min_session_at）────────────────────────────────
+# 登出/改密时推进账号的 min_session_at 时间戳；login_required 校验会话中的
+# admin_login_at 不早于该时间戳，使被窃取的旧 cookie 在登出后立即失效。
+
+_MIN_SESSION_AT_CACHE: dict = {}
+_MIN_SESSION_AT_CACHE_LOCK = threading.Lock()
+_users_file_for_revocation = None
+
+
+def _set_users_file_for_revocation(file_path):
+    """由路由注册入口注入管理员数据文件路径，供鉴权守卫查询。"""
+    global _users_file_for_revocation
+    _users_file_for_revocation = Path(file_path) if file_path else None
+    with _MIN_SESSION_AT_CACHE_LOCK:
+        _MIN_SESSION_AT_CACHE.clear()
+
+
+def query_user_min_session_at(username) -> int:
+    """读取用户的最小有效会话时间戳；带 mtime 缓存避免每请求解析 JSON。"""
+    name = _normalize_username(username)
+    users_file = _users_file_for_revocation
+    if not name or users_file is None:
+        return 0
+    try:
+        mtime = users_file.stat().st_mtime_ns
+    except OSError:
+        return 0
+    with _MIN_SESSION_AT_CACHE_LOCK:
+        cached = _MIN_SESSION_AT_CACHE.get('entry')
+        if not cached or cached[0] != mtime:
+            mapping = {}
+            try:
+                for user in _load_admin_users(users_file).get('users', []):
+                    key = _normalize_username(user.get('username', ''))
+                    if key:
+                        try:
+                            mapping[key] = int(user.get('min_session_at', 0) or 0)
+                        except Exception:
+                            mapping[key] = 0
+            except Exception:
+                return 0
+            cached = (mtime, mapping)
+            _MIN_SESSION_AT_CACHE.clear()
+            _MIN_SESSION_AT_CACHE['entry'] = cached
+        return int(cached[1].get(name, 0) or 0)
+
+
+def bump_user_min_session_at(root, username) -> None:
+    """推进指定账号的最小有效会话时间戳，使其现有全部会话失效。"""
+    name = _normalize_username(username)
+    if root is None or not name:
+        return
+    users_file = _get_admin_users_file(Path(root))
+    with ADMIN_USERS_LOCK:
+        users_data = _load_admin_users(users_file)
+        user, idx = _find_user(users_data, name)
+        if idx < 0:
+            return
+        user['min_session_at'] = int(time.time())
+        users_data['users'][idx] = user
+        _save_admin_users(users_file, users_data)
 
 
 def _find_user(users_data, username: str):
@@ -283,6 +415,11 @@ def _verify_password(password_hash: str, plain_password: str) -> bool:
         return bool(check_password_hash(hashed, str(plain_password or '')))
     except Exception:
         return False
+
+
+# 用户不存在时也执行一次等价的 scrypt 运算，抹平登录接口响应时间差异，
+# 防止通过时序侧信道枚举有效用户名。
+_DUMMY_PASSWORD_HASH = generate_password_hash(secrets.token_urlsafe(24))
 
 
 def _get_email_auth_state_file(project_root: Path) -> Path:
@@ -638,6 +775,10 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
     two_factor_enabled = True if (user or {}).get('two_factor_enabled', True) is not False else False
     notify_message_email = bool((user or {}).get('notify_message_email', False))
     notify_job_email = bool((user or {}).get('notify_job_email', False))
+    try:
+        min_session_at = int((user or {}).get('min_session_at', 0) or 0)
+    except Exception:
+        min_session_at = 0
     return {
         'username': username,
         'password_hash': password_hash,
@@ -655,6 +796,7 @@ def _sanitize_user_record(user, fallback_username: str = '', is_super_admin: boo
         'two_factor_enabled': two_factor_enabled,
         'notify_message_email': notify_message_email,
         'notify_job_email': notify_job_email,
+        'min_session_at': min_session_at,
     }
 
 
@@ -768,6 +910,7 @@ def _clear_admin_session(sess):
         'admin_passkey_email_code_expires_at',
         'admin_passkey_email_code_failures',
         'admin_passkey_email_resend_at',
+        CSRF_SESSION_KEY,
     ):
         sess.pop(key, None)
     _clear_pending_login_session(sess)
@@ -795,6 +938,7 @@ def _set_logged_in_session(sess, *, user, permissions, is_super_admin: bool, is_
     sess['admin_session_absolute_ttl'] = ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS
     sess['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
     sess['admin_binding_required'] = bool(binding_required)
+    sess[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
 
 
 def _save_login_success(root: Path, get_config, update_config, username: str, ip_addr: str):
@@ -1315,7 +1459,7 @@ def _format_blocked_until(ts_value: int) -> str:
     ts = int(ts_value or 0)
     if ts <= 0:
         return ''
-    return datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.fromtimestamp(ts, tz=BEIJING_TZ).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def _parse_datetime_safe(raw_value: str):
@@ -1783,7 +1927,7 @@ def _verify_pending_login_code(root: Path, *, pending_login_id: str, code: str):
             return False, '该验证码已使用，请重新登录。', None
         expected_hash = str(item.get('code_hash', '') or '').strip()
         code_salt = str(item.get('code_salt', '') or '').strip()
-        if _email_code_hash(code, code_salt) != expected_hash:
+        if not hmac.compare_digest(_email_code_hash(code, code_salt), expected_hash):
             item['verify_fail_count'] = int(item.get('verify_fail_count', 0) or 0) + 1
             if item['verify_fail_count'] >= EMAIL_CODE_MAX_VERIFY_FAILURES:
                 state.get('pending_logins', {}).pop(pending_key, None)
@@ -2248,6 +2392,11 @@ def register_admin_routes(
     _resolve_ip_location = resolve_ip_location if resolve_ip_location else lambda ip: '未知'
     _resolve_ip_country_code = resolve_ip_country_code if resolve_ip_country_code else lambda ip: ''
     root = Path(project_root) if project_root else Path(__file__).resolve().parents[2]
+    # 注入会话吊销查询所需的用户数据文件路径。
+    _set_users_file_for_revocation(_get_admin_users_file(root))
+    # 跨进程文件锁的数据目录（登录计数/邮箱验证码/管理员账号）。
+    for state_lock in (LOGIN_ATTEMPTS_LOCK, ADMIN_USERS_LOCK, EMAIL_AUTH_STATE_LOCK):
+        state_lock.set_base_dir(root / 'data')
     passkey_runtime_lock = threading.RLock()
     passkey_runtime = {'key': None, 'config': None, 'store': None}
 
@@ -2306,6 +2455,8 @@ def register_admin_routes(
     @app.route('/admin', strict_slashes=False)
     def admin_page():
         """后台登录页与控制台入口页面。"""
+        if not str(session.get(CSRF_SESSION_KEY) or '').strip():
+            session[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
         return _build_admin_html_response('admin')
 
     def _passkey_session_binding():
@@ -2432,6 +2583,19 @@ def register_admin_routes(
     @app.route('/api/admin/ip-preflight', methods=['GET'])
     def admin_ip_preflight():
         """登录前 IP 预检：返回客户端 IP、归属地和是否允许登录。"""
+        # 公开端点必须限流：每次未命中缓存都会触发最多三个出站 GeoIP 查询，
+        # 不加限制会被用于放大攻击或拖垮 worker。
+        preflight_ip = _get_request_ip(request)
+        allowed, retry_after, _count = check_and_record(
+            f'ippreflight:{preflight_ip}',
+            limit=10,
+            window=60,
+        )
+        if not allowed:
+            response = jsonify({'success': False, 'message': '请求过于频繁，请稍后再试'})
+            response.headers['Retry-After'] = str(max(1, retry_after))
+            return response, 429
+
         ip_addr = _get_request_ip(request)
         config = get_config() or {}
         geo_settings = normalize_admin_login_geo_settings(config)
@@ -2732,6 +2896,7 @@ def register_admin_routes(
         return jsonify({
             'success': True,
             'binding_required': bool(binding_required),
+            'csrf_token': session.get(CSRF_SESSION_KEY, ''),
             'last_login_at': prev_last_login_at,
             'last_login_ip': prev_last_login_ip,
             'current_login_at': current_login_at,
@@ -3157,6 +3322,10 @@ def register_admin_routes(
         return jsonify({'success': True, 'message': f'已吊销 {count} 个 Passkey。', 'revoked_count': count})
 
     def _perform_login_start():
+        # 登录接口同样执行同源校验，防止跨站表单把受害者浏览器
+        # 静默登录到攻击者控制的账号（login CSRF）。
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
         data = request.form if request.form else request.get_json(silent=True) or {}
         login_method = str(data.get('login_method', '') or data.get('loginMethod', '') or 'username_password').strip()
         if login_method not in {'username_password', 'email_password', 'account_password'}:
@@ -3210,7 +3379,12 @@ def register_admin_routes(
 
         user_enabled = bool(login_user and login_user.get('enabled', True))
         user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
-        password_ok = bool(login_user) and user_enabled and _verify_password(user_password_hash, password)
+        if login_user is None:
+            # 用户不存在：执行哑哈希运算保持耗时一致，再按失败处理。
+            _verify_password(_DUMMY_PASSWORD_HASH, password)
+            password_ok = False
+        else:
+            password_ok = user_enabled and _verify_password(user_password_hash, password)
         email_login_verified = not (login_method == 'email_password' or (login_method == 'account_password' and '@' in username)) or _has_verified_email(login_user)
         credentials_ok = bool(turnstile_ok and password_ok and email_login_verified)
         login_username = _normalize_username((login_user or {}).get('username', '') or username)
@@ -3703,6 +3877,8 @@ def register_admin_routes(
             updated_user['username'] = new_username
             updated_user['password_hash'] = _hash_password(new_password)
             updated_user['updated_at'] = now_iso
+            # 改密后吊销该账号所有现有会话（含当前会话之外的旧 cookie）。
+            updated_user['min_session_at'] = int(time.time())
             users_data['users'][current_index] = _sanitize_user_record(
                 updated_user,
                 fallback_username=new_username,
@@ -3731,8 +3907,12 @@ def register_admin_routes(
         if passkey_config.enabled and current_admin != new_username:
             passkey_store.rename_user(current_admin, new_username)
 
+        # 当前浏览器会话继续有效：以改密时刻作为新的会话起点，
+        # 其余旧 cookie（含被窃取副本）因早于 min_session_at 而失效。
         session['admin_username'] = new_username
         session['admin_is_hidden'] = bool(current_is_hidden)
+        session['admin_login_at'] = int(time.time())
+        session['admin_last_active_at'] = int(time.time())
         session.pop('admin_passkey_step_up_username', None)
         session.pop('admin_passkey_step_up_until', None)
         append_admin_login_log(
@@ -3995,6 +4175,11 @@ def register_admin_routes(
                 detail='手动退出登录',
                 hidden_account=is_hidden,
             )
+            # 服务端会话吊销：登出后旧 cookie（含被窃取的副本）立即失效。
+            try:
+                bump_user_min_session_at(root, username)
+            except Exception:
+                pass
         _clear_admin_session(session)
         return jsonify({'success': True})
     @app.route('/admin/check')
@@ -4005,6 +4190,8 @@ def register_admin_routes(
             session.clear()
             logged_in = False
         if not logged_in:
+            if not str(session.get(CSRF_SESSION_KEY) or '').strip():
+                session[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
             return jsonify({
                 'logged_in': False,
                 'username': '',
@@ -4012,6 +4199,7 @@ def register_admin_routes(
                 'is_hidden_admin': False,
                 'binding_required': False,
                 'permissions': [],
+                'csrf_token': session.get(CSRF_SESSION_KEY, ''),
                 **_admin_feature_response_fields(),
             })
 
@@ -4023,6 +4211,7 @@ def register_admin_routes(
 
         if user is None or not bool(user.get('enabled', True)):
             session.clear()
+            session[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
             return jsonify({
                 'logged_in': False,
                 'username': '',
@@ -4030,6 +4219,7 @@ def register_admin_routes(
                 'is_hidden_admin': False,
                 'binding_required': False,
                 'permissions': [],
+                'csrf_token': session.get(CSRF_SESSION_KEY, ''),
                 **_admin_feature_response_fields(),
             })
 
@@ -4052,6 +4242,8 @@ def register_admin_routes(
         session['admin_permissions'] = permissions
         session['admin_username'] = _normalize_username(user.get('username', current_name))
         session['admin_binding_required'] = bool((get_config() or {}).get('email_auth_enabled', False) and not _has_verified_email(user))
+        if not str(session.get(CSRF_SESSION_KEY) or '').strip():
+            session[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
         maybe_refresh_admin_session(session, request)
 
         return jsonify({
@@ -4071,6 +4263,7 @@ def register_admin_routes(
             'email': _normalize_email(user.get('email', '')),
             'email_masked': _mask_email_address(user.get('email', '')),
             'email_verified': bool(user.get('email_verified', False)),
+            'csrf_token': session.get(CSRF_SESSION_KEY, ''),
         })
     @app.route('/api/admin/login-logs')
     @login_required
@@ -4248,7 +4441,7 @@ def register_admin_routes(
     def admin_docker_logs_clear():
         """清理后台日志页可见的共享日志文件。"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             container = data.get('container', 'all')
 
             app_log_candidates = _resolve_admin_log_candidates(

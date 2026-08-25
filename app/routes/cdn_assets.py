@@ -82,6 +82,23 @@ from flask import Blueprint, request, jsonify, send_from_directory, session
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
+# 允许上传到 CDN 素材库的文件类型白名单。
+# 明确排除 .html/.svg/.js/.xml 等可在浏览器中执行脚本的主动内容，
+# 防止已登录用户向主域植入存储型 XSS 页面。
+ALLOWED_CDN_UPLOAD_EXTENSIONS = {
+    # 图片
+    '.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif',
+    # 视频
+    '.mp4', '.webm', '.ogv',
+    # 音频
+    '.mp3', '.ogg', '.wav',
+    # 文档
+    '.pdf',
+    # 字体
+    '.woff', '.woff2', '.ttf', '.otf',
+}
+MAX_CDN_UPLOAD_BYTES = 25 * 1024 * 1024
+
 def now_beijing():
     """返回北京时间对应的当前时间。"""
     return datetime.now(BEIJING_TZ)
@@ -107,8 +124,10 @@ def _get_config_file() -> Path:
 def _get_cdn_assets_dir() -> Path:
     """获取素材目录路径。"""
     if _cdn_assets_dir:
-        return Path(_cdn_assets_dir)
-    return Path('cdn_assets')
+        # resolve() 保证与 _safe_subpath 内部比较使用同一真实路径
+        # （macOS 等系统上 /var 是 /private/var 的符号链接）。
+        return Path(_cdn_assets_dir).resolve()
+    return Path('cdn_assets').resolve()
 
 
 def get_cdn_settings():
@@ -258,6 +277,13 @@ def upload_cdn_asset():
     if file.filename == '':
         return jsonify({'success': False, 'message': '文件名不能为空'}), 400
 
+    suffix = Path(file.filename or '').suffix.lower()
+    if suffix not in ALLOWED_CDN_UPLOAD_EXTENSIONS:
+        return jsonify({
+            'success': False,
+            'message': f'不支持的文件类型 "{suffix or "无后缀"}"，仅允许图片、音视频、PDF 与字体文件'
+        }), 400
+
     cdn_dir = _get_cdn_assets_dir()
     subpath = request.form.get('path', '').strip().strip('/')
 
@@ -268,6 +294,16 @@ def upload_cdn_asset():
     target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
+        # 先读入内存校验大小与内容，避免超限文件直接落盘。
+        content = file.read()
+        if len(content) > MAX_CDN_UPLOAD_BYTES:
+            return jsonify({
+                'success': False,
+                'message': f'文件过大，最大允许 {MAX_CDN_UPLOAD_BYTES // (1024 * 1024)}MB'
+            }), 413
+        if not content:
+            return jsonify({'success': False, 'message': '文件内容为空'}), 400
+
         filename = _semantic_upload_name(file.filename)
         filepath = target_dir / filename
 
@@ -280,7 +316,7 @@ def upload_cdn_asset():
             filepath = target_dir / filename
             counter += 1
 
-        file.save(str(filepath))
+        filepath.write_bytes(content)
 
         rel = filepath.relative_to(cdn_dir.resolve())
         relative_path = f'/cdn_assets/{rel.as_posix()}'
@@ -316,7 +352,7 @@ def mkdir_cdn_asset():
     if auth_err:
         return auth_err
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     parent = data.get('path', '').strip().strip('/')
     folder_name = data.get('name', '').strip()
 
@@ -351,7 +387,7 @@ def delete_cdn_asset():
     if auth_err:
         return auth_err
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     filepath_str = data.get('path', '').strip().strip('/')
 
     if not filepath_str:
@@ -390,7 +426,7 @@ def rename_cdn_asset():
     if auth_err:
         return auth_err
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     old_path_str = data.get('old_path', '').strip().strip('/')
     new_name = data.get('new_name', '').strip()
 
@@ -514,7 +550,7 @@ def get_asset_url():
 
 # 路由注册入口。
 def register_cdn_assets_routes(app, cdn_assets_dir=None,
-                                site_config_file=None):
+                                site_config_file=None, login_required=None):
     """向 Flask 应用注册 CDN 素材管理路由。"""
     global _cdn_assets_dir, _config_file
     _cdn_assets_dir = cdn_assets_dir
@@ -528,3 +564,10 @@ def register_cdn_assets_routes(app, cdn_assets_dir=None,
             alt = cfg.parent / 'config.json'
             _config_file = alt if alt.exists() else cfg
     app.register_blueprint(cdn_assets_bp)
+
+    # 统一接入后台鉴权管线：登录态、会话过期、子账号权限与写操作同源校验，
+    # 与其他管理路由保持一致，避免仅凭 admin_logged_in 标记放行。
+    if login_required is not None:
+        for endpoint, view in list(app.view_functions.items()):
+            if endpoint.startswith('cdn_assets.'):
+                app.view_functions[endpoint] = login_required(view)

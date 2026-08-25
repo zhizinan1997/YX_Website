@@ -253,6 +253,22 @@
                 <div class="vs-product-grid" id="newsGrid">
                     <!-- Page 1 Items -->
 
+                    <a href="../../pages/news/news_show.aspx_id_80.html" class="vs-card" data-category="enterprise" data-division="气体传感事业部" data-hidden="false">
+                        <div class="vs-card__img-wrapper">
+                            <img src="/cdn_assets/news/5f1e1dfe5d5c4d20b82aad799e2de352.jpg" alt="News Image">
+                        </div>
+                        <div class="vs-card__content">
+                            <div class="vs-news-meta"><i class="far fa-calendar-alt"></i> 2026-07-23</div>
+                            <h3 class="vs-card__title">元芯传感助力西南“氢走廊”加速建设，碳基芯片技术筑牢氢安全防线</h3>
+                            <p class="vs-card__desc">当前，西南地区正依托丰富的水电、风光资源与完备的工业体系，加速推进贯通川、渝、黔、滇的“氢走廊”建设。沿线氢能企业及产业链合作伙伴在制氢、储氢、加氢及燃料电池应用等领域持续发力，为区域氢能产业生态的成熟注入强劲动力。作为氢安全检测领域的核心技术提供商，湖南元芯传感科技有限责任公司（元芯传感） 深度融入这一发展浪潮，以自主研发的高性能碳基氢气传感芯片为核心，携MC-LD-H2型手持氢气检测仪，为西南“氢走廊”的涉氢场所提供精准、快速的泄漏</p>
+                            <span class="vs-link-arrow">查看详情</span>
+                        </div>
+                    </a>
+
+
+
+
+
                     
 
 
@@ -945,9 +961,14 @@
                 });
             });
 
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                const targetBtn = document.querySelector(`#categoryTabs .vs-filter-btn[data-category="${hash}"]`);
+            const hash = decodeURIComponent(window.location.hash.substring(1)).trim();
+            if (hash && /^[A-Za-z0-9_-]+$/.test(hash)) {
+                let targetBtn = null;
+                try {
+                    targetBtn = document.querySelector(`#categoryTabs .vs-filter-btn[data-category="${hash}"]`);
+                } catch (err) {
+                    targetBtn = null;
+                }
                 if (targetBtn) {
                     setTimeout(() => targetBtn.click(), 80);
                 }

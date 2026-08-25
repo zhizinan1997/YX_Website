@@ -46,6 +46,8 @@ from app.app_config import (
     BACKUP_EXCLUDED_FILE_NAMES,
     BACKUP_EXCLUDED_SUFFIXES,
     BACKUP_META_FILES,
+    BACKUP_SENSITIVE_DATA_DIRS,
+    BACKUP_SENSITIVE_REL_PATHS,
     BEIJING_TZ,
     CDN_ASSETS_DIR,
     CHATBOT_CONVERSATION_LOG_FILE,
@@ -83,6 +85,7 @@ from app.app_config import (
     PUBLIC_STATIC_ROOT_DIRS,
     RATE_LIMIT_MAX,
     RATE_LIMIT_WINDOW,
+    RESTORE_BLOCKED_SUFFIXES,
     RESUME_UPLOADS_DIR,
     SEO_BREADCRUMB_LABELS,
     SEO_BREADCRUMB_TARGETS,
@@ -241,12 +244,17 @@ def register_all_routes(app):
         backup_excluded_dir_names=BACKUP_EXCLUDED_DIR_NAMES,
         backup_excluded_file_names=BACKUP_EXCLUDED_FILE_NAMES,
         backup_excluded_suffixes=BACKUP_EXCLUDED_SUFFIXES,
+        require_super_admin_api=require_super_admin_api,
+        backup_sensitive_rel_paths=BACKUP_SENSITIVE_REL_PATHS,
+        backup_sensitive_data_dirs=BACKUP_SENSITIVE_DATA_DIRS,
+        restore_blocked_suffixes=RESTORE_BLOCKED_SUFFIXES,
     )
 
     register_cdn_assets_routes(
         app,
         cdn_assets_dir=CDN_ASSETS_DIR,
         site_config_file=DATA_DIR / 'site_config.json',
+        login_required=login_required,
     )
 
     register_media_delivery_routes(

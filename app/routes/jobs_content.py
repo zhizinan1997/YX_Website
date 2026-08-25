@@ -37,6 +37,8 @@ from pathlib import Path
 
 from flask import jsonify, request
 
+from app.atomic_io import atomic_write_text
+
 # 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
 
@@ -174,7 +176,7 @@ def load_jobs_data():
     if legacy_path.exists():
         jobs = parse_jobs_from_html(legacy_path.read_text(encoding='utf-8', errors='ignore'))
     data = {'jobs': jobs}
-    jobs_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(jobs_file, json.dumps(data, ensure_ascii=False, indent=2))
     return data
 
 
@@ -184,7 +186,7 @@ def save_jobs_data(data):
         normalized = normalize_job_record(raw)
         if normalized:
             jobs.append(normalized)
-    _dep('jobs_file').write_text(json.dumps({'jobs': jobs}, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(_dep('jobs_file'), json.dumps({'jobs': jobs}, ensure_ascii=False, indent=2))
 
 
 
@@ -213,7 +215,7 @@ def register_jobs_content_routes(
     @app.route('/api/jobs', methods=['POST'])
     @login_required
     def save_job_admin():
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         title = clean_job_text(data.get('title') or '')
         department = clean_job_text(data.get('department') or '')
         location = clean_job_text(data.get('location') or '')
