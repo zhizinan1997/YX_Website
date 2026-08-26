@@ -12,6 +12,7 @@ from app.routes.cdn_assets import (
     MAX_CDN_UPLOAD_BYTES,
     register_cdn_assets_routes,
 )
+from app.routes.image_seo import configure_image_seo
 
 
 class CdnUploadSecurityTests(unittest.TestCase):
@@ -20,6 +21,11 @@ class CdnUploadSecurityTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.cdn_dir = self.root / "cdn_assets"
         self.cdn_dir.mkdir()
+        self.data_dir = self.root / "data"
+        self.data_dir.mkdir()
+        # CDN 上传会同步注册图片 SEO 资产，必须指向临时数据目录，
+        # 否则会写入仓库内真实的 data/image_seo_assets.json。
+        configure_image_seo(data_dir=self.data_dir)
 
         app = Flask(__name__)
         app.secret_key = "test-secret"
@@ -46,6 +52,8 @@ class CdnUploadSecurityTests(unittest.TestCase):
             sess["admin_logged_in"] = True
 
     def tearDown(self):
+        # 恢复全局配置，避免影响同进程内后续测试。
+        configure_image_seo(data_dir=Path(__file__).resolve().parents[1] / "data")
         self.tmp.cleanup()
 
     def test_upload_accepts_image_extension(self):
