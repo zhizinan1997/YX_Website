@@ -382,7 +382,7 @@ def register_promotion_link_routes(
             return denied
         items = load_promotion_links(PROMOTION_LINKS_FILE)
         item, _index = _find_item(items, item_id)
-        if item is None:
+        if item is None or item.get('archived_at'):
             return jsonify({'success': False, 'message': '推广链接不存在'}), 404
         try:
             from app.routes.site_analytics import build_promotion_link_detail_stats

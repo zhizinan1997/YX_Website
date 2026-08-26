@@ -51,6 +51,8 @@
 """
 
 import calendar
+import copy
+import functools
 import hashlib
 import html
 import io
@@ -64,6 +66,7 @@ import tempfile
 import threading
 import time
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -188,12 +191,22 @@ SITE_ANALYTICS_SOCIAL_HOST_KEYWORDS = (
 )
 
 
+_ANALYTICS_CTRL_WS_RE = re.compile(r'[\r\n\t]+')
+_ANALYTICS_MULTI_SPACE_RE = re.compile(r'\s{2,}')
+_ANALYTICS_TEXT_DIRTY_RE = re.compile(r'[\r\n\t]|\s{2,}')
+_ANALYTICS_ID_UNSAFE_RE = re.compile(r'[^a-zA-Z0-9._:-]')
+_ANALYTICS_UTM_UNSAFE_RE = re.compile(r'[^a-zA-Z0-9._:-]+')
+
+
 def _analytics_clean_text(value, max_length=SITE_ANALYTICS_MAX_TEXT_LENGTH):
     text = str(value or '').strip()
     if not text:
         return ''
-    text = re.sub(r'[\r\n\t]+', ' ', text)
-    text = re.sub(r'\s{2,}', ' ', text).strip()
+    # 绝大多数记录在写入时已清洗过；先用一次合并扫描跳过昂贵的两次正则替换。
+    if not _ANALYTICS_TEXT_DIRTY_RE.search(text):
+        return text[:max_length]
+    text = _ANALYTICS_CTRL_WS_RE.sub(' ', text)
+    text = _ANALYTICS_MULTI_SPACE_RE.sub(' ', text).strip()
     return text[:max_length]
 
 
@@ -201,14 +214,17 @@ def _analytics_clean_id(value, max_length=64):
     text = _analytics_clean_text(value, max_length=max_length)
     if not text:
         return ''
-    return re.sub(r'[^a-zA-Z0-9._:-]', '', text)[:max_length]
+    if not _ANALYTICS_ID_UNSAFE_RE.search(text):
+        return text[:max_length]
+    return _ANALYTICS_ID_UNSAFE_RE.sub('', text)[:max_length]
 
 
 def _analytics_clean_utm_value(value, max_length=96):
     text = _analytics_clean_text(value, max_length=max_length)
     if not text:
         return ''
-    text = re.sub(r'[^a-zA-Z0-9._:-]+', '-', text).strip('.:-_')
+    if _ANALYTICS_UTM_UNSAFE_RE.search(text):
+        text = _ANALYTICS_UTM_UNSAFE_RE.sub('-', text).strip('.:-_')
     return text[:max_length]
 
 
@@ -219,7 +235,7 @@ def _analytics_load_promotion_lookup():
     except Exception:
         items = []
     for item in items:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or item.get('archived_at'):
             continue
         mark = normalize_promotion_mark(item.get('promotion_mark'))
         if not mark:
@@ -231,6 +247,21 @@ def _analytics_load_promotion_lookup():
             'utm_campaign': _analytics_clean_utm_value(item.get('utm_campaign'), max_length=80),
         })
     return lookup
+
+
+def _analytics_active_promotion_marks():
+    try:
+        items = load_promotion_links(PROMOTION_LINKS_FILE)
+    except Exception:
+        return None
+    marks = set()
+    for item in items:
+        if not isinstance(item, dict) or item.get('archived_at'):
+            continue
+        mark = normalize_promotion_mark(item.get('promotion_mark'))
+        if mark:
+            marks.add(mark)
+    return marks
 
 
 def _analytics_extract_host(raw_url: str) -> str:
@@ -247,6 +278,9 @@ def _analytics_extract_host(raw_url: str) -> str:
     return host
 
 
+_ANALYTICS_PATH_SLASH_RE = re.compile(r'/+')
+
+
 def _analytics_normalize_path(raw_value: str) -> str:
     text = _analytics_clean_text(raw_value, max_length=SITE_ANALYTICS_MAX_PATH_LENGTH)
     if not text:
@@ -259,7 +293,7 @@ def _analytics_normalize_path(raw_value: str) -> str:
         pass
     if not text.startswith('/'):
         text = f'/{text.lstrip("./")}'
-    text = re.sub(r'/+', '/', text)
+    text = _ANALYTICS_PATH_SLASH_RE.sub('/', text)
     return text[:SITE_ANALYTICS_MAX_PATH_LENGTH] or '/'
 
 
@@ -372,19 +406,29 @@ _ANALYTICS_CHINA_PROVINCE_ALIASES = (
 )
 
 
+_ANALYTICS_ASCII_ONLY_RE = re.compile(r'[^a-z]+')
+_ANALYTICS_WS_RE = re.compile(r'\s+')
+_ANALYTICS_HAS_ASCII_RE = re.compile(r'[a-z]')
+_ANALYTICS_HAS_ASCII_UPPER_RE = re.compile(r'[A-Za-z]')
+_ANALYTICS_GEO_PUNCT_RE = re.compile(r'[\s/|,_\-·，、()（）]+')
+_ANALYTICS_LOCATION_SPLIT_RE = re.compile(r'\s*/\s*')
+
+
+@functools.lru_cache(maxsize=4096)
 def _analytics_normalize_ascii_words(text: str) -> str:
-    compact = re.sub(r'[^a-z]+', ' ', str(text or '').lower())
-    compact = re.sub(r'\s+', ' ', compact).strip()
+    compact = _ANALYTICS_ASCII_ONLY_RE.sub(' ', str(text or '').lower())
+    compact = _ANALYTICS_WS_RE.sub(' ', compact).strip()
     return f' {compact} ' if compact else ''
 
 
+@functools.lru_cache(maxsize=4096)
 def _analytics_build_geo_lookup_key(text: str) -> str:
     raw = str(text or '').strip().lower()
     if not raw:
         return ''
-    if re.search(r'[a-z]', raw):
+    if _ANALYTICS_HAS_ASCII_RE.search(raw):
         return _analytics_normalize_ascii_words(raw).strip()
-    return re.sub(r'[\s/|,_\-·，、()（）]+', '', raw)
+    return _ANALYTICS_GEO_PUNCT_RE.sub('', raw)
 
 
 _ANALYTICS_GEO_ASCII_ADMIN_SUFFIXES = (
@@ -398,12 +442,13 @@ _ANALYTICS_GEO_ASCII_ADMIN_SUFFIXES = (
 )
 
 
+@functools.lru_cache(maxsize=8192)
 def _analytics_build_geo_match_key(text: str) -> str:
     raw = str(text or '').strip()
     if not raw:
         return ''
-    if re.search(r'[A-Za-z]', raw):
-        words = re.sub(r'[^a-z]+', ' ', raw.lower()).split()
+    if _ANALYTICS_HAS_ASCII_UPPER_RE.search(raw):
+        words = _ANALYTICS_ASCII_ONLY_RE.sub(' ', raw.lower()).split()
         while words:
             trimmed = False
             for suffix_words in _ANALYTICS_GEO_ASCII_ADMIN_SUFFIXES:
@@ -415,7 +460,7 @@ def _analytics_build_geo_match_key(text: str) -> str:
             if not trimmed:
                 break
         return ' '.join(words)
-    return re.sub(r'[\s/|,_\-·，、()（）]+', '', raw)
+    return _ANALYTICS_GEO_PUNCT_RE.sub('', raw)
 
 
 _ANALYTICS_NON_GEO_LOCATION_LABELS = {
@@ -647,11 +692,16 @@ for _province_name, _aliases in _ANALYTICS_CHINA_PROVINCE_ALIASES:
             _ANALYTICS_CHINA_PROVINCE_LOOKUP[_lookup_key] = _province_name
 
 
-def _analytics_split_location_segments(location_text: str) -> list[str]:
+@functools.lru_cache(maxsize=4096)
+def _analytics_split_location_segments(location_text: str) -> tuple:
     text = str(location_text or '').strip()
     if not text or text in _ANALYTICS_NON_GEO_LOCATION_LABELS:
-        return []
-    return [segment.strip() for segment in re.split(r'\s*/\s*', text) if segment and segment.strip()]
+        return ()
+    return tuple(
+        segment.strip()
+        for segment in _ANALYTICS_LOCATION_SPLIT_RE.split(text)
+        if segment and segment.strip()
+    )
 
 
 def _analytics_match_china_province_segment(segment_text: str) -> str:
@@ -1273,7 +1323,7 @@ def _build_site_analytics_report_from_buckets(
         source_counter[source] = source_counter.get(source, 0) + 1
         device_counter[device] = device_counter.get(device, 0) + 1
         os_counter[os_name] = os_counter.get(os_name, 0) + 1
-        if promotion_mark:
+        if promotion_mark and promotion_mark in promotion_lookup:
             stats = promotion_stats.setdefault(promotion_mark, {
                 'promotion_mark': promotion_mark,
                 'name': promotion_lookup.get(promotion_mark, {}).get('name') or '',
@@ -1641,6 +1691,10 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
         utm_term = _analytics_clean_utm_value(utm.get('term'), max_length=80)
         utm_id = _analytics_clean_utm_value(utm.get('id'), max_length=80)
     promotion_mark = normalize_promotion_mark(raw_event.get('promotion_mark') or utm_id)
+    active_marks = _analytics_active_promotion_marks()
+    if promotion_mark and active_marks is not None and promotion_mark not in active_marks:
+        promotion_mark = ''
+        utm_id = ''
 
     source = _analytics_classify_source(referrer, utm_source, utm_medium, request_host)
     device = _analytics_classify_device(request_ua)
@@ -1782,6 +1836,7 @@ def delete_site_analytics_records_by_promotion_mark(promotion_mark, file_path=No
         content = '\n'.join(kept_lines)
         temp_path.write_text(f'{content}\n' if content else '', encoding='utf-8')
         temp_path.replace(log_file)
+        invalidate_site_report_caches()
         return deleted_count
 
 
@@ -3977,7 +4032,123 @@ def _generate_site_analytics_ai_report_pdf_reportlab(record):
     return buffer
 
 
+_SITE_REPORT_CACHE_LOCK = threading.Lock()
+_SITE_REPORT_CACHE_MAX_ENTRIES = 24
+_SITE_REPORT_CACHE = OrderedDict()
+_SITE_REPORT_STALE_CACHE_MAX_ENTRIES = 24
+# 逻辑键（仅查询参数，不含文件状态）-> 最近一次构建结果；数据追加时先返回旧值、后台刷新。
+_SITE_REPORT_STALE_CACHE = OrderedDict()
+_SITE_REPORT_REFRESH_INFLIGHT = set()
+_SITE_REPORT_REFRESH_INFLIGHT_LIMIT = 4
+
+
+def _site_report_cache_key(range_days, start_date, end_date, granularity):
+    """基于数据文件路径/状态与查询参数生成报表缓存键。
+
+    事件日志是追加写入的，因此用 mtime_ns + size 判断数据是否变化：
+    文件未变时相同参数直接复用上次聚合结果，避免每次打开后台都全量重算。
+    键中包含文件路径：测试或运行时切换数据文件时不会互相污染。
+    """
+    try:
+        stat = SITE_ANALYTICS_LOG_FILE.stat()
+        file_state = (str(SITE_ANALYTICS_LOG_FILE), stat.st_mtime_ns, stat.st_size)
+    except OSError:
+        file_state = None
+    return (
+        file_state,
+        str(range_days or ''),
+        str(start_date or ''),
+        str(end_date or ''),
+        str(granularity or '').strip().lower(),
+    )
+
+
+def invalidate_site_report_caches():
+    """清空站点统计报表缓存（数据文件被整体重写后应调用）。"""
+    with _SITE_REPORT_CACHE_LOCK:
+        _SITE_REPORT_CACHE.clear()
+        _SITE_REPORT_STALE_CACHE.clear()
+
+
+def _site_report_store_result(cache_key, logical_key, report):
+    with _SITE_REPORT_CACHE_LOCK:
+        _SITE_REPORT_CACHE[cache_key] = copy.deepcopy(report)
+        while len(_SITE_REPORT_CACHE) > _SITE_REPORT_CACHE_MAX_ENTRIES:
+            _SITE_REPORT_CACHE.popitem(last=False)
+        if logical_key is not None:
+            _SITE_REPORT_STALE_CACHE[logical_key] = copy.deepcopy(report)
+            while len(_SITE_REPORT_STALE_CACHE) > _SITE_REPORT_STALE_CACHE_MAX_ENTRIES:
+                _SITE_REPORT_STALE_CACHE.popitem(last=False)
+
+
+def _site_report_refresh_async(range_days, start_date, end_date, granularity, cache_key, logical_key):
+    """后台重建报表：构建完成后更新缓存，供下次请求直接命中。"""
+    with _SITE_REPORT_CACHE_LOCK:
+        if (
+            logical_key in _SITE_REPORT_REFRESH_INFLIGHT
+            or len(_SITE_REPORT_REFRESH_INFLIGHT) >= _SITE_REPORT_REFRESH_INFLIGHT_LIMIT
+        ):
+            return
+        _SITE_REPORT_REFRESH_INFLIGHT.add(logical_key)
+
+    def _worker():
+        try:
+            report = _build_site_analytics_report_uncached(
+                range_days=range_days,
+                start_date=start_date,
+                end_date=end_date,
+                granularity=granularity,
+            )
+            _site_report_store_result(cache_key, logical_key, report)
+        except Exception:
+            LOGGER.exception('后台刷新站点统计报表失败')
+        finally:
+            with _SITE_REPORT_CACHE_LOCK:
+                _SITE_REPORT_REFRESH_INFLIGHT.discard(logical_key)
+
+    threading.Thread(target=_worker, name='site-report-refresh', daemon=True).start()
+
+
 def build_site_analytics_report(range_days=30, start_date=None, end_date=None, granularity='day'):
+    range_days_key = str(range_days or '')
+    start_date_key = str(start_date or '')
+    end_date_key = str(end_date or '')
+    granularity_key = str(granularity or '').strip().lower()
+    cache_key = _site_report_cache_key(range_days_key, start_date_key, end_date_key, granularity_key)
+    logical_key = cache_key[1:] if cache_key[0] is not None else None
+
+    if cache_key[0] is not None:
+        with _SITE_REPORT_CACHE_LOCK:
+            cached = _SITE_REPORT_CACHE.get(cache_key)
+        if cached is not None:
+            return copy.deepcopy(cached)
+
+    stale_report = None
+    if logical_key is not None:
+        with _SITE_REPORT_CACHE_LOCK:
+            stale_report = _SITE_REPORT_STALE_CACHE.get(logical_key)
+
+    if stale_report is not None and logical_key is not None:
+        # 数据文件有更新：立即返回上一版结果（对后台展示完全够新），同时后台静默重算。
+        _site_report_refresh_async(
+            range_days, start_date, end_date, granularity, cache_key, logical_key
+        )
+        return copy.deepcopy(stale_report)
+
+    report = _build_site_analytics_report_uncached(
+        range_days=range_days,
+        start_date=start_date,
+        end_date=end_date,
+        granularity=granularity,
+    )
+
+    if cache_key[0] is not None:
+        _site_report_store_result(cache_key, logical_key, report)
+
+    return report
+
+
+def _build_site_analytics_report_uncached(range_days=30, start_date=None, end_date=None, granularity='day'):
     start_date_raw = str(start_date or '').strip()
     end_date_raw = str(end_date or '').strip()
     granularity_key = str(granularity or 'day').strip().lower() or 'day'

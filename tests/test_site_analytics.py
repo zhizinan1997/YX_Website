@@ -32,8 +32,10 @@ class SiteAnalyticsTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.data_dir = Path(self.tmp.name)
         self._configure_paths(self.data_dir)
+        sa.invalidate_site_report_caches()
 
     def tearDown(self):
+        sa.invalidate_site_report_caches()
         self.tmp.cleanup()
         sa.SITE_ANALYTICS_LOG_FILE = self._old_paths["log"]
         sa.PROMOTION_LINKS_FILE = self._old_paths["promotion"]
@@ -176,6 +178,62 @@ class SiteAnalyticsTests(unittest.TestCase):
         self.assertEqual(report["promotion_breakdown"][0]["conversion_events"], 1)
         context = sa.build_site_analytics_ai_report_context(period="month")
         self.assertEqual(context["current"]["promotion_breakdown"][0]["promotion_mark"], "wechat-article-a")
+
+    def test_archived_or_unknown_promotion_mark_is_excluded_from_breakdown(self):
+        now_ts = int(sa.time.time())
+        sa.PROMOTION_LINKS_FILE.write_text(
+            '{"version":1,"items":['
+            '{"id":"1","name":"有效链接","promotion_mark":"active-mark"},'
+            '{"id":"2","name":"已删除链接","promotion_mark":"deleted-mark","archived_at":"2026-08-01T00:00:00"}'
+            ']}',
+            encoding="utf-8",
+        )
+        for mark in ("active-mark", "deleted-mark", "ghost-mark"):
+            sa._append_site_analytics_records([
+                {
+                    "ts": now_ts,
+                    "event_type": "pageview",
+                    "event_name": "page_view",
+                    "page_path": "/",
+                    "source": "campaign",
+                    "utm_id": mark,
+                    "promotion_mark": mark,
+                    "visitor_id": f"v-{mark}",
+                    "session_id": f"s-{mark}",
+                },
+            ])
+        report = sa.build_site_analytics_report(range_days=7)
+        marks = [row["promotion_mark"] for row in report["promotion_breakdown"]]
+        self.assertEqual(marks, ["active-mark"])
+
+        sanitized = sa._analytics_sanitize_event(
+            {
+                "event_type": "pageview",
+                "page_path": "/",
+                "utm": {"id": "deleted-mark"},
+                "visitor_id": "v2",
+                "session_id": "s2",
+            },
+            "example.com",
+            "Mozilla/5.0",
+            "127.0.0.1",
+        )
+        self.assertEqual(sanitized["promotion_mark"], "")
+        self.assertEqual(sanitized["utm_id"], "")
+
+        kept = sa._analytics_sanitize_event(
+            {
+                "event_type": "pageview",
+                "page_path": "/",
+                "utm": {"id": "active-mark"},
+                "visitor_id": "v3",
+                "session_id": "s3",
+            },
+            "example.com",
+            "Mozilla/5.0",
+            "127.0.0.1",
+        )
+        self.assertEqual(kept["promotion_mark"], "active-mark")
 
     def test_automated_agent_classification_and_openharmony(self):
         baidu = sa._analytics_classify_automated_agent(
