@@ -40,13 +40,15 @@
 作者：元芯传感技术团队
 """
 
+import copy
 import html
 import json
 import re
+import uuid
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-from flask import jsonify, request
+from flask import jsonify, request, session
 
 from app.atomic_io import atomic_write_text
 
@@ -57,6 +59,7 @@ DATA_DIR = APP_ROOT / 'data'
 RECOMMENDATIONS_FILE = DATA_DIR / 'recommendations.json'
 MEASUREMENT_TARGETS_FILE = DATA_DIR / 'measurement_targets.json'
 NAV_INDUSTRY_CATEGORIES_FILE = DATA_DIR / 'nav_industry_categories.json'
+NAV_LABELS_FILE = DATA_DIR / 'nav_labels.json'
 
 _NORMALIZE_SCANNED_IMAGE_PATH = lambda image, web_dir_prefix: image or ''
 _EXTRACT_SOLUTION_META_FROM_HTML = lambda _filepath: None
@@ -606,6 +609,126 @@ def save_recommendations(data):
     atomic_write_text(RECOMMENDATIONS_FILE, json.dumps(data, ensure_ascii=False, indent=2))
 
 
+# ── 首页导航栏模块（标题 / 链接 / 排序）────────────────────────────
+
+# 内置 6 个导航模块：不允许删除，且 has_mega=True 的模块带二级/三级菜单。
+BUILTIN_NAV_ITEMS = (
+    {'key': 'bio', 'label': '先进生化传感', 'url': '/pages/biosensing/?filter=sensor', 'has_mega': False},
+    {'key': 'gas', 'label': '先进气体传感', 'url': '/pages/gassensing/', 'has_mega': False},
+    {'key': 'news', 'label': '资讯精选', 'url': '/pages/news/news.html', 'has_mega': True},
+    {'key': 'about', 'label': '公司简介', 'url': '/pages/about/about.html', 'has_mega': True},
+    {'key': 'store', 'label': '线上店铺', 'url': '/pages/gassensing/online-store.html', 'has_mega': False},
+    {'key': 'contact', 'label': '联系我们', 'url': '/pages/contact/contact.html', 'has_mega': True},
+)
+
+BUILTIN_NAV_KEYS = {item['key'] for item in BUILTIN_NAV_ITEMS}
+NAV_LABEL_MAX_LENGTH = 20
+NAV_ITEMS_MAX_COUNT = 16
+CUSTOM_NAV_KEY_RE = re.compile(r'^custom-[a-z0-9-]{1,40}$')
+
+
+def get_builtin_nav_items():
+    """返回内置导航模块的深拷贝，避免调用方修改常量。"""
+    return copy.deepcopy([dict(item, locked=True) for item in BUILTIN_NAV_ITEMS])
+
+
+def _normalize_nav_item_label(value):
+    """规范化导航标题：非空、去首尾空白、限制长度。"""
+    label = re.sub(r'\s+', ' ', str(value or '')).strip()
+    if not label:
+        return ''
+    if len(label) > NAV_LABEL_MAX_LENGTH:
+        label = label[:NAV_LABEL_MAX_LENGTH].rstrip()
+    return label
+
+
+def _normalize_nav_item_url(value):
+    """规范化导航链接：仅允许站内相对路径与 http(s) 链接。"""
+    url = canonicalize_public_url(str(value or '').strip(), resolve_page_relative=True)
+    if not is_safe_recommendation_url(url):
+        return ''
+    return url
+
+
+def normalize_nav_label_items(items):
+    """规范化首页导航模块列表。
+
+    规则：
+    1. 内置 6 个模块必须全部出现且仅出现一次（顺序可变）；
+    2. 自定义模块按提交顺序追加，key 非法或缺失时自动生成；
+    3. 标题非空且不超过长度上限，链接必须通过安全校验；
+    4. 总数不超过 NAV_ITEMS_MAX_COUNT。
+    """
+    raw_items = items if isinstance(items, list) else []
+    by_key = {}
+    ordered_keys = []
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        label = _normalize_nav_item_label(raw.get('label'))
+        url = _normalize_nav_item_url(raw.get('url'))
+        if not label or not url:
+            continue
+        key = str(raw.get('key') or '').strip()
+        if key and key in by_key:
+            continue
+        if key not in BUILTIN_NAV_KEYS and not CUSTOM_NAV_KEY_RE.match(key):
+            key = 'custom-' + uuid.uuid4().hex[:8]
+            while key in by_key:
+                key = 'custom-' + uuid.uuid4().hex[:8]
+        by_key[key] = {'key': key, 'label': label, 'url': url}
+        ordered_keys.append(key)
+
+    missing = [item['key'] for item in BUILTIN_NAV_ITEMS if item['key'] not in by_key]
+    if missing:
+        raise ValueError('内置导航模块不可删除：' + '、'.join(missing))
+
+    normalized = []
+    for key in ordered_keys:
+        entry = by_key[key]
+        if key in BUILTIN_NAV_KEYS:
+            builtin = next(item for item in BUILTIN_NAV_ITEMS if item['key'] == key)
+            normalized.append({
+                'key': key,
+                'label': entry['label'],
+                'url': entry['url'],
+                'has_mega': builtin['has_mega'],
+                'locked': True,
+            })
+        else:
+            normalized.append({
+                'key': key,
+                'label': entry['label'],
+                'url': entry['url'],
+                'has_mega': False,
+                'locked': False,
+            })
+        if len(normalized) >= NAV_ITEMS_MAX_COUNT:
+            break
+    return normalized
+
+
+def get_nav_labels():
+    """加载首页导航模块设置；文件缺失或损坏时回落到内置默认。"""
+    if NAV_LABELS_FILE.exists():
+        try:
+            data = json.loads(NAV_LABELS_FILE.read_text(encoding='utf-8'))
+            items = normalize_nav_label_items(data.get('items', []))
+            if items:
+                return {'success': True, 'items': items}
+        except Exception:
+            pass
+    return {'success': True, 'items': get_builtin_nav_items()}
+
+
+def save_nav_labels(items):
+    """保存首页导航模块设置。"""
+    atomic_write_text(
+        NAV_LABELS_FILE,
+        json.dumps({'version': 1, 'items': items}, ensure_ascii=False, indent=2),
+    )
+
+
 
 # 路由注册入口。
 def register_navigation_content_routes(
@@ -621,6 +744,7 @@ def register_navigation_content_routes(
 ):
     """注册导航预览、推荐位与导航结构相关路由。"""
     global APP_ROOT, DATA_DIR, RECOMMENDATIONS_FILE, MEASUREMENT_TARGETS_FILE, NAV_INDUSTRY_CATEGORIES_FILE
+    global NAV_LABELS_FILE
     global _NORMALIZE_SCANNED_IMAGE_PATH, _EXTRACT_SOLUTION_META_FROM_HTML
     global _EXTRACT_CASE_META_FROM_HTML, _EXTRACT_PRODUCT_META_FROM_HTML
 
@@ -629,6 +753,7 @@ def register_navigation_content_routes(
     RECOMMENDATIONS_FILE = DATA_DIR / 'recommendations.json'
     MEASUREMENT_TARGETS_FILE = DATA_DIR / 'measurement_targets.json'
     NAV_INDUSTRY_CATEGORIES_FILE = DATA_DIR / 'nav_industry_categories.json'
+    NAV_LABELS_FILE = DATA_DIR / 'nav_labels.json'
     _NORMALIZE_SCANNED_IMAGE_PATH = normalize_scanned_image_path
     _EXTRACT_SOLUTION_META_FROM_HTML = extract_solution_meta_from_html
     _EXTRACT_CASE_META_FROM_HTML = extract_case_meta_from_html
@@ -721,3 +846,32 @@ def register_navigation_content_routes(
         payload = {'items': items}
         save_nav_industry_categories(payload)
         return jsonify({'success': True, 'items': serialize_nav_industry_category_items(items)})
+
+    @app.route('/api/nav-labels', methods=['GET'])
+    def get_nav_labels_api():
+        """获取首页导航模块设置（公开，供 nav-loader 覆盖静态导航）。"""
+        response = jsonify(get_nav_labels())
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+
+    @app.route('/api/admin/nav-labels', methods=['POST'])
+    @login_required
+    def save_nav_labels_api():
+        """更新首页导航模块设置（标题 / 链接 / 排序 / 自定义模块）。"""
+        if not bool(session.get('admin_is_super_admin', False)):
+            raw_permissions = session.get('admin_permissions', [])
+            permissions = (
+                {str(item or '').strip() for item in raw_permissions}
+                if isinstance(raw_permissions, (list, tuple, set)) else set()
+            )
+            if 'home' not in permissions:
+                return jsonify({'success': False, 'message': '当前账号无权限修改导航设置'}), 403
+
+        data = request.get_json(silent=True) or {}
+        try:
+            items = normalize_nav_label_items(data.get('items', []))
+        except ValueError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 400
+
+        save_nav_labels(items)
+        return jsonify({'success': True, 'items': items})

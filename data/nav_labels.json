@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "key": "bio",
+      "label": "先进生化传感",
+      "url": "/pages/biosensing/?filter=sensor",
+      "has_mega": false,
+      "locked": true
+    },
+    {
+      "key": "gas",
+      "label": "先进气体传感",
+      "url": "/pages/gassensing/",
+      "has_mega": false,
+      "locked": true
+    },
+    {
+      "key": "news",
+      "label": "资讯精选",
+      "url": "/pages/news/news.html",
+      "has_mega": true,
+      "locked": true
+    },
+    {
+      "key": "about",
+      "label": "公司简介",
+      "url": "/pages/about/about.html",
+      "has_mega": true,
+      "locked": true
+    },
+    {
+      "key": "store",
+      "label": "线上店铺",
+      "url": "/pages/gassensing/online-store.html",
+      "has_mega": false,
+      "locked": true
+    },
+    {
+      "key": "contact",
+      "label": "联系我们",
+      "url": "/pages/contact/contact.html",
+      "has_mega": true,
+      "locked": true
+    }
+  ]
+}

@@ -1367,6 +1367,8 @@
                             onclick="switchHomeTab('products', this)">产品展示</button>
                         <button class="tab-btn" data-home-tab="solutions"
                             onclick="switchHomeTab('solutions', this)">元芯专家解决方案</button>
+                        <button class="tab-btn" data-home-tab="nav"
+                            onclick="switchHomeTab('nav', this)">导航栏设置</button>
                     </div>
 
                     <div id="home-tab-hero" class="tab-content active">
@@ -1621,6 +1623,31 @@
                                     <div style="font-weight: 600; margin-bottom: 10px;">预览</div>
                                     <div id="featuredSolutionsPreview" class="file-list"></div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="home-tab-nav" class="tab-content">
+                        <div class="card site-report-card">
+                            <h3 class="section-header">首页导航栏设置</h3>
+                            <div class="nav-settings-notice">
+                                <i class="fas fa-circle-info"></i>
+                                可修改各模块标题与跳转链接，并可调整显示顺序。标注
+                                <span class="nav-mega-badge">含二级菜单</span>
+                                的模块自带下拉子菜单（子菜单内容不在此维护）；内置 6 个模块不可删除，自定义模块可随时删除。
+                                保存后刷新官网首页即可看到效果。
+                            </div>
+                            <div id="navSettingsList" class="nav-settings-list"></div>
+                            <div class="nav-settings-actions">
+                                <button type="button" class="btn-secondary" style="width: auto; padding: 8px 16px;"
+                                    onclick="addNavSettingsRow()">
+                                    <i class="fas fa-plus"></i> 添加导航模块
+                                </button>
+                                <button type="button" class="btn-primary" style="width: auto; padding: 8px 16px;"
+                                    onclick="saveNavSettings()">
+                                    <i class="fas fa-save"></i> 保存导航设置
+                                </button>
+                                <span id="navSettingsMsg" style="font-size: 13px;"></span>
                             </div>
                         </div>
                     </div>

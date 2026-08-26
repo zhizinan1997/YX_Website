@@ -7,7 +7,7 @@
     var NAV_READY_EVENT = 'mc-nav:ready';
     var CHATBOT_SCRIPT_SRC = '/assets/js/chatbot.js?v=20260604i';
     var NEWS_PREVIEW_SCRIPT_SRC = '/assets/js/news-preview-loader.js?v=20260626d';
-    var NAV_CACHE_TAG = '20260715a';
+    var NAV_CACHE_TAG = '20260826a';
 
     function getRoot() {
         return document.getElementById(ROOT_ID);
@@ -86,6 +86,99 @@
         return fetchText(withCacheTag('/assets/partials/nav-' + profile + '.html')).then(function (html) {
             root.innerHTML = html;
         });
+    }
+
+    // ── 首页导航模块自定义（后台「导航设置」维护，接口失败时保留静态默认导航）──
+    var NAV_LABELS_API = '/api/nav-labels';
+    var NAV_LABELS_TIMEOUT_MS = 3000;
+
+    function fetchJsonWithTimeout(url, timeoutMs) {
+        return new Promise(function (resolve, reject) {
+            var timer = setTimeout(function () {
+                reject(new Error('timeout: ' + url));
+            }, timeoutMs);
+            fetch(url, { credentials: 'same-origin' }).then(function (res) {
+                clearTimeout(timer);
+                if (!res.ok) {
+                    reject(new Error('Failed to load: ' + url + ' (' + res.status + ')'));
+                    return;
+                }
+                resolve(res.json());
+            }, function (err) {
+                clearTimeout(timer);
+                reject(err);
+            });
+        });
+    }
+
+    function buildCustomNavItem(item) {
+        var li = document.createElement('li');
+        li.className = 'vs-nav__item';
+        li.setAttribute('data-nav-key', String(item.key || ''));
+        var link = document.createElement('a');
+        link.className = 'vs-nav__link';
+        li.appendChild(link);
+        return li;
+    }
+
+    function applyNavLabelItems(root, items) {
+        var list = root.querySelector('.vs-nav__list');
+        if (!list) return;
+
+        var existing = Object.create(null);
+        Array.prototype.forEach.call(list.children, function (li) {
+            if (!li.classList || !li.classList.contains('vs-nav__item')) return;
+            var key = (li.getAttribute('data-nav-key') || '').trim();
+            if (!key || existing[key]) return;
+            existing[key] = li;
+        });
+
+        var fragment = document.createDocumentFragment();
+        var applied = 0;
+        items.forEach(function (item) {
+            if (!item || applied >= 16) return;
+            var key = String(item.key || '').trim();
+            var label = String(item.label || '').trim();
+            var url = safeNavUrl(item && item.url, '');
+            if (!label) return;
+
+            var li = key ? existing[key] : null;
+            if (li) {
+                delete existing[key];
+            } else if (/^custom-/.test(key)) {
+                li = buildCustomNavItem(item);
+            } else {
+                return;
+            }
+
+            var link = li.querySelector('a.vs-nav__link');
+            if (link) {
+                link.textContent = label;
+                if (url) link.setAttribute('href', url);
+            }
+            fragment.appendChild(li);
+            applied++;
+        });
+
+        if (!applied) return;
+
+        // 配置中未出现的内置项（异常数据兜底）追加到末尾，避免丢失二级菜单。
+        Object.keys(existing).forEach(function (key) {
+            fragment.appendChild(existing[key]);
+        });
+
+        list.innerHTML = '';
+        list.appendChild(fragment);
+    }
+
+    function applyNavCustomization(root, profile) {
+        if (profile !== 'home') return Promise.resolve();
+        return fetchJsonWithTimeout(NAV_LABELS_API, NAV_LABELS_TIMEOUT_MS)
+            .then(function (data) {
+                var items = data && Array.isArray(data.items) ? data.items : [];
+                if (items.length) applyNavLabelItems(root, items);
+            })
+            .catch(function () { /* 静默降级：保留静态导航 */ });
     }
 
     function withCacheTag(url) {
@@ -1159,6 +1252,9 @@
         injectPartial(root, profile)
             .then(function () {
                 if (profile === 'home') ensureNewsPreviewScript();
+                return applyNavCustomization(root, profile);
+            })
+            .then(function () {
                 bindCommonInteractions(root);
                 dispatchNavReady(root, profile);
                 if (profile === 'gas') return bindGasDynamicData();

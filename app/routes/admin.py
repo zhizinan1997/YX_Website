@@ -682,6 +682,11 @@ def resolve_permission_for_path(path: str, method: str = 'GET'):
     # 历史登录日志为全管理员只读审计信息，不绑定单一侧栏权限，避免子账号误拦截。
     if p.startswith('/api/admin/login-logs'):
         return None
+    # 首页导航模块读取为公开接口（前台 nav-loader 使用）；保存归属「首页设置」权限。
+    if p == '/api/nav-labels':
+        return None
+    if p.startswith('/api/admin/nav-labels'):
+        return 'home'
     if p.startswith('/api/admin/subaccounts') or p.startswith('/admin/change-password'):
         return 'settings'
     if p.startswith('/api/admin/account/email-binding'):

@@ -10079,6 +10079,167 @@
             }
         }
 
+        // --- Navigation Settings (首页导航栏模块) ---
+        let navSettingsItems = [];
+
+        function escapeHtmlAttr(text) {
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function makeCustomNavKey() {
+            return 'custom-' + Math.random().toString(16).slice(2, 10);
+        }
+
+        function collectNavSettingsFromDom() {
+            const listEl = document.getElementById('navSettingsList');
+            if (!listEl) return navSettingsItems.map(item => ({ ...item }));
+            const collected = [];
+            listEl.querySelectorAll('.nav-settings-row').forEach((row) => {
+                const key = row.dataset.key || '';
+                const source = navSettingsItems.find(item => item.key === key) || {};
+                const labelInput = row.querySelector('input[data-field="label"]');
+                const urlInput = row.querySelector('input[data-field="url"]');
+                collected.push({
+                    key,
+                    label: labelInput ? labelInput.value : String(source.label || ''),
+                    url: urlInput ? urlInput.value : String(source.url || ''),
+                    has_mega: !!source.has_mega,
+                    locked: !!source.locked
+                });
+            });
+            return collected;
+        }
+
+        function renderNavSettings() {
+            const listEl = document.getElementById('navSettingsList');
+            if (!listEl) return;
+            if (!navSettingsItems.length) {
+                listEl.innerHTML = '<div style="color:#888;font-size:13px;">暂无导航模块数据</div>';
+                return;
+            }
+            listEl.innerHTML = navSettingsItems.map((item, index) => {
+                const keyAttr = escapeHtmlAttr(item.key);
+                return `
+                <div class="nav-settings-row${item.has_mega ? ' is-mega' : ''}" data-key="${keyAttr}">
+                    <div class="nav-settings-row-index">${index + 1}</div>
+                    <div class="nav-settings-row-order">
+                        <button type="button" title="上移" ${index === 0 ? 'disabled' : ''}
+                            onclick="moveNavSettingsRow('${keyAttr}', -1)"><i class="fas fa-chevron-up"></i></button>
+                        <button type="button" title="下移" ${index === navSettingsItems.length - 1 ? 'disabled' : ''}
+                            onclick="moveNavSettingsRow('${keyAttr}', 1)"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <input type="text" class="form-control" data-field="label" maxlength="20"
+                        placeholder="模块标题（最多 ${20} 字）" value="${escapeHtmlAttr(item.label)}">
+                    <input type="text" class="form-control nav-settings-row-url" data-field="url" maxlength="260"
+                        placeholder="/pages/... 或 https://..." value="${escapeHtmlAttr(item.url)}">
+                    <div class="nav-settings-row-meta">
+                        ${item.has_mega ? `<span class="nav-mega-badge" title="该模块自带二级下拉菜单，子菜单内容不在此维护"><i class="fas fa-layer-group"></i> 含二级菜单</span>` : ''}
+                        ${item.locked
+                            ? '<span class="nav-locked-tag" title="内置模块不可删除"><i class="fas fa-lock"></i> 内置</span>'
+                            : `<button type="button" class="nav-settings-row-delete" onclick="removeNavSettingsRow('${keyAttr}')"><i class="fas fa-trash"></i> 删除</button>`}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function loadNavSettings() {
+            const listEl = document.getElementById('navSettingsList');
+            const msg = document.getElementById('navSettingsMsg');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="color:#888;font-size:13px;">加载中...</div>';
+            if (msg) msg.textContent = '';
+            try {
+                const res = await fetch('/api/nav-labels', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.message || '加载失败');
+                navSettingsItems = (Array.isArray(data.items) ? data.items : []).map(item => ({
+                    key: String(item.key || ''),
+                    label: String(item.label || ''),
+                    url: String(item.url || ''),
+                    has_mega: !!item.has_mega,
+                    locked: !!item.locked
+                }));
+                renderNavSettings();
+            } catch (e) {
+                navSettingsItems = [];
+                listEl.innerHTML = `<div style="color:#dc3545;font-size:13px;">${escapeHtml(e?.message || '加载失败')}</div>`;
+            }
+        }
+
+        function addNavSettingsRow() {
+            if (!navSettingsItems.length) loadNavSettings();
+            const items = collectNavSettingsFromDom();
+            if (items.length >= 16) {
+                const msg = document.getElementById('navSettingsMsg');
+                if (msg) { msg.style.color = '#dc3545'; msg.textContent = '最多支持 16 个导航模块'; }
+                return;
+            }
+            items.push({ key: makeCustomNavKey(), label: '', url: '', has_mega: false, locked: false });
+            navSettingsItems = items;
+            renderNavSettings();
+        }
+
+        function moveNavSettingsRow(key, direction) {
+            const items = collectNavSettingsFromDom();
+            const index = items.findIndex(item => item.key === key);
+            const target = index + Number(direction || 0);
+            if (index < 0 || target < 0 || target >= items.length) return;
+            [items[index], items[target]] = [items[target], items[index]];
+            navSettingsItems = items;
+            renderNavSettings();
+        }
+
+        function removeNavSettingsRow(key) {
+            const items = collectNavSettingsFromDom().filter(item => item.key !== key);
+            navSettingsItems = items;
+            renderNavSettings();
+        }
+
+        async function saveNavSettings() {
+            const msg = document.getElementById('navSettingsMsg');
+            const setMsg = (color, text) => { if (msg) { msg.style.color = color; msg.textContent = text; } };
+
+            const items = collectNavSettingsFromDom();
+            const builtinKeys = ['bio', 'gas', 'news', 'about', 'store', 'contact'];
+            const missing = builtinKeys.filter(key => !items.some(item => item.key === key));
+            if (missing.length) {
+                setMsg('#dc3545', '内置导航模块不可删除，请恢复后再保存');
+                return;
+            }
+            const emptyRow = items.find(item => !item.label.trim() || !item.url.trim());
+            if (emptyRow) {
+                setMsg('#dc3545', '每个模块都需要填写标题和链接');
+                return;
+            }
+
+            setMsg('#2563eb', '保存中...');
+            try {
+                const res = await fetch('/api/admin/nav-labels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.message || '保存失败');
+                navSettingsItems = (data.items || []).map(item => ({
+                    key: String(item.key || ''),
+                    label: String(item.label || ''),
+                    url: String(item.url || ''),
+                    has_mega: !!item.has_mega,
+                    locked: !!item.locked
+                }));
+                renderNavSettings();
+                setMsg('#28a745', '✓ 保存成功，官网首页刷新后生效');
+            } catch (e) {
+                setMsg('#dc3545', e?.message || '保存失败');
+            }
+        }
+
         function updateMenuPreview() {
             const container = document.getElementById('menuPreview');
             const menuProducts = productsData.filter(p => !p.id.includes('../'));
@@ -11809,6 +11970,7 @@
             if (tabName === 'news') loadFeaturedNews();
             if (tabName === 'products') loadFeaturedProducts();
             if (tabName === 'solutions') loadFeaturedSolutions();
+            if (tabName === 'nav') loadNavSettings();
         }
 
         // --- Hero Carousel Logic ---
