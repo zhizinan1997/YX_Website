@@ -1005,7 +1005,7 @@ pull_with_timeout() {
   info "正在拉取${label}镜像：$image"
   info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
   if command -v timeout >/dev/null 2>&1; then
-    timeout "${PULL_TIMEOUT:-300}" docker pull "$image" || die "${label}镜像拉取失败或超时（${PULL_TIMEOUT:-300} 秒限制），请检查网络连接和镜像地址。"
+    timeout "${PULL_TIMEOUT:-1200}" docker pull "$image" || die "${label}镜像拉取失败或超时（${PULL_TIMEOUT:-1200} 秒限制），请检查网络连接和镜像地址。"
   else
     docker pull "$image" || die "${label}镜像拉取失败，请检查网络连接和镜像地址。"
   fi
