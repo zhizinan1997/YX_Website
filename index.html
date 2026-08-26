@@ -376,6 +376,11 @@
           { type: 'image', url: '/cdn_assets/images/common/0930931327ce.jpg', source: 'fallback' }
         ];
 
+        const bootstrapConfig = window.__HERO_BOOTSTRAP__;
+        const hasBootstrapItems = !!(bootstrapConfig
+          && Array.isArray(bootstrapConfig.items)
+          && bootstrapConfig.items.some(item => item && item.url));
+
         let items = [];
         let intervalSeconds = 5;
         let currentIndex = 0;
@@ -741,11 +746,22 @@
           activateSlide(currentIndex);
         }
 
-        // Paint first frame immediately, then replace with real config.
-        startCarousel({ items: fallbackItems, interval_seconds: 5, cta_buttons_visible: true });
+        // Paint first frame immediately: prefer server-injected config, then refresh via API.
+        if (hasBootstrapItems) {
+          startCarousel(bootstrapConfig);
+        } else {
+          startCarousel({ items: fallbackItems, interval_seconds: 5, cta_buttons_visible: true });
+        }
         fetch('/api/hero')
           .then(res => res.json())
-          .then(startCarousel)
+          .then(config => {
+            if (hasBootstrapItems) {
+              try {
+                if (JSON.stringify(config) === JSON.stringify(bootstrapConfig)) return;
+              } catch (_) { }
+            }
+            startCarousel(config);
+          })
           .catch(() => { });
       })();
     </script>

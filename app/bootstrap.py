@@ -160,7 +160,11 @@ from app.routes.ai_chatbot import (
 from app.routes.backup import register_backup_routes
 from app.routes.cdn_assets import register_cdn_assets_routes
 from app.routes.contact_messages import register_contact_message_routes
-from app.routes.home_content import get_hero_config, register_home_content_routes
+from app.routes.home_content import (
+    build_hero_api_payload,
+    get_hero_config,
+    register_home_content_routes,
+)
 from app.routes.image_seo import (
     get_image_asset,
     get_indexable_images_for_page,
@@ -549,6 +553,20 @@ def register_all_routes(app):
         seo_breadcrumb_targets=SEO_BREADCRUMB_TARGETS,
         get_gassensing_products_with_settings=get_gassensing_products_with_settings,
         get_biosensing_products_with_settings_data=get_biosensing_products_with_settings_data,
+        build_hero_bootstrap_payload=lambda: build_hero_api_payload(
+            hero_config_file=HERO_CONFIG_FILE,
+            sanitize_public_media_url=sanitize_public_media_url,
+            hero_derived_manifest_file=HERO_DERIVED_MANIFEST_FILE,
+            pil_support=PIL_SUPPORT,
+            image_module=Image,
+            image_ops_module=ImageOps,
+            pil_features=PIL_FEATURES,
+            hero_uploads_dir=HERO_UPLOADS_DIR,
+            hero_derived_dir=HERO_DERIVED_DIR,
+            hero_source_image_extensions=HERO_SOURCE_IMAGE_EXTENSIONS,
+            hero_derived_widths=HERO_DERIVED_WIDTHS,
+            hero_derived_formats=HERO_DERIVED_FORMATS,
+        ),
     )
 
     return app

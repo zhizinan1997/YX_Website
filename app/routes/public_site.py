@@ -464,6 +464,7 @@ def register_public_site_routes(
     seo_breadcrumb_targets,
     get_gassensing_products_with_settings=lambda: [],
     get_biosensing_products_with_settings_data=lambda: [],
+    build_hero_bootstrap_payload=None,
     get_image_asset=lambda _url, _owner_page='': None,
     get_indexable_images_for_page=lambda _owner_page: [],
 ):
@@ -1681,12 +1682,39 @@ def register_public_site_routes(
             return response
         return Response(status=204)
 
+    hero_bootstrap_marker = '<section class="vs-hero">'
+
+    def render_home_index_response():
+        index_file = root / 'index.html'
+        try:
+            html_body = index_file.read_text(encoding='utf-8')
+        except Exception:
+            return send_from_directory(str(root), 'index.html')
+
+        if build_hero_bootstrap_payload is not None and hero_bootstrap_marker in html_body:
+            try:
+                payload = build_hero_bootstrap_payload()
+                if isinstance(payload, dict) and payload.get('items'):
+                    bootstrap_json = json.dumps(
+                        payload, ensure_ascii=False, separators=(',', ':'), sort_keys=True
+                    ).replace('</', '<\\/')
+                    bootstrap_script = (
+                        '<script>window.__HERO_BOOTSTRAP__=' + bootstrap_json + ';</script>\n    '
+                    )
+                    html_body = html_body.replace(
+                        hero_bootstrap_marker, bootstrap_script + hero_bootstrap_marker, 1
+                    )
+            except Exception:
+                pass
+
+        return Response(html_body, mimetype='text/html')
+
     @app.route('/')
     def index():
         blocked = blocked_disabled_promotion_link_response()
         if blocked:
             return blocked
-        return send_from_directory(str(root), 'index.html')
+        return render_home_index_response()
 
     @app.route('/<path:path>')
     def serve_static(path):
@@ -1715,6 +1743,8 @@ def register_public_site_routes(
 
         exact_path = root / normalized
         if exact_path.is_file():
+            if normalized == 'index.html':
+                return render_home_index_response()
             response = send_from_directory(str(root), normalized)
             if is_admin_html:
                 response.headers['Cache-Control'] = 'no-store, max-age=0'
