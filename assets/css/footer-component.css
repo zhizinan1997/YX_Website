@@ -36,7 +36,7 @@
   text-transform: none;
 }
 .vs-footer-new__brand .logo-link img {
-  height: 34px;
+  height: 48px;
   filter: brightness(0) invert(1);
 }
 .vs-footer-new__brand .tagline {
@@ -136,16 +136,16 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  font-size: 15px;
+  font-size: 16px;
   color: #d8e4f2;
   line-height: 1.7;
 }
 .vs-footer-new__links a {
-  font-size: 15px;
+  font-size: 16px;
   color: #d8e4f2;
 }
 .vs-footer-new__copyright {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.7;
   color: #d8e4f2;
 }

@@ -1937,6 +1937,20 @@ def build_news_article_html(title, date, image_url, content_html):
     </div>
 
     <script src="../../assets/js/search.js"></script>
+
+<!-- FOOTER_START -->
+  <div id="mc-footer-root"></div>
+  <noscript>
+    <footer class="vs-footer-new">
+      <div class="vs-container" style="padding:16px 0;color:#c8d2e4;">
+        <a href="/index.html">首页</a> |
+        <a href="/pages/about/policy.html">隐私政策</a> |
+        <a href="/pages/about/terms.html">条款与条件</a>
+      </div>
+    </footer>
+  </noscript>
+  <script src="/assets/js/footer-loader.js"></script>
+  <!-- FOOTER_END -->
 </body>
 </html>"""
 
