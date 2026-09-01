@@ -165,7 +165,10 @@ def _safe_subpath(base: Path, subpath: str) -> Path | None:
         return None
     resolved = (base / subpath).resolve()
     base_resolved = base.resolve()
-    if not str(resolved).startswith(str(base_resolved)):
+    # 用 relative_to 代替字符串前缀比较，避免同级目录名前缀碰撞绕过校验。
+    try:
+        resolved.relative_to(base_resolved)
+    except ValueError:
         return None
     return resolved
 
@@ -199,7 +202,7 @@ def list_cdn_assets():
         return jsonify({'success': False, 'message': '非法路径'}), 400
 
     if not target_dir.exists():
-        target_dir.mkdir(parents=True, exist_ok=True)
+        return jsonify({'success': False, 'message': '目录不存在'}), 404
 
     if not target_dir.is_dir():
         return jsonify({'success': False, 'message': '路径不是目录'}), 400

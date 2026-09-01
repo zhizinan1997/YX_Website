@@ -120,9 +120,12 @@ REMOTE_FETCH_BLOCKED_HOSTS = {
     '127.0.0.1',
     '::1',
 }
+# 可信远程服务白名单：仅按“域名后缀”（点分锚定，防止 evil-feishu.com 这类
+# 子串伪装命中）匹配；命中后仍需通过 HTTPS 且允许其解析到私有地址（飞书
+# 内网回源场景）。不要用子串关键词匹配——那会被攻击者注册的域名绕过。
 REMOTE_FETCH_TRUSTED_HOST_PATH_RULES = (
     {
-        'host_keywords': ('feishu', 'larksuite', 'larkoffice'),
+        'host_suffixes': ('feishu.cn', 'feishu.net', 'larksuite.com', 'larkoffice.com'),
         'schemes': ('http', 'https'),
     },
 )
@@ -249,8 +252,59 @@ def is_private_proxy_source(ip_text: str) -> bool:
     return bool(ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local)
 
 
-def should_trust_proxy_headers(_req=None, *, default: bool = True) -> bool:
-    return env_bool('TRUST_PROXY_HEADERS', default)
+# 可信代理判定：
+# 1. TRUST_PROXY_HEADERS 显式开启 → 无条件信任代理头（部署在 CDN/反代后且无法
+#    枚举代理网段时的兼容开关，此时代理必须负责改写这些头）。
+# 2. TRUST_PROXY_HEADERS 显式关闭 → 永不信任。
+# 3. 未配置（默认）→ 仅当直连地址 remote_addr 是回环/私网（本地反向代理），
+#    或命中 TRUSTED_PROXY_CIDRS 显式声明的代理网段时才信任，避免公网客户端
+#    伪造 X-Forwarded-For / CF-Connecting-IP 绕过限流、污染审计日志。
+def should_trust_proxy_headers(req=None, *, default: bool = True) -> bool:
+    raw = (os.environ.get('TRUST_PROXY_HEADERS') or '').strip().lower()
+    if raw in {'1', 'true', 'yes', 'on'}:
+        return True
+    if raw in {'0', 'false', 'no', 'off'}:
+        return False
+
+    if req is None:
+        # 无请求上下文时保持保守：不基于代理头做任何判断。
+        return False
+    remote_ip = normalize_ip_text(getattr(req, 'remote_addr', '') or '')
+    if not remote_ip:
+        return False
+    if is_private_proxy_source(remote_ip):
+        return True
+    return _remote_addr_in_trusted_proxy_networks(remote_ip)
+
+
+def _trusted_proxy_networks() -> tuple:
+    """解析 TRUSTED_PROXY_CIDRS（逗号分隔的 IP/CIDR），供可信代理判定使用。"""
+    raw = (os.environ.get('TRUSTED_PROXY_CIDRS') or '').strip()
+    if not raw:
+        return ()
+    networks = []
+    for part in raw.split(','):
+        text = part.strip()
+        if not text:
+            continue
+        if '/' not in text:
+            text = f'{text}/128' if ':' in text else f'{text}/32'
+        try:
+            networks.append(ipaddress.ip_network(text, strict=False))
+        except ValueError:
+            continue
+    return tuple(networks)
+
+
+def _remote_addr_in_trusted_proxy_networks(remote_ip: str) -> bool:
+    networks = _trusted_proxy_networks()
+    if not networks:
+        return False
+    try:
+        addr = ipaddress.ip_address(remote_ip)
+    except ValueError:
+        return False
+    return any(addr in network for network in networks)
 
 
 def parse_forwarded_ip_chain(raw_value: str) -> list[str]:
@@ -326,8 +380,10 @@ def is_trusted_remote_fetch_service_url(scheme: str, hostname: str, path: str) -
         host_keywords = tuple(str(item or '').strip().lower() for item in rule.get('host_keywords', ()))
         keyword_match = any(keyword and keyword in normalized_host for keyword in host_keywords)
         host_suffixes = tuple(str(item or '').strip().lower() for item in rule.get('host_suffixes', ()))
+        # 后缀必须点分锚定：host == suffix 或 host 以 ".suffix" 结尾，
+        # 避免 "evilfeishu.cn" 命中 "feishu.cn"。
         suffix_match = any(
-            normalized_host == suffix.lstrip('.') or normalized_host.endswith(suffix)
+            normalized_host == suffix or normalized_host.endswith(f'.{suffix}')
             for suffix in host_suffixes
             if suffix
         )

@@ -703,8 +703,9 @@ def register_contact_message_routes(
             }), 429
 
         data = request.form if request.form else request.get_json(silent=True) or {}
-        phone = data.get('txtUserTel', '').strip()
-        content = data.get('txtContent', '').strip()
+        # JSON 请求中字段值可能为 null/数字，统一做空值安全处理，避免触发 500。
+        phone = str(data.get('txtUserTel') or '').strip()
+        content = str(data.get('txtContent') or '').strip()
 
         if not phone:
             return jsonify({'success': False, 'message': '请填写联系电话'}), 400
@@ -714,11 +715,11 @@ def register_contact_message_routes(
         now_bj = _dep('now_beijing')()
         message = {
             'id': now_bj.strftime('%Y%m%d%H%M%S%f') + os.urandom(4).hex(),
-            'name': (data.get('txtUserName', '').strip() or '匿名')[:100],
+            'name': (str(data.get('txtUserName') or '').strip() or '匿名')[:100],
             'phone': phone[:30],
-            'email': data.get('txtUserEmail', '').strip()[:200],
-            'qq': data.get('txtUserQQ', '').strip()[:20],
-            'title': (data.get('txtTitle', '').strip() or '无标题')[:200],
+            'email': str(data.get('txtUserEmail') or '').strip()[:200],
+            'qq': str(data.get('txtUserQQ') or '').strip()[:20],
+            'title': (str(data.get('txtTitle') or '').strip() or '无标题')[:200],
             'content': content[:5000],
             'is_read': False,
             'timestamp': now_bj.isoformat(),

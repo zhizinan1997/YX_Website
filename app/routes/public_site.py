@@ -744,7 +744,8 @@ def register_public_site_routes(
             return replace_html_title(html_body, override)
 
         title_text = extract_html_title(html_body)
-        if re.search(r'[锟�]|婀栧|鍏冭|绉戞|鏈夐檺', title_text or ''):
+        # 婀栧/鍏冭/绉戞/鏈夐檺 为公司名的乱码形态样本（检测并修复损坏的标题），请勿改成正常汉字
+        if re.search(r'[锟\ufffd]|婀栧|鍏冭|绉戞|鏈夐檺', title_text or ''):
             fixed = re.sub(r'\s*-\s*.*$', f' - {site_company_name}', title_text).strip()
             if fixed:
                 return replace_html_title(html_body, fixed)

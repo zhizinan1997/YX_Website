@@ -265,6 +265,9 @@ def register_backup_routes(
                     if total_uncompressed > MAX_RESTORE_UNCOMPRESSED_BYTES:
                         return jsonify({'success': False, 'message': '备份解压后体积超过限制'}), 413
 
+                    # 恶意 ZIP 可在中央目录声明小体积、实际解压出任意大文件（ZIP 炸弹），
+                    # 因此必须按分块复制的真实写入字节数复核上限。
+                    actual_uncompressed = 0
                     for info in infos:
                         norm_name = normalize_backup_rel_path(info.filename)
                         if not norm_name:
@@ -278,8 +281,16 @@ def register_backup_routes(
 
                         out_path = temp_dir / norm_name
                         out_path.parent.mkdir(parents=True, exist_ok=True)
+                        # 手动分块复制（1MB），累计实际写入字节并即时核对上限。
                         with zf.open(info, 'r') as src, open(out_path, 'wb') as dst:
-                            shutil.copyfileobj(src, dst)
+                            while True:
+                                chunk = src.read(1024 * 1024)
+                                if not chunk:
+                                    break
+                                dst.write(chunk)
+                                actual_uncompressed += len(chunk)
+                                if actual_uncompressed > MAX_RESTORE_UNCOMPRESSED_BYTES:
+                                    return jsonify({'success': False, 'message': '备份解压后体积超过限制'}), 413
                         extracted_rel_paths.add(norm_name)
             except zipfile.BadZipFile:
                 return jsonify({'success': False, 'message': '备份文件损坏或格式不正确'}), 400

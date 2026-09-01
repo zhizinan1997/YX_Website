@@ -376,13 +376,15 @@ BACKUP_SENSITIVE_REL_PATHS = {
     'data/admin_login_attempts.json',
     'data/admin_login_logs.json',
     'data/admin_email_auth_state.json',
+    'data/admin_passkeys.sqlite3',
     'data/messages_meta.json',
     'data/rate_limits.json',
     'data/chatbot_conversation_logs.jsonl',
     'data/site_analytics_events.jsonl',
+    'data/scheduled_reports/state.json',
 }
-# 备份下载时排除的敏感目录（仅限 data/ 下）：客户留言与求职简历等 PII。
-BACKUP_SENSITIVE_DATA_DIRS = {'messages', 'resumes'}
+# 备份下载时排除的敏感目录（仅限 data/ 下）：客户留言、求职简历与定时报告状态等 PII。
+BACKUP_SENSITIVE_DATA_DIRS = {'messages', 'resumes', 'scheduled_reports'}
 # 恢复时禁止通过备份包覆盖的文件类型：源码与脚本不允许从 ZIP 写入项目根目录，
 # 防止持有备份权限的账号借“恢复”植入可执行代码。
 RESTORE_BLOCKED_SUFFIXES = (

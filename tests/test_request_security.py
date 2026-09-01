@@ -6,7 +6,14 @@ from unittest.mock import patch
 
 from flask import Flask, jsonify, request
 
-from app.request_security import get_trusted_forwarded_host_proto, register_strict_anti_crawl_guard
+from app.request_security import (
+    get_request_client_ip,
+    get_trusted_forwarded_host_proto,
+    is_trusted_remote_fetch_service_url,
+    register_strict_anti_crawl_guard,
+    should_trust_proxy_headers,
+    validate_safe_remote_fetch_url,
+)
 
 
 CRAWLER_USER_AGENTS = (
@@ -115,6 +122,69 @@ class StrictAntiCrawlGuardTests(unittest.TestCase):
                     get_trusted_forwarded_host_proto(request, default=False),
                     ('www.hnmetachip.cn', 'https'),
                 )
+
+
+class TrustedProxyDecisionTests(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+
+    def test_explicit_env_values_are_honoured(self):
+        with patch.dict(os.environ, {'TRUST_PROXY_HEADERS': 'true'}):
+            self.assertTrue(should_trust_proxy_headers())
+        with patch.dict(os.environ, {'TRUST_PROXY_HEADERS': 'false'}):
+            self.assertFalse(should_trust_proxy_headers())
+
+    def test_unconfigured_env_trusts_only_private_or_listed_proxies(self):
+        with patch.dict(os.environ, {'TRUST_PROXY_HEADERS': '', 'TRUSTED_PROXY_CIDRS': ''}):
+            # 回环/私网直连：本地反向代理场景，信任代理头。
+            with self.app.test_request_context('/', environ_base={'REMOTE_ADDR': '127.0.0.1'}):
+                self.assertTrue(should_trust_proxy_headers(request))
+            with self.app.test_request_context('/', environ_base={'REMOTE_ADDR': '10.0.0.8'}):
+                self.assertTrue(should_trust_proxy_headers(request))
+            # 公网直连：视为客户端本身，不信任代理头。
+            with self.app.test_request_context('/', environ_base={'REMOTE_ADDR': '1.2.3.4'}):
+                self.assertFalse(should_trust_proxy_headers(request))
+
+        with patch.dict(os.environ, {
+            'TRUST_PROXY_HEADERS': '',
+            'TRUSTED_PROXY_CIDRS': '1.2.3.0/24, 8.8.4.4',
+        }):
+            with self.app.test_request_context('/', environ_base={'REMOTE_ADDR': '1.2.3.4'}):
+                self.assertTrue(should_trust_proxy_headers(request))
+            with self.app.test_request_context('/', environ_base={'REMOTE_ADDR': '8.8.4.4'}):
+                self.assertTrue(should_trust_proxy_headers(request))
+            with self.app.test_request_context('/', environ_base={'REMOTE_ADDR': '9.9.9.9'}):
+                self.assertFalse(should_trust_proxy_headers(request))
+
+    def test_client_ip_ignores_spoofed_headers_from_public_peer(self):
+        headers = {
+            'CF-Connecting-IP': '4.4.4.4',
+            'X-Forwarded-For': '4.4.4.4',
+        }
+        with patch.dict(os.environ, {'TRUST_PROXY_HEADERS': '', 'TRUSTED_PROXY_CIDRS': ''}):
+            with self.app.test_request_context('/', headers=headers, environ_base={'REMOTE_ADDR': '1.2.3.4'}):
+                self.assertEqual(get_request_client_ip(request), '1.2.3.4')
+            with self.app.test_request_context('/', headers=headers, environ_base={'REMOTE_ADDR': '10.0.0.8'}):
+                self.assertEqual(get_request_client_ip(request), '4.4.4.4')
+
+
+class TrustedRemoteFetchServiceTests(unittest.TestCase):
+    def test_official_feishu_suffixes_match(self):
+        for host in ('internal-api.feishu.cn', 'feishu.cn', 'open.larksuite.com'):
+            with self.subTest(host=host):
+                self.assertTrue(is_trusted_remote_fetch_service_url('https', host, '/'))
+
+    def test_lookalike_hosts_do_not_match(self):
+        for host in ('evil-feishu.com', 'feishu.evil.com', 'evilfeishu.cn', 'larksuite.com.evil.io'):
+            with self.subTest(host=host):
+                self.assertFalse(is_trusted_remote_fetch_service_url('https', host, '/'))
+
+    def test_private_resolution_is_rejected_for_untrusted_hosts(self):
+        # 字面量 IP：私网/保留地址拒绝，公网地址放行。
+        ok, _, _ = validate_safe_remote_fetch_url('https://10.0.0.5/file')
+        self.assertFalse(ok)
+        ok, _, _ = validate_safe_remote_fetch_url('https://1.2.3.4/file')
+        self.assertTrue(ok)
 
 
 if __name__ == "__main__":

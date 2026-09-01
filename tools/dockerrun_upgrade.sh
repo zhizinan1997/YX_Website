@@ -91,6 +91,88 @@ bool_true() {
   esac
 }
 
+# v4.7.0 起应用端会拒绝常见占位密钥；脚本提前识别，避免升级后容器启动失败才暴露。
+is_placeholder_secret() {
+  local lowered="${1,,}"
+  case "$lowered" in
+    *change-me*|*changeme*|*replace-with*|*please-change*|*placeholder*|*default-secret*|*my-secret*|*dummy-secret*|*example-secret*|*test-secret*)
+      return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# 宿主机/容器基础环境，不参与"旧容器变量继承"。
+is_system_env_key() {
+  case "$1" in
+    PATH|HOME|HOSTNAME|PWD|OLDPWD|SHLVL|TERM|LANG|LC_ALL|GPG_KEY|PYTHON_VERSION|PYTHON_PIP_VERSION|PYTHON_SETUPTOOLS_VERSION|PYTHON_GET_PIP_URL|PYTHON_GET_PIP_SHA256|PYTHONDONTWRITEBYTECODE|PYTHONUNBUFFERED|PYTHONPATH|PIP_DISABLE_PIP_VERSION_CHECK|PIP_DEFAULT_TIMEOUT|PIP_ROOT_USER_ACTION|PIP_NO_CACHE_DIR|WERKZEUG_RUN_MAIN)
+      return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# 脚本托管的变量已单独解析，继承时跳过，避免 docker run 出现重复 -e。
+WEBSITE_MANAGED_ENV_KEYS="APP_ENV SECRET_KEY PUBLIC_BASE_URL TRUST_PROXY_HEADERS SESSION_COOKIE_SECURE ADMIN_USERNAME ADMIN_PASSWORD ADMIN_PASSWORD_HASH HIDDEN_ADMIN_USERNAME HIDDEN_ADMIN_PASSWORD HIDDEN_ADMIN_PASSWORD_HASH CDN_ENABLED CDN_DOMAIN TURNSTILE_ENABLED TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY ADMIN_CAPTCHA_PROVIDER ADMIN_ESA_IDENTITY ADMIN_ESA_SCENE_ID ADMIN_ESA_REGION TURNSTILE_PROXY_URL TURNSTILE_PROXY_FALLBACK_ENABLED ALLOW_WEAK_ADMIN_PASSWORDS CHECK_SECRET_KEY APP_VERSION APP_BUILD_TIME PORT DOCKER_CONTAINER_1_NAME DOCKER_LOG_FALLBACK_APP_FILES"
+CHECK_MANAGED_ENV_KEYS="CHECK_SECRET_KEY CHECK_TRUST_PROXY_HEADERS CHECK_SESSION_COOKIE_SECURE CHECK_MAIN_DATA_DIR CHECK_DATA_DIR CHECK_PORT PORT"
+
+CARRIED_WEBSITE_ENV=()
+CARRIED_CHECK_ENV=()
+
+# 把旧容器里脚本未托管的应用环境变量继承到新容器（v4.4.0 后新增了大量
+# 可选环境变量：CHATBOT/PRODUCT_AI/PASSKEY/SMTP/INDEXNOW/BAIDU_PUSH_TOKEN 等，
+# 固定清单必然漏掉；同名 shell 环境变量优先，日志只记变量名不记值）。
+collect_carried_env_for() {
+  local lines="$1"
+  local managed_keys="$2"
+  local target="$3"
+  local line key value source_label
+
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    key="${line%%=*}"
+    [[ -z "$key" || "$key" == "$line" ]] && continue
+    [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    is_system_env_key "$key" && continue
+    [[ " $managed_keys " == *" $key "* ]] && continue
+    value="${line#*=}"
+    [[ -z "$value" ]] && continue
+    if [[ -n "${!key:-}" ]]; then
+      value="${!key}"
+      source_label="当前 shell 环境变量覆盖"
+    else
+      source_label="继承自旧容器"
+    fi
+    if [[ "$target" == "website" ]]; then
+      CARRIED_WEBSITE_ENV+=( "-e" "${key}=${value}" )
+    else
+      CARRIED_CHECK_ENV+=( "-e" "${key}=${value}" )
+    fi
+    info "继承环境变量：${key}（${source_label}，值不在日志显示）"
+  done <<< "$lines"
+}
+
+resolve_carried_env() {
+  phase "继承旧容器环境变量"
+  collect_carried_env_for "$EXISTING_ENV_LINES" "$WEBSITE_MANAGED_ENV_KEYS" "website"
+  collect_carried_env_for "$EXISTING_CHECK_ENV_LINES" "$CHECK_MANAGED_ENV_KEYS" "check"
+  if (( ${#CARRIED_WEBSITE_ENV[@]} == 0 )) && (( ${#CARRIED_CHECK_ENV[@]} == 0 )); then
+    info "未发现需要继承的额外环境变量。"
+  fi
+}
+
+# 镜像里仓库版副本与服务器运行时数据不同的文件：不参与智能合并，
+# 宿主机已有的一律保留，避免每次升级制造无意义冲突或误覆盖。
+is_runtime_merge_excluded() {
+  local rel="$1"
+  case "$rel" in
+    app.log|local-server.stderr.log|local-server.stdout.log|logs/*|\
+    .flask_secret_key|config.json|rate_limits.json|\
+    image_seo_*.json|site_analytics_*.jsonl|site_analytics_events.jsonl|\
+    admin_login_attempts.json|admin_login_logs.json|chatbot_conversation_logs.jsonl)
+      return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 count_regular_files() {
   local dir="$1"
   if [[ ! -d "$dir" ]]; then
@@ -394,6 +476,18 @@ smart_merge_tree() {
     host_file="$host_dir/$rel"
     base_file="$base_dir/$rel"
 
+    if is_runtime_merge_excluded "$rel"; then
+      if [[ -e "$host_file" ]]; then
+        kept_local=$((kept_local + 1))
+        log_file_action "$label" "运行时文件，跳过合并（保留宿主机版本）" "$rel"
+      else
+        copy_with_parents "$new_file" "$host_file"
+        added=$((added + 1))
+        log_file_action "$label" "新增运行时文件" "$rel"
+      fi
+      continue
+    fi
+
     if [[ ! -e "$host_file" ]]; then
       copy_with_parents "$new_file" "$host_file"
       added=$((added + 1))
@@ -451,6 +545,11 @@ smart_merge_tree() {
 
     [[ -e "$new_file" ]] && continue
     [[ -e "$host_file" ]] || continue
+
+    if is_runtime_merge_excluded "$rel"; then
+      log_file_action "$label" "运行时文件，跳过上游删除同步" "$rel"
+      continue
+    fi
 
     if cmp -s "$host_file" "$base_file"; then
       rm -f "$host_file"
@@ -570,6 +669,7 @@ backup_existing_content_before_update() {
   backup_dir_if_exists "$DATA_DIR" "$backup_root" "data"
   backup_dir_if_exists "$PAGES_DIR" "$backup_root" "pages"
   backup_dir_if_exists "$CDN_ASSETS_DIR" "$backup_root" "cdn_assets"
+  backup_dir_if_exists "$CHECK_DATA_DIR" "$backup_root" "check_data"
   backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn"
   if [[ -f "$DATA_DIR/config.json" ]]; then
     mkdir -p "$backup_root/config"
@@ -685,8 +785,8 @@ reset_host_content_keep_data() {
   info "开始导入新镜像 cdn_assets 目录到宿主机"
   rsync -a "$TMP_CDN_ASSETS_DIR/" "$CDN_ASSETS_DIR/"
 
-  # data 基线也一并刷新（用于下次智能合并时的对比参考）
-  refresh_baseline_dir "data 目录" "$TMP_DATA_DIR" "$DATA_BASELINE_DIR"
+  # data 基线必须保持为旧镜像内容：宿主机 data 本次未被改动，基线仍是
+  # 其真实来源；若刷新成新镜像，下次智能合并会把上游 data 变更误判为冲突。
   refresh_baseline_dir "pages 目录" "$TMP_PAGES_DIR" "$PAGES_BASELINE_DIR"
   refresh_baseline_dir "cdn_assets 目录" "$TMP_CDN_ASSETS_DIR" "$CDN_ASSETS_BASELINE_DIR"
 
@@ -780,6 +880,24 @@ resolve_basic_runtime_values() {
 
   pick_value TURNSTILE_SECRET_KEY "" TURNSTILE_SECRET_KEY_VAL value_source
   info "TURNSTILE_SECRET_KEY=$([[ -n "$TURNSTILE_SECRET_KEY_VAL" ]] && printf '已提供' || printf '未提供')（来源：${value_source}）"
+
+  pick_value ADMIN_CAPTCHA_PROVIDER "" ADMIN_CAPTCHA_PROVIDER_VAL value_source
+  info "ADMIN_CAPTCHA_PROVIDER=${ADMIN_CAPTCHA_PROVIDER_VAL:-<未设置，默认 cloudflare>}（来源：${value_source}）"
+
+  pick_value ADMIN_ESA_IDENTITY "" ADMIN_ESA_IDENTITY_VAL value_source
+  info "ADMIN_ESA_IDENTITY=$([[ -n "$ADMIN_ESA_IDENTITY_VAL" ]] && printf '已提供' || printf '未提供')（来源：${value_source}）"
+
+  pick_value ADMIN_ESA_SCENE_ID "" ADMIN_ESA_SCENE_ID_VAL value_source
+  info "ADMIN_ESA_SCENE_ID=$([[ -n "$ADMIN_ESA_SCENE_ID_VAL" ]] && printf '已提供' || printf '未提供')（来源：${value_source}）"
+
+  pick_value ADMIN_ESA_REGION "" ADMIN_ESA_REGION_VAL value_source
+  info "ADMIN_ESA_REGION=${ADMIN_ESA_REGION_VAL:-<未设置，默认 cn>}（来源：${value_source}）"
+
+  pick_value TURNSTILE_PROXY_URL "" TURNSTILE_PROXY_URL_VAL value_source
+  info "TURNSTILE_PROXY_URL=$([[ -n "$TURNSTILE_PROXY_URL_VAL" ]] && printf '已提供' || printf '未提供')（来源：${value_source}）"
+
+  pick_value TURNSTILE_PROXY_FALLBACK_ENABLED "" TURNSTILE_PROXY_FALLBACK_ENABLED_VAL value_source
+  info "TURNSTILE_PROXY_FALLBACK_ENABLED=${TURNSTILE_PROXY_FALLBACK_ENABLED_VAL:-<未设置>}（来源：${value_source}）"
 }
 
 resolve_secret_key() {
@@ -790,6 +908,12 @@ resolve_secret_key() {
 
   if [[ -n "$value" && ${#value} -lt 32 ]]; then
     warn "检测到的 SECRET_KEY 长度不足 32 位，将改为交互输入。"
+    value=""
+    source=""
+  fi
+
+  if [[ -n "$value" ]] && is_placeholder_secret "$value"; then
+    warn "检测到 SECRET_KEY 是常见占位值，生产环境会被应用拒绝，将改为交互输入。"
     value=""
     source=""
   fi
@@ -819,6 +943,12 @@ resolve_check_secret_key() {
 
   if [[ -n "$value" && ${#value} -lt 32 ]]; then
     warn "检测到的 CHECK_SECRET_KEY 长度不足 32 位，将改为交互输入。"
+    value=""
+    source=""
+  fi
+
+  if [[ -n "$value" ]] && is_placeholder_secret "$value"; then
+    warn "检测到 CHECK_SECRET_KEY 是常见占位值，生产环境会被应用拒绝，将改为交互输入。"
     value=""
     source=""
   fi
@@ -910,6 +1040,17 @@ validate_hidden_admin_runtime_values() {
   fi
 }
 
+detect_published_host_port() {
+  local container="$1"
+  local line=""
+  line="$(docker port "$container" 8000/tcp 2>/dev/null | grep '^127\.0\.0\.1:' | head -n 1 | awk -F: '{print $NF}')"
+  if [[ -z "$line" ]]; then
+    line="$(docker port "$container" 8000/tcp 2>/dev/null | head -n 1 | awk -F: '{print $NF}')"
+  fi
+  [[ "$line" =~ ^[0-9]+$ ]] || line=""
+  printf '%s' "$line"
+}
+
 load_existing_state() {
   HAS_WEBSITE_CONTAINER=false
   HAS_LEGACY_GATEWAY_CONTAINER=false
@@ -928,9 +1069,29 @@ load_existing_state() {
 
   HAS_CHECK_CONTAINER=false
   EXISTING_CHECK_ENV_LINES=""
+  EXISTING_CHECK_IMAGE_REF=""
   if docker container inspect "$CHECK_CONTAINER" >/dev/null 2>&1; then
     HAS_CHECK_CONTAINER=true
     EXISTING_CHECK_ENV_LINES="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CHECK_CONTAINER" || true)"
+    EXISTING_CHECK_IMAGE_REF="$(docker inspect -f '{{.Image}}' "$CHECK_CONTAINER" || true)"
+  fi
+
+  # 操作者若曾用非默认端口部署，升级时自动沿用，避免静默回到默认端口导致回源断开
+  if [[ "$HAS_WEBSITE_CONTAINER" == "true" ]]; then
+    local detected_main_port
+    detected_main_port="$(detect_published_host_port "$WEBSITE_CONTAINER")"
+    if [[ -z "$MAIN_PORT_EXPLICIT" && -n "$detected_main_port" && "$detected_main_port" != "$MAIN_PORT" ]]; then
+      info "检测到旧网站容器端口映射为 127.0.0.1:${detected_main_port}，自动沿用（可用 MAIN_PORT 环境变量覆盖）。"
+      MAIN_PORT="$detected_main_port"
+    fi
+  fi
+  if [[ "$HAS_CHECK_CONTAINER" == "true" ]]; then
+    local detected_check_port
+    detected_check_port="$(detect_published_host_port "$CHECK_CONTAINER")"
+    if [[ -z "$CHECK_PORT_EXPLICIT" && -n "$detected_check_port" && "$detected_check_port" != "$CHECK_PORT" ]]; then
+      info "检测到旧监测站容器端口映射为 127.0.0.1:${detected_check_port}，自动沿用（可用 CHECK_PORT 环境变量覆盖）。"
+      CHECK_PORT="$detected_check_port"
+    fi
   fi
 
   DATA_FILE_COUNT="$(count_regular_files "$DATA_DIR")"
@@ -1005,21 +1166,84 @@ pull_with_timeout() {
   info "正在拉取${label}镜像：$image"
   info "下面会显示 Docker 原生镜像拉取进度，请等待拉取完成。"
   if command -v timeout >/dev/null 2>&1; then
-    timeout "${PULL_TIMEOUT:-1200}" docker pull "$image" || die "${label}镜像拉取失败或超时（${PULL_TIMEOUT:-1200} 秒限制），请检查网络连接和镜像地址。"
+    timeout "${PULL_TIMEOUT:-1200}" docker pull "$image" || die "${label}镜像拉取失败或超时（${PULL_TIMEOUT:-1200} 秒限制）。请检查网络与镜像地址；境内网络建议为 Docker 配置镜像加速，或先在能访问 ghcr.io 的机器上保存/导入镜像后，用 SKIP_IMAGE_PULL=true 重跑本脚本。"
   else
-    docker pull "$image" || die "${label}镜像拉取失败，请检查网络连接和镜像地址。"
+    docker pull "$image" || die "${label}镜像拉取失败。请检查网络与镜像地址；也可先在本机准备好镜像后，用 SKIP_IMAGE_PULL=true 重跑本脚本。"
   fi
   success "${label}镜像拉取完成。"
+}
+
+# 重新 pull :latest 后旧镜像会变成 dangling，成功后的镜像清理会把它删掉；
+# 先打 previous 标签，之后发现新版本有问题时可手动用该标签回滚。
+image_repo_without_tag() {
+  # 仅当镜像名末段（最后一个 / 之后）含冒号时才剥离 tag，避免误截注册表端口
+  local image="$1"
+  if [[ "${image##*/}" == *:* ]]; then
+    printf '%s' "${image%:*}"
+  else
+    printf '%s' "$image"
+  fi
+}
+
+preserve_previous_images() {
+  if [[ -n "$EXISTING_IMAGE_REF" ]]; then
+    local previous_website_tag
+    previous_website_tag="$(image_repo_without_tag "$WEBSITE_IMAGE"):previous"
+    if docker tag "$EXISTING_IMAGE_REF" "$previous_website_tag" >/dev/null 2>&1; then
+      info "旧版网站镜像已保留为：$previous_website_tag（需要回退时可手动运行该标签）"
+    else
+      warn "旧版网站镜像标记失败（$EXISTING_IMAGE_REF），如需回退可能要重新拉取旧版镜像。"
+    fi
+  fi
+  if [[ -n "${EXISTING_CHECK_IMAGE_REF:-}" ]]; then
+    local previous_check_tag
+    previous_check_tag="$(image_repo_without_tag "$CHECK_IMAGE"):previous"
+    if docker tag "$EXISTING_CHECK_IMAGE_REF" "$previous_check_tag" >/dev/null 2>&1; then
+      info "旧版监测站镜像已保留为：$previous_check_tag"
+    else
+      warn "旧版监测站镜像标记失败（$EXISTING_CHECK_IMAGE_REF）。"
+    fi
+  fi
+}
+
+# 记录本次实际部署的镜像版本：CI 打的 OCI 标签里带 git 提交号，
+# 追加到本地历史文件，方便售后按版本定位问题。
+record_deployed_image() {
+  local label_name="$1"
+  local image="$2"
+  local revision="" created="" digest=""
+
+  revision="$(docker image inspect "$image" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' 2>/dev/null || true)"
+  created="$(docker image inspect "$image" --format '{{ .Created }}' 2>/dev/null || true)"
+  digest="$(docker image inspect "$image" --format '{{ join .RepoDigests "," }}' 2>/dev/null || true)"
+
+  info "[${label_name}] 镜像构建时间：${created:-unknown}"
+  if [[ -n "$revision" ]]; then
+    info "[${label_name}] 镜像代码版本（git）：$revision"
+  else
+    info "[${label_name}] 镜像未携带 git 版本标签（本地构建镜像常见），以摘要为准。"
+  fi
+  if [[ -n "$digest" ]]; then
+    info "[${label_name}] 镜像摘要：$digest"
+  fi
+  mkdir -p "$YX_ROOT"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$label_name" "$image" "${revision:-unknown}" "${digest:-unknown}" >> "$DEPLOY_RECORD_FILE" 2>/dev/null || true
 }
 
 pull_latest_images() {
   phase "拉取最新镜像"
   if bool_true "${SKIP_IMAGE_PULL:-false}"; then
     info "SKIP_IMAGE_PULL=true，跳过镜像拉取，使用本机已有镜像：$WEBSITE_IMAGE"
+    preserve_previous_images
+    record_deployed_image "网站" "$WEBSITE_IMAGE"
+    record_deployed_image "监测站" "$CHECK_IMAGE"
     return 0
   fi
+  preserve_previous_images
   pull_with_timeout "$WEBSITE_IMAGE" "网站"
   pull_with_timeout "$CHECK_IMAGE" "监测站"
+  record_deployed_image "网站" "$WEBSITE_IMAGE"
+  record_deployed_image "监测站" "$CHECK_IMAGE"
 }
 
 prepare_content_for_fresh_or_reset() {
@@ -1047,10 +1271,9 @@ prepare_content_for_smart_update() {
 
 prepare_content_for_reset_keep_data() {
   phase "准备重置界面（保留用户数据）所需的新版本内容"
-  export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-data" "/app/data" "$TMP_DATA_DIR" || die "无法从新镜像导出 /app/data"
+  # data 完整保留且基线不刷新，因此无需导出新镜像 data。
   export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-pages" "/app/pages" "$TMP_PAGES_DIR" || die "无法从新镜像导出 /app/pages"
   export_image_tree "$WEBSITE_IMAGE" "$TMP_NEW_CONTAINER-cdn" "/app/cdn_assets" "$TMP_CDN_ASSETS_DIR" || die "无法从新镜像导出 /app/cdn_assets"
-  log_tree_state "新镜像 data 导出结果" "$TMP_DATA_DIR"
   log_tree_state "新镜像 pages 导出结果" "$TMP_PAGES_DIR"
   log_tree_state "新镜像 cdn_assets 导出结果" "$TMP_CDN_ASSETS_DIR"
 
@@ -1162,6 +1385,28 @@ recreate_containers() {
   if [[ -n "$TURNSTILE_SECRET_KEY_VAL" ]]; then
     website_cmd+=( -e "TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY_VAL" )
   fi
+  if [[ -n "$ADMIN_CAPTCHA_PROVIDER_VAL" ]]; then
+    website_cmd+=( -e "ADMIN_CAPTCHA_PROVIDER=$ADMIN_CAPTCHA_PROVIDER_VAL" )
+  fi
+  if [[ -n "$ADMIN_ESA_IDENTITY_VAL" ]]; then
+    website_cmd+=( -e "ADMIN_ESA_IDENTITY=$ADMIN_ESA_IDENTITY_VAL" )
+  fi
+  if [[ -n "$ADMIN_ESA_SCENE_ID_VAL" ]]; then
+    website_cmd+=( -e "ADMIN_ESA_SCENE_ID=$ADMIN_ESA_SCENE_ID_VAL" )
+  fi
+  if [[ -n "$ADMIN_ESA_REGION_VAL" ]]; then
+    website_cmd+=( -e "ADMIN_ESA_REGION=$ADMIN_ESA_REGION_VAL" )
+  fi
+  if [[ -n "$TURNSTILE_PROXY_URL_VAL" ]]; then
+    website_cmd+=( -e "TURNSTILE_PROXY_URL=$TURNSTILE_PROXY_URL_VAL" )
+  fi
+  if [[ -n "$TURNSTILE_PROXY_FALLBACK_ENABLED_VAL" ]]; then
+    website_cmd+=( -e "TURNSTILE_PROXY_FALLBACK_ENABLED=$TURNSTILE_PROXY_FALLBACK_ENABLED_VAL" )
+  fi
+  # 继承旧容器中脚本未托管的应用环境变量（值可能含空格，保持数组展开）
+  if (( ${#CARRIED_WEBSITE_ENV[@]} > 0 )); then
+    website_cmd+=( "${CARRIED_WEBSITE_ENV[@]}" )
+  fi
 
   website_cmd+=( "$WEBSITE_IMAGE" )
 
@@ -1220,21 +1465,28 @@ recreate_containers() {
   info "监测站容器挂载：$DATA_DIR -> /app/main_data (只读)"
   info "监测站容器挂载：$CHECK_DATA_DIR -> /app/check_data"
 
+  check_cmd=(
+    docker run -d
+    --name "$CHECK_CONTAINER"
+    --restart unless-stopped
+    --network "$NETWORK_NAME"
+    --network-alias "$CHECK_CONTAINER"
+    -p "127.0.0.1:${CHECK_PORT}:8000"
+    -e "CHECK_SECRET_KEY=$CHECK_SECRET_KEY_VAL"
+    -e "CHECK_TRUST_PROXY_HEADERS=true"
+    -e "CHECK_SESSION_COOKIE_SECURE=true"
+    -e "CHECK_MAIN_DATA_DIR=/app/main_data"
+    -e "CHECK_DATA_DIR=/app/check_data"
+    -v "$DATA_DIR:/app/main_data:ro"
+    -v "$CHECK_DATA_DIR:/app/check_data"
+  )
+  if (( ${#CARRIED_CHECK_ENV[@]} > 0 )); then
+    check_cmd+=( "${CARRIED_CHECK_ENV[@]}" )
+  fi
+  check_cmd+=( "$CHECK_IMAGE" )
+
   set +e
-  CHECK_CONTAINER_ID="$(docker run -d \
-    --name "$CHECK_CONTAINER" \
-    --restart unless-stopped \
-    --network "$NETWORK_NAME" \
-    --network-alias "$CHECK_CONTAINER" \
-    -p "127.0.0.1:${CHECK_PORT}:8000" \
-    -e "CHECK_SECRET_KEY=$CHECK_SECRET_KEY_VAL" \
-    -e "CHECK_TRUST_PROXY_HEADERS=true" \
-    -e "CHECK_SESSION_COOKIE_SECURE=true" \
-    -e "CHECK_MAIN_DATA_DIR=/app/main_data" \
-    -e "CHECK_DATA_DIR=/app/check_data" \
-    -v "$DATA_DIR:/app/main_data:ro" \
-    -v "$CHECK_DATA_DIR:/app/check_data" \
-    "$CHECK_IMAGE" 2>&1)"
+  CHECK_CONTAINER_ID="$("${check_cmd[@]}" 2>&1)"
   local ck_exit=$?
   set -e
 
@@ -1304,6 +1556,18 @@ verify_containers() {
       warn "HTTP 服务在 15 秒内未就绪，容器进程正在运行但服务可能仍在启动中，请手动验证。"
     fi
 
+    # 首页 200 不代表后台与新接口正常，补充两项轻量验证（只警告不阻断）
+    if curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${MAIN_PORT}/api/nav-labels"; then
+      success "公开导航接口验证通过：/api/nav-labels"
+    else
+      warn "公开导航接口 /api/nav-labels 暂未通过验证，请上线后检查后台导航设置。"
+    fi
+    if curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${MAIN_PORT}/admin"; then
+      success "后台入口验证通过：/admin"
+    else
+      warn "后台入口 /admin 暂未通过验证，请上线后手动检查后台登录。"
+    fi
+
     local check_http_ok=false
     for _ in $(seq 1 10); do
       if curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${CHECK_PORT}/"; then
@@ -1361,10 +1625,10 @@ show_help() {
   NETWORK_NAME=yx-net
   WEBSITE_CONTAINER=yx-website
   WEBSITE_IMAGE=ghcr.io/zhizinan1997/yx_website:latest
-  MAIN_PORT=2026
+  MAIN_PORT=2026                    # 未指定时自动沿用旧容器的端口映射
   CHECK_CONTAINER=yx-check-site
   CHECK_IMAGE=ghcr.io/zhizinan1997/yx_website-check:latest
-  CHECK_PORT=2028
+  CHECK_PORT=2028                   # 未指定时自动沿用旧容器的端口映射
   CHECK_SECRET_KEY=...
   CLEAN_OLD_IMAGES=true
   SKIP_IMAGE_PULL=true|false
@@ -1374,14 +1638,26 @@ show_help() {
   HIDDEN_ADMIN_USERNAME=shadow_root
   HIDDEN_ADMIN_PASSWORD_HASH=...
   HIDDEN_ADMIN_PASSWORD=...
+  ADMIN_CAPTCHA_PROVIDER=cloudflare|aliyun_esa   # v4.7.0 后台验证码
+  ADMIN_ESA_IDENTITY=...
+  ADMIN_ESA_SCENE_ID=...
+  ADMIN_ESA_REGION=cn
+  TURNSTILE_PROXY_URL=...
+  TURNSTILE_PROXY_FALLBACK_ENABLED=true|false
 
 交互说明：
   - 首次部署：脚本会自动导入新镜像里的 data/pages 内容，并要求输入 SECRET_KEY、PUBLIC_BASE_URL；如果还没有 admin_users.json，也会要求输入管理员初始密码。
   - 更新部署：脚本会先让你选择"智能合并更新"、"全新部署重置"或"重置界面，保留用户数据"。
   - 如果旧容器仍存在，脚本会优先复用旧容器中的 SECRET_KEY、PUBLIC_BASE_URL 等环境变量。
+  - 脚本未托管的应用环境变量（SMTP、CHATBOT、PRODUCT_AI、PASSKEY、INDEXNOW、BAIDU_PUSH_TOKEN 等）会自动从旧容器继承到新容器；同名 shell 环境变量优先。继承只记录变量名，不回显值。
   - 新架构只启动网站容器；如果检测到旧版 yx-gateway 容器，会在升级成功后自动清理，失败时才临时回滚。
   - 如果缺少这些环境变量，脚本会直接在终端里提示输入。
   - 如确需允许首次初始化时使用弱密码，可显式传入 ALLOW_WEAK_ADMIN_PASSWORDS=true。
+
+版本与回滚：
+  - 拉取新镜像前，旧版镜像会自动保留为 <镜像名>:previous 标签，需要回退时可手动运行该标签。
+  - 本次部署的 git 提交号与镜像摘要会追加记录到 $YX_ROOT/.deploy-history.log。
+  - data 中的运行时文件（app.log、image_seo_*、site_analytics_*、登录日志等）不参与智能合并，宿主机版本始终保留。
 
 风险说明：
   - "智能合并更新"会尽量保留宿主机已修改内容，但冲突文件仍可能需要人工核对。
@@ -1400,9 +1676,13 @@ LEGACY_GATEWAY_CONTAINER="${LEGACY_GATEWAY_CONTAINER:-${GATEWAY_CONTAINER:-yx-ga
 WEBSITE_IMAGE="${WEBSITE_IMAGE:-ghcr.io/zhizinan1997/yx_website:latest}"
 CHECK_CONTAINER="${CHECK_CONTAINER:-yx-check-site}"
 CHECK_IMAGE="${CHECK_IMAGE:-ghcr.io/zhizinan1997/yx_website-check:latest}"
+# 端口先记录是否被显式指定：未指定时会在 load_existing_state 中自动沿用旧容器映射
+MAIN_PORT_EXPLICIT="${MAIN_PORT:-}"
+CHECK_PORT_EXPLICIT="${CHECK_PORT:-}"
 CHECK_PORT="${CHECK_PORT:-2028}"
 MAIN_PORT="${MAIN_PORT:-2026}"
 CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
+DEPLOY_RECORD_FILE="$YX_ROOT/.deploy-history.log"
 
 DATA_DIR="$YX_ROOT/data"
 PAGES_DIR="$YX_ROOT/pages"
@@ -1465,6 +1745,7 @@ resolve_basic_runtime_values
 resolve_secret_key
 resolve_check_secret_key
 resolve_public_base_url
+resolve_carried_env
 prepare_directories_and_network
 pull_latest_images
 
@@ -1482,6 +1763,24 @@ validate_hidden_admin_runtime_values
 
 phase "修复挂载目录权限"
 chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$CHECK_DATA_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
+# v4.7.0 应用端已把密钥/凭据文件收紧为仅属主可读；上面的 a+rX 会重新放开，
+# 必须再收紧，否则 config.json（含 SMTP 凭据与口令哈希）等在宿主机上全局可读。
+for secret_file in \
+  "$DATA_DIR/.flask_secret_key" \
+  "$DATA_DIR/config.json" \
+  "$DATA_DIR/admin_users.json" \
+  "$DATA_DIR/admin_login_attempts.json" \
+  "$DATA_DIR/admin_login_logs.json"; do
+  if [[ -f "$secret_file" ]]; then
+    chmod 600 "$secret_file" 2>/dev/null || warn "敏感文件权限收紧失败：$secret_file"
+  fi
+done
+for pii_dir in "$DATA_DIR/messages" "$DATA_DIR/resumes"; do
+  if [[ -d "$pii_dir" ]]; then
+    chmod 700 "$pii_dir" 2>/dev/null || true
+    find "$pii_dir" -type f -exec chmod 600 {} + 2>/dev/null || true
+  fi
+done
 info "挂载目录权限检查完成。"
 
 recreate_containers
@@ -1491,6 +1790,7 @@ cleanup_old_images
 phase "部署完成"
 success "部署流程执行完成。"
 info "部署类型：$DEPLOY_KIND"
+info "本次部署的镜像版本（git 提交/摘要）已记录：$DEPLOY_RECORD_FILE"
 if [[ "$DEPLOY_KIND" == "update" ]]; then
   info "本次更新策略：$DEPLOY_STRATEGY_MODE"
 fi

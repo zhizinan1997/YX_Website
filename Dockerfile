@@ -57,4 +57,8 @@ RUN mkdir -p \
 
 EXPOSE 8000
 
+# 健康检查：alpine 基础镜像自带 busybox wget，探测公开轻量接口。
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD wget -qO- "http://127.0.0.1:8000/api/changelog/latest" >/dev/null 2>&1 || exit 1
+
 CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "--access-logfile", "/app/data/logs/gunicorn-access.log", "--error-logfile", "/app/data/logs/gunicorn-error.log", "--capture-output", "--log-level", "info", "server:app"]

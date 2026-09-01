@@ -175,7 +175,11 @@ def sanitize_public_product_settings(settings):
             item['technicalProperties'] = properties
         cleaned[pid] = item
     if 'consultButton' in raw:
-        cleaned['consultButton'] = raw['consultButton']
+        button_cfg = raw['consultButton']
+        cleaned['consultButton'] = {
+            'phoneVisible': bool(button_cfg.get('phoneVisible', False)) if isinstance(button_cfg, dict) else False,
+            'phoneText': sanitize_public_text(button_cfg.get('phoneText', '') if isinstance(button_cfg, dict) else '', max_length=60),
+        }
     return cleaned
 
 

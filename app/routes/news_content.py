@@ -124,6 +124,7 @@ def extract_html_title_text(html_text: str) -> str:
     if not match:
         return ''
     title = normalize_news_plain_text(match.group(1), max_length=200)
+    # 椋炰功 为“飞书”的乱码形态，需与 Lark/Feishu 一并从标题尾部清除
     title = re.sub(r'\s*[-|_]\s*(椋炰功|Lark|Feishu).*$', '', title, flags=re.I).strip()
     return title
 

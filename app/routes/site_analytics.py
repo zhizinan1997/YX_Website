@@ -6552,12 +6552,22 @@ def register_site_analytics_routes(
         if denied:
             return denied
         try:
-            from app.routes.admin import _send_smtp_mail, _get_email_auth_settings
+            from app.routes.admin import _send_smtp_mail, _get_email_auth_settings, _load_admin_users, _normalize_email
 
             payload = request.get_json(silent=True) or {}
-            to_email = str(payload.get('to_email', '')).strip()
+            to_email = _normalize_email(payload.get('to_email', ''))
             if not to_email:
                 return jsonify({'success': False, 'message': '请提供收件邮箱地址'}), 400
+
+            # 仅允许向已验证邮箱的管理员发送测试邮件
+            admin_file = Path(__file__).resolve().parents[2] / 'data' / 'admin_users.json'
+            users_data = _load_admin_users(admin_file)
+            verified_set = {
+                u['email'] for u in users_data.get('users', [])
+                if u.get('email_verified') and u.get('email')
+            }
+            if to_email not in verified_set:
+                return jsonify({'success': False, 'message': '仅支持向已验证的管理员邮箱发送测试邮件。'}), 400
 
             config = _site_report_get_config_fn()
             smtp_settings = _get_email_auth_settings(config)

@@ -50,8 +50,14 @@ import json
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+try:
+    import fcntl as _fcntl
+except ImportError:  # pragma: no cover - Windows fallback
+    _fcntl = None
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = APP_ROOT / 'data'
@@ -364,6 +370,25 @@ def now_beijing_iso():
 MAX_ADMIN_LOGIN_LOG_ITEMS = 500
 
 
+@contextmanager
+def _admin_login_log_file_lock():
+    """跨进程文件锁：gunicorn 多 worker 并发写登录日志时互斥。
+
+    锁文件路径在调用时从当前 ADMIN_LOGIN_LOG_FILE 派生，
+    以兼容 configure_admin_audit 运行时修改日志路径的场景。
+    """
+    lock_file = ADMIN_LOGIN_LOG_FILE.with_suffix('.lock')
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    with lock_file.open('a+', encoding='utf-8') as lock_handle:
+        if _fcntl is not None:
+            _fcntl.flock(lock_handle.fileno(), _fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if _fcntl is not None:
+                _fcntl.flock(lock_handle.fileno(), _fcntl.LOCK_UN)
+
+
 def append_admin_login_log(operation, success, username='', detail='', hidden_account=False):
     """追加一条不可变更的后台登录操作日志。"""
     ip = GET_CLIENT_IP()
@@ -379,7 +404,7 @@ def append_admin_login_log(operation, success, username='', detail='', hidden_ac
         'hidden_account': bool(hidden_account),
     }
 
-    with ADMIN_LOGIN_LOG_LOCK:
+    with ADMIN_LOGIN_LOG_LOCK, _admin_login_log_file_lock():
         items = load_admin_login_logs()
         items.append(log_item)
         if len(items) > MAX_ADMIN_LOGIN_LOG_ITEMS:

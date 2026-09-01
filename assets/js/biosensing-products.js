@@ -13,6 +13,12 @@ const ITEMS_PER_PAGE = 6;
 let currentPage = 1;
 let currentFilter = 'all';
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text ?? '');
+    return div.innerHTML;
+}
+
 function isVisibleBiosensingProduct(product) {
     if (!product || product.hidden) return false;
     const id = String(product.id || '').trim();
@@ -114,13 +120,13 @@ function renderProducts() {
     setTimeout(() => {
         container.innerHTML = pageProducts.map(product => `
             <li>
-                <a href="${buildProductHref(product)}">
+                <a href="${escapeHtml(buildProductHref(product))}">
                     <div class="vs-product-img">
-                        <img src="${product.cardImage || product.image}" alt="${product.cardTitle || product.name}">
+                        <img src="${escapeHtml(product.cardImage || product.image)}" alt="${escapeHtml(product.cardTitle || product.name)}">
                     </div>
                     <div class="vs-product-info">
-                        <h5>${product.cardTitle || product.name}</h5>
-                        <p>${product.cardSummary || product.description || ''}</p>
+                        <h5>${escapeHtml(product.cardTitle || product.name)}</h5>
+                        <p>${escapeHtml(product.cardSummary || product.description || '')}</p>
                         <span class="vs-product-more">查看详情</span>
                     </div>
                 </a>
@@ -145,7 +151,7 @@ function renderPagination() {
         return;
     }
 
-    let html = `<span>共${totalItems}个产品</span>`;
+    let html = `<span>共${escapeHtml(totalItems)}个产品</span>`;
 
     if (currentPage > 1) {
         html += `<a href="#" data-page="${currentPage - 1}">«上一页</a>`;
@@ -155,9 +161,9 @@ function renderPagination() {
 
     for (let i = 1; i <= totalPages; i++) {
         if (i === currentPage) {
-            html += `<span class="current">${i}</span>`;
+            html += `<span class="current">${escapeHtml(i)}</span>`;
         } else {
-            html += `<a href="#" data-page="${i}">${i}</a>`;
+            html += `<a href="#" data-page="${escapeHtml(i)}">${escapeHtml(i)}</a>`;
         }
     }
 
@@ -185,8 +191,8 @@ function renderFilterNav() {
 
     categoryNav.innerHTML = INDUSTRY_FILTERS.map(item => `
         <li>
-            <a href="#" data-filter="${item.key}" class="${currentFilter === item.key ? 'active' : ''}">
-                ${item.label}
+            <a href="#" data-filter="${escapeHtml(item.key)}" class="${currentFilter === item.key ? 'active' : ''}">
+                ${escapeHtml(item.label)}
             </a>
         </li>
     `).join('');

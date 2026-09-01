@@ -42,8 +42,8 @@
    - 返回空字符串表示验证失败
 
 6. 图片字节验证（validate_image_bytes）
-   - 验证已上传的图片字节内容
-   - 支持文件名和MIME类型辅助验证
+   - 仅依据文件签名验证图片字节内容
+   - filename/mime 参数仅为兼容旧调用方保留
    - 用于远程图片URL的安全验证
 
 7. 视频扩展名验证（validate_uploaded_video_extension）
@@ -253,15 +253,13 @@ def validate_uploaded_image_extension(file_storage, *, allowed_extensions: set[s
 
 
 def validate_image_bytes(filename: str, mime: str, content: bytes, *, allowed_extensions: set[str]) -> str:
+    """按文件签名校验图片字节，扩展名在白名单内则返回，否则返回空串。
+
+    filename/mime 参数仅为兼容旧调用方保留，不参与校验。
+    """
     detected_ext = _normalized_ext(infer_ai_product_image_extension_from_bytes(content[:8192]))
     if detected_ext in allowed_extensions:
         return detected_ext
-    named_ext = _normalized_ext(Path(filename or '').suffix.lower())
-    mime_ext = _normalized_ext(infer_news_image_extension_from_mime((mime or '').lower()))
-    if named_ext in allowed_extensions and named_ext == detected_ext:
-        return named_ext
-    if mime_ext in allowed_extensions and mime_ext == detected_ext:
-        return mime_ext
     return ''
 
 

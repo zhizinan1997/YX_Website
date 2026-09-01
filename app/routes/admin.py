@@ -72,6 +72,7 @@ API路由清单：
 作者：元芯传感技术团队
 """
 
+import html
 import json
 import os
 import re
@@ -119,7 +120,7 @@ from app.admin_geo import (
     is_country_code_allowed,
     normalize_admin_login_geo_settings,
 )
-from app.request_security import get_request_client_ip, is_same_origin_request
+from app.request_security import get_request_client_ip, is_same_origin_request, normalize_origin
 from app.request_security import CSRF_SESSION_KEY
 from app.passkeys import PasskeyStore, load_passkey_config, require_webauthn
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -346,6 +347,24 @@ def _set_users_file_for_revocation(file_path):
         _MIN_SESSION_AT_CACHE.clear()
 
 
+def _build_user_session_cache_entry(users_file: Path, mtime: int):
+    """构建 (mtime, min_session_at映射, 已知用户名集合) 缓存项；读取失败返回 None。"""
+    mapping = {}
+    known_names = set()
+    try:
+        for user in _load_admin_users(users_file).get('users', []):
+            key = _normalize_username(user.get('username', ''))
+            if key:
+                known_names.add(key)
+                try:
+                    mapping[key] = int(user.get('min_session_at', 0) or 0)
+                except Exception:
+                    mapping[key] = 0
+    except Exception:
+        return None
+    return (mtime, mapping, known_names)
+
+
 def query_user_min_session_at(username) -> int:
     """读取用户的最小有效会话时间戳；带 mtime 缓存避免每请求解析 JSON。"""
     name = _normalize_username(username)
@@ -359,21 +378,39 @@ def query_user_min_session_at(username) -> int:
     with _MIN_SESSION_AT_CACHE_LOCK:
         cached = _MIN_SESSION_AT_CACHE.get('entry')
         if not cached or cached[0] != mtime:
-            mapping = {}
-            try:
-                for user in _load_admin_users(users_file).get('users', []):
-                    key = _normalize_username(user.get('username', ''))
-                    if key:
-                        try:
-                            mapping[key] = int(user.get('min_session_at', 0) or 0)
-                        except Exception:
-                            mapping[key] = 0
-            except Exception:
+            entry = _build_user_session_cache_entry(users_file, mtime)
+            if entry is None:
                 return 0
-            cached = (mtime, mapping)
             _MIN_SESSION_AT_CACHE.clear()
-            _MIN_SESSION_AT_CACHE['entry'] = cached
+            _MIN_SESSION_AT_CACHE['entry'] = entry
+            cached = entry
         return int(cached[1].get(name, 0) or 0)
+
+
+def query_admin_user_exists(username) -> bool:
+    """判断用户名是否仍存在于管理员账号存储。
+
+    供会话守卫吊销“账号已被删除”的残留会话；存储缺失或读取失败时返回
+    True（fail-open），避免瞬时 IO 故障把全部在线管理员登出。
+    """
+    name = _normalize_username(username)
+    users_file = _users_file_for_revocation
+    if not name or users_file is None:
+        return True
+    try:
+        mtime = users_file.stat().st_mtime_ns
+    except OSError:
+        return True
+    with _MIN_SESSION_AT_CACHE_LOCK:
+        cached = _MIN_SESSION_AT_CACHE.get('entry')
+        if not cached or cached[0] != mtime:
+            entry = _build_user_session_cache_entry(users_file, mtime)
+            if entry is None:
+                return True
+            _MIN_SESSION_AT_CACHE.clear()
+            _MIN_SESSION_AT_CACHE['entry'] = entry
+            cached = entry
+        return name in cached[2]
 
 
 def bump_user_min_session_at(root, username) -> None:
@@ -1004,7 +1041,7 @@ def _build_login_email_subject():
 
 
 def _build_login_email_content(username: str, code: str):
-    safe_username = _normalize_username(username) or '管理员'
+    safe_username = html.escape(_normalize_username(username) or '管理员')
     html_body = f"""
     <div style="font-family:Arial,'Microsoft YaHei',sans-serif;line-height:1.7;color:#1f2937;">
       <h2 style="margin:0 0 12px;">后台登录验证码</h2>
@@ -1019,7 +1056,7 @@ def _build_login_email_content(username: str, code: str):
 
 
 def _build_binding_email_content(username: str, code: str):
-    safe_username = _normalize_username(username) or '管理员'
+    safe_username = html.escape(_normalize_username(username) or '管理员')
     html_body = f"""
     <div style="font-family:Arial,'Microsoft YaHei',sans-serif;line-height:1.7;color:#1f2937;">
       <h2 style="margin:0 0 12px;">邮箱绑定验证码</h2>
@@ -1105,7 +1142,8 @@ def _render_brand_email_v2(*, eyebrow: str, title: str, intro: str, highlight_ht
 
 
 def _build_login_email_content_v2(username: str, code: str):
-    safe_username = _normalize_username(username) or '\u7ba1\u7406\u5458'
+    # 用户名会拼进 HTML 邮件正文，统一转义防注入（text_body 保持纯文本）。
+    safe_username = html.escape(_normalize_username(username) or '\u7ba1\u7406\u5458')
     html_body = _render_brand_email_v2(
         eyebrow='\u7ba1\u7406\u5458\u767b\u5f55\u90ae\u7bb1\u9a8c\u8bc1',
         title='\u540e\u53f0\u767b\u5f55\u9a8c\u8bc1\u7801',
@@ -1126,7 +1164,7 @@ def _build_login_email_content_v2(username: str, code: str):
 
 
 def _build_binding_email_content_v2(username: str, code: str):
-    safe_username = _normalize_username(username) or '\u7ba1\u7406\u5458'
+    safe_username = html.escape(_normalize_username(username) or '\u7ba1\u7406\u5458')
     html_body = _render_brand_email_v2(
         eyebrow='\u5b89\u5168\u90ae\u7bb1\u7ed1\u5b9a',
         title='\u90ae\u7bb1\u7ed1\u5b9a\u9a8c\u8bc1\u7801',
@@ -2442,8 +2480,8 @@ def register_admin_routes(
     try:
         _ensure_admin_users_store(root, get_config, update_config)
     except Exception:
-        # 即使初始化迁移暂时异常，也尽量保持路由可用。
-        pass
+        # 即使初始化迁移暂时异常，也尽量保持路由可用，但必须留下定位线索。
+        app.logger.exception('管理员账号存储初始化失败，请检查管理员配置')
     _start_smtp_reminder_worker_once(app=app, root=root, get_config=get_config)
 
     def _build_admin_html_response(directory: str, filename: str = 'index.html'):
@@ -3039,13 +3077,14 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': f'请等待 {resend_at - now_ts} 秒后重试。'}), 429
         code = _generate_email_code()
         salt = secrets.token_hex(16)
+        safe_username = html.escape(username)
         try:
             _send_smtp_mail(
                 smtp_settings,
                 to_email=user.get('email', ''),
                 subject='元芯传感后台 Passkey 安全验证',
                 text_body=f'您正在为后台账号 {username} 管理 Passkey。验证码：{code}，5 分钟内有效。若非本人操作，请忽略。',
-                html_body=f'<p>您正在为后台账号 <strong>{username}</strong> 管理 Passkey。</p><p>验证码：<strong style="font-size:24px">{code}</strong></p><p>5 分钟内有效。若非本人操作，请忽略。</p>',
+                html_body=f'<p>您正在为后台账号 <strong>{safe_username}</strong> 管理 Passkey。</p><p>验证码：<strong style="font-size:24px">{code}</strong></p><p>5 分钟内有效。若非本人操作，请忽略。</p>',
             )
         except Exception as exc:
             return jsonify({'success': False, 'message': f'验证码发送失败：{exc}'}), 400
@@ -3364,6 +3403,38 @@ def register_admin_routes(
 
         is_hidden_admin = _is_hidden_admin_record(login_user)
         login_identifier = email if login_method == 'email_password' else username
+
+        # 封禁/延迟前置检查：密码哈希（scrypt）与验证码校验代价高，必须在
+        # 验证凭据之前拒绝已封禁或处于延迟窗口的来源，避免被封禁 IP 仍能
+        # 通过高频请求消耗 CPU 打满 worker。
+        with LOGIN_ATTEMPTS_LOCK:
+            attempts_state = _load_login_attempts(attempts_file)
+            _prune_login_attempts(attempts_state, now_ts)
+            pre_ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
+            pre_blocked_until = int(pre_ip_item.get('blocked_until', 0) or 0) if isinstance(pre_ip_item, dict) else 0
+            pre_delay_seconds = _get_login_delay_seconds(attempts_state, ip_addr, now_ts)
+            _save_login_attempts(attempts_file, attempts_state)
+        if pre_blocked_until > now_ts:
+            blocked_at = _format_blocked_until(pre_blocked_until)
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=login_identifier,
+                detail=f'IP 已封禁至 {blocked_at or pre_blocked_until}',
+                hidden_account=is_hidden_admin,
+            )
+            return jsonify({'success': False, 'message': f'当前登录 IP 已被封禁至 {blocked_at}，请稍后再试。'}), 429
+        if pre_delay_seconds > 0:
+            wait_hint = f'{pre_delay_seconds // 60}m {pre_delay_seconds % 60}s' if pre_delay_seconds >= 60 else f'{pre_delay_seconds}s'
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=login_identifier,
+                detail=f'登录已触发延迟保护，等待 {wait_hint}',
+                hidden_account=is_hidden_admin,
+            )
+            return jsonify({'success': False, 'message': f'失败次数过多，请等待 {wait_hint} 后再试。'}), 429
+
         country_allowed, country_reason = _is_ip_country_allowed(ip_addr, geo_settings, _resolve_ip_country_code)
         if not country_allowed:
             append_admin_login_log(
@@ -4063,6 +4134,10 @@ def register_admin_routes(
             updated['notify_job_email'] = notify_job_email
             if reset_password:
                 updated['password_hash'] = _hash_password(reset_password)
+            if reset_password or not enabled:
+                # 重置密码或停用账号后立即吊销该子账号的全部既有会话，
+                # 使被盗的旧 cookie 同步失效（与本人改密行为保持一致）。
+                updated['min_session_at'] = int(time.time())
             updated['updated_at'] = now_iso
             users_data['users'][idx] = _sanitize_user_record(updated, fallback_username=target_name, is_super_admin=False)
             _save_admin_users(users_file, users_data)
@@ -4170,6 +4245,16 @@ def register_admin_routes(
     @app.route('/admin/logout', methods=['POST'])
     def admin_logout():
         """Handle admin logout."""
+        # 拦截带跨站来源头的登出请求（login CSRF 的对偶：logout CSRF）。
+        # 部分隐私浏览器会剥离 Origin/Referer，此时不能把登出变成不可用，
+        # 仍允许通过（该请求只会清除当前浏览器自己的会话，无服务端副作用）。
+        if not _is_same_origin_request(request):
+            has_origin_header = bool(
+                normalize_origin(request.headers.get('Origin', ''))
+                or normalize_origin(request.headers.get('Referer', ''))
+            )
+            if has_origin_header:
+                return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
         username = session.get('admin_username') or ''
         is_hidden = bool(session.get('admin_is_hidden', False))
         if session.get('admin_logged_in'):

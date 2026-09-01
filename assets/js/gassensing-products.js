@@ -16,6 +16,12 @@ const ITEMS_PER_PAGE = 6;
 let currentPage = 1;
 let currentFilter = 'all';
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text ?? '');
+    return div.innerHTML;
+}
+
 function isVisibleGassensingProduct(product) {
     if (!product || product.hidden) return false;
     const id = String(product.id || '').trim();
@@ -140,13 +146,13 @@ function renderProducts() {
     setTimeout(() => {
         container.innerHTML = pageProducts.map(product => `
             <li>
-                <a href="${product.id}.html">
+                <a href="${escapeHtml(product.id)}.html">
                     <div class="vs-product-img">
-                        <img src="${product.cardImage || product.image}" alt="${product.cardTitle || product.name}">
+                        <img src="${escapeHtml(product.cardImage || product.image)}" alt="${escapeHtml(product.cardTitle || product.name)}">
                     </div>
                     <div class="vs-product-info">
-                        <h5>${product.cardTitle || product.name}</h5>
-                        <p>${product.cardSummary || product.description || ''}</p>
+                        <h5>${escapeHtml(product.cardTitle || product.name)}</h5>
+                        <p>${escapeHtml(product.cardSummary || product.description || '')}</p>
                         <span class="vs-product-more">查看详情</span>
                     </div>
                 </a>
@@ -172,7 +178,7 @@ function renderPagination() {
         return;
     }
 
-    let html = `<span>共${totalItems}个产品</span>`;
+    let html = `<span>共${escapeHtml(totalItems)}个产品</span>`;
 
     // 上一页按钮
     if (currentPage > 1) {
@@ -184,9 +190,9 @@ function renderPagination() {
     // 页码
     for (let i = 1; i <= totalPages; i++) {
         if (i === currentPage) {
-            html += `<span class="current">${i}</span>`;
+            html += `<span class="current">${escapeHtml(i)}</span>`;
         } else {
-            html += `<a href="#" data-page="${i}">${i}</a>`;
+            html += `<a href="#" data-page="${escapeHtml(i)}">${escapeHtml(i)}</a>`;
         }
     }
 
@@ -218,7 +224,7 @@ function renderFilterNav() {
 
     // 生成筛选按钮HTML，根据currentFilter设置active
     const filterHTML = INDUSTRY_FILTERS.map(f =>
-        `<li><a href="#" data-filter="${f.key}" class="${currentFilter === f.key ? 'active' : ''}">${f.label}</a></li>`
+        `<li><a href="#" data-filter="${escapeHtml(f.key)}" class="${currentFilter === f.key ? 'active' : ''}">${escapeHtml(f.label)}</a></li>`
     ).join('');
 
     categoryNav.innerHTML = filterHTML;

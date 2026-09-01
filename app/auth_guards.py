@@ -63,6 +63,7 @@ from app.routes.admin import (
     ADMIN_PERMISSION_KEYS,
     ADMIN_SESSION_SCHEMA_VERSION,
     is_binding_allowed_path,
+    query_admin_user_exists,
     query_user_min_session_at,
     resolve_permission_for_path,
 )
@@ -92,8 +93,16 @@ def login_required(f):
 
         # 服务端会话吊销：登出/改密后，早于 min_session_at 的旧 cookie 一律失效。
         login_at = int(session.get('admin_login_at', 0) or 0)
-        min_session_at = query_user_min_session_at(session.get('admin_username', ''))
+        admin_username = session.get('admin_username', '')
+        min_session_at = query_user_min_session_at(admin_username)
         if min_session_at and (not login_at or login_at < min_session_at):
+            session.clear()
+            if is_api:
+                return jsonify({'success': False, 'message': '登录已失效，请重新登录'}), 401
+            return redirect('/admin')
+
+        # 账号已被删除（如子账号被移除）的残留会话同样立即失效。
+        if login_at and not query_admin_user_exists(admin_username):
             session.clear()
             if is_api:
                 return jsonify({'success': False, 'message': '登录已失效，请重新登录'}), 401

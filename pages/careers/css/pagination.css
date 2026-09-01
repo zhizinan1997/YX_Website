@@ -562,7 +562,7 @@ div.sabrosus span.disabled {
 
 
 
-/*????*/
+/*分页样式*/
 .page-list{ position:relative; margin:20px 0; clear:both; }
 .page-list:after { content: "."; display: block; height: 0; clear: both; visibility: hidden; }
 .page-list a,.page-list span{ margin:0;  padding:0; display:none; float:left; width:25%; line-height:35px; border:1px solid #ddd; border-right-color:#fff; font-size:13px; text-align:center; background:#fff; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
