@@ -19,6 +19,8 @@ from urllib.parse import unquote, urljoin, urlparse
 
 from flask import jsonify, request, send_from_directory
 
+from app.text_encoding import repair_known_mojibake
+
 BEIJING_TZ = timezone(timedelta(hours=8))
 FEISHU_HOST_KEYWORDS = ('feishu', 'larksuite', 'larkoffice')
 VOID_HTML_TAGS = {
@@ -1752,7 +1754,7 @@ def parse_news_from_html():
                 elif self.in_desc:
                     self.current_item['desc'] += data
 
-        html_content = news_file.read_text(encoding='utf-8')
+        html_content = repair_known_mojibake(news_file.read_text(encoding='utf-8'))
         parser = NewsParser()
         parser.feed(html_content)
         return parser.news_items
@@ -2118,6 +2120,8 @@ def derive_news_cover_and_summary(content_html: str, image_url: str = '', summar
 
 def atomic_write_text(path: Path, content: str):
     """Write text through a sibling temp file, then replace atomically."""
+    if path.name == 'news.html' and path.parent.name == 'news':
+        content = repair_known_mojibake(content)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_name(f'.{path.name}.{uuid.uuid4().hex}.tmp')
     try:
@@ -2376,7 +2380,7 @@ def get_all_news_items():
     if not news_index.exists():
         return []
 
-    content = news_index.read_text(encoding='utf-8')
+    content = repair_known_mojibake(news_index.read_text(encoding='utf-8'))
     sanitize_public_text = _dep('sanitize_public_text')
     sanitize_public_link_url = _dep('sanitize_public_link_url')
     sanitize_public_media_url = _dep('sanitize_public_media_url')

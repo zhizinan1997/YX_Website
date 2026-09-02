@@ -388,6 +388,21 @@ class PublicSiteSeoTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r"<h1\b", body, flags=re.I)), 1)
         self.assertGreaterEqual(len(re.findall(r"<h2\b", body, flags=re.I)), 1)
 
+    def test_public_html_repairs_persisted_news_mojibake(self):
+        news_index = self.root / "pages" / "news" / "news.html"
+        news_index.write_text(
+            """<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"></head>
+<body><main><h1>行业资讯</h1><span class="vs-link-arrow">\u93cc\u30e7\u6e45\u7487\ufe3d\u510f</span></main></body></html>""",
+            encoding="utf-8",
+        )
+
+        response = self.client.get("/pages/news/news.html")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn("查看详情", body)
+        self.assertNotIn("\u93cc\u30e7\u6e45\u7487\ufe3d\u510f", body)
+
     def test_legacy_public_urls_redirect_once_to_final_targets(self):
         redirects = {
             "/pages/biosensing/index_page_2.html": "/pages/biosensing/",

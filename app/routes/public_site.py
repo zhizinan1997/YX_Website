@@ -66,6 +66,7 @@ from app.public_urls import (
     is_legacy_public_path,
 )
 from app.request_security import get_trusted_forwarded_host_proto
+from app.text_encoding import repair_known_mojibake
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
@@ -1586,6 +1587,10 @@ def register_public_site_routes(
             if not html_body:
                 return response
 
+            # Pages can be persisted on a mounted host directory and outlive
+            # the application image. Repair the verified sequence at the
+            # response boundary as a last-line safeguard.
+            html_body = repair_known_mojibake(html_body)
             html_body = normalize_public_html_links(html_body)
             html_body = inject_seo_head_markup(html_body)
 
