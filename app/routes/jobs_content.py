@@ -32,6 +32,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -190,6 +191,18 @@ def save_jobs_data(data):
 
 
 
+# 岗位数据的读改写锁：写操作本身原子，但不加锁时并发保存会互相覆盖丢更新。
+_JOBS_WRITE_LOCK = threading.RLock()
+
+# job_id 格式约束：防止客户端伪造任意格式/重复 id 污染数据。
+_JOB_ID_PATTERN = re.compile(r'^job_[A-Za-z0-9_\-]{1,64}$')
+
+
+def _normalize_job_id(raw_value: str) -> str:
+    value = clean_job_text(raw_value or '')
+    return value if _JOB_ID_PATTERN.fullmatch(value) else ''
+
+
 # 路由注册入口。
 def register_jobs_content_routes(
     app,
@@ -216,25 +229,40 @@ def register_jobs_content_routes(
     @login_required
     def save_job_admin():
         data = request.get_json(silent=True) or {}
-        title = clean_job_text(data.get('title') or '')
-        department = clean_job_text(data.get('department') or '')
-        location = clean_job_text(data.get('location') or '')
+        title = clean_job_text(data.get('title') or '')[:200]
+        department = clean_job_text(data.get('department') or '')[:100]
+        location = clean_job_text(data.get('location') or '')[:100]
         date = normalize_job_date(data.get('date') or '')
         content_html = _dep('sanitize_news_html_fragment')(data.get('content_html') or '')
         visible = bool(data.get('visible', True))
-        job_id = clean_job_text(data.get('id') or '')
+        job_id = _normalize_job_id(data.get('id') or '')
 
         if not title or not department or not location or not date:
             return jsonify({'success': False, 'message': '请填写完整的职位信息'}), 400
+        if data.get('id') and not job_id:
+            return jsonify({'success': False, 'message': '职位 ID 格式不合法'}), 400
 
-        jobs_data = load_jobs_data()
-        jobs = jobs_data.get('jobs', [])
+        with _JOBS_WRITE_LOCK:
+            jobs_data = load_jobs_data()
+            jobs = jobs_data.get('jobs', [])
 
-        if job_id:
-            updated = False
-            for job in jobs:
-                if job.get('id') == job_id:
-                    job.update({
+            if job_id:
+                updated = False
+                for job in jobs:
+                    if job.get('id') == job_id:
+                        job.update({
+                            'title': title,
+                            'department': department,
+                            'location': location,
+                            'date': date,
+                            'content_html': content_html,
+                            'visible': visible,
+                        })
+                        updated = True
+                        break
+                if not updated:
+                    jobs.append({
+                        'id': job_id,
                         'title': title,
                         'department': department,
                         'location': location,
@@ -242,11 +270,10 @@ def register_jobs_content_routes(
                         'content_html': content_html,
                         'visible': visible,
                     })
-                    updated = True
-                    break
-            if not updated:
+            else:
+                new_id = f'job_{int(time.time() * 1000)}'
                 jobs.append({
-                    'id': job_id,
+                    'id': new_id,
                     'title': title,
                     'department': department,
                     'location': location,
@@ -254,40 +281,31 @@ def register_jobs_content_routes(
                     'content_html': content_html,
                     'visible': visible,
                 })
-        else:
-            new_id = f'job_{int(time.time() * 1000)}'
-            jobs.append({
-                'id': new_id,
-                'title': title,
-                'department': department,
-                'location': location,
-                'date': date,
-                'content_html': content_html,
-                'visible': visible,
-            })
 
-        jobs_data['jobs'] = jobs
-        save_jobs_data(jobs_data)
+            jobs_data['jobs'] = jobs
+            save_jobs_data(jobs_data)
         return jsonify({'success': True, 'items': jobs})
 
     @app.route('/api/jobs/<job_id>', methods=['DELETE'])
     @login_required
     def delete_job_admin(job_id):
-        jobs_data = load_jobs_data()
-        jobs = [job for job in jobs_data.get('jobs', []) if job.get('id') != job_id]
-        jobs_data['jobs'] = jobs
-        save_jobs_data(jobs_data)
+        with _JOBS_WRITE_LOCK:
+            jobs_data = load_jobs_data()
+            jobs = [job for job in jobs_data.get('jobs', []) if job.get('id') != job_id]
+            jobs_data['jobs'] = jobs
+            save_jobs_data(jobs_data)
         return jsonify({'success': True})
 
     @app.route('/api/jobs/<job_id>/toggle', methods=['POST'])
     @login_required
     def toggle_job_admin(job_id):
-        jobs_data = load_jobs_data()
-        for job in jobs_data.get('jobs', []):
-            if job.get('id') == job_id:
-                job['visible'] = not bool(job.get('visible', True))
-                save_jobs_data(jobs_data)
-                return jsonify({'success': True, 'visible': job['visible']})
+        with _JOBS_WRITE_LOCK:
+            jobs_data = load_jobs_data()
+            for job in jobs_data.get('jobs', []):
+                if job.get('id') == job_id:
+                    job['visible'] = not bool(job.get('visible', True))
+                    save_jobs_data(jobs_data)
+                    return jsonify({'success': True, 'visible': job['visible']})
         return jsonify({'success': False, 'message': '未找到职位'}), 404
 
     @app.route('/api/jobs/public')

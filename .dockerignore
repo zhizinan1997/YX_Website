@@ -55,13 +55,21 @@ data/rate_limits.json
 data/resumes
 data/resumes/**
 data/site_analytics_events.jsonl
-data/admin_email_auth_state.json
-data/admin_passkeys.sqlite3
-data/messages_meta.json
+data/site_analytics_ai_reports.jsonl
+data/site_analytics_ai_reports
+data/site_analytics_ai_reports/**
 data/site_analytics_ai_jobs
 data/site_analytics_ai_jobs/**
 data/scheduled_reports
 data/scheduled_reports/**
+data/admin_email_auth_state.json
+data/admin_passkeys.sqlite3
+data/admin_passkeys.sqlite3*
+data/messages_meta.json
+# 运行日志不进镜像：dockerignore 的 *.log 只匹配根目录文件。
+data/app.log*
+data/logs
+data/logs/**
 data/*.lock
 
 # Project specific - NOT NEEDED IN PRODUCTION

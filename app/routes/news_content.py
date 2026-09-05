@@ -20,6 +20,7 @@ from urllib.parse import unquote, urljoin, urlparse
 from flask import jsonify, request, send_from_directory
 
 from app.text_encoding import repair_known_mojibake
+from app.upload_utils import get_uploaded_file_size
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 FEISHU_HOST_KEYWORDS = ('feishu', 'larksuite', 'larkoffice')
@@ -401,8 +402,62 @@ def normalize_imported_news_date(raw_text: str) -> str:
             continue
     return ''
 
+REMOTE_FETCH_MAX_REDIRECTS = 5
+REMOTE_FETCH_DEFAULT_MAX_BYTES = 15 * 1024 * 1024
+
+
+def _bounded_response_payload(response, *, max_bytes: int, prefer_text: bool) -> dict:
+    """流式读取响应体并强制大小上限，避免超大响应被整体载入内存。
+
+    兼容 requests（iter_content）与 httpx（iter_bytes）两套客户端 API。
+    """
+    if hasattr(response, 'iter_content'):
+        chunk_iterator = response.iter_content(chunk_size=65536)
+    else:
+        chunk_iterator = response.iter_bytes(chunk_size=65536)
+
+    content = bytearray()
+    for chunk in chunk_iterator:
+        if not chunk:
+            continue
+        content.extend(chunk)
+        if len(content) > max_bytes:
+            raise RemoteFetchError(
+                '远程内容超过大小限制',
+                reason='payload_too_large',
+                limit_bytes=max_bytes,
+            )
+    raw_bytes = bytes(content)
+
+    text = ''
+    if prefer_text:
+        encoding = getattr(response, 'encoding', None) or 'utf-8'
+        apparent = getattr(response, 'apparent_encoding', None)
+        try:
+            text = raw_bytes.decode(encoding, errors='replace')
+        except (LookupError, UnicodeError):
+            try:
+                text = raw_bytes.decode(apparent or 'utf-8', errors='replace')
+            except (LookupError, UnicodeError):
+                text = raw_bytes.decode('utf-8', errors='replace')
+
+    content_type = ''
+    try:
+        content_type = (response.headers.get('Content-Type') or '').split(';')[0].strip().lower()
+    except Exception:
+        content_type = ''
+    return {'content': raw_bytes, 'text': text, 'content_type': content_type}
+
+
 def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, timeout: float = 20.0,
-                             headers: dict | None = None, session=None) -> dict:
+                             headers: dict | None = None, session=None,
+                             max_bytes: int = REMOTE_FETCH_DEFAULT_MAX_BYTES) -> dict:
+    """抓取远程 URL 内容。
+
+    与直接 `allow_redirects=True` 不同，这里对每一跳重定向都重新执行
+    `validate_safe_remote_fetch_url`，防止攻击者用“首次解析公网、重定向进内网”
+    的方式绕过 SSRF 校验；响应体按 `max_bytes` 流式限量读取。
+    """
     safe_headers = {str(key): str(value) for key, value in (headers or {}).items() if key and value}
     raw_source_url = (source_url or '').strip()
     if not raw_source_url:
@@ -417,67 +472,165 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
             safe_source_url=safe_source_url,
         )
 
+    def _validate_hop(url_text: str) -> str:
+        hop_ok, hop_reason, hop_safe = _dep('validate_safe_remote_fetch_url')(url_text)
+        if not hop_ok:
+            raise RemoteFetchError(
+                hop_reason or '重定向地址校验失败',
+                reason='validate_safe_remote_fetch_url',
+                source_url=raw_source_url,
+                safe_source_url=safe_source_url,
+            )
+        return hop_safe
+
     try:
         if _dep('requests_support'):
+            import urllib.parse as _urlparse
+
             requests_client = session if session is not None else _dep('requests_module')
-            response = requests_client.get(
-                safe_source_url,
-                timeout=timeout,
-                allow_redirects=allow_redirects,
-                headers=safe_headers or None,
-            )
-            status_code = int(response.status_code)
-            if not allow_redirects and 300 <= status_code < 400:
+            current_url = safe_source_url
+            response = None
+            for _hop in range(REMOTE_FETCH_MAX_REDIRECTS + 1):
+                response = requests_client.get(
+                    current_url,
+                    timeout=timeout,
+                    allow_redirects=False,
+                    stream=True,
+                    headers=safe_headers or None,
+                )
+                status_code = int(response.status_code)
+                if 300 <= status_code < 400:
+                    location = (response.headers.get('Location') or '').strip()
+                    if not allow_redirects:
+                        raise RemoteFetchError(
+                            '链接发生重定向，请使用最终图片地址',
+                            reason='redirect_not_supported',
+                            source_url=raw_source_url,
+                            safe_source_url=safe_source_url,
+                            status_code=status_code,
+                            location=location,
+                        )
+                    response.close()
+                    response = None
+                    if not location:
+                        raise RemoteFetchError(
+                            '重定向缺少目标地址',
+                            reason='redirect_without_location',
+                            source_url=raw_source_url,
+                            safe_source_url=safe_source_url,
+                        )
+                    next_url = _urlparse.urljoin(current_url, location)
+                    if _hop >= REMOTE_FETCH_MAX_REDIRECTS:
+                        raise RemoteFetchError(
+                            '重定向次数过多',
+                            reason='too_many_redirects',
+                            source_url=raw_source_url,
+                            safe_source_url=safe_source_url,
+                        )
+                    # 每一跳都重新校验，防止重定向进入内网地址。
+                    current_url = _validate_hop(next_url)
+                    continue
+                break
+
+            if response is None:
                 raise RemoteFetchError(
-                    '链接发生重定向，请使用最终图片地址',
-                    reason='redirect_not_supported',
+                    '远程内容下载失败',
+                    reason='download_failed',
                     source_url=raw_source_url,
                     safe_source_url=safe_source_url,
-                    status_code=status_code,
-                    location=response.headers.get('Location', ''),
                 )
-            response.raise_for_status()
-            final_url = str(getattr(response, 'url', '') or safe_source_url)
-            content_type = (response.headers.get('Content-Type') or '').split(';')[0].strip().lower()
-            return {
-                'source_url': raw_source_url,
-                'safe_source_url': safe_source_url,
-                'final_url': final_url,
-                'status_code': status_code,
-                'content_type': content_type,
-                'content': response.content or b'',
-                'text': response.text or '',
-            }
+            try:
+                response.raise_for_status()
+                final_url = str(getattr(response, 'url', '') or current_url)
+                payload = _bounded_response_payload(
+                    response,
+                    max_bytes=max(1, int(max_bytes)),
+                    prefer_text=True,
+                )
+                return {
+                    'source_url': raw_source_url,
+                    'safe_source_url': safe_source_url,
+                    'final_url': final_url,
+                    'status_code': int(response.status_code),
+                    'content_type': payload['content_type'],
+                    'content': payload['content'],
+                    'text': payload['text'],
+                }
+            finally:
+                response.close()
+
         if _dep('httpx_support'):
+            import urllib.parse as _urlparse
+
             httpx_client = session if session is not None else _dep('httpx_module')
-            response = httpx_client.get(
-                safe_source_url,
-                timeout=timeout,
-                follow_redirects=allow_redirects,
-                headers=safe_headers or None,
-            )
-            status_code = int(response.status_code)
-            if not allow_redirects and 300 <= status_code < 400:
+            current_url = safe_source_url
+            response = None
+            for _hop in range(REMOTE_FETCH_MAX_REDIRECTS + 1):
+                response = httpx_client.get(
+                    current_url,
+                    timeout=timeout,
+                    follow_redirects=False,
+                    headers=safe_headers or None,
+                )
+                status_code = int(response.status_code)
+                if 300 <= status_code < 400:
+                    location = (response.headers.get('Location') or '').strip()
+                    if not allow_redirects:
+                        raise RemoteFetchError(
+                            '链接发生重定向，请使用最终图片地址',
+                            reason='redirect_not_supported',
+                            source_url=raw_source_url,
+                            safe_source_url=safe_source_url,
+                            status_code=status_code,
+                            location=location,
+                        )
+                    response.close()
+                    response = None
+                    if not location:
+                        raise RemoteFetchError(
+                            '重定向缺少目标地址',
+                            reason='redirect_without_location',
+                            source_url=raw_source_url,
+                            safe_source_url=safe_source_url,
+                        )
+                    next_url = _urlparse.urljoin(current_url, location)
+                    if _hop >= REMOTE_FETCH_MAX_REDIRECTS:
+                        raise RemoteFetchError(
+                            '重定向次数过多',
+                            reason='too_many_redirects',
+                            source_url=raw_source_url,
+                            safe_source_url=safe_source_url,
+                        )
+                    current_url = _validate_hop(next_url)
+                    continue
+                break
+
+            if response is None:
                 raise RemoteFetchError(
-                    '链接发生重定向，请使用最终图片地址',
-                    reason='redirect_not_supported',
+                    '远程内容下载失败',
+                    reason='download_failed',
                     source_url=raw_source_url,
                     safe_source_url=safe_source_url,
-                    status_code=status_code,
-                    location=response.headers.get('Location', ''),
                 )
-            response.raise_for_status()
-            final_url = str(getattr(response, 'url', '') or safe_source_url)
-            content_type = (response.headers.get('Content-Type') or '').split(';')[0].strip().lower()
-            return {
-                'source_url': raw_source_url,
-                'safe_source_url': safe_source_url,
-                'final_url': final_url,
-                'status_code': status_code,
-                'content_type': content_type,
-                'content': response.content or b'',
-                'text': response.text or '',
-            }
+            try:
+                response.raise_for_status()
+                final_url = str(getattr(response, 'url', '') or current_url)
+                payload = _bounded_response_payload(
+                    response,
+                    max_bytes=max(1, int(max_bytes)),
+                    prefer_text=True,
+                )
+                return {
+                    'source_url': raw_source_url,
+                    'safe_source_url': safe_source_url,
+                    'final_url': final_url,
+                    'status_code': int(response.status_code),
+                    'content_type': payload['content_type'],
+                    'content': payload['content'],
+                    'text': payload['text'],
+                }
+            finally:
+                response.close()
     except RemoteFetchError:
         raise
     except Exception as exc:
@@ -1283,6 +1436,7 @@ def configure_news_content(
         'news_dropped_html_tags': set(news_dropped_html_tags or set()),
         'news_void_html_tags': set(news_void_html_tags or set()),
         'validate_uploaded_image_extension': validate_uploaded_image_extension,
+        'get_uploaded_file_size': get_uploaded_file_size,
         'validate_image_bytes': validate_image_bytes,
         'validate_safe_remote_fetch_url': validate_safe_remote_fetch_url,
         'sanitize_public_text': sanitize_public_text,
@@ -1306,7 +1460,7 @@ def _dep(name):
 
 def build_news_asset_url(filename: str) -> str:
     safe_name = str(filename or '').strip().lstrip('/')
-    if not safe_name:
+    if not safe_name or '..' in safe_name.split('/'):
         return ''
     return f'/cdn_assets/news/{safe_name}'
 
@@ -1370,6 +1524,10 @@ def normalize_news_plain_text(value: str, *, max_length: int = 0) -> str:
 def sanitize_news_link_url(raw_url: str) -> str:
     value = str(raw_url or '').strip()
     if not value:
+        return ''
+    if any(ord(char) < 0x20 or ord(char) == 0x7f for char in value):
+        # 控制字符（含 NUL）会被部分浏览器剥离后再解析 scheme，
+        # 例如 `java\x00script:`，因此直接整体拒绝。
         return ''
     decoded = html.unescape(value).strip()
     lower = decoded.lower()
@@ -1636,6 +1794,20 @@ def sanitize_news_html_fragment(fragment: str) -> str:
     return sanitized.strip()
 
 
+# 新闻详情页文件名白名单：页面文件只能由 create_news 以服务端生成的
+# `news_show.aspx_id_N.html` 命名。所有把用户传入 link 变成文件名的地方
+# 都必须先经过这里，防止删除/覆盖 news.html 等任意文件。
+NEWS_PAGE_FILENAME_PATTERN = re.compile(r'^news_show\.aspx_id_\d+\.html$')
+
+
+def safe_news_page_filename(value: str) -> str:
+    """校验新闻页文件名，仅接受 `news_show.aspx_id_N.html`，否则返回空串。"""
+    name = Path(str(value or '')).name
+    if not NEWS_PAGE_FILENAME_PATTERN.fullmatch(name):
+        return ''
+    return name
+
+
 def build_news_card_html(
     filename: str,
     category: str,
@@ -1647,7 +1819,8 @@ def build_news_card_html(
     *,
     hidden: bool = False,
 ) -> str:
-    safe_filename = Path(filename).name
+    raw_filename = Path(filename).name
+    safe_filename = safe_news_page_filename(raw_filename) or html.escape(raw_filename, quote=True)
     safe_category = category if category in {'enterprise', 'industry', 'science'} else 'enterprise'
     safe_division = html.escape(normalize_news_plain_text(division, max_length=80), quote=True)
     safe_image_url = html.escape(sanitize_news_image_url(image_url) or '/assets/images/logo.png', quote=True)
@@ -2069,9 +2242,9 @@ def parse_news_article_html(filepath: Path):
             image_url = leading_image_match.group(1)
         body_html = re.sub(r'^\s*<img\s+[^>]*>\s*', '', body_html, count=1, flags=re.I)
     body_text = body_html
-    body_text = re.sub(r'(?i)<br\\s*/?>', '\n', body_text)
-    body_text = re.sub(r'(?i)</p\\s*>', '\n', body_text)
-    body_text = re.sub(r'(?i)</div\\s*>', '\n', body_text)
+    body_text = re.sub(r'(?i)<br\s*/?>', '\n', body_text)
+    body_text = re.sub(r'(?i)</p\s*>', '\n', body_text)
+    body_text = re.sub(r'(?i)</div\s*>', '\n', body_text)
     body_text = re.sub(r'<[^>]+>', '', body_text)
     body_text = html.unescape(body_text)
     body_text = re.sub(r'\n{3,}', '\n\n', body_text).strip()
@@ -2864,9 +3037,9 @@ def register_news_content_routes(
             news_index = _news_index_path()
             if news_index.exists():
                 content = news_index.read_text(encoding='utf-8')
-                filename = Path(link).name
+                filename = safe_news_page_filename(link)
                 card_pattern = build_news_card_regex(filename)
-                card_match = card_pattern.search(content)
+                card_match = card_pattern.search(content) if filename else None
                 if card_match:
                     card_html = card_match.group(0)
                     open_tag_match = re.search(r'<a\b[^>]*>', card_html, re.IGNORECASE)
@@ -2899,7 +3072,9 @@ def register_news_content_routes(
         if category not in {'enterprise', 'industry', 'science'}:
             return jsonify({'success': False, 'message': '分类不合法'}), 400
 
-        filename = Path(link).name
+        filename = safe_news_page_filename(link)
+        if not filename:
+            return jsonify({'success': False, 'message': '资讯链接不合法'}), 400
         news_index = _news_index_path()
         if not news_index.exists():
             return jsonify({'success': False, 'message': 'news.html 不存在'}), 404
@@ -2942,7 +3117,9 @@ def register_news_content_routes(
         if not link:
             return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
 
-        filename = Path(link).name
+        filename = safe_news_page_filename(link)
+        if not filename:
+            return jsonify({'success': False, 'message': '资讯链接不合法'}), 400
         with NEWS_WRITE_LOCK:
             success, message, status_code = reorder_news_card(_news_index_path(), filename, direction)
         if not success:
@@ -2958,7 +3135,9 @@ def register_news_content_routes(
             return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
 
         with NEWS_WRITE_LOCK:
-            filename = Path(link).name
+            filename = safe_news_page_filename(link)
+            if not filename:
+                return jsonify({'success': False, 'message': '资讯链接不合法'}), 400
             news_dir = _news_dir()
             filepath = news_dir / filename
             if filepath.exists():
@@ -3008,7 +3187,9 @@ def register_news_content_routes(
         image_url = sanitize_news_image_url(image_url) or '/assets/images/logo.png'
         summary = normalize_news_plain_text(summary, max_length=220)
 
-        filename = Path(link).name
+        filename = safe_news_page_filename(link)
+        if not filename:
+            return jsonify({'success': False, 'message': '资讯链接不合法'}), 400
         news_dir = _news_dir()
         filepath = news_dir / filename
         article_html = build_news_article_html(title, date, image_url, content_html)
@@ -3028,7 +3209,9 @@ def register_news_content_routes(
             atomic_write_text(filepath, article_html)
             if news_index.exists():
                 pattern = build_news_card_regex(filename)
-                content_text, count = pattern.subn(card_html, content_text, count=1)
+                # card_html 含用户可控文本，必须用函数式替换，否则其中的
+                # 反斜杠序列（如标题里的 `\D`）会被当作 repl 转义抛 re.error。
+                content_text, count = pattern.subn(lambda _match: card_html, content_text, count=1)
                 if count:
                     content_text, _ = dedupe_news_cards(content_text, filename)
                     atomic_write_text(news_index, content_text)
@@ -3043,7 +3226,9 @@ def register_news_content_routes(
         link = request.args.get('link', '').strip()
         if not link:
             return jsonify({'success': False, 'message': '缺少资讯链接', 'reason': 'missing_link'}), 400
-        filename = Path(link).name
+        filename = safe_news_page_filename(link)
+        if not filename:
+            return jsonify({'success': False, 'message': '资讯链接不合法'}), 400
         filepath = _news_dir() / filename
         detail = parse_news_article_html(filepath)
         if not detail:
@@ -3142,7 +3327,7 @@ body {
             if is_html:
                 value = re.sub(r'(?is)<script.*?>.*?</script>', '', value)
                 value = re.sub(r'(?is)<style.*?>.*?</style>', '', value)
-                value = re.sub(r'(?i)<br\\s*/?>', '\n', value)
+                value = re.sub(r'(?i)<br\s*/?>', '\n', value)
                 value = re.sub(r'(?is)<[^>]+>', '', value)
             value = html.unescape(value)
             value = value.replace('\u00a0', ' ')
@@ -3280,6 +3465,7 @@ body {
                     timeout=25.0,
                     headers=REMOTE_BROWSER_HEADERS,
                     session=session,
+                    max_bytes=10 * 1024 * 1024,
                 )
             except RemoteFetchError as exc:
                 log_import_failure(exc.reason, source_url=source_url, **exc.details)
@@ -3538,6 +3724,11 @@ body {
         ext = _dep('validate_uploaded_image_extension')(file, allowed_extensions=_dep('allowed_news_image_extensions'))
         if not ext:
             return jsonify({'success': False, 'message': '仅支持 PNG/JPG/JPEG/WEBP/GIF 图片', 'reason': 'unsupported_image_format'}), 400
+
+        # 先按流的真实长度校验，避免大文件先落盘占满磁盘再删除。
+        size_bytes = _dep('get_uploaded_file_size')(file)
+        if size_bytes is not None and size_bytes > 15 * 1024 * 1024:
+            return jsonify({'success': False, 'message': '图片过大（最大 15MB）'}), 400
 
         saved_name = f"{uuid.uuid4().hex}{ext}"
         save_path = _dep('news_uploads_dir') / saved_name

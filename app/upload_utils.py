@@ -160,17 +160,31 @@ def normalize_ai_product_image_extension(
     *,
     allowed_extensions: set[str] | None = None,
 ) -> str:
-    """结合文件名、MIME 和文件签名对上传图片扩展名做兜底规范化。"""
+    """结合文件签名、MIME 和文件名对上传图片扩展名做兜底规范化。
+
+    以文件签名为最高优先级：文件名/MIME 都由客户端控制，仅凭它们放行会让
+    任意字节内容（HTML/SVG/可执行文件头）伪装成 `.png` 落盘并被主域伺服。
+    白名单覆盖的全部格式都有可识别的文件签名，因此“有样本但签名未知”时
+    直接拒绝；仅当样本不可读（空）时才回落到 MIME/文件名推断。
+    """
     allowed = set(allowed_extensions or DEFAULT_AI_PRODUCT_IMAGE_EXTENSIONS)
-    ext = Path((filename or '')).suffix.lower()
-    if ext == '.jpe':
-        ext = '.jpg'
-    if ext in allowed:
-        return ext
+    sample = sample or b''
+
+    inferred_by_bytes = infer_ai_product_image_extension_from_bytes(sample)
+    if inferred_by_bytes in allowed:
+        return inferred_by_bytes
+
+    if sample:
+        # 样本可读但没有任何已知图片签名：内容不是受支持的图片，拒绝。
+        return ''
 
     inferred = infer_ai_product_image_extension_from_mime(mime)
-    if inferred:
+    if inferred in allowed:
         return inferred
+
+    ext = _normalized_ext(Path((filename or '')).suffix.lower())
+    if ext in allowed:
+        return ext
 
     mime_clean = (mime or '').split(';')[0].strip().lower()
     guessed = (mimetypes.guess_extension(mime_clean) or '').lower() if mime_clean else ''
@@ -178,10 +192,6 @@ def normalize_ai_product_image_extension(
         guessed = '.jpg'
     if guessed in allowed:
         return guessed
-
-    inferred_by_bytes = infer_ai_product_image_extension_from_bytes(sample)
-    if inferred_by_bytes in allowed:
-        return inferred_by_bytes
 
     return ''
 

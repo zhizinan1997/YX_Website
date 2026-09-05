@@ -165,21 +165,27 @@ def build_admin_login_geo_settings_payload(config) -> dict:
     }
 
 
-def extract_admin_login_geo_updates(payload) -> dict:
+def extract_admin_login_geo_updates(payload, current_config=None) -> dict:
+    """从请求载荷提取地域规则更新。
+
+    缺失的大洲/国家键一律继承 `current_config`（当前生效配置），
+    防止一次部分更新把全部大洲置为 DENIED、把所有管理员锁在后台之外。
+    """
     safe = payload if isinstance(payload, dict) else {}
-    current = normalize_admin_login_geo_settings({})
+    current = normalize_admin_login_geo_settings(current_config if isinstance(current_config, dict) else {})
 
     normalized = {
         "enabled": _parse_bool(safe.get("enabled", current["enabled"]), current["enabled"]),
         "continents": dict(current["continents"]),
-        "countries": {},
+        "countries": dict(current["countries"]),
     }
 
     raw_continents = safe.get("continents", {})
     if isinstance(raw_continents, dict):
         for continent in ADMIN_GEO_CONTINENTS:
             key = continent["key"]
-            normalized["continents"][key] = _normalize_continent_policy(raw_continents.get(key))
+            if key in raw_continents:
+                normalized["continents"][key] = _normalize_continent_policy(raw_continents.get(key))
 
     raw_countries = safe.get("countries", {})
     if isinstance(raw_countries, dict):
@@ -190,6 +196,8 @@ def extract_admin_login_geo_updates(payload) -> dict:
             policy = _normalize_country_policy(raw_policy)
             if policy != ADMIN_LOGIN_GEO_INHERIT:
                 normalized["countries"][code] = policy
+            else:
+                normalized["countries"].pop(code, None)
 
     return {
         "admin_login_geo_enabled": bool(normalized["enabled"]),

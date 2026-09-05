@@ -99,6 +99,13 @@ ALLOWED_CDN_UPLOAD_EXTENSIONS = {
 }
 MAX_CDN_UPLOAD_BYTES = 25 * 1024 * 1024
 
+# 重命名目标文件名的危险扩展名黑名单：上传白名单明确排除主动内容，
+# rename 不能成为绕过白名单、向主域植入可执行页面/脚本的后门。
+CDN_BLOCKED_RENAME_EXTENSIONS = {
+    '.html', '.htm', '.xhtml', '.shtml', '.svg',
+    '.js', '.mjs', '.xml', '.xsl', '.xslt',
+}
+
 def now_beijing():
     """返回北京时间对应的当前时间。"""
     return datetime.now(BEIJING_TZ)
@@ -163,7 +170,11 @@ def _safe_subpath(base: Path, subpath: str) -> Path | None:
     # 拒绝明显的路径穿越尝试。
     if '..' in subpath.split('/'):
         return None
-    resolved = (base / subpath).resolve()
+    try:
+        resolved = (base / subpath).resolve()
+    except (ValueError, OSError):
+        # 含 NUL 字节等非法路径字符时 resolve 会抛 ValueError，按非法路径处理。
+        return None
     base_resolved = base.resolve()
     # 用 relative_to 代替字符串前缀比较，避免同级目录名前缀碰撞绕过校验。
     try:
@@ -449,6 +460,11 @@ def rename_cdn_asset():
     old_path = _safe_subpath(cdn_dir, old_path_str)
     if old_path is None:
         return jsonify({'success': False, 'message': '非法路径'}), 400
+
+    # 与上传白名单保持同一防线：文件重命名不允许改成可在浏览器执行脚本的
+    # 扩展名（.html/.svg/.js 等），否则可借改名绕过上传类型限制植入 XSS。
+    if old_path.is_file() and Path(new_name).suffix.lower() in CDN_BLOCKED_RENAME_EXTENSIONS:
+        return jsonify({'success': False, 'message': '不允许重命名为该类型文件'}), 400
 
     new_path = old_path.parent / new_name
 

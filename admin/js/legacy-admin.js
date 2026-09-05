@@ -16284,13 +16284,13 @@
                                         ${attributionText ? `<div style="font-size:12px; color:#2563eb; margin-top:2px;"><i class="fas fa-bullhorn"></i> ${escapeHtml(attributionText)}</div>` : ''}
                                     </td>
                                     <td>
-                                        <button class="btn-sm" onclick="viewMessageDetail('${msg.id}')">
+                                        <button class="btn-sm" onclick="viewMessageDetail('${escapeHtml(msg.id)}')">
                                             <i class="far fa-eye"></i> 查看
                                         </button>
-                                        <button class="btn-sm" onclick="markMessageRead('${msg.id}')" ${isRead ? 'disabled' : ''}>
+                                        <button class="btn-sm" onclick="markMessageRead('${escapeHtml(msg.id)}')" ${isRead ? 'disabled' : ''}>
                                             ${isRead ? '已读' : '标记已读'}
                                         </button>
-                                        <button class="btn-sm btn-danger" onclick="deleteMessage('${msg.id}')">
+                                        <button class="btn-sm btn-danger" onclick="deleteMessage('${escapeHtml(msg.id)}')">
                                             <i class="fas fa-trash"></i> 删除
                                         </button>
                                     </td>
@@ -16341,13 +16341,13 @@
                                     <td style="max-width: 460px; line-height:1.7;">${detailsHtml}</td>
                                     <td>${resumeHtml}</td>
                                     <td>
-                                        <button class="btn-sm" onclick="viewMessageDetail('${msg.id}')">
+                                        <button class="btn-sm" onclick="viewMessageDetail('${escapeHtml(msg.id)}')">
                                             <i class="far fa-eye"></i> 查看
                                         </button>
-                                        <button class="btn-sm" onclick="markMessageRead('${msg.id}')" ${isRead ? 'disabled' : ''}>
+                                        <button class="btn-sm" onclick="markMessageRead('${escapeHtml(msg.id)}')" ${isRead ? 'disabled' : ''}>
                                             ${isRead ? '已读' : '标记已读'}
                                         </button>
-                                        <button class="btn-sm btn-danger" onclick="deleteMessage('${msg.id}')">
+                                        <button class="btn-sm btn-danger" onclick="deleteMessage('${escapeHtml(msg.id)}')">
                                             <i class="fas fa-trash"></i> 删除
                                         </button>
                                     </td>
@@ -17849,9 +17849,14 @@
 
         function escapeHtml(text) {
             if (!text) return '';
+            // textContent→innerHTML 只转义 & < >，不转义引号；该输出同时用于
+            // title="..." 等属性上下文，必须补齐引号转义，否则留言内容中的
+            // 双引号可闭合属性注入事件处理器（存储型 XSS）。
             const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            div.textContent = String(text);
+            return div.innerHTML
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         // --- Chatbot Config Logic ---

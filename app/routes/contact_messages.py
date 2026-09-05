@@ -692,15 +692,17 @@ def register_contact_message_routes(
         """处理反馈表单提交。"""
         ip = _dep('get_client_ip')()
 
-        turnstile_failed = require_public_turnstile_check(ip)
-        if turnstile_failed:
-            return turnstile_failed
-
+        # 限流必须先于人机验证：Turnstile 校验会对 Cloudflare 发起一次
+        # 出站 HTTPS 请求，若不先限流，攻击者可无限触发该出站调用。
         if not check_rate_limit(ip):
             return jsonify({
                 'success': False,
                 'message': '提交过于频繁，请稍后再试。每小时最多提交5条留言。',
             }), 429
+
+        turnstile_failed = require_public_turnstile_check(ip)
+        if turnstile_failed:
+            return turnstile_failed
 
         data = request.form if request.form else request.get_json(silent=True) or {}
         # JSON 请求中字段值可能为 null/数字，统一做空值安全处理，避免触发 500。
@@ -790,7 +792,11 @@ def register_contact_message_routes(
             except Exception:
                 pass
 
-            filepath.unlink()
+            try:
+                # 并发删除时另一 worker 可能已移除文件，missing_ok 避免未捕获 500。
+                filepath.unlink(missing_ok=True)
+            except OSError:
+                pass
             meta = get_messages_meta()
             meta['deleted_count'] = int(meta.get('deleted_count', 0)) + 1
             save_messages_meta(meta)
@@ -859,15 +865,16 @@ def register_contact_message_routes(
         """处理招聘申请表单提交。"""
         ip = _dep('get_client_ip')()
 
-        turnstile_failed = require_public_turnstile_check(ip)
-        if turnstile_failed:
-            return turnstile_failed
-
+        # 与 /api/feedback 一致：限流先于人机验证，防止无限触发出站校验请求。
         if not check_rate_limit(ip):
             return jsonify({
                 'success': False,
                 'message': '提交过于频繁，请稍后再试。每小时最多提交5条。',
             }), 429
+
+        turnstile_failed = require_public_turnstile_check(ip)
+        if turnstile_failed:
+            return turnstile_failed
 
         data = request.form or {}
         required_fields = {
@@ -887,8 +894,14 @@ def register_contact_message_routes(
 
         cleaned = {}
         clean_job_text = _dep('clean_job_text')
+        # 每个字段设置长度上限，防止超大文本落盘并拖慢后台消息中心。
+        field_max_lengths = {
+            'name': 100, 'age': 10, 'ethnicity': 50, 'gender': 20,
+            'address': 300, 'phone': 40, 'email': 200, 'education': 100,
+            'school': 200, 'work_experience': 5000, 'project_experience': 5000,
+        }
         for key in required_fields:
-            cleaned[key] = clean_job_text(data.get(key, ''))
+            cleaned[key] = clean_job_text(data.get(key, ''))[:field_max_lengths.get(key, 500)]
             if not cleaned[key]:
                 return jsonify({'success': False, 'message': f'请填写{required_fields[key]}'}), 400
 
@@ -917,10 +930,13 @@ def register_contact_message_routes(
             return jsonify({'success': False, 'message': '简历文件过大（最大10MB）'}), 400
 
         now = _dep('now_beijing')()
-        message_id = now.strftime('%Y%m%d%H%M%S%f')
+        # 追加随机后缀：同微秒并发提交会产生相同 ID，导致简历文件与消息被覆盖。
+        message_id = now.strftime('%Y%m%d%H%M%S%f') + os.urandom(4).hex()
         safe_name = secure_filename(resume_file.filename) or f'resume{ext}'
         saved_name = f'{message_id}_{safe_name}'
         resume_path = _dep('resume_uploads_dir') / saved_name
+        if resume_path.exists():
+            return jsonify({'success': False, 'message': '系统繁忙，请稍后重试'}), 409
         resume_file.save(resume_path)
 
         message = {

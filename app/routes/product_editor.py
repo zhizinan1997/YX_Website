@@ -62,6 +62,7 @@ from urllib.parse import urlparse
 from flask import Response, jsonify, request, send_file, session, stream_with_context
 
 from app.asset_versioning import clear_asset_version_cache, get_asset_version, inject_version_into_url
+from app.atomic_io import atomic_write_text
 from app.public_content import sanitize_public_link_url, sanitize_public_media_url
 from app.upload_utils import get_uploaded_file_size
 
@@ -519,9 +520,9 @@ def _cleanup_deleted_product_references(product_id: str):
                     filtered_ids.append(current_id)
                 if filtered_ids != ids:
                     raw['ids'] = filtered_ids[:3]
-                    product_featured_file.write_text(
+                    atomic_write_text(
+                        product_featured_file,
                         json.dumps(raw, ensure_ascii=False, indent=2),
-                        encoding='utf-8',
                     )
 
     hydrogen_solutions_config_file = _dep('hydrogen_solutions_config_file')
@@ -789,7 +790,13 @@ def sanitize_product_template_value(key: str, value: str) -> str:
         if v.lower().startswith('assets/'):
             v = '/' + v
     if '链接' in key:
-        return html.escape(v, quote=True)
+        # scheme 白名单校验：html.escape 不拦截 javascript:/data: 协议，
+        # 直接放行会造成公开产品页 href 属性中的存储型 XSS。
+        if any(tag in key for tag in ['图片', '主图', '缩略图', '详情图', '应用图']):
+            sanitized = _sanitize_product_media_url(v, default='')
+            return html.escape(sanitized or '/assets/images/logo.png', quote=True)
+        sanitized_link = _sanitize_product_link_url(v, default='#')
+        return html.escape(sanitized_link or '#', quote=True)
     return html.escape(v, quote=True).replace('\n', '<br>')
 
 
@@ -1040,6 +1047,7 @@ def call_openai_api_sync_with_custom_config(messages, config):
                         json=payload,
                         headers=headers,
                         timeout=(connect_timeout, read_timeout),
+                        allow_redirects=False,
                     )
                 except requests.exceptions.ReadTimeout:
                     last_error = f"上游响应超时（>{read_timeout}s）"
@@ -1186,6 +1194,7 @@ def call_openai_api_stream_with_custom_config(messages, config):
 
     if REQUESTS_SUPPORT:
         def gen_requests():
+            response = None
             try:
                 response = requests.post(
                     api_url,
@@ -1193,6 +1202,7 @@ def call_openai_api_stream_with_custom_config(messages, config):
                     headers=headers,
                     stream=True,
                     timeout=(connect_timeout, read_timeout),
+                    allow_redirects=False,
                 )
                 if response.status_code != 200:
                     detail = (response.text or '').strip()
@@ -1216,8 +1226,22 @@ def call_openai_api_stream_with_custom_config(messages, config):
                     text = _extract_stream_chunk_text(chunk)
                     if text:
                         yield text, None
+            except GeneratorExit:
+                # 客户端断开时必须关闭流式上游连接，否则挂到 read_timeout。
+                if response is not None:
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
+                raise
             except Exception as e:
                 yield None, f"API调用失败: {str(e)}"
+            finally:
+                if response is not None:
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
         return gen_requests()
 
     return None, "缺少HTTP客户端库(requests或httpx)"
@@ -1302,16 +1326,22 @@ def extract_html_from_ai_text(text: str, title: str = '产品页面'):
 def validate_ai_product_html_for_publish(page_html: str) -> tuple[bool, str]:
     """Reject active content in advanced full-HTML publishing mode."""
     text = str(page_html or '')
+    # 先做实体解码：`&#106;avascript:`、`java&#x09;script:` 等实体编码的
+    # 协议在浏览器属性解码后才生效，检测前必须还原。
+    decoded = html.unescape(text)
     checks = (
         (r'<\s*(script|iframe|object|embed|base)\b', '不允许 script/iframe/object/embed/base 标签'),
         (r'<\s*meta\b[^>]*http-equiv\s*=\s*["\']?refresh', '不允许页面自动跳转'),
-        (r'\son[a-z0-9_-]+\s*=', '不允许内联事件属性'),
-        (r'(javascript|vbscript)\s*:', '不允许脚本协议链接'),
+        # 事件属性分隔符允许 / 和引号前缀（`<img/src=x/onerror=...>` 不以空白开头）
+        (r'[\s/\'"]on[a-z0-9_-]+\s*=', '不允许内联事件属性'),
+        # 协议内允许被浏览器剥离的制表/换行/控制字符（`java\tscript:` 可执行）
+        (r'(j\s*a\s*v\s*a\s*s\s*c\s*r\s*i\s*p\s*t|v\s*b\s*s\s*c\s*r\s*i\s*p\s*t)\s*:', '不允许脚本协议链接'),
         (r'data\s*:\s*text/html', '不允许 data:text/html 内容'),
     )
-    for pattern, message in checks:
-        if re.search(pattern, text, re.I | re.S):
-            return False, message
+    for source in (text, decoded):
+        for pattern, message in checks:
+            if re.search(pattern, source, re.I | re.S):
+                return False, message
     return True, ''
 
 
@@ -2210,7 +2240,9 @@ def extract_product_meta_from_html(filepath):
             or parser.first_img
         )
 
-        description = parser.meta.get('description', '') or parser.first_p[:200] if parser.first_p else ''
+        # 注意括号：条件表达式优先级低于 or，缺括号时无 <p> 文本的页面
+        # 会把 meta description 一并丢掉。
+        description = parser.meta.get('description', '') or (parser.first_p[:200] if parser.first_p else '')
         category = parser.meta.get('category', '') or _dep('default_product_categories').get(product_id, 'module')
 
         return {
@@ -3456,7 +3488,10 @@ def register_product_editor_routes(
                 old_path.unlink()
             except Exception:
                 pass
-        new_path.write_text(html_text, encoding='utf-8')
+        # 原子写：先写临时文件再 replace，进程中断/磁盘满不会留下半截页面。
+        tmp_path = new_path.with_name(f'.{new_path.name}.{uuid.uuid4().hex}.tmp')
+        tmp_path.write_text(html_text, encoding='utf-8')
+        tmp_path.replace(new_path)
 
         if slug != original_slug:
             settings = _dep('get_product_settings')()
@@ -3556,7 +3591,15 @@ def register_product_editor_routes(
         if not str(upload_file.filename).lower().endswith('.html'):
             return jsonify({'success': False, 'message': '仅支持上传 .html 文件'}), 400
 
+        # 上传体量上限（按流的真实长度）：防止把上百 MB 的文件整体读进内存。
+        max_code_bytes = 5 * 1024 * 1024
+        size_bytes = get_uploaded_file_size(upload_file)
+        if size_bytes is not None and size_bytes > max_code_bytes:
+            return jsonify({'success': False, 'message': 'HTML 文件过大（最大 5MB）'}), 413
+
         raw = upload_file.read()
+        if len(raw) > max_code_bytes:
+            return jsonify({'success': False, 'message': 'HTML 文件过大（最大 5MB）'}), 413
         try:
             content = raw.decode('utf-8')
         except UnicodeDecodeError:
@@ -3564,7 +3607,10 @@ def register_product_editor_routes(
         if '<html' not in content.lower():
             return jsonify({'success': False, 'message': '上传内容不是有效的HTML文件'}), 400
 
-        filepath.write_text(ensure_product_responsive_guards(content), encoding='utf-8')
+        # 原子写，避免半截文件被前台访问到。
+        tmp_path = filepath.with_name(f'.{filepath.name}.{uuid.uuid4().hex}.tmp')
+        tmp_path.write_text(ensure_product_responsive_guards(content), encoding='utf-8')
+        tmp_path.replace(filepath)
         return jsonify({'success': True, 'message': '覆盖上传成功'})
 
     @app.route('/api/products/delete', methods=['POST'])
@@ -3636,6 +3682,16 @@ def register_product_editor_routes(
         filepath, _ = resolve_product_html_path_by_id(product_id)
         if not filepath or not filepath.exists():
             return jsonify({'success': False, 'message': '产品文件不存在'}), 404
+
+        # 新版区块结构（vs-*）的页面只能通过 page-sections 接口修改：
+        # 模板字段重建会整体覆盖页面，导致全部区块内容静默丢失。
+        try:
+            current_html = filepath.read_text(encoding='utf-8', errors='ignore')
+            if extract_vs_product_sections(current_html):
+                return jsonify({'success': False, 'message': '该产品为区块结构页面，请在区块编辑中修改。'}), 400
+        except Exception:
+            pass
+
         parsed = parse_gassensing_product_detail(filepath)
         if not parsed:
             return jsonify({'success': False, 'message': '无法解析产品页面'}), 500
@@ -3651,7 +3707,9 @@ def register_product_editor_routes(
             content_html=parsed.get('content_html', ''),
             template_fields=merged_fields,
         )
-        filepath.write_text(page_html, encoding='utf-8')
+        tmp_path = filepath.with_name(f'.{filepath.name}.{uuid.uuid4().hex}.tmp')
+        tmp_path.write_text(page_html, encoding='utf-8')
+        tmp_path.replace(filepath)
         return jsonify({'success': True, 'message': '保存成功'})
 
     @app.route('/api/products/page-sections', methods=['GET'])

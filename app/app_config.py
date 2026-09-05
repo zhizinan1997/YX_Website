@@ -182,8 +182,16 @@ def create_app():
             os.makedirs(log_dir, exist_ok=True)
         except Exception:
             app_log_file = str(APP_ROOT / 'app.log')
-    log_handler_max_bytes = int(os.environ.get('FLASK_LOG_MAX_BYTES', str(10 * 1024 * 1024)))
-    log_handler_backup_count = int(os.environ.get('FLASK_LOG_BACKUP_COUNT', '5'))
+    log_handler_max_bytes = 10 * 1024 * 1024
+    log_handler_backup_count = 5
+    try:
+        log_handler_max_bytes = int(os.environ.get('FLASK_LOG_MAX_BYTES', str(log_handler_max_bytes)))
+    except Exception:
+        pass
+    try:
+        log_handler_backup_count = int(os.environ.get('FLASK_LOG_BACKUP_COUNT', str(log_handler_backup_count)))
+    except Exception:
+        pass
     try:
         from logging.handlers import RotatingFileHandler
         log_level = os.environ.get('FLASK_LOG_LEVEL', 'INFO').upper()
@@ -368,6 +376,7 @@ BACKUP_EXCLUDED_SUFFIXES = (
     '.temp'
 )
 # 备份下载时必须排除的敏感文件：密钥、站点凭据与管理员数据不应离开服务器。
+# （轮转日志 app.log.1…、SQLite WAL 伴生文件由 backup.py 的前缀规则排除。）
 BACKUP_SENSITIVE_REL_PATHS = {
     'data/.flask_secret_key',
     'data/config.json',
@@ -377,14 +386,17 @@ BACKUP_SENSITIVE_REL_PATHS = {
     'data/admin_login_logs.json',
     'data/admin_email_auth_state.json',
     'data/admin_passkeys.sqlite3',
+    'data/app.log',
     'data/messages_meta.json',
     'data/rate_limits.json',
     'data/chatbot_conversation_logs.jsonl',
     'data/site_analytics_events.jsonl',
+    'data/site_analytics_ai_reports.jsonl',
     'data/scheduled_reports/state.json',
 }
-# 备份下载时排除的敏感目录（仅限 data/ 下）：客户留言、求职简历与定时报告状态等 PII。
-BACKUP_SENSITIVE_DATA_DIRS = {'messages', 'resumes', 'scheduled_reports'}
+# 备份下载时排除的敏感目录（仅限 data/ 下）：客户留言、求职简历、定时报告
+# 状态与 AI 报表（含运营数据，且可由源事件重新生成）等 PII/派生数据。
+BACKUP_SENSITIVE_DATA_DIRS = {'messages', 'resumes', 'scheduled_reports', 'site_analytics_ai_reports'}
 # 恢复时禁止通过备份包覆盖的文件类型：源码与脚本不允许从 ZIP 写入项目根目录，
 # 防止持有备份权限的账号借“恢复”植入可执行代码。
 RESTORE_BLOCKED_SUFFIXES = (

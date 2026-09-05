@@ -58,6 +58,8 @@ import html
 import io
 import json
 import logging
+import ipaddress
+import math
 import os
 import re
 import shutil
@@ -67,6 +69,7 @@ import threading
 import time
 import uuid
 from collections import OrderedDict
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -878,9 +881,14 @@ def _analytics_to_int(value, default=0):
 
 def _analytics_to_float(value, default=0.0):
     try:
-        return float(value)
+        result = float(value)
     except Exception:
         return default
+    # 拒绝 NaN/Infinity：json.loads 默认接受这些字面量，一旦入库会毒化
+    # 聚合结果并让报表 JSON 输出非法 token（客户端 JSON.parse 失败）。
+    if not math.isfinite(result):
+        return default
+    return result
 
 
 def _analytics_day_key(ts: int) -> str:
@@ -889,7 +897,11 @@ def _analytics_day_key(ts: int) -> str:
 
 
 def _analytics_local_datetime(ts: int) -> datetime:
-    return datetime.fromtimestamp(int(ts), tz=timezone.utc).astimezone(BEIJING_TZ)
+    try:
+        return datetime.fromtimestamp(int(ts), tz=timezone.utc).astimezone(BEIJING_TZ)
+    except (OverflowError, OSError, ValueError):
+        # 数据文件被手工修改时可能出现超大时间戳，钳制到当前时间避免报表 500。
+        return datetime.now(timezone.utc).astimezone(BEIJING_TZ)
 
 
 def _analytics_parse_local_date(raw_value):
@@ -1751,12 +1763,60 @@ def _analytics_sanitize_event(raw_event, request_host: str, request_ua: str, req
     return record
 
 
+try:
+    import fcntl as _analytics_fcntl
+except ImportError:  # pragma: no cover - Windows fallback
+    _analytics_fcntl = None
+
+
+@contextmanager
+def _analytics_log_flock():
+    """跨进程文件锁：保护埋点 JSONL 的读改写（append 与批量删除互斥）。
+
+    SITE_ANALYTICS_LOCK 只是线程锁，gunicorn 多 worker 下 append 与
+    “读全量→replace 覆盖”并发会导致追加记录被静默丢失。
+    """
+    lock_file = SITE_ANALYTICS_LOG_FILE.with_suffix('.lock')
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    with lock_file.open('a+', encoding='utf-8') as handle:
+        if _analytics_fcntl is not None:
+            _analytics_fcntl.flock(handle.fileno(), _analytics_fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if _analytics_fcntl is not None:
+                _analytics_fcntl.flock(handle.fileno(), _analytics_fcntl.LOCK_UN)
+
+
+# 埋点 JSONL 的体量保护：超过该大小后在追加时裁剪到最近 _ANALYTICS_LOG_KEEP_LINES 行，
+# 防止文件无限增长拖垮报表构建（全量载入内存）与磁盘。
+ANALYTICS_LOG_MAX_BYTES = 32 * 1024 * 1024
+ANALYTICS_LOG_KEEP_LINES = 200000
+
+
 def _append_site_analytics_records(records):
     safe_records = [item for item in (records or []) if isinstance(item, dict)]
     if not safe_records:
         return 0
     SITE_ANALYTICS_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with SITE_ANALYTICS_LOCK:
+    with SITE_ANALYTICS_LOCK, _analytics_log_flock():
+        needs_trim = False
+        try:
+            needs_trim = SITE_ANALYTICS_LOG_FILE.exists() and SITE_ANALYTICS_LOG_FILE.stat().st_size > ANALYTICS_LOG_MAX_BYTES
+        except OSError:
+            needs_trim = False
+        if needs_trim:
+            try:
+                with SITE_ANALYTICS_LOG_FILE.open('r', encoding='utf-8') as fp:
+                    tail = fp.readlines()[-ANALYTICS_LOG_KEEP_LINES:]
+                tmp_path = SITE_ANALYTICS_LOG_FILE.with_name(
+                    f'.{SITE_ANALYTICS_LOG_FILE.name}.{uuid.uuid4().hex}.tmp'
+                )
+                with tmp_path.open('w', encoding='utf-8') as fp:
+                    fp.writelines(tail)
+                os.replace(str(tmp_path), str(SITE_ANALYTICS_LOG_FILE))
+            except Exception:
+                LOGGER.warning('Failed to trim site analytics log', exc_info=True)
         with SITE_ANALYTICS_LOG_FILE.open('a', encoding='utf-8') as fp:
             for item in safe_records:
                 fp.write(json.dumps(item, ensure_ascii=False, separators=(',', ':')) + '\n')
@@ -1793,7 +1853,9 @@ def delete_site_analytics_records_by_promotion_mark(promotion_mark, file_path=No
         return 0
     with SITE_ANALYTICS_LOCK:
         try:
-            lines = log_file.read_text(encoding='utf-8').splitlines()
+            # 与 append 共用跨进程锁，避免覆盖期间另一 worker 追加的记录丢失。
+            with _analytics_log_flock():
+                lines = log_file.read_text(encoding='utf-8').splitlines()
         except Exception:
             return 0
         parsed_lines = []
@@ -5166,6 +5228,32 @@ def _site_report_ai_result(text=None, error=None, error_type=None, model='', sta
     return result
 
 
+_SITE_REPORT_AI_BLOCKED_HOSTS = {'localhost', 'localhost.localdomain', '127.0.0.1', '::1', '0.0.0.0'}
+_SITE_REPORT_AI_BLOCKED_SUFFIXES = ('.local', '.internal', '.lan', '.home', '.corp', '.localdomain')
+
+
+def _site_report_ai_base_is_safe(url_text: str) -> bool:
+    """校验 AI API 地址不含内网/保留目标（不做 DNS 解析）。"""
+    try:
+        parsed = urlparse(str(url_text or '').strip())
+    except Exception:
+        return False
+    if parsed.scheme.lower() not in {'https', 'http'} or not parsed.hostname:
+        return False
+    if parsed.username or parsed.password:
+        return False
+    host = parsed.hostname.lower().rstrip('.')
+    if not host or host in _SITE_REPORT_AI_BLOCKED_HOSTS:
+        return False
+    if host.endswith(_SITE_REPORT_AI_BLOCKED_SUFFIXES):
+        return False
+    try:
+        ip_obj = ipaddress.ip_address(host)
+    except ValueError:
+        return True
+    return bool(ip_obj.is_global)
+
+
 def _call_site_report_ai(messages):
     config = _site_report_get_ai_config()
     model = config.get('model', '')
@@ -5186,6 +5274,16 @@ def _call_site_report_ai(messages):
         )
 
     api_url = config['api_base'].rstrip('/') + '/chat/completions'
+    # 轻量 SSRF 防护：api_base 来自站点配置，拒绝非 http(s)、localhost、
+    # 内网/保留 IP 字面量与内部域名后缀，防止持有配置权限的账号借
+    # Bearer 头把 API Key 外带进内网。不做 DNS 解析——离线环境下
+    # 解析失败会误杀正常配置。
+    if not _site_report_ai_base_is_safe(api_url):
+        return _site_report_ai_result(
+            error='AI API 地址不安全：请使用 https:// 开头的公网 API Base',
+            error_type='config',
+            model=model,
+        )
     headers = {
         'Authorization': f"Bearer {config['api_key']}",
         'Content-Type': 'application/json',
@@ -5208,6 +5306,7 @@ def _call_site_report_ai(messages):
                     json=payload,
                     headers=headers,
                     timeout=(connect_timeout, read_timeout),
+                    allow_redirects=False,
                 )
             else:
                 timeout_obj = _site_report_httpx_module.Timeout(
@@ -5221,6 +5320,7 @@ def _call_site_report_ai(messages):
                     json=payload,
                     headers=headers,
                     timeout=timeout_obj,
+                    follow_redirects=False,
                 )
             if response.status_code != 200:
                 detail = (response.text or '').strip()[:500]
@@ -5642,17 +5742,25 @@ def _save_scheduled_report_state(state):
     if len(generated) > 200:
         generated = generated[-200:]
         state['generated'] = generated
-    tmp = SCHEDULED_REPORTS_STATE_FILE.with_suffix('.tmp')
+    # 使用唯一临时文件名 + 原子替换，避免固定 .tmp 名在并发写入时互相覆盖。
+    tmp = SCHEDULED_REPORTS_STATE_FILE.with_name(
+        f'.{SCHEDULED_REPORTS_STATE_FILE.name}.{uuid.uuid4().hex}.tmp'
+    )
     tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
     tmp.replace(SCHEDULED_REPORTS_STATE_FILE)
 
 
 def _already_generated(state, report_type, period_start, period_end):
-    """检查指定周期是否已生成过报告。"""
+    """检查指定周期是否已有成功的报告生成。
+
+    失败记录（report_id 为 None）不算“已生成”，否则一次 AI 上游抖动
+    会让该周期永久跳过重试，SCHEDULED_REPORT_MAX_FAILURES 形同虚设。
+    """
     for entry in state.get('generated', []):
         if (entry.get('type') == report_type
                 and entry.get('period_start') == period_start
-                and entry.get('period_end') == period_end):
+                and entry.get('period_end') == period_end
+                and entry.get('report_id')):
             return True
     return False
 
@@ -6195,15 +6303,26 @@ def register_site_analytics_routes(
             response.headers['Retry-After'] = str(max(1, retry_after))
             return response, 429
 
-        content_len = int(request.content_length or 0)
-        if content_len and content_len > 64 * 1024:
+        # 体积上限必须基于流式读取而非 Content-Length 头：chunked 请求没有
+        # Content-Length，仅靠头部检查会被完全绕过，导致无认证内存耗尽。
+        max_body_bytes = 64 * 1024
+        try:
+            raw_body = request.stream.read(max_body_bytes + 1)
+        except Exception:
+            raw_body = b''
+        if len(raw_body) > max_body_bytes:
             return jsonify({'success': False, 'message': 'payload too large'}), 413
 
-        payload = request.get_json(silent=True) or {}
+        try:
+            payload = json.loads(raw_body.decode('utf-8', errors='replace')) if raw_body else {}
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
         raw_events = []
-        if isinstance(payload, dict) and isinstance(payload.get('events'), list):
+        if isinstance(payload.get('events'), list):
             raw_events = payload.get('events') or []
-        elif isinstance(payload, dict):
+        else:
             raw_events = [payload]
 
         if not raw_events:
@@ -6503,8 +6622,13 @@ def register_site_analytics_routes(
             sched = payload.get('scheduled_reports', {})
             email_push = payload.get('report_email_push', {})
 
-            # 校验邮件推送收件人
-            recipient_emails = list(email_push.get('recipient_emails', []))
+            # 校验邮件推送收件人（类型收敛：字符串/非字符串元素会导致 join 500）
+            raw_recipients = email_push.get('recipient_emails', [])
+            if isinstance(raw_recipients, str):
+                raw_recipients = [raw_recipients]
+            elif not isinstance(raw_recipients, list):
+                raw_recipients = []
+            recipient_emails = [str(e or '').strip() for e in raw_recipients if str(e or '').strip()]
             if recipient_emails and email_push.get('enabled'):
                 config = _site_report_get_config_fn()
                 smtp_settings = _get_email_auth_settings(config)

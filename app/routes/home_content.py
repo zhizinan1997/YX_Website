@@ -35,6 +35,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -42,6 +44,27 @@ from pathlib import Path
 from flask import jsonify, request, send_from_directory, session
 
 from app.atomic_io import atomic_write_text
+from app.upload_utils import get_uploaded_file_size
+
+# 媒体文件名白名单：上传落盘名均为 uuid/清洗后生成，凡包含路径分隔符、
+# `..` 或其他特殊字符的一律拒绝，防止删除/编码链路借 URL 做路径穿越。
+_SAFE_MEDIA_FILENAME_PATTERN = re.compile(r'^[A-Za-z0-9._-]+$')
+
+
+def safe_media_filename(filename: str) -> str:
+    """仅接受纯文件名（无路径分隔符、非 `..`、无特殊字符），否则返回空串。"""
+    name = str(filename or '').strip()
+    if not name or name in {'.', '..'}:
+        return ''
+    if not _SAFE_MEDIA_FILENAME_PATTERN.fullmatch(name):
+        return ''
+    return name
+
+
+# 首页媒体上传大小上限：视频 64MB、图片 10MB、合作伙伴 Logo 5MB。
+HERO_VIDEO_MAX_BYTES = 64 * 1024 * 1024
+HERO_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+PARTNER_LOGO_MAX_BYTES = 5 * 1024 * 1024
 
 
 def get_hero_config(hero_config_file, sanitize_public_media_url):
@@ -54,44 +77,46 @@ def get_hero_config(hero_config_file, sanitize_public_media_url):
     }
 
     if hero_config_path.exists():
+        # 文件存在但解析失败（损坏/瞬时 IO 错误）时只回退内存默认值，
+        # 不回写文件——否则公开 GET 即可用空配置覆盖管理员的轮播配置。
         try:
             config = json.loads(hero_config_path.read_text(encoding='utf-8'))
-            merged = {**default_config, **config}
-            items = merged.get('items', [])
-            if not isinstance(items, list):
-                items = []
-            merged['cta_buttons_visible'] = bool(merged.get('cta_buttons_visible', True))
-            merged['items'] = []
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                item_type = str(item.get('type') or 'image').lower()
-                if item_type not in {'image', 'video'}:
-                    continue
-                url = sanitize_public_media_url(item.get('url', ''), enforce_remote_public=False)
-                if not url:
-                    continue
-                link_enabled = bool(item.get('link_enabled', False))
-                link_url = str(item.get('link_url') or '').strip()
-                normalized_item = {
-                    'id': str(item.get('id') or uuid.uuid4().hex),
-                    'type': item_type,
-                    'url': url,
-                    'source': 'upload' if str(item.get('source') or '').lower() == 'upload' else 'url',
-                    'link_enabled': link_enabled,
-                    'link_url': link_url if link_enabled else '',
-                }
-                if item_type == 'image':
-                    mobile_url = sanitize_public_media_url(
-                        item.get('mobile_url', ''),
-                        enforce_remote_public=False,
-                    )
-                    if mobile_url:
-                        normalized_item['mobile_url'] = mobile_url
-                merged['items'].append(normalized_item)
-            return merged
         except Exception:
-            pass
+            return default_config
+        merged = {**default_config, **config}
+        items = merged.get('items', [])
+        if not isinstance(items, list):
+            items = []
+        merged['cta_buttons_visible'] = bool(merged.get('cta_buttons_visible', True))
+        merged['items'] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_type = str(item.get('type') or 'image').lower()
+            if item_type not in {'image', 'video'}:
+                continue
+            url = sanitize_public_media_url(item.get('url', ''), enforce_remote_public=False)
+            if not url:
+                continue
+            link_enabled = bool(item.get('link_enabled', False))
+            link_url = str(item.get('link_url') or '').strip()
+            normalized_item = {
+                'id': str(item.get('id') or uuid.uuid4().hex),
+                'type': item_type,
+                'url': url,
+                'source': 'upload' if str(item.get('source') or '').lower() == 'upload' else 'url',
+                'link_enabled': link_enabled,
+                'link_url': link_url if link_enabled else '',
+            }
+            if item_type == 'image':
+                mobile_url = sanitize_public_media_url(
+                    item.get('mobile_url', ''),
+                    enforce_remote_public=False,
+                )
+                if mobile_url:
+                    normalized_item['mobile_url'] = mobile_url
+            merged['items'].append(normalized_item)
+        return merged
 
     atomic_write_text(hero_config_path, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
@@ -134,7 +159,9 @@ def save_hero_config(new_config, *, hero_config_file, sanitize_public_media_url)
                 'id': item_id,
                 'type': item_type,
                 'url': url,
-                'source': str(item.get('source') or 'url').lower(),
+                # source 只接受白名单值，防止把任意 URL 标记为 upload
+                # 后在删除链路触发文件删除。
+                'source': 'upload' if str(item.get('source') or '').lower() == 'upload' else 'url',
                 'link_enabled': link_enabled,
                 'link_url': link_url,
             }
@@ -187,7 +214,7 @@ def hero_source_filename_from_url(url: str) -> str:
     raw = (url or '').strip()
     if not raw.startswith('/media/hero/'):
         return ''
-    return raw.replace('/media/hero/', '', 1).strip()
+    return safe_media_filename(raw.replace('/media/hero/', '', 1))
 
 
 def _iter_hero_variant_filenames(entry):
@@ -209,7 +236,7 @@ def _iter_hero_variant_filenames(entry):
 
 def remove_hero_variants_for_source(source_filename: str, *, hero_derived_dir, hero_derived_manifest_file):
     """删除某张 Hero 原图对应的派生图片并更新清单。"""
-    source_name = (source_filename or '').strip()
+    source_name = safe_media_filename(source_filename)
     if not source_name:
         return
     derived_dir = Path(hero_derived_dir)
@@ -220,6 +247,9 @@ def remove_hero_variants_for_source(source_filename: str, *, hero_derived_dir, h
     entry = items.pop(source_name, None)
     if entry:
         for variant_name in _iter_hero_variant_filenames(entry):
+            variant_name = safe_media_filename(variant_name)
+            if not variant_name:
+                continue
             variant_path = derived_dir / variant_name
             if variant_path.exists():
                 try:
@@ -254,7 +284,7 @@ def generate_hero_variants_for_source(
     hero_derived_formats,
 ):
     """为单张 Hero 原图生成 AVIF/WebP 响应式派生图。"""
-    source_name = (source_filename or '').strip()
+    source_name = safe_media_filename(source_filename)
     if not source_name or not pil_support:
         return None
 
@@ -352,6 +382,12 @@ def generate_hero_variants_for_source(
     return new_entry
 
 
+# Hero 派生图的懒生成锁与失败标记：manifest 缺项时在请求线程内同步编码开销大，
+# 需要防止并发重复编码，并避免对确认无法生成的源在每次公开 GET 时反复尝试。
+_HERO_VARIANT_LOCK = threading.Lock()
+_HERO_VARIANT_FAILED_SOURCES: set[str] = set()
+
+
 def build_hero_api_payload(
     *,
     hero_config_file,
@@ -386,21 +422,25 @@ def build_hero_api_payload(
 
         entry = manifest_items.get(source_name)
         if not isinstance(entry, dict) and pil_support:
-            entry = generate_hero_variants_for_source(
-                source_name,
-                pil_support=pil_support,
-                image_module=image_module,
-                image_ops_module=image_ops_module,
-                pil_features=pil_features,
-                hero_uploads_dir=hero_uploads_dir,
-                hero_derived_dir=hero_derived_dir,
-                hero_derived_manifest_file=hero_derived_manifest_file,
-                hero_source_image_extensions=hero_source_image_extensions,
-                hero_derived_widths=hero_derived_widths,
-                hero_derived_formats=hero_derived_formats,
-            )
-            if isinstance(entry, dict):
-                manifest_items[source_name] = entry
+            with _HERO_VARIANT_LOCK:
+                if source_name not in _HERO_VARIANT_FAILED_SOURCES:
+                    entry = generate_hero_variants_for_source(
+                        source_name,
+                        pil_support=pil_support,
+                        image_module=image_module,
+                        image_ops_module=image_ops_module,
+                        pil_features=pil_features,
+                        hero_uploads_dir=hero_uploads_dir,
+                        hero_derived_dir=hero_derived_dir,
+                        hero_derived_manifest_file=hero_derived_manifest_file,
+                        hero_source_image_extensions=hero_source_image_extensions,
+                        hero_derived_widths=hero_derived_widths,
+                        hero_derived_formats=hero_derived_formats,
+                    )
+                    if isinstance(entry, dict):
+                        manifest_items[source_name] = entry
+                    else:
+                        _HERO_VARIANT_FAILED_SOURCES.add(source_name)
         if not isinstance(entry, dict):
             return result
 
@@ -491,16 +531,17 @@ def get_partners_config(partners_config_file, sanitize_public_media_url):
     default_config = {'items': []}
 
     if partners_config_path.exists():
+        # 文件存在但损坏时只回退默认值，不回写文件，避免公开 GET 触发配置重置。
         try:
             config = json.loads(partners_config_path.read_text(encoding='utf-8'))
-            merged = {**default_config, **config}
-            items = merged.get('items', [])
-            if not isinstance(items, list):
-                items = []
-            merged['items'] = sanitize_public_partner_items(items, sanitize_public_media_url)
-            return merged
         except Exception:
-            pass
+            return default_config
+        merged = {**default_config, **config}
+        items = merged.get('items', [])
+        if not isinstance(items, list):
+            items = []
+        merged['items'] = sanitize_public_partner_items(items, sanitize_public_media_url)
+        return merged
 
     atomic_write_text(partners_config_path, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
@@ -526,17 +567,19 @@ def get_home_section_visibility_config(home_section_visibility_file):
         'solutions': True,
     }
     if visibility_path.exists():
+        # 文件存在但损坏时只回退默认值，不回写文件，避免公开 GET 触发配置重置。
         try:
             config = json.loads(visibility_path.read_text(encoding='utf-8'))
-            if isinstance(config, dict):
-                return {
-                    'partners': bool(config.get('partners', True)),
-                    'products': bool(config.get('products', True)),
-                    'news': bool(config.get('news', True)),
-                    'solutions': bool(config.get('solutions', True)),
-                }
         except Exception:
-            pass
+            return default_config
+        if isinstance(config, dict):
+            return {
+                'partners': bool(config.get('partners', True)),
+                'products': bool(config.get('products', True)),
+                'news': bool(config.get('news', True)),
+                'solutions': bool(config.get('solutions', True)),
+            }
+        return default_config
     atomic_write_text(visibility_path, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
@@ -589,7 +632,10 @@ def register_home_content_routes(
         url = str(media_url or '').strip()
         if not url.startswith('/media/hero/'):
             return
-        filename = url.replace('/media/hero/', '', 1)
+        # 文件名白名单校验：拒绝 `../` 等路径片段，防止删除上传目录之外的文件。
+        filename = safe_media_filename(url.replace('/media/hero/', '', 1))
+        if not filename:
+            return
         remove_hero_variants_for_source(
             filename,
             hero_derived_dir=hero_derived_dir,
@@ -651,6 +697,11 @@ def register_home_content_routes(
         if not ext or ext not in allowed_hero_extensions:
             return jsonify({'success': False, 'message': '只支持 WebP/PNG/JPG/JPEG/MP4 文件'}), 400
 
+        max_bytes = HERO_VIDEO_MAX_BYTES if ext == '.mp4' else HERO_IMAGE_MAX_BYTES
+        size_bytes = get_uploaded_file_size(file)
+        if size_bytes is not None and size_bytes > max_bytes:
+            return jsonify({'success': False, 'message': '文件过大，请压缩后重新上传'}), 413
+
         saved_name = f'{uuid.uuid4().hex}{ext}'
         save_path = Path(hero_uploads_dir) / saved_name
         file.save(str(save_path))
@@ -708,6 +759,10 @@ def register_home_content_routes(
         )
         if not ext or ext not in allowed_hero_extensions:
             return jsonify({'success': False, 'message': '手机端图片只支持 WebP/PNG/JPG/JPEG 文件'}), 400
+
+        size_bytes = get_uploaded_file_size(file)
+        if size_bytes is not None and size_bytes > HERO_IMAGE_MAX_BYTES:
+            return jsonify({'success': False, 'message': '图片过大，请压缩后重新上传'}), 413
 
         config = get_hero_config(hero_config_file, sanitize_public_media_url)
         items = config.get('items', [])
@@ -813,18 +868,21 @@ def register_home_content_routes(
     def serve_hero_media(filename):
         response = send_from_directory(hero_uploads_dir, filename, max_age=31536000)
         response.headers['Cache-Control'] = media_immutable_cache_control
+        response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
 
     @app.route('/media/hero-derived/<path:filename>')
     def serve_hero_derived_media(filename):
         response = send_from_directory(hero_derived_dir, filename, max_age=31536000)
         response.headers['Cache-Control'] = media_immutable_cache_control
+        response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
 
     @app.route('/media/h2-home/<path:filename>')
     def serve_h2_home_media(filename):
         response = send_from_directory(h2_home_video_uploads_dir, filename, max_age=31536000)
         response.headers['Cache-Control'] = media_immutable_cache_control
+        response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
 
     @app.route('/api/partners', methods=['GET'])
@@ -855,6 +913,10 @@ def register_home_content_routes(
         ext = validate_uploaded_image_extension(file, allowed_extensions=allowed_partner_extensions)
         if not ext:
             return jsonify({'success': False, 'message': '只支持 PNG/JPG/JPEG/WEBP 文件'}), 400
+
+        size_bytes = get_uploaded_file_size(file)
+        if size_bytes is not None and size_bytes > PARTNER_LOGO_MAX_BYTES:
+            return jsonify({'success': False, 'message': 'Logo 图片过大，请压缩后重新上传'}), 413
 
         saved_name = f'{uuid.uuid4().hex}{ext}'
         save_path = Path(partners_uploads_dir) / saved_name
@@ -902,13 +964,15 @@ def register_home_content_routes(
         if deleted_item.get('source') == 'upload':
             url = deleted_item.get('url', '')
             if url.startswith('/media/partners/'):
-                filename = url.replace('/media/partners/', '', 1)
-                file_path = Path(partners_uploads_dir) / filename
-                if file_path.exists():
-                    try:
-                        file_path.unlink()
-                    except Exception:
-                        pass
+                # 文件名白名单校验，防止借 URL 路径穿越删除上传目录之外的文件。
+                filename = safe_media_filename(url.replace('/media/partners/', '', 1))
+                if filename:
+                    file_path = Path(partners_uploads_dir) / filename
+                    if file_path.exists():
+                        try:
+                            file_path.unlink()
+                        except Exception:
+                            pass
 
         config['items'] = remaining
         save_partners_config(
@@ -920,7 +984,9 @@ def register_home_content_routes(
 
     @app.route('/media/partners/<path:filename>')
     def serve_partners_media(filename):
-        return send_from_directory(partners_uploads_dir, filename)
+        response = send_from_directory(partners_uploads_dir, filename)
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        return response
 
     @app.route('/api/home/section-visibility', methods=['GET'])
     def get_home_section_visibility():

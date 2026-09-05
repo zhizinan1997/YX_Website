@@ -112,8 +112,8 @@ class SiteAnalyticsTests(unittest.TestCase):
 
         class Requests:
             @staticmethod
-            def post(url, json, headers, timeout):
-                captured.update({"url": url, "json": json, "headers": headers, "timeout": timeout})
+            def post(url, json, headers, timeout, **kwargs):
+                captured.update({"url": url, "json": json, "headers": headers, "timeout": timeout, **kwargs})
                 return Response()
 
         sa._site_report_get_config_fn = lambda: {

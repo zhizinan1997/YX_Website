@@ -302,14 +302,20 @@ def _load_admin_users(file_path: Path):
     try:
         data = json.loads(file_path.read_text(encoding='utf-8'))
     except Exception:
+        # 解析失败（文件损坏/半写）时保留现场返回空表，由调用方决定是否重建，
+        # 避免读取路径直接破坏既有账号数据。
         return default_data
     if not isinstance(data, dict):
         return default_data
     users = data.get('users', [])
     if not isinstance(users, list):
         users = []
+    try:
+        version = int(data.get('version', 1) or 1)
+    except (TypeError, ValueError):
+        version = 1
     return {
-        'version': int(data.get('version', 1) or 1),
+        'version': version,
         'users': [item for item in users if isinstance(item, dict)]
     }
 
@@ -499,6 +505,11 @@ def _save_email_auth_state(file_path: Path, data):
     tmp = file_path.with_suffix('.tmp')
     tmp.write_text(json.dumps(safe, ensure_ascii=False, indent=2), encoding='utf-8')
     tmp.replace(file_path)
+    try:
+        # 状态文件含邮箱地址与验证码哈希，仅允许属主读取。
+        os.chmod(file_path, 0o600)
+    except OSError:
+        pass
 
 
 def _email_code_hash(code: str, salt: str) -> str:
@@ -1403,6 +1414,11 @@ def _save_login_attempts(file_path: Path, state):
     tmp = file_path.with_suffix('.tmp')
     tmp.write_text(json.dumps(safe_state, ensure_ascii=False, indent=2), encoding='utf-8')
     tmp.replace(file_path)
+    try:
+        # 登录封禁记录含 IP 与账号信息，仅允许属主读取。
+        os.chmod(file_path, 0o600)
+    except OSError:
+        pass
 
 
 def _get_request_ip(req):
@@ -2057,7 +2073,14 @@ def _verify_binding_code(root: Path, *, username: str, email: str, code: str):
             state.get('binding_codes', {}).pop(normalized_username, None)
             _save_email_auth_state(state_file, state)
             return False, '绑定验证码已过期，请重新发送。'
-        if _email_code_hash(code, str(item.get('code_salt', '') or '').strip()) != str(item.get('code_hash', '') or '').strip():
+        code_hash = _email_code_hash(code, str(item.get('code_salt', '') or '').strip())
+        stored_hash = str(item.get('code_hash', '') or '').strip()
+        # 统一使用常量时间比较，避免时序侧信道（与 _verify_pending_login_code 一致）。
+        try:
+            code_ok = hmac.compare_digest(code_hash.encode('utf-8'), stored_hash.encode('utf-8'))
+        except Exception:
+            code_ok = False
+        if not code_ok:
             item['verify_fail_count'] = int(item.get('verify_fail_count', 0) or 0) + 1
             if item['verify_fail_count'] >= EMAIL_CODE_MAX_VERIFY_FAILURES:
                 state.get('binding_codes', {}).pop(normalized_username, None)
@@ -2675,7 +2698,8 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
 
         data = request.get_json(silent=True) or {}
-        updates = extract_admin_login_geo_updates(data)
+        # 传入当前生效配置：缺失的大洲/国家键继承现状，避免部分更新自锁。
+        updates = extract_admin_login_geo_updates(data, get_config() or {})
         update_config(updates)
         return jsonify({
             'success': True,
@@ -2851,10 +2875,15 @@ def register_admin_routes(
         password_input = str(data.get('smtp_password_or_app_code', '') or '').strip()
         password_value = password_input if password_input and not password_input.startswith('***') else existing_password
 
+        try:
+            smtp_port = int(data.get('smtp_port') or 465)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'SMTP 端口必须是数字。'}), 400
+
         updates = {
             'email_auth_enabled': _parse_bool(data.get('email_auth_enabled', False), False),
             'smtp_host': str(data.get('smtp_host', '') or '').strip(),
-            'smtp_port': int(data.get('smtp_port') or 465),
+            'smtp_port': smtp_port,
             'smtp_username': str(data.get('smtp_username', '') or '').strip(),
             'smtp_password_or_app_code': password_value,
             'smtp_use_ssl': _parse_bool(data.get('smtp_use_ssl', True), True),
@@ -3336,6 +3365,12 @@ def register_admin_routes(
         if not _passkey_step_up_valid(actor):
             return jsonify({'success': False, 'requires_step_up': True, 'message': '强制吊销前需要安全验证。'}), 403
         target = _normalize_username(username)
+        # 与“吊销全部”端点一致：拒绝以超管/隐藏账号为目标，防止跨账号吊销。
+        with ADMIN_USERS_LOCK:
+            users_data, _ = _ensure_admin_users_store(root, get_config, update_config)
+            target_user, _ = _find_user(users_data, target)
+        if target_user is None or _is_hidden_admin_record(target_user) or str(target_user.get('role')) == 'super_admin':
+            return _hidden_admin_not_found_response()
         if not passkey_store.revoke_credential(target, credential_id, actor):
             return jsonify({'success': False, 'message': '未找到该 Passkey。'}), 404
         append_admin_login_log(operation='passkey_manage', success=True, username=actor,
@@ -3460,7 +3495,10 @@ def register_admin_routes(
             _verify_password(_DUMMY_PASSWORD_HASH, password)
             password_ok = False
         else:
-            password_ok = user_enabled and _verify_password(user_password_hash, password)
+            # 停用账号同样执行完整哈希校验，避免与“账号不存在”之间出现
+            # 可测量时序差异（可用于枚举用户名）。
+            password_verified = _verify_password(user_password_hash, password)
+            password_ok = bool(user_enabled and password_verified)
         email_login_verified = not (login_method == 'email_password' or (login_method == 'account_password' and '@' in username)) or _has_verified_email(login_user)
         credentials_ok = bool(turnstile_ok and password_ok and email_login_verified)
         login_username = _normalize_username((login_user or {}).get('username', '') or username)
@@ -3589,6 +3627,17 @@ def register_admin_routes(
     def admin_login_email_code_send():
         if not _is_same_origin_request(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        # 该端点不校验密码即可发码，必须按 IP 硬限流，防止攻击者循环
+        # “新建 pending → 猜 5 次 → 再新建”对 6 位邮箱验证码无限爆破。
+        send_ip_addr = _get_request_ip(request)
+        allowed, retry_after, _count = check_and_record(
+            f'admin-email-code-send:{send_ip_addr}', limit=10, window=3600
+        )
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'message': f'验证码发送过于频繁，请 {max(1, int(retry_after))} 秒后再试。',
+            }), 429
         data = request.get_json(silent=True) or {}
         email = _normalize_email(data.get('email', ''))
         turnstile_token = str(data.get('turnstileToken', '') or data.get('cf_turnstile_response', '') or '').strip()
@@ -3723,6 +3772,15 @@ def register_admin_routes(
     def admin_login_send_email_code():
         if not _is_same_origin_request(request):
             return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        resend_ip_addr = _get_request_ip(request)
+        allowed, retry_after, _count = check_and_record(
+            f'admin-email-code-resend:{resend_ip_addr}', limit=15, window=3600
+        )
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'message': f'验证码发送过于频繁，请 {max(1, int(retry_after))} 秒后再试。',
+            }), 429
         data = request.get_json(silent=True) or {}
         pending_login_id = str(data.get('pending_login_id') or session.get('admin_pending_login_id') or '').strip()
         pending_login = _load_pending_login(root, pending_login_id)
@@ -3764,8 +3822,41 @@ def register_admin_routes(
         code = str(data.get('code', '') or '').strip()
         if not code:
             return jsonify({'success': False, 'message': '请输入邮箱验证码。'}), 400
+
+        # 验证码尝试按 IP 硬限流 + 失败计入登录封禁，防止跨 pending 循环爆破。
+        ip_addr = _get_request_ip(request)
+        attempts_file = _get_login_attempts_file(root)
+        allowed, retry_after, _count = check_and_record(
+            f'admin-email-code-verify:{ip_addr}', limit=30, window=3600
+        )
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'message': f'验证码尝试过于频繁，请 {max(1, int(retry_after))} 秒后再试。',
+            }), 429
+
+        now_ts = int(time.time())
+        with LOGIN_ATTEMPTS_LOCK:
+            attempts_state = _load_login_attempts(attempts_file)
+            _prune_login_attempts(attempts_state, now_ts)
+            ip_item = attempts_state.get('ips', {}).get(ip_addr, {})
+            blocked_until = int(ip_item.get('blocked_until', 0) or 0) if isinstance(ip_item, dict) else 0
+            delay_until = int(ip_item.get('delay_until', 0) or 0) if isinstance(ip_item, dict) else 0
+        if blocked_until > now_ts:
+            blocked_at = _format_blocked_until(blocked_until)
+            return jsonify({'success': False, 'message': f'当前登录 IP 已被封禁至 {blocked_at}，请稍后再试。'}), 429
+        if delay_until > now_ts:
+            return jsonify({'success': False, 'message': '失败次数过多，请稍后再试。'}), 429
+
         ok, message, pending_login = _verify_pending_login_code(root, pending_login_id=pending_login_id, code=code)
         if not ok:
+            with LOGIN_ATTEMPTS_LOCK:
+                attempts_state = _load_login_attempts(attempts_file)
+                _prune_login_attempts(attempts_state, now_ts)
+                blocked_now, blocked_until, _remaining = _register_login_failure(attempts_state, ip_addr, now_ts)
+                if not blocked_now:
+                    _set_login_delay(attempts_state, ip_addr, now_ts)
+                _save_login_attempts(attempts_file, attempts_state)
             return jsonify({'success': False, 'message': message}), 400
 
         username = _normalize_username((pending_login or {}).get('username', ''))
@@ -3774,12 +3865,19 @@ def register_admin_routes(
             login_user, _ = _find_user(users_data, username)
             if login_user is not None:
                 login_user = dict(login_user)
-        if login_user is None or not _has_verified_email(login_user):
+        if login_user is None or not _has_verified_email(login_user) or not bool(login_user.get('enabled', True)):
             _delete_pending_login(root, pending_login_id)
-            return jsonify({'success': False, 'message': '账号邮箱状态已变化，请重新登录。'}), 400
+            return jsonify({'success': False, 'message': '账号状态已变化，请重新登录。'}), 400
+
+        with LOGIN_ATTEMPTS_LOCK:
+            attempts_state = _load_login_attempts(attempts_file)
+            _prune_login_attempts(attempts_state, now_ts)
+            _reset_login_attempts_for_ip(attempts_state, ip_addr)
+            _save_login_attempts(attempts_file, attempts_state)
 
         _delete_pending_login(root, pending_login_id)
-        return _finalize_login_success(login_user, str((pending_login or {}).get('ip_addr', '') or ''), detail_suffix='凭据校验通过；邮箱验证码通过')
+        # 审计记录使用本次请求的真实来源 IP，而非 pending 创建时的旧值。
+        return _finalize_login_success(login_user, ip_addr, detail_suffix='凭据校验通过；邮箱验证码通过')
 
     @app.route('/api/admin/account/email-binding', methods=['GET'])
     @login_required
@@ -4046,7 +4144,8 @@ def register_admin_routes(
         data = request.get_json(silent=True) or {}
         username = _normalize_username(data.get('username', ''))
         password = str(data.get('password', '') or '')
-        enabled = bool(data.get('enabled', True))
+        # 用 _parse_bool 严格解析，防止 JSON 字符串 "false" 被 bool() 当成 True。
+        enabled = _parse_bool(data.get('enabled', True), True)
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
         notify_message_email = bool(data.get('notify_message_email', False))
         notify_job_email = bool(data.get('notify_job_email', False))
@@ -4102,7 +4201,7 @@ def register_admin_routes(
 
         target_name = _normalize_username(username)
         data = request.get_json(silent=True) or {}
-        enabled = bool(data.get('enabled', True))
+        enabled = _parse_bool(data.get('enabled', True), True)
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
         reset_password = str(data.get('password', '') or '')
         notify_message_email = bool(data.get('notify_message_email', False))
@@ -4134,9 +4233,13 @@ def register_admin_routes(
             updated['notify_job_email'] = notify_job_email
             if reset_password:
                 updated['password_hash'] = _hash_password(reset_password)
-            if reset_password or not enabled:
-                # 重置密码或停用账号后立即吊销该子账号的全部既有会话，
-                # 使被盗的旧 cookie 同步失效（与本人改密行为保持一致）。
+            permissions_changed = sorted(
+                _normalize_permissions(target_user.get('permissions', []), is_super_admin=False)
+            ) != sorted(permissions)
+            if reset_password or not enabled or permissions_changed:
+                # 重置密码、停用或收窄权限后立即吊销该子账号的全部既有会话：
+                # login_required 读取的是会话内的权限快照，不吊销的话被收权
+                # 的子账号在空闲超时窗口内仍可用旧权限继续操作。
                 updated['min_session_at'] = int(time.time())
             updated['updated_at'] = now_iso
             users_data['users'][idx] = _sanitize_user_record(updated, fallback_username=target_name, is_super_admin=False)
@@ -4279,6 +4382,19 @@ def register_admin_routes(
         if logged_in and _is_admin_session_expired(session):
             session.clear()
             logged_in = False
+        # 与 login_required 保持一致的吊销校验：登出/改密后早于
+        # min_session_at 的旧 cookie、旧 schema 会话都必须立即失效，
+        # 否则被盗 cookie 仍可从这里读取账号信息与 CSRF token。
+        if logged_in and session.get('admin_session_schema') != ADMIN_SESSION_SCHEMA_VERSION:
+            session.clear()
+            logged_in = False
+        if logged_in:
+            login_at = int(session.get('admin_login_at', 0) or 0)
+            check_username = _normalize_username(session.get('admin_username', ''))
+            min_session_at = query_user_min_session_at(check_username)
+            if min_session_at and (not login_at or login_at < min_session_at):
+                session.clear()
+                logged_in = False
         if not logged_in:
             if not str(session.get(CSRF_SESSION_KEY) or '').strip():
                 session[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
@@ -4350,7 +4466,7 @@ def register_admin_routes(
             'current_login_at': current_login_at,
             'current_login_ip': current_login_ip,
             'current_login_location': current_login_location,
-            'email': _normalize_email(user.get('email', '')),
+            # 不再返回明文邮箱；前端展示使用 email_masked。
             'email_masked': _mask_email_address(user.get('email', '')),
             'email_verified': bool(user.get('email_verified', False)),
             'csrf_token': session.get(CSRF_SESSION_KEY, ''),

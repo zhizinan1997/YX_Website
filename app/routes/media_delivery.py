@@ -85,6 +85,10 @@ PUBLIC_IMAGE_MIME_TYPES = {
     '.webp': 'image/webp',
 }
 
+# 视频代理允许透传的响应 Content-Type 前缀：上游返回什么就原样同源伺服
+# 会让被攻破/可变的上游以 text/html 在主域注入脚本，必须收敛到媒体类型。
+PROXY_ALLOWED_CONTENT_TYPE_PREFIXES = ('video/', 'audio/', 'image/')
+
 
 def public_asset_mimetype(filename: str) -> str:
     """Return a deterministic MIME type for CDN assets across OS images."""
@@ -266,6 +270,13 @@ def register_media_delivery_routes(
         if not response_headers.get('Cache-Control'):
             response_headers['Cache-Control'] = 'public, max-age=86400'
         response_headers['Access-Control-Allow-Origin'] = '*'
+        response_headers['X-Content-Type-Options'] = 'nosniff'
+        upstream_content_type = str(response_headers.get('Content-Type') or '').split(';')[0].strip().lower()
+        if upstream_content_type and not upstream_content_type.startswith(PROXY_ALLOWED_CONTENT_TYPE_PREFIXES):
+            # 只允许媒体类型同源伺服；text/html 等主动内容一律降级为
+            # octet-stream（配合 nosniff 浏览器不会嗅探执行）。
+            response_headers['Content-Type'] = 'application/octet-stream'
+            response_headers.pop('Content-Length', None)
 
         def generate():
             try:
@@ -434,11 +445,13 @@ def register_media_delivery_routes(
         )
         response.headers['Cache-Control'] = _MEDIA_IMMUTABLE_CACHE_CONTROL
         response.headers['Access-Control-Allow-Origin'] = '*'
+        # 所有 CDN 资源统一禁止 MIME 嗅探：未知扩展名回落为 octet-stream 时，
+        # 浏览器在导航请求下仍可能按内容嗅探渲染 HTML（存储型 XSS 放大器）。
+        response.headers['X-Content-Type-Options'] = 'nosniff'
         # SVG 属于可执行脚本内容：即使上传侧已拒绝新增 SVG，也必须防止
         # 存量 SVG 在主域上下文中执行脚本。
         if relative_path.lower().endswith('.svg'):
             response.headers['Content-Security-Policy'] = (
                 "default-src 'none'; style-src 'unsafe-inline'; script-src 'none'"
             )
-            response.headers['X-Content-Type-Options'] = 'nosniff'
         return response

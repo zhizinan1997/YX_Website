@@ -99,6 +99,11 @@ def _load_payload() -> dict:
         payload = _normalize_payload(raw_payload)
     except Exception as exc:
         _LOGGER.warning('Invalid admin feature unlock file %s: %s', path, exc)
+        # 解析失败时优先沿用上一次的缓存（fail-closed 倾向）：文件损坏或
+        # stat 与 read 之间被替换的竞态窗口不应让全部受控功能临时放行。
+        with _CACHE_LOCK:
+            if _CACHE_PAYLOAD is not None and _CACHE_PATH == resolved_path:
+                return dict(_CACHE_PAYLOAD)
         payload = _normalize_payload(DEFAULT_ADMIN_FEATURE_UNLOCKS)
 
     with _CACHE_LOCK:

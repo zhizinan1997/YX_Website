@@ -323,10 +323,13 @@ def extract_client_ip_from_proxy_headers(req, *, direct_ip: str = '', x_real_ip:
             if not is_private_proxy_source(ip_text):
                 return ip_text
 
-        proxy_hints = {ip for ip in {direct_ip, x_real_ip} if ip}
-        for ip_text in reversed(chain):
-            if ip_text not in proxy_hints:
-                return ip_text
+        # 整条链都是私有地址时，说明没有任何可信代理追加过真实客户端 IP；
+        # 此时链内的私有地址全部来自客户端伪造，用于限流/审计会造成每请求
+        # 换桶绕过限流，因此回落到直连地址（代理本身）而非链内任意值。
+        if direct_ip:
+            return direct_ip
+        if x_real_ip:
+            return x_real_ip
         return chain[0]
     return ''
 
@@ -492,6 +495,19 @@ def collect_allowed_origins(
     return allowed_origins
 
 
+def _origin_matches_allowed(origin: str, allowed_origins: list[str]) -> bool:
+    # hmac.compare_digest 对含非 ASCII 字符的 str 会抛 TypeError，
+    # 统一转成字节后再做常量时间比较，避免畸形 Origin 头引发 500。
+    origin_bytes = origin.encode('utf-8')
+    for item in allowed_origins:
+        try:
+            if hmac.compare_digest(origin_bytes, item.encode('utf-8')):
+                return True
+        except Exception:
+            continue
+    return False
+
+
 def is_same_origin_request(
     req,
     *,
@@ -508,11 +524,11 @@ def is_same_origin_request(
 
     origin = normalize_origin(req.headers.get('Origin', ''))
     if origin:
-        return any(hmac.compare_digest(origin, item) for item in allowed_origins)
+        return _origin_matches_allowed(origin, allowed_origins)
 
     referer = normalize_origin(req.headers.get('Referer', ''))
     if referer:
-        return any(hmac.compare_digest(referer, item) for item in allowed_origins)
+        return _origin_matches_allowed(referer, allowed_origins)
 
     # 部分隐私浏览器会剥离 Origin/Referer；此时仍要求不可被跨站读取的
     # session-bound token，避免把“缺少来源头”直接变成放行条件。
@@ -522,11 +538,14 @@ def is_same_origin_request(
         or req.form.get('csrf_token', '')
         or ''
     ).strip()
-    return bool(
-        expected_token
-        and provided_token
-        and hmac.compare_digest(expected_token, provided_token)
-    )
+    if not expected_token or not provided_token:
+        return False
+    try:
+        return hmac.compare_digest(
+            expected_token.encode('utf-8'), provided_token.encode('utf-8')
+        )
+    except Exception:
+        return False
 
 
 def get_request_client_ip(

@@ -330,7 +330,9 @@ def _write_knowledge_text_entries(entries: list[dict]) -> None:
             continue
         seen_ids.add(entry["id"])
         clean_entries.append(entry)
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    # 唯一临时文件名 + 原子替换：固定 .tmp 名在多 worker 并发写时会产生
+    # 交错损坏的 JSON，损坏后读取会静默回退为空列表（条目“消失”）。
+    tmp_path = path.with_name(f'.{path.name}.{uuid.uuid4().hex}.tmp')
     tmp_path.write_text(
         json.dumps(clean_entries, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -705,7 +707,8 @@ def _require_chatbot_turnstile_if_needed(
             proxy_fallback_enabled=settings.get("proxy_fallback_enabled", False),
         )
     except Exception as exc:
-        ok, detail = False, f"人机验证服务暂时不可用：{exc}"
+        LOGGER.warning("Turnstile verification error: %s", exc, exc_info=True)
+        ok, detail = False, "人机验证服务暂时不可用，请稍后重试。"
 
     if ok:
         _grant_chatbot_turnstile_clearance(clearance_key)
@@ -780,6 +783,10 @@ def rate_limit_chatbot(max_per_minute=10, max_per_day=100):
                 day_limit=day_limit,
             )
             if turnstile_response is not None:
+                # 进入/未通过人机验证的请求同样计入限流桶：否则带垃圾 token
+                # 的请求可以无限循环触发对 siteverify 服务的出站校验调用。
+                _check_rate_limit(minute_identifier, minute_limit, minute_window)
+                _check_rate_limit(day_identifier, day_limit, day_window)
                 return turnstile_response
 
             is_allowed_ip_minute, retry_after_ip_minute, count_ip_minute = (
@@ -897,11 +904,22 @@ def load_knowledge_base():
 
     with _knowledge_lock:
         pdf_files = sorted(knowledge_dir.glob("*.pdf"))
-        tracked_files = [f.name for f in pdf_files]
-        tracked_mtimes = [f.stat().st_mtime for f in pdf_files]
+        tracked_files = []
+        tracked_mtimes = []
+        for pdf_file in pdf_files:
+            try:
+                tracked_mtimes.append(pdf_file.stat().st_mtime)
+            except OSError:
+                # glob 与 stat 之间文件可能被另一 worker 删除（管理端删除请求），
+                # 跳过该文件而不是让公开聊天接口 500。
+                continue
+            tracked_files.append(pdf_file.name)
         if entries_path.exists() and entries_path.is_file():
-            tracked_files.append(entries_path.name)
-            tracked_mtimes.append(entries_path.stat().st_mtime)
+            try:
+                tracked_files.append(entries_path.name)
+                tracked_mtimes.append(entries_path.stat().st_mtime)
+            except OSError:
+                pass
         current_files = sorted(tracked_files)
         current_mtime = max(tracked_mtimes) if tracked_mtimes else 0
 
@@ -1126,6 +1144,7 @@ def call_openai_api_stream(messages):
     if requests_support and requests_module is not None:
 
         def gen_requests():
+            response = None
             try:
                 response = requests_module.post(
                     api_url,
@@ -1133,6 +1152,7 @@ def call_openai_api_stream(messages):
                     headers=headers,
                     stream=True,
                     timeout=(connect_timeout, read_timeout),
+                    allow_redirects=False,
                 )
                 if response.status_code != 200:
                     detail = (response.text or "").strip()
@@ -1156,8 +1176,18 @@ def call_openai_api_stream(messages):
                     text = _extract_chat_stream_text(chunk)
                     if text:
                         yield text, None
+            except GeneratorExit:
+                # 客户端断开时 Flask 向生成器抛 GeneratorExit（BaseException），
+                # 必须显式关闭上游连接，否则会一直挂到 read_timeout。
+                raise
             except Exception as exc:
                 yield None, f"API调用失败: {str(exc)}"
+            finally:
+                if response is not None:
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
 
         return gen_requests()
 
@@ -2196,13 +2226,16 @@ def register_ai_chatbot_routes(
             return jsonify({"success": False, "message": "智能客服暂时不可用"}), 503
 
         data = request.get_json(silent=True) or {}
-        user_message = str(data.get("message") or "").strip()
+        # 公开接口的输入长度硬上限：防止近 128MB 的 JSON 被整体转发给
+        # LLM（巨额 token 成本）并原样写入对话日志（磁盘耗尽）。
+        CHATBOT_MAX_MESSAGE_CHARS = 4000
+        user_message = str(data.get("message") or "").strip()[:CHATBOT_MAX_MESSAGE_CHARS]
         history = data.get("history", [])
         if not isinstance(history, list):
             history = []
-        session_id = str(data.get("session_id") or "").strip()
-        page_url = str(data.get("page_url") or "").strip()
-        page_title = str(data.get("page_title") or "").strip()
+        session_id = str(data.get("session_id") or "").strip()[:80]
+        page_url = str(data.get("page_url") or "").strip()[:500]
+        page_title = str(data.get("page_title") or "").strip()[:200]
         requester_ip = "未知"
         requester_location = "未知"
         try:
@@ -2233,7 +2266,7 @@ def register_ai_chatbot_routes(
                 if str(msg.get("role") or "").strip() == "assistant"
                 else "user"
             )
-            content = str(msg.get("content") or "").strip()
+            content = str(msg.get("content") or "").strip()[:CHATBOT_MAX_MESSAGE_CHARS]
             if not content:
                 continue
             normalized_history.append({"role": role, "content": content})
@@ -2603,6 +2636,9 @@ def register_ai_chatbot_routes(
             return denied
         text_present = "knowledge_text" in request.form
         manual_text = request.form.get("knowledge_text", "") if text_present else ""
+        # 单条文本上限 1MB，防止超大文本整体写入知识库 JSON 并在每次
+        # 缓存重建时被拼进内存。
+        manual_text = manual_text[: 1024 * 1024]
         manual_title = request.form.get("knowledge_title", "")
         files = []
         if "file" in request.files:
@@ -2650,6 +2686,21 @@ def register_ai_chatbot_routes(
                 if not _dep("validate_uploaded_pdf")(file):
                     failed.append(
                         {"filename": file.filename, "message": "PDF 文件格式无效"}
+                    )
+                    continue
+
+                # 单文件大小上限：防止超大 PDF 落盘并在公开聊天的缓存重建
+                # 中被 PyPDF2 全量解析。
+                max_pdf_bytes = 20 * 1024 * 1024
+                try:
+                    file.stream.seek(0, os.SEEK_END)
+                    pdf_size = int(file.stream.tell() or 0)
+                    file.stream.seek(0)
+                except Exception:
+                    pdf_size = 0
+                if pdf_size > max_pdf_bytes:
+                    failed.append(
+                        {"filename": file.filename, "message": "PDF 文件过大（最大 20MB）"}
                     )
                     continue
 
@@ -2819,8 +2870,10 @@ def register_ai_chatbot_routes(
             return denied
         config = get_chatbot_config()
         if config["api_key"]:
+            # 只返回掩码（尾 4 位）：该接口对持有 chatbot 权限的子管理员开放，
+            # 泄露前 8 位会辅助对密钥的离线识别与碰撞。
             config["api_key"] = (
-                config["api_key"][:8] + "..." + config["api_key"][-4:]
+                "***" + config["api_key"][-4:]
                 if len(config["api_key"]) > 12
                 else "***"
             )
@@ -2838,7 +2891,9 @@ def register_ai_chatbot_routes(
             "api_key" in data
             and data["api_key"]
             and not str(data["api_key"]).startswith("***")
+            and str(data["api_key"]).strip()
         ):
+            # strip 后判空再写入：仅提交空白字符时不应静默清空已有密钥。
             updates["chatbot_api_key"] = str(data["api_key"]).strip()
         if "api_base" in data:
             safe_api_base = sanitize_ai_api_base_url(data["api_base"])
@@ -2851,7 +2906,9 @@ def register_ai_chatbot_routes(
                 ), 400
             updates["chatbot_api_base"] = safe_api_base
         if "model" in data:
-            updates["chatbot_model"] = data["model"]
+            # 与 product-ai 分支一致：规范化为字符串并去除空白，
+            # 防止 dict/list 等非法类型原样写入配置导致请求持续失败。
+            updates["chatbot_model"] = str(data["model"] or "").strip()
         if "enabled" in data:
             updates["chatbot_enabled"] = bool(data["enabled"])
         if updates:
@@ -2881,14 +2938,20 @@ def register_ai_chatbot_routes(
         if not isinstance(data, dict):
             return jsonify({"success": False, "message": "配置数据无效"}), 400
         if "requests_per_minute" in data:
-            val = int(data["requests_per_minute"])
+            try:
+                val = int(data["requests_per_minute"])
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "message": "每分钟请求数必须是数字"}), 400
             if val < 1 or val > 100:
                 return jsonify(
                     {"success": False, "message": "每分钟请求数必须在1-100之间"}
                 ), 400
             CHATBOT_RATE_LIMIT_CONFIG["requests_per_minute"] = val
         if "requests_per_day" in data:
-            val = int(data["requests_per_day"])
+            try:
+                val = int(data["requests_per_day"])
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "message": "每日请求数必须是数字"}), 400
             if val < 1 or val > 1000:
                 return jsonify(
                     {"success": False, "message": "每日请求数必须在1-1000之间"}

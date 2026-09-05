@@ -142,13 +142,29 @@ def _asset_id(url: str):
     return 'img_' + hashlib.sha256(url.encode('utf-8')).hexdigest()[:20]
 
 
+def _coerce_bool_value(value, default: bool) -> bool:
+    """严格布尔解析：JSON 字符串 "false" 不应被 bool() 当成 True。"""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {'true', '1', 'yes', 'on'}:
+            return True
+        if text in {'false', '0', 'no', 'off'}:
+            return False
+    if value is None:
+        return default
+    return bool(value)
+
+
 def _normalize_record(raw, *, fallback_url=''):
     raw = raw if isinstance(raw, dict) else {}
     url = _normalize_url(raw.get('url') or fallback_url)
     role = str(raw.get('role') or _role_for(url, raw.get('alt'))).strip().lower()
     if role not in ROLES:
         role = 'detail'
-    indexable = bool(raw.get('indexable', True)) and role not in NON_INDEXABLE_ROLES
+    ignored = _coerce_bool_value(raw.get('ignored', False), False)
+    indexable = _coerce_bool_value(raw.get('indexable', True), True) and role not in NON_INDEXABLE_ROLES
     return {
         'assetId': _clean_text(raw.get('assetId') or _asset_id(url), 80),
         'url': url,
@@ -157,9 +173,9 @@ def _normalize_record(raw, *, fallback_url=''):
         'title': _clean_text(raw.get('title'), MAX_TITLE),
         'caption': _clean_text(raw.get('caption'), MAX_CAPTION),
         'role': role,
-        'ignored': bool(raw.get('ignored', False)),
+        'ignored': ignored,
         'ignoredAt': _clean_text(raw.get('ignoredAt'), 80),
-        'indexable': indexable and not bool(raw.get('ignored', False)),
+        'indexable': indexable and not ignored,
         'width': max(0, int(raw.get('width') or 0)),
         'height': max(0, int(raw.get('height') or 0)),
         'mimeType': _clean_text(raw.get('mimeType'), 120),
@@ -293,7 +309,10 @@ def _resolve_local_file(url: str, page_file: Path | None = None):
     for candidate in candidates:
         try:
             resolved = candidate.resolve()
-            if str(resolved).startswith(str(root)) and resolved.is_file():
+            # 用 relative_to 代替字符串前缀比较，避免同级目录名前缀碰撞
+            # （如 `/app/root` 与 `/app/root2`）误判为越界。
+            resolved.relative_to(root)
+            if resolved.is_file():
                 return resolved
         except Exception:
             continue
@@ -559,8 +578,14 @@ def register_image_seo_routes(app, *, login_required, app_root, data_dir, is_sam
             if query and query not in ' '.join(str(row.get(k) or '') for k in ('url', 'ownerPage', 'alt', 'title', 'caption')).lower():
                 continue
             filtered.append(row)
-        page = max(1, int(request.args.get('page') or 1))
-        page_size = min(200, max(10, int(request.args.get('page_size') or 50)))
+        try:
+            page = max(1, int(request.args.get('page') or 1))
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = min(200, max(10, int(request.args.get('page_size') or 50)))
+        except (TypeError, ValueError):
+            page_size = 50
         start = (page - 1) * page_size
         return jsonify({'success': True, 'total': len(filtered), 'page': page, 'page_size': page_size, 'items': filtered[start:start + page_size]})
 
@@ -595,16 +620,23 @@ def register_image_seo_routes(app, *, login_required, app_root, data_dir, is_sam
     @app.route('/api/admin/image-seo/report.csv', methods=['GET'])
     @login_required
     def download_image_seo_report_csv():
+        def _csv_safe(value):
+            """防 CSV 公式注入：Excel 会把 = + - @ 开头的单元格按公式执行。"""
+            text = str(value if value is not None else '')
+            if text.startswith(('=', '+', '-', '@', '\t')):
+                return f"'{text}"
+            return text
+
         items = load_image_assets()
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(['资产编号', '图片显示', '图片地址', '归属页面', '图片角色', '允许索引', '已忽略', '忽略时间', 'Alt替代文本', '图片标题', '图片说明', '宽度', '高度', '文件类型', '文件大小（字节）', '内容哈希', '问题'])
         for item in items:
             writer.writerow([
-                item.get('assetId', ''), item.get('url', ''), item.get('url', ''), item.get('ownerPage', ''), ROLE_LABELS.get(item.get('role'), item.get('role', '')),
-                '是' if item.get('indexable') else '否', '是' if item.get('ignored') else '否', item.get('ignoredAt', ''),
-                item.get('alt', ''), item.get('title', ''), item.get('caption', ''), item.get('width', 0), item.get('height', 0),
-                item.get('mimeType', ''), item.get('fileSize', 0), item.get('contentHash', ''), '；'.join(ISSUE_LABELS.get(issue, issue) for issue in item.get('issues', [])),
+                _csv_safe(item.get('assetId', '')), _csv_safe(item.get('url', '')), _csv_safe(item.get('url', '')), _csv_safe(item.get('ownerPage', '')), _csv_safe(ROLE_LABELS.get(item.get('role'), item.get('role', ''))),
+                '是' if item.get('indexable') else '否', '是' if item.get('ignored') else '否', _csv_safe(item.get('ignoredAt', '')),
+                _csv_safe(item.get('alt', '')), _csv_safe(item.get('title', '')), _csv_safe(item.get('caption', '')), item.get('width', 0), item.get('height', 0),
+                _csv_safe(item.get('mimeType', '')), item.get('fileSize', 0), _csv_safe(item.get('contentHash', '')), _csv_safe('；'.join(ISSUE_LABELS.get(issue, issue) for issue in item.get('issues', []))),
             ])
         return Response('\ufeff' + output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename="image-seo-report.csv"'})
 

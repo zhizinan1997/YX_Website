@@ -66,10 +66,29 @@ from pathlib import Path
 
 from flask import after_this_request, jsonify, request, send_file
 
+from app.rate_limit_store import check_and_record
+from app.request_security import get_client_ip
+
 BEIJING_TZ = timezone(timedelta(hours=8))
 MAX_RESTORE_ZIP_BYTES = 64 * 1024 * 1024
 MAX_RESTORE_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
 MAX_RESTORE_FILES = 5000
+# 备份包中不应出现、恢复时也不允许覆盖的敏感/可执行入口文件名：
+# Dockerfile、requirements.txt 等无 .py/.sh 后缀，但同样能借“恢复+下次部署”
+# 植入代码，必须按文件名显式拦截。
+RESTORE_BLOCKED_FILE_NAMES = {
+    'dockerfile',
+    'dockerfile.prod',
+    'dockerfile.dev',
+    'requirements.txt',
+    'requirements.check.txt',
+    'makefile',
+    '.dockerignore',
+    '.gitattributes',
+    '.gitmodules',
+}
+# 恢复时整体拦截的路径前缀（CI 工作流等在部署基础设施中执行的文件）。
+RESTORE_BLOCKED_PATH_PREFIXES = ('.github/', '.gitlab/', '.drone/', '.circleci/')
 
 def now_beijing():
     """返回北京时间对应的当前时间。"""
@@ -96,6 +115,13 @@ def register_backup_routes(
     root = Path(project_root)
     sensitive_rel_paths = {str(p) for p in (backup_sensitive_rel_paths or ())}
     sensitive_data_dirs = {str(d) for d in (backup_sensitive_data_dirs or ())}
+    # 前缀匹配清单：日志轮转文件（app.log.1…）、passkey 数据库 WAL/SHM
+    # 伴生文件、部署更新日志等不便逐一枚举的派生文件。
+    sensitive_rel_path_prefixes = (
+        'data/app.log.',
+        'data/admin_passkeys.sqlite3-',
+        'update_logs/',
+    )
     blocked_restore_suffixes = tuple(str(s).lower() for s in (restore_blocked_suffixes or ()))
 
     def normalize_backup_rel_path(raw_path: str) -> str:
@@ -143,12 +169,17 @@ def register_backup_routes(
 
     def is_sensitive_backup_rel_path(norm_name: str) -> bool:
         """判断相对路径是否属于不应离开服务器的敏感数据。"""
-        if norm_name in sensitive_rel_paths:
+        normalized = str(norm_name or '').lower()
+        if normalized in {str(p).lower() for p in sensitive_rel_paths}:
             return True
+        # 前缀匹配：轮转日志（app.log.1…）、SQLite WAL/SHM 伴生文件等。
+        for prefix in sensitive_rel_path_prefixes:
+            if normalized.startswith(prefix):
+                return True
         # data/ 下的留言、简历目录整体排除。
         for dir_name in sensitive_data_dirs:
             prefix = f'data/{dir_name}'
-            if norm_name == prefix or norm_name.startswith(f'{prefix}/'):
+            if normalized == prefix or normalized.startswith(f'{prefix}/'):
                 return True
         return False
 
@@ -156,7 +187,12 @@ def register_backup_routes(
         """返回恢复拦截原因；空字符串表示允许恢复。"""
         if is_sensitive_backup_rel_path(norm_name):
             return '敏感数据不允许通过备份包覆盖'
-        filename_lower = norm_name.rsplit('/', 1)[-1].lower()
+        normalized = str(norm_name or '').replace('\\', '/')
+        if any(normalized.startswith(prefix) for prefix in RESTORE_BLOCKED_PATH_PREFIXES):
+            return 'CI/CD 配置不允许通过备份包覆盖'
+        filename_lower = normalized.rsplit('/', 1)[-1].lower()
+        if filename_lower in RESTORE_BLOCKED_FILE_NAMES:
+            return '部署入口文件不允许通过备份包覆盖'
         if any(filename_lower.endswith(suffix) for suffix in blocked_restore_suffixes):
             return '源码与脚本文件不允许通过备份包覆盖'
         return ''
@@ -179,6 +215,16 @@ def register_backup_routes(
     @login_required
     def download_backup():
         """下载整站备份，排除缓存目录与开发目录。"""
+        allowed, retry_after, _count = check_and_record(
+            # key 绑定项目根路径：同一台机器上多个实例（测试临时目录）
+            # 不会共享同一个限流桶。
+            f'backup-download:{root.resolve()}:{get_client_ip()}', limit=6, window=3600
+        )
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'message': f'备份下载过于频繁，请 {max(1, int(retry_after))} 秒后再试。',
+            }), 429
         ts = now_beijing().strftime('%Y%m%d_%H%M%S')
         backup_name = f'yx_backup_{ts}.zip'
 
@@ -247,6 +293,20 @@ def register_backup_routes(
         if not str(file.filename).lower().endswith('.zip'):
             return jsonify({'success': False, 'message': '仅支持 ZIP 备份文件'}), 400
 
+        # 先按声明的 Content-Length 拒绝超限上传，避免先把大文件整体落盘再检查。
+        declared_length = int(request.content_length or 0)
+        if declared_length and declared_length > MAX_RESTORE_ZIP_BYTES + 1024 * 1024:
+            return jsonify({'success': False, 'message': '备份文件过大，无法恢复'}), 413
+
+        allowed, retry_after, _count = check_and_record(
+            f'backup-restore:{root.resolve()}:{get_client_ip()}', limit=3, window=3600
+        )
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'message': f'恢复操作过于频繁，请 {max(1, int(retry_after))} 秒后再试。',
+            }), 429
+
         with tempfile.TemporaryDirectory(prefix='yx_restore_') as td:
             temp_dir = Path(td)
             temp_zip = temp_dir / 'upload.zip'
@@ -293,6 +353,12 @@ def register_backup_routes(
                                     return jsonify({'success': False, 'message': '备份解压后体积超过限制'}), 413
                         extracted_rel_paths.add(norm_name)
             except zipfile.BadZipFile:
+                return jsonify({'success': False, 'message': '备份文件损坏或格式不正确'}), 400
+            except RuntimeError:
+                # 加密 ZIP 的 zf.open 会抛 RuntimeError。
+                return jsonify({'success': False, 'message': '备份文件受密码保护，无法恢复'}), 400
+            except (OSError, ValueError, EOFError):
+                # 含 NUL 字节条目名、CRC 损坏等异常同样不应变成 500 堆栈。
                 return jsonify({'success': False, 'message': '备份文件损坏或格式不正确'}), 400
 
             if not extracted_rel_paths:

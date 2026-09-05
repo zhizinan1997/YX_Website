@@ -88,6 +88,10 @@ def _public_product_path(product_id: str, *, bio: bool = False) -> str:
     clean = str(product_id or '').strip()
     if not clean:
         return ''
+    # product_id 来自请求体，必须约束为安全文件名字符，防止拼出
+    # 含 `../` 的公开 URL 被提交给搜索引擎索引。
+    if not re.fullmatch(r'[A-Za-z0-9._-]+', clean.rsplit('/', 1)[-1]):
+        return ''
     if clean.startswith('../biosensing/') or bio:
         return f'/pages/biosensing/{clean.rsplit("/", 1)[-1]}.html'
     if clean.startswith('../customization/'):
@@ -189,10 +193,25 @@ def get_product_category_images():
 
 
 def save_product_category_images(images_data):
-    """保存产品分类图片映射。"""
+    """保存产品分类图片映射。
+
+    值统一走 sanitize_public_media_url 清洗（拒绝 javascript:/data: 等协议），
+    键收敛到已知分类集合，防止任意键值对落盘后被前台直接引用。
+    """
+    valid_keys = {item.get('key', '') for item in PRODUCT_MENU_CATEGORIES}
+    cleaned = {}
+    if isinstance(images_data, dict):
+        for raw_key, raw_value in images_data.items():
+            key = str(raw_key or '').strip()
+            if key not in valid_keys:
+                continue
+            value = _SANITIZE_PUBLIC_MEDIA_URL(str(raw_value or '').strip())
+            if not value:
+                continue
+            cleaned[key] = value[:500]
     atomic_write_text(
         PRODUCT_CATEGORY_IMAGES_FILE,
-        json.dumps(images_data, ensure_ascii=False, indent=2),
+        json.dumps(cleaned, ensure_ascii=False, indent=2),
     )
 
 
@@ -355,9 +374,10 @@ def get_bio_product_settings():
 def save_product_settings(settings):
     """保存产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
-    temp_path = PRODUCT_SETTINGS_FILE.with_suffix(PRODUCT_SETTINGS_FILE.suffix + f'.tmp-{uuid.uuid4().hex}')
-    temp_path.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
-    temp_path.replace(PRODUCT_SETTINGS_FILE)
+    atomic_write_text(
+        PRODUCT_SETTINGS_FILE,
+        json.dumps(cleaned, ensure_ascii=False, indent=2),
+    )
     try:
         from app.routes.product_catalog import invalidate_products_cache
         invalidate_products_cache()
@@ -368,9 +388,10 @@ def save_product_settings(settings):
 def save_bio_product_settings(settings):
     """保存生物传感产品设置。"""
     cleaned = _SANITIZE_PUBLIC_PRODUCT_SETTINGS(settings)
-    temp_path = BIO_PRODUCT_SETTINGS_FILE.with_suffix(BIO_PRODUCT_SETTINGS_FILE.suffix + f'.tmp-{uuid.uuid4().hex}')
-    temp_path.write_text(json.dumps(cleaned, ensure_ascii=False, indent=2), encoding='utf-8')
-    temp_path.replace(BIO_PRODUCT_SETTINGS_FILE)
+    atomic_write_text(
+        BIO_PRODUCT_SETTINGS_FILE,
+        json.dumps(cleaned, ensure_ascii=False, indent=2),
+    )
     try:
         from app.routes.product_catalog import invalidate_products_cache
         invalidate_products_cache()
@@ -755,7 +776,9 @@ def register_product_settings_routes(
     @app.route('/media/product-cards/<path:filename>')
     def serve_product_card_media(filename):
         """提供已上传的产品卡片图片访问。"""
-        return send_from_directory(product_card_uploads_path, filename)
+        response = send_from_directory(product_card_uploads_path, filename)
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        return response
 
     @app.route('/api/products/settings', methods=['GET'])
     def get_product_settings_api():

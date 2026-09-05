@@ -47,12 +47,16 @@
 
 import ipaddress
 import json
+import os
+import re
 import threading
 import time
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+from app.atomic_io import atomic_write_text
 
 try:
     import fcntl as _fcntl
@@ -110,9 +114,8 @@ def configure_admin_audit(
         GET_CLIENT_IP = get_client_ip
 
 
-def load_admin_login_logs():
-    """从文件加载后台登录日志。"""
-    default_data = {'items': []}
+def _load_admin_login_logs_unlocked():
+    """不加文件锁地读取日志；调用方必须已持有 _admin_login_log_file_lock。"""
     if ADMIN_LOGIN_LOG_FILE.exists():
         try:
             data = json.loads(ADMIN_LOGIN_LOG_FILE.read_text(encoding='utf-8'))
@@ -128,24 +131,30 @@ def load_admin_login_logs():
                 normalized.append(record)
             return normalized
         except Exception:
-            pass
-
-    ADMIN_LOGIN_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    ADMIN_LOGIN_LOG_FILE.write_text(
-        json.dumps(default_data, ensure_ascii=False, indent=2),
-        encoding='utf-8',
-    )
+            # 文件损坏/半写时保留现场并返回空列表；绝不在读路径回写默认文件，
+            # 否则并发读取会用空日志覆盖正在写入的审计记录。
+            return []
     return []
 
 
+def load_admin_login_logs():
+    """从文件加载后台登录日志（跨进程加锁，避免读到半截内容）。"""
+    with ADMIN_LOGIN_LOG_LOCK, _admin_login_log_file_lock():
+        return _load_admin_login_logs_unlocked()
+
+
 def save_admin_login_logs(items):
-    """将后台登录日志持久化保存到文件。"""
+    """将后台登录日志持久化保存到文件（原子写，避免截断窗口）。"""
     safe_items = [item for item in (items or []) if isinstance(item, dict)]
     ADMIN_LOGIN_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    ADMIN_LOGIN_LOG_FILE.write_text(
+    atomic_write_text(
+        ADMIN_LOGIN_LOG_FILE,
         json.dumps({'items': safe_items}, ensure_ascii=False, indent=2),
-        encoding='utf-8',
     )
+    try:
+        os.chmod(ADMIN_LOGIN_LOG_FILE, 0o600)
+    except OSError:
+        pass
 
 
 def _build_location_text(*parts):
@@ -163,6 +172,11 @@ def _build_location_text(*parts):
     if not cleaned:
         return '未知'
     return ' / '.join(cleaned)
+
+
+def _scrub_log_text(value) -> str:
+    """清理日志字段中的控制字符（含换行），防止伪造多行日志条目。"""
+    return re.sub(r'[\x00-\x1f\x7f]', ' ', str(value or '')).strip()
 
 
 def _http_get_json(url: str, timeout: float = 2.5):
@@ -226,23 +240,9 @@ def _fetch_ip_location_from_ipapi_co(ip: str):
     return location, country_code
 
 
-def _fetch_ip_location_from_ip_api(ip: str):
-    data = _http_get_json(
-        f'http://ip-api.com/json/{ip}?lang=zh-CN&fields=status,country,regionName,city,isp,countryCode',
-        timeout=2.6,
-    )
-    if not isinstance(data, dict):
-        return '', ''
-    if data.get('status') != 'success':
-        return '', ''
-    country_code = str(data.get('countryCode') or '').strip().upper()
-    location = _build_location_text(
-        data.get('country'),
-        data.get('regionName'),
-        data.get('city'),
-        data.get('isp'),
-    )
-    return location, country_code
+# 说明：此前还有第三回退解析器 ip-api.com，但它只有付费版支持 HTTPS，
+# 明文 HTTP 返回的国家代码会被用于登录地域准入，存在中间人篡改风险，
+# 因此已移除。两个 HTTPS 解析器均不可用时按“未知”处理（fail-closed）。
 
 
 def fetch_ip_location(ip):
@@ -258,7 +258,6 @@ def fetch_ip_location(ip):
     for resolver in (
         _fetch_ip_location_from_ipwhois,
         _fetch_ip_location_from_ipapi_co,
-        _fetch_ip_location_from_ip_api,
     ):
         try:
             result = resolver(ip_text)
@@ -332,7 +331,8 @@ def resolve_ip_location(ip):
 
     with ADMIN_IP_LOCATION_LOCK:
         if len(ADMIN_IP_LOCATION_CACHE) >= ADMIN_IP_LOCATION_CACHE_MAX:
-            # 优先清理过期项；如果仍然过大，再整体重置缓存。
+            # 优先清理过期项；如果仍然过大，按过期时间淘汰最早的一半条目，
+            # 避免整体清空缓存后对外部解析服务造成请求风暴。
             expired_keys = []
             for key, value in ADMIN_IP_LOCATION_CACHE.items():
                 if isinstance(value, dict) and int(value.get('expires_at', 0) or 0) <= now_ts:
@@ -340,7 +340,12 @@ def resolve_ip_location(ip):
             for key in expired_keys:
                 ADMIN_IP_LOCATION_CACHE.pop(key, None)
             if len(ADMIN_IP_LOCATION_CACHE) >= ADMIN_IP_LOCATION_CACHE_MAX:
-                ADMIN_IP_LOCATION_CACHE.clear()
+                ordered = sorted(
+                    ADMIN_IP_LOCATION_CACHE.items(),
+                    key=lambda kv: int((kv[1] or {}).get('expires_at', 0) or 0) if isinstance(kv[1], dict) else 0,
+                )
+                for key, _value in ordered[: max(1, len(ordered) // 2)]:
+                    ADMIN_IP_LOCATION_CACHE.pop(key, None)
         ADMIN_IP_LOCATION_CACHE[ip_text] = cache_item
     return cache_item['location']
 
@@ -398,14 +403,14 @@ def append_admin_login_log(operation, success, username='', detail='', hidden_ac
         'location': resolve_ip_location(ip),
         'success': bool(success),
         'timestamp': now_beijing_iso(),
-        'operation': str(operation or '后台操作').strip(),
-        'username': str(username or '').strip(),
-        'detail': str(detail or '').strip(),
+        'operation': _scrub_log_text(operation) or '后台操作',
+        'username': _scrub_log_text(username),
+        'detail': _scrub_log_text(detail),
         'hidden_account': bool(hidden_account),
     }
 
     with ADMIN_LOGIN_LOG_LOCK, _admin_login_log_file_lock():
-        items = load_admin_login_logs()
+        items = _load_admin_login_logs_unlocked()
         items.append(log_item)
         if len(items) > MAX_ADMIN_LOGIN_LOG_ITEMS:
             items = items[-MAX_ADMIN_LOGIN_LOG_ITEMS:]

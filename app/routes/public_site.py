@@ -865,10 +865,13 @@ def register_public_site_routes(
             alt = str(attrs.get('alt') or '').strip()
             if not alt or re.fullmatch(r'(?i)(product|产品图|图片|image|产品图\s*\d+)', alt):
                 replacement_alt = configured_alt if image_number == 1 and configured_alt else f'{product_name}产品图{image_number}'
+                escaped_alt = html.escape(replacement_alt, quote=True)
                 if 'alt=' in tag.lower():
-                    tag = re.sub(r'(?i)\balt\s*=\s*(["\']).*?\1', f'alt="{html.escape(replacement_alt, quote=True)}"', tag, count=1)
+                    # 用函数式替换：替换串包含用户可控文本，反斜杠序列
+                    # （如名称里的 `\1`）会被 re.sub 当作分组引用破坏属性。
+                    tag = re.sub(r'(?i)\balt\s*=\s*(["\']).*?\1', lambda _m: f'alt="{escaped_alt}"', tag, count=1)
                 else:
-                    tag = re.sub(r'\s*/?>$', f' alt="{html.escape(replacement_alt, quote=True)}">', tag)
+                    tag = re.sub(r'\s*/?>$', lambda _m: f' alt="{escaped_alt}">', tag)
             if 'decoding=' not in tag.lower():
                 tag = re.sub(r'\s*/?>$', ' decoding="async">', tag)
             if image_number == 1:
@@ -886,13 +889,15 @@ def register_public_site_routes(
         def set_attribute(tag: str, name: str, value: str) -> str:
             escaped = html.escape(str(value), quote=True)
             if re.search(rf'(?i)\b{re.escape(name)}\s*=', tag):
+                # 函数式替换：escaped 可能含用户可控文本（产品名等），
+                # 字符串替换串里的 `\` 序列会被 re.sub 展开或抛错。
                 return re.sub(
                     rf'(?i)\b{re.escape(name)}\s*=\s*(["\']).*?\1',
-                    f'{name}="{escaped}"',
+                    lambda _m: f'{name}="{escaped}"',
                     tag,
                     count=1,
                 )
-            return re.sub(r'\s*/?>$', f' {name}="{escaped}">', tag)
+            return re.sub(r'\s*/?>$', lambda _m: f' {name}="{escaped}">', tag)
 
         def replace_image(match):
             nonlocal image_number
@@ -1662,8 +1667,12 @@ def register_public_site_routes(
 
     @app.route('/api/search')
     def api_search():
-        query = request.args.get('q', '').strip()
-        limit = request.args.get('limit', 20, type=int)
+        query = request.args.get('q', '').strip()[:200]
+        # limit 钳制到 [1, 50]：负数会使切片语义错乱，超大值浪费带宽。
+        try:
+            limit = max(1, min(50, int(request.args.get('limit', 20))))
+        except (TypeError, ValueError):
+            limit = 20
         if not query:
             return jsonify({'results': [], 'query': ''})
         results = search_pages(query, limit)

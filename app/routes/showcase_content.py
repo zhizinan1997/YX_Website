@@ -50,6 +50,7 @@ from pathlib import Path
 from flask import jsonify, request, session
 
 from app.atomic_io import atomic_write_text
+from app.upload_utils import get_uploaded_file_size
 
 # 模块级依赖容器，在 configure/register 阶段一次性注入。
 _DEPS = {}
@@ -123,12 +124,14 @@ def get_featured_products_config():
     default_config = {'ids': []}
     product_featured_file = _dep('product_featured_file')
     if product_featured_file.exists():
+        # 文件存在但损坏时只回退默认值，不回写，避免公开 GET 触发配置重置。
         try:
             config = json.loads(product_featured_file.read_text(encoding='utf-8'))
-            if isinstance(config, dict) and isinstance(config.get('ids', []), list):
-                return config
         except Exception:
-            pass
+            return default_config
+        if isinstance(config, dict) and isinstance(config.get('ids', []), list):
+            return config
+        return default_config
     atomic_write_text(product_featured_file, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
@@ -157,12 +160,14 @@ def get_featured_solutions_config():
     default_config = {'ids': []}
     solutions_featured_file = _dep('solutions_featured_file')
     if solutions_featured_file.exists():
+        # 文件存在但损坏时只回退默认值，不回写，避免公开 GET 触发配置重置。
         try:
             config = json.loads(solutions_featured_file.read_text(encoding='utf-8'))
-            if isinstance(config, dict) and isinstance(config.get('ids', []), list):
-                return config
         except Exception:
-            pass
+            return default_config
+        if isinstance(config, dict) and isinstance(config.get('ids', []), list):
+            return config
+        return default_config
     atomic_write_text(solutions_featured_file, json.dumps(default_config, indent=2, ensure_ascii=False))
     return default_config
 
@@ -314,29 +319,31 @@ def get_h2_home_config():
     default_config = {'items': [], 'products': [], 'cases': [], 'news': [], 'measurementProducts': {}}
     h2_home_file = _dep('h2_home_file')
     if h2_home_file.exists():
+        # 文件存在但损坏时只回退默认值，不回写文件，避免公开 GET 触发配置重置。
         try:
             config = json.loads(h2_home_file.read_text(encoding='utf-8'))
-            if isinstance(config, dict) and isinstance(config.get('items', []), list):
-                items = []
-                for item in config.get('items', []):
-                    if not isinstance(item, dict):
-                        continue
-                    url = _dep('sanitize_public_media_url')(item.get('url', ''), enforce_remote_public=False)
-                    if not url:
-                        continue
-                    items.append({
-                        'id': item.get('id') or str(uuid.uuid4()),
-                        'url': url,
-                    })
-                return {
-                    'items': items,
-                    'products': config.get('products', []) if isinstance(config.get('products', []), list) else [],
-                    'cases': config.get('cases', []) if isinstance(config.get('cases', []), list) else [],
-                    'news': config.get('news', []) if isinstance(config.get('news', []), list) else [],
-                    'measurementProducts': _normalize_measurement_products_map(config.get('measurementProducts', {})),
-                }
         except Exception:
-            pass
+            return default_config
+        if isinstance(config, dict) and isinstance(config.get('items', []), list):
+            items = []
+            for item in config.get('items', []):
+                if not isinstance(item, dict):
+                    continue
+                url = _dep('sanitize_public_media_url')(item.get('url', ''), enforce_remote_public=False)
+                if not url:
+                    continue
+                items.append({
+                    'id': item.get('id') or str(uuid.uuid4()),
+                    'url': url,
+                })
+            return {
+                'items': items,
+                'products': config.get('products', []) if isinstance(config.get('products', []), list) else [],
+                'cases': config.get('cases', []) if isinstance(config.get('cases', []), list) else [],
+                'news': config.get('news', []) if isinstance(config.get('news', []), list) else [],
+                'measurementProducts': _normalize_measurement_products_map(config.get('measurementProducts', {})),
+            }
+        return default_config
     atomic_write_text(h2_home_file, json.dumps(default_config, ensure_ascii=False, indent=2))
     return default_config
 
@@ -819,6 +826,10 @@ def register_showcase_content_routes(
         )
         if not ext:
             return jsonify({'success': False, 'message': '只支持 MP4/WEBM/OGG 视频文件'}), 400
+
+        size_bytes = get_uploaded_file_size(file)
+        if size_bytes is not None and size_bytes > 64 * 1024 * 1024:
+            return jsonify({'success': False, 'message': '视频过大（最大 64MB）'}), 413
 
         saved_name = f'{uuid.uuid4().hex}{ext}'
         save_path = _dep('h2_home_video_uploads_dir') / saved_name
