@@ -162,7 +162,80 @@
         @media (max-width: 576px) {
             .vs-related-grid { grid-template-columns: 1fr; }
         }
-    </style>
+    
+
+        /* Product Hero Layout Guard */
+        @media (min-width: 600px) and (max-width: 900px) {
+            .vs-product-hero__inner {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 40px !important;
+                align-items: start !important;
+                min-width: 0 !important;
+            }
+        }
+
+
+        /* Product Specs Mobile Guard */
+        @media (max-width: 900px) {
+            .vs-specs-table {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border: 0 !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .vs-specs-table tbody {
+                display: grid !important;
+                width: 100% !important;
+                gap: 12px !important;
+            }
+
+            .vs-specs-table tr {
+                display: grid !important;
+                grid-template-columns: minmax(96px, 34%) minmax(0, 1fr) !important;
+                width: 100% !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                border-radius: 14px !important;
+                background: #ffffff !important;
+                box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+            }
+
+            .vs-specs-table td {
+                display: flex !important;
+                align-items: center !important;
+                width: auto !important;
+                min-width: 0 !important;
+                min-height: 64px !important;
+                padding: 16px 18px !important;
+                border: 0 !important;
+                line-height: 1.65 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+            }
+
+            .vs-specs-table tr td:first-child {
+                border-radius: 0 !important;
+                border-bottom: 0 !important;
+                background: linear-gradient(180deg, #0b4a7c 0%, #083f6a 100%) !important;
+                color: #ffffff !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+            }
+
+            .vs-specs-table tr td:last-child {
+                border-radius: 0 !important;
+                background: #ffffff !important;
+                color: #26364d !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+            }
+        }
+</style>
   <link rel="stylesheet" href="../../assets/css/search.css">
 
     <meta name="product-name" content="MC-GD-01型可燃气体检漏仪" />
@@ -205,16 +278,21 @@
                             <button type="button" class="vs-gallery-nav vs-gallery-nav--prev" onclick="prevImage()" aria-label="上一张">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
-                            <img id="mainImage" src="/cdn_assets/images/gassensing/aefbf3491ed347cfa7406e52d867e3e1.png" alt="MC-GD-01型可燃气体检漏仪">
+                            <img id="mainImage" src="/cdn_assets/images/gassensing/aefbf3491ed347cfa7406e52d867e3e1.png?v=1783752971" alt="MC-GD-01型可燃气体检漏仪">
+                            <video id="mainVideo" class="vs-gallery-main-video" muted loop playsinline preload="metadata" style="display:none"></video>
+                            <button type="button" class="vs-gallery-video-btn vs-gallery-video-btn--mute" onclick="toggleGalleryVideoMute(event)" aria-label="切换静音" style="display:none"><i class="fas fa-volume-xmark"></i></button>
+                            <button type="button" class="vs-gallery-video-btn vs-gallery-video-btn--fullscreen" onclick="toggleGalleryVideoFullscreen()" aria-label="全屏播放" style="display:none"><i class="fas fa-expand"></i></button>
                             <button type="button" class="vs-gallery-nav vs-gallery-nav--next" onclick="nextImage()" aria-label="下一张">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
                         <div class="vs-gallery-thumbs">
-                            <div class="vs-gallery-thumb active" onclick="changeImage(this, '/cdn_assets/images/gassensing/aefbf3491ed347cfa7406e52d867e3e1.png')">
-                                <img src="/cdn_assets/images/gassensing/aefbf3491ed347cfa7406e52d867e3e1.png" alt="产品图1">
+                            <div class="vs-gallery-thumb active"
+                                data-image-src="/cdn_assets/images/gassensing/aefbf3491ed347cfa7406e52d867e3e1.png?v=1783752971"
+                                onclick="changeImage(this, this.dataset.imageSrc)">
+                                <img src="/cdn_assets/images/gassensing/aefbf3491ed347cfa7406e52d867e3e1.png?v=1783752971"
+                                    alt="产品图1">
                             </div>
-
                         </div>
                     </div>
 
@@ -278,6 +356,7 @@
                         <h4>权威品质保障</h4>
                         <p>严格遵循国家相关防爆标准与计量规范，确保检测结果的法律效力与专业性。</p>
                     </div>
+
                 </div>
             </div>
         </section>
@@ -360,7 +439,7 @@
                 <h2>相关新闻</h2>
                 <div class="vs-news-grid">
                     <a href="#" class="vs-news-item">
-                        <img src="/cdn_assets/images/common/f1dcc87cdcca.png" alt="相关新闻">
+                        <img src="/cdn_assets/images/common/f1dcc87cdcca.png?v=1783752970" alt="新闻图片">
                         <div class="vs-news-item__content">
                             <h4>元芯传感持续深耕气体检测技术</h4>
                             <p>我们致力于为燃气管网、工业生产提供更安全、高效的可燃气体检测解决方案，不断推动行业传感技术升级。</p>
@@ -446,23 +525,164 @@
     </main>
 
     <script>
+        // ===== 产品画廊：图片/视频混排，视频自动静音播放，支持全屏 =====
+        function vsGalleryIsVideoUrl(url) {
+            var clean = String(url || '').split('?')[0].split('#')[0].toLowerCase();
+            return /\.mp4$/.test(clean) || /\.webm$/.test(clean);
+        }
+
+        function vsGalleryGetThumbMediaSrc(thumb) {
+            if (!thumb) return '';
+            if (thumb.dataset && thumb.dataset.imageSrc) return thumb.dataset.imageSrc;
+            var img = thumb.querySelector('img');
+            if (img) return img.getAttribute('src') || '';
+            var video = thumb.querySelector('video');
+            if (video) return video.getAttribute('src') || '';
+            var match = String(thumb.getAttribute('onclick') || '').match(/['"]([^'"]+)['"]/);
+            return match ? match[1] : '';
+        }
+
+        function vsGallerySetVideoButtonsVisible(visible) {
+            document.querySelectorAll('.vs-gallery-video-btn').forEach(function (btn) {
+                btn.style.display = visible ? '' : 'none';
+            });
+        }
+
+        function vsGalleryStopVideo() {
+            var video = document.getElementById('mainVideo');
+            if (video) {
+                try { video.pause(); } catch (err) {}
+                video.removeAttribute('src');
+                try { video.load(); } catch (err) {}
+            }
+            vsGallerySetVideoButtonsVisible(false);
+        }
+
         function changeImage(thumb, src) {
-            document.getElementById('mainImage').src = src;
-            document.querySelectorAll('.vs-gallery-thumb').forEach(t => t.classList.remove('active'));
-            thumb.classList.add('active');
+            var mainImage = document.getElementById('mainImage');
+            var mainVideo = document.getElementById('mainVideo');
+            var isVideo = vsGalleryIsVideoUrl(src);
+            if (isVideo && mainVideo) {
+                if (mainImage) mainImage.style.display = 'none';
+                mainVideo.muted = true;
+                mainVideo.loop = true;
+                mainVideo.setAttribute('playsinline', '');
+                mainVideo.style.display = '';
+                mainVideo.src = src;
+                var playPromise = mainVideo.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(function () { mainVideo.controls = true; });
+                }
+                var muteBtn = document.querySelector('.vs-gallery-video-btn--mute');
+                if (muteBtn) muteBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+                vsGallerySetVideoButtonsVisible(true);
+            } else {
+                if (mainVideo) {
+                    vsGalleryStopVideo();
+                    mainVideo.style.display = 'none';
+                }
+                if (mainImage) {
+                    mainImage.style.display = '';
+                    if (src) mainImage.src = src;
+                }
+            }
+            document.querySelectorAll('.vs-gallery-thumb').forEach(function (item) {
+                item.classList.remove('active');
+            });
+            if (thumb) thumb.classList.add('active');
         }
+
         function switchImageByOffset(offset) {
-            const thumbs = Array.from(document.querySelectorAll('.vs-gallery-thumb'));
+            var thumbs = Array.from(document.querySelectorAll('.vs-gallery-thumb'));
             if (!thumbs.length) return;
-            let currentIndex = thumbs.findIndex(t => t.classList.contains('active'));
+            var currentIndex = thumbs.findIndex(function (item) {
+                return item.classList.contains('active');
+            });
             if (currentIndex < 0) currentIndex = 0;
-            const nextIndex = (currentIndex + offset + thumbs.length) % thumbs.length;
-            const nextThumb = thumbs[nextIndex];
-            const nextSrc = nextThumb.querySelector('img').getAttribute('src');
-            changeImage(nextThumb, nextSrc);
+            var nextThumb = thumbs[(currentIndex + offset + thumbs.length) % thumbs.length];
+            changeImage(nextThumb, vsGalleryGetThumbMediaSrc(nextThumb));
         }
-        function prevImage() { switchImageByOffset(-1); }
-        function nextImage() { switchImageByOffset(1); }
+
+        function prevImage() {
+            switchImageByOffset(-1);
+        }
+
+        function nextImage() {
+            switchImageByOffset(1);
+        }
+
+        function toggleGalleryVideoMute(event) {
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            var video = document.getElementById('mainVideo');
+            if (!video) return;
+            video.muted = !video.muted;
+            var muteBtn = document.querySelector('.vs-gallery-video-btn--mute');
+            if (muteBtn) {
+                muteBtn.innerHTML = video.muted
+                    ? '<i class="fas fa-volume-xmark"></i>'
+                    : '<i class="fas fa-volume-high"></i>';
+            }
+        }
+
+        function toggleGalleryVideoFullscreen() {
+            var video = document.getElementById('mainVideo');
+            if (!video) return;
+            try {
+                if (typeof video.webkitEnterFullscreen === 'function') {
+                    video.webkitEnterFullscreen();
+                    return;
+                }
+            } catch (err) {}
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen();
+                return;
+            }
+            var target = (typeof video.requestFullscreen === 'function' || typeof video.webkitRequestFullscreen === 'function')
+                ? video
+                : (video.parentNode || video);
+            var request = target.requestFullscreen || target.webkitRequestFullscreen;
+            if (typeof request === 'function') {
+                var result = request.call(target);
+                if (result && typeof result.catch === 'function') result.catch(function () {});
+            }
+        }
+
+        (function () {
+            function initVsGalleryMedia() {
+                var mainVideo = document.getElementById('mainVideo');
+                if (mainVideo) {
+                    mainVideo.addEventListener('click', function () {
+                        if (mainVideo.paused) {
+                            var p = mainVideo.play();
+                            if (p && typeof p.catch === 'function') p.catch(function () {});
+                        } else {
+                            mainVideo.pause();
+                        }
+                    });
+                }
+                document.querySelectorAll('.vs-gallery-thumb video').forEach(function (video) {
+                    var showFirstFrame = function () {
+                        try { if (!video.currentTime) video.currentTime = 0.1; } catch (err) {}
+                    };
+                    video.addEventListener('loadeddata', showFirstFrame);
+                    if (video.readyState >= 2) showFirstFrame();
+                });
+                var activeThumb = document.querySelector('.vs-gallery-thumb.active');
+                if (activeThumb) {
+                    var activeSrc = vsGalleryGetThumbMediaSrc(activeThumb);
+                    if (vsGalleryIsVideoUrl(activeSrc)) changeImage(activeThumb, activeSrc);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initVsGalleryMedia);
+            } else {
+                initVsGalleryMedia();
+            }
+        })();
+
     </script>
 
     <script src="/assets/js/public-turnstile.js"></script>

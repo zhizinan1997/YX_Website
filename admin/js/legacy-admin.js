@@ -1392,8 +1392,9 @@
 
                 if (wrap) wrap.style.display = 'block';
                 if (turnstilePublicConfig.provider === 'aliyun_esa') {
+                    // 嵌入模式：验证码直接渲染在页面内，无需触发按钮。
                     const trigger = document.getElementById('loginCaptchaTriggerBtn');
-                    if (trigger) trigger.style.display = 'inline-block';
+                    if (trigger) trigger.style.display = 'none';
                     await ensureAliyunCaptchaScriptLoaded();
                     renderLoginAliyunCaptcha();
                 } else {
@@ -1504,18 +1505,21 @@
             const target = document.getElementById('loginTurnstileWidget');
             const errEl = document.getElementById('loginTurnstileError');
             if (!target || !window.initAliyunCaptcha || !turnstilePublicConfig.esa_identity || !turnstilePublicConfig.esa_scene_id) return;
+            // 重复初始化前先销毁旧实例，避免 SDK 反复向页面追加容器。
+            if (aliyunCaptchaInstance && typeof aliyunCaptchaInstance.destroy === 'function') {
+                try { aliyunCaptchaInstance.destroy(); } catch (_) { }
+            }
+            aliyunCaptchaInstance = null;
             target.innerHTML = '';
             window.AliyunCaptchaConfig = {
                 region: turnstilePublicConfig.esa_region || 'cn',
                 prefix: turnstilePublicConfig.esa_identity
             };
-            aliyunCaptchaInstance = null;
             aliyunCaptchaInitialized = true;
             window.initAliyunCaptcha({
                 SceneId: turnstilePublicConfig.esa_scene_id,
-                mode: 'popup',
+                mode: 'embed',
                 element: '#loginTurnstileWidget',
-                button: '#loginCaptchaTriggerBtn',
                 success: function (captchaVerifyParam) {
                     turnstileToken = String(captchaVerifyParam || '');
                     if (errEl) errEl.textContent = '';
@@ -11446,8 +11450,10 @@
                 applicationsContainerId: isBio ? 'bioMeApplicationsContainer' : 'meApplicationsContainer',
                 specsTableBodyId: isBio ? 'bioMeSpecsTableBody' : 'meSpecsTableBody',
                 newsContainerId: isBio ? 'bioMeNewsContainer' : 'meNewsContainer',
+                linksContainerId: isBio ? 'bioMeLinksContainer' : 'meLinksContainer',
                 pageSectionsEndpoint: isBio ? '/api/bio-products/page-sections' : '/api/products/page-sections',
                 cardImageUploadUrl: isBio ? '/api/bio-products/card-image/upload' : '/api/products/card-image/upload',
+                galleryMediaUploadUrl: isBio ? '/api/bio-products/gallery-media/upload' : '/api/products/gallery-media/upload',
                 previewBasePath: isBio ? '/pages/biosensing' : '/pages/gassensing',
             };
         }
@@ -11522,6 +11528,42 @@
             if (!c) return;
             c.innerHTML = '';
             (images || []).forEach((src, i) => meAddImageRow(src, i === 0, scope));
+            meSyncImageRowMeta(scope);
+            initManualEditImageSortable(scope);
+        }
+        function meSyncImageRowMeta(scope = 'gas') {
+            const cfg = getManualEditScopeConfig(scope);
+            const c = document.getElementById(cfg.imagesContainerId);
+            if (!c) return;
+            Array.from(c.querySelectorAll('.me-row-card')).forEach((row, index) => {
+                const inp = row.querySelector('.me-image-input');
+                if (inp) inp.placeholder = index === 0 ? '主图/视频链接（第一张）' : '附图/视频链接';
+                const badge = row.querySelector('.me-image-order');
+                if (badge) {
+                    badge.textContent = index === 0 ? '主图' : `第 ${index + 1} 张`;
+                    badge.classList.toggle('me-image-order--primary', index === 0);
+                }
+            });
+        }
+        function initManualEditImageSortable(scope = 'gas') {
+            const cfg = getManualEditScopeConfig(scope);
+            const c = document.getElementById(cfg.imagesContainerId);
+            if (!c || typeof Sortable === 'undefined') return;
+            if (c._meSortable && typeof c._meSortable.destroy === 'function') {
+                c._meSortable.destroy();
+                c._meSortable = null;
+            }
+            c._meSortable = new Sortable(c, {
+                animation: 150,
+                draggable: '.me-row-card',
+                handle: '.me-image-drag',
+                ghostClass: 'me-row-card--ghost',
+                onEnd: () => meSyncImageRowMeta(scope)
+            });
+        }
+        function meIsGalleryVideoUrl(url) {
+            const clean = String(url || '').split('?')[0].split('#')[0].toLowerCase();
+            return clean.endsWith('.mp4') || clean.endsWith('.webm');
         }
         function meAddImageRow(src, isFirst, scope = 'gas') {
             const cfg = getManualEditScopeConfig(scope);
@@ -11530,37 +11572,73 @@
             const row = document.createElement('div');
             row.className = 'me-row-card';
             row.style.cssText = 'display:flex; gap:10px; align-items:flex-start; padding:10px 12px;';
+            const drag = document.createElement('span');
+            drag.className = 'me-image-drag';
+            drag.title = '拖动调整顺序';
+            drag.setAttribute('aria-label', '拖动调整顺序');
+            drag.innerHTML = '<i class="fas fa-grip-vertical" aria-hidden="true"></i>';
+            const orderBadge = document.createElement('span');
+            orderBadge.className = 'me-image-order';
+            orderBadge.style.alignSelf = 'center';
             const inp = document.createElement('input');
             inp.type = 'text';
             inp.className = 'form-control me-image-input';
             inp.value = src || '';
-            inp.placeholder = isFirst ? '主图链接（第一张）' : '附图链接';
+            inp.placeholder = isFirst ? '主图/视频链接（第一张）' : '附图/视频链接';
             inp.style.flex = '1';
-            const img = document.createElement('img');
-            img.className = 'me-image-preview';
-            img.src = src || '';
-            img.onerror = () => img.style.display = 'none';
-            img.style.display = src ? '' : 'none';
-            inp.addEventListener('input', () => { img.src = inp.value; img.style.display = inp.value ? '' : 'none'; });
+            const imageSpecHint = document.createElement('span');
+            imageSpecHint.className = 'product-image-spec-hint product-image-spec-hint--compact';
+            imageSpecHint.textContent = '建议 2.08:1 · 2370×1140 px';
+            const previewWrap = document.createElement('div');
+            previewWrap.style.cssText = 'flex-shrink:0; align-self:center;';
+            function renderPreview(value) {
+                previewWrap.innerHTML = '';
+                previewWrap.style.display = value ? '' : 'none';
+                if (!value) return;
+                if (meIsGalleryVideoUrl(value)) {
+                    const video = document.createElement('video');
+                    video.className = 'me-image-preview';
+                    video.muted = true;
+                    video.preload = 'metadata';
+                    video.playsInline = true;
+                    video.controls = true;
+                    video.src = value;
+                    imageSpecHint.textContent = '视频建议 mp4/webm · ≤100MB';
+                    previewWrap.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.className = 'me-image-preview';
+                    img.onerror = () => { img.style.display = 'none'; };
+                    img.style.display = '';
+                    img.src = value;
+                    imageSpecHint.textContent = '建议 2.08:1 · 2370×1140 px';
+                    previewWrap.appendChild(img);
+                }
+            }
+            renderPreview(src || '');
+            inp.addEventListener('input', () => renderPreview(inp.value.trim()));
 
-            // 本地上传按钮 + 隐藏 file input
+            // 本地上传按钮 + 隐藏 file input（图片与视频均支持）
             const uploadBtn = document.createElement('button');
             uploadBtn.type = 'button';
             uploadBtn.textContent = '上传';
             uploadBtn.className = 'btn-sm me-image-upload-btn';
             uploadBtn.style.cssText = 'white-space:nowrap; padding:4px 10px; font-size:12px; cursor:pointer; background:#2563eb; color:#fff; border:none; border-radius:4px;';
-            const imageSpecHint = document.createElement('span');
-            imageSpecHint.className = 'product-image-spec-hint product-image-spec-hint--compact';
-            imageSpecHint.textContent = '建议 2.08:1 · 2370×1140 px';
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.accept = 'image/png,image/jpeg,image/webp';
+            fileInput.accept = 'image/png,image/jpeg,image/webp,video/mp4,video/webm';
             fileInput.style.display = 'none';
             uploadBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', async () => {
                 const file = fileInput.files && fileInput.files[0];
                 if (!file) return;
-                if (!await confirmProductImageQuality([file])) {
+                const isVideo = (file.type || '').startsWith('video/') || meIsGalleryVideoUrl(file.name);
+                if (!isVideo && !await confirmProductImageQuality([file])) {
+                    fileInput.value = '';
+                    return;
+                }
+                if (isVideo && file.size > 100 * 1024 * 1024) {
+                    alert('画廊视频不能超过 100MB，请压缩后再上传');
                     fileInput.value = '';
                     return;
                 }
@@ -11569,14 +11647,13 @@
                 try {
                     const formData = new FormData();
                     formData.append('file', file);
-                    const res = await fetch(cfg.cardImageUploadUrl, { method: 'POST', body: formData });
+                    const res = await fetch(isVideo ? cfg.galleryMediaUploadUrl : cfg.cardImageUploadUrl, { method: 'POST', body: formData });
                     const result = await res.json();
                     if (!result.success || !result.url) {
                         throw new Error(result.message || '上传失败');
                     }
                     inp.value = result.url;
-                    img.src = result.url;
-                    img.style.display = '';
+                    renderPreview(result.url);
                     uploadBtn.textContent = '已上传';
                     uploadBtn.style.background = '#16a34a';
                 } catch (e) {
@@ -11598,14 +11675,21 @@
             del.textContent = '✕';
             del.className = 'me-row-del';
             del.style.cssText = 'position:static; margin-left:4px; align-self:center;';
-            del.onclick = () => row.remove();
+            del.onclick = () => {
+                row.remove();
+                meSyncImageRowMeta(scope);
+            };
+            row.appendChild(drag);
+            row.appendChild(orderBadge);
             row.appendChild(inp);
             row.appendChild(uploadBtn);
             row.appendChild(imageSpecHint);
             row.appendChild(fileInput);
-            row.appendChild(img);
+            row.appendChild(previewWrap);
             row.appendChild(del);
             c.appendChild(row);
+            meSyncImageRowMeta(scope);
+            initManualEditImageSortable(scope);
         }
         function meGetImages(scope = 'gas') {
             const cfg = getManualEditScopeConfig(scope);
@@ -11820,6 +11904,101 @@
             })).filter(r => r.href || r.title);
         }
 
+        // ---- Related links rows（相关链接：固定 2 张卡片，全部留空则前台不显示）----
+        function meRenderRelatedLinks(items, scope = 'gas') {
+            const cfg = getManualEditScopeConfig(scope);
+            const c = document.getElementById(cfg.linksContainerId);
+            if (!c) return;
+            c.innerHTML = '';
+            const list = (items || []).slice(0, 2);
+            for (let i = 0; i < 2; i++) meAddLinkRow(list[i] || null, i + 1, scope);
+        }
+        function meAddLinkRow(item, index, scope = 'gas') {
+            const cfg = getManualEditScopeConfig(scope);
+            const c = document.getElementById(cfg.linksContainerId);
+            if (!c) return;
+            item = item || {};
+            const row = document.createElement('div');
+            row.className = 'me-row-card';
+            row.innerHTML = `
+                <div style="display:flex; gap:14px; padding-right:8px;">
+                    <div style="flex-shrink:0; width:96px;">
+                        <span class="me-row-label">图片 ${index}</span>
+                        <img class="me-link-img-preview" src="${escapeHtml(item.img || '')}" alt=""
+                            style="width:88px; height:66px; object-fit:cover; border-radius:6px; border:1px solid #e5e7eb; background:#f8fafc; display:${item.img ? '' : 'none'};"
+                            onerror="this.style.display='none'">
+                        <button type="button" class="btn-sm me-link-upload-btn" style="margin-top:6px; width:100%;">上传图片</button>
+                        <input type="file" class="me-link-file-input" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                        <input type="text" class="form-control me-link-img" value="${escapeHtml(item.img || '')}" placeholder="图片链接" style="margin-top:6px;">
+                    </div>
+                    <div style="flex:1; display:grid; gap:8px; min-width:0;">
+                        <div>
+                            <span class="me-row-label">标题 ${index}</span>
+                            <input type="text" class="form-control me-link-title" value="${escapeHtml(item.title || '')}" placeholder="卡片标题">
+                        </div>
+                        <div>
+                            <span class="me-row-label">简介 ${index}</span>
+                            <textarea class="form-control me-link-desc" rows="2" placeholder="一段简介">${escapeHtml(item.desc || '')}</textarea>
+                        </div>
+                        <div>
+                            <span class="me-row-label">跳转链接 ${index}</span>
+                            <input type="text" class="form-control me-link-href" value="${escapeHtml(item.href || '')}" placeholder="https://... 或站内路径">
+                        </div>
+                    </div>
+                </div>`;
+            c.appendChild(row);
+            const imgInput = row.querySelector('.me-link-img');
+            const preview = row.querySelector('.me-link-img-preview');
+            const fileInput = row.querySelector('.me-link-file-input');
+            const uploadBtn = row.querySelector('.me-link-upload-btn');
+            const syncPreview = () => {
+                const value = imgInput.value.trim();
+                preview.style.display = value ? '' : 'none';
+                preview.src = value;
+            };
+            imgInput.addEventListener('input', syncPreview);
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async () => {
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = '上传中...';
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const res = await fetch(cfg.cardImageUploadUrl, { method: 'POST', body: formData });
+                    const result = await res.json();
+                    if (!result.success || !result.url) {
+                        throw new Error(result.message || '上传失败');
+                    }
+                    imgInput.value = result.url;
+                    syncPreview();
+                    uploadBtn.textContent = '已上传';
+                    uploadBtn.style.background = '#16a34a';
+                } catch (e) {
+                    uploadBtn.textContent = '失败';
+                    uploadBtn.style.background = '#dc2626';
+                    console.error('Related link image upload error:', e);
+                } finally {
+                    fileInput.value = '';
+                    setTimeout(() => {
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = '上传图片';
+                        uploadBtn.style.background = '';
+                    }, 2000);
+                }
+            });
+        }
+        function meGetRelatedLinks(scope = 'gas') {
+            const cfg = getManualEditScopeConfig(scope);
+            return Array.from(document.querySelectorAll(`#${cfg.linksContainerId} .me-row-card`)).map(row => ({
+                img: (row.querySelector('.me-link-img') || {}).value || '',
+                title: (row.querySelector('.me-link-title') || {}).value || '',
+                desc: (row.querySelector('.me-link-desc') || {}).value || '',
+                href: (row.querySelector('.me-link-href') || {}).value || '',
+            })).filter(r => r.img || r.title || r.desc || r.href).slice(0, 2);
+        }
+
         // ---- Load / Save ----
         async function loadManualEditSections(productId, scope = 'gas') {
             if (scope === 'bio') bioManualEditCurrentProductId = productId;
@@ -11853,6 +12032,7 @@
                 meRenderApplications(sec.applications || [], scope);
                 meRenderSpecs(sec.specs || [], scope);
                 meRenderNews(sec.news || [], scope);
+                meRenderRelatedLinks(sec.related_links || [], scope);
 
                 // Show empty notice for sections with no data
                 const missing = [];
@@ -11895,6 +12075,7 @@
                 applications: meGetApplications(scope),
                 specs: meGetSpecs(scope),
                 news: meGetNews(scope),
+                related_links: meGetRelatedLinks(scope),
             };
             try {
                 const res = await fetch(cfg.pageSectionsEndpoint, {

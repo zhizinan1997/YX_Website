@@ -393,6 +393,7 @@ def register_all_routes(app):
         cdn_assets_dir=CDN_ASSETS_DIR,
         allowed_product_card_extensions=ALLOWED_PRODUCT_CARD_EXTENSIONS,
         validate_uploaded_image_extension=validate_uploaded_image_extension,
+        validate_uploaded_video_extension=validate_uploaded_video_extension,
     )
 
     register_image_seo_routes(
