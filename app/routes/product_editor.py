@@ -4605,7 +4605,7 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                 ) if img_raw else ''
                 content_style = '' if img_raw else ' style="padding: 28px;"'
                 links_cards += (
-                    f'\n                <a href="{esc(href_raw) if href_raw else "#"}" class="vs-link-item">'
+                    f'\n                <a href="{esc(href_raw) if href_raw else "#"}" class="vs-link-item" target="_blank" rel="noopener noreferrer">'
                     f'{img_tag}'
                     f'\n                    <div class="vs-link-item__content"{content_style}>'
                     f'\n                        <h4>{title_t}</h4>'

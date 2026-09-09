@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-08T22:15:59+08:00",
+  "updatedAt": "2026-09-09T09:40:12+08:00",
   "items": [
     {
       "assetId": "img_9779679eac0bce808eb5",
@@ -6929,6 +6929,29 @@
       "sourceAlt": ""
     },
     {
+      "assetId": "img_68aca2d811fd607b0fe4",
+      "url": "/cdn_assets/images/gassensing/1-16ea880616.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 392,
+      "height": 407,
+      "mimeType": "image/png",
+      "fileSize": 102139,
+      "contentHash": "d32fece99ff0bddc625f8e5bcf6f8da21142ccdc7b3c977bbc22ff61b49b958c",
+      "updatedAt": "2026-09-09T09:40:09+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
+      ],
+      "sourceAlt": ""
+    },
+    {
       "assetId": "img_95fef627241192de2f92",
       "url": "/cdn_assets/images/gassensing/1.png",
       "ownerPage": "",
@@ -7051,6 +7074,29 @@
         "missing_alt",
         "missing_owner_page",
         "unreferenced_asset"
+      ],
+      "sourceAlt": ""
+    },
+    {
+      "assetId": "img_c807d3e51160cecadbe9",
+      "url": "/cdn_assets/images/gassensing/2-e54845239b.png",
+      "ownerPage": "",
+      "alt": "",
+      "title": "",
+      "caption": "",
+      "role": "primary",
+      "ignored": false,
+      "ignoredAt": "",
+      "indexable": true,
+      "width": 384,
+      "height": 266,
+      "mimeType": "image/png",
+      "fileSize": 30472,
+      "contentHash": "7ff28c13f14d52f3f7896f0228e2df5766adf45fef483e96e277242b7e9a8106",
+      "updatedAt": "2026-09-09T09:40:12+08:00",
+      "references": [],
+      "issues": [
+        "missing_alt"
       ],
       "sourceAlt": ""
     },
