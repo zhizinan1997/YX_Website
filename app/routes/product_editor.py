@@ -105,6 +105,7 @@ PRODUCT_SECTION_LIST_KEYS = {
     'specs',
     'news',
     'related_products',
+    'related_links',
 }
 PRODUCT_SECTION_KEYS = PRODUCT_SECTION_TEXT_KEYS | PRODUCT_SECTION_LIST_KEYS
 PRODUCT_AI_DRAFT_STATUSES = {'draft', 'generated', 'published'}
@@ -1568,6 +1569,31 @@ def _normalize_product_sections(raw_sections, *, partial: bool = False, defaults
         normalized['related_products'] = related
     elif not partial and 'related_products' not in normalized:
         normalized['related_products'] = []
+
+    # 相关链接：仅由后台手动编辑维护，AI 生成流程不提供该字段（默认空 = 前台不显示）。
+    if should_take('related_links'):
+        items = source.get('related_links') if isinstance(source.get('related_links'), list) else []
+        links = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            title = _clean_draft_text(item.get('title'), max_length=120)
+            desc = _clean_draft_text(item.get('desc') or item.get('description'), max_length=360)
+            href = _sanitize_product_link_url(
+                _clean_draft_text(item.get('href') or item.get('url') or item.get('link'), max_length=600),
+                default='',
+            )
+            img = _sanitize_product_media_url(
+                _clean_draft_text(item.get('img') or item.get('image'), max_length=600)
+            )
+            if not title and not desc and not img and not href:
+                continue
+            links.append({'href': href, 'img': img, 'title': title, 'desc': desc})
+            if len(links) >= 2:
+                break
+        normalized['related_links'] = links
+    elif not partial and 'related_links' not in normalized:
+        normalized['related_links'] = []
 
     return {key: normalized[key] for key in PRODUCT_SECTION_KEYS if key in normalized}
 
@@ -3785,9 +3811,14 @@ def extract_vs_product_sections(page_html: str) -> dict:
     )
     images = []
     if thumbs_block:
-        images = re.findall(r'onclick="changeImage\(this,\s*[\'"]([^\'"]+)[\'"]', thumbs_block.group(1), re.I)
+        thumbs_html = thumbs_block.group(1)
+        images = re.findall(r'onclick="changeImage\(this,\s*[\'"]([^\'"]+)[\'"]', thumbs_html, re.I)
         if not images:
-            images = re.findall(r'<img[^>]*src="([^"]+)"', thumbs_block.group(1), re.I)
+            images = re.findall(r'data-image-src="([^"]+)"', thumbs_html, re.I)
+        if not images:
+            images = re.findall(r'<img[^>]*src="([^"]+)"', thumbs_html, re.I)
+        if not images:
+            images = re.findall(r'<video[^>]*src="([^"]+)"', thumbs_html, re.I)
     if not images:
         main_img = re.search(r'<img[^>]*id="mainImage"[^>]*src="([^"]+)"', c, re.I)
         if main_img:
@@ -3949,6 +3980,32 @@ def extract_vs_product_sections(page_html: str) -> dict:
                 'title': strip(h4_m.group(1)) if h4_m else '',
             })
 
+    # --- 相关链接 ---
+    links_sec = re.search(r'<section[^>]*class="[^"]*vs-related-links[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
+    related_links = []
+    if links_sec:
+        for m in re.finditer(r'<a\b([^>]*)>(.*?)</a>', links_sec.group(1), re.S | re.I):
+            attrs = m.group(1) or ''
+            body = m.group(2) or ''
+            cls_m = re.search(r'class="([^"]*)"', attrs, re.I)
+            if not cls_m or 'vs-link-item' not in cls_m.group(1):
+                continue
+            href_m = re.search(r'href="([^"]*)"', attrs, re.I)
+            img_m = re.search(r'<img[^>]*src="([^"]+)"', body, re.I)
+            h4_m = re.search(r'<h4[^>]*>(.*?)</h4>', body, re.S | re.I)
+            p_m = re.search(r'<p[^>]*>(.*?)</p>', body, re.S | re.I)
+            item_title = strip(h4_m.group(1)) if h4_m else ''
+            item_desc = strip(p_m.group(1)) if p_m else ''
+            item_img = img_m.group(1) if img_m else ''
+            if not item_title and not item_desc and not item_img:
+                continue
+            related_links.append({
+                'href': href_m.group(1) if href_m else '#',
+                'img': item_img,
+                'title': item_title,
+                'desc': item_desc,
+            })
+
     # --- CTA 区块 ---
     cta_m = re.search(r'<section[^>]*class="[^"]*vs-cta-section[^"]*"[^>]*>(.*?)</section>', c, re.S | re.I)
     cta_title = ''
@@ -3971,6 +4028,7 @@ def extract_vs_product_sections(page_html: str) -> dict:
         'specs': specs,
         'news': news,
         'related_products': related_products,
+        'related_links': related_links,
         'cta_title': cta_title,
         'cta_desc': cta_desc,
     }
@@ -4005,6 +4063,215 @@ def version_local_asset_url(url: str) -> str:
     return inject_version_into_url(value, version)
 
 
+# 产品画廊支持的视频扩展名（与上传接口 ALLOWED_PRODUCT_GALLERY_VIDEO_EXTENSIONS 保持一致）。
+PRODUCT_GALLERY_VIDEO_EXTENSIONS = ('.mp4', '.webm')
+
+# 产品页内嵌画廊脚本的升级版：图片/视频混排、自动静音播放、静音切换与全屏。
+PRODUCT_GALLERY_SCRIPT_JS = r"""        // ===== 产品画廊：图片/视频混排，视频自动静音播放，支持全屏 =====
+        function vsGalleryIsVideoUrl(url) {
+            var clean = String(url || '').split('?')[0].split('#')[0].toLowerCase();
+            return /\.mp4$/.test(clean) || /\.webm$/.test(clean);
+        }
+
+        function vsGalleryGetThumbMediaSrc(thumb) {
+            if (!thumb) return '';
+            if (thumb.dataset && thumb.dataset.imageSrc) return thumb.dataset.imageSrc;
+            var img = thumb.querySelector('img');
+            if (img) return img.getAttribute('src') || '';
+            var video = thumb.querySelector('video');
+            if (video) return video.getAttribute('src') || '';
+            var match = String(thumb.getAttribute('onclick') || '').match(/['"]([^'"]+)['"]/);
+            return match ? match[1] : '';
+        }
+
+        function vsGallerySetVideoButtonsVisible(visible) {
+            document.querySelectorAll('.vs-gallery-video-btn').forEach(function (btn) {
+                btn.style.display = visible ? '' : 'none';
+            });
+        }
+
+        function vsGalleryStopVideo() {
+            var video = document.getElementById('mainVideo');
+            if (video) {
+                try { video.pause(); } catch (err) {}
+                video.removeAttribute('src');
+                try { video.load(); } catch (err) {}
+            }
+            vsGallerySetVideoButtonsVisible(false);
+        }
+
+        function changeImage(thumb, src) {
+            var mainImage = document.getElementById('mainImage');
+            var mainVideo = document.getElementById('mainVideo');
+            var isVideo = vsGalleryIsVideoUrl(src);
+            if (isVideo && mainVideo) {
+                if (mainImage) mainImage.style.display = 'none';
+                mainVideo.muted = true;
+                mainVideo.loop = true;
+                mainVideo.setAttribute('playsinline', '');
+                mainVideo.style.display = '';
+                mainVideo.src = src;
+                var playPromise = mainVideo.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(function () { mainVideo.controls = true; });
+                }
+                var muteBtn = document.querySelector('.vs-gallery-video-btn--mute');
+                if (muteBtn) muteBtn.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+                vsGallerySetVideoButtonsVisible(true);
+            } else {
+                if (mainVideo) {
+                    vsGalleryStopVideo();
+                    mainVideo.style.display = 'none';
+                }
+                if (mainImage) {
+                    mainImage.style.display = '';
+                    if (src) mainImage.src = src;
+                }
+            }
+            document.querySelectorAll('.vs-gallery-thumb').forEach(function (item) {
+                item.classList.remove('active');
+            });
+            if (thumb) thumb.classList.add('active');
+        }
+
+        function switchImageByOffset(offset) {
+            var thumbs = Array.from(document.querySelectorAll('.vs-gallery-thumb'));
+            if (!thumbs.length) return;
+            var currentIndex = thumbs.findIndex(function (item) {
+                return item.classList.contains('active');
+            });
+            if (currentIndex < 0) currentIndex = 0;
+            var nextThumb = thumbs[(currentIndex + offset + thumbs.length) % thumbs.length];
+            changeImage(nextThumb, vsGalleryGetThumbMediaSrc(nextThumb));
+        }
+
+        function prevImage() {
+            switchImageByOffset(-1);
+        }
+
+        function nextImage() {
+            switchImageByOffset(1);
+        }
+
+        function toggleGalleryVideoMute(event) {
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            var video = document.getElementById('mainVideo');
+            if (!video) return;
+            video.muted = !video.muted;
+            var muteBtn = document.querySelector('.vs-gallery-video-btn--mute');
+            if (muteBtn) {
+                muteBtn.innerHTML = video.muted
+                    ? '<i class="fas fa-volume-xmark"></i>'
+                    : '<i class="fas fa-volume-high"></i>';
+            }
+        }
+
+        function toggleGalleryVideoFullscreen() {
+            var video = document.getElementById('mainVideo');
+            if (!video) return;
+            try {
+                if (typeof video.webkitEnterFullscreen === 'function') {
+                    video.webkitEnterFullscreen();
+                    return;
+                }
+            } catch (err) {}
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen();
+                return;
+            }
+            var target = (typeof video.requestFullscreen === 'function' || typeof video.webkitRequestFullscreen === 'function')
+                ? video
+                : (video.parentNode || video);
+            var request = target.requestFullscreen || target.webkitRequestFullscreen;
+            if (typeof request === 'function') {
+                var result = request.call(target);
+                if (result && typeof result.catch === 'function') result.catch(function () {});
+            }
+        }
+
+        (function () {
+            function initVsGalleryMedia() {
+                var mainVideo = document.getElementById('mainVideo');
+                if (mainVideo) {
+                    mainVideo.addEventListener('click', function () {
+                        if (mainVideo.paused) {
+                            var p = mainVideo.play();
+                            if (p && typeof p.catch === 'function') p.catch(function () {});
+                        } else {
+                            mainVideo.pause();
+                        }
+                    });
+                }
+                document.querySelectorAll('.vs-gallery-thumb video').forEach(function (video) {
+                    var showFirstFrame = function () {
+                        try { if (!video.currentTime) video.currentTime = 0.1; } catch (err) {}
+                    };
+                    video.addEventListener('loadeddata', showFirstFrame);
+                    if (video.readyState >= 2) showFirstFrame();
+                });
+                var activeThumb = document.querySelector('.vs-gallery-thumb.active');
+                if (activeThumb) {
+                    var activeSrc = vsGalleryGetThumbMediaSrc(activeThumb);
+                    if (vsGalleryIsVideoUrl(activeSrc)) changeImage(activeThumb, activeSrc);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initVsGalleryMedia);
+            } else {
+                initVsGalleryMedia();
+            }
+        })();
+"""
+
+
+def _is_product_gallery_video_url(url: str) -> bool:
+    value = str(url or '').split('?', 1)[0].split('#', 1)[0].lower()
+    return value.endswith(PRODUCT_GALLERY_VIDEO_EXTENSIONS)
+
+
+def upgrade_product_gallery_script(page_html: str) -> str:
+    """把产品页内嵌的旧版画廊脚本替换为支持视频的升级版（幂等）。"""
+    text = page_html or ''
+    if 'function changeImage' not in text:
+        return text
+    pattern = re.compile(r'(<script[^>]*>)(.*?)(</script>)', re.S | re.I)
+
+    def _replace(match: re.Match) -> str:
+        open_tag, body, close_tag = match.group(1), match.group(2), match.group(3)
+        if 'function changeImage' not in body:
+            return match.group(0)
+        if 'vsGalleryIsVideoUrl' in body:
+            return match.group(0)
+        return f'{open_tag}\n{PRODUCT_GALLERY_SCRIPT_JS}\n    {close_tag}'
+
+    return pattern.sub(_replace, text)
+
+
+def _ensure_gallery_video_stage(page_html: str) -> str:
+    """确保 vs 画廊主图区包含视频播放器与静音/全屏按钮（幂等）。"""
+    text = page_html or ''
+    if 'id="mainVideo"' in text:
+        return text
+    main_img_match = re.search(r'<img[^>]*id="mainImage"[^>]*>', text, re.I)
+    if not main_img_match:
+        return text
+    stage_html = (
+        '\n                            <video id="mainVideo" class="vs-gallery-main-video"'
+        ' muted loop playsinline preload="metadata" style="display:none"></video>'
+        '\n                            <button type="button" class="vs-gallery-video-btn vs-gallery-video-btn--mute"'
+        ' onclick="toggleGalleryVideoMute(event)" aria-label="切换静音" style="display:none">'
+        '<i class="fas fa-volume-xmark"></i></button>'
+        '\n                            <button type="button" class="vs-gallery-video-btn vs-gallery-video-btn--fullscreen"'
+        ' onclick="toggleGalleryVideoFullscreen()" aria-label="全屏播放" style="display:none">'
+        '<i class="fas fa-expand"></i></button>'
+    )
+    insert_at = main_img_match.end()
+    return text[:insert_at] + stage_html + text[insert_at:]
+
+
 def version_product_section_image_urls(sections: dict) -> dict:
     """给手动编辑区块里的本地图片 URL 加版本号，绕过浏览器/CDN 旧图缓存。"""
     if not isinstance(sections, dict):
@@ -4015,7 +4282,7 @@ def version_product_section_image_urls(sections: dict) -> dict:
     if isinstance(images, list):
         updated['images'] = [version_local_asset_url(item) for item in images]
 
-    for list_key in ('applications', 'news', 'related_products'):
+    for list_key in ('applications', 'news', 'related_products', 'related_links'):
         items = updated.get(list_key)
         if not isinstance(items, list):
             continue
@@ -4077,26 +4344,43 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
             if (safe_url := _sanitize_product_media_url(item))
         ]
         if imgs:
-            # 替换主图元素的地址属性。
-            main_src = esc(imgs[0])
-            c = re.sub(
-                r'(<img[^>]*id="mainImage"[^>]*src=")([^"]*)"',
-                lambda m: m.group(1) + main_src + '"',
-                c, count=1, flags=re.I
+            # 主图 <img> 元素只承载图片地址；首项为视频时退而取列表中第一张图片。
+            main_image_url = next(
+                (url for url in imgs if not _is_product_gallery_video_url(url)), ''
             )
+            if main_image_url:
+                main_src = esc(main_image_url)
+                c = re.sub(
+                    r'(<img[^>]*id="mainImage"[^>]*src=")([^"]*)"',
+                    lambda m: m.group(1) + main_src + '"',
+                    c, count=1, flags=re.I
+                )
+            # 主图区注入视频播放器与控制按钮（幂等）。
+            c = _ensure_gallery_video_stage(c)
             # 替换画廊缩略图区块。这里必须按 div 层级替换，避免缩略图 div 嵌套时误删外层结构。
             new_thumbs = ''
             for i, src in enumerate(imgs):
                 safe_src = esc(src)
                 active_cls = ' active' if i == 0 else ''
-                new_thumbs += (
-                    f'\n                            <div class="vs-gallery-thumb{active_cls}"\n'
-                    f'                                data-image-src="{safe_src}"\n'
-                    f'                                onclick="changeImage(this, this.dataset.imageSrc)">\n'
-                    f'                                <img src="{safe_src}"\n'
-                    f'                                    alt="产品图{i + 1}">\n'
-                    f'                            </div>'
-                )
+                if _is_product_gallery_video_url(src):
+                    new_thumbs += (
+                        f'\n                            <div class="vs-gallery-thumb vs-gallery-thumb--video{active_cls}"\n'
+                        f'                                data-image-src="{safe_src}"\n'
+                        f'                                data-media-type="video"\n'
+                        f'                                onclick="changeImage(this, this.dataset.imageSrc)">\n'
+                        f'                                <video src="{safe_src}" muted preload="metadata" playsinline></video>\n'
+                        f'                                <span class="vs-gallery-thumb__play" aria-hidden="true"><i class="fas fa-play"></i></span>\n'
+                        f'                            </div>'
+                    )
+                else:
+                    new_thumbs += (
+                        f'\n                            <div class="vs-gallery-thumb{active_cls}"\n'
+                        f'                                data-image-src="{safe_src}"\n'
+                        f'                                onclick="changeImage(this, this.dataset.imageSrc)">\n'
+                        f'                                <img src="{safe_src}"\n'
+                        f'                                    alt="产品图{i + 1}">\n'
+                        f'                            </div>'
+                    )
             c = _replace_div_inner_by_class(c, 'vs-gallery-thumbs', new_thumbs + '\n                        ')
 
     # --- 亮点 ---
@@ -4283,6 +4567,67 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
                     )
                 c = c[:related_grid_match.start(2)] + new_related + '\n                ' + c[related_grid_match.start(3):]
 
+    # --- 相关链接（最多 2 张卡片；内容为空时整块移除，前台不显示）---
+    if 'related_links' in sections:
+        raw_links = sections['related_links'] if isinstance(sections['related_links'], list) else []
+        links = []
+        for item in raw_links:
+            if not isinstance(item, dict):
+                continue
+            href = _sanitize_product_link_url(item.get('href'), default='')
+            img = _sanitize_product_media_url(item.get('img'))
+            title_text = str(item.get('title') or '').strip()
+            desc_text = str(item.get('desc') or '').strip()
+            if not href and not img and not title_text and not desc_text:
+                continue
+            links.append({'href': href, 'img': img, 'title': title_text, 'desc': desc_text})
+            if len(links) >= 2:
+                break
+
+        # 先移除现有区块（连同其前导换行，恢复原布局，保证重复保存幂等）。
+        c = re.sub(
+            r'\n?[ \t]*<section\b[^>]*class="[^"]*vs-related-links[^"]*"[^>]*>.*?</section>[ \t]*',
+            '',
+            c, flags=re.S | re.I
+        )
+
+        if links:
+            links_cards = ''
+            for i, item in enumerate(links):
+                href_raw = str(item.get('href') or '').strip()
+                img_raw = str(item.get('img') or '').strip()
+                title_t = esc_text(item.get('title') or '')
+                desc_t = esc_text(item.get('desc') or '')
+                alt_t = esc(title_t) if title_t else f'相关链接{i + 1}'
+                img_tag = (
+                    f'\n                        <img src="{esc(img_raw)}"\n'
+                    f'                            alt="{alt_t}">'
+                ) if img_raw else ''
+                content_style = '' if img_raw else ' style="padding: 28px;"'
+                links_cards += (
+                    f'\n                <a href="{esc(href_raw) if href_raw else "#"}" class="vs-link-item">'
+                    f'{img_tag}'
+                    f'\n                    <div class="vs-link-item__content"{content_style}>'
+                    f'\n                        <h4>{title_t}</h4>'
+                    f'\n                        <p>{desc_t}</p>'
+                    f'\n                    </div>'
+                    f'\n                </a>'
+                )
+            new_links_section = (
+                '    <section class="vs-related-links">'
+                '\n        <div class="vs-container">'
+                '\n            <h2>相关链接</h2>'
+                '\n            <div class="vs-links-grid">'
+                f'{links_cards}'
+                '\n            </div>'
+                '\n        </div>'
+                '\n    </section>\n'
+            )
+            # 插入到相关产品区块之前；锚点缺失时跳过（老版页面无该结构则不支持此模块）。
+            products_sec_m = re.search(r'[ \t]*<section\b[^>]*class="[^"]*vs-related-products[^"]*"[^>]*>', c, re.I)
+            if products_sec_m:
+                c = c[:products_sec_m.start()] + new_links_section + c[products_sec_m.start():]
+
     # --- CTA ---
     if 'cta_title' in sections:
         new_cta_title = esc_text(sections['cta_title'])
@@ -4298,6 +4643,9 @@ def patch_vs_product_sections(page_html: str, sections: dict) -> str:
             lambda m: m.group(1) + new_cta_desc + m.group(3),
             c, count=1, flags=re.S | re.I
         )
+
+    # 顺手把旧版画廊脚本升级为支持视频播放的版本（幂等）。
+    c = upgrade_product_gallery_script(c)
 
     return c
 

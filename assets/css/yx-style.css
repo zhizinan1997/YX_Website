@@ -2696,3 +2696,197 @@ li {
         gap: 12px;
     }
 }
+
+/* ===== 产品页：相关链接模块（样式照抄相关新闻卡片） ===== */
+.vs-related-links {
+    padding: 108px 0;
+}
+
+.vs-related-links h2 {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-primary, #0f172a);
+    margin: 0 0 56px;
+}
+
+.vs-links-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 36px;
+}
+
+.vs-link-item {
+    display: flex;
+    gap: 24px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-height: 220px;
+}
+
+.vs-link-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.vs-link-item img {
+    width: 232px;
+    height: 220px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #f8fafc;
+}
+
+.vs-link-item__content {
+    padding: 28px 28px 28px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.vs-link-item__content h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 14px;
+    line-height: 1.5;
+}
+
+.vs-link-item__content p {
+    font-size: 15px;
+    color: #64748b;
+    line-height: 1.85;
+    margin: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+@media (max-width: 900px) {
+    .vs-related-links {
+        padding: 64px 0;
+    }
+
+    .vs-related-links h2 {
+        font-size: 28px;
+        margin-bottom: 32px;
+    }
+
+    .vs-links-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .vs-link-item {
+        min-height: auto;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .vs-link-item img {
+        width: 100%;
+        height: 200px;
+    }
+
+    .vs-link-item__content,
+    .vs-link-item__content[style] {
+        padding: 20px 18px 22px !important;
+    }
+}
+
+@media (max-width: 599px) {
+    .vs-links-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== 产品画廊：图片/视频混排支持 ===== */
+.vs-gallery-main .vs-gallery-main-video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    background: #0b1220;
+    cursor: pointer;
+}
+
+.vs-gallery-thumb--video {
+    position: relative;
+}
+
+.vs-gallery-thumb--video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+}
+
+.vs-gallery-thumb__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.55);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    pointer-events: none;
+}
+
+.vs-gallery-video-btn {
+    position: absolute;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15, 23, 42, 0.55);
+    color: #ffffff;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    transition: background 0.2s ease;
+}
+
+.vs-gallery-video-btn:hover {
+    background: rgba(15, 23, 42, 0.78);
+}
+
+.vs-gallery-video-btn--mute {
+    bottom: 14px;
+}
+
+.vs-gallery-video-btn--fullscreen {
+    bottom: 58px;
+}
+
+@media (max-width: 599px) {
+    .vs-gallery-video-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+        right: 10px;
+    }
+
+    .vs-gallery-video-btn--mute {
+        bottom: 10px;
+    }
+
+    .vs-gallery-video-btn--fullscreen {
+        bottom: 50px;
+    }
+}

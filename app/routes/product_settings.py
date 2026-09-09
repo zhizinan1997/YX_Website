@@ -79,6 +79,8 @@ _SANITIZE_PUBLIC_LINK_URL = lambda value, **_kwargs: value or ''
 _GET_PRODUCTS_WITH_SETTINGS_DATA = lambda: []
 _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA = lambda: []
 MAX_PRODUCT_CARD_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_PRODUCT_GALLERY_VIDEO_BYTES = 100 * 1024 * 1024
+ALLOWED_PRODUCT_GALLERY_VIDEO_EXTENSIONS = {'.mp4', '.webm'}
 _SEO_SUBMISSION_LOCK = threading.Lock()
 _SEO_SUBMISSION_RECENT = {}
 _SEO_SUBMISSION_STATUS = {'last_run': 0, 'last_urls': [], 'indexnow': 'not_configured', 'baidu': 'not_configured'}
@@ -706,6 +708,7 @@ def register_product_settings_routes(
     cdn_assets_dir=None,
     allowed_product_card_extensions,
     validate_uploaded_image_extension,
+    validate_uploaded_video_extension=None,
 ):
     """注册产品设置与行业筛选相关路由。"""
     global DATA_DIR, PRODUCT_SETTINGS_FILE, PRODUCT_INDUSTRY_FILTERS_FILE
@@ -727,7 +730,13 @@ def register_product_settings_routes(
     _GET_BIOSENSING_PRODUCTS_WITH_SETTINGS_DATA = get_biosensing_products_with_settings_data
     product_card_uploads_path = Path(product_card_uploads_dir)
     cdn_product_images_root = Path(cdn_assets_dir or (APP_ROOT / 'cdn_assets')) / 'images'
+    cdn_product_videos_root = Path(cdn_assets_dir or (APP_ROOT / 'cdn_assets')) / 'videos'
     allowed_card_extensions = set(allowed_product_card_extensions or set())
+    allowed_gallery_video_extensions = set(ALLOWED_PRODUCT_GALLERY_VIDEO_EXTENSIONS)
+    validate_video_extension = validate_uploaded_video_extension
+    if validate_video_extension is None:
+        from app.upload_utils import validate_uploaded_video_extension as _fallback_video_validator
+        validate_video_extension = _fallback_video_validator
 
     def _resolve_product_card_upload_target():
         family_dir = 'biosensing' if request.path.startswith('/api/bio-products/') else 'gassensing'
@@ -771,6 +780,42 @@ def register_product_settings_routes(
             'success': True,
             'url': public_url,
             'folder': f'images/{family_dir}',
+        })
+
+    @app.route('/api/products/gallery-media/upload', methods=['POST'])
+    @app.route('/api/bio-products/gallery-media/upload', methods=['POST'])
+    @login_required
+    def upload_product_gallery_media():
+        """上传产品画廊视频到对应 CDN 目录并返回可访问 URL。"""
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': '未找到上传文件'}), 400
+
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+        ext = validate_video_extension(file, allowed_extensions=allowed_gallery_video_extensions)
+        if not ext:
+            return jsonify({'success': False, 'message': '仅支持 MP4/WEBM 视频，且文件内容需与扩展名一致'}), 400
+
+        file_size = get_uploaded_file_size(file)
+        if file_size is None:
+            return jsonify({'success': False, 'message': '无法读取上传文件大小'}), 400
+        if file_size > MAX_PRODUCT_GALLERY_VIDEO_BYTES:
+            return jsonify({'success': False, 'message': '画廊视频不能超过 100MB'}), 413
+
+        saved_name = _semantic_image_upload_name(file.filename, ext)
+        family_dir = 'biosensing' if request.path.startswith('/api/bio-products/') else 'gassensing'
+        target_dir = cdn_product_videos_root / family_dir
+        target_dir.mkdir(parents=True, exist_ok=True)
+        save_path = target_dir / saved_name
+        file.save(save_path)
+        public_url = f'/cdn_assets/videos/{family_dir}/{saved_name}'
+        return jsonify({
+            'success': True,
+            'url': public_url,
+            'folder': f'videos/{family_dir}',
+            'mediaType': 'video',
         })
 
     @app.route('/media/product-cards/<path:filename>')

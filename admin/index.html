@@ -69,7 +69,7 @@
                     </div>
                     <div id="loginTurnstileWrap" class="form-group" style="display:none;">
                         <label>人机验证</label>
-                        <div id="loginTurnstileWidget" style="min-height: 66px;"></div>
+                        <div id="loginTurnstileWidget"></div>
                         <button type="button" id="loginCaptchaTriggerBtn" class="btn-primary" style="display:none; width:auto; margin-top:10px;">点击完成安全验证</button>
                         <div id="loginTurnstileError" class="error-message" style="margin-top:6px;"></div>
                     </div>
@@ -844,9 +844,9 @@
                                         <i class="fas fa-chevron-down me-section-caret" id="me-caret-images"></i>
                                     </div>
                                     <div class="me-section-body" id="me-body-images">
-                                        <p style="font-size:13px;color:#667085;margin-bottom:12px;">每行一个图片链接，第一行为主图。支持 CDN 链接或本地路径。</p>
+                                        <p style="font-size:13px;color:#667085;margin-bottom:12px;">每行一个图片/视频链接（mp4/webm，≤100MB），第一行为主展示位（视频会自动静音播放）。拖动行首手柄调整顺序，视频可放在任意位置。</p>
                                         <div id="meImagesContainer"></div>
-                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddImageRow()">+ 添加图片</button>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddImageRow()">+ 添加图片/视频</button>
                                     </div>
                                 </div>
 
@@ -938,6 +938,19 @@
                                     <div class="me-section-body" id="me-body-news">
                                         <div id="meNewsContainer"></div>
                                         <button type="button" class="btn-sm" style="margin-top:8px;" onclick="meAddNewsRow()">+ 添加新闻条</button>
+                                    </div>
+                                </div>
+
+                                <!-- 9. 相关链接 -->
+                                <div class="me-section-card" id="me-section-links">
+                                    <div class="me-section-header" onclick="meToggleSection('links')">
+                                        <i class="fas fa-link me-section-icon"></i>
+                                        <span>相关链接</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="me-caret-links"></i>
+                                    </div>
+                                    <div class="me-section-body" id="me-body-links">
+                                        <p style="font-size:13px;color:#667085;margin-bottom:12px;">最多 2 张卡片，每张含图片、标题、简介与跳转链接，点击卡片整体跳转。两张卡片内容全部留空时，前台不显示该模块。</p>
+                                        <div id="meLinksContainer"></div>
                                     </div>
                                 </div>
 
@@ -1225,9 +1238,9 @@
                                         <i class="fas fa-chevron-down me-section-caret" id="bio-me-caret-images"></i>
                                     </div>
                                     <div class="me-section-body" id="bio-me-body-images">
-                                        <p style="font-size:13px;color:#667085;margin-bottom:12px;">每行一个图片链接，第一行为主图。支持 CDN 链接或本地路径。</p>
+                                        <p style="font-size:13px;color:#667085;margin-bottom:12px;">每行一个图片/视频链接（mp4/webm，≤100MB），第一行为主展示位（视频会自动静音播放）。拖动行首手柄调整顺序，视频可放在任意位置。</p>
                                         <div id="bioMeImagesContainer"></div>
-                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="bioMeAddImageRow()">+ 添加图片</button>
+                                        <button type="button" class="btn-sm" style="margin-top:8px;" onclick="bioMeAddImageRow()">+ 添加图片/视频</button>
                                     </div>
                                 </div>
 
@@ -1313,6 +1326,18 @@
                                     <div class="me-section-body" id="bio-me-body-news">
                                         <div id="bioMeNewsContainer"></div>
                                         <button type="button" class="btn-sm" style="margin-top:8px;" onclick="bioMeAddNewsRow()">+ 添加新闻条</button>
+                                    </div>
+                                </div>
+
+                                <div class="me-section-card" id="bio-me-section-links">
+                                    <div class="me-section-header" onclick="bioMeToggleSection('links')">
+                                        <i class="fas fa-link me-section-icon"></i>
+                                        <span>相关链接</span>
+                                        <i class="fas fa-chevron-down me-section-caret" id="bio-me-caret-links"></i>
+                                    </div>
+                                    <div class="me-section-body" id="bio-me-body-links">
+                                        <p style="font-size:13px;color:#667085;margin-bottom:12px;">最多 2 张卡片，每张含图片、标题、简介与跳转链接，点击卡片整体跳转。两张卡片内容全部留空时，前台不显示该模块。</p>
+                                        <div id="bioMeLinksContainer"></div>
                                     </div>
                                 </div>
 
