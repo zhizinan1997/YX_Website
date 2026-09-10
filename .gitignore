@@ -57,3 +57,6 @@ data/site_analytics_events.jsonl
 /mp4/
 /convert_videos*.ps1
 /mp4_to_webm*.py
+
+# WorkBuddy workspace data
+/.workbuddy/

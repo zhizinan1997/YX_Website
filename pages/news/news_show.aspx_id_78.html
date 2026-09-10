@@ -14,31 +14,43 @@
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
         .article-hero {
             position: relative;
-            background: linear-gradient(135deg, rgba(0, 31, 63, 0.78) 0%, rgba(0, 31, 63, 0.58) 100%), url('/cdn_assets/news/44efc12dec9e4330b85ae8eb5843423f.jpg') center/cover;
-            height: 40vh;
-            min-height: 300px;
+            background: linear-gradient(135deg, rgba(0, 31, 63, 0.78) 0%, rgba(0, 31, 63, 0.58) 100%), url('/cdn_assets/news/c71876b67812411bb8c26b2ef9063361.png') center/cover;
+            height: 45vh;
+            min-height: 360px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
             color: white !important;
-            padding: 0 20px;
+            padding: 90px 20px 0; /* Accommodate fixed header */
         }
         .article-hero__title {
-            font-size: 36px;
+            font-size: 40px;
             font-weight: 700;
             margin-bottom: 16px;
-            max-width: 900px;
+            max-width: 1000px;
             line-height: 1.4;
+        }
+        .article-hero__subtitle {
+            font-size: 22px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            max-width: 900px;
+            line-height: 1.5;
+            opacity: 0.9;
         }
         .article-hero__meta {
             font-size: 16px;
             opacity: 0.8;
+            margin-top: 10px;
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 4px 16px;
+            border-radius: 20px;
         }
         .article-container {
             max-width: 900px;
@@ -47,13 +59,16 @@
         }
         @media (min-width: 1920px) {
             .article-container {
-                max-width: 1600px;
+                max-width: 1200px;
             }
             .article-content {
                 font-size: 19px;
             }
             .article-hero__title {
                 font-size: 48px;
+            }
+            .article-hero__subtitle {
+                font-size: 26px;
             }
         }
         .article-content {
@@ -63,24 +78,47 @@
         }
         .article-content p {
             margin-bottom: 20px;
+            text-align: justify;
+        }
+        .article-content h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-primary, #003764);
+            margin: 48px 0 24px;
+            padding-left: 14px;
+            border-left: 4px solid var(--color-accent-orange, #f37021);
+            line-height: 1.4;
         }
         .article-content img {
-            width: 60%;
-            max-width: 100%;
+            width: 80%;
+            max-width: 800px;
             height: auto;
             object-fit: contain;
-            border-radius: 8px;
-            margin: 24px auto; display: block;
+            border-radius: 12px;
+            margin: 40px auto 16px auto; 
+            display: block;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         }
         .article-content strong {
             color: var(--color-primary);
         }
         .article-content ul, .article-content ol {
-            margin: 20px 0;
-            padding-left: 30px;
+            margin: 24px 0;
+            background: #f8f9fa;
+            padding: 24px 24px 24px 48px;
+            border-radius: 8px;
+            border: 1px solid #eee;
         }
         .article-content li {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            line-height: 1.8;
+        }
+        .article-content li::marker {
+            color: var(--color-accent-orange, #f37021);
+            font-weight: bold;
+        }
+        .article-content li:last-child {
+            margin-bottom: 0;
         }
         .article-nav {
             display: flex;
@@ -114,7 +152,15 @@
             background: var(--color-accent-blue);
             transform: translateY(-2px);
         }
-    </style>
+    
+        .image-caption {
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            margin-top: -16px;
+            margin-bottom: 32px;
+        }
+</style>
   <!-- Site Search -->
   <link rel="stylesheet" href="../../assets/css/search.css">
 </head>
@@ -133,8 +179,9 @@
     <script src="/assets/js/nav-loader.js?v=20260626m"></script>
 
     <section class="article-hero" data-cover-image="/cdn_assets/news/44efc12dec9e4330b85ae8eb5843423f.jpg">
-        <h1 class="article-hero__title">卡塔尔氦气断供危机启示录：告别“氦”依赖，MC-TD-01型氮氢示踪检漏仪重塑工业气密检测新格局</h1>
-        <div class="article-hero__meta">2026-04-17</div>
+        <h1 class="article-hero__title">卡塔尔氦气断供危机启示录：告别“氦”依赖，MC-TD</h1>
+        <h2 class="article-hero__subtitle">01型氮氢示踪检漏仪重塑工业气密检测新格局</h2>
+        <div class="article-hero__meta"><i class="far fa-calendar-alt" style="margin-right: 6px;"></i>2026-04-17</div>
     </section>
 
     <div class="article-container">
