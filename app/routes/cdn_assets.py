@@ -71,6 +71,7 @@ cdn_assets/
 
 作者：元芯传感技术团队
 """
+import io
 import os
 import json
 import shutil
@@ -79,6 +80,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from flask import Blueprint, request, jsonify, send_from_directory, session
+
+from app.atomic_io import cross_process_file_lock
 
 BEIJING_TZ = timezone(timedelta(hours=8))
 
@@ -308,13 +311,23 @@ def upload_cdn_asset():
     target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # 先读入内存校验大小与内容，避免超限文件直接落盘。
-        content = file.read()
-        if len(content) > MAX_CDN_UPLOAD_BYTES:
-            return jsonify({
-                'success': False,
-                'message': f'文件过大，最大允许 {MAX_CDN_UPLOAD_BYTES // (1024 * 1024)}MB'
-            }), 413
+        # 流式限量读取：不再一次性把整个上传体读入内存（128MB 上限 ×
+        # 多线程会造成内存峰值），边写临时缓冲边核对大小上限。
+        buffered = io.BytesIO()
+        remaining = MAX_CDN_UPLOAD_BYTES + 1
+        while True:
+            chunk = file.stream.read(1024 * 1024)
+            if not chunk:
+                break
+            remaining -= len(chunk)
+            if remaining <= 0:
+                return jsonify({
+                    'success': False,
+                    'message': f'文件过大，最大允许 {MAX_CDN_UPLOAD_BYTES // (1024 * 1024)}MB'
+                }), 413
+            buffered.write(chunk)
+        content = buffered.getvalue()
+        buffered.close()
         if not content:
             return jsonify({'success': False, 'message': '文件内容为空'}), 400
 
@@ -469,16 +482,19 @@ def rename_cdn_asset():
     new_path = old_path.parent / new_name
 
     try:
-        if not old_path.exists():
-            return jsonify({'success': False, 'message': '文件不存在'}), 404
+        # “检查存在→改名”的读改写跨进程互斥：POSIX rename 会静默覆盖已
+        # 存在目标，检查与改名之间另一 worker 创建同名文件时会把它覆盖掉。
+        with cross_process_file_lock(cdn_dir / '.rename.lock'):
+            if not old_path.exists():
+                return jsonify({'success': False, 'message': '文件不存在'}), 404
 
-        if new_path.exists():
-            return jsonify({
-                'success': False,
-                'message': '目标名已存在'
-            }), 400
+            if new_path.exists():
+                return jsonify({
+                    'success': False,
+                    'message': '目标名已存在'
+                }), 400
 
-        old_path.rename(new_path)
+            old_path.rename(new_path)
 
         rel = new_path.relative_to(cdn_dir.resolve())
         relative_path = f'/cdn_assets/{rel.as_posix()}'

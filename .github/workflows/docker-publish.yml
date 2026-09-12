@@ -7,7 +7,6 @@ on:
 env:
   REGISTRY: ghcr.io
   WEBSITE_IMAGE: ${{ github.repository }}
-  CHECK_IMAGE: ${{ github.repository }}-check
 
 jobs:
   build-and-push:
@@ -45,22 +44,3 @@ jobs:
           push: true
           tags: ${{ steps.meta_website.outputs.tags }}
           labels: ${{ steps.meta_website.outputs.labels }}
-
-      - name: Extract metadata (tags, labels) for check image
-        id: meta_check
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.CHECK_IMAGE }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-
-      - name: Build and push check image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.check
-          push: true
-          tags: ${{ steps.meta_check.outputs.tags }}
-          labels: ${{ steps.meta_check.outputs.labels }}

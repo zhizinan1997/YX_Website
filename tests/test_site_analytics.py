@@ -18,6 +18,7 @@ class SiteAnalyticsTests(unittest.TestCase):
             "jsonl": sa.SITE_ANALYTICS_AI_REPORTS_FILE,
             "dir": sa.SITE_ANALYTICS_AI_REPORTS_DIR,
             "index": sa.SITE_ANALYTICS_AI_REPORTS_INDEX_FILE,
+            "index_lock": sa.SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE,
             "pdf": sa.SITE_ANALYTICS_AI_REPORTS_PDF_DIR,
             "jobs": sa.SITE_ANALYTICS_AI_JOBS_DIR,
             "gen_lock": sa.SITE_ANALYTICS_AI_GENERATION_LOCK_FILE,
@@ -42,6 +43,7 @@ class SiteAnalyticsTests(unittest.TestCase):
         sa.SITE_ANALYTICS_AI_REPORTS_FILE = self._old_paths["jsonl"]
         sa.SITE_ANALYTICS_AI_REPORTS_DIR = self._old_paths["dir"]
         sa.SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = self._old_paths["index"]
+        sa.SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE = self._old_paths["index_lock"]
         sa.SITE_ANALYTICS_AI_REPORTS_PDF_DIR = self._old_paths["pdf"]
         sa.SITE_ANALYTICS_AI_JOBS_DIR = self._old_paths["jobs"]
         sa.SITE_ANALYTICS_AI_GENERATION_LOCK_FILE = self._old_paths["gen_lock"]
@@ -59,6 +61,7 @@ class SiteAnalyticsTests(unittest.TestCase):
         sa.SITE_ANALYTICS_AI_REPORTS_FILE = data_dir / "site_analytics_ai_reports.jsonl"
         sa.SITE_ANALYTICS_AI_REPORTS_DIR = data_dir / "site_analytics_ai_reports"
         sa.SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = sa.SITE_ANALYTICS_AI_REPORTS_DIR / "index.json"
+        sa.SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE = sa.SITE_ANALYTICS_AI_REPORTS_DIR / "index.lock"
         sa.SITE_ANALYTICS_AI_REPORTS_PDF_DIR = sa.SITE_ANALYTICS_AI_REPORTS_DIR / "pdf_cache"
         sa.SITE_ANALYTICS_AI_JOBS_DIR = data_dir / "site_analytics_ai_jobs"
         sa.SITE_ANALYTICS_AI_GENERATION_LOCK_FILE = data_dir / "site_analytics_ai_report_generation.lock"
@@ -81,6 +84,38 @@ class SiteAnalyticsTests(unittest.TestCase):
             "current_summary": {},
             "current_detail": {},
         }
+
+    def test_log_trim_reduces_below_threshold_without_noop_rewrites(self):
+        old_max = sa.ANALYTICS_LOG_MAX_BYTES
+        old_keep_bytes = sa.ANALYTICS_LOG_TRIM_KEEP_BYTES
+        old_keep_lines = sa.ANALYTICS_LOG_TRIM_KEEP_LINES
+        try:
+            sa.ANALYTICS_LOG_MAX_BYTES = 4 * 1024
+            sa.ANALYTICS_LOG_TRIM_KEEP_BYTES = 2 * 1024
+            sa.ANALYTICS_LOG_TRIM_KEEP_LINES = 10000
+            line = '{"event_type":"pageview","pad":"' + "x" * 100 + '"}\n'
+            sa.SITE_ANALYTICS_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+            sa.SITE_ANALYTICS_LOG_FILE.write_text(line * 100, encoding="utf-8")
+            sa._append_site_analytics_records([{"event_type": "pageview", "page_path": "/trim-check"}])
+            size_after = sa.SITE_ANALYTICS_LOG_FILE.stat().st_size
+            # 初始文件约 13KB（> 4KB 上限）：裁剪必须真正把文件压回上限
+            # 以内并保留新追加的记录，而不是原样整写一遍。
+            self.assertLessEqual(size_after, sa.ANALYTICS_LOG_MAX_BYTES)
+            content = sa.SITE_ANALYTICS_LOG_FILE.read_text(encoding="utf-8")
+            self.assertIn("/trim-check", content)
+        finally:
+            sa.ANALYTICS_LOG_MAX_BYTES = old_max
+            sa.ANALYTICS_LOG_TRIM_KEEP_BYTES = old_keep_bytes
+            sa.ANALYTICS_LOG_TRIM_KEEP_LINES = old_keep_lines
+
+    def test_range_buckets_are_capped(self):
+        from datetime import date
+
+        start = date(1, 1, 1)
+        end = date(9999, 12, 31)
+        bucket_keys, buckets = sa._analytics_build_range_buckets(start, end, "day")
+        self.assertLessEqual(len(bucket_keys), sa._ANALYTICS_MAX_RANGE_BUCKETS)
+        self.assertEqual(len(buckets), len(bucket_keys))
 
     def test_ai_config_uses_whole_group_fallback(self):
         sa._site_report_get_config_fn = lambda: {

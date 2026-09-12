@@ -44,6 +44,11 @@ from urllib.parse import urlparse
 
 from flask import Response, jsonify, request, send_from_directory, stream_with_context
 
+from app.request_security import (
+    pinned_dns_resolution,
+    validate_safe_remote_fetch_url_detail,
+)
+
 APP_ROOT = Path(__file__).resolve().parents[2]
 _CDN_ASSETS_DIR = APP_ROOT / 'cdn_assets'
 _HERO_CONFIG_FILE = APP_ROOT / 'data' / 'hero' / 'hero.json'
@@ -230,7 +235,7 @@ def register_media_delivery_routes(
         allowed_urls = get_allowed_remote_media_urls()
         if target_url not in allowed_urls:
             return jsonify({'success': False, 'message': '该视频地址未授权代理'}), 403
-        ok, reason, safe_target_url = _VALIDATE_SAFE_REMOTE_FETCH_URL(target_url)
+        ok, reason, safe_target_url, pinned_ip = validate_safe_remote_fetch_url_detail(target_url)
         if not ok:
             return jsonify({'success': False, 'message': reason or '媒体地址不安全'}), 400
 
@@ -243,13 +248,15 @@ def register_media_delivery_routes(
             upstream_headers['Range'] = range_header
 
         try:
-            upstream = _REQUESTS_MODULE.get(
-                safe_target_url,
-                headers=upstream_headers,
-                stream=True,
-                timeout=(8, 120),
-                allow_redirects=False,
-            )
+            # 建连期间固定域名为校验时解析的 IP，防止 rebinding 绕过 SSRF 校验。
+            with pinned_dns_resolution(safe_target_url, pinned_ip):
+                upstream = _REQUESTS_MODULE.get(
+                    safe_target_url,
+                    headers=upstream_headers,
+                    stream=True,
+                    timeout=(8, 120),
+                    allow_redirects=False,
+                )
         except Exception:
             return jsonify({'success': False, 'message': '代理媒体失败：无法连接上游服务'}), 502
 

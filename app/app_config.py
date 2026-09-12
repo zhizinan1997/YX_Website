@@ -52,14 +52,14 @@ import logging
 import os
 import re
 import secrets
-import sys
-import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import BadRequest
+
+from app.atomic_io import atomic_write_text, cross_process_file_lock
 
 try:
     from zoneinfo import ZoneInfo
@@ -92,13 +92,10 @@ PRIVATE_STATIC_PREFIXES = (
 
 
 def is_development_mode() -> bool:
-    if APP_ENV in DEV_ENV_NAMES:
-        return True
-    try:
-        main_file = Path(getattr(sys.modules.get('__main__'), '__file__', '')).resolve()
-    except Exception:
-        return False
-    return main_file == (APP_ROOT / 'server.py')
+    # 只认显式环境变量：`python server.py` 直跑时已在入口 setdefault 了
+    # APP_ENV=development；不再以“主模块文件名”兜底判断，避免生产环境
+    # 误用 `python server.py`（未设 APP_ENV）时静默进入弱口令开发模式。
+    return APP_ENV in DEV_ENV_NAMES
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -398,9 +395,12 @@ BACKUP_SENSITIVE_REL_PATHS = {
 # 状态与 AI 报表（含运营数据，且可由源事件重新生成）等 PII/派生数据。
 BACKUP_SENSITIVE_DATA_DIRS = {'messages', 'resumes', 'scheduled_reports', 'site_analytics_ai_reports'}
 # 恢复时禁止通过备份包覆盖的文件类型：源码与脚本不允许从 ZIP 写入项目根目录，
-# 防止持有备份权限的账号借“恢复”植入可执行代码。
+# 防止持有备份权限的账号借“恢复”植入可执行代码。HTML/SVG/JS 同样拦截：
+# 它们是上传层明确禁止的存储型 XSS 载体，恢复包不应成为绕回通道
+# （页面与静态资源以镜像/版本库为准，恢复只负责 data/ 下的可变内容）。
 RESTORE_BLOCKED_SUFFIXES = (
     '.py', '.pyc', '.pyo', '.sh', '.bash', '.env',
+    '.html', '.htm', '.xhtml', '.svg', '.js', '.mjs',
 )
 ALLOWED_PARTNER_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
 ALLOWED_PARTNER_MIME_TYPES = {'image/png', 'image/jpeg', 'image/webp'}
@@ -595,13 +595,15 @@ def cached_json_response(payload, max_age: int = CONFIG_JSON_CACHE_SECONDS, stal
     response.make_conditional(request)
     return response
 
-# 配置读取和更新可能互相调用，使用可重入锁避免 update_config() 内部
-# 调用 get_config() 时再次获取同一把锁导致死锁。
-_CONFIG_LOCK = threading.RLock()
+# 配置读取和更新可能互相调用：update_config() 在持锁状态下调用内部版
+# get_config()。锁本身需同时覆盖线程与跨进程（gunicorn 多 worker 部署下
+# 两个进程同时“读旧值→覆盖写回”会互相丢更新），因此使用基于 flock 的
+# 可重入组合锁，而不是进程内的 threading.RLock。
+CONFIG_LOCK_FILE = DATA_DIR / 'config.lock'
 
 
-def get_config():
-    """从配置文件或默认值中读取站点配置。"""
+def _get_config_unlocked():
+    """读取站点配置；调用方必须已持有 CONFIG_LOCK_FILE 的跨进程锁。"""
     default_config = {
         'admin_username': os.environ.get('ADMIN_USERNAME', 'admin'),
         'admin_password_hash': (os.environ.get('ADMIN_PASSWORD_HASH') or '').strip(),
@@ -652,7 +654,7 @@ def get_config():
         'smtp_password_expires_at': (os.environ.get('SMTP_PASSWORD_EXPIRES_AT') or '').strip(),
     }
     
-    with _CONFIG_LOCK:
+    with cross_process_file_lock(CONFIG_LOCK_FILE):
         if CONFIG_FILE.exists():
             try:
                 config = json.loads(CONFIG_FILE.read_text(encoding='utf-8'))
@@ -673,26 +675,34 @@ def get_config():
             except Exception:
                 pass
 
-        tmp = CONFIG_FILE.with_suffix('.tmp')
-        tmp.write_text(json.dumps(default_config, indent=2, ensure_ascii=False), encoding='utf-8')
-        tmp.replace(CONFIG_FILE)
-        try:
-            # 配置文件含 SMTP 凭据与管理员口令字段，仅允许属主读取。
-            os.chmod(CONFIG_FILE, 0o600)
-        except OSError:
-            pass
+        _save_config_file_unlocked(default_config)
         return default_config
+
+
+def _save_config_file_unlocked(config):
+    """原子保存配置文件；调用方必须已持有跨进程锁。
+
+    使用唯一临时名（atomic_write_text），避免两个 worker 同时写同一个
+    固定 `.tmp` 文件时把半截内容 replace 成正式配置。
+    """
+    atomic_write_text(CONFIG_FILE, json.dumps(config, indent=2, ensure_ascii=False))
+    try:
+        # 配置文件含 SMTP 凭据与管理员口令字段，仅允许属主读取。
+        os.chmod(CONFIG_FILE, 0o600)
+    except OSError:
+        pass
+
+
+def get_config():
+    """从配置文件或默认值中读取站点配置。"""
+    with cross_process_file_lock(CONFIG_LOCK_FILE):
+        return _get_config_unlocked()
+
 
 def update_config(new_config):
     """更新并保存站点配置。"""
-    with _CONFIG_LOCK:
-        config = get_config()
+    with cross_process_file_lock(CONFIG_LOCK_FILE):
+        config = _get_config_unlocked()
         config.update(new_config)
-        tmp = CONFIG_FILE.with_suffix('.tmp')
-        tmp.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding='utf-8')
-        tmp.replace(CONFIG_FILE)
-        try:
-            os.chmod(CONFIG_FILE, 0o600)
-        except OSError:
-            pass
+        _save_config_file_unlocked(config)
         return config

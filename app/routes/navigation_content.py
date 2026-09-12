@@ -291,7 +291,9 @@ def normalize_recommendation_items(items):
     for item in items:
         if not isinstance(item, dict):
             continue
-        name = str(item.get('name') or '').strip()
+        # name 会被产品页模板直插 innerHTML，剥掉内联标签防止存储型 XSS。
+        name = re.sub(r'<[^>]*>', ' ', str(item.get('name') or ''))
+        name = re.sub(r'\s+', ' ', name).strip()
         url = canonicalize_public_url(item.get('url'), resolve_page_relative=True)
         if not name or not is_safe_recommendation_url(url):
             continue

@@ -19,6 +19,12 @@ from urllib.parse import unquote, urljoin, urlparse
 
 from flask import jsonify, request, send_from_directory
 
+from app.request_security import (
+    pinned_dns_resolution as _default_pinned_dns_resolution,
+)
+from app.request_security import (
+    validate_safe_remote_fetch_url_detail as _default_validate_safe_remote_fetch_url_detail,
+)
 from app.text_encoding import repair_known_mojibake
 from app.upload_utils import get_uploaded_file_size
 
@@ -463,7 +469,7 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
     if not raw_source_url:
         raise RemoteFetchError('缺少远程地址', reason='missing_url')
 
-    ok, reason, safe_source_url = _dep('validate_safe_remote_fetch_url')(raw_source_url)
+    ok, reason, safe_source_url, pinned_ip = _dep('validate_safe_remote_fetch_url_detail')(raw_source_url)
     if not ok:
         raise RemoteFetchError(
             reason or '远程地址校验失败',
@@ -472,8 +478,8 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
             safe_source_url=safe_source_url,
         )
 
-    def _validate_hop(url_text: str) -> str:
-        hop_ok, hop_reason, hop_safe = _dep('validate_safe_remote_fetch_url')(url_text)
+    def _validate_hop(url_text: str) -> tuple[str, str]:
+        hop_ok, hop_reason, hop_safe, hop_pinned = _dep('validate_safe_remote_fetch_url_detail')(url_text)
         if not hop_ok:
             raise RemoteFetchError(
                 hop_reason or '重定向地址校验失败',
@@ -481,7 +487,7 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
                 source_url=raw_source_url,
                 safe_source_url=safe_source_url,
             )
-        return hop_safe
+        return hop_safe, hop_pinned
 
     try:
         if _dep('requests_support'):
@@ -489,15 +495,19 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
 
             requests_client = session if session is not None else _dep('requests_module')
             current_url = safe_source_url
+            current_pinned_ip = pinned_ip
             response = None
             for _hop in range(REMOTE_FETCH_MAX_REDIRECTS + 1):
-                response = requests_client.get(
-                    current_url,
-                    timeout=timeout,
-                    allow_redirects=False,
-                    stream=True,
-                    headers=safe_headers or None,
-                )
+                # 建连期间把域名解析固定为校验时的 IP，防止 rebinding 换答；
+                # 响应体在同一连接上读取，不再触发新的 DNS 解析。
+                with _dep('pinned_dns_resolution')(current_url, current_pinned_ip):
+                    response = requests_client.get(
+                        current_url,
+                        timeout=timeout,
+                        allow_redirects=False,
+                        stream=True,
+                        headers=safe_headers or None,
+                    )
                 status_code = int(response.status_code)
                 if 300 <= status_code < 400:
                     location = (response.headers.get('Location') or '').strip()
@@ -528,7 +538,7 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
                             safe_source_url=safe_source_url,
                         )
                     # 每一跳都重新校验，防止重定向进入内网地址。
-                    current_url = _validate_hop(next_url)
+                    current_url, current_pinned_ip = _validate_hop(next_url)
                     continue
                 break
 
@@ -564,14 +574,16 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
 
             httpx_client = session if session is not None else _dep('httpx_module')
             current_url = safe_source_url
+            current_pinned_ip = pinned_ip
             response = None
             for _hop in range(REMOTE_FETCH_MAX_REDIRECTS + 1):
-                response = httpx_client.get(
-                    current_url,
-                    timeout=timeout,
-                    follow_redirects=False,
-                    headers=safe_headers or None,
-                )
+                with _dep('pinned_dns_resolution')(current_url, current_pinned_ip):
+                    response = httpx_client.get(
+                        current_url,
+                        timeout=timeout,
+                        follow_redirects=False,
+                        headers=safe_headers or None,
+                    )
                 status_code = int(response.status_code)
                 if 300 <= status_code < 400:
                     location = (response.headers.get('Location') or '').strip()
@@ -601,7 +613,7 @@ def fetch_remote_url_content(source_url: str, *, allow_redirects: bool = False, 
                             source_url=raw_source_url,
                             safe_source_url=safe_source_url,
                         )
-                    current_url = _validate_hop(next_url)
+                    current_url, current_pinned_ip = _validate_hop(next_url)
                     continue
                 break
 
@@ -1406,6 +1418,8 @@ def configure_news_content(
     validate_uploaded_image_extension,
     validate_image_bytes,
     validate_safe_remote_fetch_url,
+    validate_safe_remote_fetch_url_detail=None,
+    pinned_dns_resolution=None,
     sanitize_public_text,
     sanitize_public_date_text,
     sanitize_public_link_url,
@@ -1439,6 +1453,14 @@ def configure_news_content(
         'get_uploaded_file_size': get_uploaded_file_size,
         'validate_image_bytes': validate_image_bytes,
         'validate_safe_remote_fetch_url': validate_safe_remote_fetch_url,
+        'validate_safe_remote_fetch_url_detail': (
+            validate_safe_remote_fetch_url_detail
+            or _default_validate_safe_remote_fetch_url_detail
+        ),
+        'pinned_dns_resolution': (
+            pinned_dns_resolution
+            or _default_pinned_dns_resolution
+        ),
         'sanitize_public_text': sanitize_public_text,
         'sanitize_public_date_text': sanitize_public_date_text,
         'sanitize_public_link_url': sanitize_public_link_url,
@@ -2727,6 +2749,8 @@ def register_news_content_routes(
     validate_uploaded_image_extension,
     validate_image_bytes,
     validate_safe_remote_fetch_url,
+    validate_safe_remote_fetch_url_detail=None,
+    pinned_dns_resolution=None,
     sanitize_public_text,
     sanitize_public_date_text,
     sanitize_public_link_url,
@@ -2758,6 +2782,8 @@ def register_news_content_routes(
         validate_uploaded_image_extension=validate_uploaded_image_extension,
         validate_image_bytes=validate_image_bytes,
         validate_safe_remote_fetch_url=validate_safe_remote_fetch_url,
+        validate_safe_remote_fetch_url_detail=validate_safe_remote_fetch_url_detail,
+        pinned_dns_resolution=pinned_dns_resolution,
         sanitize_public_text=sanitize_public_text,
         sanitize_public_date_text=sanitize_public_date_text,
         sanitize_public_link_url=sanitize_public_link_url,
@@ -3610,7 +3636,7 @@ body {
         if not source_url:
             log_import_failure('missing_url')
             return jsonify({'success': False, 'message': '缺少图片链接', 'reason': 'missing_url'}), 400
-        ok, reason, safe_source_url = _dep('validate_safe_remote_fetch_url')(source_url)
+        ok, reason, safe_source_url, pinned_ip = _dep('validate_safe_remote_fetch_url_detail')(source_url)
         if not ok:
             log_import_failure(
                 'validate_safe_remote_fetch_url',
@@ -3626,7 +3652,8 @@ body {
 
         try:
             if _dep('requests_support'):
-                resp = _dep('requests_module').get(safe_source_url, timeout=20, allow_redirects=False)
+                with _dep('pinned_dns_resolution')(safe_source_url, pinned_ip):
+                    resp = _dep('requests_module').get(safe_source_url, timeout=20, allow_redirects=False)
                 if 300 <= resp.status_code < 400:
                     log_import_failure(
                         'redirect_not_supported',
@@ -3640,7 +3667,8 @@ body {
                 content_type = (resp.headers.get('Content-Type') or '').split(';')[0].strip().lower()
                 content = resp.content or b''
             elif _dep('httpx_support'):
-                resp = _dep('httpx_module').get(safe_source_url, timeout=20.0, follow_redirects=False)
+                with _dep('pinned_dns_resolution')(safe_source_url, pinned_ip):
+                    resp = _dep('httpx_module').get(safe_source_url, timeout=20.0, follow_redirects=False)
                 if 300 <= resp.status_code < 400:
                     log_import_failure(
                         'redirect_not_supported',

@@ -82,7 +82,6 @@ eval "$(extract_fn collect_carried_env_for)"
 die() { echo "die: $*" >&2; exit 1; }
 info() { :; }
 WEBSITE_MANAGED_ENV_KEYS="$(grep -E '^WEBSITE_MANAGED_ENV_KEYS=' "$SRC" | head -n 1 | sed -e 's/^WEBSITE_MANAGED_ENV_KEYS=//' -e 's/^"//' -e 's/"$//')"
-CHECK_MANAGED_ENV_KEYS="$(grep -E '^CHECK_MANAGED_ENV_KEYS=' "$SRC" | head -n 1 | sed -e 's/^CHECK_MANAGED_ENV_KEYS=//' -e 's/^"//' -e 's/"$//')"
 
 managed_keys_contains() {
   local list="$1" key="$2"
@@ -151,7 +150,6 @@ assert_false "INDEXNOW_KEY 不是系统变量" is_system_env_key INDEXNOW_KEY
 assert_true "验证码变量已纳入网站托管清单" managed_keys_contains "$WEBSITE_MANAGED_ENV_KEYS" ADMIN_CAPTCHA_PROVIDER
 assert_true "ESA 变量已纳入网站托管清单" managed_keys_contains "$WEBSITE_MANAGED_ENV_KEYS" ADMIN_ESA_SCENE_ID
 assert_true "TURNSTILE 代理变量已纳入网站托管清单" managed_keys_contains "$WEBSITE_MANAGED_ENV_KEYS" TURNSTILE_PROXY_URL
-assert_true "CHECK_SECRET_KEY 纳入监测站托管清单" managed_keys_contains "$CHECK_MANAGED_ENV_KEYS" CHECK_SECRET_KEY
 
 # ---- is_runtime_merge_excluded ----
 assert_true "app.log 排除合并" is_runtime_merge_excluded app.log
@@ -173,7 +171,6 @@ assert_eq "带注册表端口且无 tag 时不误截" "localhost:5000/yx_website
 
 # ---- collect_carried_env_for ----
 CARRIED_WEBSITE_ENV=()
-CARRIED_CHECK_ENV=()
 collect_carried_env_for $'SMTP_HOST=smtp.163.com\nCHATBOT_API_KEY=sk-abc=def\nPATH=/usr/bin\nSECRET_KEY=managed-key\nBAD-NAME=x\nNOEQUALS\nEMPTY=\n' "$WEBSITE_MANAGED_ENV_KEYS" "website"
 assert_eq "继承变量条数（SMTP_HOST + CHATBOT_API_KEY）" "4" "${#CARRIED_WEBSITE_ENV[@]}"
 assert_true "SMTP_HOST 被继承" carried_env_contains "SMTP_HOST=smtp.163.com" "${CARRIED_WEBSITE_ENV[@]}"
@@ -185,11 +182,77 @@ assert_false "非法变量名不被继承" carried_env_contains "BAD-NAME=x" "${
 INDEXNOW_KEY=shell-override collect_carried_env_for $'INDEXNOW_KEY=old-container-value' "$WEBSITE_MANAGED_ENV_KEYS" "website"
 assert_true "同名 shell 环境变量优先于旧容器值" carried_env_contains "INDEXNOW_KEY=shell-override" "${CARRIED_WEBSITE_ENV[@]}"
 
-CARRIED_CHECK_ENV=()
-collect_carried_env_for $'CHECK_SCHEDULER_ENABLED=true\nCHECK_SECRET_KEY=managed\nHOME=/root\n' "$CHECK_MANAGED_ENV_KEYS" "check"
-assert_true "监测站自定义变量被继承" carried_env_contains "CHECK_SCHEDULER_ENABLED=true" "${CARRIED_CHECK_ENV[@]}"
-assert_false "监测站托管变量不被继承" carried_env_contains "CHECK_SECRET_KEY=managed" "${CARRIED_CHECK_ENV[@]}"
-assert_false "监测站系统变量不被继承" carried_env_contains "HOME=/root" "${CARRIED_CHECK_ENV[@]}"
+# ---- prompt_confirm_word_into（高风险确认输入容错）----
+eval "$(extract_fn prompt_confirm_word_into)"
+STUB_ANSWERS=()
+prompt_line_into() {
+  # 与真实函数行为对齐：空输入回落到 default_value（第 3 个参数），
+  # 否则带默认值的菜单会在空输入上无限重问。
+  # 注意：局部变量必须避开目标变量名（如 answer）——printf -v 按动态
+  # 作用域赋值，桩内同名局部会"吃掉"赋值，调用者变量永远为空。
+  local out_var="$1"
+  local default_value="${3:-}"
+  local stub_value="${STUB_ANSWERS[0]:-}"
+  if (( ${#STUB_ANSWERS[@]} > 0 )); then
+    STUB_ANSWERS=("${STUB_ANSWERS[@]:1}")
+  fi
+  if [[ -z "$stub_value" ]]; then
+    stub_value="$default_value"
+  fi
+  printf -v "$out_var" '%s' "$stub_value"
+}
+warn() { :; }
+
+confirm_stub_run() {
+  local out=""
+  prompt_confirm_word_into out "test" "YES" "测试操作"
+  printf '%s' "$out"
+}
+
+confirm_stub_dies() {
+  (
+    die() { exit 9; }
+    local out=""
+    STUB_ANSWERS=("$1")
+    prompt_confirm_word_into out "test" "YES" "测试操作" >/dev/null 2>&1
+  )
+}
+
+STUB_ANSWERS=('yes')
+assert_eq "确认词忽略大小写并规范化为大写" "YES" "$(confirm_stub_run)"
+
+STUB_ANSWERS=('' 'YES')
+assert_eq "空输入（吞按键）重问后接受" "YES" "$(confirm_stub_run)"
+
+STUB_ANSWERS=('3' 'keep' 'YES')
+assert_eq "误输数字/单词后重试接受" "YES" "$(confirm_stub_run)"
+
+STUB_ANSWERS=('RESET' 'YES')
+assert_eq "输错确认词重试后接受" "YES" "$(confirm_stub_run)"
+
+assert_rc "显式输入 n 立即取消" 9 confirm_stub_dies "n"
+assert_rc "连续 3 次错误后取消" 9 confirm_stub_dies "wrong1"
+
+# ---- choose_update_strategy（选择回显与解析）----
+eval "$(extract_fn choose_update_strategy)"
+# 函数体内的 ANSI 颜色变量在脚本头部定义，测试环境补齐桩值
+STYLE_RESET='' STYLE_BOLD='' STYLE_DIM='' STYLE_GREEN='' STYLE_YELLOW='' STYLE_BLUE='' STYLE_MAGENTA='' STYLE_CYAN=''
+success() { :; }
+print_rule() { :; }
+
+strategy_stub_run() {
+  STUB_ANSWERS=("$1")
+  choose_update_strategy 2>/dev/null
+}
+
+STUB_ANSWERS=('3')
+assert_eq "输入 3 解析为重置界面" "reset-keep-data" "$(strategy_stub_run '3')"
+STUB_ANSWERS=('2')
+assert_eq "输入 2 解析为全新重置" "reset" "$(strategy_stub_run '2')"
+STUB_ANSWERS=('')
+assert_eq "空输入回落默认智能合并" "smart" "$(strategy_stub_run '')"
+STUB_ANSWERS=('9' '1')
+assert_eq "非法输入重问后接受" "smart" "$(strategy_stub_run '9')"
 
 # ---- 汇总 ----
 printf '通过 %s 项，失败 %s 项\n' "$PASS_COUNT" "$FAIL_COUNT"

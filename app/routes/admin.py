@@ -1422,11 +1422,13 @@ def _save_login_attempts(file_path: Path, state):
 
 
 def _get_request_ip(req):
+    # 真实 IP 头优先级统一由 REAL_CLIENT_IP_HEADERS 环境变量决定（ESA 链路
+    # 配置为 Ali-Real-Client-IP,Ali-CDN-Real-IP），登录限流/地理围栏的取 IP
+    # 与全站限流保持同一口径，避免可伪造的头抢先命中。
     return get_request_client_ip(
         req,
         default_ip=((req.remote_addr or 'unknown').strip() or 'unknown'),
         trust_proxy_headers_default=False,
-        public_ip_header_names=('CF-Connecting-IP', 'CDN-Real-IP', 'Ali-CDN-Real-IP'),
     )
 
 
@@ -1821,18 +1823,31 @@ def _extract_admin_captcha_param(request, data):
     ).strip()
 
 
+# ESA 验证码的验签在边缘规则完成，应用侧无法本地验证签名；但真实
+# captchaVerifyParam 是 SDK 返回的长串不可打印空白字符的令牌。设置最低
+# 形态门槛（长度 + 无空白/控制字符），避免“边缘规则未配置时任意非空
+# 参数即可绕过人机验证”的退化行为。
+ADMIN_ESA_CAPTCHA_MIN_LENGTH = 32
+_ADMIN_ESA_CAPTCHA_SHAPE_RE = re.compile(r'^[A-Za-z0-9_\-.~+/=;:,(){}\[\]"%]{32,4096}$')
+
+
 def _verify_admin_captcha(settings, token, remote_ip=''):
     """验证后台登录挑战。
 
     Cloudflare 由源站调用 siteverify；ESA 的验签由边缘规则完成，应用只
-    检查前端确实提交了 ESA 返回的 captchaVerifyParam，避免未配置边缘规则
-    时完全绕过挑战。
+    检查前端确实提交了形态合法的 ESA captchaVerifyParam，未配置边缘规则
+    时至少无法用任意垃圾字符串绕过挑战。
     """
     if not settings.get('enabled'):
         return True, ''
     if not token:
         return False, '请先完成人机验证。'
     if settings.get('provider') == 'aliyun_esa':
+        if (
+            len(token) < ADMIN_ESA_CAPTCHA_MIN_LENGTH
+            or not _ADMIN_ESA_CAPTCHA_SHAPE_RE.match(token)
+        ):
+            return False, '人机验证参数无效，请重新完成验证。'
         return True, ''
     return _verify_turnstile_token(
         secret_key=settings.get('secret_key', ''),

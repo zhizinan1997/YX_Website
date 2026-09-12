@@ -187,5 +187,123 @@ class TrustedRemoteFetchServiceTests(unittest.TestCase):
         self.assertTrue(ok)
 
 
+class DnsPinningTests(unittest.TestCase):
+    def test_detail_validation_returns_resolved_ip_for_domains(self):
+        from app import request_security as rs
+
+        def fake_getaddrinfo(host, *args, **kwargs):
+            assert host == 'public.example'
+            return [(2, 1, 6, '', ('93.184.216.34', 443))]
+
+        with patch.object(rs, '_BASE_GETADDRINFO', fake_getaddrinfo):
+            ok, _reason, normalized, pinned_ip = rs.validate_safe_remote_fetch_url_detail(
+                'https://public.example/file'
+            )
+        self.assertTrue(ok)
+        self.assertEqual(normalized, 'https://public.example/file')
+        self.assertEqual(pinned_ip, '93.184.216.34')
+
+    def test_detail_validation_skips_pin_for_literal_ips(self):
+        from app import request_security as rs
+
+        ok, _reason, _normalized, pinned_ip = rs.validate_safe_remote_fetch_url_detail(
+            'https://1.2.3.4/file'
+        )
+        self.assertTrue(ok)
+        self.assertEqual(pinned_ip, '')
+
+    def test_pinned_resolution_forces_verified_ip(self):
+        import socket as socket_module
+
+        from app import request_security as rs
+
+        resolved_hosts = []
+
+        def fake_getaddrinfo(host, *args, **kwargs):
+            resolved_hosts.append(host)
+            return [(2, 1, 6, '', ('10.9.8.7', 443))]
+
+        with patch.object(rs, '_BASE_GETADDRINFO', fake_getaddrinfo):
+            with rs.pinned_dns_resolution('https://rebind.example/', '93.184.216.34'):
+                socket_module.getaddrinfo('rebind.example', 443)
+        # 命中 pin 栈：实际解析的是已验证 IP，而不是再次解析域名。
+        self.assertEqual(resolved_hosts, ['93.184.216.34'])
+
+    def test_pinned_resolution_is_inert_without_pin_ip(self):
+        import socket as socket_module
+
+        from app import request_security as rs
+
+        resolved_hosts = []
+
+        def fake_getaddrinfo(host, *args, **kwargs):
+            resolved_hosts.append(host)
+            return []
+
+        with patch.object(rs, '_BASE_GETADDRINFO', fake_getaddrinfo):
+            with rs.pinned_dns_resolution('https://1.2.3.4/file', ''):
+                socket_module.getaddrinfo('1.2.3.4', 443)
+        self.assertEqual(resolved_hosts, ['1.2.3.4'])
+
+
+class RealClientIpHeaderTests(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+
+    def _request(self, headers, remote_addr='10.0.0.9'):
+        return self.app.test_request_context('/', headers=headers, environ_base={'REMOTE_ADDR': remote_addr})
+
+    def test_default_prefers_cf_connecting_ip_when_unconfigured(self):
+        from app.request_security import get_request_client_ip
+
+        with patch.dict(os.environ, {'REAL_CLIENT_IP_HEADERS': ''}):
+            with self._request({'CF-Connecting-IP': '93.184.216.34'}):
+                self.assertEqual(get_request_client_ip(request), '93.184.216.34')
+
+    def test_configured_header_wins_over_spoofable_ones(self):
+        from app.request_security import get_request_client_ip
+
+        env = {
+            'REAL_CLIENT_IP_HEADERS': 'Ali-Real-Client-IP,Ali-CDN-Real-IP',
+            'TRUST_PROXY_HEADERS': 'true',
+        }
+        with patch.dict(os.environ, env):
+            with self._request({
+                'CF-Connecting-IP': '8.8.4.4',
+                'Ali-Real-Client-IP': '93.184.216.34',
+                'X-Forwarded-For': '8.8.4.4, 1.0.0.1',
+            }):
+                self.assertEqual(get_request_client_ip(request), '93.184.216.34')
+
+    def test_strict_mode_ignores_spoofable_headers_when_edge_header_missing(self):
+        from app.request_security import get_request_client_ip
+
+        env = {
+            'REAL_CLIENT_IP_HEADERS': 'Ali-Real-Client-IP',
+            'TRUST_PROXY_HEADERS': 'true',
+        }
+        with patch.dict(os.environ, env):
+            # 绕过 CDN 直连源站的攻击流量：伪造 CF-Connecting-IP / X-Real-IP
+            # 不得生效，应收敛到 XFF 最右公网（反代追加的边缘/代理地址）。
+            with self._request({
+                'CF-Connecting-IP': '8.8.4.4',
+                'X-Real-IP': '8.8.4.4',
+                'X-Forwarded-For': '8.8.4.4, 1.0.0.1',
+            }):
+                self.assertEqual(get_request_client_ip(request), '1.0.0.1')
+
+    def test_strict_mode_falls_back_to_direct_when_only_spoofable_headers(self):
+        from app.request_security import get_request_client_ip
+
+        env = {
+            'REAL_CLIENT_IP_HEADERS': 'Ali-Real-Client-IP',
+            'TRUST_PROXY_HEADERS': 'true',
+        }
+        with patch.dict(os.environ, env):
+            # 只有可伪造头、没有 XFF 时：不再采信 CF/X-Real-IP，收敛到直连地址。
+            with self._request({'CF-Connecting-IP': '8.8.4.4', 'X-Real-IP': '8.8.4.4'}):
+                self.assertEqual(get_request_client_ip(request), '10.0.0.9')
+
+
 if __name__ == "__main__":
     unittest.main()

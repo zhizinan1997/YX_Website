@@ -51,7 +51,6 @@ tmp_*.html
 data/admin_users.json
 data/chatbot_conversation_logs.jsonl
 data/site_analytics_events.jsonl
-/check_data/
 
 # Local scratch conversion artifacts
 /mp4/

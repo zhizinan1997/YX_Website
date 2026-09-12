@@ -111,11 +111,9 @@ is_system_env_key() {
 }
 
 # 脚本托管的变量已单独解析，继承时跳过，避免 docker run 出现重复 -e。
-WEBSITE_MANAGED_ENV_KEYS="APP_ENV SECRET_KEY PUBLIC_BASE_URL TRUST_PROXY_HEADERS SESSION_COOKIE_SECURE ADMIN_USERNAME ADMIN_PASSWORD ADMIN_PASSWORD_HASH HIDDEN_ADMIN_USERNAME HIDDEN_ADMIN_PASSWORD HIDDEN_ADMIN_PASSWORD_HASH CDN_ENABLED CDN_DOMAIN TURNSTILE_ENABLED TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY ADMIN_CAPTCHA_PROVIDER ADMIN_ESA_IDENTITY ADMIN_ESA_SCENE_ID ADMIN_ESA_REGION TURNSTILE_PROXY_URL TURNSTILE_PROXY_FALLBACK_ENABLED ALLOW_WEAK_ADMIN_PASSWORDS CHECK_SECRET_KEY APP_VERSION APP_BUILD_TIME PORT DOCKER_CONTAINER_1_NAME DOCKER_LOG_FALLBACK_APP_FILES"
-CHECK_MANAGED_ENV_KEYS="CHECK_SECRET_KEY CHECK_TRUST_PROXY_HEADERS CHECK_SESSION_COOKIE_SECURE CHECK_MAIN_DATA_DIR CHECK_DATA_DIR CHECK_PORT PORT"
+WEBSITE_MANAGED_ENV_KEYS="APP_ENV SECRET_KEY PUBLIC_BASE_URL TRUST_PROXY_HEADERS SESSION_COOKIE_SECURE ADMIN_USERNAME ADMIN_PASSWORD ADMIN_PASSWORD_HASH HIDDEN_ADMIN_USERNAME HIDDEN_ADMIN_PASSWORD HIDDEN_ADMIN_PASSWORD_HASH CDN_ENABLED CDN_DOMAIN TURNSTILE_ENABLED TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY ADMIN_CAPTCHA_PROVIDER ADMIN_ESA_IDENTITY ADMIN_ESA_SCENE_ID ADMIN_ESA_REGION TURNSTILE_PROXY_URL TURNSTILE_PROXY_FALLBACK_ENABLED ALLOW_WEAK_ADMIN_PASSWORDS APP_VERSION APP_BUILD_TIME PORT DOCKER_CONTAINER_1_NAME DOCKER_LOG_FALLBACK_APP_FILES"
 
 CARRIED_WEBSITE_ENV=()
-CARRIED_CHECK_ENV=()
 
 # 把旧容器里脚本未托管的应用环境变量继承到新容器（v4.4.0 后新增了大量
 # 可选环境变量：CHATBOT/PRODUCT_AI/PASSKEY/SMTP/INDEXNOW/BAIDU_PUSH_TOKEN 等，
@@ -141,11 +139,7 @@ collect_carried_env_for() {
     else
       source_label="继承自旧容器"
     fi
-    if [[ "$target" == "website" ]]; then
-      CARRIED_WEBSITE_ENV+=( "-e" "${key}=${value}" )
-    else
-      CARRIED_CHECK_ENV+=( "-e" "${key}=${value}" )
-    fi
+    CARRIED_WEBSITE_ENV+=( "-e" "${key}=${value}" )
     info "继承环境变量：${key}（${source_label}，值不在日志显示）"
   done <<< "$lines"
 }
@@ -153,8 +147,7 @@ collect_carried_env_for() {
 resolve_carried_env() {
   phase "继承旧容器环境变量"
   collect_carried_env_for "$EXISTING_ENV_LINES" "$WEBSITE_MANAGED_ENV_KEYS" "website"
-  collect_carried_env_for "$EXISTING_CHECK_ENV_LINES" "$CHECK_MANAGED_ENV_KEYS" "check"
-  if (( ${#CARRIED_WEBSITE_ENV[@]} == 0 )) && (( ${#CARRIED_CHECK_ENV[@]} == 0 )); then
+  if (( ${#CARRIED_WEBSITE_ENV[@]} == 0 )); then
     info "未发现需要继承的额外环境变量。"
   fi
 }
@@ -290,6 +283,44 @@ prompt_line_into() {
   printf -v "$out_var" '%s' "$input"
 }
 
+# 高风险操作的确认输入：与一次性确认不同，这里必须容错——
+# 宝塔等 web 终端常见"按键已敲但行没进缓冲/回车被吞成空行/大小写差异"，
+# 直接 die 会让用户以为"输入了却被说没输入"。因此：空输入与小写差异都
+# 给出明确提示并重问（最多 3 次）；显式取消词才终止；确认词忽略大小写。
+prompt_confirm_word_into() {
+  local out_var="$1"
+  local prompt="$2"
+  local expected_word="$3"
+  local cancel_label="$4"
+  local attempt=""
+  local input=""
+  local expected_lower=""
+
+  expected_lower="$(printf '%s' "$expected_word" | tr '[:upper:]' '[:lower:]')"
+
+  for attempt in 1 2 3; do
+    prompt_line_into input "$prompt（输入 $expected_word 继续，输入 n 取消）" "" false
+    if [[ -z "$input" ]]; then
+      warn "未检测到输入（终端可能吞掉了按键），请重新输入 $expected_word。"
+      continue
+    fi
+    case "$(printf '%s' "$input" | tr '[:upper:]' '[:lower:]')" in
+      "$expected_lower")
+        printf -v "$out_var" '%s' "$expected_word"
+        return 0
+        ;;
+      n|no|q|quit|取消|退出)
+        die "已输入取消指令，$cancel_label 已取消。"
+        ;;
+      *)
+        warn "第 $attempt/3 次输入的是「$input」，与确认词 $expected_word 不一致（注意是英文单词，不是数字）。"
+        ;;
+    esac
+  done
+
+  die "连续 3 次未输入正确的确认词 $expected_word，$cancel_label 已取消。如多次出现按键丢失，建议改用 SSH 终端执行本脚本。"
+}
+
 prompt_confirm_secret_into() {
   local out_var="$1"
   local prompt="$2"
@@ -337,10 +368,23 @@ choose_update_strategy() {
   while true; do
     prompt_line_into answer "请输入 1、2 或 3" "1" false
     case "$answer" in
-      1) printf 'smart'; return 0 ;;
-      2) printf 'reset'; return 0 ;;
-      3) printf 'reset-keep-data'; return 0 ;;
-      *) warn "输入无效，请输入 1、2 或 3。" ;;
+      1)
+        # 空输入会落到默认值 1：终端吞按键时用户以为选了 2/3，必须
+        # 大声回显实际注册的选择，避免静默走错分支。
+        success "已选择：1) 智能合并更新"
+        printf 'smart'; return 0
+        ;;
+      2)
+        success "已选择：2) 全新部署重置（稍后需输入 RESET 二次确认）"
+        printf 'reset'; return 0
+        ;;
+      3)
+        success "已选择：3) 重置界面，保留用户数据（稍后需输入 YES 二次确认）"
+        printf 'reset-keep-data'; return 0
+        ;;
+      *)
+        warn "输入无效，收到的是「$answer」，请输入 1、2 或 3。"
+        ;;
     esac
   done
 }
@@ -360,8 +404,7 @@ confirm_reset_action() {
   printf '%b%s%b\n' "$STYLE_YELLOW" '这意味着客户后台数据、留言、上传文件、页面手工修改都将被新版本内容替换。' "$STYLE_RESET" >&2
   print_rule
 
-  prompt_line_into answer "如确认继续，请输入 RESET" "" false
-  [[ "$answer" == "RESET" ]] || die "未输入 RESET，已取消全新部署重置。"
+  prompt_confirm_word_into answer "如确认继续，请输入 RESET" "RESET" "全新部署重置"
 }
 
 confirm_reset_keep_data_action() {
@@ -381,8 +424,7 @@ confirm_reset_keep_data_action() {
   printf '  - %s（用户数据、配置、留言、管理员账号等）\n' "$DATA_DIR" >&2
   print_rule
 
-  prompt_line_into answer "如确认继续，请输入 YES" "" false
-  [[ "$answer" == "YES" ]] || die "未输入 YES，已取消操作。"
+  prompt_confirm_word_into answer "如确认继续，请输入 YES" "YES" "重置界面（保留用户数据）"
 }
 
 copy_with_parents() {
@@ -669,7 +711,6 @@ backup_existing_content_before_update() {
   backup_dir_if_exists "$DATA_DIR" "$backup_root" "data"
   backup_dir_if_exists "$PAGES_DIR" "$backup_root" "pages"
   backup_dir_if_exists "$CDN_ASSETS_DIR" "$backup_root" "cdn_assets"
-  backup_dir_if_exists "$CHECK_DATA_DIR" "$backup_root" "check_data"
   backup_dir_if_exists "$LEGACY_CDN_DIR" "$backup_root" "legacy_cdn"
   if [[ -f "$DATA_DIR/config.json" ]]; then
     mkdir -p "$backup_root/config"
@@ -829,16 +870,6 @@ get_existing_env() {
   done
 }
 
-get_existing_check_env() {
-  local key="$1"
-  if [[ -z "${EXISTING_CHECK_ENV_LINES:-}" ]]; then
-    return 0
-  fi
-  awk -F= -v k="$key" '$1==k { $1=""; sub(/^=/, ""); print; exit }' <<< "$EXISTING_CHECK_ENV_LINES" | while IFS= read -r line; do
-    printf '%s' "$(trim "$line")"
-  done
-}
-
 resolve_basic_runtime_values() {
   local value_source=""
 
@@ -927,41 +958,6 @@ resolve_secret_key() {
   info "SECRET_KEY 已确认（来源：${source}，长度：${#SECRET_KEY_VAL}）"
 }
 
-resolve_check_secret_key() {
-  local value=""
-  local source=""
-
-  value="$(trim "${CHECK_SECRET_KEY:-}")"
-  if [[ -n "$value" ]]; then
-    source="当前 shell 环境变量"
-  else
-    value="$(get_existing_check_env "CHECK_SECRET_KEY")"
-    if [[ -n "$value" ]]; then
-      source="旧监测站容器环境变量"
-    fi
-  fi
-
-  if [[ -n "$value" && ${#value} -lt 32 ]]; then
-    warn "检测到的 CHECK_SECRET_KEY 长度不足 32 位，将改为交互输入。"
-    value=""
-    source=""
-  fi
-
-  if [[ -n "$value" ]] && is_placeholder_secret "$value"; then
-    warn "检测到 CHECK_SECRET_KEY 是常见占位值，生产环境会被应用拒绝，将改为交互输入。"
-    value=""
-    source=""
-  fi
-
-  if [[ -z "$value" ]]; then
-    prompt_confirm_secret_into value "请输入监测站 CHECK_SECRET_KEY（至少 32 位，生产环境务必固定不变）" 32
-    source="交互输入"
-  fi
-
-  CHECK_SECRET_KEY_VAL="$value"
-  info "CHECK_SECRET_KEY 已确认（来源：${source}，长度：${#CHECK_SECRET_KEY_VAL}）"
-}
-
 resolve_public_base_url() {
   local value=""
   local normalized=""
@@ -971,8 +967,14 @@ resolve_public_base_url() {
   normalized="$(normalize_public_base_url "$value")"
 
   if [[ -z "$normalized" ]]; then
+    # 只把"本身合法"的值作为默认值回显；无效值当默认值会出现
+    # "按回车永远提交同一个非法值"的死循环。
+    local default_url=""
+    if [[ -n "$value" ]]; then
+      default_url="$(normalize_public_base_url "$value")"
+    fi
     while true; do
-      prompt_line_into value "请输入站点公开访问地址，例如 https://test.hnmetachip.cn" "$value" false
+      prompt_line_into value "请输入站点公开访问地址，例如 https://test.hnmetachip.cn" "$default_url" false
       normalized="$(normalize_public_base_url "$value")"
       if [[ -n "$normalized" ]]; then
         source="交互输入"
@@ -1067,15 +1069,6 @@ load_existing_state() {
     HAS_LEGACY_GATEWAY_CONTAINER=true
   fi
 
-  HAS_CHECK_CONTAINER=false
-  EXISTING_CHECK_ENV_LINES=""
-  EXISTING_CHECK_IMAGE_REF=""
-  if docker container inspect "$CHECK_CONTAINER" >/dev/null 2>&1; then
-    HAS_CHECK_CONTAINER=true
-    EXISTING_CHECK_ENV_LINES="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CHECK_CONTAINER" || true)"
-    EXISTING_CHECK_IMAGE_REF="$(docker inspect -f '{{.Image}}' "$CHECK_CONTAINER" || true)"
-  fi
-
   # 操作者若曾用非默认端口部署，升级时自动沿用，避免静默回到默认端口导致回源断开
   if [[ "$HAS_WEBSITE_CONTAINER" == "true" ]]; then
     local detected_main_port
@@ -1085,15 +1078,6 @@ load_existing_state() {
       MAIN_PORT="$detected_main_port"
     fi
   fi
-  if [[ "$HAS_CHECK_CONTAINER" == "true" ]]; then
-    local detected_check_port
-    detected_check_port="$(detect_published_host_port "$CHECK_CONTAINER")"
-    if [[ -z "$CHECK_PORT_EXPLICIT" && -n "$detected_check_port" && "$detected_check_port" != "$CHECK_PORT" ]]; then
-      info "检测到旧监测站容器端口映射为 127.0.0.1:${detected_check_port}，自动沿用（可用 CHECK_PORT 环境变量覆盖）。"
-      CHECK_PORT="$detected_check_port"
-    fi
-  fi
-
   DATA_FILE_COUNT="$(count_regular_files "$DATA_DIR")"
   PAGES_FILE_COUNT="$(count_regular_files "$PAGES_DIR")"
   LEGACY_CDN_FILE_COUNT="$(count_regular_files "$LEGACY_CDN_DIR")"
@@ -1109,7 +1093,6 @@ determine_deploy_kind_and_strategy() {
   phase "识别部署场景"
   info "website 容器是否存在：$HAS_WEBSITE_CONTAINER"
   info "旧版 gateway 容器是否存在：$HAS_LEGACY_GATEWAY_CONTAINER"
-  info "监测站容器是否存在：$HAS_CHECK_CONTAINER"
   info "宿主机 data 文件数：$DATA_FILE_COUNT"
   info "宿主机 pages 文件数：$PAGES_FILE_COUNT"
   info "旧版宿主机 cdn_assets 文件数：$LEGACY_CDN_FILE_COUNT"
@@ -1145,7 +1128,7 @@ determine_deploy_kind_and_strategy() {
 
 prepare_directories_and_network() {
   phase "准备目录和 Docker 网络"
-  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$DATA_DIR/logs" "$CHECK_DATA_DIR"
+  mkdir -p "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$DATA_DIR/logs"
 
   if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
     info "Docker 网络已存在：$NETWORK_NAME"
@@ -1195,15 +1178,6 @@ preserve_previous_images() {
       warn "旧版网站镜像标记失败（$EXISTING_IMAGE_REF），如需回退可能要重新拉取旧版镜像。"
     fi
   fi
-  if [[ -n "${EXISTING_CHECK_IMAGE_REF:-}" ]]; then
-    local previous_check_tag
-    previous_check_tag="$(image_repo_without_tag "$CHECK_IMAGE"):previous"
-    if docker tag "$EXISTING_CHECK_IMAGE_REF" "$previous_check_tag" >/dev/null 2>&1; then
-      info "旧版监测站镜像已保留为：$previous_check_tag"
-    else
-      warn "旧版监测站镜像标记失败（$EXISTING_CHECK_IMAGE_REF）。"
-    fi
-  fi
 }
 
 # 记录本次实际部署的镜像版本：CI 打的 OCI 标签里带 git 提交号，
@@ -1236,14 +1210,11 @@ pull_latest_images() {
     info "SKIP_IMAGE_PULL=true，跳过镜像拉取，使用本机已有镜像：$WEBSITE_IMAGE"
     preserve_previous_images
     record_deployed_image "网站" "$WEBSITE_IMAGE"
-    record_deployed_image "监测站" "$CHECK_IMAGE"
     return 0
   fi
   preserve_previous_images
   pull_with_timeout "$WEBSITE_IMAGE" "网站"
-  pull_with_timeout "$CHECK_IMAGE" "监测站"
   record_deployed_image "网站" "$WEBSITE_IMAGE"
-  record_deployed_image "监测站" "$CHECK_IMAGE"
 }
 
 prepare_content_for_fresh_or_reset() {
@@ -1288,7 +1259,6 @@ rollback_containers() {
   warn "正在尝试回滚到旧容器..."
   docker rm -f "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
   docker rm -f "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
-  docker rm -f "$CHECK_CONTAINER" >/dev/null 2>&1 || true
 
   if [[ "$has_old_website" == "true" ]]; then
     docker rename "${WEBSITE_CONTAINER}-old" "$WEBSITE_CONTAINER" >/dev/null 2>&1 || true
@@ -1302,11 +1272,6 @@ rollback_containers() {
     info "已回滚旧版 gateway 容器"
   fi
 
-  if [[ "${has_old_check:-false}" == "true" ]]; then
-    docker rename "${CHECK_CONTAINER}-old" "$CHECK_CONTAINER" >/dev/null 2>&1 || true
-    docker start "$CHECK_CONTAINER" >/dev/null 2>&1 || true
-    info "已回滚监测站容器到旧版本"
-  fi
 }
 
 recreate_containers() {
@@ -1315,7 +1280,6 @@ recreate_containers() {
   # 停止并重命名旧容器（保留以备回滚）
   local has_old_website=false
   local has_old_gateway=false
-  local has_old_check=false
 
   if docker container inspect "$WEBSITE_CONTAINER" >/dev/null 2>&1; then
     info "正在停止旧网站容器并重命名为 ${WEBSITE_CONTAINER}-old"
@@ -1329,13 +1293,6 @@ recreate_containers() {
     docker stop "$LEGACY_GATEWAY_CONTAINER" >/dev/null 2>&1 || true
     docker rename "$LEGACY_GATEWAY_CONTAINER" "${LEGACY_GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
     has_old_gateway=true
-  fi
-
-  if docker container inspect "$CHECK_CONTAINER" >/dev/null 2>&1; then
-    info "正在停止旧监测站容器并重命名为 ${CHECK_CONTAINER}-old"
-    docker stop "$CHECK_CONTAINER" >/dev/null 2>&1 || true
-    docker rename "$CHECK_CONTAINER" "${CHECK_CONTAINER}-old" >/dev/null 2>&1 || true
-    has_old_check=true
   fi
 
   website_cmd=(
@@ -1459,57 +1416,6 @@ recreate_containers() {
 
   success "新容器已通过稳定性验证。"
 
-  # ---- 监测站容器 ----
-  info "正在启动监测站容器：$CHECK_CONTAINER"
-  info "监测站容器网络：${NETWORK_NAME}，网络别名：${CHECK_CONTAINER}"
-  info "监测站容器挂载：$DATA_DIR -> /app/main_data (只读)"
-  info "监测站容器挂载：$CHECK_DATA_DIR -> /app/check_data"
-
-  check_cmd=(
-    docker run -d
-    --name "$CHECK_CONTAINER"
-    --restart unless-stopped
-    --network "$NETWORK_NAME"
-    --network-alias "$CHECK_CONTAINER"
-    -p "127.0.0.1:${CHECK_PORT}:8000"
-    -e "CHECK_SECRET_KEY=$CHECK_SECRET_KEY_VAL"
-    -e "CHECK_TRUST_PROXY_HEADERS=true"
-    -e "CHECK_SESSION_COOKIE_SECURE=true"
-    -e "CHECK_MAIN_DATA_DIR=/app/main_data"
-    -e "CHECK_DATA_DIR=/app/check_data"
-    -v "$DATA_DIR:/app/main_data:ro"
-    -v "$CHECK_DATA_DIR:/app/check_data"
-  )
-  if (( ${#CARRIED_CHECK_ENV[@]} > 0 )); then
-    check_cmd+=( "${CARRIED_CHECK_ENV[@]}" )
-  fi
-  check_cmd+=( "$CHECK_IMAGE" )
-
-  set +e
-  CHECK_CONTAINER_ID="$("${check_cmd[@]}" 2>&1)"
-  local ck_exit=$?
-  set -e
-
-  if (( ck_exit != 0 )); then
-    warn "监测站容器启动失败（退出码：$ck_exit）：$CHECK_CONTAINER_ID"
-    warn "主站容器已成功启动，监测站容器启动失败不影响主站运行。"
-  else
-    success "监测站容器启动成功，容器 ID：${CHECK_CONTAINER_ID:0:12}"
-
-    if ! docker network connect bridge "$CHECK_CONTAINER" 2>/dev/null; then
-      info "监测站容器已在 bridge 网络中，跳过。"
-    else
-      info "已将监测站容器连接到 bridge 网络。"
-    fi
-
-    sleep 2
-    if docker ps --filter "name=^/${CHECK_CONTAINER}$" --format '{{.Names}}' | grep -qx "$CHECK_CONTAINER"; then
-      success "监测站容器已通过稳定性验证。"
-    else
-      warn "监测站容器启动后未能稳定运行，请执行 docker logs $CHECK_CONTAINER 查看原因。主站不受影响。"
-    fi
-  fi
-
   # 新容器正常运行，清理旧容器
   if [[ "$has_old_website" == "true" ]]; then
     docker rm -f "${WEBSITE_CONTAINER}-old" >/dev/null 2>&1 || true
@@ -1519,21 +1425,13 @@ recreate_containers() {
     docker rm -f "${LEGACY_GATEWAY_CONTAINER}-old" >/dev/null 2>&1 || true
     info "已清理旧版 gateway 容器"
   fi
-  if [[ "$has_old_check" == "true" ]]; then
-    docker rm -f "${CHECK_CONTAINER}-old" >/dev/null 2>&1 || true
-    info "已清理旧监测站容器"
-  fi
 }
 
 verify_containers() {
   phase "验证容器运行状态"
-  for c in "$WEBSITE_CONTAINER" "$CHECK_CONTAINER"; do
+  for c in "$WEBSITE_CONTAINER"; do
     if ! docker ps --filter "name=^/${c}$" --format '{{.Names}}' | grep -qx "$c"; then
-      if [[ "$c" == "$CHECK_CONTAINER" ]]; then
-        warn "监测站容器 '$c' 未正常运行，请执行 docker logs $c 查看原因。主站不受影响。"
-      else
-        die "容器 '$c' 未正常运行，请执行 docker logs $c 查看原因。"
-      fi
+      die "容器 '$c' 未正常运行，请执行 docker logs $c 查看原因。"
     else
       info "容器运行正常：$c"
       info "容器详情摘要：$(docker ps --filter "name=^/${c}$" --format '{{.Names}} | {{.Image}} | {{.Status}}')"
@@ -1568,19 +1466,6 @@ verify_containers() {
       warn "后台入口 /admin 暂未通过验证，请上线后手动检查后台登录。"
     fi
 
-    local check_http_ok=false
-    for _ in $(seq 1 10); do
-      if curl -sf -o /dev/null --max-time 3 "http://127.0.0.1:${CHECK_PORT}/"; then
-        check_http_ok=true
-        break
-      fi
-      sleep 1
-    done
-    if [[ "$check_http_ok" == "true" ]]; then
-      success "监测站 HTTP 服务验证通过：http://127.0.0.1:${CHECK_PORT}/"
-    else
-      warn "监测站 HTTP 服务在 10 秒内未就绪，请手动验证 http://127.0.0.1:${CHECK_PORT}/"
-    fi
   else
     info "未检测到 curl，跳过 HTTP 可用性验证。"
   fi
@@ -1626,10 +1511,6 @@ show_help() {
   WEBSITE_CONTAINER=yx-website
   WEBSITE_IMAGE=ghcr.io/zhizinan1997/yx_website:latest
   MAIN_PORT=2026                    # 未指定时自动沿用旧容器的端口映射
-  CHECK_CONTAINER=yx-check-site
-  CHECK_IMAGE=ghcr.io/zhizinan1997/yx_website-check:latest
-  CHECK_PORT=2028                   # 未指定时自动沿用旧容器的端口映射
-  CHECK_SECRET_KEY=...
   CLEAN_OLD_IMAGES=true
   SKIP_IMAGE_PULL=true|false
   DEPLOY_STRATEGY=smart|reset|reset-keep-data
@@ -1674,12 +1555,8 @@ WEBSITE_CONTAINER="${WEBSITE_CONTAINER:-yx-website}"
 # 这里只保留旧容器名称用于升级成功后的清理和失败回滚。
 LEGACY_GATEWAY_CONTAINER="${LEGACY_GATEWAY_CONTAINER:-${GATEWAY_CONTAINER:-yx-gateway}}"
 WEBSITE_IMAGE="${WEBSITE_IMAGE:-ghcr.io/zhizinan1997/yx_website:latest}"
-CHECK_CONTAINER="${CHECK_CONTAINER:-yx-check-site}"
-CHECK_IMAGE="${CHECK_IMAGE:-ghcr.io/zhizinan1997/yx_website-check:latest}"
 # 端口先记录是否被显式指定：未指定时会在 load_existing_state 中自动沿用旧容器映射
 MAIN_PORT_EXPLICIT="${MAIN_PORT:-}"
-CHECK_PORT_EXPLICIT="${CHECK_PORT:-}"
-CHECK_PORT="${CHECK_PORT:-2028}"
 MAIN_PORT="${MAIN_PORT:-2026}"
 CLEAN_OLD_IMAGES="${CLEAN_OLD_IMAGES:-true}"
 DEPLOY_RECORD_FILE="$YX_ROOT/.deploy-history.log"
@@ -1687,7 +1564,6 @@ DEPLOY_RECORD_FILE="$YX_ROOT/.deploy-history.log"
 DATA_DIR="$YX_ROOT/data"
 PAGES_DIR="$YX_ROOT/pages"
 CDN_ASSETS_DIR="$YX_ROOT/cdn_assets"
-CHECK_DATA_DIR="$YX_ROOT/check_data"
 LEGACY_UPDATE_LOGS_DIR="$YX_ROOT/update_logs"
 LEGACY_CDN_DIR="$YX_ROOT/cdn"
 DATA_BASELINE_DIR="$YX_ROOT/.data-image-baseline"
@@ -1733,9 +1609,7 @@ fi
 phase "开始执行站点部署脚本"
 info "脚本目标目录：$YX_ROOT"
 info "网站镜像：$WEBSITE_IMAGE"
-info "监测站镜像：$CHECK_IMAGE"
 info "主站端口：$MAIN_PORT"
-info "监测站端口：$CHECK_PORT"
 info "CDN 专用入口已废弃；/cdn_assets 会走主站端口并交给 ESA 缓存。"
 
 load_existing_state
@@ -1743,7 +1617,6 @@ determine_deploy_kind_and_strategy
 backup_existing_content_before_update
 resolve_basic_runtime_values
 resolve_secret_key
-resolve_check_secret_key
 resolve_public_base_url
 resolve_carried_env
 prepare_directories_and_network
@@ -1762,7 +1635,7 @@ resolve_admin_bootstrap_if_needed
 validate_hidden_admin_runtime_values
 
 phase "修复挂载目录权限"
-chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" "$CHECK_DATA_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
+chmod -R a+rX "$DATA_DIR" "$PAGES_DIR" "$CDN_ASSETS_DIR" 2>/dev/null || warn "部分文件权限修复失败，运行时可能出现权限问题，请检查目录所有者和权限。"
 # v4.7.0 应用端已把密钥/凭据文件收紧为仅属主可读；上面的 a+rX 会重新放开，
 # 必须再收紧，否则 config.json（含 SMTP 凭据与口令哈希）等在宿主机上全局可读。
 for secret_file in \
@@ -1795,7 +1668,6 @@ if [[ "$DEPLOY_KIND" == "update" ]]; then
   info "本次更新策略：$DEPLOY_STRATEGY_MODE"
 fi
 success "主站入口：http://127.0.0.1:${MAIN_PORT}"
-success "监测站入口：http://127.0.0.1:${CHECK_PORT}"
 success "CDN 素材入口已合并到主站：/cdn_assets/"
 if has_regular_files "$DATA_CONFLICTS_DIR"; then
   warn "检测到 data 合并冲突，请检查：$DATA_CONFLICTS_DIR"

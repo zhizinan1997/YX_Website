@@ -108,13 +108,19 @@ def parse_jobs_from_html(html_text):
 
 
 def clean_job_text(value: str) -> str:
-    """规范化岗位字段中的旧版空白与 HTML 实体。"""
+    """规范化岗位字段中的旧版空白与 HTML 实体。
+
+    这些字段会以纯文本形式插入前端 innerHTML，因此先 unescape 还原实体、
+    再剥掉全部内联标签，避免 `<img onerror=...>` 之类的存储型 XSS 借
+    `&lt;` 实体回流。
+    """
     if value is None:
         return ''
     text = str(value)
     text = text.replace('\u00a0', ' ')
     text = re.sub(r'&nbsp;?', ' ', text, flags=re.IGNORECASE)
     text = html.unescape(text)
+    text = re.sub(r'<[^>]*>', ' ', text)
     text = text.replace('\u00a0', ' ')
     return re.sub(r'\s+', ' ', text).strip()
 

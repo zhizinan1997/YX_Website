@@ -76,6 +76,7 @@ from urllib.parse import urlparse
 
 from flask import current_app, jsonify, request, send_file, session
 
+from app.atomic_io import cross_process_file_lock
 from app.rate_limit_store import check_and_record
 from app.routes.promotion_links import load_promotion_links, normalize_promotion_mark
 
@@ -90,6 +91,9 @@ SITE_ANALYTICS_AI_GENERATION_LOCK_FILE = Path(__file__).resolve().parents[2] / '
 SITE_ANALYTICS_AI_PDF_LOCK_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_ai_report_pdf.lock'
 SITE_ANALYTICS_LOCK = threading.Lock()
 SITE_ANALYTICS_AI_REPORTS_LOCK = threading.RLock()
+# 索引 index.json 的读改写除线程锁外还需跨进程互斥：gunicorn 多 worker
+# 并发追加/删除报告时，仅线程锁会导致互相覆盖丢条目。
+SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE = SITE_ANALYTICS_AI_REPORTS_DIR / 'index.lock'
 SITE_ANALYTICS_AI_JOBS_LOCK = threading.Lock()
 BEIJING_TZ = timezone(timedelta(hours=8))
 LOGGER = logging.getLogger(__name__)
@@ -1054,11 +1058,16 @@ def _analytics_bucket_seed(label: str, bucket_start, bucket_end):
     }
 
 
+# 日期区间桶数硬上限：管理端传入极端区间（如 0001-9999）时不再逐日/逐周
+# 构造百万级桶字典拖垮 worker。正常报表（日粒度一年 ≈ 366 桶）不受影响。
+_ANALYTICS_MAX_RANGE_BUCKETS = 400
+
+
 def _analytics_build_range_buckets(start_date, end_date, granularity: str):
     bucket_keys = []
     buckets = {}
     cursor = start_date
-    while cursor <= end_date:
+    while cursor <= end_date and len(bucket_keys) < _ANALYTICS_MAX_RANGE_BUCKETS:
         bucket_key = _analytics_bucket_key_for_date(cursor, granularity)
         bucket_end = min(_analytics_bucket_end_for_date(cursor, granularity), end_date)
         bucket_keys.append(bucket_key)
@@ -1788,10 +1797,33 @@ def _analytics_log_flock():
                 _analytics_fcntl.flock(handle.fileno(), _analytics_fcntl.LOCK_UN)
 
 
-# 埋点 JSONL 的体量保护：超过该大小后在追加时裁剪到最近 _ANALYTICS_LOG_KEEP_LINES 行，
+# 埋点 JSONL 的体量保护：超过该大小后在追加时裁剪到最近的尾部内容，
 # 防止文件无限增长拖垮报表构建（全量载入内存）与磁盘。
 ANALYTICS_LOG_MAX_BYTES = 32 * 1024 * 1024
-ANALYTICS_LOG_KEEP_LINES = 200000
+# 裁剪保留的尾部预算：按字节数（约最大体量的一半）而非固定行数——
+# 单条记录可达数 KB，按行数保留（如 200000 行）可能大于 32MB 体量上限，
+# 导致“裁剪后仍超限”而每次追加都整文件重写。
+ANALYTICS_LOG_TRIM_KEEP_BYTES = ANALYTICS_LOG_MAX_BYTES // 2
+ANALYTICS_LOG_TRIM_KEEP_LINES = 20000
+
+
+def _analytics_log_tail_lines(lines):
+    """从尾部按字节预算与行数上限回收要保留的行。"""
+    kept = []
+    kept_bytes = 0
+    for line in reversed(lines):
+        try:
+            line_bytes = len(line.encode('utf-8'))
+        except Exception:
+            line_bytes = len(line)
+        if kept and kept_bytes + line_bytes > ANALYTICS_LOG_TRIM_KEEP_BYTES:
+            break
+        kept.append(line)
+        kept_bytes += line_bytes
+        if len(kept) >= ANALYTICS_LOG_TRIM_KEEP_LINES:
+            break
+    kept.reverse()
+    return kept
 
 
 def _append_site_analytics_records(records):
@@ -1808,13 +1840,17 @@ def _append_site_analytics_records(records):
         if needs_trim:
             try:
                 with SITE_ANALYTICS_LOG_FILE.open('r', encoding='utf-8') as fp:
-                    tail = fp.readlines()[-ANALYTICS_LOG_KEEP_LINES:]
-                tmp_path = SITE_ANALYTICS_LOG_FILE.with_name(
-                    f'.{SITE_ANALYTICS_LOG_FILE.name}.{uuid.uuid4().hex}.tmp'
-                )
-                with tmp_path.open('w', encoding='utf-8') as fp:
-                    fp.writelines(tail)
-                os.replace(str(tmp_path), str(SITE_ANALYTICS_LOG_FILE))
+                    lines = fp.readlines()
+                tail = _analytics_log_tail_lines(lines)
+                # 一行都没丢（极端巨行场景）时整写只会白耗全局锁下的 IO，
+                # 直接跳过，等后续追加时文件继续增长再裁。
+                if tail and len(tail) < len(lines):
+                    tmp_path = SITE_ANALYTICS_LOG_FILE.with_name(
+                        f'.{SITE_ANALYTICS_LOG_FILE.name}.{uuid.uuid4().hex}.tmp'
+                    )
+                    with tmp_path.open('w', encoding='utf-8') as fp:
+                        fp.writelines(tail)
+                    os.replace(str(tmp_path), str(SITE_ANALYTICS_LOG_FILE))
             except Exception:
                 LOGGER.warning('Failed to trim site analytics log', exc_info=True)
         with SITE_ANALYTICS_LOG_FILE.open('a', encoding='utf-8') as fp:
@@ -2240,7 +2276,7 @@ def _analytics_import_legacy_report_jsonl_locked(rows):
 def _ensure_site_analytics_ai_report_store():
     SITE_ANALYTICS_AI_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     SITE_ANALYTICS_AI_REPORTS_PDF_DIR.mkdir(parents=True, exist_ok=True)
-    with SITE_ANALYTICS_AI_REPORTS_LOCK:
+    with SITE_ANALYTICS_AI_REPORTS_LOCK, cross_process_file_lock(SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE):
         rows = _analytics_read_report_index()
         if not rows and any(SITE_ANALYTICS_AI_REPORTS_DIR.glob('*.json')):
             rows = _analytics_rebuild_report_index_locked()
@@ -2302,7 +2338,7 @@ def _append_site_analytics_ai_report_record(record):
     safe_record['created_ts'] = _analytics_report_generated_sort_value(safe_record) or int(time.time())
     SITE_ANALYTICS_AI_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     SITE_ANALYTICS_AI_REPORTS_PDF_DIR.mkdir(parents=True, exist_ok=True)
-    with SITE_ANALYTICS_AI_REPORTS_LOCK:
+    with SITE_ANALYTICS_AI_REPORTS_LOCK, cross_process_file_lock(SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE):
         rows = _ensure_site_analytics_ai_report_store()
         _analytics_write_json_file(_analytics_report_file_path(safe_record['id']), safe_record)
         index_item = _analytics_report_index_item(safe_record)
@@ -2335,7 +2371,7 @@ def _delete_site_analytics_ai_report_record(report_id: str) -> bool:
     safe_id = _analytics_report_safe_id(report_id)
     if not safe_id:
         return False
-    with SITE_ANALYTICS_AI_REPORTS_LOCK:
+    with SITE_ANALYTICS_AI_REPORTS_LOCK, cross_process_file_lock(SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE):
         rows = _ensure_site_analytics_ai_report_store()
         exists = any(_analytics_report_safe_id(item.get('id')) == safe_id for item in rows)
         if not exists and not _analytics_report_file_path(safe_id).exists():
@@ -6266,7 +6302,8 @@ def register_site_analytics_routes(
 ):
     """注册公开埋点收集与后台统计报表相关路由。"""
     global SITE_ANALYTICS_LOG_FILE, PROMOTION_LINKS_FILE, SITE_ANALYTICS_AI_REPORTS_FILE, SITE_ANALYTICS_AI_REPORTS_DIR
-    global SITE_ANALYTICS_AI_REPORTS_INDEX_FILE, SITE_ANALYTICS_AI_REPORTS_PDF_DIR, SITE_ANALYTICS_AI_JOBS_DIR
+    global SITE_ANALYTICS_AI_REPORTS_INDEX_FILE, SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE, SITE_ANALYTICS_AI_REPORTS_PDF_DIR
+    global SITE_ANALYTICS_AI_JOBS_DIR
     global SITE_ANALYTICS_AI_GENERATION_LOCK_FILE, SITE_ANALYTICS_AI_PDF_LOCK_FILE, BEIJING_TZ, _resolve_ip_location_fn
     global _site_report_get_config_fn, _site_report_requests_support, _site_report_requests_module
     global _site_report_httpx_support, _site_report_httpx_module, _site_report_update_config_fn
@@ -6276,6 +6313,7 @@ def register_site_analytics_routes(
     SITE_ANALYTICS_AI_REPORTS_FILE = Path(data_dir) / "site_analytics_ai_reports.jsonl"
     SITE_ANALYTICS_AI_REPORTS_DIR = Path(data_dir) / "site_analytics_ai_reports"
     SITE_ANALYTICS_AI_REPORTS_INDEX_FILE = SITE_ANALYTICS_AI_REPORTS_DIR / "index.json"
+    SITE_ANALYTICS_AI_REPORTS_INDEX_LOCK_FILE = SITE_ANALYTICS_AI_REPORTS_DIR / "index.lock"
     SITE_ANALYTICS_AI_REPORTS_PDF_DIR = SITE_ANALYTICS_AI_REPORTS_DIR / "pdf_cache"
     SITE_ANALYTICS_AI_JOBS_DIR = Path(data_dir) / "site_analytics_ai_jobs"
     SITE_ANALYTICS_AI_GENERATION_LOCK_FILE = Path(data_dir) / "site_analytics_ai_report_generation.lock"

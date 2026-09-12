@@ -214,7 +214,15 @@ def register_backup_routes(
     @app.route('/api/backup/download', methods=['GET'])
     @login_required
     def download_backup():
-        """下载整站备份，排除缓存目录与开发目录。"""
+        """下载整站备份，排除缓存目录与开发目录（仅超级管理员）。
+
+        备份包含全部源码与部署文件，与恢复一样属于敏感操作，不能下放到
+        仅持 backup 权限的子管理员。
+        """
+        if require_super_admin_api is not None:
+            denied = require_super_admin_api()
+            if denied is not None:
+                return denied
         allowed, retry_after, _count = check_and_record(
             # key 绑定项目根路径：同一台机器上多个实例（测试临时目录）
             # 不会共享同一个限流桶。

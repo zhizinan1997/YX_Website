@@ -89,6 +89,11 @@ class BackupDownloadSecurityTests(unittest.TestCase):
         self.assertFalse(any(n.startswith("data/messages/") for n in names), names)
         self.assertFalse(any(n.startswith("data/resumes/") for n in names), names)
 
+    def test_download_rejects_sub_admin(self):
+        client = _build_app(self.root, super_admin=False)
+        response = client.get("/api/backup/download")
+        self.assertEqual(response.status_code, 403)
+
 
 class BackupRestoreSecurityTests(unittest.TestCase):
     def setUp(self):
@@ -115,24 +120,30 @@ class BackupRestoreSecurityTests(unittest.TestCase):
         response = self._restore_zip(client, {"index.html": "<html></html>"})
         self.assertEqual(response.status_code, 403)
 
-    def test_restore_blocks_source_and_sensitive_paths_even_for_super_admin(self):
+    def test_restore_blocks_source_sensitive_and_web_executable_paths(self):
         client = _build_app(self.root, super_admin=True)
         response = self._restore_zip(client, {
-            "index.html": "<html>restored</html>",
+            "data/jobs.json": '{"jobs": []}',
             "app/evil.py": "import os",
             "evil.sh": "rm -rf /",
             ".env": "SECRET=x",
+            "static/evil.html": "<script>alert(1)</script>",
+            "cdn_assets/evil.svg": "<svg onload='alert(1)'/>",
+            "assets/evil.js": "alert(1)",
             "data/config.json": "{}",
             "data/admin_users.json": "{}",
             "data/messages/m2.json": "{}",
         })
         self.assertEqual(response.status_code, 200)
-        # 仅 index.html 被恢复。
+        # 仅 data/jobs.json 被恢复；HTML/SVG/JS 与源码、敏感数据一并拦截。
         self.assertEqual(response.get_json().get("restored_files"), 1)
-        self.assertTrue((self.root / "index.html").exists())
+        self.assertTrue((self.root / "data" / "jobs.json").exists())
         self.assertFalse((self.root / "app" / "evil.py").exists())
         self.assertFalse((self.root / "evil.sh").exists())
         self.assertFalse((self.root / ".env").exists())
+        self.assertFalse((self.root / "static" / "evil.html").exists())
+        self.assertFalse((self.root / "cdn_assets" / "evil.svg").exists())
+        self.assertFalse((self.root / "assets" / "evil.js").exists())
         self.assertFalse((self.root / "data" / "messages" / "m2.json").exists())
 
 

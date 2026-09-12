@@ -63,6 +63,8 @@ import ipaddress
 import os
 import re
 import socket
+import threading
+from contextlib import contextmanager
 from urllib.parse import urlparse
 
 from flask import Response, jsonify, request, session
@@ -403,30 +405,38 @@ def is_trusted_remote_fetch_service_url(scheme: str, hostname: str, path: str) -
     return False
 
 
-def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
+def validate_safe_remote_fetch_url_detail(raw_url: str) -> tuple[bool, str, str, str]:
+    """校验远程抓取地址，并返回可用于固定建连的已验证 IP。
+
+    返回 (ok, reason, normalized_url, pinned_ip)。pinned_ip 为域名解析出的
+    公网 IP（纯 IP 字面量或无需固定时为空字符串）；调用方把它交给
+    pinned_dns_resolution()，让实际请求跳过第二次 DNS 解析，闭合
+    “校验时公网、连接时内网”的 rebinding 窗口。
+    """
     normalized = normalize_remote_fetch_url(raw_url)
     if not normalized:
-        return False, '仅支持合法的 http/https 地址', ''
+        return False, '仅支持合法的 http/https 地址', '', ''
 
     try:
         parsed = urlparse(normalized)
     except Exception:
-        return False, '链接格式不合法', ''
+        return False, '链接格式不合法', '', ''
 
     hostname = (parsed.hostname or '').strip().lower()
     if not hostname:
-        return False, '链接缺少主机名', ''
+        return False, '链接缺少主机名', '', ''
     if parsed.username or parsed.password:
-        return False, '链接中不允许包含账号信息', ''
+        return False, '链接中不允许包含账号信息', '', ''
     trusted_service_url = is_trusted_remote_fetch_service_url(parsed.scheme, hostname, parsed.path)
     if hostname in REMOTE_FETCH_BLOCKED_HOSTS:
-        return False, '禁止访问本机或保留地址', ''
+        return False, '禁止访问本机或保留地址', '', ''
 
     literal_ip = normalize_ip_text(hostname)
     if literal_ip:
         if not ip_is_publicly_routable(literal_ip):
-            return False, '禁止访问内网或保留地址', ''
-        return True, '', normalized
+            return False, '禁止访问内网或保留地址', '', ''
+        # IP 字面量没有二次解析，无需固定。
+        return True, '', normalized, ''
 
     try:
         records = socket.getaddrinfo(
@@ -435,9 +445,9 @@ def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
             type=socket.SOCK_STREAM,
         )
     except socket.gaierror:
-        return False, '域名解析失败', ''
+        return False, '域名解析失败', '', ''
     except Exception:
-        return False, '域名解析异常', ''
+        return False, '域名解析异常', '', ''
 
     resolved_ips = []
     for item in records:
@@ -449,12 +459,72 @@ def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
             resolved_ips.append(ip_text)
 
     if not resolved_ips:
-        return False, '域名解析结果为空', ''
+        return False, '域名解析结果为空', '', ''
     if any(not ip_is_publicly_routable(ip_text) for ip_text in resolved_ips):
         if trusted_service_url:
-            return True, '', normalized
-        return False, '禁止访问内网或保留地址', ''
-    return True, '', normalized
+            # 可信服务（如飞书）允许解析到私有地址，同样按首个结果固定。
+            return True, '', normalized, resolved_ips[0]
+        return False, '禁止访问内网或保留地址', '', ''
+    return True, '', normalized, resolved_ips[0]
+
+
+def validate_safe_remote_fetch_url(raw_url: str) -> tuple[bool, str, str]:
+    ok, reason, normalized, _pinned_ip = validate_safe_remote_fetch_url_detail(raw_url)
+    return ok, reason, normalized
+
+
+# ── DNS 固定（防 rebinding）────────────────────────────────────────
+# validate_safe_remote_fetch_url_detail 在校验时解析一次 DNS；若实际请求
+# 再解析一次，攻击者控制权威 DNS 可在两次解析之间换答（首次公网通过
+# 校验、二次解析成内网 IP），形成 SSRF。固定方案：把校验得到的已验证 IP
+# 放入当前线程的 pin 栈，请求期间 getaddrinfo 对该域名直接返回该 IP；
+# 建连、SNI、证书校验、Cookie 仍按原域名进行，URL 行为完全不变。
+_PINNED_DNS_STATE = threading.local()
+_BASE_GETADDRINFO = socket.getaddrinfo
+
+
+def _dns_pinned_getaddrinfo(host, *args, **kwargs):
+    """线程级固定解析：命中当前线程 pin 栈的域名直接解析为已验证 IP。"""
+    stack = getattr(_PINNED_DNS_STATE, 'stack', None)
+    if stack:
+        for mapping in reversed(stack):
+            pinned_ip = mapping.get(str(host))
+            if pinned_ip:
+                host = pinned_ip
+                break
+    return _BASE_GETADDRINFO(host, *args, **kwargs)
+
+
+socket.getaddrinfo = _dns_pinned_getaddrinfo
+
+
+@contextmanager
+def pinned_dns_resolution(normalized_url: str, pinned_ip: str):
+    """在当前线程内把 URL 域名的解析固定为校验时的已验证 IP。
+
+    pinned_ip 来自 validate_safe_remote_fetch_url_detail；为空（IP 字面量
+    等）时不做任何固定。可重入：嵌套进入按栈逐层匹配。
+    """
+    if not normalized_url or not pinned_ip:
+        yield
+        return
+    try:
+        hostname = (urlparse(normalized_url).hostname or '').strip().lower()
+    except Exception:
+        yield
+        return
+    if not hostname or normalize_ip_text(hostname):
+        yield
+        return
+    stack = getattr(_PINNED_DNS_STATE, 'stack', None)
+    if stack is None:
+        stack = []
+        _PINNED_DNS_STATE.stack = stack
+    stack.append({hostname: pinned_ip})
+    try:
+        yield
+    finally:
+        stack.pop()
 
 
 def collect_allowed_origins(
@@ -553,14 +623,32 @@ def get_request_client_ip(
     *,
     default_ip: str = '127.0.0.1',
     trust_proxy_headers_default: bool = True,
-    public_ip_header_names=('CF-Connecting-IP',),
+    public_ip_header_names=None,
 ) -> str:
     if should_trust_proxy_headers(req, default=trust_proxy_headers_default):
         direct_ip = normalize_ip_text(req.remote_addr or '')
-        for header_name in tuple(public_ip_header_names or ()):
+        configured_headers = None
+        if public_ip_header_names is not None:
+            header_names = tuple(public_ip_header_names)
+        else:
+            configured_headers = get_configured_real_client_ip_headers()
+            header_names = configured_headers or ('CF-Connecting-IP',)
+        for header_name in header_names:
             header_ip = normalize_ip_text(req.headers.get(header_name, ''))
             if header_ip and ip_is_publicly_routable(header_ip):
                 return header_ip
+
+        if configured_headers:
+            # 显式配置了 CDN 专用真实 IP 头（如 ESA 的 Ali-Real-Client-IP）：
+            # 请求里却没有该头，说明流量没有经过 CDN 边缘（直连源站的攻击
+            # 流量）。此时 CF-Connecting-IP / X-Real-IP 等头全部可由客户端
+            # 伪造，不得作为回退；按 XFF 最右公网收敛，直连场景收敛到反代
+            # 自身，形成共享限流桶压制攻击。
+            proxied_ip = extract_client_ip_from_proxy_headers(req, direct_ip=direct_ip, x_real_ip='')
+            if proxied_ip:
+                return proxied_ip
+            if direct_ip:
+                return direct_ip
 
         x_real_ip = normalize_ip_text(req.headers.get('X-Real-IP', ''))
         proxied_ip = extract_client_ip_from_proxy_headers(
@@ -579,13 +667,38 @@ def get_request_client_ip(
     return direct_ip or fallback or '127.0.0.1'
 
 
+def get_configured_real_client_ip_headers() -> tuple[str, ...]:
+    """读取环境变量 REAL_CLIENT_IP_HEADERS（逗号分隔的头部名）。
+
+    CDN/边缘（阿里云 ESA 托管转换注入 Ali-Real-Client-IP，CDN/DCDN 透传
+    Ali-CDN-Real-IP）会把客户端真实 IP 放在专用头里回源，这类头由边缘
+    覆写、客户端无法伪造；而 CF-Connecting-IP 是 Cloudflare 专有头，在
+    非 Cloudflare 链路中只能来自客户端伪造。未配置时保持旧行为
+    （CF-Connecting-IP 优先），配置后进入严格模式：只信列表内的头。
+    """
+    raw = (os.environ.get('REAL_CLIENT_IP_HEADERS') or '').strip()
+    if not raw:
+        return ()
+    headers = []
+    for part in raw.split(','):
+        name = part.strip()
+        if name and name not in headers:
+            headers.append(name)
+    return tuple(headers)
+
+
 def get_client_ip(
     *,
     default_ip: str = '127.0.0.1',
     trust_proxy_headers_default: bool = True,
-    public_ip_header_names=('CF-Connecting-IP',),
+    public_ip_header_names=None,
 ) -> str:
-    """从当前 Flask 请求上下文中解析客户端 IP。"""
+    """从当前 Flask 请求上下文中解析客户端 IP。
+
+    默认（不显式传 public_ip_header_names）遵循 REAL_CLIENT_IP_HEADERS
+    环境变量：未配置时保持 CF-Connecting-IP 优先的旧行为；配置后（如
+    ESA 链路设为 Ali-Real-Client-IP,Ali-CDN-Real-IP）进入严格模式。
+    """
     return get_request_client_ip(
         request,
         default_ip=request.remote_addr or default_ip,

@@ -143,7 +143,9 @@ from app.request_security import (
     get_public_base_url,
     is_anti_crawl_strict_private_path,
     is_same_origin_request,
+    pinned_dns_resolution,
     validate_safe_remote_fetch_url,
+    validate_safe_remote_fetch_url_detail,
 )
 from app.routes.admin import (
     get_turnstile_settings,
@@ -514,6 +516,8 @@ def register_all_routes(app):
         validate_uploaded_image_extension=validate_uploaded_image_extension,
         validate_image_bytes=validate_image_bytes,
         validate_safe_remote_fetch_url=validate_safe_remote_fetch_url,
+        validate_safe_remote_fetch_url_detail=validate_safe_remote_fetch_url_detail,
+        pinned_dns_resolution=pinned_dns_resolution,
         sanitize_public_text=sanitize_public_text,
         sanitize_public_date_text=sanitize_public_date_text,
         sanitize_public_link_url=sanitize_public_link_url,

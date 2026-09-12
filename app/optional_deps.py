@@ -51,13 +51,20 @@ except ImportError:
 """
 
 try:
-    import PyPDF2
+    # pypdf 是 PyPDF2 的更名延续（API 兼容：PdfReader 等），优先使用；
+    # 旧环境仍装着 PyPDF2 时回落，避免已部署机器升级依赖前 PDF 功能不可用。
+    import pypdf as PyPDF2
 
     PDF_SUPPORT = True
 except ImportError:
-    PyPDF2 = None
-    PDF_SUPPORT = False
-    print("Warning: PyPDF2 not installed. PDF knowledge base support disabled.")
+    try:
+        import PyPDF2
+
+        PDF_SUPPORT = True
+    except ImportError:
+        PyPDF2 = None
+        PDF_SUPPORT = False
+        print("Warning: pypdf/PyPDF2 not installed. PDF knowledge base support disabled.")
 
 try:
     import httpx

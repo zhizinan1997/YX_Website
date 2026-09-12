@@ -50,7 +50,7 @@ from urllib.parse import quote, unquote
 
 from flask import jsonify, request, send_file
 
-from app.atomic_io import atomic_write_text
+from app.atomic_io import atomic_write_text, cross_process_file_lock
 from werkzeug.utils import secure_filename
 
 from app.routes.admin import (
@@ -797,9 +797,13 @@ def register_contact_message_routes(
                 filepath.unlink(missing_ok=True)
             except OSError:
                 pass
-            meta = get_messages_meta()
-            meta['deleted_count'] = int(meta.get('deleted_count', 0)) + 1
-            save_messages_meta(meta)
+            # deleted_count 是跨 worker 共享的读改写计数，必须互斥，
+            # 否则两个 worker 同时读到旧值会丢一次删除计数。
+            meta_lock = _dep('messages_meta_file').with_suffix('.lock')
+            with cross_process_file_lock(meta_lock):
+                meta = get_messages_meta()
+                meta['deleted_count'] = int(meta.get('deleted_count', 0)) + 1
+                save_messages_meta(meta)
             return jsonify({'success': True})
 
         return jsonify({'success': False, 'message': '留言不存在'}), 404
@@ -816,9 +820,12 @@ def register_contact_message_routes(
             return jsonify({'success': False, 'message': '留言不存在'}), 404
 
         try:
-            msg = json.loads(filepath.read_text(encoding='utf-8'))
-            msg['is_read'] = True
-            atomic_write_text(filepath, json.dumps(msg, ensure_ascii=False, indent=2))
+            # 消息文件整体读改写（is_read 置位），加每消息锁避免与另一
+            # worker 的并发更新互相覆盖。
+            with cross_process_file_lock(filepath.parent / (filepath.name + '.lock')):
+                msg = json.loads(filepath.read_text(encoding='utf-8'))
+                msg['is_read'] = True
+                atomic_write_text(filepath, json.dumps(msg, ensure_ascii=False, indent=2))
             return jsonify({'success': True})
         except Exception:
             return jsonify({'success': False, 'message': '更新失败'}), 500
