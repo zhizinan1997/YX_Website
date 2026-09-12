@@ -284,41 +284,41 @@ prompt_line_into() {
 }
 
 # 高风险操作的确认输入：与一次性确认不同，这里必须容错——
-# 宝塔等 web 终端常见"按键已敲但行没进缓冲/回车被吞成空行/大小写差异"，
-# 直接 die 会让用户以为"输入了却被说没输入"。因此：空输入与小写差异都
-# 给出明确提示并重问（最多 3 次）；显式取消词才终止；确认词忽略大小写。
+# 宝塔等 web 终端常见"按键已敲但行没进缓冲/回车被吞成空行/中文输入法
+# 吞字母"的问题，数字键不受输入法影响，因此确认词一律用数字。
+# 空输入给出明确提示并重问（最多 3 次）；显式取消词才终止。
+# 注意：接收变量必须叫 reply——prompt_line_into 内部声明了局部变量
+# input，若把 out_var 命名为 "input"，读到的值会被留在内层函数里，
+# 调用方永远拿到空串（v4.8.2 曾因此导致确认环节必然失败）。
 prompt_confirm_word_into() {
   local out_var="$1"
   local prompt="$2"
   local expected_word="$3"
   local cancel_label="$4"
   local attempt=""
-  local input=""
-  local expected_lower=""
-
-  expected_lower="$(printf '%s' "$expected_word" | tr '[:upper:]' '[:lower:]')"
+  local reply=""
 
   for attempt in 1 2 3; do
-    prompt_line_into input "$prompt（输入 $expected_word 继续，输入 n 取消）" "" false
-    if [[ -z "$input" ]]; then
+    prompt_line_into reply "$prompt（输入 $expected_word 继续，输入 n 取消）" "" false
+    if [[ -z "$reply" ]]; then
       warn "未检测到输入（终端可能吞掉了按键），请重新输入 $expected_word。"
       continue
     fi
-    case "$(printf '%s' "$input" | tr '[:upper:]' '[:lower:]')" in
-      "$expected_lower")
-        printf -v "$out_var" '%s' "$expected_word"
+    case "$reply" in
+      "$expected_word")
+        printf -v "$out_var" '%s' "$reply"
         return 0
         ;;
       n|no|q|quit|取消|退出)
         die "已输入取消指令，$cancel_label 已取消。"
         ;;
       *)
-        warn "第 $attempt/3 次输入的是「$input」，与确认词 $expected_word 不一致（注意是英文单词，不是数字）。"
+        warn "第 $attempt/3 次输入的是「$reply」，与确认数字 $expected_word 不一致（请输入数字，不是字母）。"
         ;;
     esac
   done
 
-  die "连续 3 次未输入正确的确认词 $expected_word，$cancel_label 已取消。如多次出现按键丢失，建议改用 SSH 终端执行本脚本。"
+  die "连续 3 次未输入正确的确认数字 $expected_word，$cancel_label 已取消。如多次出现按键丢失，建议改用 SSH 终端执行本脚本。"
 }
 
 prompt_confirm_secret_into() {
@@ -375,11 +375,11 @@ choose_update_strategy() {
         printf 'smart'; return 0
         ;;
       2)
-        success "已选择：2) 全新部署重置（稍后需输入 RESET 二次确认）"
+        success "已选择：2) 全新部署重置（稍后需输入数字 2 二次确认）"
         printf 'reset'; return 0
         ;;
       3)
-        success "已选择：3) 重置界面，保留用户数据（稍后需输入 YES 二次确认）"
+        success "已选择：3) 重置界面，保留用户数据（稍后需输入数字 3 二次确认）"
         printf 'reset-keep-data'; return 0
         ;;
       *)
@@ -404,7 +404,7 @@ confirm_reset_action() {
   printf '%b%s%b\n' "$STYLE_YELLOW" '这意味着客户后台数据、留言、上传文件、页面手工修改都将被新版本内容替换。' "$STYLE_RESET" >&2
   print_rule
 
-  prompt_confirm_word_into answer "如确认继续，请输入 RESET" "RESET" "全新部署重置"
+  prompt_confirm_word_into answer "如确认继续，请输入数字 2" "2" "全新部署重置"
 }
 
 confirm_reset_keep_data_action() {
@@ -424,7 +424,7 @@ confirm_reset_keep_data_action() {
   printf '  - %s（用户数据、配置、留言、管理员账号等）\n' "$DATA_DIR" >&2
   print_rule
 
-  prompt_confirm_word_into answer "如确认继续，请输入 YES" "YES" "重置界面（保留用户数据）"
+  prompt_confirm_word_into answer "如确认继续，请输入数字 3" "3" "重置界面（保留用户数据）"
 }
 
 copy_with_parents() {
