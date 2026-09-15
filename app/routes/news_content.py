@@ -438,7 +438,13 @@ def _bounded_response_payload(response, *, max_bytes: int, prefer_text: bool) ->
     text = ''
     if prefer_text:
         encoding = getattr(response, 'encoding', None) or 'utf-8'
-        apparent = getattr(response, 'apparent_encoding', None)
+        try:
+            # requests 的 apparent_encoding 是 property：流式响应体已被
+            # iter_content 消费后再访问它会触发 .content 二次读取并抛
+            # RuntimeError，因此仅在可安全取得时使用。
+            apparent = getattr(response, 'apparent_encoding', None)
+        except Exception:
+            apparent = None
         try:
             text = raw_bytes.decode(encoding, errors='replace')
         except (LookupError, UnicodeError):
@@ -3494,7 +3500,7 @@ body {
                     max_bytes=10 * 1024 * 1024,
                 )
             except RemoteFetchError as exc:
-                log_import_failure(exc.reason, source_url=source_url, **exc.details)
+                log_import_failure(exc.reason, **exc.details)
                 status_code = 500 if exc.reason == 'no_http_client_dependency' else 400
                 return jsonify({'success': False, 'message': exc.message}), status_code
 
