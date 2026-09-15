@@ -221,7 +221,7 @@ class AdminTurnstileProxyRouteTests(unittest.TestCase):
         })
 
         real_shape_param = "x" * 32 + "+abc/==-_.~"
-        ok, detail = admin_routes._verify_admin_captcha(settings, real_shape_param)
+        ok, detail, _transient = admin_routes._verify_admin_captcha(settings, real_shape_param)
 
         self.assertTrue(ok)
         self.assertEqual(detail, "")
@@ -233,7 +233,7 @@ class AdminTurnstileProxyRouteTests(unittest.TestCase):
         }
 
         for junk in ("", "x", "captcha-param", "a" * 31, "has space" * 5, "控制字符\t" * 5):
-            ok, _detail = admin_routes._verify_admin_captcha(settings, junk)
+            ok, _detail, _transient = admin_routes._verify_admin_captcha(settings, junk)
             self.assertFalse(ok, f"junk ESA captcha param should be rejected: {junk!r}")
 
     def test_config_post_rejects_fallback_without_proxy_url(self):

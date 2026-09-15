@@ -19,7 +19,7 @@
     const TYPEWRITER_DELAY_MS = 18;
     const CHATBOT_REQUEST_TIMEOUT_MS = 90000;
     const RECOMMENDATIONS_REVEAL_DELAY_MS = 520;
-    const PUBLIC_TURNSTILE_SCRIPT_SRC = '/assets/js/public-turnstile.js';
+    const PUBLIC_TURNSTILE_SCRIPT_SRC = '/assets/js/public-turnstile.js?v=20260915-captcha-provider-v1';
 
     // 会话ID（每次页面加载时生成新的）
     let sessionId = generateSessionId();

@@ -620,6 +620,17 @@ def require_public_turnstile_check(ip: str = ''):
     if not token:
         return jsonify({'success': False, 'message': '请先完成人机验证'}), 400
 
+    # 与后台登录共用 provider：ESA 由边缘规则验签，应用侧仅做形态门槛。
+    provider = str(settings.get('provider') or 'cloudflare').strip().lower()
+    if provider == 'aliyun_esa':
+        from app.routes.admin import ADMIN_ESA_CAPTCHA_MIN_LENGTH, _ADMIN_ESA_CAPTCHA_SHAPE_RE
+        if (
+            len(token) < ADMIN_ESA_CAPTCHA_MIN_LENGTH
+            or not _ADMIN_ESA_CAPTCHA_SHAPE_RE.match(token)
+        ):
+            return jsonify({'success': False, 'message': '人机验证参数无效，请重新完成验证。'}), 400
+        return None
+
     ok, detail = _dep('verify_turnstile_token')(
         secret_key=settings.get('secret_key', ''),
         token=token,
@@ -680,12 +691,19 @@ def register_contact_message_routes(
 
     @app.route('/api/turnstile/public', methods=['GET'])
     def get_turnstile_public_api():
-        """获取站点表单使用的 Turnstile 公开配置。"""
+        """获取站点表单使用的人机验证公开配置（随后台 provider 设置切换）。"""
         settings = get_public_turnstile_config()
-        return jsonify({
+        provider = str(settings.get('provider') or 'cloudflare').strip().lower()
+        payload = {
             'enabled': bool(settings.get('enabled')),
+            'provider': provider,
             'site_key': settings.get('site_key', ''),
-        })
+        }
+        if provider == 'aliyun_esa' and payload['enabled']:
+            payload['esa_identity'] = str(settings.get('esa_identity', '') or '')
+            payload['esa_scene_id'] = str(settings.get('esa_scene_id', '') or '')
+            payload['esa_region'] = str(settings.get('esa_region', '') or 'cn')
+        return jsonify(payload)
 
     @app.route('/api/feedback', methods=['POST'])
     def submit_feedback():

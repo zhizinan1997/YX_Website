@@ -197,6 +197,10 @@
     }
 
     async function loadSecurityOnboarding() {
+        // 登录页可见时直接跳过：此时请求 email-binding 必然 401，
+        // 重复探测毫无意义，且会触发 api.js 的全局 401 逻辑。
+        const loginPage = document.getElementById('loginPage');
+        if (loginPage && loginPage.style.display !== 'none') return;
         try {
             const data = await jsonFetch('/api/admin/account/email-binding', { cache:'no-store' });
             renderSecurityOnboarding(data.email_verified === true);

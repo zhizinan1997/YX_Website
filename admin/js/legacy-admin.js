@@ -1563,11 +1563,17 @@
                 const data = await parseJsonSafe(res);
                 if (data.logged_in) {
                     setAdminAuthFromCheck(data);
+                    // 登录成功后必须作废已用掉的人机验证令牌（Turnstile/ESA
+                    // 验证码均为一令牌一次有效）。否则退出/被踢后立刻换账号
+                    // 重登会复用已消耗令牌，服务端返回 duplicate 并触发延迟保护。
+                    resetLoginTurnstile();
                     showDashboard(data);
                 } else {
                     bindingRequiredState = false;
                     document.getElementById('loginPage').style.display = 'flex';
                     document.getElementById('dashboard').style.display = 'none';
+                    // 回到登录页时重置验证组件，确保拿到的是全新令牌。
+                    resetLoginTurnstile();
                 }
             } catch (e) {
                 console.error(e);
@@ -1719,29 +1725,22 @@
         }
 
         function updateLoginActionState() {
-            const sendBtn = document.getElementById('loginSendCodeBtn');
             const submitBtn = document.getElementById('loginSubmitBtn');
             const codeWrap = document.getElementById('loginEmailCodeWrap');
             const emailEnabled = emailAuthAdminConfig.email_auth_enabled === true;
             const emailAvailable = emailEnabled && emailAuthAdminConfig.smtp_ready !== false;
             const inCodeStep = emailEnabled && !!pendingLoginId;
             const isQuickEmailMode = loginAuthMode === 'email_code';
-            const canUseEmailCode = emailAvailable;
             const needsTurnstile = turnstilePublicConfig.enabled && !turnstileToken;
-            if (sendBtn) {
-                sendBtn.style.display = (isQuickEmailMode || inCodeStep) ? '' : 'none';
-                sendBtn.disabled = !canUseEmailCode || needsTurnstile || loginEmailCodeCountdown > 0 || (!isQuickEmailMode && !inCodeStep);
-                if (isQuickEmailMode || inCodeStep) {
-                    sendBtn.textContent = emailAuthAdminConfig.smtp_ready === false
-                        ? '邮箱验证暂不可用'
-                        : (loginEmailCodeCountdown > 0 ? `重新发送（${loginEmailCodeCountdown}s）` : '发送邮箱验证码');
-                }
-            }
             if (submitBtn) {
                 submitBtn.style.display = '';
                 if (isQuickEmailMode) {
-                    submitBtn.textContent = '验证并登录';
-                    submitBtn.disabled = !inCodeStep;
+                    // 合并单按钮：未发送验证码前为“发送验证码”，
+                    // 发送成功（进入验证码步骤）后变为“验证并登录”。
+                    submitBtn.textContent = !emailAvailable
+                        ? '邮箱验证暂不可用'
+                        : (inCodeStep ? '验证并登录' : '发送验证码');
+                    submitBtn.disabled = !emailAvailable || (!inCodeStep && (needsTurnstile || loginEmailCodeCountdown > 0));
                 } else {
                     submitBtn.textContent = inCodeStep ? '验证并登录' : (emailAvailable ? '下一步：邮箱验证' : '登 录');
                     submitBtn.disabled = !!needsTurnstile;
@@ -1950,8 +1949,8 @@
             const turnstileErr = document.getElementById('loginTurnstileError');
             if (err) err.textContent = '';
             if (turnstileErr) turnstileErr.textContent = '';
-            const sendBtn = document.getElementById('loginSendCodeBtn');
-            if (sendBtn) sendBtn.disabled = true;
+            const submitBtn = document.getElementById('loginSubmitBtn');
+            if (submitBtn) submitBtn.disabled = true;
             try {
                 if (!pendingLoginId) {
                     if (loginAuthMode !== 'email_code') {
@@ -2059,6 +2058,11 @@
                 const reason = String(data.message || `验证失败（HTTP ${res.status || '-'}）`);
                 if (err) err.textContent = reason;
                 showLoginFailModal(reason);
+                // 待验证记录已失效/验证码已过期时清除 pending，让合并按钮
+                // 回到“发送验证码”状态，用户可直接重发新验证码。
+                if (/过期|失效|已用完/.test(reason)) {
+                    resetPendingLoginState();
+                }
             } catch (e) {
                 const reason = '网络错误，请检查连接后重试。';
                 if (err) err.textContent = reason;
@@ -2066,14 +2070,6 @@
             } finally {
                 updateLoginActionState();
             }
-        }
-
-        const loginSendCodeBtn = document.getElementById('loginSendCodeBtn');
-        if (loginSendCodeBtn && loginSendCodeBtn.dataset.bound !== '1') {
-            loginSendCodeBtn.dataset.bound = '1';
-            loginSendCodeBtn.addEventListener('click', async () => {
-                await sendLoginEmailCode();
-            });
         }
 
         document.querySelectorAll('[data-login-mode]').forEach((btn) => {

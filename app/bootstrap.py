@@ -150,7 +150,9 @@ from app.request_security import (
 from app.routes.admin import (
     get_turnstile_settings,
     register_admin_routes,
+    verify_public_captcha_token,
     verify_turnstile_token,
+    _get_admin_captcha_settings,
 )
 from app.routes.ai_chatbot import (
     call_openai_api,
@@ -290,7 +292,9 @@ def register_all_routes(app):
         app,
         login_required=login_required,
         get_config=get_config,
-        get_turnstile_settings=get_turnstile_settings,
+        # 公开表单的人机验证随后台「验证码设置」的 provider 一起切换
+        # （cloudflare=源站 siteverify；aliyun_esa=ESA 边缘规则验签）。
+        get_turnstile_settings=_get_admin_captcha_settings,
         verify_turnstile_token=verify_turnstile_token,
         get_client_ip=get_client_ip,
         clean_job_text=clean_job_text,
@@ -475,7 +479,8 @@ def register_all_routes(app):
         login_required=login_required,
         get_config=get_config,
         update_config=update_config,
-        get_turnstile_settings=get_turnstile_settings,
+        # 智能客服的人机验证随后台「验证码设置」的 provider 一起切换。
+        get_turnstile_settings=_get_admin_captcha_settings,
         verify_turnstile_token=verify_turnstile_token,
         require_super_admin_api=require_super_admin_api,
         get_client_ip=get_client_ip,

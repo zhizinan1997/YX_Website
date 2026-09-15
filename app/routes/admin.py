@@ -194,7 +194,10 @@ ADMIN_USERS_LOCK = _CrossProcessStateLock('admin_users.lock', reentrant=True)
 EMAIL_AUTH_STATE_LOCK = _CrossProcessStateLock('admin_email_auth_state.lock', reentrant=True)
 SMTP_REMINDER_THREAD_LOCK = threading.Lock()
 TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
-TURNSTILE_DIRECT_TIMEOUT_SECONDS = 6
+# 直连 siteverify 超时：阿里云源站访问 challenges.cloudflare.com 的跨境链路
+# 抖动明显（P99 可超过 6s），过短会造成“请求已到达 CF 并消耗令牌，但本地
+# 超时”→ 代理重试必然 duplicate → 用户被误判失败。10s 为实测合理值。
+TURNSTILE_DIRECT_TIMEOUT_SECONDS = 10
 TURNSTILE_PROXY_TIMEOUT_SECONDS = 15
 TURNSTILE_CONNECTIVITY_TEST_TOKEN = 'yx-connectivity-test'
 ADMIN_SESSION_MAX_AGE_SECONDS = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
@@ -1094,8 +1097,16 @@ def _build_smtp_notice_content(remaining_days: int, expires_at: str):
     return html_body, text_body
 
 
-def _build_login_email_subject_v2():
-    return '\u5143\u82af\u9a8c\u8bc1\u7801'
+def _build_login_email_subject_v2(code=''):
+    """登录验证码邮件主题。
+
+    验证码直接放进主题（验证码：【XXXXXX】），在邮箱列表即可看到，
+    无需打开邮件正文。code 为空时退回原主题（保持测试/其他调用兼容）。
+    """
+    code_text = str(code or '').strip()
+    if not code_text:
+        return '元芯验证码'
+    return f'元芯验证码：【{code_text}】'
 
 
 def _render_brand_email_v2(*, eyebrow: str, title: str, intro: str, highlight_html: str, note_lines):
@@ -1832,30 +1843,52 @@ _ADMIN_ESA_CAPTCHA_SHAPE_RE = re.compile(r'^[A-Za-z0-9_\-.~+/=;:,(){}\[\]"%]{32,
 
 
 def _verify_admin_captcha(settings, token, remote_ip=''):
-    """验证后台登录挑战。
+    """验证后台登录挑战。返回 (ok, fail_reason, transient)。
 
-    Cloudflare 由源站调用 siteverify；ESA 的验签由边缘规则完成，应用只
-    检查前端确实提交了形态合法的 ESA captchaVerifyParam，未配置边缘规则
-    时至少无法用任意垃圾字符串绕过挑战。
+    transient=True 表示失败源于验证服务自身（网络抖动、siteverify 超时）
+    或令牌已过期/被重试消耗（timeout-or-duplicate），并非用户的凭据或
+    行为问题：调用方不得计入登录失败次数（不触发延迟保护/封禁），
+    只应提示用户重新完成验证（前端失败路径会自动重置组件发新令牌）。
     """
     if not settings.get('enabled'):
-        return True, ''
+        return True, '', False
     if not token:
-        return False, '请先完成人机验证。'
+        return False, '请先完成人机验证。', False
     if settings.get('provider') == 'aliyun_esa':
         if (
             len(token) < ADMIN_ESA_CAPTCHA_MIN_LENGTH
             or not _ADMIN_ESA_CAPTCHA_SHAPE_RE.match(token)
         ):
-            return False, '人机验证参数无效，请重新完成验证。'
-        return True, ''
-    return _verify_turnstile_token(
+            return False, '人机验证参数无效，请重新完成验证。', False
+        return True, '', False
+    ok, reason = _verify_turnstile_token(
         secret_key=settings.get('secret_key', ''),
         token=token,
         remote_ip=remote_ip,
         proxy_url=settings.get('proxy_url', ''),
         proxy_fallback_enabled=settings.get('proxy_fallback_enabled', False),
     )
+    if ok:
+        return True, '', False
+    # timeout-or-duplicate：令牌超过 300s 自然过期（用户验证完等待过久，
+    # 正常现象）或被直连超时后的重试消耗（见 _verify_turnstile_token 的
+    # 代理兜底）。直连+代理双网络错误（"验证码服务…"开头）同样与用户无关。
+    transient = (
+        'timeout-or-duplicate' in (reason or '')
+        or (reason or '').startswith('验证码服务')
+    )
+    return False, reason, transient
+
+
+def verify_public_captcha_token(settings, token, remote_ip=''):
+    """公共流程（反馈/招聘/智能客服）的人机验证，与后台登录共用 provider。
+
+    随后台「验证码设置」切换：provider=cloudflare 走源站 siteverify；
+    provider=aliyun_esa 由 ESA 边缘规则完成验签，应用侧仅做令牌形态门槛
+    （需在 ESA 控制台为相应公开接口配置验证码规则）。返回 (ok, detail)。
+    """
+    ok, reason, _transient = _verify_admin_captcha(settings, token, remote_ip=remote_ip)
+    return ok, reason
 
 
 def _build_turnstile_connectivity_result(*, secret_key: str, proxy_url: str = ''):
@@ -1967,7 +2000,7 @@ def _send_pending_login_code(root: Path, *, pending_login_id: str, email: str, s
     _send_smtp_mail(
         smtp_settings,
         to_email=email,
-        subject=_build_login_email_subject_v2(),
+        subject=_build_login_email_subject_v2(code_to_send),
         html_body=html_body,
         text_body=text_body,
     )
@@ -2058,7 +2091,7 @@ def _send_binding_code(root: Path, *, username: str, email: str, smtp_settings):
     _send_smtp_mail(
         smtp_settings,
         to_email=normalized_email,
-        subject='元芯验证码',
+        subject=_build_login_email_subject_v2(code),
         html_body=html_body,
         text_body=text_body,
     )
@@ -2463,7 +2496,9 @@ def register_admin_routes(
     update_config,
     append_admin_login_log,
     load_admin_login_logs,
-    admin_login_log_lock,
+    # 兼容参数（bootstrap 仍传入）：现已不再使用。登录日志的读取/写入路径
+    # 在 admin_audit 内部自行持锁；调用方若再包裹会造成同线程重入死锁。
+    admin_login_log_lock,  # noqa: ARG001
     project_root=None,
     resolve_ip_location=None,
     resolve_ip_country_code=None,
@@ -3497,11 +3532,25 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': country_reason}), 403
 
         captcha_token = captcha_verify_param if turnstile_settings.get('provider') == 'aliyun_esa' else turnstile_token
-        turnstile_ok, turnstile_fail_reason = _verify_admin_captcha(
+        turnstile_ok, turnstile_fail_reason, turnstile_transient = _verify_admin_captcha(
             turnstile_settings,
             captcha_token,
             remote_ip=ip_addr,
         )
+        if turnstile_transient:
+            # 验证服务抖动/令牌过期：不计入登录失败（否则会把正常用户
+            # 拖进延迟保护），提示重新验证即可。
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=login_identifier,
+                detail=f'{turnstile_fail_reason}；验证服务暂时不可用(未计入失败)',
+                hidden_account=False,
+            )
+            return jsonify({
+                'success': False,
+                'message': '人机验证服务暂时不可用，请点击重新完成验证后再试。',
+            }), 503
 
         user_enabled = bool(login_user and login_user.get('enabled', True))
         user_password_hash = str((login_user or {}).get('password_hash', '') or '').strip()
@@ -3684,7 +3733,7 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': country_reason}), 403
 
         captcha_token = captcha_verify_param if turnstile_settings.get('provider') == 'aliyun_esa' else turnstile_token
-        turnstile_ok, turnstile_fail_reason = _verify_admin_captcha(
+        turnstile_ok, turnstile_fail_reason, turnstile_transient = _verify_admin_captcha(
             turnstile_settings,
             captcha_token,
             remote_ip=ip_addr,
@@ -3695,6 +3744,22 @@ def register_admin_routes(
             login_user = _find_user_by_email(users_data, email)
             if login_user is not None:
                 login_user = dict(login_user)
+
+        if turnstile_transient:
+            # 验证服务抖动/令牌过期：不计入登录失败（防止把正常用户拖进
+            # 延迟保护），提示重新验证；email-code/send 已有 IP 硬限流
+            # （10 次/小时），transient 不计数不会造成 SMTP 滥用。
+            append_admin_login_log(
+                operation='admin_login',
+                success=False,
+                username=email,
+                detail=f'{turnstile_fail_reason}；验证服务暂时不可用(未计入失败)',
+                hidden_account=_is_hidden_admin_record(login_user),
+            )
+            return jsonify({
+                'success': False,
+                'message': '人机验证服务暂时不可用，请重新完成验证后再试。',
+            }), 503
 
         is_hidden_admin = _is_hidden_admin_record(login_user)
         user_enabled = bool(login_user and login_user.get('enabled', True))
@@ -4500,8 +4565,9 @@ def register_admin_routes(
                 limit = 200
             limit = max(1, min(limit, 1000))
 
-            with admin_login_log_lock:
-                items = _filter_admin_login_logs_for_session(load_admin_login_logs(), session)
+            # load_admin_login_logs 内部已持锁（threading + 跨进程 flock），
+            # 这里严禁再用 admin_login_log_lock 包裹——同线程重复加锁会自死锁。
+            items = _filter_admin_login_logs_for_session(load_admin_login_logs(), session)
 
             output = list(reversed(items))[:limit]
             return jsonify({'items': output, 'count': len(output)})
@@ -4518,8 +4584,10 @@ def register_admin_routes(
         page = max(1, page)
         page_size = max(5, min(page_size, 200))
 
-        with admin_login_log_lock:
-            items = list(reversed(_filter_admin_login_logs_for_session(load_admin_login_logs(), session)))
+        # load_admin_login_logs 内部已持锁（threading + 跨进程 flock），
+        # 这里严禁再用 admin_login_log_lock 包裹——同线程重复加锁会自死锁
+        # （2026-09-15 线上事故：worker 4 线程全部卡死在登录日志锁上）。
+        items = list(reversed(_filter_admin_login_logs_for_session(load_admin_login_logs(), session)))
 
         total = len(items)
         total_pages = max(1, (total + page_size - 1) // page_size)

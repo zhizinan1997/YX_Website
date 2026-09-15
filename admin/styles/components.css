@@ -897,6 +897,11 @@ body.admin2-root.sidebar-collapsed .sidebar-toggle-btn {
 .passkey-login-btn small { color:#64748b; font-weight:400; margin-top:2px; }
 .passkey-login-divider { display:flex; align-items:center; gap:10px; color:#94a3b8; font-size:12px; margin-top:14px; }
 .passkey-login-divider::before,.passkey-login-divider::after { content:""; height:1px; background:#e2e8f0; flex:1; }
+.passkey-login-wrap.passkey-login-bottom { margin:18px 0 0; }
+.passkey-login-btn-icon { width:46px; height:46px; padding:0; border-radius:50%; justify-content:center; gap:0; margin:12px auto 0; background:#fff; box-shadow:0 4px 14px rgba(30,100,190,.10); transition:transform .15s ease, box-shadow .15s ease; }
+.passkey-login-btn-icon > i { font-size:21px; color:#1d6fd1; }
+.passkey-login-btn-icon:hover { border-color:#7fb3ee; transform:translateY(-2px); box-shadow:0 8px 22px rgba(30,100,190,.16); }
+.passkey-login-msg { text-align:center; margin-top:8px; }
 .passkey-step-up-panel { background:#f8fbff; border:1px solid #cfe2ff; border-radius:10px; padding:16px; margin:14px 0; }
 .passkey-step-up-panel p { color:#64748b; font-size:13px; margin:6px 0 12px; }
 .passkey-device-list { display:grid; gap:10px; margin-top:12px; }

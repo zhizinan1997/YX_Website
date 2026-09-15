@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/admin/styles/views.css?v=20260715-image-seo-modal-v1">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
-    <link rel="stylesheet" href="/admin/styles/components.css?v=20260715-image-seo-xlsx-v1">
+    <link rel="stylesheet" href="/admin/styles/components.css?v=20260915-login-ui-v2">
 </head>
 <body class="admin2-root">
 <!-- LOGIN PAGE -->
@@ -46,14 +46,6 @@
                     <span>账号登录</span>
                 </div>
                 <p class="login-subtitle" id="loginSubtitle">仅授权管理员可访问，请使用已验证邮箱快捷登录。</p>
-                <div id="passkeyLoginWrap" class="passkey-login-wrap" hidden>
-                    <button type="button" id="passkeyLoginBtn" class="passkey-login-btn">
-                        <i class="fas fa-fingerprint"></i>
-                        <span><strong>使用 Passkey 登录</strong><small>指纹、面容识别或设备 PIN</small></span>
-                    </button>
-                    <div id="passkeyLoginMsg" class="form-hint" aria-live="polite"></div>
-                    <div class="passkey-login-divider"><span>或使用其他方式</span></div>
-                </div>
                 <form id="loginForm">
                     <div class="form-group" id="loginEmailWrap">
                         <label>邮箱</label>
@@ -79,25 +71,17 @@
                         <div class="form-hint" id="loginEmailHint">验证码将发送到已绑定安全邮箱。</div>
                     </div>
                     <div class="login-action-row">
-                        <button type="button" id="loginSendCodeBtn" class="btn-primary">发送邮箱验证码</button>
-                        <button type="submit" id="loginSubmitBtn" class="btn-primary">验证并登录</button>
+                        <button type="submit" id="loginSubmitBtn" class="btn-primary">发送验证码</button>
                     </div>
                     <div id="loginError" class="error-message"></div>
                 </form>
-                <div class="login-method-switch" aria-label="其他登录方式">
-                    <div class="login-method-title">其他登录方式</div>
-                    <div class="login-method-actions">
-                        <button type="button" class="login-method-btn" id="loginModeAccountBtn" data-login-mode="account_password">
-                            用户名/邮箱登录
-                        </button>
-                        <button type="button" class="login-method-btn login-method-back" id="loginModeEmailCodeBtn" data-login-mode="email_code" hidden>
-                            返回邮箱快捷登录
-                        </button>
-                    </div>
-                </div>
-                <div class="login-security-tip">
-                    <i class="fas fa-shield-virus"></i>
-                    <span>同一 IP 在 12 小时内失败 3 次将被封禁 12 小时</span>
+                <div id="passkeyLoginWrap" class="passkey-login-wrap passkey-login-bottom" hidden>
+                    <div class="passkey-login-divider"><span>或</span></div>
+                    <button type="button" id="passkeyLoginBtn" class="passkey-login-btn passkey-login-btn-icon"
+                            title="使用 Passkey 登录（指纹、面容识别或设备 PIN）" aria-label="使用 Passkey 登录">
+                        <i class="fas fa-fingerprint"></i>
+                    </button>
+                    <div id="passkeyLoginMsg" class="form-hint passkey-login-msg" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -4269,14 +4253,14 @@ docker compose cp web:${FILE} ./backups/</code></pre>
         </div>
     </div>
     <script src="/admin/js/state.js?v=20260715-image-seo-v2"></script>
-    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/api.js?v=20260915-login-captcha-fix-v1"></script>
     <script src="/admin/js/auth.js"></script>
     <script src="/admin/js/components/shell.js?v=20260715-image-seo-v2"></script>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260715-image-seo-xlsx-v1"></script>
-    <script src="/admin/js/passkeys.js?v=20260715-passkey-v1"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260915-login-ui-v3"></script>
+    <script src="/admin/js/passkeys.js?v=20260915-login-captcha-fix-v1"></script>
     <script src="/admin/js/app.js?v=20260715-image-seo-v2"></script>
 </body>
 </html>

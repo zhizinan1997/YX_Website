@@ -66,7 +66,12 @@ except ImportError:  # pragma: no cover - Windows fallback
 APP_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = APP_ROOT / 'data'
 ADMIN_LOGIN_LOG_FILE = DATA_DIR / 'admin_login_logs.json'
-ADMIN_LOGIN_LOG_LOCK = threading.Lock()
+# 必须使用可重入锁：该锁对象同时会作为 admin_login_log_lock 注入路由层，
+# 历史上路由层曾在持有此锁的情况下调用 load/append（内部再次加锁），
+# 普通 threading.Lock 会造成同线程重入自死锁并永久持有锁，进而拖死整个
+# gunicorn worker（首页接口超时、/admin/check 挂起被误判下线）。
+# 与 admin.py 中 ADMIN_USERS_LOCK / EMAIL_AUTH_STATE_LOCK 的 reentrant 设计对齐。
+ADMIN_LOGIN_LOG_LOCK = threading.RLock()
 ADMIN_IP_LOCATION_CACHE = {}
 ADMIN_IP_LOCATION_LOCK = threading.Lock()
 ADMIN_IP_LOCATION_CACHE_MAX = 2048

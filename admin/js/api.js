@@ -108,7 +108,13 @@
             rememberCsrfToken(response);
             const isAdminRequest = isAdminRequestUrl(url);
             if (isAdminRequest && (response.status === 401 || response.redirected || isHtmlResponse(response))) {
-                if (window.Admin2Auth && typeof window.Admin2Auth.forceRelogin === 'function') {
+                // 登录页可见时不触发 forceRelogin：未登录状态下某些预查询
+                // （如 email-binding 安全引导）返回 401 属预期行为，若触发
+                // forceRelogin 会不断 resetLoginTurnstile，导致人机验证
+                // “完成几秒后被重置重跑”的循环（2026-09-15 线上现象）。
+                const loginPage = document.getElementById('loginPage');
+                const loginPageVisible = !!loginPage && loginPage.style.display !== 'none';
+                if (!loginPageVisible && window.Admin2Auth && typeof window.Admin2Auth.forceRelogin === 'function') {
                     window.Admin2Auth.forceRelogin('登录已过期，请重新登录。');
                 }
             }

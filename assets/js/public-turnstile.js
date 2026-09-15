@@ -4,6 +4,7 @@
   var CONFIG_URL = '/api/turnstile/public';
   var turnstileConfigPromise = null;
   var turnstileScriptPromise = null;
+  var aliyunScriptPromise = null;
   var styleInjected = false;
 
   function normalizeElement(target) {
@@ -25,18 +26,26 @@
     document.head.appendChild(style);
   }
 
+  var ALIYUN_CAPTCHA_SCRIPT_SRC = 'https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js';
+  var ALIYUN_CAPTCHA_SERVERS = ['captcha-esa-open.aliyuncs.com', 'captcha-esa-open-b.aliyuncs.com'];
+
   function fetchTurnstileConfig() {
     if (turnstileConfigPromise) return turnstileConfigPromise;
     turnstileConfigPromise = fetch(CONFIG_URL, { cache: 'no-store' })
       .then(function (res) { return res.json(); })
       .then(function (data) {
+        var provider = String(data && data.provider || 'cloudflare').toLowerCase();
         return {
-          enabled: !!(data && data.enabled && data.site_key),
-          site_key: data && data.site_key ? String(data.site_key) : ''
+          enabled: !!(data && data.enabled && (data.site_key || (provider === 'aliyun_esa' && data.esa_identity && data.esa_scene_id))),
+          provider: provider === 'aliyun_esa' ? 'aliyun_esa' : 'cloudflare',
+          site_key: data && data.site_key ? String(data.site_key) : '',
+          esa_identity: data && data.esa_identity ? String(data.esa_identity) : '',
+          esa_scene_id: data && data.esa_scene_id ? String(data.esa_scene_id) : '',
+          esa_region: data && data.esa_region ? String(data.esa_region) : 'cn'
         };
       })
       .catch(function () {
-        return { enabled: false, site_key: '' };
+        return { enabled: false, provider: 'cloudflare', site_key: '', esa_identity: '', esa_scene_id: '', esa_region: 'cn' };
       });
     return turnstileConfigPromise;
   }
@@ -66,6 +75,31 @@
     return turnstileScriptPromise;
   }
 
+  function ensureAliyunCaptchaScript() {
+    if (window.initAliyunCaptcha) return Promise.resolve();
+    if (aliyunScriptPromise) return aliyunScriptPromise;
+
+    aliyunScriptPromise = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[data-public-aliyun-captcha="1"]');
+      if (existing) {
+        existing.addEventListener('load', function () { resolve(); }, { once: true });
+        existing.addEventListener('error', function () { reject(new Error('Aliyun captcha script load failed')); }, { once: true });
+        return;
+      }
+
+      var script = document.createElement('script');
+      script.src = ALIYUN_CAPTCHA_SCRIPT_SRC;
+      script.async = true;
+      script.defer = true;
+      script.dataset.publicAliyunCaptcha = '1';
+      script.onload = function () { resolve(); };
+      script.onerror = function () { reject(new Error('Aliyun captcha script load failed')); };
+      document.head.appendChild(script);
+    });
+
+    return aliyunScriptPromise;
+  }
+
   function createPublicTurnstileGuard(options) {
     var opts = options || {};
     var form = normalizeElement(opts.form);
@@ -76,6 +110,9 @@
     var widgetId = null;
     var widgetRendered = false;
     var enabled = false;
+    var provider = 'cloudflare';
+    var aliyunInstance = null;
+    var aliyunReady = false;
     var wrap = null;
     var widgetHost = null;
     var errorEl = null;
@@ -144,7 +181,8 @@
       renderPromise = (async function () {
         try {
           var config = await fetchTurnstileConfig();
-          enabled = !!(config && config.enabled && config.site_key);
+          provider = config.provider;
+          enabled = !!config.enabled;
           ensureMount();
 
           if (!enabled) {
@@ -154,6 +192,45 @@
           }
 
           if (wrap) wrap.hidden = false;
+
+          if (provider === 'aliyun_esa') {
+            // ESA 验证码：阿里云 Captcha SDK，验签由 ESA 边缘规则完成。
+            await ensureAliyunCaptchaScript();
+            if (!window.initAliyunCaptcha) {
+              notifyError('人机验证加载失败，请稍后重试');
+              return false;
+            }
+            if (!aliyunReady) {
+              if (!widgetHost.id) widgetHost.id = 'publicCaptchaHost_' + Math.random().toString(36).slice(2, 8);
+              window.AliyunCaptchaConfig = {
+                region: config.esa_region || 'cn',
+                prefix: config.esa_identity
+              };
+              window.initAliyunCaptcha({
+                SceneId: config.esa_scene_id,
+                mode: 'embed',
+                element: '#' + widgetHost.id,
+                success: function (captchaVerifyParam) {
+                  token = String(captchaVerifyParam || '');
+                  clearLocalError();
+                  if (typeof opts.onVerified === 'function') {
+                    opts.onVerified(token);
+                  }
+                },
+                fail: function () {
+                  token = '';
+                  notifyError('人机验证未通过，请重试');
+                },
+                getInstance: function (instance) {
+                  aliyunInstance = instance;
+                },
+                server: ALIYUN_CAPTCHA_SERVERS
+              });
+              aliyunReady = true;
+            }
+            return true;
+          }
+
           await ensureTurnstileScript();
           if (!window.turnstile) {
             notifyError('人机验证加载失败，请稍后重试');
@@ -203,7 +280,7 @@
       }
 
       clearLocalError();
-      var key = fieldName || 'cf_turnstile_response';
+      var key = fieldName || (provider === 'aliyun_esa' ? 'turnstileToken' : 'cf_turnstile_response');
       if (payload instanceof FormData) {
         payload.set(key, token);
         return payload;
@@ -217,6 +294,12 @@
     function reset() {
       token = '';
       clearLocalError();
+      if (provider === 'aliyun_esa') {
+        if (aliyunInstance && typeof aliyunInstance.refresh === 'function') {
+          try { aliyunInstance.refresh(); } catch (err) { /* noop */ }
+        }
+        return;
+      }
       if (enabled && window.turnstile && widgetId !== null && widgetId !== undefined) {
         try {
           window.turnstile.reset(widgetId);
@@ -230,7 +313,8 @@
       ensureReady: ensureReady,
       decoratePayload: decoratePayload,
       reset: reset,
-      isEnabled: function () { return enabled; }
+      isEnabled: function () { return enabled; },
+      getProvider: function () { return provider; }
     };
   }
 

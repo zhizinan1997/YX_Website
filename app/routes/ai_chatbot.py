@@ -698,6 +698,21 @@ def _require_chatbot_turnstile_if_needed(
             "智能客服请求较频繁，请先完成人机验证。",
         )
 
+    # 与后台登录/官网表单共用 provider：ESA 由边缘规则验签，应用侧仅做形态门槛。
+    provider = str(settings.get("provider") or "cloudflare").strip().lower()
+    if provider == "aliyun_esa":
+        from app.routes.admin import ADMIN_ESA_CAPTCHA_MIN_LENGTH, _ADMIN_ESA_CAPTCHA_SHAPE_RE
+        if (
+            len(token) < ADMIN_ESA_CAPTCHA_MIN_LENGTH
+            or not _ADMIN_ESA_CAPTCHA_SHAPE_RE.match(token)
+        ):
+            return _chatbot_turnstile_challenge_response(
+                settings,
+                "人机验证参数无效，请重新完成验证。",
+            )
+        _grant_chatbot_turnstile_clearance(clearance_key)
+        return None
+
     try:
         ok, detail = _dep("verify_turnstile_token")(
             secret_key=settings.get("secret_key", ""),
