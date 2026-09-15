@@ -529,6 +529,44 @@
                 contentError.style.display = 'none';
             }
 
+            // Auto-fill from URL parameters (e.g. ?title=... or ?product=...)
+            (function initUrlParams() {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const titleParam = params.get('title') || params.get('subject');
+                    const productParam = params.get('product');
+                    const contentParam = params.get('content') || params.get('message');
+                    const titleInput = document.getElementById('txtTitle');
+
+                    if (titleParam && titleInput) {
+                        titleInput.value = titleParam;
+                    } else if (productParam && titleInput) {
+                        titleInput.value = `申请试用 - ${productParam}`;
+                    }
+
+                    if (contentParam && contentInput) {
+                        contentInput.value = contentParam;
+                    } else if (productParam && contentInput && !contentInput.value.trim()) {
+                        contentInput.value = `您好，我对贵公司的【${productParam}】免费试用非常感兴趣，希望能申请样机进行性能评估与测试。请联系我沟通具体试用流程和技术参数对接，谢谢！`;
+                    }
+
+                    if (titleParam || productParam) {
+                        // Smooth scroll to feedback form and highlight
+                        setTimeout(() => {
+                            const feedbackSection = document.querySelector('.feedback-container');
+                            if (feedbackSection) {
+                                feedbackSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                            if (phoneInput && !phoneInput.value) {
+                                phoneInput.focus();
+                            }
+                        }, 250);
+                    }
+                } catch (e) {
+                    console.warn('URL params parsing failed:', e);
+                }
+            })();
+
             document.getElementById('btnReset').addEventListener('click', () => {
                 form.reset();
                 clearValidationState();
