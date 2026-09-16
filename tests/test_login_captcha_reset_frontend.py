@@ -72,12 +72,13 @@ class LoginCaptchaResetLoopGuardTests(unittest.TestCase):
             r"if \(!loginPageVisible && window\.Admin2Auth",
         )
 
-    def test_security_onboarding_skips_when_login_page_visible(self):
-        # passkeys.js 的 focus 轮询入口必须在登录页可见时跳过。
-        self.assertIn("window.addEventListener('focus', loadSecurityOnboarding)", self.passkeys_js)
-        onboarding = self.passkeys_js.split("async function loadSecurityOnboarding()")[1].split("}")[0]
-        self.assertIn("getElementById('loginPage')", onboarding)
-        self.assertIn("if (loginPage && loginPage.style.display !== 'none') return;", onboarding)
+    def test_security_onboarding_loop_source_removed(self):
+        # 2026-09-15 起整条引导横幅链路已删除（运营决定）：
+        # focus → email-binding 401 → forceRelogin → 验证码重置 的循环
+        # 源头不复存在；api.js 的登录页豁免仍作为第二道防线保留。
+        self.assertNotIn("loadSecurityOnboarding", self.passkeys_js)
+        self.assertNotIn("window.addEventListener('focus'", self.passkeys_js)
+        self.assertNotIn("email-binding", self.passkeys_js)
 
 
 

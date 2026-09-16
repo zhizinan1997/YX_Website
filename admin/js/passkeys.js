@@ -146,67 +146,6 @@
         list.querySelectorAll('[data-passkey-remove]').forEach(btn => btn.addEventListener('click', () => removePasskey(btn.dataset.passkeyRemove)));
     }
 
-    function jumpToSecurityCard(cardId) {
-        if (typeof window.switchView === 'function') window.switchView('settings');
-        window.setTimeout(() => {
-            const card = document.getElementById(cardId);
-            card?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            card?.querySelector('input,button')?.focus({ preventScroll: true });
-        }, 120);
-    }
-
-    function renderSecurityOnboarding(emailVerified) {
-        const missingEmail = emailVerified !== true;
-        const missingPasskey = state.enabled && state.items.length === 0;
-        const bannerId = 'securityOnboardingBanner';
-        let banner = document.getElementById(bannerId);
-        if (!missingEmail && !missingPasskey) {
-            if (banner) banner.hidden = true;
-            return;
-        }
-        if (sessionStorage.getItem('yx_security_onboarding_dismissed') === '1') return;
-        if (!banner) {
-            const main = document.querySelector('#dashboard .main-content');
-            if (!main) return;
-            banner = document.createElement('div');
-            banner.id = bannerId;
-            banner.className = 'security-onboarding-banner';
-            const topbar = main.querySelector('.top-bar');
-            main.insertBefore(banner, topbar || main.firstChild);
-        }
-        const missingLabels = [];
-        if (missingEmail) missingLabels.push('安全邮箱');
-        if (missingPasskey) missingLabels.push('Passkey');
-        banner.hidden = false;
-        banner.innerHTML = `
-            <div class="security-onboarding-copy">
-                <strong><i class="fas fa-shield-halved"></i> 完善登录安全设置（可选）</strong>
-                <span>当前账号尚未绑定 ${missingLabels.join(' 和 ')}。绑定后可用于账号恢复${missingPasskey ? '和设备快速登录' : ''}。</span>
-            </div>
-            <div class="security-onboarding-actions">
-                ${missingEmail ? '<button type="button" data-security-action="email">绑定安全邮箱</button>' : ''}
-                ${missingPasskey ? '<button type="button" data-security-action="passkey">添加 Passkey</button>' : ''}
-                <button type="button" class="security-onboarding-dismiss" data-security-action="dismiss">稍后处理</button>
-            </div>`;
-        banner.querySelector('[data-security-action="email"]')?.addEventListener('click', () => jumpToSecurityCard('emailBindingCard'));
-        banner.querySelector('[data-security-action="passkey"]')?.addEventListener('click', () => jumpToSecurityCard('passkeySecurityCard'));
-        banner.querySelector('[data-security-action="dismiss"]')?.addEventListener('click', () => {
-            sessionStorage.setItem('yx_security_onboarding_dismissed', '1');
-            banner.hidden = true;
-        });
-    }
-
-    async function loadSecurityOnboarding() {
-        // 登录页可见时直接跳过：此时请求 email-binding 必然 401，
-        // 重复探测毫无意义，且会触发 api.js 的全局 401 逻辑。
-        const loginPage = document.getElementById('loginPage');
-        if (loginPage && loginPage.style.display !== 'none') return;
-        try {
-            const data = await jsonFetch('/api/admin/account/email-binding', { cache:'no-store' });
-            renderSecurityOnboarding(data.email_verified === true);
-        } catch (_) { /* 登录状态变化或邮箱绑定限制时不打扰用户 */ }
-    }
-
     function escapeText(value) {
         return String(value == null ? '' : value).replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
     }
@@ -215,7 +154,6 @@
         if (!state.enabled) await loadPublicConfig();
         await loadAdminSettings();
         if (!state.enabled) {
-            await loadSecurityOnboarding();
             return;
         }
         try {
@@ -223,10 +161,8 @@
             state.items = Array.isArray(data.items) ? data.items : [];
             state.stepUpValid = data.step_up_valid === true;
             renderDevices();
-            await loadSecurityOnboarding();
         } catch (error) {
             if (error.status !== 401) setMessage('passkeySecurityStatus', error.message, true);
-            await loadSecurityOnboarding();
         }
     }
 
@@ -439,6 +375,5 @@
     document.getElementById('passkeyAdminSettingsForm')?.addEventListener('submit', saveAdminSettings);
 
     window.AdminPasskeys = { refresh, openSubaccountPasskeys, runPasskeyLogin };
-    window.addEventListener('focus', loadSecurityOnboarding);
     loadPublicConfig().then(refresh);
 })();
