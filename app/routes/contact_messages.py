@@ -59,6 +59,7 @@ from app.routes.admin import (
     _normalize_email,
     _send_smtp_mail,
 )
+from app.routes.promotion_links import load_active_promotion_marks, normalize_promotion_mark
 from app.rate_limit_store import check_and_record
 
 # 模块级依赖容器，在 configure/register 阶段一次性注入。
@@ -267,6 +268,26 @@ def _clean_attribution_touch(raw) -> dict:
     }
 
 
+def _drop_inactive_promotion_marks(*touches) -> None:
+    """推广链接归档后，不再让其标记出现在新留言的归因中（与站点分析口径一致）。"""
+    try:
+        active_marks = load_active_promotion_marks()
+    except Exception:
+        return
+    for touch in touches:
+        if not isinstance(touch, dict):
+            continue
+        mark = normalize_promotion_mark(touch.get('promotion_mark'))
+        utm_id = normalize_promotion_mark(touch.get('utm_id'))
+        stale = {value for value in (mark, utm_id) if value and value not in active_marks}
+        if not stale:
+            continue
+        if mark in stale:
+            touch['promotion_mark'] = ''
+        if utm_id in stale:
+            touch['utm_id'] = ''
+
+
 def _extract_request_attribution(data=None) -> dict:
     raw = ''
     if data is not None:
@@ -288,6 +309,7 @@ def _extract_request_attribution(data=None) -> dict:
         return {}
     first = _clean_attribution_touch(parsed.get('first_touch') or parsed.get('first'))
     last = _clean_attribution_touch(parsed.get('last_touch') or parsed.get('last'))
+    _drop_inactive_promotion_marks(first, last)
     if not any(first.values()) and not any(last.values()):
         return {}
     return {

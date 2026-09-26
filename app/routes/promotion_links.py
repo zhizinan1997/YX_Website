@@ -91,6 +91,18 @@ def _save_promotion_links(items: list[dict], file_path: Path | None = None):
         _write_json_file(path, payload)
 
 
+def load_active_promotion_marks(file_path: Path | None = None) -> set[str]:
+    """返回未归档推广链接的标记集合，供归因校验统一使用。"""
+    marks: set[str] = set()
+    for item in load_promotion_links(file_path):
+        if item.get('archived_at'):
+            continue
+        mark = normalize_promotion_mark(item.get('promotion_mark'))
+        if mark:
+            marks.add(mark)
+    return marks
+
+
 def _promotion_lookup(items: list[dict]) -> dict[str, dict]:
     lookup = {}
     for item in items:
@@ -402,6 +414,7 @@ def register_promotion_link_routes(
 __all__ = [
     'PROMOTION_MARK_RULE',
     'build_promotion_url',
+    'load_active_promotion_marks',
     'load_promotion_links',
     'normalize_promotion_mark',
     'register_promotion_link_routes',

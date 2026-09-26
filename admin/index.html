@@ -8,10 +8,10 @@
     <script src="/admin/vendor/sortable/Sortable.min.js"></script>
     <link rel="stylesheet" href="/admin/vendor/fonts/inter.css">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260715-image-seo-modal-v1">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260924-site-report-tabs-v1">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css">
-    <link rel="stylesheet" href="/admin/styles/components.css?v=20260915-remove-banner-v1">
+    <link rel="stylesheet" href="/admin/styles/components.css?v=20260924-subaccount-panels-v1">
 </head>
 <body class="admin2-root">
 <!-- LOGIN PAGE -->
@@ -2976,122 +2976,183 @@
                         </div>
 
                         <div id="subAccountsManageArea" style="display:none;">
-                            <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:16px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                                功能权限控制对应后台模块；“AI 与知识库”权限同时控制 AI 设置、知识库管理和历史对话。
-                            </div>
-
-                            <h4 style="margin-bottom: 10px; color:#0f2f5f;">新增子账号</h4>
-                            <form id="subAccountCreateForm">
-                                <div class="form-group">
-                                    <label>用户名</label>
-                                    <input type="text" id="subCreateUsername" class="form-control"
-                                        placeholder="3-32 位字母/数字/._-" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>密码</label>
-                                    <input type="password" id="subCreatePassword" class="form-control"
-                                        placeholder="至少 8 位" required>
-                                </div>
-                                <div class="form-group">
-                                    <label style="display: flex; align-items: center; gap: 8px;">
-                                        <input type="checkbox" id="subCreateEnabled" checked>
-                                        <span>启用该子账号</span>
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label>权限（逐项勾选）</label>
-                                    <div id="subCreatePermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
-                                </div>
-                                <div class="form-group">
-                                    <label>邮件提醒</label>
-                                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px;">
-                                        <label style="display:flex; align-items:center; gap:8px;">
-                                            <input type="checkbox" id="subCreateNotifyMessageEmail">
-                                            <span>留言推送邮件</span>
-                                        </label>
-                                        <label style="display:flex; align-items:center; gap:8px;">
-                                            <input type="checkbox" id="subCreateNotifyJobEmail">
-                                            <span>应聘推送邮件</span>
-                                        </label>
+                            <!-- 一级面板：账号列表 -->
+                            <section class="sub-panel" id="subPanelList">
+                                <div class="sub-panel-head">
+                                    <div>
+                                        <h3 class="section-header" style="margin-bottom:6px;">子账号管理</h3>
+                                        <p class="sub-panel-desc">
+                                            仅超级管理员可配置子账号。功能权限对应后台模块，“AI 与知识库”权限同时控制 AI 设置、知识库管理和历史对话。
+                                            点击任意账号的“管理”进入详情，逐级配置状态、登录凭据、邮箱、权限与邮件提醒。
+                                        </p>
+                                    </div>
+                                    <div class="sub-panel-head-actions">
+                                        <button type="button" class="btn-sm" id="subRefreshBtn"><i class="fas fa-rotate"></i> 刷新</button>
+                                        <button type="button" class="btn-primary" id="subCreateOpenBtn"
+                                            style="width:auto; padding:10px 20px;"><i class="fas fa-plus"></i> 新增子账号</button>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">添加子账号</button>
-                                <div id="subCreateMsg" class="error-message" style="color:#28a745;"></div>
-                            </form>
 
-                            <hr style="margin: 22px 0; border: none; border-top: 1px solid #e5e7eb;">
+                                <div class="sub-stat-row">
+                                    <div class="sub-stat"><span>账号总数</span><strong id="subStatTotal">0</strong></div>
+                                    <div class="sub-stat"><span>已启用</span><strong id="subStatEnabled">0</strong></div>
+                                    <div class="sub-stat"><span>已禁用</span><strong id="subStatDisabled">0</strong></div>
+                                    <div class="sub-stat"><span>已绑定邮箱</span><strong id="subStatEmail">0</strong></div>
+                                </div>
 
-                            <h4 style="margin-bottom: 10px; color:#0f2f5f;">子账号列表</h4>
-                            <p style="margin-bottom: 10px; color:#64748b; font-size: 13px;">
-                                当前共 <span id="subAccountsListCount">0</span> 个子账号。点击“编辑”可快速定位到下方编辑区。
-                            </p>
-                            <div style="overflow:auto; border:1px solid #e5e7eb; border-radius:8px; margin-bottom: 18px;">
-                                <table class="data-table" style="margin:0;">
-                                    <thead>
-                                        <tr>
-                                            <th>用户名</th>
-                                            <th>邮箱</th>
-                                            <th>状态</th>
-                                            <th>权限</th>
-                                            <th>留言推送</th>
-                                            <th>应聘推送</th>
-                                            <th>最近登录</th>
-                                            <th>更新时间</th>
-                                            <th>Passkey</th>
-                                            <th>操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="subAccountsListBody">
-                                        <tr>
-                                            <td colspan="10" class="no-data">暂无子账号</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                <div class="sub-table-wrap">
+                                    <table class="data-table" style="margin:0;">
+                                        <thead>
+                                            <tr>
+                                                <th>用户名</th>
+                                                <th>邮箱</th>
+                                                <th>状态</th>
+                                                <th>权限</th>
+                                                <th>最近登录</th>
+                                                <th style="width:120px;">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="subAccountsListBody">
+                                            <tr>
+                                                <td colspan="6" class="no-data">暂无子账号</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="sub-list-count">当前共 <span id="subAccountsListCount">0</span> 个子账号。</div>
+                            </section>
 
-                            <h4 style="margin-bottom: 10px; color:#0f2f5f;">编辑子账号</h4>
-                            <div class="form-group">
-                                <label>选择账号</label>
-                                <select id="subEditSelect" class="form-control"></select>
-                            </div>
-                            <form id="subAccountEditForm">
-                                <div class="form-group">
-                                    <label style="display:flex; align-items:center; gap:8px;">
-                                        <input type="checkbox" id="subEditEnabled">
-                                        <span>启用该子账号</span>
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label>重置密码（可留空）</label>
-                                    <input type="password" id="subEditPassword" class="form-control"
-                                        placeholder="留空表示不修改密码">
-                                </div>
-                                <div class="form-group">
-                                    <label>权限（逐项勾选）</label>
-                                    <div id="subEditPermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
-                                </div>
-                                <div class="form-group">
-                                    <label>邮件提醒</label>
-                                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px;">
-                                        <label style="display:flex; align-items:center; gap:8px;">
-                                            <input type="checkbox" id="subEditNotifyMessageEmail">
-                                            <span>留言推送邮件</span>
-                                        </label>
-                                        <label style="display:flex; align-items:center; gap:8px;">
-                                            <input type="checkbox" id="subEditNotifyJobEmail">
-                                            <span>应聘推送邮件</span>
-                                        </label>
+                            <!-- 二级面板：新增子账号 -->
+                            <section class="sub-panel" id="subPanelCreate" hidden>
+                                <button type="button" class="sub-back-btn" id="subCreateBackBtn"><i class="fas fa-arrow-left"></i> 返回账号列表</button>
+                                <div class="sub-panel-head">
+                                    <div>
+                                        <h4 class="sub-panel-title">新增子账号</h4>
+                                        <p class="sub-panel-desc">设置登录用户名、密码与初始权限，邮箱可留空稍后绑定。</p>
                                     </div>
                                 </div>
-                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                                    <button type="submit" class="btn-primary" style="width:auto; padding: 10px 22px;">保存账号设置</button>
-                                    <button type="button" class="btn-primary" id="subDeleteBtn"
-                                        style="width:auto; padding: 10px 22px; background:#b91c1c;">删除子账号</button>
-                                    <button type="button" class="btn-primary" id="subRefreshBtn"
-                                        style="width:auto; padding: 10px 22px; background:#4b5563;">刷新列表</button>
+                                <form id="subAccountCreateForm">
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">基本信息</div>
+                                        <div class="form-group">
+                                            <label>用户名</label>
+                                            <input type="text" id="subCreateUsername" class="form-control"
+                                                placeholder="3-32 位字母/数字/._-" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>密码</label>
+                                            <input type="password" id="subCreatePassword" class="form-control"
+                                                placeholder="至少 8 位" required>
+                                        </div>
+                                        <label class="sub-switch">
+                                            <input type="checkbox" id="subCreateEnabled" checked>
+                                            <span>启用该子账号</span>
+                                        </label>
+                                    </div>
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">登录凭据与邮箱</div>
+                                        <div class="form-group">
+                                            <label>绑定邮箱（可留空）</label>
+                                            <input type="email" id="subCreateEmail" class="form-control"
+                                                placeholder="留空表示暂不绑定邮箱">
+                                            <div class="form-hint" style="margin-top:6px;">
+                                                由超级管理员添加的邮箱将直接标记为已验证，可用于登录与邮件提醒。
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">功能权限</div>
+                                        <div id="subCreatePermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
+                                    </div>
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">邮件提醒</div>
+                                        <div class="sub-notify-grid">
+                                            <label style="display:flex; align-items:center; gap:8px;">
+                                                <input type="checkbox" id="subCreateNotifyMessageEmail">
+                                                <span>留言推送邮件</span>
+                                            </label>
+                                            <label style="display:flex; align-items:center; gap:8px;">
+                                                <input type="checkbox" id="subCreateNotifyJobEmail">
+                                                <span>应聘推送邮件</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="sub-form-actions">
+                                        <button type="submit" class="btn-primary" style="width:auto; padding:10px 22px;">添加子账号</button>
+                                        <button type="button" class="btn-sm" id="subCreateCancelBtn">取消</button>
+                                    </div>
+                                    <div id="subCreateMsg" class="error-message" style="color:#28a745;"></div>
+                                </form>
+                            </section>
+
+                            <!-- 二级面板：编辑子账号 -->
+                            <section class="sub-panel" id="subPanelEdit" hidden>
+                                <button type="button" class="sub-back-btn" id="subEditBackBtn"><i class="fas fa-arrow-left"></i> 返回账号列表</button>
+                                <div class="sub-detail-head">
+                                    <div>
+                                        <h4 class="sub-panel-title" id="subEditTitle">编辑子账号</h4>
+                                        <p class="sub-panel-desc">配置该子账号的状态、登录凭据、邮箱、权限与邮件提醒。</p>
+                                    </div>
+                                    <div class="sub-detail-head-actions">
+                                        <span class="sub-status-badge" id="subEditStatusBadge">启用</span>
+                                        <button type="button" class="btn-sm" id="subEditPasskeyBtn" data-username=""><i class="fas fa-fingerprint"></i> <span id="subEditPasskeyLabel">Passkey</span></button>
+                                    </div>
                                 </div>
-                                <div id="subEditMsg" class="error-message" style="color:#28a745;"></div>
-                            </form>
+                                <select id="subEditSelect" class="form-control" style="display:none;"></select>
+                                <form id="subAccountEditForm">
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">账号状态</div>
+                                        <label class="sub-switch">
+                                            <input type="checkbox" id="subEditEnabled">
+                                            <span>启用该子账号</span>
+                                        </label>
+                                    </div>
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">登录凭据</div>
+                                        <div class="form-group">
+                                            <label>重置密码（可留空）</label>
+                                            <input type="password" id="subEditPassword" class="form-control"
+                                                placeholder="留空表示不修改密码">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>绑定邮箱</label>
+                                            <div id="subEditEmailCurrent" style="margin-bottom:8px; color:#475569; font-size:13px;">当前未绑定邮箱</div>
+                                            <div class="sub-inline-row">
+                                                <input type="email" id="subEditEmail" class="form-control"
+                                                    placeholder="输入新邮箱后点击“更改邮箱”">
+                                                <button type="button" class="btn-primary" id="subForceEmailBtn"
+                                                    style="width:auto; padding:10px 22px;">更改邮箱</button>
+                                            </div>
+                                            <div class="form-hint" style="margin-top:6px;">
+                                                超级管理员可强制修改子账号的绑定邮箱，修改后邮箱将直接标记为已验证。
+                                            </div>
+                                            <div id="subEditEmailMsg" class="error-message" style="color:#28a745;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">功能权限</div>
+                                        <div id="subEditPermissionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:10px;"></div>
+                                    </div>
+                                    <div class="sub-block">
+                                        <div class="sub-block-title">邮件提醒</div>
+                                        <div class="sub-notify-grid">
+                                            <label style="display:flex; align-items:center; gap:8px;">
+                                                <input type="checkbox" id="subEditNotifyMessageEmail">
+                                                <span>留言推送邮件</span>
+                                            </label>
+                                            <label style="display:flex; align-items:center; gap:8px;">
+                                                <input type="checkbox" id="subEditNotifyJobEmail">
+                                                <span>应聘推送邮件</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="sub-form-actions">
+                                        <button type="submit" class="btn-primary" style="width:auto; padding:10px 22px;">保存账号设置</button>
+                                        <button type="button" id="subDeleteBtn" class="sub-danger-btn">删除子账号</button>
+                                    </div>
+                                    <div id="subEditMsg" class="error-message" style="color:#28a745;"></div>
+                                </form>
+                            </section>
                         </div>
                     </div>
                 </div>
@@ -3471,6 +3532,16 @@
                         <div id="siteReportMsg" class="error-message" style="color:#28a745;"></div>
                     </div>
 
+                    <div class="tabs site-report-tabs" role="tablist">
+                        <button type="button" class="tab-btn active" onclick="switchSiteReportTab('overview', this)">概览</button>
+                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('acquisition', this)">来源与受众</button>
+                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('content', this)">内容与转化</button>
+                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('crawler', this)">爬虫流量</button>
+                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('logs', this)">登录日志</button>
+                    </div>
+
+                    <div id="siteReportTab-overview" class="tab-content active">
+
                     <div class="card site-report-card site-ai-report-card" id="siteAiReportCard" style="display:none;">
                         <div class="site-ai-report-header">
                             <div>
@@ -3497,6 +3568,10 @@
                                 onclick="showSiteMetricHelp('trend')" aria-label="每日趋势说明">?</button></h3>
                         <div id="siteReportTrend" class="site-report-trend"></div>
                     </div>
+
+                    </div><!-- /概览 -->
+
+                    <div id="siteReportTab-acquisition" class="tab-content">
 
                     <div class="card site-report-card" style="margin-top: 18px;">
                         <h3 class="section-header"><i class="fas fa-table" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源统计（中国按省 / 海外按洲）</h3>
@@ -3686,6 +3761,10 @@
                         </div>
                     </div>
 
+                    </div><!-- /来源与受众 -->
+
+                    <div id="siteReportTab-crawler" class="tab-content">
+
                     <div class="card site-report-card site-report-crawler-card" style="margin-top: 18px;">
                         <div class="site-report-crawler-header">
                             <div>
@@ -3738,6 +3817,10 @@
                             </table>
                         </div>
                     </div>
+
+                    </div><!-- /爬虫流量 -->
+
+                    <div id="siteReportTab-content" class="tab-content">
 
                     <div class="card site-report-card" style="margin-top: 18px;">
                         <h3 class="section-header">热门页面</h3>
@@ -3824,6 +3907,10 @@
                         </div>
                     </div>
 
+                    </div><!-- /内容与转化 -->
+
+                    <div id="siteReportTab-logs" class="tab-content">
+
                     <div class="card" style="margin-top: 18px;">
                         <div class="audit-card-header">
                             <div class="audit-card-title">历史登录日志</div>
@@ -3872,6 +3959,8 @@
                             </div>
                         </div>
                     </div>
+
+                    </div><!-- /登录日志 -->
                 </div>
 
                 <!-- Backup View -->
@@ -4259,7 +4348,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260915-login-ui-v3"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260924-site-report-tabs-v1"></script>
     <script src="/admin/js/passkeys.js?v=20260915-remove-banner-v1"></script>
     <script src="/admin/js/app.js?v=20260715-image-seo-v2"></script>
 </body>

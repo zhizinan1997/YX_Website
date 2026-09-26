@@ -17,7 +17,7 @@
   var ATTRIBUTION_KEY = 'yx_site_attribution';
   var ATTRIBUTION_COOKIE = 'yx_site_attribution';
   var SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-  var ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+  var ATTRIBUTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
   var FLUSH_DELAY_MS = 2000;
   var MAX_BATCH_SIZE = 20;
   var MAX_AUTO_EVENTS_PER_PAGE = 40;

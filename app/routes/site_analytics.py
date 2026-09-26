@@ -78,7 +78,7 @@ from flask import current_app, jsonify, request, send_file, session
 
 from app.atomic_io import cross_process_file_lock
 from app.rate_limit_store import check_and_record
-from app.routes.promotion_links import load_promotion_links, normalize_promotion_mark
+from app.routes.promotion_links import load_active_promotion_marks, load_promotion_links, normalize_promotion_mark
 
 SITE_ANALYTICS_LOG_FILE = Path(__file__).resolve().parents[2] / 'data' / 'site_analytics_events.jsonl'
 PROMOTION_LINKS_FILE = Path(__file__).resolve().parents[2] / 'data' / 'promotion_links.json'
@@ -258,17 +258,9 @@ def _analytics_load_promotion_lookup():
 
 def _analytics_active_promotion_marks():
     try:
-        items = load_promotion_links(PROMOTION_LINKS_FILE)
+        return load_active_promotion_marks(PROMOTION_LINKS_FILE)
     except Exception:
         return None
-    marks = set()
-    for item in items:
-        if not isinstance(item, dict) or item.get('archived_at'):
-            continue
-        mark = normalize_promotion_mark(item.get('promotion_mark'))
-        if mark:
-            marks.add(mark)
-    return marks
 
 
 def _analytics_extract_host(raw_url: str) -> str:

@@ -17613,6 +17613,10 @@
             const emailCurrentEl = document.getElementById('subEditEmailCurrent');
             const emailInputEl = document.getElementById('subEditEmail');
             const emailMsgEl = document.getElementById('subEditEmailMsg');
+            const titleEl = document.getElementById('subEditTitle');
+            const statusBadgeEl = document.getElementById('subEditStatusBadge');
+            const passkeyBtnEl = document.getElementById('subEditPasskeyBtn');
+            const passkeyLabelEl = document.getElementById('subEditPasskeyLabel');
             if (msgEl) {
                 msgEl.textContent = '';
                 msgEl.style.color = '#28a745';
@@ -17628,6 +17632,13 @@
                 if (notifyMessageEl) notifyMessageEl.checked = false;
                 if (notifyJobEl) notifyJobEl.checked = false;
                 if (emailCurrentEl) emailCurrentEl.innerHTML = '当前未绑定邮箱';
+                if (titleEl) titleEl.textContent = '编辑子账号';
+                if (statusBadgeEl) {
+                    statusBadgeEl.textContent = '—';
+                    statusBadgeEl.classList.add('is-disabled');
+                }
+                if (passkeyBtnEl) passkeyBtnEl.dataset.username = '';
+                if (passkeyLabelEl) passkeyLabelEl.textContent = 'Passkey';
                 renderPermissionGrid('subEditPermissionsGrid', []);
                 return;
             }
@@ -17647,6 +17658,14 @@
                     emailCurrentEl.innerHTML = '<span style="color:#94a3b8;">当前未绑定邮箱</span>';
                 }
             }
+            if (titleEl) titleEl.textContent = `编辑：${String(target.username || '').trim()}`;
+            if (statusBadgeEl) {
+                const enabled = target.enabled !== false;
+                statusBadgeEl.textContent = enabled ? '启用' : '禁用';
+                statusBadgeEl.classList.toggle('is-disabled', !enabled);
+            }
+            if (passkeyBtnEl) passkeyBtnEl.dataset.username = String(target.username || '').trim();
+            if (passkeyLabelEl) passkeyLabelEl.textContent = `${Number(target.passkey_count || 0)} 个 Passkey`;
             renderPermissionGrid('subEditPermissionsGrid', Array.isArray(target.permissions) ? target.permissions : []);
         }
 
@@ -17684,6 +17703,43 @@
             return map;
         }
 
+        function showSubAccountPanel(name) {
+            const panels = {
+                list: document.getElementById('subPanelList'),
+                create: document.getElementById('subPanelCreate'),
+                edit: document.getElementById('subPanelEdit'),
+            };
+            Object.keys(panels).forEach((key) => {
+                const el = panels[key];
+                if (el) el.hidden = key !== name;
+            });
+        }
+
+        function openSubAccountList() {
+            showSubAccountPanel('list');
+        }
+
+        function openSubAccountCreate() {
+            const form = document.getElementById('subAccountCreateForm');
+            if (form) form.reset();
+            renderPermissionGrid('subCreatePermissionsGrid', ['messages']);
+            const msg = document.getElementById('subCreateMsg');
+            if (msg) {
+                msg.textContent = '';
+                msg.style.color = '#28a745';
+            }
+            showSubAccountPanel('create');
+        }
+
+        function openSubAccountEdit(username) {
+            const select = document.getElementById('subEditSelect');
+            if (select && username) {
+                select.value = username;
+                select.dispatchEvent(new Event('change'));
+            }
+            showSubAccountPanel('edit');
+        }
+
         function renderSubAccountsTable() {
             const tbody = document.getElementById('subAccountsListBody');
             const countEl = document.getElementById('subAccountsListCount');
@@ -17692,8 +17748,22 @@
             if (countEl) {
                 countEl.textContent = String(subAccountsCache.length || 0);
             }
+            const stats = { total: subAccountsCache.length, enabled: 0, email: 0 };
+            subAccountsCache.forEach(item => {
+                if (item && item.enabled !== false) stats.enabled += 1;
+                if (item && String(item.email || '').trim()) stats.email += 1;
+            });
+            const statTotalEl = document.getElementById('subStatTotal');
+            const statEnabledEl = document.getElementById('subStatEnabled');
+            const statDisabledEl = document.getElementById('subStatDisabled');
+            const statEmailEl = document.getElementById('subStatEmail');
+            if (statTotalEl) statTotalEl.textContent = String(stats.total);
+            if (statEnabledEl) statEnabledEl.textContent = String(stats.enabled);
+            if (statDisabledEl) statDisabledEl.textContent = String(Math.max(0, stats.total - stats.enabled));
+            if (statEmailEl) statEmailEl.textContent = String(stats.email);
+
             if (!subAccountsCache.length) {
-                tbody.innerHTML = '<tr><td colspan="10" class="no-data">暂无子账号</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无子账号</td></tr>';
                 return;
             }
 
@@ -17704,14 +17774,10 @@
                 const permissions = normalizePermissionList(item.permissions);
                 const permissionNames = permissions.map(key => labelMap[key] || key);
                 const permissionText = permissionNames.length ? permissionNames.join('、') : '无';
+                const permissionSummary = permissions.length ? `${permissions.length} 项` : '无';
                 const loginText = item.last_login_at ? (formatChangelogTime(item.last_login_at) || item.last_login_at) : '从未登录';
-                const updateText = item.updated_at ? (formatChangelogTime(item.updated_at) || item.updated_at) : '-';
                 const statusText = enabled ? '启用' : '禁用';
                 const statusColor = enabled ? '#16a34a' : '#dc2626';
-                const notifyMessageText = item.notify_message_email === true ? '接收' : '关闭';
-                const notifyMessageColor = item.notify_message_email === true ? '#16a34a' : '#64748b';
-                const notifyJobText = item.notify_job_email === true ? '接收' : '关闭';
-                const notifyJobColor = item.notify_job_email === true ? '#16a34a' : '#64748b';
                 const email = String(item.email || '').trim();
                 const emailVerified = item.email_verified === true;
                 const emailDisplay = email
@@ -17720,21 +17786,13 @@
 
                 return `
                     <tr>
-                        <td>${escapeHtml(username)}</td>
+                        <td><strong style="color:#0f2f5f;">${escapeHtml(username)}</strong></td>
                         <td>${emailDisplay}</td>
                         <td><span style="font-weight:700; color:${statusColor};">${statusText}</span></td>
-                        <td title="${escapeHtml(permissionText)}" style="max-width: 360px;">${escapeHtml(permissionText)}</td>
-                        <td><span style="font-weight:700; color:${notifyMessageColor};">${notifyMessageText}</span></td>
-                        <td><span style="font-weight:700; color:${notifyJobColor};">${notifyJobText}</span></td>
+                        <td title="${escapeHtml(permissionText)}"><span style="color:#475569;">${escapeHtml(permissionSummary)}</span></td>
                         <td>${escapeHtml(loginText)}</td>
-                        <td>${escapeHtml(updateText)}</td>
                         <td>
-                            <button type="button" class="btn-sm" onclick="window.AdminPasskeys && window.AdminPasskeys.openSubaccountPasskeys('${escapeHtml(username)}')">
-                                ${Number(item.passkey_count || 0)} 个
-                            </button>
-                        </td>
-                        <td>
-                            <button type="button" class="btn-sm sub-account-edit-btn" data-username="${escapeHtml(username)}">编辑</button>
+                            <button type="button" class="btn-sm sub-account-edit-btn" data-username="${escapeHtml(username)}">管理</button>
                         </td>
                     </tr>
                 `;
@@ -17744,12 +17802,7 @@
                 btn.addEventListener('click', () => {
                     const username = String(btn.dataset.username || '').trim();
                     if (!username) return;
-                    const select = document.getElementById('subEditSelect');
-                    if (select) {
-                        select.value = username;
-                        select.dispatchEvent(new Event('change'));
-                    }
-                    document.getElementById('subAccountEditForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    openSubAccountEdit(username);
                 });
             });
         }
@@ -17813,6 +17866,7 @@
                 const msg = document.getElementById('subCreateMsg');
                 const username = String(document.getElementById('subCreateUsername')?.value || '').trim();
                 const password = String(document.getElementById('subCreatePassword')?.value || '');
+                const email = String(document.getElementById('subCreateEmail')?.value || '').trim();
                 const enabled = !!document.getElementById('subCreateEnabled')?.checked;
                 const notifyMessageEmail = !!document.getElementById('subCreateNotifyMessageEmail')?.checked;
                 const notifyJobEmail = !!document.getElementById('subCreateNotifyJobEmail')?.checked;
@@ -17830,6 +17884,10 @@
                     if (msg) msg.textContent = '请至少选择 1 项权限';
                     return;
                 }
+                if (email && !email.includes('@')) {
+                    if (msg) msg.textContent = '请输入有效的邮箱地址';
+                    return;
+                }
 
                 if (btn) btn.disabled = true;
                 try {
@@ -17839,6 +17897,7 @@
                         body: JSON.stringify({
                             username,
                             password,
+                            email,
                             enabled,
                             permissions: expandPermissionsForApi(permissions),
                             notify_message_email: notifyMessageEmail,
@@ -17856,6 +17915,7 @@
                     e.target.reset();
                     renderPermissionGrid('subCreatePermissionsGrid', ['messages']);
                     await loadSubAccounts();
+                    openSubAccountList();
                 } catch (err) {
                     if (msg) msg.textContent = String(err.message || '创建失败');
                 } finally {
@@ -17926,6 +17986,7 @@
                         msg.textContent = '子账号更新成功';
                     }
                     await loadSubAccounts();
+                    openSubAccountList();
                 } catch (err) {
                     if (msg) msg.textContent = String(err.message || '保存失败');
                 } finally {
@@ -17962,6 +18023,7 @@
                         msg.textContent = '子账号已删除';
                     }
                     await loadSubAccounts();
+                    openSubAccountList();
                 } catch (err) {
                     if (msg) {
                         msg.style.color = '#dc3545';
@@ -17975,6 +18037,37 @@
         if (subRefreshBtn) {
             subRefreshBtn.addEventListener('click', async () => {
                 await loadSubAccounts();
+            });
+        }
+
+        const subCreateOpenBtn = document.getElementById('subCreateOpenBtn');
+        if (subCreateOpenBtn) {
+            subCreateOpenBtn.addEventListener('click', () => openSubAccountCreate());
+        }
+
+        const subCreateBackBtn = document.getElementById('subCreateBackBtn');
+        if (subCreateBackBtn) {
+            subCreateBackBtn.addEventListener('click', () => openSubAccountList());
+        }
+
+        const subCreateCancelBtn = document.getElementById('subCreateCancelBtn');
+        if (subCreateCancelBtn) {
+            subCreateCancelBtn.addEventListener('click', () => openSubAccountList());
+        }
+
+        const subEditBackBtn = document.getElementById('subEditBackBtn');
+        if (subEditBackBtn) {
+            subEditBackBtn.addEventListener('click', () => openSubAccountList());
+        }
+
+        const subEditPasskeyBtn = document.getElementById('subEditPasskeyBtn');
+        if (subEditPasskeyBtn) {
+            subEditPasskeyBtn.addEventListener('click', () => {
+                const username = String(subEditPasskeyBtn.dataset.username || '').trim();
+                if (!username) return;
+                if (window.AdminPasskeys && typeof window.AdminPasskeys.openSubaccountPasskeys === 'function') {
+                    window.AdminPasskeys.openSubaccountPasskeys(username);
+                }
             });
         }
 
@@ -18037,6 +18130,14 @@
         }
 
         // --- Chatbot Config Logic ---
+        function switchSiteReportTab(tabName, btn) {
+            document.querySelectorAll('#view-site-reports .site-report-tabs .tab-btn').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.querySelectorAll('#view-site-reports > .tab-content').forEach(el => el.classList.remove('active'));
+            const tab = document.getElementById(`siteReportTab-${tabName}`);
+            if (tab) tab.classList.add('active');
+        }
+
         function switchChatbotTab(tabName, btn) {
             document.querySelectorAll('#view-chatbot .tab-btn').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');

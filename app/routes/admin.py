@@ -4224,6 +4224,7 @@ def register_admin_routes(
         data = request.get_json(silent=True) or {}
         username = _normalize_username(data.get('username', ''))
         password = str(data.get('password', '') or '')
+        email = _normalize_email(data.get('email', ''))
         # 用 _parse_bool 严格解析，防止 JSON 字符串 "false" 被 bool() 当成 True。
         enabled = _parse_bool(data.get('enabled', True), True)
         permissions = _normalize_permissions(data.get('permissions', []), is_super_admin=False)
@@ -4234,6 +4235,8 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': '用户名需为 3 到 32 位，仅支持字母、数字、下划线、点和短横线。'}), 400
         if len(password) < 8:
             return jsonify({'success': False, 'message': '密码至少需要 8 位。'}), 400
+        if email and '@' not in email:
+            return jsonify({'success': False, 'message': '请输入有效的邮箱地址。'}), 400
         if not permissions:
             return jsonify({'success': False, 'message': '请至少选择 1 项权限。'}), 400
         if _locked_permissions(permissions):
@@ -4247,6 +4250,11 @@ def register_admin_routes(
                 if _should_conceal_hidden_admin(existing, session):
                     return _hidden_admin_username_unavailable_response()
                 return jsonify({'success': False, 'message': '用户名已存在。'}), 400
+            if email:
+                duplicated = _find_user_by_email(users_data, email)
+                if duplicated is not None:
+                    dup_name = _normalize_username(duplicated.get('username', ''))
+                    return jsonify({'success': False, 'message': f'该邮箱已被账号 {dup_name} 绑定。'}), 400
             now_iso = now_beijing().isoformat(timespec='seconds')
             user = _sanitize_user_record({
                 'username': username,
@@ -4254,6 +4262,9 @@ def register_admin_routes(
                 'role': 'sub_admin',
                 'enabled': enabled,
                 'permissions': permissions,
+                'email': email,
+                'email_verified': bool(email),
+                'email_bound_at': now_iso if email else '',
                 'notify_message_email': notify_message_email,
                 'notify_job_email': notify_job_email,
                 'created_at': now_iso,

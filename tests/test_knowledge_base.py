@@ -11,6 +11,7 @@ from flask import Flask
 
 from app.routes import ai_chatbot as chatbot
 from app.routes import contact_messages
+from app.routes import promotion_links
 
 
 class FakePdfPage:
@@ -223,25 +224,57 @@ class KnowledgeBaseTests(unittest.TestCase):
 
 
 class ContactAttributionTests(unittest.TestCase):
-    def test_extract_request_attribution_from_cookie(self):
-        app = Flask(__name__)
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.links_file = Path(self.tmp.name) / "promotion_links.json"
+        self._old_links_file = promotion_links.PROMOTION_LINKS_FILE
+        promotion_links.PROMOTION_LINKS_FILE = self.links_file
+        self.addCleanup(setattr, promotion_links, "PROMOTION_LINKS_FILE", self._old_links_file)
+
+    def _write_links(self, items):
+        self.links_file.write_text(
+            json.dumps({"version": 1, "items": items}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    def _cookie(self, mark: str, source: str = "wechat", medium: str = "article") -> str:
         payload = {
             "first_touch": {
-                "utm": {"source": "wechat", "medium": "article", "campaign": "hydrogen", "id": "wechat-article-a"},
-                "promotion_mark": "wechat-article-a",
-                "landing_page": "/?utm_id=wechat-article-a",
+                "utm": {"source": source, "medium": medium, "campaign": "hydrogen", "id": mark},
+                "promotion_mark": mark,
+                "landing_page": "/?utm_id=" + mark,
             },
             "last_touch": {
-                "utm": {"source": "wechat", "medium": "article", "campaign": "hydrogen", "id": "wechat-article-a"},
-                "promotion_mark": "wechat-article-a",
+                "utm": {"source": source, "medium": medium, "campaign": "hydrogen", "id": mark},
+                "promotion_mark": mark,
                 "landing_page": "/pages/gassensing/mc_ld_r1.html",
             },
         }
-        encoded = quote(json.dumps(payload, separators=(',', ':')))
-        with app.test_request_context(headers={"Cookie": f"yx_site_attribution={encoded}"}):
-            attr = contact_messages._extract_request_attribution({})
+        return quote(json.dumps(payload, separators=(",", ":")))
+
+    def _extract(self, mark: str, source: str = "wechat", medium: str = "article") -> dict:
+        app = Flask(__name__)
+        cookie = self._cookie(mark, source=source, medium=medium)
+        with app.test_request_context(headers={"Cookie": f"yx_site_attribution={cookie}"}):
+            return contact_messages._extract_request_attribution({})
+
+    def test_extract_request_attribution_from_cookie(self):
+        self._write_links([
+            {"name": "微信文章", "promotion_mark": "wechat-article-a", "archived_at": ""},
+        ])
+        attr = self._extract("wechat-article-a")
         self.assertEqual(attr["last_touch"]["utm_source"], "wechat")
         self.assertEqual(attr["last_touch"]["promotion_mark"], "wechat-article-a")
+
+    def test_archived_promotion_mark_is_dropped(self):
+        self._write_links([
+            {"name": "pku", "promotion_mark": "pku-promotion", "archived_at": "2026-07-09T17:04:04+08:00"},
+        ])
+        attr = self._extract("pku-promotion", source="pku")
+        self.assertEqual(attr["last_touch"]["utm_source"], "pku")
+        self.assertEqual(attr["last_touch"]["promotion_mark"], "")
+        self.assertEqual(attr["last_touch"]["utm_id"], "")
 
 
 if __name__ == "__main__":
