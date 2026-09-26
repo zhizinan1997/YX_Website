@@ -1,6 +1,4 @@
 (function () {
-    const SIDEBAR_SECTION_STATE_KEY = 'yx_admin2_sidebar_sections';
-
     function resolveNode(item) {
         if (!item) return null;
         if (item.type === 'selector') {
@@ -12,24 +10,7 @@
         return document.querySelector(`.menu-item[data-view="${item.key}"]`);
     }
 
-    function readSectionState() {
-        try {
-            const value = JSON.parse(localStorage.getItem(SIDEBAR_SECTION_STATE_KEY) || '{}');
-            return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-        } catch (_) {
-            return {};
-        }
-    }
-
-    function writeSectionState(sectionKey, collapsed) {
-        try {
-            const state = readSectionState();
-            state[sectionKey] = !!collapsed;
-            localStorage.setItem(SIDEBAR_SECTION_STATE_KEY, JSON.stringify(state));
-        } catch (_) { }
-    }
-
-    function setSectionCollapsed(sectionEl, collapsed, save = true) {
+    function setSectionCollapsed(sectionEl, collapsed) {
         if (!sectionEl) return;
         const isCollapsed = !!collapsed;
         const bodyEl = sectionEl.querySelector('.sidebar-section-body');
@@ -38,9 +19,6 @@
         if (bodyEl) bodyEl.hidden = isCollapsed;
         if (toggleEl) {
             toggleEl.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-        }
-        if (save && sectionEl.dataset.sectionKey) {
-            writeSectionState(sectionEl.dataset.sectionKey, isCollapsed);
         }
     }
 
@@ -52,7 +30,13 @@
     function revealViewSection(viewName) {
         const key = String(viewName || '').trim();
         if (!key) return;
-        const menuItem = document.querySelector(`.menu-item[data-view="${key}"]`);
+        const menuView = ['settings', 'log-records', 'site-settings'].includes(key)
+            ? 'system-management'
+            : ['chatbot', 'chatbot-knowledge', 'chatbot-history'].includes(key)
+                ? 'ai-management'
+                : key;
+        const menuItem = document.querySelector(`.menu-item[data-view="${key}"]`)
+            || document.querySelector(`.menu-item[data-view="${menuView}"]`);
         const sectionEl = menuItem && menuItem.closest('.sidebar-section');
         if (sectionEl && sectionEl.classList.contains('is-collapsed')) {
             setSectionCollapsed(sectionEl, false);
@@ -88,8 +72,7 @@
 
             if (bodyEl.children.length > 0) {
                 sectionEl.appendChild(bodyEl);
-                const savedState = readSectionState();
-                setSectionCollapsed(sectionEl, savedState[sectionEl.dataset.sectionKey] === true, false);
+                setSectionCollapsed(sectionEl, false);
                 sections.push(sectionEl);
             }
         }
@@ -107,7 +90,12 @@
     function mount() {
         regroupSidebar();
         const activeMenuItem = document.querySelector('.menu-item[data-view].active');
-        if (activeMenuItem) revealViewSection(activeMenuItem.dataset.view);
+        const activeView = document.querySelector('.view-section.active');
+        if (activeView && activeView.id) {
+            revealViewSection(activeView.id.replace(/^view-/, ''));
+        } else if (activeMenuItem) {
+            revealViewSection(activeMenuItem.dataset.view);
+        }
         enhanceTopBar();
     }
 

@@ -1,0 +1,500 @@
+#view-log-records {
+    max-width: 1240px;
+    min-width: 0;
+    color: #25343d;
+}
+
+#view-log-records .system-log-page {
+    min-width: 0;
+}
+
+#view-log-records .system-log-header {
+    margin-bottom: 0;
+}
+
+#view-log-records .system-log-header h1 {
+    margin: 0;
+    color: #202e37;
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+#view-log-records .system-log-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 24px;
+    min-height: 43px;
+    margin-top: 12px;
+    border-bottom: 1px solid #dbe2e5;
+}
+
+#view-log-records .system-log-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    min-height: 43px;
+    padding: 0 2px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: #64727b;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+#view-log-records .system-log-tab:hover {
+    color: #0d706e;
+}
+
+#view-log-records .system-log-tab.is-active {
+    border-bottom-color: #0b807b;
+    color: #14635f;
+}
+
+#view-log-records .system-log-tab:focus-visible,
+#view-log-records .system-log-refresh:focus-visible,
+#view-log-records .system-log-clear:focus-visible,
+#view-log-records .changelog-page-btn:focus-visible,
+#view-log-records .system-log-date-field input:focus-visible,
+#view-log-records .system-log-error-field input:focus-visible {
+    outline: 2px solid #0b807b;
+    outline-offset: 2px;
+}
+
+#view-log-records .system-log-pane {
+    min-width: 0;
+    padding-top: 18px;
+}
+
+#view-log-records .system-log-pane[hidden] {
+    display: none !important;
+}
+
+#view-log-records .system-log-pane-head,
+#view-log-records .system-log-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+#view-log-records .system-log-pane-head {
+    margin-bottom: 15px;
+}
+
+#view-log-records .system-log-pane-head h2 {
+    margin: 0;
+    color: #24323b;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+#view-log-records .system-log-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid #ccd8db;
+    border-radius: 5px;
+    background: #fff;
+    color: #35545c;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#view-log-records .system-log-refresh:hover:not(:disabled) {
+    border-color: #91bcba;
+    background: #f0f8f7;
+    color: #14635f;
+}
+
+#view-log-records .system-log-refresh:disabled,
+#view-log-records .system-log-clear:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+#view-log-records .system-log-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px 36px;
+    margin: 0 0 20px;
+    padding: 13px 0 15px;
+    border-top: 1px solid #e4e9eb;
+    border-bottom: 1px solid #e4e9eb;
+}
+
+#view-log-records .system-log-meta > div {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+}
+
+#view-log-records .system-log-meta dt {
+    color: #78848b;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+#view-log-records .system-log-meta dd {
+    min-width: 0;
+    margin: 0;
+    color: #263943;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#view-log-records .system-log-history-head {
+    margin-bottom: 10px;
+}
+
+#view-log-records .system-log-history-head h2,
+#view-log-records .system-log-history-head h3 {
+    margin: 0;
+    color: #26343d;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+#view-log-records .changelog-count-badge {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #78848b;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+#view-log-records .changelog-updates {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #e0e6e8;
+    border-radius: 6px;
+    background: #fff;
+    list-style: none;
+    overflow: hidden;
+}
+
+#view-log-records .changelog-update-item {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: start;
+    gap: 11px;
+    margin: 0;
+    padding: 13px 15px;
+    border: 0;
+    border-bottom: 1px solid #e8edef;
+    border-radius: 0;
+    background: #fff;
+}
+
+#view-log-records .changelog-update-item:last-child {
+    border-bottom: 0;
+}
+
+#view-log-records .changelog-update-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    border: 0;
+    border-radius: 4px;
+    background: #e9f4f1;
+    color: #21736a;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+#view-log-records .changelog-update-text {
+    min-width: 0;
+    color: #46535c;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+#view-log-records .changelog-update-head {
+    margin: 1px 0 3px;
+    color: #273b45;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+#view-log-records .changelog-update-detail {
+    color: #58666d;
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+#view-log-records .changelog-update-empty {
+    padding: 28px 16px;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    color: #7a878c;
+    font-size: 13px;
+    text-align: center;
+}
+
+#view-log-records .changelog-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 0;
+    border: 0;
+}
+
+#view-log-records .changelog-pagination[hidden] {
+    display: none;
+}
+
+#view-log-records .changelog-page-info {
+    color: #76838a;
+    font-size: 12px;
+}
+
+#view-log-records .changelog-page-actions {
+    display: inline-flex;
+    gap: 6px;
+}
+
+#view-log-records .changelog-page-btn {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid #d4dee0;
+    border-radius: 5px;
+    background: #fff;
+    color: #42565c;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#view-log-records .changelog-page-btn:hover:not(:disabled) {
+    border-color: #9ec2bd;
+    background: #f4faf8;
+    color: #14635f;
+}
+
+#view-log-records .changelog-page-btn:disabled {
+    opacity: .45;
+}
+
+#view-log-records .system-log-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 19px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #e0e6e8;
+    border-bottom: 0;
+    border-radius: 6px 6px 0 0;
+    background: #f7f9f9;
+}
+
+#view-log-records .system-log-date-field,
+#view-log-records .system-log-error-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #4e5d65;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#view-log-records .system-log-date-field input,
+#view-log-records input.system-log-date-field {
+    width: 150px;
+    max-width: 100%;
+    min-height: 31px;
+    padding: 3px 8px;
+    border: 1px solid #cfdadc;
+    border-radius: 4px;
+    background: #fff;
+    color: #33464e;
+    font: inherit;
+    font-size: 12px;
+}
+
+#view-log-records .system-log-error-field input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: #b74f3c;
+    cursor: pointer;
+}
+
+#view-log-records .system-log-filter-info {
+    display: none;
+    min-width: 0;
+    color: #77858a;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+#view-log-records .system-log-filter-info.visible {
+    display: inline;
+}
+
+#view-log-records .system-log-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 31px;
+    margin-left: auto;
+    padding: 0 9px;
+    border: 1px solid #e4c9c3;
+    border-radius: 5px;
+    background: #fff;
+    color: #a94839;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#view-log-records .system-log-clear:hover:not(:disabled) {
+    border-color: #c88c80;
+    background: #fff4f1;
+}
+
+#view-log-records .system-log-console {
+    min-width: 0;
+    border: 1px solid #26353b;
+    border-radius: 0 0 6px 6px;
+    background: #1d292e;
+    overflow: hidden;
+}
+
+#view-log-records .system-log-console-body {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: clamp(330px, 48vh, 560px);
+    max-height: none;
+    margin: 0;
+    padding: 16px 18px;
+    overflow: auto;
+    color: #d6dfe0;
+    font-family: Consolas, 'SFMono-Regular', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    scrollbar-color: #53646a #1d292e;
+}
+
+#view-log-records .docker-logs-error-line {
+    color: #ff958a;
+}
+
+#view-log-records .docker-logs-warning-line {
+    color: #f3c77b;
+}
+
+#view-log-records .docker-logs-info-line {
+    color: #92c9d9;
+}
+
+#view-log-records .system-log-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    height: clamp(330px, 48vh, 560px);
+    padding: 24px;
+    border: 1px solid #e0e6e8;
+    border-radius: 0 0 6px 6px;
+    background: #fff;
+    color: #78868b;
+    font-size: 13px;
+    text-align: center;
+}
+
+@media (max-width: 720px) {
+    #view-log-records .system-log-header {
+        margin-bottom: 0;
+    }
+
+    #view-log-records .system-log-header h1 {
+        font-size: 19px;
+    }
+
+    #view-log-records .system-log-tabs {
+        gap: 19px;
+    }
+
+    #view-log-records .system-log-pane {
+        padding-top: 15px;
+    }
+
+    #view-log-records .system-log-meta {
+        gap: 7px;
+    }
+
+    #view-log-records .system-log-meta > div {
+        width: 100%;
+    }
+
+    #view-log-records .system-log-toolbar {
+        gap: 10px 14px;
+        padding: 11px;
+    }
+
+    #view-log-records .system-log-filter-info {
+        order: 4;
+        width: 100%;
+    }
+
+    #view-log-records .system-log-clear {
+        margin-left: 0;
+    }
+
+    #view-log-records .system-log-console-body,
+    #view-log-records .system-log-empty {
+        height: clamp(310px, 48vh, 480px);
+    }
+
+    #view-log-records .system-log-console-body {
+        padding: 12px;
+        font-size: 11px;
+    }
+
+    #view-log-records .changelog-update-item {
+        padding: 11px;
+    }
+
+    #view-log-records .changelog-pagination {
+        flex-wrap: wrap;
+    }
+}

@@ -10,8 +10,14 @@
     <link rel="stylesheet" href="/admin/styles/tokens.css">
     <link rel="stylesheet" href="/admin/styles/views.css?v=20260924-site-report-tabs-v1">
     <link rel="stylesheet" href="/admin/styles/base.css">
-    <link rel="stylesheet" href="/admin/styles/layout.css">
-    <link rel="stylesheet" href="/admin/styles/components.css?v=20260924-subaccount-panels-v1">
+    <link rel="stylesheet" href="/admin/styles/layout.css?v=20260926-sidebar-v1">
+    <link rel="stylesheet" href="/admin/styles/components.css?v=20260926-sidebar-toggle-v1">
+    <link rel="stylesheet" href="/admin/styles/image-seo-home.css?v=20260926-v1">
+    <link rel="stylesheet" href="/admin/styles/news-create-home.css?v=20260926-v1">
+    <link rel="stylesheet" href="/admin/styles/site-settings-home.css?v=20260926-v2">
+    <link rel="stylesheet" href="/admin/styles/site-report-home.css?v=20260926-v2">
+    <link rel="stylesheet" href="/admin/styles/messages-home.css?v=20260926-v2">
+    <link rel="stylesheet" href="/admin/styles/system-log-home.css?v=20260926-v1">
 </head>
 <body class="admin2-root">
 <!-- LOGIN PAGE -->
@@ -138,8 +144,7 @@
     <div id="dashboard" class="dashboard" style="display: none;">
         <div class="sidebar">
             <div class="sidebar-header">
-                <i class="fas fa-cube" style="margin-right: 10px;"></i>
-                <span class="sidebar-title-text">元芯管理后台</span>
+                <span class="sidebar-brand-mark"><img src="/cdn_assets/images/common/f1dcc87cdcca.png" alt="元芯传感 Logo" width="88" height="34"></span>
             </div>
             <div class="sidebar-menu">
                 <div class="menu-item active" data-view="site-reports" onclick="switchView('site-reports')">
@@ -197,36 +202,23 @@
                 <div class="menu-item" data-view="jobs" onclick="switchView('jobs')">
                     <i class="fas fa-briefcase"></i> 招聘信息
                 </div>
-                <div class="menu-item" data-view="chatbot" onclick="switchView('chatbot')">
-                    <i class="fas fa-robot"></i> AI 与知识库
+                <div class="menu-item" data-view="ai-management" onclick="openAIManagement()">
+                    <i class="fas fa-robot"></i> AI 管理
                 </div>
-                <div class="menu-item" data-view="chatbot-knowledge" onclick="switchView('chatbot-knowledge')">
-                    <i class="fas fa-book"></i> 知识库管理
-                </div>
-                <div class="menu-item" data-view="chatbot-history" onclick="switchView('chatbot-history')">
-                    <i class="fas fa-comments"></i> 历史对话
-                </div>
-                <div class="menu-item" data-view="settings" onclick="switchView('settings')">
-                    <i class="fas fa-cog"></i> 账号设置
+                <div class="menu-item" data-view="system-management" onclick="openSystemManagement()">
+                    <i class="fas fa-cogs"></i> 系统管理
                 </div>
                 <div class="menu-item" data-view="cdn-assets" onclick="switchView('cdn-assets')">
                     <i class="fas fa-cloud-upload-alt"></i> CDN 素材
                 </div>
-                <div class="menu-item" data-view="log-records" onclick="switchView('log-records')">
-                    <i class="fas fa-clipboard-list"></i> 系统日志
-                </div>
-                <div class="menu-item" data-view="site-settings" onclick="switchView('site-settings')">
-                    <i class="fas fa-globe"></i> 站点设置
-                </div>
-                <div class="menu-item" id="sidebarLogoutItem" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> 退出登录
-                </div>
             </div>
             <div class="sidebar-footer">
+                <button type="button" class="menu-item sidebar-logout-item" id="sidebarLogoutItem" onclick="logout()">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i> 退出登录
+                </button>
                 <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()"
                     aria-label="折叠侧边栏" aria-pressed="false">
-                    <i class="fas fa-bars"></i>
-                    <span id="sidebarToggleText">折叠侧边栏</span>
+                    <i class="fas fa-angles-left" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
@@ -239,7 +231,11 @@
                         aria-label="切换菜单" aria-expanded="false">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <div class="page-title" id="pageTitle">网站数据</div>
+                    <nav class="top-breadcrumb" aria-label="当前位置">
+                        <a class="top-breadcrumb-home" href="#site-reports" onclick="switchView('site-reports'); return false;"><i class="fas fa-home" aria-hidden="true"></i><span>首页</span></a>
+                        <i class="fas fa-chevron-right top-breadcrumb-separator" aria-hidden="true"></i>
+                        <span class="top-breadcrumb-current page-title" id="pageTitle">网站数据</span>
+                    </nav>
                 </div>
                 <div class="top-bar-actions">
                     <span class="version-badge" id="versionBadge" title="正在加载版本信息...">
@@ -331,6 +327,18 @@
             </div>
 
             <div class="content-area">
+
+                <nav id="aiManagementTabs" class="management-tabs" aria-label="AI 管理" hidden>
+                    <button type="button" class="management-tab" data-ai-tab="chatbot" onclick="switchAIManagementTab('chatbot')"><i class="fas fa-sliders-h" aria-hidden="true"></i> AI 设置</button>
+                    <button type="button" class="management-tab" data-ai-tab="chatbot-knowledge" onclick="switchAIManagementTab('chatbot-knowledge')"><i class="fas fa-book" aria-hidden="true"></i> 知识库管理</button>
+                    <button type="button" class="management-tab" data-ai-tab="chatbot-history" onclick="switchAIManagementTab('chatbot-history')"><i class="fas fa-comments" aria-hidden="true"></i> 历史对话</button>
+                </nav>
+
+                <nav id="systemManagementTabs" class="management-tabs" aria-label="系统管理" hidden>
+                    <button type="button" class="management-tab" data-system-tab="settings" onclick="switchSystemManagementTab('settings')"><i class="fas fa-user-shield" aria-hidden="true"></i> 账号设置</button>
+                    <button type="button" class="management-tab" data-system-tab="log-records" onclick="switchSystemManagementTab('log-records')"><i class="fas fa-clipboard-list" aria-hidden="true"></i> 系统日志</button>
+                    <button type="button" class="management-tab" data-system-tab="site-settings" onclick="switchSystemManagementTab('site-settings')"><i class="fas fa-globe" aria-hidden="true"></i> 站点设置</button>
+                </nav>
 
                 <!-- Promotion Links View -->
                 <div id="view-promotion-links" class="view-section">
@@ -465,32 +473,55 @@
 
                 <!-- Messages View -->
                 <div id="view-messages" class="view-section">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">总留言数</div>
-                            <div class="stat-value" id="totalCount">0</div>
+                    <header class="messages-page-header">
+                        <div>
+                            <h1>留言系统</h1>
+                            <p>访客留言与应聘投递</p>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-label">应聘留言数</div>
-                            <div class="stat-value" id="jobCount">0</div>
+                        <button type="button" class="messages-refresh-btn" onclick="loadMessages()"><i class="fas fa-sync-alt" aria-hidden="true"></i> 刷新消息</button>
+                    </header>
+
+                    <div class="messages-overview" aria-label="消息概览">
+                        <div class="message-overview-card is-primary">
+                            <span class="message-overview-icon"><i class="far fa-envelope" aria-hidden="true"></i></span>
+                            <span class="message-overview-label">待查看</span>
+                            <strong class="message-overview-value" id="messageUnreadCount">0</strong>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-label">今日留言数</div>
-                            <div class="stat-value" id="todayCount">0</div>
+                        <div class="message-overview-card">
+                            <span class="message-overview-icon"><i class="far fa-calendar-alt" aria-hidden="true"></i></span>
+                            <span class="message-overview-label">今日新增</span>
+                            <strong class="message-overview-value" id="todayCount">0</strong>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-label">已读留言数</div>
-                            <div class="stat-value" id="readCount">0</div>
+                        <div class="message-overview-card">
+                            <span class="message-overview-icon"><i class="far fa-comments" aria-hidden="true"></i></span>
+                            <span class="message-overview-label">累计消息</span>
+                            <strong class="message-overview-value" id="totalCount">0</strong>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-label">已删留言数</div>
-                            <div class="stat-value" id="deletedCount">0</div>
+                        <div class="message-overview-card">
+                            <span class="message-overview-icon"><i class="fas fa-file-signature" aria-hidden="true"></i></span>
+                            <span class="message-overview-label">应聘投递</span>
+                            <strong class="message-overview-value" id="jobCount">0</strong>
                         </div>
                     </div>
+                    <div class="messages-secondary-stats"><span>已读 <strong id="readCount">0</strong></span><span>已删除 <strong id="deletedCount">0</strong></span></div>
 
-                    <div class="card">
+                    <div class="messages-tabs" role="tablist" aria-label="消息类型">
+                        <button type="button" class="messages-tab is-active" role="tab" data-message-tab="feedback" aria-selected="true" onclick="switchMessagesTab('feedback')"><i class="far fa-comment-dots" aria-hidden="true"></i> 访客留言 <span class="messages-tab-count" id="messagesFeedbackTabCount">0</span></button>
+                        <button type="button" class="messages-tab" role="tab" data-message-tab="jobs" aria-selected="false" onclick="switchMessagesTab('jobs')"><i class="far fa-file-alt" aria-hidden="true"></i> 应聘信息 <span class="messages-tab-count" id="messagesJobsTabCount">0</span></button>
+                    </div>
+                    <div class="messages-filterbar">
+                        <label class="messages-search"><i class="fas fa-search" aria-hidden="true"></i><input type="search" id="messagesSearchInput" placeholder="搜索姓名、电话或内容" aria-label="搜索当前消息" oninput="filterMessageRows()"></label>
+                        <select class="messages-status-select" id="messagesStatusFilter" aria-label="消息状态" onchange="filterMessageRows()">
+                            <option value="all">全部状态</option>
+                            <option value="unread">未读</option>
+                            <option value="read">已读</option>
+                        </select>
+                    </div>
+
+                    <section class="card message-list-panel" data-message-pane="feedback">
                         <div class="message-card-header">
-                            <div class="message-card-title">留言信息</div>
+                            <div><h2 class="message-card-title">访客留言</h2><p>网站访客提交的咨询与反馈</p></div>
+                            <span class="messages-visible-count" id="messagesFeedbackVisibleCount">0 条</span>
                         </div>
                         <div class="table-container">
                             <table>
@@ -508,11 +539,12 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </section>
 
-                    <div class="card" style="margin-top: 20px;">
+                    <section class="card message-list-panel" data-message-pane="jobs" hidden>
                         <div class="message-card-header">
-                            <div class="message-card-title">应聘信息</div>
+                            <div><h2 class="message-card-title">应聘信息</h2><p>岗位投递与简历记录</p></div>
+                            <span class="messages-visible-count" id="messagesJobsVisibleCount">0 条</span>
                         </div>
                         <div class="table-container">
                             <table>
@@ -521,7 +553,7 @@
                                         <th>时间</th>
                                         <th>应聘者</th>
                                         <th>联系方式</th>
-                                        <th>应聘信息（详细）</th>
+                                        <th>应聘岗位 / 摘要</th>
                                         <th>简历</th>
                                         <th>操作</th>
                                     </tr>
@@ -531,7 +563,7 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </section>
 
                 </div>
 
@@ -2112,12 +2144,12 @@
                 </div>
 
                 <!-- News Create View -->
-                <div id="view-news-create" class="view-section">
-                    <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">添加资讯</h3>
-                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                            填写后将自动生成统一风格的资讯页面，并写入 <code>pages/news/</code>。
-                        </p>
+                <div id="view-news-create" class="view-section news-create-page">
+                    <div class="card news-create-workspace">
+                        <div class="news-create-page-head">
+                            <div class="news-create-kicker">内容运营</div>
+                            <h3 class="section-header">添加资讯</h3>
+                        </div>
 
                         <form id="newsCreateForm" class="news-create-form">
                             <div class="news-feishu-import news-feishu-import--featured">
@@ -2134,68 +2166,94 @@
                                     <button type="button" id="newsFeishuImportBtn" class="btn-feishu-import"
                                         onclick="importNewsFromFeishuUrl()"><i class="fas fa-cloud-download-alt"></i> 一键导入</button>
                                 </div>
-                                <div class="form-hint news-feishu-import-hint">也可在下方手动填写或复制粘贴正文。</div>
                                 <div id="newsFeishuImportMsg" class="news-feishu-import-msg" role="status" aria-live="polite"></div>
                             </div>
-                            <div>
-                                <div class="form-group">
-                                    <label>标题</label>
-                                    <input type="text" id="newsTitle" class="form-control" placeholder="请输入资讯标题"
-                                        required>
-                                </div>
-                                <div class="form-group">
-                                    <label>日期</label>
-                                    <input type="date" id="newsDate" class="form-control" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>分类</label>
-                                    <select id="newsCategory" class="form-control">
-                                        <option value="enterprise">企业新闻</option>
-                                        <option value="industry">行业动态</option>
-                                        <option value="science">科普知识</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>归属事业部</label>
-                                    <input type="text" id="newsDivision" class="form-control" placeholder="例如：气体传感事业部"
-                                        required>
-                                </div>
-                                <div class="form-group">
-                                    <label>封面图片链接</label>
-                                    <input type="text" id="newsImage" class="form-control"
-                                        placeholder="非必填：留空时自动使用正文第一张图片；若正文无图则使用默认图片">
-                                    <div class="form-hint">非必填：默认取正文首图作为封面。</div>
-                                </div>
-                                <div class="form-group">
-                                    <label>摘要（首页卡片展示）</label>
-                                    <textarea id="newsSummary" class="form-control" rows="3"
-                                        placeholder="非必填：留空时自动使用正文第一段话作为摘要"></textarea>
-                                    <div class="form-hint">非必填：默认取正文首段作为摘要。</div>
-                                </div>
-                            </div>
 
-                            <div>
+                            <section class="news-create-section" aria-labelledby="newsCreateInfoTitle">
+                                <div class="news-create-section-head">
+                                    <span class="news-create-step" aria-hidden="true">01</span>
+                                    <div>
+                                        <h4 id="newsCreateInfoTitle">基本信息</h4>
+                                    </div>
+                                </div>
+                                <div class="news-create-fields">
+                                    <div class="form-group news-create-title-field">
+                                        <label for="newsTitle">标题</label>
+                                        <input type="text" id="newsTitle" class="form-control" placeholder="请输入资讯标题"
+                                            required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newsDate">日期</label>
+                                        <input type="date" id="newsDate" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newsCategory">分类</label>
+                                        <select id="newsCategory" class="form-control">
+                                            <option value="enterprise">企业新闻</option>
+                                            <option value="industry">行业动态</option>
+                                            <option value="science">科普知识</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newsDivision">归属事业部</label>
+                                        <input type="text" id="newsDivision" class="form-control" placeholder="例如：气体传感事业部"
+                                            required>
+                                    </div>
+                                </div>
+                                <details class="news-create-disclosure news-create-optional">
+                                    <summary><span class="news-create-disclosure-icon"><i class="far fa-image" aria-hidden="true"></i></span><span class="news-create-disclosure-title">封面与摘要</span><span class="news-create-disclosure-note">可选</span><i class="fas fa-chevron-down news-create-chevron" aria-hidden="true"></i></summary>
+                                    <div class="news-create-disclosure-body">
+                                        <div class="form-group">
+                                            <label for="newsImage">封面图片链接</label>
+                                            <input type="text" id="newsImage" class="form-control"
+                                                placeholder="非必填：留空时自动使用正文第一张图片；若正文无图则使用默认图片">
+                                            <div class="form-hint">非必填：默认取正文首图作为封面。</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="newsSummary">摘要（首页卡片展示）</label>
+                                            <textarea id="newsSummary" class="form-control" rows="3"
+                                                placeholder="非必填：留空时自动使用正文第一段话作为摘要"></textarea>
+                                            <div class="form-hint">非必填：默认取正文首段作为摘要。</div>
+                                        </div>
+                                    </div>
+                                </details>
+                            </section>
+
+                            <section class="news-create-section news-create-body-section" aria-labelledby="newsCreateBodyTitle">
+                                <div class="news-create-section-head">
+                                    <span class="news-create-step" aria-hidden="true">02</span>
+                                    <div><h4 id="newsCreateBodyTitle">正文内容</h4></div>
+                                </div>
                                 <div class="form-group">
                                     <div id="newsImageProcessMsg" class="news-image-process-banner is-hidden"
                                         role="status" aria-live="polite" aria-hidden="true"></div>
-                                    <label>正文内容</label>
                                     <div class="news-editor-toolbar">
                                         <div class="news-toolbar-row">
-                                            <button type="button" class="btn-sm active" id="newsModeVisualBtn"
-                                                onclick="switchNewsEditorMode('visual')">可视化</button>
-                                            <button type="button" class="btn-sm" id="newsModeSourceBtn"
-                                                onclick="switchNewsEditorMode('source')">HTML 源码</button>
-                                            <button type="button" class="btn-sm"
+                                            <div class="news-editor-modes" role="group" aria-label="编辑模式">
+                                                <button type="button" class="btn-sm active" id="newsModeVisualBtn"
+                                                    onclick="switchNewsEditorMode('visual')">可视化</button>
+                                                <button type="button" class="btn-sm" id="newsModeSourceBtn"
+                                                    onclick="switchNewsEditorMode('source')">HTML 源码</button>
+                                            </div>
+                                            <button type="button" class="btn-sm" title="加粗" aria-label="加粗"
                                                 onclick="applyNewsFormat('bold')"><b>B</b></button>
-                                            <button type="button" class="btn-sm"
+                                            <button type="button" class="btn-sm" title="斜体" aria-label="斜体"
                                                 onclick="applyNewsFormat('italic')"><i>I</i></button>
-                                            <button type="button" class="btn-sm"
+                                            <button type="button" class="btn-sm" title="无序列表"
                                                 onclick="applyNewsFormat('insertUnorderedList')">• 列表</button>
-                                            <button type="button" class="btn-sm"
+                                            <button type="button" class="btn-sm" title="二级标题"
                                                 onclick="applyNewsFormat('formatBlock','h2')">H2</button>
-                                            <button type="button" class="btn-sm"
+                                            <button type="button" class="btn-sm" title="三级标题"
                                                 onclick="applyNewsFormat('formatBlock','h3')">H3</button>
+                                            <button type="button" class="btn-sm news-toolbar-image-btn"
+                                                onclick="triggerNewsImageUpload()" title="上传图片" aria-label="上传图片"><i class="fas fa-image" aria-hidden="true"></i></button>
+                                            <input type="file" id="newsImageFileInput"
+                                                accept=".png,.jpg,.jpeg,.webp,.gif" style="display:none;"
+                                                onchange="uploadNewsImageFile(this)">
                                         </div>
+                                        <details class="news-editor-tools-more">
+                                            <summary><i class="fas fa-sliders-h" aria-hidden="true"></i> 更多排版与图片工具 <i class="fas fa-chevron-down news-create-chevron" aria-hidden="true"></i></summary>
+                                            <div class="news-editor-tools-extra">
                                         <div class="news-toolbar-row">
                                             <select class="form-control news-toolbar-control short"
                                                 id="newsFontSizeSelect" onchange="applyNewsFontSize(this.value)">
@@ -2329,53 +2387,54 @@
                                                 placeholder="自定义宽度(如 520px/55%)">
                                             <button type="button" class="btn-sm"
                                                 onclick="applySizeToSelectedNewsImage()">设置所选图宽</button>
-                                            <button type="button" class="btn-sm"
-                                                onclick="triggerNewsImageUpload()">上传图片文件</button>
-                                            <input type="file" id="newsImageFileInput"
-                                                accept=".png,.jpg,.jpeg,.webp,.gif" style="display:none;"
-                                                onchange="uploadNewsImageFile(this)">
                                             <input type="text" id="newsInsertImageUrl"
                                                 class="form-control news-toolbar-control long"
                                                 placeholder="粘贴图片链接后点击导入">
                                             <button type="button" class="btn-sm"
                                                 onclick="insertNewsImageFromUrl()">导入图片链接</button>
                                         </div>
+                                            </div>
+                                        </details>
                                     </div>
                                     <div id="newsImageImportMsg"
                                         style="min-height:20px; margin: 8px 0 10px; font-size: 13px; color:#666;"></div>
-                                    <div id="newsContentEditor" class="news-editor-surface" contenteditable="true">
+                                    <div id="newsContentEditor" class="news-editor-surface" contenteditable="true" role="textbox" aria-label="正文内容" aria-multiline="true">
                                     </div>
                                     <textarea id="newsContent" class="form-control news-editor-source" rows="14"
                                         placeholder="HTML 源码模式" style="display:none;"></textarea>
                                 </div>
-                                <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
-                                    <button type="button" class="btn-sm news-ai-btn"
-                                        onmousedown="saveNewsEditorSelection(); return false;"
-                                        onclick="aiPolishNews()"><i class="fas fa-magic"></i> AI 排版（选区/段落）</button>
-                                    <span style="font-size: 12px; color:#666;">将根据已配置的 AI 客服进行润色排版（Markdown 格式）</span>
-                                </div>
-                                <div id="newsAiActions"
-                                    style="display:none; gap:10px; align-items:center; margin-bottom: 12px;">
-                                    <button type="button" class="btn-sm news-ai-revert-btn"
-                                        onclick="revertAiTypesetChange()"><i class="fas fa-rotate-left"></i>
-                                        撤销替换</button>
-                                </div>
-                                <div class="news-ai-help">
-                                    <strong>AI 排版使用方式（详细）</strong>
-                                    <ol>
-                                        <li>在正文编辑区先选中需要处理的文字；未选区时，会自动处理当前光标所在段落。</li>
-                                        <li>点击 <code>AI 排版（选区/段落）</code> 后，系统会按当前配置的 AI 参数进行润色和格式整理。</li>
-                                        <li>确认结果后可继续编辑；若结果不满意，点击 <code>撤销替换</code> 可一键恢复到排版前内容。</li>
-                                        <li>建议一次处理 1~3 段，长文请分段操作，成功率和可控性更高。</li>
-                                    </ol>
-                                </div>
-                                <div class="form-group" style="display:flex; align-items:center; gap:10px;">
-                                    <label class="toggle-switch" style="margin:0;">
-                                        <input type="checkbox" id="newsContentIsHtml" checked disabled>
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                    <span style="font-size: 13px; color:#666;">富文本编辑（保存为 HTML）</span>
-                                </div>
+                                <details class="news-create-disclosure news-create-ai">
+                                    <summary><span class="news-create-disclosure-icon"><i class="fas fa-magic" aria-hidden="true"></i></span><span class="news-create-disclosure-title">AI 辅助排版</span><span class="news-create-disclosure-note">按需使用</span><i class="fas fa-chevron-down news-create-chevron" aria-hidden="true"></i></summary>
+                                    <div class="news-create-disclosure-body">
+                                        <div class="news-create-ai-action">
+                                            <button type="button" class="btn-sm news-ai-btn"
+                                                onmousedown="saveNewsEditorSelection(); return false;"
+                                                onclick="aiPolishNews()"><i class="fas fa-magic"></i> AI 排版（选区/段落）</button>
+                                        </div>
+                                        <div id="newsAiActions"
+                                            style="display:none; gap:10px; align-items:center; margin-bottom: 12px;">
+                                            <button type="button" class="btn-sm news-ai-revert-btn"
+                                                onclick="revertAiTypesetChange()"><i class="fas fa-rotate-left"></i>
+                                                撤销替换</button>
+                                        </div>
+                                        <details class="news-create-tip">
+                                            <summary>查看 AI 排版说明 <i class="fas fa-chevron-down news-create-chevron" aria-hidden="true"></i></summary>
+                                            <div class="news-ai-help">
+                                                <strong>AI 排版使用方式（详细）</strong>
+                                                <ol>
+                                                    <li>在正文编辑区先选中需要处理的文字；未选区时，会自动处理当前光标所在段落。</li>
+                                                    <li>点击 <code>AI 排版（选区/段落）</code> 后，系统会按当前配置的 AI 参数进行润色和格式整理。</li>
+                                                    <li>确认结果后可继续编辑；若结果不满意，点击 <code>撤销替换</code> 可一键恢复到排版前内容。</li>
+                                                    <li>建议一次处理 1~3 段，长文请分段操作，成功率和可控性更高。</li>
+                                                </ol>
+                                            </div>
+                                        </details>
+                                    </div>
+                                </details>
+                                <input type="hidden" id="newsContentIsHtml" value="true">
+                            </section>
+
+                            <section class="news-create-submit-section" aria-label="发布资讯">
                                 <div class="news-submit-actions">
                                     <button type="submit" id="newsSubmitBtn" class="btn-primary"
                                         style="width: auto; padding: 10px 24px;">生成资讯</button>
@@ -2384,27 +2443,27 @@
                                 </div>
                                 <div id="newsCreateMsg" style="margin-top: 10px; color: #28a745;"></div>
                                 <div id="newsCreateLink" style="margin-top: 6px; font-size: 13px;"></div>
-                            </div>
+                            </section>
                         </form>
                     </div>
 
-                    <div class="card"
-                        style="padding: 30px; margin-top: 20px; border: 2px solid #0f2f5f; box-shadow: 0 10px 28px rgba(15,47,95,0.12);">
-                        <h3 class="section-header" style="display:flex; align-items:center; gap:10px;">
-                            <span
-                                style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#0f2f5f; color:#fff; font-size:12px;">预</span>
-                            页面实时预览（1:1 完整页面）
-                        </h3>
-                        <div id="newsPreview"
-                            style="border: 1px solid #e1e6ef; border-radius: 10px; background: #f3f6fb; min-height: 640px; overflow: visible;">
-                            <iframe id="newsPreviewFrame" title="资讯预览" scrolling="no"
-                                style="width: 100%; min-height: 640px; border: 0; background: #fff; display:block;"></iframe>
-                        </div>
-                    </div>
+                    <div class="news-create-support">
+                        <details class="news-create-support-panel" ontoggle="if(this.open) updateNewsPreview()">
+                            <summary><span class="news-create-support-icon"><i class="far fa-eye" aria-hidden="true"></i></span><span>页面实时预览</span><i class="fas fa-chevron-down news-create-chevron" aria-hidden="true"></i></summary>
+                            <div class="news-create-support-body">
+                                <div id="newsPreview" class="news-create-preview">
+                                    <iframe id="newsPreviewFrame" title="资讯预览" scrolling="no"
+                                        style="width: 100%; min-height: 640px; border: 0; background: #fff; display:block;"></iframe>
+                                </div>
+                            </div>
+                        </details>
 
-                    <div class="card" style="padding: 30px; margin-top: 20px;">
-                        <h3 class="section-header">资讯列表</h3>
-                        <div id="newsList" class="file-list"></div>
+                        <details class="news-create-support-panel">
+                            <summary><span class="news-create-support-icon"><i class="far fa-newspaper" aria-hidden="true"></i></span><span>资讯列表</span><i class="fas fa-chevron-down news-create-chevron" aria-hidden="true"></i></summary>
+                            <div class="news-create-support-body">
+                                <div id="newsList" class="file-list"></div>
+                            </div>
+                        </details>
                     </div>
                 </div>
 
@@ -2889,31 +2948,59 @@
 
                 <!-- Settings View -->
                 <div id="view-settings" class="view-section">
-                    <div class="card" id="emailBindingCard" style="padding: 30px; margin-bottom: 20px;">
-                        <h3 class="section-header">安全邮箱绑定</h3>
-                        <p style="margin-bottom: 16px; color:#666; font-size:14px; line-height:1.75;">
-                            开启邮箱二次验证后，每个后台账号都需要绑定并验证安全邮箱。未完成绑定时，后台将限制其他操作。
-                        </p>
-                        <div id="bindingRequiredBanner" class="error-message" style="display:none; color:#b91c1c; margin-bottom:12px;">
-                            当前账号必须先完成安全邮箱绑定，绑定前无法访问其他后台功能。
+                    <div class="card account-security-card">
+                        <div class="account-security-header">
+                            <h3>账号与安全</h3>
                         </div>
-                        <div class="form-group">
-                            <label>当前状态</label>
-                            <div id="bindingStatusText" class="form-hint">未加载</div>
+                        <div class="account-security-grid">
+                            <section class="account-security-section" aria-labelledby="accountSettingsTitle">
+                                <div class="account-security-section-head">
+                                    <h4 id="accountSettingsTitle">修改当前账号</h4>
+                                </div>
+                                <form id="settingsForm">
+                                    <div class="form-group">
+                                        <label for="oldPassword">原密码</label>
+                                        <input type="password" id="oldPassword" class="form-control" required
+                                            placeholder="验证身份" autocomplete="current-password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newUsername">新用户名</label>
+                                        <input type="text" id="newUsername" class="form-control" required value="admin" autocomplete="username">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newPassword">新密码</label>
+                                        <input type="password" id="newPassword" class="form-control" required
+                                            placeholder="设置新密码" autocomplete="new-password">
+                                    </div>
+                                    <div class="account-security-actions">
+                                        <button type="submit" class="btn-primary">保存修改</button>
+                                    </div>
+                                    <div id="settingsMsg" class="error-message" style="color:#28a745;"></div>
+                                </form>
+                            </section>
+                            <section class="account-security-section account-security-email" id="emailBindingCard" aria-labelledby="emailBindingTitle">
+                                <div class="account-security-section-head">
+                                    <h4 id="emailBindingTitle">安全邮箱绑定</h4>
+                                    <span id="bindingStatusText" class="account-security-status" aria-live="polite">未加载</span>
+                                </div>
+                                <div id="bindingRequiredBanner" class="error-message" style="display:none; color:#b91c1c; margin-bottom:12px;">
+                                    当前账号必须先完成安全邮箱绑定，绑定前无法访问其他后台功能。
+                                </div>
+                                <div class="form-group">
+                                    <label for="bindingEmailInput">绑定邮箱</label>
+                                    <input type="email" id="bindingEmailInput" class="form-control" placeholder="请输入可接收验证码的邮箱" autocomplete="email">
+                                </div>
+                                <div class="form-group" id="bindingCodeWrap" style="display:none;">
+                                    <label for="bindingCodeInput">绑定验证码</label>
+                                    <input type="text" id="bindingCodeInput" class="form-control" placeholder="请输入 6 位验证码" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                                </div>
+                                <div class="account-security-actions">
+                                    <button type="button" id="bindingSendCodeBtn" class="btn-primary">发送绑定验证码</button>
+                                    <button type="button" id="bindingVerifyBtn" class="btn-primary">确认绑定邮箱</button>
+                                </div>
+                                <div id="bindingMsg" class="error-message" style="color:#28a745;"></div>
+                            </section>
                         </div>
-                        <div class="form-group">
-                            <label>绑定邮箱</label>
-                            <input type="email" id="bindingEmailInput" class="form-control" placeholder="请输入可接收验证码的邮箱">
-                        </div>
-                        <div class="form-group" id="bindingCodeWrap" style="display:none;">
-                            <label>绑定验证码</label>
-                            <input type="text" id="bindingCodeInput" class="form-control" placeholder="请输入 6 位验证码" inputmode="numeric" maxlength="6">
-                        </div>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                            <button type="button" id="bindingSendCodeBtn" class="btn-primary" style="width:auto; padding:12px 22px;">发送绑定验证码</button>
-                            <button type="button" id="bindingVerifyBtn" class="btn-primary" style="width:auto; padding:12px 22px;">确认绑定邮箱</button>
-                        </div>
-                        <div id="bindingMsg" class="error-message" style="color:#28a745;"></div>
                     </div>
 
                     <div class="card" id="passkeySecurityCard" style="padding: 30px; margin-bottom: 20px;" hidden>
@@ -2941,29 +3028,6 @@
                             <div id="passkeyStepUpMsg" class="error-message"></div>
                         </div>
                         <div id="passkeyDeviceList" class="passkey-device-list"></div>
-                    </div>
-
-                    <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">修改当前账号</h3>
-                        <form id="settingsForm">
-                            <div class="form-group">
-                                <label>原密码</label>
-                                <input type="password" id="oldPassword" class="form-control" required
-                                    placeholder="验证身份">
-                            </div>
-                            <div class="form-group">
-                                <label>新用户名</label>
-                                <input type="text" id="newUsername" class="form-control" required value="admin">
-                            </div>
-                            <div class="form-group">
-                                <label>新密码</label>
-                                <input type="password" id="newPassword" class="form-control" required
-                                    placeholder="设置新密码">
-                            </div>
-                            <button type="submit" class="btn-primary"
-                                style="width: auto; padding: 12px 30px;">保存修改</button>
-                            <div id="settingsMsg" class="error-message" style="color: #28a745;"></div>
-                        </form>
                     </div>
 
                     <div class="card" id="subAccountsCard" style="padding: 30px; margin-top: 20px;">
@@ -3159,338 +3223,256 @@
 
                 <!-- Site Settings View -->
                 <div id="view-site-settings" class="view-section">
-                    <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">后台登录地域限制</h3>
-                        <p style="margin-bottom: 20px; color: #666; font-size: 14px; line-height: 1.75;">
-                            按大洲设置后台登录的默认允许/禁止规则，并可继续细化到每个国家或地区。
-                            国家规则默认跟随所属大洲；当你单独改成“允许”或“禁止”时，会覆盖大洲默认值。
-                        </p>
-                        <form id="adminLoginGeoSettingsForm">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:10px;">
-                                    <input type="checkbox" id="adminLoginGeoEnabled">
-                                    <span>启用后台登录地域限制</span>
-                                </label>
-                                <div class="form-hint" style="margin-top: 8px;">
-                                    关闭后，公网 IP 不再按地域拦截；本机回环地址、内网地址和保留地址始终放行。
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>大洲默认规则</label>
-                                <div style="display:grid; gap:12px;">
-                                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
-                                        <select id="adminLoginGeoContinentSelect" class="form-control"></select>
-                                        <select id="adminLoginGeoContinentPolicy" class="form-control">
-                                            <option value="allow">允许登录</option>
-                                            <option value="deny">禁止登录</option>
-                                        </select>
-                                    </div>
-                                    <div id="adminLoginGeoContinentHint" class="form-hint">请选择一个大洲后设置默认规则。</div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>国家 / 地区覆盖规则</label>
-                                <div style="display:grid; gap:12px;">
-                                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
-                                        <select id="adminLoginGeoCountryContinentFilter" class="form-control"></select>
-                                        <select id="adminLoginGeoCountrySelect" class="form-control"></select>
-                                        <select id="adminLoginGeoCountryPolicy" class="form-control">
-                                            <option value="inherit">跟随所在大洲</option>
-                                            <option value="allow">允许登录</option>
-                                            <option value="deny">禁止登录</option>
-                                        </select>
-                                    </div>
-                                    <div id="adminLoginGeoCountryHint" class="form-hint">默认跟随大洲规则，单独设置后会覆盖该大洲的默认值。</div>
-                                </div>
-                            </div>
-                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                                <button type="submit" class="btn-primary" style="width:auto; padding:12px 30px;">保存地域规则</button>
-                                <span id="adminLoginGeoStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
-                            </div>
-                            <div id="adminLoginGeoSettingsMsg" class="error-message" style="color:#28a745;"></div>
-                        </form>
-                    </div>
-
-                    <div class="card" id="passkeyAdminSettingsCard" style="padding:30px; margin-bottom:20px; display:none;">
-                        <h3 class="section-header">Passkey 快速登录</h3>
-                        <p style="margin-bottom:16px; color:#666; font-size:14px; line-height:1.75;">
-                            为管理员和子管理员启用指纹、面容识别或设备 PIN 登录。Origin 和 RP ID 自动取自正式环境的 <code>PUBLIC_BASE_URL</code>，无需配置 Docker Passkey 环境变量。
-                        </p>
-                        <form id="passkeyAdminSettingsForm">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:10px;">
-                                    <input type="checkbox" id="passkeyAdminEnabled">
-                                    <span>启用 Passkey 快速登录</span>
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label>正式访问地址（Origin）</label>
-                                <input type="text" id="passkeyAdminOrigin" class="form-control" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label>依赖方域名（RP ID）</label>
-                                <input type="text" id="passkeyAdminRpId" class="form-control" readonly>
-                                <div class="form-hint">Passkey 与此域名绑定。正式启用后不要随意更换域名，否则原有 Passkey 可能无法使用。</div>
-                            </div>
-                            <div class="form-group">
-                                <label>每个账号最多绑定设备数</label>
-                                <input type="number" id="passkeyAdminMaxCredentials" class="form-control" min="1" max="50" value="10">
-                            </div>
-                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                                <button type="submit" id="passkeyAdminSaveBtn" class="btn-primary" style="width:auto; padding:12px 30px;">保存并应用</button>
-                                <span id="passkeyAdminStatusText" style="font-size:13px; color:#666;">当前状态：未加载</span>
-                            </div>
-                            <div id="passkeyAdminSettingsMsg" class="error-message"></div>
-                        </form>
-                    </div>
-
-                    <div class="card" style="padding: 30px;">
-                        <h3 class="section-header">登录人机验证（Cloudflare / 阿里云 ESA）</h3>
-                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                            启用后，后台登录必须先通过所选的人机验证。Cloudflare 由源站验签；阿里云 ESA 由边缘规则验签。
-                        </p>
-                        <div style="background:#f8fbff; border:1px solid #d8e8ff; border-radius:8px; padding:14px 16px; margin-bottom:18px; color:#2f3b4f; font-size:13px; line-height:1.75;">
-                            <div style="font-weight:700; color:#0f2f5f; margin-bottom:6px;">Cloudflare 密钥申请全流程</div>
-                            <ol style="margin:0 0 0 18px; padding:0;">
-                                <li>登录 Cloudflare 控制台，进入 <code>Turnstile</code>（也可直接搜索 Turnstile）。</li>
-                                <li>点击新增组件创建新部件，建议名称填 <code>yx-admin-login</code>。</li>
-                                <li>在域名管理中加入你的后台域名（例如 <code>admin.example.com</code>），本地调试可加 <code>localhost</code>。</li>
-                                <li>组件模式建议使用托管（默认），保存后会得到站点密钥和服务端密钥。</li>
-                                <li>回到本页面：把站点密钥粘贴到“站点密钥（前端）”，把服务端密钥粘贴到“服务端密钥（后端）”。</li>
-                                <li>勾选“启用 Turnstile 登录保护”，点击“保存设置”。</li>
-                                <li>退出后台重新登录验证：登录页出现 Turnstile 即表示前端已接入；未先完成验证将无法登录。</li>
-                            </ol>
-                            <div style="margin-top:8px; color:#5b6678;">
-                                注意：Turnstile 只是在登录页加载 Cloudflare 的验证脚本并由服务端验签，不需要变更你阿里云 DNS 解析记录。
-                            </div>
+                    <header class="site-settings-head">
+                        <div>
+                            <h2>站点设置</h2>
+                            <p>管理后台登录与邮件安全策略</p>
                         </div>
-                        <form id="turnstileSettingsForm">
-                            <div class="form-group">
-                                <label>验证服务商</label>
-                                <select id="captchaProvider" class="form-control">
-                                    <option value="cloudflare">Cloudflare Turnstile</option>
-                                    <option value="aliyun_esa">阿里云 ESA AI 验证码</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label style="display: flex; align-items: center; gap: 10px;">
-                                    <input type="checkbox" id="turnstileEnabled">
-                                    <span>启用 Turnstile 登录保护</span>
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label>站点密钥（前端）</label>
-                                <input type="text" id="turnstileSiteKey" class="form-control"
-                                    placeholder="0x4AAAAA...">
-                            </div>
-                            <div class="form-group">
-                                <label>服务端密钥（后端）</label>
-                                <input type="password" id="turnstileSecretKey" class="form-control"
-                                    placeholder="留空表示保持当前密钥不变">
-                            </div>
-                            <div id="aliyunEsaFields" style="display:none;">
-                                <div class="form-group">
-                                    <label>ESA 身份标（IDENTITY）</label>
-                                    <input type="text" id="aliyunEsaIdentity" class="form-control" placeholder="esa-...">
-                                </div>
-                                <div class="form-group">
-                                    <label>ESA 场景 ID（SceneId）</label>
-                                    <input type="text" id="aliyunEsaSceneId" class="form-control" placeholder="控制台验证码规则中的场景 ID">
-                                </div>
-                                <div class="form-group">
-                                    <label>ESA 地区</label>
-                                    <select id="aliyunEsaRegion" class="form-control">
-                                        <option value="cn">中国内地（cn）</option>
-                                        <option value="sgp">新加坡（sgp）</option>
-                                    </select>
-                                </div>
-                                <div class="form-hint">ESA 还需要在控制台为实际登录接口配置验证码规则，并将 captchaVerifyParam 作为 URI 参数带入请求；ESA 验签成功后才会放行请求。</div>
-                            </div>
-                            <div class="form-group">
-                                <label>代理地址</label>
-                                <input type="text" id="turnstileProxyUrl" class="form-control"
-                                    placeholder="http://glash:7890">
-                                <div class="form-hint">仅用于服务端校验 Cloudflare Turnstile 失败后的兜底重试，不影响 SMTP 或其他外部接口。</div>
-                            </div>
-                            <div class="form-group">
-                                <label style="display: flex; align-items: center; gap: 10px;">
-                                    <input type="checkbox" id="turnstileProxyFallbackEnabled">
-                                    <span>启用直连失败后的代理重试兜底</span>
-                                </label>
-                            </div>
-                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                                <button type="submit" class="btn-primary" style="width: auto; padding: 12px 30px;">保存设置</button>
-                                <button type="button" id="turnstileDirectTestBtn" class="btn-primary" style="width:auto; padding:12px 20px; background:#4b5563;">测试直连 Cloudflare</button>
-                                <button type="button" id="turnstileProxyTestBtn" class="btn-primary" style="width:auto; padding:12px 20px; background:#4b5563;">测试代理连通性</button>
-                                <span id="turnstileStatusText" style="font-size: 13px; color: #666;">当前状态：未加载</span>
-                            </div>
-                            <div id="turnstileSettingsMsg" class="error-message" style="color: #28a745;"></div>
-                        </form>
-                    </div>
+                    </header>
 
-                    <div class="card" style="padding: 30px; margin-top: 20px;">
-                        <h3 class="section-header">SMTP / 邮箱验证</h3>
-                        <p style="margin-bottom: 16px; color:#666; font-size:14px; line-height:1.75;">
-                            用于后台登录邮箱验证码、账号安全邮箱绑定和 163 授权码到期提醒。
-                        </p>
-                        <form id="emailAuthSettingsForm">
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:10px;">
-                                    <input type="checkbox" id="emailAuthEnabled">
-                                    <span>启用后台邮箱二次验证</span>
-                                </label>
+                    <div class="site-settings-stack">
+                        <details class="site-settings-section" open>
+                            <summary class="site-settings-summary">
+                                <span class="site-settings-section-icon site-settings-section-icon--geo"><i class="fas fa-globe-asia" aria-hidden="true"></i></span>
+                                <span class="site-settings-summary-title"><strong>后台登录地域限制</strong><small>大洲默认规则与国家例外</small></span>
+                                <span id="adminLoginGeoStatusText" class="site-settings-status">当前状态：未加载</span>
+                                <i class="fas fa-chevron-down site-settings-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="site-settings-body">
+                                <form id="adminLoginGeoSettingsForm">
+                                    <div class="form-group site-settings-toggle-row">
+                                        <label for="adminLoginGeoEnabled"><input type="checkbox" id="adminLoginGeoEnabled"><span>启用后台登录地域限制</span></label>
+                                    </div>
+                                    <div class="site-settings-fields">
+                                        <div class="form-group site-settings-field">
+                                            <label for="adminLoginGeoContinentSelect">大洲默认规则</label>
+                                            <div class="site-settings-field-pair">
+                                                <select id="adminLoginGeoContinentSelect" class="form-control" aria-label="选择大洲"></select>
+                                                <select id="adminLoginGeoContinentPolicy" class="form-control" aria-label="大洲默认登录规则">
+                                                    <option value="allow">允许登录</option>
+                                                    <option value="deny">禁止登录</option>
+                                                </select>
+                                            </div>
+                                            <div id="adminLoginGeoContinentHint" class="form-hint">请选择一个大洲后设置默认规则。</div>
+                                        </div>
+                                        <div class="form-group site-settings-field">
+                                            <label for="adminLoginGeoCountrySelect">国家 / 地区覆盖规则</label>
+                                            <div class="site-settings-field-triplet">
+                                                <select id="adminLoginGeoCountryContinentFilter" class="form-control" aria-label="筛选大洲"></select>
+                                                <select id="adminLoginGeoCountrySelect" class="form-control" aria-label="选择国家或地区"></select>
+                                                <select id="adminLoginGeoCountryPolicy" class="form-control" aria-label="国家或地区登录规则">
+                                                    <option value="inherit">跟随所在大洲</option>
+                                                    <option value="allow">允许登录</option>
+                                                    <option value="deny">禁止登录</option>
+                                                </select>
+                                            </div>
+                                            <div id="adminLoginGeoCountryHint" class="form-hint">默认跟随大洲规则，单独设置后会覆盖该大洲的默认值。</div>
+                                        </div>
+                                    </div>
+                                    <div class="site-settings-actions"><button type="submit" class="btn-primary">保存地域规则</button></div>
+                                    <div id="adminLoginGeoSettingsMsg" class="error-message" style="color:#28a745;"></div>
+                                </form>
+                                <details class="site-settings-help"><summary>规则说明</summary><p>国家规则默认跟随所属大洲；单独设置“允许”或“禁止”时，会覆盖大洲默认值。关闭后，公网 IP 不再按地域拦截；本机回环地址、内网地址和保留地址始终放行。</p></details>
                             </div>
-                            <div class="form-group">
-                                <label>SMTP 服务器</label>
-                                <input type="text" id="smtpHost" class="form-control" placeholder="smtp.163.com">
+                        </details>
+
+                        <details class="site-settings-section" id="passkeyAdminSettingsCard" style="display:none;">
+                            <summary class="site-settings-summary">
+                                <span class="site-settings-section-icon site-settings-section-icon--passkey"><i class="fas fa-fingerprint" aria-hidden="true"></i></span>
+                                <span class="site-settings-summary-title"><strong>Passkey 快速登录</strong><small>指纹、面容识别或设备 PIN</small></span>
+                                <span id="passkeyAdminStatusText" class="site-settings-status">当前状态：未加载</span>
+                                <i class="fas fa-chevron-down site-settings-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="site-settings-body">
+                                <form id="passkeyAdminSettingsForm">
+                                    <div class="form-group site-settings-toggle-row">
+                                        <label for="passkeyAdminEnabled"><input type="checkbox" id="passkeyAdminEnabled"><span>启用 Passkey 快速登录</span></label>
+                                    </div>
+                                    <div class="site-settings-fields site-settings-fields--three">
+                                        <div class="form-group site-settings-field"><label for="passkeyAdminOrigin">正式访问地址（Origin）</label><input type="text" id="passkeyAdminOrigin" class="form-control" readonly></div>
+                                        <div class="form-group site-settings-field"><label for="passkeyAdminRpId">依赖方域名（RP ID）</label><input type="text" id="passkeyAdminRpId" class="form-control" readonly></div>
+                                        <div class="form-group site-settings-field"><label for="passkeyAdminMaxCredentials">每个账号最多绑定设备数</label><input type="number" id="passkeyAdminMaxCredentials" class="form-control" min="1" max="50" value="10"></div>
+                                    </div>
+                                    <div class="site-settings-actions"><button type="submit" id="passkeyAdminSaveBtn" class="btn-primary">保存并应用</button></div>
+                                    <div id="passkeyAdminSettingsMsg" class="error-message"></div>
+                                </form>
+                                <details class="site-settings-help"><summary>域名与设备说明</summary><p>Origin 和 RP ID 自动取自正式环境的 <code>PUBLIC_BASE_URL</code>。Passkey 与域名绑定，正式启用后更换域名可能导致原有 Passkey 无法使用。</p></details>
                             </div>
-                            <div class="form-group">
-                                <label>SMTP 端口</label>
-                                <input type="number" id="smtpPort" class="form-control" placeholder="465">
+                        </details>
+
+                        <details class="site-settings-section">
+                            <summary class="site-settings-summary">
+                                <span class="site-settings-section-icon site-settings-section-icon--captcha"><i class="fas fa-shield-alt" aria-hidden="true"></i></span>
+                                <span class="site-settings-summary-title"><strong>登录人机验证</strong><small>Cloudflare Turnstile / 阿里云 ESA</small></span>
+                                <span id="turnstileStatusText" class="site-settings-status">当前状态：未加载</span>
+                                <i class="fas fa-chevron-down site-settings-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="site-settings-body">
+                                <form id="turnstileSettingsForm">
+                                    <div class="site-settings-fields">
+                                        <div class="form-group site-settings-field"><label for="captchaProvider">验证服务商</label><select id="captchaProvider" class="form-control"><option value="cloudflare">Cloudflare Turnstile</option><option value="aliyun_esa">阿里云 ESA AI 验证码</option></select></div>
+                                        <div class="form-group site-settings-toggle-row site-settings-toggle-row--inline"><label for="turnstileEnabled"><input type="checkbox" id="turnstileEnabled"><span>启用登录人机验证</span></label></div>
+                                        <div class="form-group site-settings-field"><label for="turnstileSiteKey">站点密钥（前端）</label><input type="text" id="turnstileSiteKey" class="form-control" placeholder="0x4AAAAA..."></div>
+                                        <div class="form-group site-settings-field"><label for="turnstileSecretKey">服务端密钥（后端）</label><input type="password" id="turnstileSecretKey" class="form-control" placeholder="留空表示保持当前密钥不变"></div>
+                                        <div id="aliyunEsaFields" class="site-settings-esa-fields" style="display:none;">
+                                            <div class="site-settings-fields site-settings-fields--three">
+                                                <div class="form-group site-settings-field"><label for="aliyunEsaIdentity">ESA 身份标（IDENTITY）</label><input type="text" id="aliyunEsaIdentity" class="form-control" placeholder="esa-..."></div>
+                                                <div class="form-group site-settings-field"><label for="aliyunEsaSceneId">ESA 场景 ID（SceneId）</label><input type="text" id="aliyunEsaSceneId" class="form-control" placeholder="控制台验证码规则中的场景 ID"></div>
+                                                <div class="form-group site-settings-field"><label for="aliyunEsaRegion">ESA 地区</label><select id="aliyunEsaRegion" class="form-control"><option value="cn">中国内地（cn）</option><option value="sgp">新加坡（sgp）</option></select></div>
+                                            </div>
+                                            <div class="form-hint">ESA 还需在控制台配置登录接口的验证码规则，并把 captchaVerifyParam 作为 URI 参数带入请求。</div>
+                                        </div>
+                                        <div class="form-group site-settings-field"><label for="turnstileProxyUrl">代理地址</label><input type="text" id="turnstileProxyUrl" class="form-control" placeholder="http://glash:7890"><div class="form-hint">仅用于 Cloudflare 直连校验失败后的重试。</div></div>
+                                        <div class="form-group site-settings-toggle-row site-settings-toggle-row--inline"><label for="turnstileProxyFallbackEnabled"><input type="checkbox" id="turnstileProxyFallbackEnabled"><span>启用代理重试</span></label></div>
+                                    </div>
+                                    <div class="site-settings-actions"><button type="submit" class="btn-primary">保存设置</button><button type="button" id="turnstileDirectTestBtn" class="site-settings-secondary-btn">测试直连 Cloudflare</button><button type="button" id="turnstileProxyTestBtn" class="site-settings-secondary-btn">测试代理连通性</button></div>
+                                    <div id="turnstileSettingsMsg" class="error-message" style="color:#28a745;"></div>
+                                </form>
+                                <details class="site-settings-help">
+                                    <summary>Cloudflare 密钥申请说明</summary>
+                                    <ol>
+                                        <li>在 Cloudflare 控制台进入 Turnstile，新增组件，名称可填 <code>yx-admin-login</code>。</li>
+                                        <li>加入后台域名；本地调试可加入 <code>localhost</code>。组件模式建议使用托管。</li>
+                                        <li>把站点密钥和服务端密钥填入上方，启用保护并保存。</li>
+                                        <li>退出后台重新登录，确认登录页出现验证并能正常通过。</li>
+                                    </ol>
+                                    <p>Turnstile 由源站验签，无需调整 DNS；阿里云 ESA 由边缘规则验签。</p>
+                                </details>
                             </div>
-                            <div class="form-group">
-                                <label>SMTP 用户名</label>
-                                <input type="text" id="smtpUsername" class="form-control" placeholder="例如：yourname@163.com">
+                        </details>
+
+                        <details class="site-settings-section">
+                            <summary class="site-settings-summary">
+                                <span class="site-settings-section-icon site-settings-section-icon--mail"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                                <span class="site-settings-summary-title"><strong>SMTP / 邮箱验证</strong><small>登录验证码与安全邮件</small></span>
+                                <span id="smtpExpiryStatus" class="site-settings-status">未加载</span>
+                                <i class="fas fa-chevron-down site-settings-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="site-settings-body">
+                                <form id="emailAuthSettingsForm">
+                                    <div class="form-group site-settings-toggle-row"><label for="emailAuthEnabled"><input type="checkbox" id="emailAuthEnabled"><span>启用后台邮箱二次验证</span></label></div>
+                                    <div class="site-settings-fields site-settings-fields--three">
+                                        <div class="form-group site-settings-field"><label for="smtpHost">SMTP 服务器</label><input type="text" id="smtpHost" class="form-control" placeholder="smtp.163.com"></div>
+                                        <div class="form-group site-settings-field"><label for="smtpPort">SMTP 端口</label><input type="number" id="smtpPort" class="form-control" placeholder="465"></div>
+                                        <div class="form-group site-settings-field"><label for="smtpUsername">SMTP 用户名</label><input type="text" id="smtpUsername" class="form-control" placeholder="yourname@163.com"></div>
+                                        <div class="form-group site-settings-field"><label for="smtpPassword">SMTP 授权码 / 密钥</label><input type="password" id="smtpPassword" class="form-control" placeholder="留空表示保持当前授权码不变"></div>
+                                        <div class="form-group site-settings-field"><label for="smtpFromName">发件人名称</label><input type="text" id="smtpFromName" class="form-control" placeholder="管理后台"></div>
+                                        <div class="form-group site-settings-field"><label for="smtpFromEmail">发件邮箱</label><input type="email" id="smtpFromEmail" class="form-control" placeholder="yourname@163.com"></div>
+                                        <div class="form-group site-settings-field"><label for="smtpNoticeEmail">SMTP 通知邮箱</label><input type="email" id="smtpNoticeEmail" class="form-control" placeholder="用于接收 7/3/1 天到期提醒"></div>
+                                        <div class="site-settings-connection-options"><div class="form-group site-settings-check"><label for="smtpUseSsl"><input type="checkbox" id="smtpUseSsl" checked><span>SSL 连接</span></label></div><div class="form-group site-settings-check"><label for="smtpUseTls"><input type="checkbox" id="smtpUseTls"><span>TLS STARTTLS</span></label></div></div>
+                                    </div>
+                                    <div class="site-settings-actions"><button type="submit" class="btn-primary">保存 SMTP 设置</button><button type="button" id="smtpTestBtn" class="site-settings-secondary-btn">发送测试邮件</button></div>
+                                    <div id="emailAuthSettingsMsg" class="error-message" style="color:#28a745;"></div>
+                                </form>
+                                <details class="site-settings-help"><summary>使用说明</summary><p>SMTP 配置用于后台登录邮箱验证码、账号安全邮箱绑定和 163 授权码到期提醒。修改授权码后，可发送测试邮件验证配置。</p></details>
                             </div>
-                            <div class="form-group">
-                                <label>SMTP 授权码 / 密钥</label>
-                                <input type="password" id="smtpPassword" class="form-control" placeholder="留空表示保持当前授权码不变">
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:10px;">
-                                    <input type="checkbox" id="smtpUseSsl" checked>
-                                    <span>使用 SSL 连接</span>
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label style="display:flex; align-items:center; gap:10px;">
-                                    <input type="checkbox" id="smtpUseTls">
-                                    <span>使用 TLS STARTTLS</span>
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label>发件人名称</label>
-                                <input type="text" id="smtpFromName" class="form-control" placeholder="管理后台">
-                            </div>
-                            <div class="form-group">
-                                <label>发件邮箱</label>
-                                <input type="email" id="smtpFromEmail" class="form-control" placeholder="yourname@163.com">
-                            </div>
-                            <div class="form-group">
-                                <label>SMTP 通知邮箱</label>
-                                <input type="email" id="smtpNoticeEmail" class="form-control" placeholder="用于接收 7/3/1 天到期提醒">
-                            </div>
-                            <div class="form-group">
-                                <label>授权码状态</label>
-                                <div id="smtpExpiryStatus" class="form-hint">未加载</div>
-                            </div>
-                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                                <button type="submit" class="btn-primary" style="width:auto; padding:12px 30px;">保存 SMTP 设置</button>
-                                <button type="button" id="smtpTestBtn" class="btn-primary" style="width:auto; padding:12px 20px; background:#4b5563;">发送测试邮件</button>
-                            </div>
-                            <div id="emailAuthSettingsMsg" class="error-message" style="color:#28a745;"></div>
-                        </form>
+                        </details>
                     </div>
                 </div>
 
                 <!-- Site Reports View -->
                 <div id="view-site-reports" class="view-section active">
-                    <div class="card site-report-card">
+                    <header class="site-report-hero">
+                        <span class="site-report-hero-icon" aria-hidden="true"><i class="fas fa-chart-bar"></i></span>
+                        <div>
+                            <h1>网站数据</h1>
+                            <p>流量、来源与转化概览</p>
+                        </div>
+                    </header>
+
+                    <div class="site-report-toolbar-panel">
                         <div class="site-report-toolbar">
-                            <div>
-                                <h3 class="section-header" style="margin-bottom: 0;">网站数据</h3>
-                                <div class="form-hint">基础分析 + 完整分析：PV/UV、来源、设备、会话、跳出率、转化与事件趋势，中国按省/海外按洲地图，并集中查看历史登录日志</div>
-                            </div>
-                            <div class="site-report-actions">
-                                <div class="site-report-filter-group">
-                                    <label for="siteReportStartDate" class="site-report-label">开始日期</label>
-                                    <input type="date" id="siteReportStartDate" class="form-control site-report-filter-control site-report-date-input"
-                                        onchange="loadSiteReports()">
+                            <div class="site-report-data-controls">
+                                <div class="site-report-date-range" role="group" aria-label="统计日期范围">
+                                    <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                                    <input type="date" id="siteReportStartDate" class="site-report-date-input" aria-label="开始日期" onchange="loadSiteReports()">
+                                    <span class="site-report-date-divider">-</span>
+                                    <input type="date" id="siteReportEndDate" class="site-report-date-input" aria-label="结束日期" onchange="loadSiteReports()">
                                 </div>
                                 <div class="site-report-filter-group">
-                                    <label for="siteReportEndDate" class="site-report-label">结束日期</label>
-                                    <input type="date" id="siteReportEndDate" class="form-control site-report-filter-control site-report-date-input"
-                                        onchange="loadSiteReports()">
-                                </div>
-                                <div class="site-report-filter-group">
-                                    <label for="siteReportGranularity" class="site-report-label">显示粒度</label>
+                                    <label for="siteReportGranularity" class="site-report-label">数据展示</label>
                                     <select id="siteReportGranularity" class="form-control site-report-filter-control site-report-granularity-select"
                                         onchange="loadSiteReports()">
-                                        <option value="year">按年显示</option>
-                                        <option value="quarter">按季度显示</option>
-                                        <option value="month">按月显示</option>
-                                        <option value="week">按周显示</option>
-                                        <option value="day" selected>按天显示</option>
-                                    </select>
-                                </div>
-                                <div class="site-report-filter-group">
-                                    <label for="siteReportAiPeriod" class="site-report-label">报告周期</label>
-                                    <select id="siteReportAiPeriod" class="form-control site-report-filter-control site-report-granularity-select">
-                                        <option value="week">周报</option>
-                                        <option value="month" selected>月报</option>
-                                        <option value="quarter">季报</option>
-                                        <option value="year">年报</option>
+                                            <option value="year">按年显示</option>
+                                            <option value="quarter">按季度显示</option>
+                                            <option value="month">按月显示</option>
+                                            <option value="week">按周显示</option>
+                                            <option value="day" selected>按天显示</option>
                                     </select>
                                 </div>
                                 <button type="button" class="btn-primary site-report-refresh-btn" id="siteReportRefreshBtn"
                                     onclick="loadSiteReports(true)">
-                                    <i class="fas fa-sync-alt"></i> 刷新报表
-                                </button>
-                                <button type="button" class="btn-primary site-report-refresh-btn site-report-ai-btn" id="siteReportAiBtn"
-                                    onclick="generateSiteAiReport()">
-                                    <i class="fas fa-magic"></i> AI生成报告
-                                </button>
-                                <button type="button" class="btn-primary site-report-refresh-btn site-report-list-btn" id="siteReportListBtn"
-                                    onclick="openSiteAiReportListModal()">
-                                    <i class="fas fa-list-ul"></i> 报告清单
+                                    <i class="fas fa-sync-alt"></i> 刷新数据
                                 </button>
                             </div>
+                            <div class="site-report-report-controls">
+                                <div class="site-report-filter-group">
+                                    <label for="siteReportAiPeriod" class="site-report-label">报告周期</label>
+                                    <select id="siteReportAiPeriod" class="form-control site-report-filter-control site-report-granularity-select">
+                                            <option value="week">周报</option>
+                                            <option value="month" selected>月报</option>
+                                            <option value="quarter">季报</option>
+                                            <option value="year">年报</option>
+                                    </select>
+                                </div>
+                                <div class="site-report-actions">
+                                    <button type="button" class="btn-primary site-report-refresh-btn site-report-ai-btn" id="siteReportAiBtn"
+                                        onclick="generateSiteAiReport()">
+                                        <i class="fas fa-magic"></i> AI生成报告
+                                    </button>
+                                    <button type="button" class="btn-primary site-report-refresh-btn site-report-list-btn" id="siteReportListBtn"
+                                        onclick="openSiteAiReportListModal()">
+                                        <i class="fas fa-list-ul"></i> 报告清单
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <div class="site-report-audience-summary">
+                    <div class="site-report-audience-summary">
                             <section class="site-report-audience-section site-report-human-section" aria-labelledby="siteReportHumanTitle">
                                 <div class="site-report-audience-header">
                                     <div>
                                         <h4 id="siteReportHumanTitle"><i class="fas fa-user-friends" aria-hidden="true"></i> 真人有效访问</h4>
-                                        <p>用于经营与营销判断，已排除能够识别的爬虫和站点自检程序。</p>
+                                        <p>已排除已识别爬虫与站点自检访问。</p>
                                     </div>
-                                    <span class="site-report-audience-tag">经营口径</span>
+                                    <button type="button" class="site-report-detail-link" onclick="switchSiteReportTab('source', true)">查看详情 <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                                 </div>
                                 <div class="stats-grid site-report-human-kpi-grid" id="siteReportKpiGrid">
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">页面浏览量 (PV)<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('pv')" aria-label="页面浏览量说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('pv')" aria-label="页面浏览量说明" title="页面浏览量说明"><i class="fas fa-eye" aria-hidden="true"></i></button><span>页面浏览量 (PV)</span></div>
                                         <div class="stat-value" id="siteReportPv">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportPvCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">独立访客 (UV)<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('uv')" aria-label="独立访客说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('uv')" aria-label="独立访客说明" title="独立访客说明"><i class="fas fa-user" aria-hidden="true"></i></button><span>独立访客 (UV)</span></div>
                                         <div class="stat-value" id="siteReportUv">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportUvCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">会话数<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('sessions')" aria-label="会话数说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('sessions')" aria-label="会话数说明" title="会话数说明"><i class="fas fa-link" aria-hidden="true"></i></button><span>会话数</span></div>
                                         <div class="stat-value" id="siteReportSessions">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportSessionsCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">平均会话时长<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('avg_session_duration')" aria-label="平均会话时长说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('avg_session_duration')" aria-label="平均会话时长说明" title="平均会话时长说明"><i class="far fa-clock" aria-hidden="true"></i></button><span>平均会话时长</span></div>
                                         <div class="stat-value" id="siteReportAvgSession">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportAvgSessionCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">跳出率<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('bounce_rate')" aria-label="跳出率说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('bounce_rate')" aria-label="跳出率说明" title="跳出率说明"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></button><span>跳出率</span></div>
                                         <div class="stat-value" id="siteReportBounceRate">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportBounceRateCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">转化事件<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('conversion_events')" aria-label="转化事件说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('conversion_events')" aria-label="转化事件说明" title="转化事件说明"><i class="fas fa-flag" aria-hidden="true"></i></button><span>转化事件</span></div>
                                         <div class="stat-value" id="siteReportConversions">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportConversionsCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">转化率<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('conversion_rate')" aria-label="转化率说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('conversion_rate')" aria-label="转化率说明" title="转化率说明"><i class="fas fa-filter" aria-hidden="true"></i></button><span>转化率</span></div>
                                         <div class="stat-value" id="siteReportConversionRate">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportConversionRateCompare">较上期 --</div>
                                     </div>
                                 </div>
                             </section>
@@ -3499,48 +3481,39 @@
                                 <div class="site-report-audience-header">
                                     <div>
                                         <h4 id="siteReportBotTitle"><i class="fas fa-robot" aria-hidden="true"></i> 爬虫技术流量</h4>
-                                        <p>用于观察搜索引擎抓取、SEO收录和异常访问，不计入真人转化表现。</p>
+                                        <p>用于观察搜索引擎抓取，不计入真人转化。</p>
                                     </div>
-                                    <span class="site-report-audience-tag">技术口径</span>
+                                    <button type="button" class="site-report-detail-link" onclick="switchSiteReportTab('crawler', true)">查看详情 <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                                 </div>
                                 <div class="stats-grid site-report-bot-kpi-grid" id="siteReportBotKpiGrid">
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">爬虫会话<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('crawler_sessions')" aria-label="爬虫会话说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('crawler_sessions')" aria-label="爬虫会话说明" title="爬虫会话说明"><i class="fas fa-robot" aria-hidden="true"></i></button><span>爬虫会话</span></div>
                                         <div class="stat-value" id="siteReportCrawlerSessionsTop">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportCrawlerSessionsCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">页面抓取 (PV)<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('crawler_pageviews')" aria-label="爬虫页面抓取说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('crawler_pageviews')" aria-label="页面抓取说明" title="页面抓取说明"><i class="far fa-file-alt" aria-hidden="true"></i></button><span>页面抓取 (PV)</span></div>
                                         <div class="stat-value" id="siteReportCrawlerPageviewsTop">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportCrawlerPageviewsCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">独立 IP<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('crawler_unique_ips')" aria-label="爬虫独立IP说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('crawler_unique_ips')" aria-label="爬虫独立 IP 说明" title="爬虫独立 IP 说明"><i class="fas fa-project-diagram" aria-hidden="true"></i></button><span>独立 IP</span></div>
                                         <div class="stat-value" id="siteReportCrawlerUniqueIpsTop">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportCrawlerUniqueIpsCompare">较上期 --</div>
                                     </div>
                                     <div class="stat-card">
-                                        <div class="stat-label metric-with-help">来源类型<button type="button" class="metric-help-btn"
-                                                onclick="showSiteMetricHelp('crawler_sources')" aria-label="爬虫来源类型说明">?</button></div>
+                                        <div class="stat-label"><button type="button" class="site-report-kpi-help" onclick="showSiteMetricHelp('crawler_sources')" aria-label="爬虫来源类型说明" title="爬虫来源类型说明"><i class="fas fa-layer-group" aria-hidden="true"></i></button><span>来源类型</span></div>
                                         <div class="stat-value" id="siteReportCrawlerSourcesTop">-</div>
+                                        <div class="site-report-kpi-compare" id="siteReportCrawlerSourcesCompare">较上期 --</div>
                                     </div>
                                 </div>
                             </section>
                         </div>
 
+                    <div class="site-report-feedback">
                         <div id="siteReportLastUpdated" class="site-report-meta">-</div>
                         <div id="siteReportMsg" class="error-message" style="color:#28a745;"></div>
                     </div>
-
-                    <div class="tabs site-report-tabs" role="tablist">
-                        <button type="button" class="tab-btn active" onclick="switchSiteReportTab('overview', this)">概览</button>
-                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('acquisition', this)">来源与受众</button>
-                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('content', this)">内容与转化</button>
-                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('crawler', this)">爬虫流量</button>
-                        <button type="button" class="tab-btn" onclick="switchSiteReportTab('logs', this)">登录日志</button>
-                    </div>
-
-                    <div id="siteReportTab-overview" class="tab-content active">
 
                     <div class="card site-report-card site-ai-report-card" id="siteAiReportCard" style="display:none;">
                         <div class="site-ai-report-header">
@@ -3563,17 +3536,35 @@
                         <div class="site-ai-report-content" id="siteAiReportContent"></div>
                     </div>
 
-                    <div class="card site-report-card" style="margin-top: 18px;">
-                        <h3 class="section-header metric-with-help">每日趋势<button type="button" class="metric-help-btn"
-                                onclick="showSiteMetricHelp('trend')" aria-label="每日趋势说明">?</button></h3>
+                    <div class="site-report-tabs" role="tablist" aria-label="网站数据报表">
+                        <button type="button" role="tab" class="site-report-tab is-active" data-report-tab="overview" aria-selected="true" onclick="switchSiteReportTab('overview')">概览</button>
+                        <button type="button" role="tab" class="site-report-tab" data-report-tab="source" aria-selected="false" onclick="switchSiteReportTab('source')">来源与受众</button>
+                        <button type="button" role="tab" class="site-report-tab" data-report-tab="content" aria-selected="false" onclick="switchSiteReportTab('content')">内容与转化</button>
+                        <button type="button" role="tab" class="site-report-tab" data-report-tab="crawler" aria-selected="false" onclick="switchSiteReportTab('crawler')">爬虫流量</button>
+                        <button type="button" role="tab" class="site-report-tab" data-report-tab="logs" aria-selected="false" onclick="switchSiteReportTab('logs')">登录日志</button>
+                    </div>
+
+                    <div class="card site-report-card site-report-chart-card" data-site-report-tab="overview">
+                        <div class="site-report-chart-header">
+                            <h3 class="section-header metric-with-help" id="siteReportTrendHeading">按天趋势<button type="button" class="metric-help-btn"
+                                    onclick="showSiteMetricHelp('trend')" aria-label="趋势说明">?</button></h3>
+                            <div class="site-report-chart-actions">
+                                <div class="site-report-chart-date-range" role="group" aria-label="趋势日期范围">
+                                    <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                                    <input type="date" id="siteReportTrendStartDate" aria-label="趋势开始日期" onchange="syncSiteReportTrendFilters()">
+                                    <span>-</span>
+                                    <input type="date" id="siteReportTrendEndDate" aria-label="趋势结束日期" onchange="syncSiteReportTrendFilters()">
+                                </div>
+                                <select id="siteReportTrendGranularity" class="form-control" aria-label="趋势显示粒度" onchange="syncSiteReportTrendFilters()">
+                                    <option value="year">按年显示</option><option value="quarter">按季度显示</option><option value="month">按月显示</option><option value="week">按周显示</option><option value="day" selected>按天显示</option>
+                                </select>
+                                <button type="button" class="site-report-export-btn" onclick="exportSiteReportTrend()"><i class="fas fa-download" aria-hidden="true"></i> 导出图表</button>
+                            </div>
+                        </div>
                         <div id="siteReportTrend" class="site-report-trend"></div>
                     </div>
 
-                    </div><!-- /概览 -->
-
-                    <div id="siteReportTab-acquisition" class="tab-content">
-
-                    <div class="card site-report-card" style="margin-top: 18px;">
+                    <div class="card site-report-card" data-site-report-tab="source" hidden>
                         <h3 class="section-header"><i class="fas fa-table" style="margin-right:6px;color:#3b82f6;"></i>访客 IP 来源统计（中国按省 / 海外按洲）</h3>
                         <div class="site-report-alert"><i class="fas fa-exclamation-triangle"></i> 提示：如短期内出现大量国外访问，请留意是否为网络攻击，及时处理。</div>
                         <div class="site-report-geo-tables">
@@ -3635,7 +3626,7 @@
                         </div>
                     </div>
 
-                    <div class="site-report-grid">
+                    <div class="site-report-grid" data-site-report-tab="source" hidden>
                         <div class="card site-report-card">
                             <h3 class="section-header">来源分布</h3>
                             <div class="table-container">
@@ -3683,7 +3674,7 @@
                         </div>
                     </div>
 
-                    <div class="card site-report-card" style="margin-top: 18px;">
+                    <div class="card site-report-card" data-site-report-tab="content" hidden>
                         <h3 class="section-header">推广链接表现</h3>
                         <div class="table-container">
                             <table>
@@ -3709,7 +3700,7 @@
                         </div>
                     </div>
 
-                    <div class="site-report-grid">
+                    <div class="site-report-grid" data-site-report-tab="source" hidden>
                         <div class="card site-report-card">
                             <h3 class="section-header">操作系统分布</h3>
                             <div class="table-container">
@@ -3761,11 +3752,7 @@
                         </div>
                     </div>
 
-                    </div><!-- /来源与受众 -->
-
-                    <div id="siteReportTab-crawler" class="tab-content">
-
-                    <div class="card site-report-card site-report-crawler-card" style="margin-top: 18px;">
+                    <div class="card site-report-card site-report-crawler-card" data-site-report-tab="crawler" hidden>
                         <div class="site-report-crawler-header">
                             <div>
                                 <h3 class="section-header"><i class="fas fa-robot" aria-hidden="true"></i> 爬虫访问</h3>
@@ -3818,11 +3805,7 @@
                         </div>
                     </div>
 
-                    </div><!-- /爬虫流量 -->
-
-                    <div id="siteReportTab-content" class="tab-content">
-
-                    <div class="card site-report-card" style="margin-top: 18px;">
+                    <div class="card site-report-card" data-site-report-tab="content" hidden>
                         <h3 class="section-header">热门页面</h3>
                         <div class="table-container">
                             <table>
@@ -3847,7 +3830,7 @@
                         </div>
                     </div>
 
-                    <div class="site-report-grid">
+                    <div class="site-report-grid" data-site-report-tab="content" hidden>
                         <div class="card site-report-card">
                             <h3 class="section-header">热门事件</h3>
                             <div class="table-container">
@@ -3907,11 +3890,7 @@
                         </div>
                     </div>
 
-                    </div><!-- /内容与转化 -->
-
-                    <div id="siteReportTab-logs" class="tab-content">
-
-                    <div class="card" style="margin-top: 18px;">
+                    <div class="card" data-site-report-tab="logs" hidden>
                         <div class="audit-card-header">
                             <div class="audit-card-title">历史登录日志</div>
                             <div class="audit-card-meta">
@@ -3960,7 +3939,6 @@
                         </div>
                     </div>
 
-                    </div><!-- /登录日志 -->
                 </div>
 
                 <!-- Backup View -->
@@ -4087,17 +4065,19 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                     <div class="card image-seo-panel">
                         <div class="image-seo-toolbar">
                             <div>
-                                <h3 class="section-header" style="margin-bottom:4px;">全站图片 SEO 资产中心</h3>
-                                <p class="form-hint">扫描只读取页面与图片，不删除文件、不批量改写 HTML。Alt 草稿必须人工确认后保存。</p>
+                                <h3 class="section-header">图片 SEO 资产</h3>
                             </div>
                             <div class="image-seo-actions">
-                                <button type="button" class="btn-sm" onclick="showImageSeoHelp('scan')">扫描说明</button>
-                                <button type="button" class="btn-sm" onclick="showImageSeoHelp('save')">保存说明</button>
-                                <button type="button" class="btn-sm" onclick="showImageSeoHelp('ignore')">忽略说明</button>
-                                <button type="button" class="btn-sm image-seo-hover-help" data-help="Excel 文件会嵌入图片缩略图，并为图片角色、允许索引和已忽略提供中文下拉框；适合人工审核后回传。" onclick="downloadImageSeoExcel()"><i class="fas fa-file-excel"></i> 导出 Excel</button>
-                                <button type="button" class="btn-sm image-seo-hover-help" data-help="上传已编辑的 Excel，按资产编号或图片地址覆盖 SEO 元数据；不会上传、删除或替换图片文件。" onclick="confirmImageSeoCsvUpload()"><i class="fas fa-file-arrow-up"></i> 上传覆盖 Excel</button>
+                                <button type="button" class="btn-sm image-seo-help-entry" title="图片 SEO 帮助" aria-label="图片 SEO 帮助" onclick="showImageSeoHelp('overview')"><i class="fas fa-circle-question"></i></button>
+                                <details class="image-seo-tools-menu">
+                                    <summary class="btn-sm"><i class="fas fa-file-excel"></i> Excel <i class="fas fa-chevron-down"></i></summary>
+                                    <div class="image-seo-tools-popover">
+                                        <button type="button" onclick="downloadImageSeoExcel(); this.closest('details').open = false"><i class="fas fa-download"></i> 导出 Excel</button>
+                                        <button type="button" onclick="confirmImageSeoCsvUpload(); this.closest('details').open = false"><i class="fas fa-upload"></i> 上传覆盖 Excel</button>
+                                    </div>
+                                </details>
                                 <input type="file" id="imageSeoCsvInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onchange="importImageSeoCsv(this)">
-                                <button type="button" class="btn-primary image-seo-hover-help" data-help="重新读取全站页面和图片，更新引用、尺寸和问题报告；不会删除图片或改写 HTML。" id="imageSeoScanBtn" onclick="runImageSeoScan()"><i class="fas fa-search"></i> 重新扫描</button>
+                                <button type="button" class="btn-primary image-seo-hover-help" data-help="更新全站图片的引用、尺寸和问题报告" id="imageSeoScanBtn" onclick="runImageSeoScan()"><i class="fas fa-rotate"></i> 重新扫描</button>
                             </div>
                         </div>
                         <div id="imageSeoSummary" class="image-seo-summary"></div>
@@ -4106,109 +4086,98 @@ docker compose cp web:${FILE} ./backups/</code></pre>
                             <button type="button" id="imageSeoIgnoredTab" onclick="switchImageSeoMode('ignored')">忽略区 <span id="imageSeoIgnoredBadge">0</span></button>
                         </div>
                         <div class="image-seo-filters">
-                            <input id="imageSeoQuery" class="form-control" placeholder="搜索 URL、页面或 Alt" oninput="scheduleImageSeoLoad()">
-                            <select id="imageSeoPageType" class="form-control" onchange="loadImageSeoAssets(1)">
-                                <option value="">全部页面</option><option value="product">产品</option><option value="news">新闻</option><option value="solution">解决方案</option><option value="case">案例</option><option value="home">首页</option><option value="page">其他页面</option>
-                            </select>
-                            <select id="imageSeoRole" class="form-control" onchange="loadImageSeoAssets(1)">
-                                <option value="">全部角色</option><option value="primary">产品主图</option><option value="detail">产品详情图</option><option value="application">应用场景图</option><option value="diagram">原理／结构图</option><option value="news">新闻资讯图</option><option value="decorative">页面装饰图</option><option value="logo">品牌标识</option><option value="qrcode">二维码</option>
-                            </select>
+                            <label class="image-seo-search"><i class="fas fa-magnifying-glass"></i><input id="imageSeoQuery" class="form-control" placeholder="搜索图片、页面或 Alt" aria-label="搜索图片、页面或 Alt" oninput="scheduleImageSeoLoad()"></label>
                             <select id="imageSeoIssue" class="form-control" onchange="loadImageSeoAssets(1)">
                                 <option value="">全部问题</option><option value="missing_alt">缺少 Alt</option><option value="generic_alt">泛化 Alt</option><option value="duplicate_alt">重复 Alt</option><option value="keyword_stuffing">关键词重复</option><option value="missing_owner_page">无归属页面</option><option value="missing_file">文件不存在</option><option value="large_file">文件过大</option><option value="missing_dimensions">缺少尺寸</option><option value="duplicate_content">重复内容</option><option value="unreferenced_asset">未引用资产</option>
                             </select>
-                            <select id="imageSeoIndexable" class="form-control" onchange="loadImageSeoAssets(1)"><option value="">全部索引状态</option><option value="true">可索引</option><option value="false">不索引</option></select>
+                            <details class="image-seo-more-filters">
+                                <summary class="btn-sm"><i class="fas fa-sliders"></i> 更多筛选 <i class="fas fa-chevron-down"></i></summary>
+                                <div class="image-seo-filter-popover">
+                                    <label>页面类型<select id="imageSeoPageType" class="form-control" onchange="loadImageSeoAssets(1)"><option value="">全部页面</option><option value="product">产品</option><option value="news">新闻</option><option value="solution">解决方案</option><option value="case">案例</option><option value="home">首页</option><option value="page">其他页面</option></select></label>
+                                    <label>图片角色<select id="imageSeoRole" class="form-control" onchange="loadImageSeoAssets(1)"><option value="">全部角色</option><option value="primary">产品主图</option><option value="detail">产品详情图</option><option value="application">应用场景图</option><option value="diagram">原理／结构图</option><option value="news">新闻资讯图</option><option value="decorative">页面装饰图</option><option value="logo">品牌标识</option><option value="qrcode">二维码</option></select></label>
+                                    <label>索引状态<select id="imageSeoIndexable" class="form-control" onchange="loadImageSeoAssets(1)"><option value="">全部索引状态</option><option value="true">可索引</option><option value="false">不索引</option></select></label>
+                                </div>
+                            </details>
                         </div>
-                        <div class="table-container image-seo-table-wrap">
-                            <table class="image-seo-table">
-                                <thead><tr><th>预览/文件</th><th>归属页面</th><th>角色与索引</th><th>Alt / 标题 / 说明</th><th>尺寸与问题</th><th>操作</th></tr></thead>
-                                <tbody id="imageSeoTableBody"><tr><td colspan="6" class="no-data">进入本页后加载图片资产</td></tr></tbody>
-                            </table>
+                        <div class="image-seo-workspace">
+                            <section class="image-seo-list-pane" aria-label="图片资产列表">
+                                <div class="image-seo-list-header"><strong>资产列表</strong><span id="imageSeoDraftCount" class="image-seo-draft-count" hidden></span></div>
+                                <div id="imageSeoAssetList" class="image-seo-asset-list"><div class="no-data">进入本页后加载图片资产</div></div>
+                                <div class="pagination image-seo-pagination"><button type="button" class="btn-sm" onclick="changeImageSeoPage(-1)">上一页</button><span id="imageSeoPageInfo">1 / 1</span><button type="button" class="btn-sm" onclick="changeImageSeoPage(1)">下一页</button></div>
+                            </section>
+                            <section id="imageSeoEditor" class="image-seo-editor" aria-label="图片 SEO 编辑面板"><div class="image-seo-editor-empty"><i class="fas fa-images"></i><span>选择一张图片</span></div></section>
                         </div>
-                        <div class="pagination"><button class="btn-sm" onclick="changeImageSeoPage(-1)">上一页</button><span id="imageSeoPageInfo">1 / 1</span><button class="btn-sm" onclick="changeImageSeoPage(1)">下一页</button></div>
                     </div>
                 </div>
 
                 <div id="view-log-records" class="view-section">
-                    <div class="card changelog-card">
-                        <div class="changelog-hero">
-                            <div>
-                                <div class="changelog-kicker">后台更新日志</div>
-                                <h3 class="changelog-title">系统更新日志</h3>
-                                <p class="changelog-subtitle">展示当前部署版本、构建时间和最新更新项。</p>
+                    <div class="system-log-page">
+                        <header class="system-log-header">
+                            <h1>系统日志</h1>
+                            <div class="system-log-tabs" role="tablist" aria-label="日志类型">
+                                <button type="button" id="systemLogRuntimeTab" class="system-log-tab is-active read-only-safe"
+                                    role="tab" aria-selected="true" aria-controls="systemLogRuntimePane" tabindex="0"
+                                    onclick="switchSystemLogTab('runtime')"><i class="fas fa-terminal" aria-hidden="true"></i> 运行日志</button>
+                                <button type="button" id="systemLogUpdatesTab" class="system-log-tab read-only-safe"
+                                    role="tab" aria-selected="false" aria-controls="systemLogUpdatesPane" tabindex="-1"
+                                    onclick="switchSystemLogTab('updates')"><i class="fas fa-code-branch" aria-hidden="true"></i> 更新记录</button>
                             </div>
-                            <button type="button" class="changelog-refresh-btn" id="changelogRefreshBtn"
-                                onclick="loadChangelog(true)">
-                                <i class="fas fa-sync-alt"></i> 刷新日志
-                            </button>
-                        </div>
+                        </header>
 
-                        <div class="changelog-meta-grid">
-                            <div class="changelog-meta-item">
-                                <div class="changelog-meta-label"><i class="fas fa-code-branch"></i> 当前版本号</div>
-                                <div class="changelog-meta-value" id="changelogVersion">-</div>
+                        <section id="systemLogRuntimePane" class="system-log-pane" role="tabpanel" aria-labelledby="systemLogRuntimeTab">
+                            <div class="system-log-pane-head">
+                                <h2 id="dockerLogsTitle1">应用服务日志</h2>
+                                <button type="button" class="system-log-refresh read-only-safe" id="dockerLogsRefreshBtn"
+                                    onclick="loadDockerLogs(true)"><i class="fas fa-sync-alt" aria-hidden="true"></i> 刷新日志</button>
                             </div>
-                            <div class="changelog-meta-item">
-                                <div class="changelog-meta-label"><i class="fas fa-clock"></i> 构建时间</div>
-                                <div class="changelog-meta-value" id="changelogBuildTime">-</div>
+                            <div class="system-log-toolbar">
+                                <label class="system-log-date-field" for="dockerLogsDateFilter">日期
+                                    <input type="date" id="dockerLogsDateFilter" class="read-only-safe" onchange="applyDockerLogsFilter()">
+                                </label>
+                                <label class="system-log-error-field">
+                                    <input type="checkbox" id="dockerLogsErrorToggle" class="read-only-safe" onchange="applyDockerLogsFilter()">
+                                    <span>仅错误</span>
+                                </label>
+                                <span id="dockerLogsFilterInfo" class="system-log-filter-info" aria-live="polite"></span>
+                                <button type="button" class="system-log-clear" id="dockerLogsClearBtn" onclick="clearDockerLogs()">
+                                    <i class="fas fa-trash-alt" aria-hidden="true"></i> 清除日志
+                                </button>
                             </div>
-                        </div>
+                            <div id="dockerLogsContent1" class="system-log-content">
+                                <div id="dockerLogsOutput1" class="system-log-console" style="display:none;">
+                                    <pre id="dockerLogsBody1" class="system-log-console-body"></pre>
+                                </div>
+                                <div id="dockerLogsEmpty1" class="system-log-empty">
+                                    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i> 正在加载日志...
+                                </div>
+                            </div>
+                        </section>
 
-                        <div class="changelog-list-card">
-                            <div class="changelog-list-header">
-                                <h4>更新内容</h4>
+                        <section id="systemLogUpdatesPane" class="system-log-pane" role="tabpanel" aria-labelledby="systemLogUpdatesTab" hidden>
+                            <div class="system-log-pane-head">
+                                <h2>系统更新日志</h2>
+                                <button type="button" class="system-log-refresh read-only-safe" id="changelogRefreshBtn"
+                                    onclick="loadChangelog(true)"><i class="fas fa-sync-alt" aria-hidden="true"></i> 刷新日志</button>
+                            </div>
+                            <dl class="system-log-meta">
+                                <div><dt>当前版本</dt><dd id="changelogVersion">-</dd></div>
+                                <div><dt>构建时间</dt><dd id="changelogBuildTime">-</dd></div>
+                            </dl>
+                            <div class="system-log-history-head">
+                                <h3>更新内容</h3>
                                 <span id="changelogCountBadge" class="changelog-count-badge">0 项</span>
                             </div>
                             <ul class="changelog-updates" id="changelogUpdates"></ul>
                             <div class="changelog-pagination" id="changelogPagination" hidden>
                                 <span class="changelog-page-info" id="changelogPageInfo">第 1 / 1 页</span>
                                 <div class="changelog-page-actions">
-                                    <button type="button" class="changelog-page-btn" id="changelogPrevBtn"
+                                    <button type="button" class="changelog-page-btn read-only-safe" id="changelogPrevBtn"
                                         onclick="changeChangelogPage(-1)">上一页</button>
-                                    <button type="button" class="changelog-page-btn" id="changelogNextBtn"
+                                    <button type="button" class="changelog-page-btn read-only-safe" id="changelogNextBtn"
                                         onclick="changeChangelogPage(1)">下一页</button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="card docker-logs-card">
-                        <div class="docker-logs-hero">
-                            <div class="docker-logs-hero-left">
-                                <div class="docker-logs-kicker">Docker 日志</div>
-                                <h3 class="docker-logs-title">后端日志</h3>
-                                <p class="docker-logs-subtitle">查看网站应用容器运行日志。</p>
-                            </div>
-                            <button type="button" class="docker-logs-refresh-btn" id="dockerLogsRefreshBtn"
-                                onclick="loadDockerLogs(true)">
-                                <i class="fas fa-sync-alt"></i> 刷新日志
-                            </button>
-                        </div>
-
-                        <div class="docker-logs-toolbar">
-                            <div class="docker-logs-toolbar-group">
-                                <span class="docker-logs-toolbar-label"><i class="fas fa-calendar"></i> 日期筛选</span>
-                                <input type="date" class="docker-logs-date-input" id="dockerLogsDateFilter" onchange="applyDockerLogsFilter()">
-                            </div>
-                            <div class="docker-logs-toolbar-group">
-                                <span class="docker-logs-toolbar-label">仅错误</span>
-                                <div class="docker-logs-toggle" id="dockerLogsErrorToggle" onclick="toggleDockerLogsErrorFilter()"></div>
-                            </div>
-                            <span id="dockerLogsFilterInfo" class="docker-logs-filter-info"></span>
-                            <button type="button" class="docker-logs-clear-btn" id="dockerLogsClearBtn" onclick="clearDockerLogs()">
-                                <i class="fas fa-trash-alt"></i> 清除日志
-                            </button>
-                        </div>
-
-                        <div id="dockerLogsContent1" class="docker-logs-content active">
-                            <div id="dockerLogsOutput1" class="docker-logs-output" style="display:none;">
-                                <div class="docker-logs-output-header">
-                                    <span class="docker-logs-output-title" id="dockerLogsTitle1">应用服务日志</span>
-                                </div>
-                                <div class="docker-logs-output-body" id="dockerLogsBody1"></div>
-                            </div>
-                            <div id="dockerLogsEmpty1" class="docker-logs-empty">
-                                <i class="fas fa-spinner fa-spin"></i> 正在加载日志...
-                            </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
 
@@ -4341,14 +4310,15 @@ docker compose cp web:${FILE} ./backups/</code></pre>
             </div>
         </div>
     </div>
-    <script src="/admin/js/state.js?v=20260715-image-seo-v2"></script>
+    <script src="/admin/js/state.js?v=20260926-ai-management-v1"></script>
     <script src="/admin/js/api.js?v=20260915-login-captcha-fix-v1"></script>
     <script src="/admin/js/auth.js"></script>
-    <script src="/admin/js/components/shell.js?v=20260715-image-seo-v2"></script>
+    <script src="/admin/js/components/shell.js?v=20260926-ai-management-v1"></script>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260924-site-report-tabs-v1"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260926-system-log-v1"></script>
+    <script src="/admin/js/site-report-ui.js?v=20260926-v1"></script>
     <script src="/admin/js/passkeys.js?v=20260915-remove-banner-v1"></script>
     <script src="/admin/js/app.js?v=20260715-image-seo-v2"></script>
 </body>

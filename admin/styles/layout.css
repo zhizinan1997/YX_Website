@@ -4,41 +4,40 @@
 
 .admin2-root .sidebar {
     position: relative;
-    background:
-        linear-gradient(180deg, rgba(7, 23, 43, 0.96) 0%, rgba(8, 29, 54, 0.98) 100%);
-    box-shadow: 22px 0 54px rgba(6, 18, 35, 0.18);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    width: 226px;
+    background: #152b47;
+    box-shadow: none;
+    border-right: 1px solid #0d223d;
+    overflow: hidden;
 }
 
 .admin2-root .sidebar::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at top left, rgba(39, 199, 217, 0.16), transparent 24%),
-        linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.02) 100%);
-    pointer-events: none;
+    display: none;
 }
 
 .admin2-root .sidebar-header {
     position: relative;
-    height: var(--admin2-sidebar-header-height);
-    min-height: var(--admin2-sidebar-header-height);
-    flex: 0 0 var(--admin2-sidebar-header-height);
-    padding: 0 22px;
-    border-bottom-color: rgba(255, 255, 255, 0.08);
+    height: 68px;
+    min-height: 68px;
+    flex: 0 0 68px;
+    justify-content: center;
+    padding: 0 16px;
+    border-bottom-color: rgba(255, 255, 255, 0.09);
     color: #f4fbff;
-    font-size: 17px;
-    letter-spacing: 0.04em;
+    font-size: 16px;
+    letter-spacing: 0;
 }
 
 .admin2-root .sidebar-menu {
     position: relative;
-    padding: 18px 14px 18px 12px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 14px 12px;
 }
 
 .admin2-root .sidebar-section {
-    margin-bottom: 18px;
+    margin-bottom: 11px;
 }
 
 .admin2-root .sidebar-section-toggle {
@@ -51,12 +50,12 @@
     cursor: pointer;
     font: inherit;
     text-align: left;
-    padding: 0 14px 8px;
-    color: rgba(210, 227, 244, 0.54);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    min-height: 31px;
+    padding: 0 10px;
+    color: #8fa8c7;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
 }
 
 .admin2-root .sidebar-section-toggle:hover {
@@ -73,16 +72,54 @@
 }
 
 .admin2-root .top-bar {
-    height: 78px;
-    padding: 0 24px 0 28px;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(16px) saturate(150%);
-    border-bottom: 1px solid rgba(12, 38, 68, 0.08);
-    box-shadow: 0 8px 30px rgba(8, 25, 45, 0.05);
+    height: 52px;
+    min-height: 52px;
+    padding: 0 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e1e8f2;
+    box-shadow: 0 2px 8px rgba(20, 48, 88, 0.04);
 }
 
 .admin2-root .top-bar-main {
-    gap: 14px;
+    gap: 10px;
+    min-width: 0;
+}
+
+.admin2-root .top-breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+    color: #64748b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.admin2-root .top-breadcrumb-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: #536987;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.admin2-root .top-breadcrumb-home:hover {
+    color: #1769de;
+}
+
+.admin2-root .top-breadcrumb-separator {
+    color: #91a1b6;
+    font-size: 11px;
+}
+
+.admin2-root .top-breadcrumb-current {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #556986;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .admin2-root .content-area {
@@ -90,8 +127,8 @@
 }
 
 .admin2-root .main-content {
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 100%);
+    min-width: 0;
+    background: #f1f6fc;
 }
 
 @media (max-width: 1024px) {
@@ -104,8 +141,8 @@
         left: 0;
         top: 0;
         bottom: 0;
-        width: min(82vw, 320px);
-        max-width: 320px;
+        width: min(82vw, 226px);
+        max-width: 226px;
         height: 100dvh;
         z-index: 1300;
         transform: translateX(-110%);
@@ -134,17 +171,26 @@
     }
 
     .admin2-root .top-bar {
-        padding: 12px 14px;
+        padding: 0 16px;
+    }
+
+    body.admin2-root.sidebar-collapsed .sidebar {
+        width: min(82vw, 226px);
+    }
+
+    body.admin2-root.sidebar-collapsed .sidebar-header {
+        justify-content: center;
+        padding: 0;
     }
 }
 
 @media (max-width: 768px) {
     .admin2-root .top-bar {
-        height: 64px;
-        min-height: 64px;
+        height: 56px;
+        min-height: 56px;
         flex-wrap: nowrap;
         gap: 10px;
-        padding: 0 16px;
+        padding: 0 14px;
     }
 
     .admin2-root .top-bar-main {
@@ -160,6 +206,17 @@
 
     .admin2-root .version-badge,
     .admin2-root .top-home-btn {
+        display: none;
+    }
+}
+
+@media (max-width: 560px) {
+    .admin2-root .top-breadcrumb {
+        gap: 8px;
+    }
+
+    .admin2-root .top-breadcrumb-home span,
+    .admin2-root .top-breadcrumb-separator {
         display: none;
     }
 }

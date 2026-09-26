@@ -5511,7 +5511,7 @@ def _analytics_compact_report_for_ai(report):
     }
 
 
-def build_site_analytics_ai_report_context(period='month', anchor_date=None):
+def _site_report_ai_range_summary(period='month', anchor_date=None):
     period_key = str(period or 'month').strip().lower()
     if period_key not in {'week', 'month', 'quarter', 'year'}:
         raise ValueError('报告周期无效')
@@ -5536,18 +5536,6 @@ def build_site_analytics_ai_report_context(period='month', anchor_date=None):
     )
     previous_end = min(previous_start + timedelta(days=elapsed_days), previous_full_end)
 
-    granularity = _analytics_report_period_granularity(period_key)
-    current_report = build_site_analytics_report(
-        start_date=_analytics_format_local_date(current_start),
-        end_date=_analytics_format_local_date(current_end),
-        granularity=granularity,
-    )
-    previous_report = build_site_analytics_report(
-        start_date=_analytics_format_local_date(previous_start),
-        end_date=_analytics_format_local_date(previous_end),
-        granularity=granularity,
-    )
-
     period_label = _analytics_report_period_label(period_key)
     return {
         'period': period_key,
@@ -5563,6 +5551,27 @@ def build_site_analytics_ai_report_context(period='month', anchor_date=None):
             'end_date': _analytics_format_local_date(previous_end),
             'label': f"{_analytics_format_local_date(previous_start)} 至 {_analytics_format_local_date(previous_end)} · 上一周期",
         },
+    }
+
+
+def build_site_analytics_ai_report_context(period='month', anchor_date=None):
+    range_summary = _site_report_ai_range_summary(period=period, anchor_date=anchor_date)
+    current_range = range_summary['current_range']
+    previous_range = range_summary['previous_range']
+    granularity = _analytics_report_period_granularity(range_summary['period'])
+    current_report = build_site_analytics_report(
+        start_date=current_range['start_date'],
+        end_date=current_range['end_date'],
+        granularity=granularity,
+    )
+    previous_report = build_site_analytics_report(
+        start_date=previous_range['start_date'],
+        end_date=previous_range['end_date'],
+        granularity=granularity,
+    )
+
+    return {
+        **range_summary,
         'comparison': _analytics_build_comparison(current_report, previous_report),
         'crawler_comparison': _analytics_build_crawler_comparison(current_report, previous_report),
         'current': _analytics_compact_report_for_ai(current_report),
@@ -6443,6 +6452,43 @@ def register_site_analytics_routes(
             'reports': reports,
             'grouped': grouped,
             'total': len(reports),
+        })
+
+    @app.route('/api/admin/site-reports/ai-report/preflight', methods=['GET'])
+    @login_required
+    def get_site_report_ai_preflight_admin():
+        denied = _require_site_reports_admin_api()
+        if denied:
+            return denied
+        period = _analytics_clean_text(request.args.get('period') or 'month', max_length=20).lower()
+        anchor_date = _analytics_clean_text(
+            request.args.get('anchor_date') or request.args.get('end_date') or '',
+            max_length=10,
+        )
+        try:
+            range_summary = _site_report_ai_range_summary(period=period, anchor_date=anchor_date)
+        except ValueError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 400
+
+        config = _site_report_get_ai_config()
+        has_api_key = bool(config.get('api_key'))
+        api_url = str(config.get('api_base') or '').rstrip('/') + '/chat/completions'
+        api_base_safe = _site_report_ai_base_is_safe(api_url)
+        http_client_available = bool(
+            (_site_report_requests_support and _site_report_requests_module is not None)
+            or (_site_report_httpx_support and _site_report_httpx_module is not None)
+        )
+        return jsonify({
+            'success': True,
+            **range_summary,
+            'ai_config': {
+                'has_api_key': has_api_key,
+                'model': config.get('model') or '',
+                'source': config.get('source') or '',
+                'api_base_safe': api_base_safe,
+                'http_client_available': http_client_available,
+                'ready': has_api_key and api_base_safe and http_client_available,
+            },
         })
 
     @app.route('/api/admin/site-reports/ai-report', methods=['POST'])

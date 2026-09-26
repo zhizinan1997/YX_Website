@@ -521,6 +521,92 @@ class SiteAnalyticsTests(unittest.TestCase):
         response = client.get("/api/admin/site-reports")
         self.assertEqual(response.status_code, 403)
 
+    def test_ai_report_preflight_returns_ranges_and_safe_config_summary(self):
+        config = {
+            "site_report_ai_api_key": "secret-api-key",
+            "site_report_ai_api_base": "https://api.example.com/private-path",
+            "site_report_ai_model": "report-model",
+        }
+        app = Flask(__name__)
+        app.secret_key = "test-secret"
+        sa.register_site_analytics_routes(
+            app,
+            login_required=lambda f: f,
+            data_dir=self.data_dir,
+            get_client_ip=lambda: "127.0.0.1",
+            resolve_ip_location=lambda _ip: "unknown",
+            beijing_tz=sa.BEIJING_TZ,
+            get_config=lambda: config,
+            requests_support=True,
+            requests_module=object(),
+            httpx_support=False,
+            httpx_module=None,
+        )
+        client = app.test_client()
+        with client.session_transaction() as sess:
+            sess["admin_logged_in"] = True
+            sess["admin_is_super_admin"] = True
+
+        response = client.get("/api/admin/site-reports/ai-report/preflight?period=month&anchor_date=2024-06-15")
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["period_label"], "月报")
+        self.assertEqual(payload["current_range"]["start_date"], "2024-06-01")
+        self.assertEqual(payload["current_range"]["end_date"], "2024-06-15")
+        self.assertEqual(payload["previous_range"]["start_date"], "2024-05-01")
+        self.assertEqual(payload["previous_range"]["end_date"], "2024-05-15")
+        self.assertEqual(payload["ai_config"], {
+            "has_api_key": True,
+            "model": "report-model",
+            "source": "site_report",
+            "api_base_safe": True,
+            "http_client_available": True,
+            "ready": True,
+        })
+        self.assertNotIn("secret-api-key", response.get_data(as_text=True))
+        self.assertNotIn("private-path", response.get_data(as_text=True))
+
+        config["site_report_ai_api_base"] = "http://127.0.0.1/v1"
+        unsafe = client.get("/api/admin/site-reports/ai-report/preflight?period=month&anchor_date=2024-06-15")
+        self.assertFalse(unsafe.get_json()["ai_config"]["api_base_safe"])
+        self.assertFalse(unsafe.get_json()["ai_config"]["ready"])
+
+        config.clear()
+        missing_key = client.get("/api/admin/site-reports/ai-report/preflight?period=month&anchor_date=2024-06-15")
+        self.assertEqual(missing_key.get_json()["ai_config"]["source"], "")
+        self.assertFalse(missing_key.get_json()["ai_config"]["has_api_key"])
+        self.assertFalse(missing_key.get_json()["ai_config"]["ready"])
+
+    def test_ai_report_preflight_rejects_invalid_inputs_and_missing_permission(self):
+        app = Flask(__name__)
+        app.secret_key = "test-secret"
+        sa.register_site_analytics_routes(
+            app,
+            login_required=lambda f: f,
+            data_dir=self.data_dir,
+            get_client_ip=lambda: "127.0.0.1",
+            resolve_ip_location=lambda _ip: "unknown",
+            beijing_tz=sa.BEIJING_TZ,
+            get_config=lambda: {},
+            requests_support=False,
+            requests_module=None,
+            httpx_support=False,
+            httpx_module=None,
+        )
+        client = app.test_client()
+        url = "/api/admin/site-reports/ai-report/preflight"
+        self.assertEqual(client.get(url).status_code, 403)
+        with client.session_transaction() as sess:
+            sess["admin_logged_in"] = True
+            sess["admin_is_super_admin"] = False
+            sess["admin_permissions"] = []
+        self.assertEqual(client.get(url).status_code, 403)
+        with client.session_transaction() as sess:
+            sess["admin_permissions"] = ["site-reports"]
+        self.assertEqual(client.get(url + "?period=day").status_code, 400)
+        self.assertEqual(client.get(url + "?anchor_date=2024-13-01").status_code, 400)
+        self.assertEqual(client.get(url + "?anchor_date=9999-01-01").status_code, 400)
+
     def test_markdown_table_renders_as_table(self):
         html = sa._analytics_markdown_to_report_html("| A | B |\n|---|---:|\n| x | 1 |")
         self.assertIn("<table", html)

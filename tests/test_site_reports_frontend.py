@@ -13,10 +13,11 @@ class SiteReportsTabFrontendTests(unittest.TestCase):
 
     def test_site_reports_use_tabbed_sections(self):
         html = self._html()
-        self.assertIn('class="tabs site-report-tabs"', html)
-        for tab in ("overview", "acquisition", "content", "crawler", "logs"):
-            self.assertIn(f'id="siteReportTab-{tab}"', html)
-            self.assertIn(f"switchSiteReportTab('{tab}', this)", html)
+        self.assertEqual(html.count('class="site-report-tabs"'), 1)
+        for tab in ("overview", "source", "content", "crawler", "logs"):
+            self.assertIn(f'data-report-tab="{tab}"', html)
+            self.assertIn(f'data-site-report-tab="{tab}"', html)
+            self.assertIn(f"switchSiteReportTab('{tab}')", html)
 
     def test_site_reports_keep_all_data_sections(self):
         html = self._html()
@@ -33,8 +34,8 @@ class SiteReportsTabFrontendTests(unittest.TestCase):
             self.assertIn(f'id="{element_id}"', html)
 
     def test_switch_site_report_tab_defined(self):
-        script = (ROOT / "admin" / "js" / "legacy-admin.js").read_text(encoding="utf-8")
-        self.assertIn("function switchSiteReportTab(", script)
+        script = (ROOT / "admin" / "js" / "site-report-ui.js").read_text(encoding="utf-8")
+        self.assertIn("window.switchSiteReportTab = switchSiteReportTab", script)
 
 
 if __name__ == "__main__":

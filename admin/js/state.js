@@ -25,8 +25,7 @@
         { key: 'overview', label: '总览', items: [{ type: 'view', key: 'site-reports' }, { type: 'view', key: 'messages' }] },
         { key: 'content', label: '内容运营', items: [{ type: 'view', key: 'home' }, { type: 'view', key: 'image-seo' }, { type: 'view', key: 'promotion-links' }, { type: 'view', key: 'news-create' }, { type: 'view', key: 'jobs' }] },
         { key: 'products', label: '产品与方案', items: [{ type: 'group', key: 'gas-related' }, { type: 'group', key: 'bio-related' }] },
-        { key: 'ai', label: 'AI 管理', items: [{ type: 'view', key: 'chatbot' }, { type: 'view', key: 'chatbot-knowledge' }, { type: 'view', key: 'chatbot-history' }] },
-        { key: 'system', label: '系统', items: [{ type: 'view', key: 'settings' }, { type: 'view', key: 'log-records' }, { type: 'view', key: 'site-settings' }, { type: 'selector', key: '#sidebarLogoutItem' }] }
+        { key: 'system', label: '系统', items: [{ type: 'view', key: 'ai-management' }, { type: 'view', key: 'system-management' }] }
     ];
 
     window.Admin2State = {

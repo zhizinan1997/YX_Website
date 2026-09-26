@@ -13,6 +13,10 @@
             'gas-related': ['h2-home', 'products', 'hydrogen-solutions'],
             'bio-related': ['bio-products']
         };
+        const SYSTEM_MANAGEMENT_VIEWS = ['settings', 'log-records', 'site-settings'];
+        let activeSystemManagementView = 'settings';
+        const AI_MANAGEMENT_VIEWS = ['chatbot', 'chatbot-knowledge', 'chatbot-history'];
+        let activeAIManagementView = 'chatbot';
         const MESSAGE_CENTER_PREVIEW_LIMIT = 5;
         const MESSAGE_CENTER_CACHE_TTL_MS = 60 * 1000;
         let adminLoginLogsPage = 1;
@@ -25,6 +29,7 @@
         let chatbotHistoryTotal = 0;
         let changelogHistory = [];
         let changelogPage = 1;
+        let activeSystemLogTab = 'runtime';
         let adminSessionCheckTimer = null;
         let turnstilePublicConfig = { enabled: false, provider: 'cloudflare', site_key: '', esa_identity: '', esa_scene_id: '', esa_region: 'cn' };
         let turnstileWidgetId = null;
@@ -104,6 +109,7 @@
         let siteReportsGranularity = 'day';
         let siteReportsLoading = false;
         let siteReportsAiLoading = false;
+        let siteReportsAiPreflightPending = false;
         let siteAiReportListLoading = false;
         let siteAiReportListCache = null;
         let siteAiReportLastText = '';
@@ -1054,14 +1060,18 @@
         }
 
         function updateSidebarToggleButton() {
-            const textEl = document.getElementById('sidebarToggleText');
             const btnEl = document.getElementById('sidebarToggleBtn');
-            if (!textEl || !btnEl) return;
+            if (!btnEl) return;
             const collapsed = document.body.classList.contains('sidebar-collapsed');
-            textEl.textContent = collapsed ? '显示侧边栏' : '折叠侧边栏';
-            btnEl.setAttribute('aria-label', textEl.textContent);
+            const label = collapsed ? '展开侧边栏' : '折叠侧边栏';
+            const icon = btnEl.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-angles-left', !collapsed);
+                icon.classList.toggle('fa-angles-right', collapsed);
+            }
+            btnEl.setAttribute('aria-label', label);
             btnEl.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
-            btnEl.title = textEl.textContent;
+            btnEl.title = label;
         }
 
         function setSidebarCollapsed(collapsed, save = true) {
@@ -1145,12 +1155,97 @@
         function hasViewPermission(viewName) {
             const key = normalizePermissionKey(viewName);
             if (!key) return true;
+            if (key === 'system-management') {
+                return SYSTEM_MANAGEMENT_VIEWS.some(view => featureUnlocks[view] !== false);
+            }
+            if (key === 'ai-management') {
+                return AI_MANAGEMENT_VIEWS.some(view => hasViewPermission(view));
+            }
             return featureUnlocks[key] !== false;
         }
 
         function canEditView(viewName) {
             if (currentAdminAuth.is_super_admin) return true;
             return currentAdminAuth.permissions.includes(normalizePermissionKey(viewName));
+        }
+
+        function getFirstAllowedSystemManagementView() {
+            return SYSTEM_MANAGEMENT_VIEWS.find(view => hasViewPermission(view)) || '';
+        }
+
+        function getFirstAllowedAIManagementView() {
+            return AI_MANAGEMENT_VIEWS.find(view => hasViewPermission(view)) || '';
+        }
+
+        function resolveManagementEntry(viewName) {
+            if (viewName === 'system-management') return getFirstAllowedSystemManagementView();
+            if (viewName === 'ai-management') return getFirstAllowedAIManagementView();
+            return viewName;
+        }
+
+        function getSidebarMenuItem(viewName) {
+            const menuView = SYSTEM_MANAGEMENT_VIEWS.includes(viewName) ? 'system-management'
+                : AI_MANAGEMENT_VIEWS.includes(viewName) ? 'ai-management' : viewName;
+            return Array.from(document.querySelectorAll('.menu-item[data-view]'))
+                .find(item => item.dataset.view === menuView) || null;
+        }
+
+        function syncAIManagementTabs(viewName) {
+            const tabs = document.getElementById('aiManagementTabs');
+            if (!tabs) return;
+            tabs.querySelectorAll('[data-ai-tab]').forEach(button => {
+                const tabView = button.dataset.aiTab;
+                const allowed = hasViewPermission(tabView);
+                const active = allowed && tabView === viewName;
+                button.hidden = !allowed;
+                button.classList.toggle('is-active', active);
+                if (active) button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            });
+            tabs.hidden = !AI_MANAGEMENT_VIEWS.includes(viewName);
+        }
+
+        function openAIManagement() {
+            const activeSection = document.querySelector('.view-section.active');
+            const currentView = activeSection && activeSection.id ? activeSection.id.replace(/^view-/, '') : '';
+            const preferred = AI_MANAGEMENT_VIEWS.includes(currentView) ? currentView : activeAIManagementView;
+            const target = hasViewPermission(preferred) ? preferred : getFirstAllowedAIManagementView();
+            if (target) switchView(target);
+            else showGlobalAlert('当前账号没有访问 AI 管理的权限');
+        }
+
+        function switchAIManagementTab(viewName) {
+            if (!AI_MANAGEMENT_VIEWS.includes(viewName)) return;
+            switchView(viewName);
+        }
+
+        function syncSystemManagementTabs(viewName) {
+            const tabs = document.getElementById('systemManagementTabs');
+            if (!tabs) return;
+            tabs.querySelectorAll('[data-system-tab]').forEach(button => {
+                const tabView = button.dataset.systemTab;
+                const allowed = hasViewPermission(tabView);
+                const active = allowed && tabView === viewName;
+                button.hidden = !allowed;
+                button.classList.toggle('is-active', active);
+                if (active) button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            });
+            tabs.hidden = !SYSTEM_MANAGEMENT_VIEWS.includes(viewName);
+        }
+
+        function openSystemManagement() {
+            const activeSection = document.querySelector('.view-section.active');
+            const currentView = activeSection && activeSection.id ? activeSection.id.replace(/^view-/, '') : '';
+            const preferred = SYSTEM_MANAGEMENT_VIEWS.includes(currentView) ? currentView : activeSystemManagementView;
+            const target = hasViewPermission(preferred) ? preferred : getFirstAllowedSystemManagementView();
+            if (target) switchView(target);
+            else showGlobalAlert('当前账号没有访问系统管理的权限');
+        }
+
+        function switchSystemManagementTab(viewName) {
+            if (!SYSTEM_MANAGEMENT_VIEWS.includes(viewName)) return;
+            switchView(viewName);
         }
 
         function getSidebarMenuGroup(groupKey) {
@@ -1218,7 +1313,8 @@
         function getFirstAllowedView() {
             const menuItems = Array.from(document.querySelectorAll('.menu-item[data-view]'));
             for (const el of menuItems) {
-                const key = normalizePermissionKey(el.dataset.view || '');
+                const menuView = String(el.dataset.view || '').trim();
+                const key = resolveManagementEntry(menuView);
                 if (key && hasViewPermission(key) && document.getElementById(`view-${key}`)) {
                     return key;
                 }
@@ -1255,22 +1351,24 @@
 
         function getPreferredInitialView() {
             const hashed = getHashAdminView();
+            const hashView = resolveManagementEntry(hashed);
             if (
-                hashed &&
-                hasViewPermission(hashed) &&
-                document.querySelector(`.menu-item[data-view="${hashed}"]`) &&
-                document.getElementById(`view-${hashed}`)
+                hashView &&
+                hasViewPermission(hashView) &&
+                getSidebarMenuItem(hashView) &&
+                document.getElementById(`view-${hashView}`)
             ) {
-                return hashed;
+                return hashView;
             }
             const stored = getStoredAdminView();
+            const storedView = resolveManagementEntry(stored);
             if (
-                stored &&
-                hasViewPermission(stored) &&
-                document.querySelector(`.menu-item[data-view="${stored}"]`) &&
-                document.getElementById(`view-${stored}`)
+                storedView &&
+                hasViewPermission(storedView) &&
+                getSidebarMenuItem(storedView) &&
+                document.getElementById(`view-${storedView}`)
             ) {
-                return stored;
+                return storedView;
             }
             return getFirstAllowedView();
         }
@@ -1285,12 +1383,18 @@
                     el.classList.remove('read-only-menu');
                     continue;
                 }
-                const isEditable = canEditView(key);
+                const isEditable = key === 'system-management'
+                    ? SYSTEM_MANAGEMENT_VIEWS.some(view => hasViewPermission(view) && (view === 'settings' || canEditView(view)))
+                    : key === 'ai-management'
+                        ? AI_MANAGEMENT_VIEWS.some(view => hasViewPermission(view) && canEditView(view))
+                        : canEditView(key);
                 el.classList.toggle('read-only-menu', !isEditable);
             }
             syncSidebarMenuGroupVisibility();
             const activeSection = document.querySelector('.view-section.active');
             const activeView = activeSection && activeSection.id ? activeSection.id.replace(/^view-/, '') : '';
+            syncAIManagementTabs(activeView);
+            syncSystemManagementTabs(activeView);
             if (activeView && !hasViewPermission(activeView) && typeof switchView === 'function') {
                 switchView(getFirstAllowedView(), { persist: false });
             }
@@ -2442,6 +2546,35 @@
             }
         }
 
+        function switchSystemLogTab(tabName) {
+            if (!['runtime', 'updates'].includes(tabName)) return;
+            activeSystemLogTab = tabName;
+            const tabIds = { runtime: 'systemLogRuntimeTab', updates: 'systemLogUpdatesTab' };
+            const paneIds = { runtime: 'systemLogRuntimePane', updates: 'systemLogUpdatesPane' };
+            Object.keys(tabIds).forEach(key => {
+                const active = key === tabName;
+                const tab = document.getElementById(tabIds[key]);
+                const pane = document.getElementById(paneIds[key]);
+                if (tab) {
+                    tab.classList.toggle('is-active', active);
+                    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                    tab.tabIndex = active ? 0 : -1;
+                }
+                if (pane) pane.hidden = !active;
+            });
+        }
+
+        document.querySelector('#view-log-records .system-log-tabs')?.addEventListener('keydown', event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            if (event.target?.getAttribute('role') !== 'tab') return;
+            event.preventDefault();
+            const next = event.key === 'Home' ? 'runtime'
+                : event.key === 'End' ? 'updates'
+                    : activeSystemLogTab === 'runtime' ? 'updates' : 'runtime';
+            switchSystemLogTab(next);
+            document.getElementById(next === 'runtime' ? 'systemLogRuntimeTab' : 'systemLogUpdatesTab')?.focus();
+        });
+
         let dockerLogsData = null;
 
         function setDockerLogsLoading(isLoading) {
@@ -2488,7 +2621,7 @@
         function toggleDockerLogsErrorFilter() {
             const toggle = document.getElementById('dockerLogsErrorToggle');
             if (toggle) {
-                toggle.classList.toggle('active');
+                toggle.checked = !toggle.checked;
                 applyDockerLogsFilter();
             }
         }
@@ -2496,7 +2629,7 @@
         function applyDockerLogsFilter() {
             if (!dockerLogsData) return;
             const dateFilter = document.getElementById('dockerLogsDateFilter')?.value;
-            const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
+            const errorOnly = !!document.getElementById('dockerLogsErrorToggle')?.checked;
             
             const container1 = dockerLogsData.container1 || {};
             
@@ -2533,7 +2666,7 @@
 
         function updateDockerLogsFilterInfo() {
             const dateFilter = document.getElementById('dockerLogsDateFilter')?.value;
-            const errorOnly = document.getElementById('dockerLogsErrorToggle')?.classList.contains('active');
+            const errorOnly = !!document.getElementById('dockerLogsErrorToggle')?.checked;
             const info = document.getElementById('dockerLogsFilterInfo');
             if (!info) return;
             
@@ -3296,8 +3429,7 @@
         }
 
         function updateSiteReportTrendHeading(granularity) {
-            const trendWrap = document.getElementById('siteReportTrend');
-            const heading = trendWrap ? trendWrap.previousElementSibling : null;
+            const heading = document.getElementById('siteReportTrendHeading');
             if (!heading) return;
             const titleText = getSiteReportTrendTitle(granularity);
             const firstNode = heading.firstChild;
@@ -3319,7 +3451,7 @@
             btn.disabled = !!isLoading;
             btn.innerHTML = isLoading
                 ? '<i class="fas fa-sync-alt fa-spin"></i> 加载中...'
-                : '<i class="fas fa-sync-alt"></i> 刷新报表';
+                : '<i class="fas fa-sync-alt"></i> 刷新数据';
         }
 
         function renderSiteReportKpis(summary, crawlerSummary) {
@@ -3365,8 +3497,8 @@
             const yAxis = buildSiteReportTrendYAxis(maxValue, 4);
             const chartMax = Math.max(1, Number(yAxis.max) || 1);
 
-            const height = 340;
-            const padding = { left: 52, right: 18, top: 22, bottom: 52 };
+            const height = 220;
+            const padding = { left: 45, right: 18, top: 14, bottom: 34 };
             const wrapRect = wrap.getBoundingClientRect ? wrap.getBoundingClientRect() : { width: 0 };
             const wrapStyle = window.getComputedStyle ? window.getComputedStyle(wrap) : null;
             const wrapPaddingX = wrapStyle
@@ -3374,8 +3506,10 @@
                 : 0;
             const availableWidth = Math.max(720, Math.floor((wrapRect.width || wrap.clientWidth || 0) - wrapPaddingX));
             const maxLabelChars = Math.max(5, ...prepared.map(item => (item.axisLabel || item.label || '').length));
-            const slotBaseMap = { year: 88, quarter: 104, month: 96, week: 190, day: 64, hour: 72 };
-            const slotWidth = Math.max(slotBaseMap[granularity] || 72, Math.min(220, (maxLabelChars * 8) + 28));
+            const slotBaseMap = { year: 88, quarter: 104, month: 96, week: 130, day: 42, hour: 56 };
+            const slotWidth = granularity === 'day'
+                ? 42
+                : Math.max(slotBaseMap[granularity] || 72, Math.min(220, (maxLabelChars * 8) + 28));
             const dataWidth = padding.left + padding.right + (Math.max(1, prepared.length - 1) * slotWidth);
             const width = Math.ceil(Math.max(availableWidth, dataWidth));
             const plotWidth = Math.max(1, width - padding.left - padding.right);
@@ -3389,6 +3523,9 @@
 
             const pvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.pv).toFixed(2)}`).join(' ');
             const uvPoints = prepared.map((item, idx) => `${toX(idx).toFixed(2)},${toY(item.uv).toFixed(2)}`).join(' ');
+            const baseline = (padding.top + plotHeight).toFixed(2);
+            const pvAreaPoints = `${toX(0).toFixed(2)},${baseline} ${pvPoints} ${toX(prepared.length - 1).toFixed(2)},${baseline}`;
+            const uvAreaPoints = `${toX(0).toFixed(2)},${baseline} ${uvPoints} ${toX(prepared.length - 1).toFixed(2)},${baseline}`;
 
             const gridLines = [];
             const yTicks = Array.isArray(yAxis.ticks) && yAxis.ticks.length ? yAxis.ticks : [chartMax, 0];
@@ -3398,7 +3535,7 @@
                 gridLines.push(`<text class="site-report-line-y-label" x="${(padding.left - 10).toFixed(2)}" y="${(y + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatSiteReportTrendTickValue(tickValue))}</text>`);
             });
 
-            const labelStep = prepared.length <= 10 ? 1 : Math.max(1, Math.ceil(prepared.length / 8));
+            const labelStep = prepared.length <= 10 ? 1 : Math.max(1, Math.ceil(prepared.length / 15));
             const xLabels = prepared.map((item, idx) => {
                 const isLast = idx === prepared.length - 1;
                 const isFirst = idx === 0;
@@ -3425,8 +3562,14 @@
             wrap.innerHTML = `
                 <div class="site-report-line-wrap" style="position:relative;">
                     <svg class="site-report-line-svg" width="${width}" height="${height}" style="width:${width}px;" viewBox="0 0 ${width} ${height}" role="img" aria-label="站点趋势折线图">
+                        <defs>
+                            <linearGradient id="siteReportPvFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#277cf5" stop-opacity="0.14"></stop><stop offset="100%" stop-color="#277cf5" stop-opacity="0"></stop></linearGradient>
+                            <linearGradient id="siteReportUvFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#05bf69" stop-opacity="0.11"></stop><stop offset="100%" stop-color="#05bf69" stop-opacity="0"></stop></linearGradient>
+                        </defs>
                         ${gridLines.join('')}
                         <line class="site-report-line-axis" x1="${padding.left}" y1="${(padding.top + plotHeight).toFixed(2)}" x2="${(padding.left + plotWidth).toFixed(2)}" y2="${(padding.top + plotHeight).toFixed(2)}"></line>
+                        <polygon fill="url(#siteReportPvFill)" points="${pvAreaPoints}"></polygon>
+                        <polygon fill="url(#siteReportUvFill)" points="${uvAreaPoints}"></polygon>
                         <polyline class="site-report-line-pv" points="${pvPoints}"></polyline>
                         <polyline class="site-report-line-uv" points="${uvPoints}"></polyline>
                         ${pvDots}
@@ -3436,8 +3579,8 @@
                     <div id="${tooltipId}" class="site-report-line-tooltip"></div>
                 </div>
                 <div class="site-report-line-legend">
-                    <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot pv"></i>PV</span>
-                    <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot uv"></i>UV</span>
+                    <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot pv"></i><strong>PV</strong> 页面浏览量 (PV)</span>
+                    <span class="site-report-line-legend-item"><i class="site-report-line-legend-dot uv"></i><strong>UV</strong> 独立访客 (UV)</span>
                 </div>
                 <div class="site-report-line-summary">${escapeHtml(summary)}</div>
             `;
@@ -4550,7 +4693,7 @@
         }
 
         async function generateSiteAiReport() {
-            if (siteReportsAiLoading) return;
+            if (siteReportsAiLoading || siteReportsAiPreflightPending) return;
             ensureSiteReportFiltersInitialized();
             const endEl = document.getElementById('siteReportEndDate');
             const periodEl = document.getElementById('siteReportAiPeriod');
@@ -4572,6 +4715,91 @@
                 }
                 showGlobalAlert(validationError);
                 return;
+            }
+
+            const btn = document.getElementById('siteReportAiBtn');
+            siteReportsAiPreflightPending = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 检查配置...';
+            }
+            try {
+                const params = new URLSearchParams({ period, anchor_date: anchorDate });
+                const preflightRes = await fetch(`/api/admin/site-reports/ai-report/preflight?${params}`, { cache: 'no-store' });
+                const preflight = await parseJsonSafe(preflightRes);
+                if (!preflightRes.ok || preflight.success !== true) {
+                    throw new Error(String(preflight.message || `生成前检查失败（HTTP ${preflightRes.status || '-'}）`));
+                }
+                const currentRange = preflight.current_range || {};
+                const previousRange = preflight.previous_range || {};
+                const aiConfig = preflight.ai_config || {};
+                if (!isValidIsoDate(currentRange.start_date) || !isValidIsoDate(currentRange.end_date)
+                    || !isValidIsoDate(previousRange.start_date) || !isValidIsoDate(previousRange.end_date)
+                    || typeof aiConfig.ready !== 'boolean') {
+                    throw new Error('生成前检查返回的数据不完整，请稍后重试');
+                }
+                const sourceLabels = {
+                    site_report: '网站报告专用配置',
+                    product_ai: '产品 AI 配置',
+                    chatbot: '客服 AI 配置'
+                };
+                const sourceLabel = sourceLabels[aiConfig.source] || '未配置';
+                const configProblem = !aiConfig.has_api_key
+                    ? 'API Key 未配置'
+                    : !aiConfig.api_base_safe
+                        ? 'API 地址未通过安全校验'
+                        : !aiConfig.http_client_available
+                            ? '服务器缺少 HTTP 客户端组件'
+                            : '';
+                const details = [
+                    `报告周期：${String(preflight.period_label || getSiteAiReportPeriodLabel(period))}`,
+                    `报告时间：${currentRange.start_date} 至 ${currentRange.end_date}`,
+                    `环比时间：${previousRange.start_date} 至 ${previousRange.end_date}`,
+                    `AI 配置：${sourceLabel}`,
+                    `API 状态：${configProblem || '本地配置检查通过'}`,
+                    `使用模型：${aiConfig.has_api_key ? String(aiConfig.model || '未设置') : '未配置'}`,
+                    '远端连接与认证将在生成时验证。'
+                ];
+                if (!aiConfig.ready || configProblem) {
+                    const message = `${details.join('\n')}\n\n请先修复 AI 配置后再生成。`;
+                    if (msgEl) {
+                        msgEl.style.color = '#dc3545';
+                        msgEl.textContent = configProblem || 'AI 配置检查未通过';
+                    }
+                    await showGlobalAlert(message, 'AI 报告生成前检查');
+                    return;
+                }
+                const confirmElements = [
+                    'globalActionModal', 'globalActionTitle', 'globalActionMessage',
+                    'globalActionOkBtn', 'globalActionCancelBtn',
+                    'globalActionInputWrap', 'globalActionInput'
+                ];
+                if (!confirmElements.every(id => document.getElementById(id))) {
+                    throw new Error('确认弹窗不可用，请刷新页面后重试');
+                }
+                if (btn) btn.innerHTML = '<i class="fas fa-magic"></i> 等待确认...';
+                const confirmation = await showGlobalActionModal({
+                    mode: 'confirm',
+                    title: '确认生成 AI 报告',
+                    message: `${details.join('\n')}\n\n确认按以上范围生成报告吗？`,
+                    okText: '确认生成',
+                    cancelText: '取消'
+                });
+                if (!confirmation.ok) return;
+            } catch (err) {
+                const message = String(err?.message || '生成前检查失败');
+                if (msgEl) {
+                    msgEl.style.color = '#dc3545';
+                    msgEl.textContent = message;
+                }
+                await showGlobalAlert(message);
+                return;
+            } finally {
+                siteReportsAiPreflightPending = false;
+                if (btn && !siteReportsAiLoading) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-magic"></i> AI生成报告';
+                }
             }
 
             if (msgEl) {
@@ -4706,6 +4934,7 @@
                     throw new Error(String(data.message || `加载报表失败（HTTP ${res.status || '-'}）`));
                 }
                 renderSiteReports(data);
+                if (window.AdminSiteReportUI) window.AdminSiteReportUI.afterLoad(data);
                 if (msgEl && manual) {
                     msgEl.style.color = '#28a745';
                     msgEl.textContent = '报表已刷新';
@@ -5599,6 +5828,17 @@
         }
 
         let imageSeoLoadTimer = null;
+        let imageSeoActiveId = null;
+        let imageSeoLoadRequestId = 0;
+        const imageSeoDraftStorageKey = 'admin-image-seo-drafts-v1';
+        const imageSeoDrafts = new Map();
+        try {
+            const saved = JSON.parse(sessionStorage.getItem(imageSeoDraftStorageKey) || '{}');
+            Object.entries(saved).forEach(([id, draft]) => {
+                if (id && draft && typeof draft === 'object') imageSeoDrafts.set(id, draft);
+            });
+        } catch (_) {}
+
         function scheduleImageSeoLoad() {
             clearTimeout(imageSeoLoadTimer);
             imageSeoLoadTimer = setTimeout(() => loadImageSeoAssets(1), 300);
@@ -5626,8 +5866,80 @@
             })[role] || role;
         }
 
+        function imageSeoIssueSeverity(issue) {
+            if (issue === 'missing_file') return 'error';
+            if (['missing_alt', 'generic_alt', 'duplicate_alt', 'keyword_stuffing', 'missing_owner_page'].includes(issue)) return 'action';
+            return 'info';
+        }
+
+        function imageSeoIssueTags(issues) {
+            return (Array.isArray(issues) ? issues : []).map(issue =>
+                `<span class="image-seo-issue image-seo-issue-${imageSeoIssueSeverity(issue)}">${escapeHtml(imageSeoIssueLabel(issue))}</span>`
+            ).join('') || '<span class="image-seo-issue image-seo-issue-ok">无问题</span>';
+        }
+
+        function imageSeoEditableValues(item) {
+            return {
+                ownerPage: String(item.ownerPage || ''), role: String(item.role || 'detail'),
+                indexable: item.indexable === true, alt: String(item.alt || ''),
+                title: String(item.title || ''), caption: String(item.caption || '')
+            };
+        }
+
+        function persistImageSeoDrafts() {
+            try { sessionStorage.setItem(imageSeoDraftStorageKey, JSON.stringify(Object.fromEntries(imageSeoDrafts))); } catch (_) {}
+            updateImageSeoDraftCount();
+        }
+
+        function updateImageSeoDraftCount() {
+            const badge = document.getElementById('imageSeoDraftCount');
+            if (badge) {
+                badge.hidden = imageSeoDrafts.size === 0;
+                badge.textContent = `${imageSeoDrafts.size} 项未保存`;
+            }
+            document.querySelectorAll('.image-seo-asset-row').forEach(row => {
+                row.classList.toggle('has-draft', imageSeoDrafts.has(row.dataset.assetId));
+                const indicator = row.querySelector('.image-seo-draft-indicator');
+                if (indicator) indicator.hidden = !imageSeoDrafts.has(row.dataset.assetId);
+                const item = imageSeoItems.find(entry => entry.assetId === row.dataset.assetId);
+                const status = row.querySelector('.image-seo-alt-status');
+                if (item && status) {
+                    const [label, state] = imageSeoAltStatus(item);
+                    status.textContent = label;
+                    status.className = `image-seo-alt-status image-seo-alt-${state}`;
+                }
+            });
+            const editor = document.getElementById('imageSeoEditor');
+            const indicator = editor?.querySelector('.image-seo-editor-draft');
+            if (indicator) indicator.hidden = !imageSeoDrafts.has(imageSeoActiveId);
+        }
+
+        function getImageSeoEditorValues() {
+            const editor = document.getElementById('imageSeoEditor');
+            if (!editor || editor.dataset.assetId !== imageSeoActiveId) return null;
+            return {
+                ownerPage: editor.querySelector('.image-seo-owner')?.value || '',
+                role: editor.querySelector('.image-seo-role')?.value || 'detail',
+                indexable: editor.querySelector('.image-seo-indexable')?.checked === true,
+                alt: editor.querySelector('.image-seo-alt')?.value || '',
+                title: editor.querySelector('.image-seo-title')?.value || '',
+                caption: editor.querySelector('.image-seo-caption')?.value || ''
+            };
+        }
+
+        function captureImageSeoDraft() {
+            if (!imageSeoActiveId || imageSeoMode === 'ignored') return;
+            const item = imageSeoItems.find(entry => entry.assetId === imageSeoActiveId);
+            const values = getImageSeoEditorValues();
+            if (!item || !values) return;
+            if (JSON.stringify(values) === JSON.stringify(imageSeoEditableValues(item))) imageSeoDrafts.delete(imageSeoActiveId);
+            else imageSeoDrafts.set(imageSeoActiveId, values);
+            persistImageSeoDrafts();
+        }
+
         function showImageSeoHelp(topic) {
             const guides = {
+                overview: ['图片 SEO 帮助', '重新扫描会更新图片引用、尺寸和问题报告，不会删除文件或改写页面。选择图片后可在右侧编辑并逐张保存；未保存的内容会暂存于当前浏览器。忽略的图片可在忽略区恢复。Excel 菜单用于批量导出和上传覆盖。'],
                 export: ['导出 CSV 说明', '下载当前图片资产的完整数据，包括 URL、归属页面、角色、索引状态、Alt、标题、说明、尺寸、文件大小、重复内容标识和问题项。导出不会修改任何数据。'],
                 scan: ['重新扫描说明', '重新读取 index.html、pages、assets 和 cdn_assets，更新图片引用、尺寸、MIME、文件大小、重复内容和问题报告。扫描不会删除图片、不会改写 HTML，并会保留已审核内容和忽略状态。'],
                 draft: ['Alt 草稿说明', '根据归属页面、文件名和图片角色生成 Alt 建议，只填写到当前页面的空白输入框，不会自动保存。操作人员需要逐张核对图片真实内容，再点击“保存”。'],
@@ -5661,42 +5973,109 @@
         }
 
         function switchImageSeoMode(mode) {
+            captureImageSeoDraft();
             imageSeoMode = mode === 'ignored' ? 'ignored' : 'active';
             imageSeoSelected.clear();
             document.getElementById('imageSeoActiveTab')?.classList.toggle('active', imageSeoMode === 'active');
             document.getElementById('imageSeoIgnoredTab')?.classList.toggle('active', imageSeoMode === 'ignored');
-            const ignoreBtn = document.getElementById('imageSeoBulkIgnoreBtn');
-            const restoreBtn = document.getElementById('imageSeoBulkRestoreBtn');
-            if (ignoreBtn) ignoreBtn.hidden = imageSeoMode === 'ignored';
-            if (restoreBtn) restoreBtn.hidden = imageSeoMode !== 'ignored';
+            document.getElementById('imageSeoActiveTab')?.setAttribute('aria-selected', imageSeoMode === 'active' ? 'true' : 'false');
+            document.getElementById('imageSeoIgnoredTab')?.setAttribute('aria-selected', imageSeoMode === 'ignored' ? 'true' : 'false');
+            imageSeoActiveId = null;
             loadImageSeoAssets(1);
         }
 
-        function renderImageSeoAssets() {
-            const tbody = document.getElementById('imageSeoTableBody');
-            if (!tbody) return;
-            if (!imageSeoItems.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-data">没有符合筛选条件的图片</td></tr>';
+        function imageSeoPageTypeLabel(type) {
+            return ({ product: '产品', news: '新闻', solution: '方案', case: '案例', home: '首页', page: '页面' })[type] || '页面';
+        }
+
+        function imageSeoAltStatus(item) {
+            const alt = String((imageSeoDrafts.get(item.assetId) || item).alt || '').trim();
+            if (!alt) return ['待补充 Alt', 'missing'];
+            if (!imageSeoDrafts.has(item.assetId) && (item.issues || []).some(issue => ['generic_alt', 'duplicate_alt', 'keyword_stuffing'].includes(issue))) return ['Alt 待优化', 'review'];
+            return ['Alt 已填写', 'ready'];
+        }
+
+        function selectImageSeoAsset(assetId) {
+            if (assetId === imageSeoActiveId) return;
+            captureImageSeoDraft();
+            if (!imageSeoItems.some(item => item.assetId === assetId)) return;
+            imageSeoActiveId = assetId;
+            renderImageSeoAssets();
+            if (window.matchMedia('(max-width: 880px)').matches) document.getElementById('imageSeoEditor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderImageSeoEditor() {
+            const editor = document.getElementById('imageSeoEditor');
+            if (!editor) return;
+            const item = imageSeoItems.find(entry => entry.assetId === imageSeoActiveId);
+            if (!item) {
+                editor.dataset.assetId = '';
+                editor.innerHTML = '<div class="image-seo-editor-empty"><i class="fas fa-images"></i><span>选择一张图片</span></div>';
                 return;
             }
-            tbody.innerHTML = imageSeoItems.map(item => {
+            const values = imageSeoMode === 'ignored' ? imageSeoEditableValues(item) : (imageSeoDrafts.get(item.assetId) || imageSeoEditableValues(item));
+            const preview = String(item.url || '').startsWith('/') ? item.url : '';
+            const locked = imageSeoMode === 'ignored' ? 'disabled' : '';
+            const sizeMb = (Number(item.fileSize || 0) / 1024 / 1024).toFixed(2);
+            const roleOptions = ['primary','detail','application','diagram','news','decorative','logo','qrcode']
+                .map(role => `<option value="${role}" ${values.role === role ? 'selected' : ''}>${imageSeoRoleLabel(role)}</option>`).join('');
+            editor.dataset.assetId = item.assetId;
+            editor.innerHTML = `<div class="image-seo-editor-head">
+                    <div><strong>图片详情</strong><span class="image-seo-editor-draft" ${imageSeoDrafts.has(item.assetId) ? '' : 'hidden'}>未保存</span></div>
+                    <span class="image-seo-editor-position">${imageSeoItems.indexOf(item) + 1} / ${imageSeoItems.length}</span>
+                </div>
+                <div class="image-seo-editor-scroll">
+                    <div class="image-seo-editor-identity">
+                        ${preview ? `<button type="button" class="image-seo-preview image-seo-preview-button" data-url="${escapeHtml(preview)}" onclick="previewImageSeo(this.dataset.url)" title="点击放大预览" aria-label="放大图片"><img src="${escapeHtml(preview)}" alt="" loading="lazy"><span><i class="fas fa-magnifying-glass-plus"></i></span></button>` : '<div class="image-seo-preview"><i class="fas fa-link"></i></div>'}
+                        <div><code title="${escapeHtml(item.url || '')}">${escapeHtml(item.url || '-')}</code><small>${Number(item.width || 0)} × ${Number(item.height || 0)} · ${escapeHtml(item.mimeType || '-')} · ${sizeMb} MB</small><small>引用于 ${Array.isArray(item.references) ? item.references.length : 0} 个页面</small></div>
+                    </div>
+                    <div class="image-seo-editor-issues" title="问题来自最近一次扫描；保存文案后可重新扫描更新报告"><span>扫描问题</span><div class="image-seo-issues">${imageSeoIssueTags(item.issues)}</div></div>
+                    <form class="image-seo-edit-form" oninput="captureImageSeoDraft()" onchange="captureImageSeoDraft()" onsubmit="event.preventDefault(); saveImageSeoAsset('${escapeHtml(item.assetId)}')">
+                        <div class="image-seo-form-section"><div class="image-seo-section-title">归属与索引</div>
+                            <label class="image-seo-field"><span>官网页面网址 <button type="button" title="填写说明" aria-label="官网页面网址填写说明" onclick="showImageSeoHelp('owner')"><i class="fas fa-circle-question"></i></button></span><input class="form-control image-seo-owner" value="${escapeHtml(values.ownerPage)}" placeholder="https://www.hnmetachip.cn/pages/..." ${locked}></label>
+                            <div class="image-seo-field-row"><label class="image-seo-field"><span>图片角色 <button type="button" title="角色说明" aria-label="图片角色说明" onclick="showImageSeoHelp('role')"><i class="fas fa-circle-question"></i></button></span><select class="form-control image-seo-role" ${locked}>${roleOptions}</select></label>
+                            <label class="image-seo-index"><input type="checkbox" class="image-seo-indexable" ${values.indexable ? 'checked' : ''} ${locked}><span>允许搜索引擎索引</span><button type="button" title="索引说明" aria-label="索引状态说明" onclick="showImageSeoHelp('indexable')"><i class="fas fa-circle-question"></i></button></label></div>
+                        </div>
+                        <div class="image-seo-form-section"><div class="image-seo-section-title">图片文案</div>
+                            <label class="image-seo-field"><span>Alt 替代文本 <button type="button" title="Alt 填写说明" aria-label="Alt 填写说明" onclick="showImageSeoHelp('alt')"><i class="fas fa-circle-question"></i></button></span><input class="form-control image-seo-alt" value="${escapeHtml(values.alt)}" maxlength="220" placeholder="描述图片真实内容" ${locked}></label>
+                            <label class="image-seo-field"><span>图片标题（可选） <button type="button" title="图片标题说明" aria-label="图片标题说明" onclick="showImageSeoHelp('title')"><i class="fas fa-circle-question"></i></button></span><input class="form-control image-seo-title" value="${escapeHtml(values.title)}" maxlength="220" placeholder="简短名称" ${locked}></label>
+                            <label class="image-seo-field"><span>图片说明（可选） <button type="button" title="图片说明" aria-label="图片说明" onclick="showImageSeoHelp('caption')"><i class="fas fa-circle-question"></i></button></span><textarea class="form-control image-seo-caption" rows="3" maxlength="500" placeholder="补充用途或场景" ${locked}>${escapeHtml(values.caption)}</textarea></label>
+                        </div>
+                    </form>
+                </div>
+                <div class="image-seo-editor-actions">${imageSeoMode === 'ignored'
+                    ? `<button type="button" class="btn-primary" onclick="setImageSeoIgnored('${escapeHtml(item.assetId)}',false)"><i class="fas fa-rotate-left"></i> 移出忽略区</button>`
+                    : `<button type="button" class="btn-primary image-seo-hover-help" data-help="保存这张图片的全部编辑字段" onclick="saveImageSeoAsset('${escapeHtml(item.assetId)}')"><i class="fas fa-floppy-disk"></i> 保存修改</button><button type="button" class="btn-sm image-seo-ignore-btn" onclick="setImageSeoIgnored('${escapeHtml(item.assetId)}',true)"><i class="fas fa-eye-slash"></i> 忽略图片</button>`}
+                </div>`;
+            updateImageSeoDraftCount();
+        }
+
+        function renderImageSeoAssets() {
+            const list = document.getElementById('imageSeoAssetList');
+            if (!list) return;
+            if (!imageSeoItems.length) {
+                list.innerHTML = '<div class="no-data">没有符合筛选条件的图片</div>';
+                renderImageSeoEditor();
+                return;
+            }
+            const scrollTop = list.scrollTop;
+            list.innerHTML = imageSeoItems.map(item => {
                 const issues = Array.isArray(item.issues) ? item.issues : [];
-                const sizeMb = (Number(item.fileSize || 0) / 1024 / 1024).toFixed(2);
                 const preview = String(item.url || '').startsWith('/') ? item.url : '';
-                const locked = imageSeoMode === 'ignored' ? 'disabled' : '';
-                const action = imageSeoMode === 'ignored'
-                    ? `<div class="image-seo-row-actions"><button type="button" class="btn-sm image-seo-hover-help" data-help="恢复到待处理区，之后可重新填写和启用图片 SEO。" onclick="setImageSeoIgnored('${escapeHtml(item.assetId)}',false)"><i class="fas fa-undo"></i> 移出忽略区</button></div>`
-                    : `<div class="image-seo-row-actions"><button type="button" class="btn-sm image-seo-hover-help" data-help="保存当前图片的归属页面、角色、索引状态、Alt、标题和说明。" onclick="saveImageSeoAsset('${escapeHtml(item.assetId)}')"><i class="fas fa-save"></i> 保存</button><button type="button" class="btn-sm btn-danger image-seo-hover-help" data-help="移入忽略区后不再参与图片 SEO，可随时恢复。" onclick="setImageSeoIgnored('${escapeHtml(item.assetId)}',true)"><i class="fas fa-eye-slash"></i> 忽略</button></div>`;
-                return `<tr data-asset-id="${escapeHtml(item.assetId)}">
-                    <td>${preview ? `<button type="button" class="image-seo-preview image-seo-preview-button" onclick="previewImageSeo('${escapeHtml(preview)}')" title="点击放大预览"><img src="${escapeHtml(preview)}" alt="" loading="lazy"><span><i class="fas fa-magnifying-glass-plus"></i></span></button>` : '<div class="image-seo-preview"><i class="fas fa-link"></i></div>'}<code title="${escapeHtml(item.url || '')}">${escapeHtml(item.url || '-')}</code></td>
-                    <td><div class="image-seo-field-label"><strong>官网页面网址</strong><button type="button" onclick="showImageSeoHelp('owner')">填写说明</button></div><input class="form-control image-seo-owner" value="${escapeHtml(item.ownerPage || '')}" placeholder="示例：https://www.hnmetachip.cn/pages/gassensing/mc_ld_h2.html" ${locked}><div class="image-seo-field-help">填写官网完整网址；保存时自动转换为页面路径。当前引用 ${Array.isArray(item.references) ? item.references.length : 0} 个页面。</div></td>
-                    <td><div class="image-seo-field-label"><strong>图片角色</strong><button type="button" onclick="showImageSeoHelp('role')">选择说明</button></div><select class="form-control image-seo-role" ${locked}>${['primary','detail','application','diagram','news','decorative','logo','qrcode'].map(role => `<option value="${role}" ${item.role === role ? 'selected' : ''}>${imageSeoRoleLabel(role)}</option>`).join('')}</select><div class="image-seo-field-help">按图片真实用途选择；页面装饰图、品牌标识和二维码通常不参与搜索。</div><label class="image-seo-index"><input type="checkbox" class="image-seo-indexable" ${item.indexable ? 'checked' : ''} ${locked}> 允许搜索引擎索引</label><button type="button" class="image-seo-inline-help" onclick="showImageSeoHelp('indexable')">索引说明</button>${item.ignoredAt ? `<div class="form-hint">忽略时间：${escapeHtml(item.ignoredAt)}</div>` : ''}</td>
-                    <td><div class="image-seo-field-label"><strong>Alt 替代文本</strong><button type="button" onclick="showImageSeoHelp('alt')">填写说明</button></div><input class="form-control image-seo-alt" value="${escapeHtml(item.alt || '')}" maxlength="220" placeholder="示例：MC-LD-H2 手持式氢气检测仪正面产品图" ${locked}><div class="image-seo-field-help">描述图片真实内容，推荐“型号/对象 + 画面内容或使用场景”。</div><div class="image-seo-field-label"><strong>图片标题（可选）</strong><button type="button" onclick="showImageSeoHelp('title')">填写说明</button></div><input class="form-control image-seo-title" value="${escapeHtml(item.title || '')}" maxlength="220" placeholder="示例：MC-LD-H2 手持式氢气检测仪" ${locked}><div class="image-seo-field-help">简短名称，不能替代 Alt。</div><div class="image-seo-field-label"><strong>图片说明（可选）</strong><button type="button" onclick="showImageSeoHelp('caption')">填写说明</button></div><textarea class="form-control image-seo-caption" rows="2" maxlength="500" placeholder="示例：适用于加氢站管路和储运设备的便携式氢泄漏检测" ${locked}>${escapeHtml(item.caption || '')}</textarea><div class="image-seo-field-help">补充图片用途、场景或重点，建议 20–80 字。</div></td>
-                    <td><div>${Number(item.width || 0)} × ${Number(item.height || 0)}</div><div class="form-hint">${escapeHtml(item.mimeType || '-')} · ${sizeMb} MB</div><div class="image-seo-issues">${issues.map(issue => `<span>${escapeHtml(imageSeoIssueLabel(issue))}</span>`).join('') || '<em>无问题</em>'}</div></td>
-                    <td>${action}</td>
-                </tr>`;
+                const name = String(item.url || '').split('/').pop() || item.url || '未命名图片';
+                const [altText, altState] = imageSeoAltStatus(item);
+                return `<div class="image-seo-asset-row ${item.assetId === imageSeoActiveId ? 'active' : ''} ${imageSeoDrafts.has(item.assetId) ? 'has-draft' : ''}" data-asset-id="${escapeHtml(item.assetId)}">
+                    ${preview ? `<button type="button" class="image-seo-preview image-seo-preview-button" data-url="${escapeHtml(preview)}" onclick="previewImageSeo(this.dataset.url)" title="放大预览" aria-label="放大 ${escapeHtml(name)}"><img src="${escapeHtml(preview)}" alt="" loading="lazy"><span><i class="fas fa-magnifying-glass-plus"></i></span></button>` : '<div class="image-seo-preview"><i class="fas fa-link"></i></div>'}
+                    <button type="button" class="image-seo-asset-pick" data-asset-id="${escapeHtml(item.assetId)}" onclick="selectImageSeoAsset(this.dataset.assetId)" aria-current="${item.assetId === imageSeoActiveId ? 'true' : 'false'}">
+                        <strong title="${escapeHtml(item.url || '')}">${escapeHtml(name)}</strong>
+                        <span class="image-seo-asset-owner" title="${escapeHtml(item.ownerPage || '')}">${escapeHtml(imageSeoPageTypeLabel(item.pageType))} · ${escapeHtml(item.ownerPage || '未设归属')}</span>
+                        <span class="image-seo-asset-status"><span class="image-seo-alt-status image-seo-alt-${altState}">${altText}</span><span class="image-seo-draft-indicator" ${imageSeoDrafts.has(item.assetId) ? '' : 'hidden'}>未保存</span></span>
+                        <span class="image-seo-issues">${imageSeoIssueTags(issues.slice(0, 2))}${issues.length > 2 ? `<span class="image-seo-issue image-seo-issue-more">+${issues.length - 2}</span>` : ''}</span>
+                    </button>
+                </div>`;
             }).join('');
-            updateImageSeoSelection();
+            list.scrollTop = scrollTop;
+            renderImageSeoEditor();
         }
 
         async function loadImageSeoSummary() {
@@ -5706,18 +6085,20 @@
                 const summary = data?.report?.summary || {};
                 const el = document.getElementById('imageSeoSummary');
                 if (el) el.innerHTML = [
-                    ['资产总数', summary.total || 0], ['已引用', summary.referenced || 0],
-                    ['可索引', summary.indexable || 0], ['存在问题', summary.withIssues || 0], ['已忽略', summary.ignored || 0]
-                ].map(([label, value]) => `<div><strong>${formatSiteReportNumber(value)}</strong><span>${label}</span></div>`).join('');
+                    ['存在问题', summary.withIssues || 0, true], ['资产总数', summary.total || 0],
+                    ['已引用', summary.referenced || 0], ['可索引', summary.indexable || 0], ['已忽略', summary.ignored || 0]
+                ].map(([label, value, priority]) => `<div class="${priority ? 'is-priority' : ''}"><strong>${formatSiteReportNumber(value)}</strong><span>${label}</span></div>`).join('');
                 const badge = document.getElementById('imageSeoIgnoredBadge');
                 if (badge) badge.textContent = String(summary.ignored || 0);
             } catch (_) {}
         }
 
         async function loadImageSeoAssets(page = imageSeoPage) {
-            const tbody = document.getElementById('imageSeoTableBody');
-            if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载中...</td></tr>';
+            const list = document.getElementById('imageSeoAssetList');
+            if (!list) return;
+            captureImageSeoDraft();
+            const requestId = ++imageSeoLoadRequestId;
+            list.innerHTML = '<div class="no-data">加载中...</div>';
             imageSeoPage = Math.max(1, Number(page) || 1);
             const params = new URLSearchParams({ page: String(imageSeoPage), page_size: '50', scan_if_empty: '1', status: imageSeoMode });
             [['q','imageSeoQuery'],['page_type','imageSeoPageType'],['role','imageSeoRole'],['issue','imageSeoIssue'],['indexable','imageSeoIndexable']].forEach(([key,id]) => {
@@ -5726,15 +6107,18 @@
             try {
                 const res = await fetch(`/api/admin/image-seo/assets?${params}`, { cache: 'no-store' });
                 const data = await res.json();
+                if (requestId !== imageSeoLoadRequestId) return;
                 if (!res.ok || data.success === false) throw new Error(data.message || '加载失败');
                 imageSeoItems = Array.isArray(data.items) ? data.items : [];
                 imageSeoTotal = Number(data.total || 0);
                 const totalPages = Math.max(1, Math.ceil(imageSeoTotal / Number(data.page_size || 50)));
+                if (imageSeoPage > totalPages) return loadImageSeoAssets(totalPages);
                 document.getElementById('imageSeoPageInfo').textContent = `${imageSeoPage} / ${totalPages}（${imageSeoTotal} 项）`;
+                if (!imageSeoItems.some(item => item.assetId === imageSeoActiveId)) imageSeoActiveId = imageSeoItems[0]?.assetId || null;
                 renderImageSeoAssets();
                 loadImageSeoSummary();
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="6" class="no-data">${escapeHtml(err.message || '加载失败')}</td></tr>`;
+                if (requestId === imageSeoLoadRequestId) list.innerHTML = `<div class="no-data">${escapeHtml(err.message || '加载失败')}</div>`;
             }
         }
 
@@ -5745,6 +6129,7 @@
         }
 
         async function runImageSeoScan() {
+            captureImageSeoDraft();
             const btn = document.getElementById('imageSeoScanBtn');
             if (btn) btn.disabled = true;
             try {
@@ -5753,27 +6138,37 @@
                 if (!res.ok || data.success === false) throw new Error(data.message || '扫描失败');
                 imageSeoSelected.clear();
                 await loadImageSeoAssets(1);
-                showGlobalAlert(`扫描完成，共发现 ${data.report?.summary?.total || 0} 个图片资产`);
+                showGlobalAlert(`扫描完成，共发现 ${data.report?.summary?.total || 0} 个图片资产${imageSeoDrafts.size ? `。${imageSeoDrafts.size} 项未保存编辑已保留` : ''}`);
             } catch (err) { showGlobalAlert(err.message || '扫描失败'); }
             finally { if (btn) btn.disabled = false; }
         }
 
         async function saveImageSeoAsset(assetId) {
-            const row = document.querySelector(`tr[data-asset-id="${CSS.escape(assetId)}"]`);
-            if (!row) return;
-            const payload = {
-                ownerPage: row.querySelector('.image-seo-owner')?.value || '', role: row.querySelector('.image-seo-role')?.value || 'detail',
-                indexable: row.querySelector('.image-seo-indexable')?.checked === true, alt: row.querySelector('.image-seo-alt')?.value || '',
-                title: row.querySelector('.image-seo-title')?.value || '', caption: row.querySelector('.image-seo-caption')?.value || ''
-            };
+            if (assetId === imageSeoActiveId) captureImageSeoDraft();
+            const item = imageSeoItems.find(entry => entry.assetId === assetId);
+            if (!item || imageSeoMode === 'ignored') return;
+            const payload = imageSeoDrafts.get(assetId) || imageSeoEditableValues(item);
+            const saveButton = document.querySelector('#imageSeoEditor .image-seo-editor-actions .btn-primary');
+            if (assetId === imageSeoActiveId && saveButton) saveButton.disabled = true;
             try {
                 const res = await fetch(`/api/admin/image-seo/assets/${encodeURIComponent(assetId)}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                 const data = await res.json(); if (!res.ok || data.success === false) throw new Error(data.message || '保存失败');
+                if (JSON.stringify(imageSeoDrafts.get(assetId)) === JSON.stringify(payload)) {
+                    imageSeoDrafts.delete(assetId);
+                    persistImageSeoDrafts();
+                    if (assetId === imageSeoActiveId) document.getElementById('imageSeoEditor').dataset.assetId = '';
+                }
                 showGlobalAlert('图片 SEO 信息已保存'); await loadImageSeoAssets(imageSeoPage);
             } catch (err) { showGlobalAlert(err.message || '保存失败'); }
+            finally { if (saveButton?.isConnected) saveButton.disabled = false; }
         }
 
         async function setImageSeoIgnored(assetId, ignored) {
+            if (assetId === imageSeoActiveId) captureImageSeoDraft();
+            if (ignored && imageSeoDrafts.has(assetId)) {
+                const confirmed = await showGlobalConfirm('这张图片有未保存的编辑。移入忽略区会舍弃该草稿，是否继续？', '忽略图片');
+                if (!confirmed) return;
+            }
             try {
                 const res = await fetch(`/api/admin/image-seo/assets/${encodeURIComponent(assetId)}`, {
                     method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ignored: !!ignored})
@@ -5781,6 +6176,9 @@
                 const data = await res.json();
                 if (!res.ok || data.success === false) throw new Error(data.message || '操作失败');
                 imageSeoSelected.delete(assetId);
+                imageSeoDrafts.delete(assetId);
+                persistImageSeoDrafts();
+                if (assetId === imageSeoActiveId) document.getElementById('imageSeoEditor').dataset.assetId = '';
                 showGlobalAlert(ignored ? '图片已移入忽略区' : '图片已移出忽略区');
                 await loadImageSeoAssets(imageSeoPage);
             } catch (err) { showGlobalAlert(err.message || '操作失败'); }
@@ -5802,18 +6200,26 @@
             try {
                 const res = await fetch('/api/admin/image-seo/alt-drafts', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({assetIds:[...imageSeoSelected]}) });
                 const data = await res.json(); if (!res.ok || data.success === false) throw new Error(data.message || '生成失败');
-                (data.drafts || []).forEach(draft => { const row = document.querySelector(`tr[data-asset-id="${CSS.escape(draft.assetId)}"]`); const input = row?.querySelector('.image-seo-alt'); if (input && !input.value.trim()) input.value = draft.alt || ''; });
-                showGlobalAlert('Alt 草稿已填入当前表格，请逐项检查并点击保存；草稿尚未写入服务器。');
+                (data.drafts || []).forEach(draft => {
+                    const item = imageSeoItems.find(entry => entry.assetId === draft.assetId);
+                    if (!item) return;
+                    const values = imageSeoDrafts.get(item.assetId) || imageSeoEditableValues(item);
+                    if (!values.alt.trim()) imageSeoDrafts.set(item.assetId, { ...values, alt: draft.alt || '' });
+                });
+                persistImageSeoDrafts();
+                renderImageSeoAssets();
+                showGlobalAlert('Alt 草稿已暂存，请逐张核对后保存。');
             } catch (err) { showGlobalAlert(err.message || '生成失败'); }
         }
 
         function downloadImageSeoExcel() { window.location.href = '/api/admin/image-seo/report.xlsx'; }
 
         async function confirmImageSeoCsvUpload() {
+            captureImageSeoDraft();
             const result = await showGlobalActionModal({
                 mode: 'confirm',
                 title: '慎重：上传覆盖图片 SEO Excel',
-                message: '此操作会按照 Excel 中的资产编号或图片地址，覆盖已有图片的归属页面、角色、索引状态、忽略状态、Alt、图片标题和图片说明。\n\n不会上传、替换或删除图片文件，也不会自动新增未知图片资产；无法匹配的行会被跳过并报告。\n\n如果表格内容填写错误，可能导致图片被错误索引、忽略或出现错误文案。建议先保留当前导出的 Excel 文件作为备份，再继续操作。',
+                message: `此操作会按照 Excel 中的资产编号或图片地址，覆盖已有图片的归属页面、角色、索引状态、忽略状态、Alt、图片标题和图片说明。\n\n不会上传、替换或删除图片文件，也不会自动新增未知图片资产；无法匹配的行会被跳过并报告。\n\n如果表格内容填写错误，可能导致图片被错误索引、忽略或出现错误文案。建议先保留当前导出的 Excel 文件作为备份，再继续操作。${imageSeoDrafts.size ? `\n\n当前 ${imageSeoDrafts.size} 项未保存草稿会保留；稍后保存草稿可能再次覆盖 Excel 导入值。` : ''}`,
                 okText: '继续上传覆盖',
                 cancelText: '取消',
                 waitSeconds: 3
@@ -5824,6 +6230,7 @@
         async function importImageSeoCsv(input) {
             const file = input?.files?.[0];
             if (!file) return;
+            captureImageSeoDraft();
             const formData = new FormData();
             formData.append('file', file);
             try {
@@ -5844,8 +6251,20 @@
 
         // --- Navigation ---
         function switchView(viewName, options = {}) {
+            const requestedLogTab = viewName === 'changelog' ? 'updates'
+                : viewName === 'docker-logs' ? 'runtime' : '';
             if (viewName === 'changelog' || viewName === 'docker-logs') {
                 viewName = 'log-records';
+            }
+            if (viewName === 'system-management') {
+                viewName = hasViewPermission(activeSystemManagementView)
+                    ? activeSystemManagementView
+                    : getFirstAllowedSystemManagementView();
+            }
+            if (viewName === 'ai-management') {
+                viewName = hasViewPermission(activeAIManagementView)
+                    ? activeAIManagementView
+                    : getFirstAllowedAIManagementView();
             }
             const persist = options && options.persist !== false;
             const hashSync = !options || options.hash !== false;
@@ -5859,16 +6278,29 @@
 
             const targetView = document.getElementById(`view-${viewName}`);
             if (!targetView) return;
+            if (viewName !== 'image-seo' && document.getElementById('view-image-seo')?.classList.contains('active')) {
+                captureImageSeoDraft();
+                if (imageSeoDrafts.size && !window.confirm(`${imageSeoDrafts.size} 项图片 SEO 编辑尚未保存，草稿已暂存在当前浏览器。仍要离开吗？`)) return;
+            }
+            const previousView = document.querySelector('.view-section.active');
+
+            if (SYSTEM_MANAGEMENT_VIEWS.includes(viewName)) activeSystemManagementView = viewName;
+            if (AI_MANAGEMENT_VIEWS.includes(viewName)) activeAIManagementView = viewName;
 
             // Update Menu
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            const activeMenu = document.querySelector(`.menu-item[data-view="${viewName}"]`);
+            const activeMenu = getSidebarMenuItem(viewName);
             if (activeMenu) activeMenu.classList.add('active');
             syncSidebarMenuGroups(viewName);
+            syncAIManagementTabs(viewName);
+            syncSystemManagementTabs(viewName);
 
             // Update View
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             targetView.classList.add('active');
+            if (previousView !== targetView && isMobileAdminViewport()) {
+                document.querySelector('.main-content').scrollTop = 0;
+            }
             if (persist) saveStoredAdminView(viewName);
             else if (hashSync) syncHashAdminView(viewName);
 
@@ -5931,6 +6363,7 @@
                 loadEmailBindingStatus();
             }
             if (viewName === 'log-records') {
+                switchSystemLogTab(requestedLogTab || activeSystemLogTab);
                 loadChangelog();
                 loadDockerLogs();
             }
@@ -16406,6 +16839,65 @@
             }
         }
 
+        let activeMessagesTab = 'feedback';
+
+        function switchMessagesTab(tabName) {
+            if (!['feedback', 'jobs'].includes(tabName)) return;
+            activeMessagesTab = tabName;
+            document.querySelectorAll('#view-messages .messages-tab').forEach(tab => {
+                const active = tab.dataset.messageTab === tabName;
+                tab.classList.toggle('is-active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                tab.tabIndex = active ? 0 : -1;
+            });
+            document.querySelectorAll('#view-messages [data-message-pane]').forEach(panel => {
+                panel.hidden = panel.dataset.messagePane !== tabName;
+            });
+            const search = document.getElementById('messagesSearchInput');
+            const status = document.getElementById('messagesStatusFilter');
+            if (search) {
+                search.value = '';
+                search.placeholder = tabName === 'jobs' ? '搜索姓名、电话或岗位' : '搜索姓名、电话或内容';
+            }
+            if (status) status.value = 'all';
+            filterMessageRows();
+        }
+
+        function filterMessageRows() {
+            const query = String(document.getElementById('messagesSearchInput')?.value || '').trim().toLocaleLowerCase('zh-CN');
+            const status = document.getElementById('messagesStatusFilter')?.value || 'all';
+            const tbody = document.getElementById(activeMessagesTab === 'jobs' ? 'jobApplicationsTableBody' : 'messagesTableBody');
+            if (!tbody) return;
+            tbody.querySelector('.messages-filter-empty')?.remove();
+            const rows = [...tbody.querySelectorAll('tr[data-message-status]')];
+            let visible = 0;
+            rows.forEach(row => {
+                const matchesText = !query || String(row.dataset.messageSearch || '').toLocaleLowerCase('zh-CN').includes(query);
+                const matchesStatus = status === 'all' || row.dataset.messageStatus === status;
+                row.hidden = !(matchesText && matchesStatus);
+                if (!row.hidden) visible += 1;
+            });
+            if (rows.length && !visible) {
+                const empty = document.createElement('tr');
+                empty.className = 'messages-filter-empty';
+                empty.innerHTML = `<td colspan="${activeMessagesTab === 'jobs' ? 6 : 5}" class="no-data">没有符合条件的消息</td>`;
+                tbody.appendChild(empty);
+            }
+            const count = document.getElementById(activeMessagesTab === 'jobs' ? 'messagesJobsVisibleCount' : 'messagesFeedbackVisibleCount');
+            if (count) count.textContent = `${visible} 条`;
+        }
+
+        document.querySelector('#view-messages .messages-tabs')?.addEventListener('keydown', event => {
+            if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+            const tabs = [...document.querySelectorAll('#view-messages .messages-tab')];
+            const current = tabs.indexOf(document.activeElement);
+            if (current < 0) return;
+            event.preventDefault();
+            const next = tabs[(current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+            switchMessagesTab(next.dataset.messageTab);
+            next.focus();
+        });
+
         async function loadMessages() {
             const feedbackTbody = document.getElementById('messagesTableBody');
             const jobTbody = document.getElementById('jobApplicationsTableBody');
@@ -16442,7 +16934,7 @@
                             const isRead = !!msg.is_read;
                             const attributionText = formatMessageAttributionSummary(msg);
                             return `
-                                <tr>
+                                <tr data-message-status="${isRead ? 'read' : 'unread'}" data-message-search="${escapeHtml([msg.name, msg.phone, msg.email, msg.content].filter(Boolean).join(' '))}">
                                     <td>
                                         <div style="font-weight:500;">${escapeHtml(dateStr)}</div>
                                         <div style="font-size:12px; color:#888;">${escapeHtml(timeStr)}</div>
@@ -16489,19 +16981,10 @@
                             const resumeHtml = msg.resume_url
                                 ? `<a href="${escapeHtml(msg.resume_url)}" target="_blank" rel="noopener">下载简历</a>`
                                 : '未上传';
-                            const attributionText = formatMessageAttributionSummary(msg);
-                            const detailsHtml = `
-                                <div><strong>职位：</strong>${escapeHtml(msg.job_title || msg.job_id || '-')}</div>
-                                <div><strong>年龄/民族/性别：</strong>${escapeHtml(msg.age || '-')} / ${escapeHtml(msg.ethnicity || '-')} / ${escapeHtml(msg.gender || '-')}</div>
-                                <div><strong>住址：</strong>${escapeHtml(msg.address || '-')}</div>
-                                <div><strong>学历/院校：</strong>${escapeHtml(msg.education || '-')} / ${escapeHtml(msg.school || '-')}</div>
-                                <div><strong>工作经历：</strong>${escapeHtml(msg.work_experience || '-')}</div>
-                                <div><strong>项目经历：</strong>${escapeHtml(msg.project_experience || '-')}</div>
-                                <div><strong>自我陈述：</strong>${escapeHtml(msg.self_statement || '-')}</div>
-                                ${attributionText ? `<div style="color:#2563eb;"><strong>来源：</strong>${escapeHtml(attributionText)}</div>` : ''}
-                            `;
+                            const jobTitle = String(msg.job_title || msg.job_id || '未填写岗位');
+                            const profile = [msg.education, msg.school].filter(Boolean).join(' · ');
                             return `
-                                <tr>
+                                <tr data-message-status="${isRead ? 'read' : 'unread'}" data-message-search="${escapeHtml([msg.name, msg.phone, msg.email, jobTitle, msg.education, msg.school].filter(Boolean).join(' '))}">
                                     <td>
                                         <div style="font-weight:500;">${escapeHtml(dateStr)}</div>
                                         <div style="font-size:12px; color:#888;">${escapeHtml(timeStr)}</div>
@@ -16515,7 +16998,10 @@
                                         <div>${escapeHtml(msg.phone || '-')}</div>
                                         <div style="font-size:12px; color:#888;">${escapeHtml(msg.email || '-')}</div>
                                     </td>
-                                    <td style="max-width: 460px; line-height:1.7;">${detailsHtml}</td>
+                                    <td class="message-job-summary">
+                                        <strong>${escapeHtml(jobTitle)}</strong>
+                                        ${profile ? `<span>${escapeHtml(profile)}</span>` : ''}
+                                    </td>
                                     <td>${resumeHtml}</td>
                                     <td>
                                         <button class="btn-sm" onclick="viewMessageDetail('${escapeHtml(msg.id)}')">
@@ -16539,6 +17025,12 @@
                 document.getElementById('todayCount').textContent = Number(stats.today_count ?? 0) || 0;
                 document.getElementById('readCount').textContent = Number(stats.read_count ?? 0) || 0;
                 document.getElementById('deletedCount').textContent = Number(stats.deleted_count ?? 0) || 0;
+                document.getElementById('messageUnreadCount').textContent = messages.filter(msg => msg && !msg.is_read).length;
+                document.getElementById('messagesFeedbackTabCount').textContent = feedbackItems.length;
+                document.getElementById('messagesJobsTabCount').textContent = jobItems.length;
+                document.getElementById('messagesFeedbackVisibleCount').textContent = `${feedbackItems.length} 条`;
+                document.getElementById('messagesJobsVisibleCount').textContent = `${jobItems.length} 条`;
+                filterMessageRows();
 
             } catch (e) {
                 if (feedbackTbody) feedbackTbody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败</td></tr>';
@@ -16548,6 +17040,11 @@
                 document.getElementById('todayCount').textContent = '0';
                 document.getElementById('readCount').textContent = '0';
                 document.getElementById('deletedCount').textContent = '0';
+                document.getElementById('messageUnreadCount').textContent = '0';
+                document.getElementById('messagesFeedbackTabCount').textContent = '0';
+                document.getElementById('messagesJobsTabCount').textContent = '0';
+                document.getElementById('messagesFeedbackVisibleCount').textContent = '0 条';
+                document.getElementById('messagesJobsVisibleCount').textContent = '0 条';
             }
         }
 
@@ -18130,14 +18627,6 @@
         }
 
         // --- Chatbot Config Logic ---
-        function switchSiteReportTab(tabName, btn) {
-            document.querySelectorAll('#view-site-reports .site-report-tabs .tab-btn').forEach(el => el.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            document.querySelectorAll('#view-site-reports > .tab-content').forEach(el => el.classList.remove('active'));
-            const tab = document.getElementById(`siteReportTab-${tabName}`);
-            if (tab) tab.classList.add('active');
-        }
-
         function switchChatbotTab(tabName, btn) {
             document.querySelectorAll('#view-chatbot .tab-btn').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');

@@ -157,19 +157,22 @@ class ImageSeoTests(unittest.TestCase):
     def test_image_seo_editor_exposes_field_guides_and_action_details(self):
         script = (Path(__file__).resolve().parents[1] / 'admin' / 'js' / 'legacy-admin.js').read_text(encoding='utf-8')
         html = (Path(__file__).resolve().parents[1] / 'admin' / 'index.html').read_text(encoding='utf-8')
-        for topic in ('owner', 'alt', 'title', 'caption', 'save', 'ignore', 'scan'):
+        for topic in ('owner', 'alt', 'title', 'caption'):
             self.assertIn(f"showImageSeoHelp('{topic}')", script + html)
+        self.assertIn("showImageSeoHelp('overview')", html)
         self.assertNotIn('generateImageSeoDrafts()">生成 Alt 草稿', html)
         self.assertIn('Alt 替代文本', script)
         self.assertIn('图片标题（可选）', script)
         self.assertIn('图片说明（可选）', script)
         self.assertIn('image-seo-hover-help', script + html)
         self.assertIn('data-help=', script + html)
+        self.assertIn('imageSeoAssetList', html)
+        self.assertIn('imageSeoEditor', html)
         self.assertNotIn('<i class="fas fa-circle-info"></i> 详情', html)
 
     def test_image_thumbnails_open_large_preview(self):
         script = (Path(__file__).resolve().parents[1] / 'admin' / 'js' / 'legacy-admin.js').read_text(encoding='utf-8')
-        self.assertIn("onclick=\"previewImageSeo('", script)
+        self.assertIn('onclick="previewImageSeo(this.dataset.url)"', script)
         self.assertIn('function previewImageSeo(imageUrl)', script)
         self.assertIn('图片 SEO 大图预览', script)
 
