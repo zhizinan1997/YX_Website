@@ -18,6 +18,7 @@ from urllib.parse import unquote, urlparse
 
 from flask import Response, jsonify, request, send_file
 
+from app.cdn_asset_aliases import existing_cdn_asset_path
 from app.public_urls import canonicalize_public_path, canonicalize_public_url
 
 
@@ -302,6 +303,10 @@ def _resolve_local_file(url: str, page_file: Path | None = None):
     candidates = []
     if path.startswith('/'):
         candidates.append(_APP_ROOT / path.lstrip('/'))
+        if path.startswith('/cdn_assets/'):
+            served_path = existing_cdn_asset_path(_APP_ROOT / 'cdn_assets', path.removeprefix('/cdn_assets/'))
+            if served_path:
+                candidates.append(_APP_ROOT / 'cdn_assets' / served_path)
     elif page_file is not None:
         candidates.append(page_file.parent / path)
     candidates.append(_APP_ROOT / path.lstrip('./'))
@@ -441,6 +446,10 @@ def scan_image_assets(*, persist=True):
                 continue
             local_file = _resolve_local_file(url, page_file)
             public_url = _public_path_for_file(local_file) if local_file else url
+            if local_file and urlparse(url).path.startswith('/cdn_assets/'):
+                # Alias files retain their own URL and SEO metadata even though
+                # their bytes now come from the one remaining physical file.
+                public_url = urlparse(url).path
             if not public_url:
                 public_url = url
             row = references.setdefault(public_url, {'pages': set(), 'alts': [], 'file': local_file})

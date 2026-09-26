@@ -81,6 +81,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from flask import Blueprint, request, jsonify, send_from_directory, session
 
+from app.cdn_asset_aliases import existing_cdn_asset_path
+
 from app.atomic_io import cross_process_file_lock
 
 BEIJING_TZ = timezone(timedelta(hours=8))
@@ -528,15 +530,17 @@ def download_cdn_asset(filepath):
     if full_path is None:
         return jsonify({'success': False, 'message': '非法路径'}), 400
 
-    if not full_path.exists() or not full_path.is_file():
+    served_path = existing_cdn_asset_path(cdn_dir, filepath)
+    if served_path is None:
         return jsonify({'success': False, 'message': '文件不存在'}), 404
+    full_path = _safe_subpath(cdn_dir, served_path)
 
     try:
         return send_from_directory(
             str(full_path.parent),
             full_path.name,
             as_attachment=True,
-            download_name=full_path.name
+            download_name=Path(filepath).name
         )
     except Exception as e:
         return jsonify({
@@ -565,7 +569,7 @@ def get_asset_url():
     if filepath is None:
         return jsonify({'success': False, 'message': '非法路径'}), 400
 
-    if not filepath.exists():
+    if existing_cdn_asset_path(cdn_dir, filepath_str) is None:
         return jsonify({'success': False, 'message': '文件不存在'}), 404
 
     relative_path = f'/cdn_assets/{filepath_str}'

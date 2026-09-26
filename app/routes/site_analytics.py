@@ -121,6 +121,7 @@ SITE_ANALYTICS_AI_REPORTS_PER_PERIOD_LIMIT = 50
 SITE_ANALYTICS_AI_JOB_LOCK_TTL_SECONDS = 20 * 60
 SITE_ANALYTICS_AI_PDF_LOCK_TTL_SECONDS = 3 * 60
 SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS = 2200
+SITE_ANALYTICS_AI_DEEPSEEK_MAX_TOKENS = 8000
 SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE = 0.2
 SITE_ANALYTICS_AI_PDF_TEMPLATE_VERSION = 'v20260713-crawler'
 SITE_ANALYTICS_ALLOWED_EVENT_TYPES = {'pageview', 'event', 'session_end'}
@@ -5176,6 +5177,15 @@ SITE_ANALYTICS_AI_SYSTEM_PROMPT = """你是企业官网运营数据分析师，�
 """
 
 
+def _site_report_uses_deepseek_non_thinking(api_base, model):
+    """DeepSeek Flash/Pro 默认启用思考，长报告会在正文前耗尽输出额度。"""
+    try:
+        host = urlparse(str(api_base or '')).hostname
+    except ValueError:
+        return False
+    return host == 'api.deepseek.com' and model in {'deepseek-flash', 'deepseek-v4-pro'}
+
+
 def _site_report_get_ai_config():
     try:
         config = _site_report_get_config_fn() or {}
@@ -5201,10 +5211,15 @@ def _site_report_get_ai_config():
         api_key = ''
         api_base = 'https://api.openai.com/v1'
         model = 'gpt-4o-mini'
+    default_max_tokens = (
+        SITE_ANALYTICS_AI_DEEPSEEK_MAX_TOKENS
+        if _site_report_uses_deepseek_non_thinking(api_base, model)
+        else SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS
+    )
     try:
-        max_tokens = int(config.get('site_report_ai_max_tokens') or SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS)
+        max_tokens = int(config.get('site_report_ai_max_tokens') or default_max_tokens)
     except Exception:
-        max_tokens = SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS
+        max_tokens = default_max_tokens
     max_tokens = max(256, min(max_tokens, 8000))
     try:
         temperature = float(config.get('site_report_ai_temperature') or SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE)
@@ -5323,6 +5338,8 @@ def _call_site_report_ai(messages):
         'temperature': config.get('temperature', SITE_ANALYTICS_AI_DEFAULT_TEMPERATURE),
         'max_tokens': config.get('max_tokens', SITE_ANALYTICS_AI_DEFAULT_MAX_TOKENS),
     }
+    if _site_report_uses_deepseek_non_thinking(config['api_base'], model):
+        payload['thinking'] = {'type': 'disabled'}
     connect_timeout = 20
     read_timeout = 300
     last_error = None
@@ -5363,7 +5380,16 @@ def _call_site_report_ai(messages):
                     time.sleep(1.5)
                     continue
                 return last_error
-            text = _analytics_extract_chat_completion_text(response.json())
+            response_data = response.json()
+            choices = (response_data.get('choices') or []) if isinstance(response_data, dict) else []
+            finish_reason = choices[0].get('finish_reason') if choices and isinstance(choices[0], dict) else None
+            if finish_reason == 'length':
+                return _site_report_ai_result(
+                    error='AI 报告超出最大输出长度，请提高网站报告 AI 最大输出额度或缩小报告范围。',
+                    error_type='length',
+                    model=model,
+                )
+            text = _analytics_extract_chat_completion_text(response_data)
             if text:
                 return _site_report_ai_result(text=text, model=model)
             return _site_report_ai_result(

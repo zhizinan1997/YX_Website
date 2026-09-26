@@ -8,7 +8,7 @@
     <script src="/admin/vendor/sortable/Sortable.min.js"></script>
     <link rel="stylesheet" href="/admin/vendor/fonts/inter.css">
     <link rel="stylesheet" href="/admin/styles/tokens.css">
-    <link rel="stylesheet" href="/admin/styles/views.css?v=20260924-site-report-tabs-v1">
+    <link rel="stylesheet" href="/admin/styles/views.css?v=20260926-ai-layout-v1">
     <link rel="stylesheet" href="/admin/styles/base.css">
     <link rel="stylesheet" href="/admin/styles/layout.css?v=20260926-sidebar-v1">
     <link rel="stylesheet" href="/admin/styles/components.css?v=20260926-sidebar-toggle-v1">
@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="/admin/styles/site-report-home.css?v=20260926-v2">
     <link rel="stylesheet" href="/admin/styles/messages-home.css?v=20260926-v2">
     <link rel="stylesheet" href="/admin/styles/system-log-home.css?v=20260926-v1">
+    <link rel="stylesheet" href="/admin/styles/ai-management.css?v=20260926-v1">
 </head>
 <body class="admin2-root">
 <!-- LOGIN PAGE -->
@@ -2692,72 +2693,61 @@
                 </div>
 
                 <!-- Chatbot View -->
-                <div id="view-chatbot" class="view-section">
-                    <div class="tabs">
+                <div id="view-chatbot" class="view-section ai-management-view">
+                    <div class="tabs ai-config-tabs">
                         <button class="tab-btn active" onclick="switchChatbotTab('config', this)">智能客服接口</button>
                         <button class="tab-btn" onclick="switchChatbotTab('product-ai', this)">产品页编程 AI</button>
                     </div>
 
                     <!-- API Config Tab -->
                     <div id="chatbot-tab-config" class="tab-content active">
-                        <div class="card" style="padding: 30px;">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">
-                                    智能客服接口
-                                </h3>
-                                <div id="chatbotStatus" class="status-indicator enabled">
-                                    <i class="fas fa-circle" style="font-size: 8px;"></i>
-                                    <span>已启用</span>
-                                </div>
-                            </div>
-
-                            <form id="chatbotConfigForm">
-                                <div class="form-group">
-                                    <label>启用智能客服</label>
-                                    <div class="chatbot-api-control-row">
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="chatbotEnabled" checked>
-                                            <span class="toggle-slider"></span>
+                        <div class="card ai-config-card">
+                            <form id="chatbotConfigForm" class="ai-config-form">
+                                <div class="ai-config-header">
+                                    <div>
+                                        <p class="ai-config-kicker">智能客服</p>
+                                        <p class="ai-config-description">配置前台智能客服使用的 OpenAI 兼容接口。</p>
+                                    </div>
+                                    <div class="ai-config-controls">
+                                        <div id="chatbotStatus" class="status-indicator enabled">
+                                            <i class="fas fa-circle" style="font-size: 8px;"></i>
+                                            <span>已启用</span>
+                                        </div>
+                                        <label class="ai-config-toggle" for="chatbotEnabled">
+                                            <span>启用</span>
+                                            <span class="toggle-switch">
+                                                <input type="checkbox" id="chatbotEnabled" checked>
+                                                <span class="toggle-slider"></span>
+                                            </span>
                                         </label>
-                                        <a class="chatbot-api-link" href="https://zhizinan.top" target="_blank" rel="noopener noreferrer">
-                                            <i class="fas fa-star"></i>
-                                            <span>Ryan AI</span>
-                                        </a>
-                                    </div>
-                                    <div class="chatbot-api-recommend">
-                                        <i class="fas fa-lightbulb"></i>
-                                        <span>推荐使用 Ryan AI 获取 OpenAI 兼容接口，拿到 API 密钥后可直接填写到下方配置，接入更省心。</span>
                                     </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>API 密钥</label>
-                                    <input type="password" id="chatbotApiKey" class="form-control" placeholder="sk-...">
-                                    <div class="form-hint">支持 OpenAI 及兼容 API（如 DeepSeek、智谱等）</div>
+                                <div class="ai-config-fields">
+                                    <div class="form-group ai-config-field-wide">
+                                        <label for="chatbotApiKey">API 密钥</label>
+                                        <input type="password" id="chatbotApiKey" class="form-control" placeholder="sk-...">
+                                        <div class="form-hint">支持 OpenAI 及兼容 API（如 DeepSeek、智谱等）</div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="chatbotApiBase">API 基础地址</label>
+                                        <input type="text" id="chatbotApiBase" class="form-control"
+                                            value="https://api.openai.com/v1">
+                                        <div class="form-hint">填写服务商提供的接口地址</div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="chatbotModel">模型名称</label>
+                                        <input type="text" id="chatbotModel" class="form-control" value="gpt-3.5-turbo">
+                                        <div class="form-hint">如: gpt-3.5-turbo, gpt-4, deepseek-chat</div>
+                                    </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>API 基础地址</label>
-                                    <input type="text" id="chatbotApiBase" class="form-control"
-                                        value="https://api.openai.com/v1">
-                                    <div class="form-hint">OpenAI: https://api.openai.com/v1，DeepSeek:
-                                        https://api.deepseek.com</div>
+                                <div class="ai-config-footer">
+                                    <span class="ai-config-note">系统提示词使用内置配置</span>
+                                    <button type="submit" class="btn-primary">保存配置</button>
                                 </div>
-
-                                <div class="form-group">
-                                    <label>模型名称</label>
-                                    <input type="text" id="chatbotModel" class="form-control" value="gpt-3.5-turbo">
-                                    <div class="form-hint">如: gpt-3.5-turbo, gpt-4, deepseek-chat</div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>系统提示词</label>
-                                    <div class="form-hint">已启用内置提示词（后台不可编辑）。</div>
-                                </div>
-
-                                <button type="submit" class="btn-primary"
-                                    style="width: auto; padding: 12px 30px;">保存配置</button>
                                 <div id="chatbotConfigMsg" class="error-message" style="color: #28a745;"></div>
                             </form>
                         </div>
@@ -2765,68 +2755,54 @@
 
                     <!-- Product Page Coding AI Tab -->
                     <div id="chatbot-tab-product-ai" class="tab-content">
-                        <div class="card" style="padding: 30px;">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">产品页编程 AI
-                                    配置</h3>
-                                <div id="productAiStatus" class="status-indicator disabled">
-                                    <i class="fas fa-circle" style="font-size: 8px;"></i>
-                                    <span>已禁用</span>
-                                </div>
-                            </div>
-
-                            <p style="margin-bottom: 16px; color:#58657a; font-size:13px;">
-                                该配置用于“AI 自动上架”流程，支持气体传感产品与生物传感产品，采用 OpenAI 兼容接口生成完整产品页 HTML。
-                            </p>
-
-                            <form id="productAiConfigForm">
-                                <div class="form-group">
-                                    <label>启用产品页编程 AI</label>
-                                    <div class="chatbot-api-control-row">
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="productAiEnabled">
-                                            <span class="toggle-slider"></span>
+                        <div class="card ai-config-card">
+                            <form id="productAiConfigForm" class="ai-config-form">
+                                <div class="ai-config-header">
+                                    <div>
+                                        <p class="ai-config-kicker">产品页编程 AI</p>
+                                        <p class="ai-config-description">为“AI 自动上架”生成气体传感和生物传感产品页 HTML。</p>
+                                    </div>
+                                    <div class="ai-config-controls">
+                                        <div id="productAiStatus" class="status-indicator disabled">
+                                            <i class="fas fa-circle" style="font-size: 8px;"></i>
+                                            <span>已禁用</span>
+                                        </div>
+                                        <label class="ai-config-toggle" for="productAiEnabled">
+                                            <span>启用</span>
+                                            <span class="toggle-switch">
+                                                <input type="checkbox" id="productAiEnabled">
+                                                <span class="toggle-slider"></span>
+                                            </span>
                                         </label>
-                                        <a class="chatbot-api-link" href="https://zhizinan.top" target="_blank" rel="noopener noreferrer">
-                                            <i class="fas fa-star"></i>
-                                            <span>Ryan AI</span>
-                                        </a>
-                                    </div>
-                                    <div class="chatbot-api-recommend">
-                                        <i class="fas fa-lightbulb"></i>
-                                        <span>推荐使用 Ryan AI 作为兼容 API 入口，这套配置同样适用于产品页编程 AI，填写后即可直接调用。</span>
                                     </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>API 密钥</label>
-                                    <input type="password" id="productAiApiKey" class="form-control"
-                                        placeholder="sk-...">
-                                    <div class="form-hint">支持 OpenAI 及兼容 API（如 DeepSeek、智谱等）</div>
+                                <div class="ai-config-fields">
+                                    <div class="form-group ai-config-field-wide">
+                                        <label for="productAiApiKey">API 密钥</label>
+                                        <input type="password" id="productAiApiKey" class="form-control"
+                                            placeholder="sk-...">
+                                        <div class="form-hint">支持 OpenAI 及兼容 API（如 DeepSeek、智谱等）</div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="productAiApiBase">API 基础地址</label>
+                                        <input type="text" id="productAiApiBase" class="form-control"
+                                            value="https://api.openai.com/v1">
+                                        <div class="form-hint">填写服务商提供的接口地址</div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="productAiModel">模型名称</label>
+                                        <input type="text" id="productAiModel" class="form-control" value="gpt-4o-mini">
+                                        <div class="form-hint">建议使用具备代码与结构化输出能力的模型</div>
+                                    </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>API 基础地址</label>
-                                    <input type="text" id="productAiApiBase" class="form-control"
-                                        value="https://api.openai.com/v1">
-                                    <div class="form-hint">OpenAI: https://api.openai.com/v1，DeepSeek:
-                                        https://api.deepseek.com</div>
+                                <div class="ai-config-footer">
+                                    <span class="ai-config-note">系统提示词使用内置配置</span>
+                                    <button type="submit" class="btn-primary">保存配置</button>
                                 </div>
-
-                                <div class="form-group">
-                                    <label>模型名称</label>
-                                    <input type="text" id="productAiModel" class="form-control" value="gpt-4o-mini">
-                                    <div class="form-hint">建议使用具备代码与结构化输出能力的模型</div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>系统提示词</label>
-                                    <div class="form-hint">已启用内置提示词（后台不可编辑）。</div>
-                                </div>
-
-                                <button type="submit" class="btn-primary"
-                                    style="width: auto; padding: 12px 30px;">保存配置</button>
                                 <div id="productAiConfigMsg" class="error-message" style="color: #28a745;"></div>
                             </form>
                         </div>
@@ -2834,89 +2810,101 @@
                 </div>
 
                 <!-- Knowledge Base View -->
-                <div id="view-chatbot-knowledge" class="view-section">
+                <div id="view-chatbot-knowledge" class="view-section ai-management-view">
                     <div id="chatbot-tab-knowledge" class="tab-content active">
-                        <div class="card" style="padding: 30px;">
-                            <h3 class="section-header">知识库管理</h3>
-                            <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                                支持新增文本知识、增量上传多个 PDF 文档。保存后，智能客服会综合使用已保存文本与文档内容回答问题。
-                            </p>
+                        <section class="card ai-knowledge-compose">
+                            <div class="ai-section-heading">
+                                <div>
+                                    <h3>新增知识</h3>
+                                    <p>保存后，智能客服会使用新增文本和 PDF 内容回答问题。</p>
+                                </div>
+                            </div>
 
-                            <div id="pdfSupportWarning" class="chat-error" style="display: none; margin-bottom: 20px;">
+                            <div id="pdfSupportWarning" class="chat-error" style="display: none;">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 服务器未安装 PyPDF2，当前仅可保存文本知识库，PDF 上传将不可用。
                             </div>
 
-                            <div class="form-group" style="margin-bottom: 18px;">
-                                <label for="knowledgeTextInput">新增文本知识</label>
-                                <textarea id="knowledgeTextInput" rows="10" class="form-control"
-                                    style="min-height: 220px; resize: vertical;"
-                                    placeholder="输入一条新的产品说明、常见问答、服务政策等知识内容。保存后会新增为独立文本条目，不覆盖已有内容。"></textarea>
-                                <div id="knowledgeTextStatus" class="form-hint" style="margin-top: 8px;"></div>
+                            <div class="ai-knowledge-compose-grid">
+                                <div class="ai-knowledge-compose-column">
+                                    <label class="ai-knowledge-compose-label" for="knowledgeTextInput">文本条目</label>
+                                    <textarea id="knowledgeTextInput" rows="7" class="form-control"
+                                        placeholder="输入产品说明、常见问答或服务政策。每次保存会新增一条。"></textarea>
+                                    <div id="knowledgeTextStatus" class="form-hint"></div>
+                                </div>
+
+                                <div class="ai-knowledge-compose-column">
+                                    <h4 class="ai-knowledge-compose-label">PDF 文件</h4>
+                                    <div class="file-upload-zone" id="knowledgeUploadZone">
+                                        <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                                        <div class="ai-knowledge-upload-title">拖放 PDF 到此处，或点击选择</div>
+                                        <div class="ai-knowledge-upload-hint">支持一次选择多个文件，保存时增量追加</div>
+                                        <input type="file" id="knowledgeFileInput" accept=".pdf" multiple style="display: none;">
+                                    </div>
+                                    <div id="knowledgePendingFileList" class="file-list ai-knowledge-pending-list"></div>
+                                </div>
                             </div>
 
-                            <h4 style="margin: 20px 0 12px; font-size: 16px; color: #333;">待上传 PDF</h4>
-                            <div class="file-upload-zone" id="knowledgeUploadZone">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <div style="font-size: 16px; font-weight: 500; margin-bottom: 5px;">拖放 PDF 文件到此处</div>
-                                <div style="font-size: 13px; color: #888;">或点击选择多个 PDF 文件，保存时会增量追加到知识库</div>
-                                <input type="file" id="knowledgeFileInput" accept=".pdf" multiple style="display: none;">
-                            </div>
-
-                            <div id="knowledgePendingFileList" class="file-list" style="margin-top: 15px;"></div>
-
-                            <h4 style="margin: 24px 0 12px; font-size: 16px; color: #333;">已保存文本条目</h4>
-                            <div id="knowledgeCatalogPreview" class="knowledge-catalog-preview"></div>
-
-                            <div id="uploadProgress" style="display: none; margin-top: 15px;">
+                            <div id="uploadProgress" style="display: none;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fas fa-spinner fa-spin"></i>
                                     <span>正在保存...</span>
                                 </div>
                             </div>
 
-                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 18px;">
-                                <button type="button" id="knowledgeSaveBtn" class="btn-primary"
-                                    style="width: auto; padding: 12px 28px;">保存新增内容</button>
-                                <div id="knowledgeUploadMsg" class="error-message" style="margin: 0;"></div>
+                            <div class="ai-knowledge-actions">
+                                <span>文本和 PDF 可单独或一起保存</span>
+                                <button type="button" id="knowledgeSaveBtn" class="btn-primary">保存新增内容</button>
+                                <div id="knowledgeUploadMsg" class="error-message"></div>
                             </div>
+                        </section>
 
-                            <h4 style="margin: 24px 0 12px; font-size: 16px; color: #333;">已上传 PDF 文件</h4>
-                            <div class="file-list" id="knowledgeFileList">
-                                <!-- Files will be loaded here -->
+                        <section class="card ai-knowledge-library">
+                            <div class="ai-section-heading ai-knowledge-library-heading">
+                                <h3>已保存内容</h3>
+                                <div class="ai-knowledge-library-tabs" role="tablist" aria-label="已保存知识类型">
+                                    <button type="button" class="ai-knowledge-library-tab is-active" data-knowledge-tab="text" role="tab" aria-selected="true" aria-controls="knowledgeTextPanel" onclick="switchKnowledgeContentTab('text')">文本 <span id="knowledgeTextCount">0</span></button>
+                                    <button type="button" class="ai-knowledge-library-tab" data-knowledge-tab="pdf" role="tab" aria-selected="false" aria-controls="knowledgePdfPanel" onclick="switchKnowledgeContentTab('pdf')">PDF <span id="knowledgePdfCount">0</span></button>
+                                </div>
                             </div>
-                        </div>
+                            <div id="knowledgeTextPanel" class="ai-knowledge-panel" role="tabpanel">
+                                <div id="knowledgeCatalogPreview" class="knowledge-catalog-preview"></div>
+                            </div>
+                            <div id="knowledgePdfPanel" class="ai-knowledge-panel" role="tabpanel" hidden>
+                                <div class="file-list" id="knowledgeFileList">
+                                    <!-- Files will be loaded here -->
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
 
                 <!-- Chat History View -->
-                <div id="view-chatbot-history" class="view-section">
+                <div id="view-chatbot-history" class="view-section ai-management-view">
                     <div id="chatbot-tab-history" class="tab-content active">
-                        <div class="card" style="padding: 30px;">
+                        <div class="card ai-history-card">
                             <div class="chatbot-history-toolbar">
                                 <div>
-                                    <h3 class="section-header" style="margin-bottom: 0; border: none; padding: 0;">历史对话记录</h3>
-                                    <p style="margin: 8px 0 0; color: #64748b; font-size: 13px;">按时间倒序展示前台智能客服的逐条问答记录。</p>
+                                    <h3>对话记录</h3>
+                                    <p>按时间倒序排列，点击“查看”阅读完整问答。</p>
                                 </div>
                                 <button type="button" class="audit-refresh-btn" onclick="loadChatbotConversationLogs()">刷新</button>
                             </div>
 
-                            <div class="table-container">
-                                <table>
+                            <div class="table-container ai-history-table-container">
+                                <table class="ai-history-table">
                                     <thead>
                                         <tr>
-                                            <th style="width: 72px;">序号</th>
-                                            <th style="width: 170px;">时间</th>
-                                            <th style="width: 140px;">提问 IP</th>
-                                            <th style="width: 220px;">物理位置</th>
-                                            <th style="width: 220px;">会话信息</th>
+                                            <th>时间</th>
+                                            <th>访客</th>
                                             <th>用户提问</th>
-                                            <th>AI 回复</th>
+                                            <th>回复类型</th>
+                                            <th>操作</th>
                                         </tr>
                                     </thead>
                                     <tbody id="chatbotHistoryBody">
                                         <tr>
-                                            <td colspan="7" class="no-data">加载中...</td>
+                                            <td colspan="5" class="no-data">加载中...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -2940,10 +2928,33 @@
                                         </select>
                                         条
                                     </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                </div>
+
+                <div id="chatbotHistoryDetailModal" class="ai-history-detail-modal" hidden onclick="if(event.target===this) closeChatbotHistoryDetail()">
+                    <div class="ai-history-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="chatbotHistoryDetailTitle">
+                        <div class="ai-history-detail-header">
+                            <div>
+                                <span>历史对话</span>
+                                <h3 id="chatbotHistoryDetailTitle">对话详情</h3>
+                            </div>
+                            <button type="button" id="chatbotHistoryDetailClose" class="ai-history-detail-close" onclick="closeChatbotHistoryDetail()" aria-label="关闭对话详情">&times;</button>
+                        </div>
+                        <div id="chatbotHistoryDetailMeta" class="ai-history-detail-meta"></div>
+                        <div class="ai-history-detail-content">
+                            <section class="ai-history-message">
+                                <h4>用户提问</h4>
+                                <div id="chatbotHistoryDetailQuestion"></div>
+                            </section>
+                            <section class="ai-history-message ai-history-message-answer">
+                                <h4>AI 回复</h4>
+                                <div id="chatbotHistoryDetailAnswer"></div>
+                            </section>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Settings View -->
@@ -4317,7 +4328,7 @@ docker compose cp web:${FILE} ./backups/</code></pre>
     <script src="/admin/js/views/registry.js"></script>
     <script src="/admin/js/router.js"></script>
     <script src="/admin/js/qrcode.min.js"></script>
-    <script src="/admin/js/legacy-admin.js?v=20260926-system-log-v1"></script>
+    <script src="/admin/js/legacy-admin.js?v=20260926-ai-layout-v1"></script>
     <script src="/admin/js/site-report-ui.js?v=20260926-v1"></script>
     <script src="/admin/js/passkeys.js?v=20260915-remove-banner-v1"></script>
     <script src="/admin/js/app.js?v=20260715-image-seo-v2"></script>

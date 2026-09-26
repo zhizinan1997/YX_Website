@@ -44,6 +44,7 @@ from urllib.parse import urlparse
 
 from flask import Response, jsonify, request, send_from_directory, stream_with_context
 
+from app.cdn_asset_aliases import existing_cdn_asset_path
 from app.request_security import (
     pinned_dns_resolution,
     validate_safe_remote_fetch_url_detail,
@@ -445,9 +446,10 @@ def register_media_delivery_routes(
         if not relative_path:
             return jsonify({'error': '文件路径不能为空'}), 400
 
+        served_path = existing_cdn_asset_path(_CDN_ASSETS_DIR, relative_path) or relative_path
         response = send_from_directory(
             str(_CDN_ASSETS_DIR),
-            relative_path,
+            served_path,
             mimetype=public_asset_mimetype(relative_path),
         )
         response.headers['Cache-Control'] = _MEDIA_IMMUTABLE_CACHE_CONTROL

@@ -17,6 +17,8 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
+from app.cdn_asset_aliases import existing_cdn_asset_path
+
 # ── 配置 ──────────────────────────────────────────────
 
 _CACHE_TTL_SECONDS = 60
@@ -106,6 +108,14 @@ def resolve_asset_path(url: str, app_root: Path, request_path: str = '') -> Path
 
     if fs_path.is_file():
         return fs_path
+    cdn_root = (app_root / 'cdn_assets').resolve()
+    try:
+        cdn_relative_path = fs_path.relative_to(cdn_root).as_posix()
+    except ValueError:
+        return None
+    served_path = existing_cdn_asset_path(cdn_root, cdn_relative_path)
+    if served_path:
+        return cdn_root / served_path
     return None
 
 

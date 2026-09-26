@@ -167,6 +167,56 @@ class SiteAnalyticsTests(unittest.TestCase):
         self.assertEqual(captured["json"]["max_tokens"], 1234)
         self.assertEqual(captured["json"]["temperature"], 0.3)
 
+    def test_deepseek_report_disables_thinking_and_uses_full_output_budget(self):
+        captured = {}
+
+        class Response:
+            status_code = 200
+
+            def json(self):
+                return {"choices": [{"finish_reason": "stop", "message": {"content": "完整报告"}}]}
+
+        class Requests:
+            @staticmethod
+            def post(url, json, headers, timeout, **kwargs):
+                captured.update(json)
+                return Response()
+
+        sa._site_report_get_config_fn = lambda: {
+            "product_ai_api_key": "key",
+            "product_ai_api_base": "https://api.deepseek.com/v1",
+            "product_ai_model": "deepseek-flash",
+        }
+        sa._site_report_requests_support = True
+        sa._site_report_requests_module = Requests
+        result = sa._call_site_report_ai([{"role": "user", "content": "hi"}])
+        self.assertEqual(result["text"], "完整报告")
+        self.assertEqual(captured["thinking"], {"type": "disabled"})
+        self.assertEqual(captured["max_tokens"], 8000)
+
+    def test_output_limit_does_not_save_truncated_report(self):
+        class Response:
+            status_code = 200
+
+            def json(self):
+                return {"choices": [{"finish_reason": "length", "message": {"content": "未写完的报告"}}]}
+
+        class Requests:
+            @staticmethod
+            def post(url, json, headers, timeout, **kwargs):
+                return Response()
+
+        sa._site_report_get_config_fn = lambda: {
+            "chatbot_api_key": "key",
+            "chatbot_api_base": "https://api.example/v1",
+            "chatbot_model": "model-a",
+        }
+        sa._site_report_requests_support = True
+        sa._site_report_requests_module = Requests
+        result = sa._call_site_report_ai([{"role": "user", "content": "hi"}])
+        self.assertIsNone(result["text"])
+        self.assertEqual(result["error_type"], "length")
+
     def test_invalid_anchor_date_is_rejected(self):
         with self.assertRaises(ValueError):
             sa.build_site_analytics_ai_report_context(period="month", anchor_date="2026-99-99")

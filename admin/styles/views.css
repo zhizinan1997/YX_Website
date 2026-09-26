@@ -2854,28 +2854,6 @@
             display: none;
         }
 
-        .knowledge-catalog-preview__head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 15px;
-            border-bottom: 1px solid #eef1f4;
-        }
-
-        .knowledge-catalog-preview__head h4 {
-            margin: 0;
-            color: #333;
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-        .knowledge-catalog-preview__count {
-            color: #64748b;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-
         .knowledge-catalog-preview__body {
             display: grid;
             gap: 8px;
@@ -3321,82 +3299,6 @@
             flex-wrap: wrap;
         }
 
-        .chatbot-api-control-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 8px;
-        }
-
-        .chatbot-api-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: auto;
-            padding: 8px 14px;
-            border: 1px solid #f4c985;
-            border-radius: 999px;
-            background: linear-gradient(180deg, #fffaf0 0%, #ffefc8 100%);
-            color: #9a5b00;
-            font-size: 12px;
-            font-weight: 700;
-            text-decoration: none;
-            white-space: nowrap;
-            box-shadow: 0 8px 18px rgba(244, 201, 133, 0.18);
-            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-        }
-
-        .chatbot-api-link:hover {
-            background: linear-gradient(180deg, #fff3d5 0%, #ffe5a8 100%);
-            color: #7a4300;
-            transform: translateY(-1px);
-            box-shadow: 0 10px 22px rgba(244, 201, 133, 0.26);
-        }
-
-        .chatbot-api-link i {
-            font-size: 11px;
-        }
-
-        .chatbot-api-recommend {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            margin-top: 10px;
-            padding: 10px 12px;
-            border: 1px solid #f6dfb1;
-            border-radius: 10px;
-            background: #fffaf1;
-            color: #8a5a05;
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .chatbot-api-recommend i {
-            margin-top: 2px;
-            color: #d08a00;
-        }
-
-        .chatbot-history-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .chatbot-history-session-id {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-            font-size: 12px;
-            color: #0f172a;
-            word-break: break-all;
-        }
-
-        .chatbot-history-page {
-            font-size: 12px;
-            color: #64748b;
-            word-break: break-all;
-        }
-
         .chatbot-history-source {
             display: inline-flex;
             align-items: center;
@@ -3421,41 +3323,6 @@
         .chatbot-history-source-mixed {
             color: #1d4ed8;
             background: #dbeafe;
-        }
-
-        .chatbot-history-preview {
-            color: #0f172a;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .chatbot-history-empty {
-            color: #94a3b8;
-        }
-
-        .chatbot-history-details {
-            margin-top: 8px;
-        }
-
-        .chatbot-history-details summary {
-            cursor: pointer;
-            color: #2563eb;
-            font-size: 12px;
-            font-weight: 600;
-            user-select: none;
-        }
-
-        .chatbot-history-full {
-            margin-top: 8px;
-            padding: 10px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            background: #f8fafc;
-            color: #334155;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
         }
 
         .audit-pagination-bar {

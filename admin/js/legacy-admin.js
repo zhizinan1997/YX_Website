@@ -27,6 +27,8 @@
         let chatbotHistoryTotalPages = 1;
         let chatbotHistoryPageSize = CHATBOT_HISTORY_DEFAULT_PAGE_SIZE;
         let chatbotHistoryTotal = 0;
+        let chatbotHistoryItems = [];
+        let chatbotHistoryDetailTrigger = null;
         let changelogHistory = [];
         let changelogPage = 1;
         let activeSystemLogTab = 'runtime';
@@ -16760,32 +16762,58 @@
             return `<span class="chatbot-history-source chatbot-history-source-mixed">${escapeHtml(value || '未知来源')}</span>`;
         }
 
-        function formatChatbotHistoryText(rawValue) {
-            const text = String(rawValue || '').trim();
-            if (!text) return '<span class="chatbot-history-empty">-</span>';
+        function openChatbotHistoryDetail(index, trigger) {
+            const item = chatbotHistoryItems[index];
+            const modal = document.getElementById('chatbotHistoryDetailModal');
+            if (!item || !modal) return;
+            chatbotHistoryDetailTrigger = trigger || null;
 
-            const preview = text.length > 120 ? `${text.slice(0, 120)}...` : text;
-            const previewHtml = escapeHtml(preview).replace(/\n/g, '<br>');
-            const fullHtml = escapeHtml(text).replace(/\n/g, '<br>');
-            const needsExpand = text.length > 120 || text.includes('\n');
-
-            if (!needsExpand) {
-                return `<div class="chatbot-history-preview">${fullHtml}</div>`;
-            }
-
-            return `
-                <div class="chatbot-history-preview">${previewHtml}</div>
-                <details class="chatbot-history-details">
-                    <summary>展开全文</summary>
-                    <div class="chatbot-history-full">${fullHtml}</div>
-                </details>
-            `;
+            const pageTitle = String(item.page_title || '').trim();
+            const pageUrl = String(item.page_url || '').trim();
+            const pageText = [pageTitle, pageUrl].filter(Boolean).join(' · ') || '未记录页面信息';
+            const fields = [
+                ['时间', formatAuditTimestamp(item.timestamp)],
+                ['提问 IP', item.ip || '-'],
+                ['物理位置', item.location || '未知'],
+                ['来源页面', pageText],
+                ['会话 ID', item.session_id || '-']
+            ];
+            document.getElementById('chatbotHistoryDetailMeta').innerHTML = fields.map(([label, value]) => `
+                <div class="ai-history-detail-meta-item">
+                    <span>${label}</span>
+                    <strong>${escapeHtml(String(value))}</strong>
+                </div>
+            `).join('');
+            document.getElementById('chatbotHistoryDetailQuestion').textContent = String(item.user_message || '-');
+            document.getElementById('chatbotHistoryDetailAnswer').textContent = String(item.assistant_message || '-');
+            modal.hidden = false;
+            document.getElementById('chatbotHistoryDetailClose').focus();
         }
+
+        function closeChatbotHistoryDetail() {
+            const modal = document.getElementById('chatbotHistoryDetailModal');
+            if (!modal || modal.hidden) return;
+            modal.hidden = true;
+            if (chatbotHistoryDetailTrigger?.isConnected) chatbotHistoryDetailTrigger.focus();
+            chatbotHistoryDetailTrigger = null;
+        }
+
+        document.addEventListener('keydown', event => {
+            const modal = document.getElementById('chatbotHistoryDetailModal');
+            if (!modal || modal.hidden) return;
+            if (event.key === 'Escape') closeChatbotHistoryDetail();
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                document.getElementById('chatbotHistoryDetailClose').focus();
+            }
+        });
 
         async function loadChatbotConversationLogs(page = chatbotHistoryPage) {
             const tbody = document.getElementById('chatbotHistoryBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="7" class="no-data">加载中...</td></tr>';
+            closeChatbotHistoryDetail();
+            chatbotHistoryItems = [];
+            tbody.innerHTML = '<tr><td colspan="5" class="no-data">加载中...</td></tr>';
 
             try {
                 const targetPage = Math.max(1, Number(page) || 1);
@@ -16796,45 +16824,41 @@
                 if (!res.ok) throw new Error(payload?.message || '加载失败');
 
                 const items = Array.isArray(payload?.items) ? payload.items : [];
+                chatbotHistoryItems = items;
                 updateChatbotHistoryPagination(payload, items.length);
                 if (!items.length) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="no-data">暂无历史对话</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="no-data">暂无历史对话</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = items.map((item, index) => {
-                    const seq = (chatbotHistoryPage - 1) * chatbotHistoryPageSize + index + 1;
                     const ip = escapeHtml(item?.ip || '-');
                     const location = escapeHtml(item?.location || '未知');
-                    const sessionId = escapeHtml(item?.session_id || '-');
-                    const pageTitle = escapeHtml(item?.page_title || '');
-                    const pageUrl = escapeHtml(item?.page_url || '');
-                    const pageText = pageTitle || pageUrl
-                        ? `${pageTitle || pageUrl}${pageTitle && pageUrl ? ` · ${pageUrl}` : ''}`
-                        : '未记录页面信息';
+                    const question = String(item?.user_message || '').replace(/\s+/g, ' ').trim();
+                    const questionPreview = question ? `${question.slice(0, 110)}${question.length > 110 ? '…' : ''}` : '无提问内容';
 
                     return `
                         <tr>
-                            <td>${seq}</td>
                             <td>${escapeHtml(formatAuditTimestamp(item?.timestamp))}</td>
-                            <td>${ip}</td>
-                            <td>${location}</td>
                             <td>
-                                <div class="chatbot-history-meta">
-                                    <div class="chatbot-history-session-id">${sessionId}</div>
-                                    <div class="chatbot-history-page">${pageText}</div>
-                                    ${formatChatbotHistorySource(item?.response_source)}
+                                <div class="ai-history-visitor">
+                                    <strong>${ip}</strong>
+                                    <span>${location}</span>
                                 </div>
                             </td>
-                            <td>${formatChatbotHistoryText(item?.user_message)}</td>
-                            <td>${formatChatbotHistoryText(item?.assistant_message)}</td>
+                            <td><div class="ai-history-question">${escapeHtml(questionPreview)}</div></td>
+                            <td>${formatChatbotHistorySource(item?.response_source)}</td>
+                            <td><button type="button" class="ai-history-open" data-index="${index}">查看</button></td>
                         </tr>
                     `;
                 }).join('');
+                tbody.querySelectorAll('.ai-history-open').forEach(button => {
+                    button.addEventListener('click', () => openChatbotHistoryDetail(Number(button.dataset.index), button));
+                });
                 queueResponsiveTableLabels();
             } catch (e) {
                 const reason = (e && e.message) ? escapeHtml(String(e.message)) : '加载失败';
-                tbody.innerHTML = `<tr><td colspan="7" class="no-data">${reason}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="no-data">${reason}</td></tr>`;
                 updateChatbotHistoryPagination({ total: chatbotHistoryTotal, page: chatbotHistoryPage, page_size: chatbotHistoryPageSize, total_pages: chatbotHistoryTotalPages }, 0);
             }
         }
@@ -18786,6 +18810,17 @@
         });
 
         // --- Knowledge Base Logic ---
+        function switchKnowledgeContentTab(tabName) {
+            if (!['text', 'pdf'].includes(tabName)) return;
+            document.querySelectorAll('[data-knowledge-tab]').forEach(button => {
+                const active = button.dataset.knowledgeTab === tabName;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            document.getElementById('knowledgeTextPanel').hidden = tabName !== 'text';
+            document.getElementById('knowledgePdfPanel').hidden = tabName !== 'pdf';
+        }
+
         async function loadKnowledgeFiles() {
             const textInput = document.getElementById('knowledgeTextInput');
             const statusEl = document.getElementById('knowledgeTextStatus');
@@ -18806,13 +18841,15 @@
                 lastKnowledgeTextValue = '';
                 savedKnowledgeTextEntries = Array.isArray(data.text_entries) ? data.text_entries : [];
                 savedKnowledgeFiles = Array.isArray(data.files) ? data.files : [];
+                document.getElementById('knowledgePdfCount').textContent = String(savedKnowledgeFiles.length);
 
                 if (statusEl) {
                     if (savedKnowledgeTextEntries.length) {
-                        const modifiedText = data.text_modified ? `，最后更新：${formatDateTime(data.text_modified)}` : '';
-                        statusEl.textContent = `已保存 ${savedKnowledgeTextEntries.length} 条文本知识，共 ${formatFileSize(data.text_size || 0)}${modifiedText}`;
+                        statusEl.textContent = data.text_modified
+                            ? `文本知识最后更新：${formatDateTime(data.text_modified)}`
+                            : '保存后会新增独立文本条目，不覆盖已有内容。';
                     } else {
-                        statusEl.textContent = '当前未保存文本条目。这里输入的内容会作为新条目追加保存。';
+                        statusEl.textContent = '保存后会新增独立文本条目。';
                     }
                 }
 
@@ -19046,6 +19083,7 @@
                 title: entry.title || `文本条目 ${index + 1}`,
                 meta: `文本 · ${formatFileSize(entry.size || 0)} · ${formatDateTime(entry.modified_at || entry.created_at)}`
             }));
+            document.getElementById('knowledgeTextCount').textContent = String(items.length);
 
             if (!items.length) {
                 previewEl.innerHTML = '<div class="knowledge-catalog-preview__empty">暂无已保存文本条目。</div>';
@@ -19053,10 +19091,6 @@
             }
 
             previewEl.innerHTML = `
-                <div class="knowledge-catalog-preview__head">
-                    <h4>已保存文本条目</h4>
-                    <span class="knowledge-catalog-preview__count">共 ${items.length} 条</span>
-                </div>
                 <div class="knowledge-catalog-preview__body">
                     ${items.map((item, index) => `
                         <div class="knowledge-catalog-preview__item knowledge-catalog-preview__item--${escapeAttr(item.type)}">
