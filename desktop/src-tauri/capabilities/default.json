@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "桌面外壳权限集。注意这里没有声明 remote，因此远程站点（线上 /admin）发起的任何 IPC 都会被 Tauri 直接拒绝；权限只对应用内置的兜底页生效。",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

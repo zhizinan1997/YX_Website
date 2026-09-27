@@ -33,6 +33,14 @@ node_modules/
 tmp_*.html
 *.bak_codex
 
+# Desktop client (desktop/)：Rust / Tauri 构建产物
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
+desktop/dist/
+
+# AI 编码工具的会话草稿
+/.zcode/
+
 # Runtime generated files
 /data/.flask_secret_key
 /data/.*.lock

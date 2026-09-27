@@ -77,6 +77,13 @@
                         <input type="text" id="loginEmailCode" class="form-control" placeholder="请输入 6 位邮箱验证码" inputmode="numeric" maxlength="6">
                         <div class="form-hint" id="loginEmailHint">验证码将发送到已绑定安全邮箱。</div>
                     </div>
+                    <div class="form-group login-remember-group">
+                        <label class="login-remember-label" for="loginRememberMe">
+                            <input type="checkbox" id="loginRememberMe">
+                            <span>30 天内免登录</span>
+                        </label>
+                        <div class="form-hint">仅建议在个人设备上勾选，公用电脑请勿勾选。</div>
+                    </div>
                     <div class="login-action-row">
                         <button type="submit" id="loginSubmitBtn" class="btn-primary">发送验证码</button>
                     </div>
@@ -321,6 +328,10 @@
                             <button type="button" class="account-menu-item" onclick="logoutFromAccountMenu(event)">
                                 <i class="fas fa-sign-out-alt"></i>
                                 退出登录
+                            </button>
+                            <button type="button" class="account-menu-item" id="accountMenuLogoutAllItem" onclick="logoutAllFromAccountMenu(event)">
+                                <i class="fas fa-right-from-bracket"></i>
+                                退出所有设备
                             </button>
                         </div>
                     </div>

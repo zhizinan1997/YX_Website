@@ -30,6 +30,7 @@
 │   └── rate_limits.json   # IP限流记录
 ├── pages/                  # 网站各页面
 ├── cdn_assets/             # 统一素材目录（图片/视频）
+├── desktop/                # 管理后台的 Windows 桌面客户端（Tauri 外壳，可选）
 ├── docs/                   # 项目和部署文档
 ├── tools/                  # 维护脚本
 ├── server.py               # Flask 后端服务器
@@ -276,6 +277,45 @@ docker run -d \
 - 扫描只读取页面和图片，不删除文件，也不会批量改写 HTML；图片元数据保存在 `data/image_seo_assets.json`。
 - `INDEXNOW_KEY` 与 `BAIDU_PUSH_TOKEN` 均为可选环境变量。未配置或第三方提交失败时，不影响内容与图片 SEO 元数据保存。
 - 新增的 `data/image_seo_assets.json`、`data/image_seo_scan_report.json` 和 `data/image_seo_audit.json` 应与其他 `data/` 内容一起备份和持久化。
+
+### Windows 桌面客户端（可选）
+
+`desktop/` 是后台的 Windows 客户端，用 Tauri 做一个原生外壳，**窗口直接加载线上 `/admin`**，
+因此后台功能与网页版始终是同一份代码，无需同步维护两套界面。
+
+它解决了后台在 WebView 里会坏掉的几件事：`window.open` / `target="_blank"` 被静默吞掉
+（影响备份下载、知识库 PDF、产品代码、简历、CDN 预览、已发布页面链接共 6 处）、
+下载落盘位置不可控、三处 HTML5 拖拽上传失效、站点不可达时只显示网络错误白屏。
+另带托盘图标与未读留言角标。
+
+- 详细说明、构建方式与已知限制见 [`desktop/README.md`](desktop/README.md)
+- 发布用 `desktop-v0.1.0` 形式的标签，由独立的 GitHub Actions 工作流构建安装包；
+  **不要**与主站的 `v4.9.0` 标签混用
+- 桌面客户端不改动任何后端代码，也不引入新的接口
+
+### 登录会话与「30 天内免登录」
+
+登录页有一个「30 天内免登录」勾选框，**默认不勾选**，两种档位行为不同：
+
+| | 不勾选（默认） | 勾选 |
+|---|---|---|
+| cookie 类型 | 会话 cookie，关闭浏览器即失效 | 持久 cookie，带 30 天有效期 |
+| 空闲超时 | 2 小时（`ADMIN_SESSION_IDLE_TIMEOUT_SECONDS`） | 与绝对上限相同，等于不设 |
+| 绝对上限 | 24 小时（`ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS`） | 30 天（`ADMIN_SESSION_REMEMBER_ME_MAX_AGE_SECONDS`） |
+
+勾选后**网页端和桌面客户端都免登录**：客户端不需要单独设置，它加载的就是同一个后台页面，
+WebView2 会把带过期的 cookie 存进自己的数据目录，下次打开直接进后台。
+
+时长可用环境变量覆盖（见 `.env.example`），免登录档有下限兜底，不会配置得比默认档还短。
+勾选框文案里的「30 天」是写死的，改环境变量时需同步改 `admin/index.html`。
+
+**会话收回**：
+
+- 账号菜单的「退出登录」**只清当前这一份 cookie**，其他设备（含桌面客户端）保持登录。
+- 账号菜单的「退出所有设备」会吊销该账号的全部会话，其他设备下次请求即要求重新登录。
+- 改密码、超管重置子账号密码 / 停用子账号 / 收窄权限、删除账号，都会吊销该账号的全部会话。
+
+> 勾选免登录等于把凭证有效期从数小时拉长到 30 天。只在个人设备上勾选，公用电脑不要勾。
 
 ## ✨ 功能特性
 

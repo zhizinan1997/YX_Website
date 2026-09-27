@@ -161,7 +161,13 @@ def create_app():
     flask_app.config['MAX_CONTENT_LENGTH'] = max(10 * 1024 * 1024, max_upload_bytes)
     flask_app.config['SESSION_COOKIE_HTTPONLY'] = True
     flask_app.config['SESSION_COOKIE_SAMESITE'] = (os.environ.get('SESSION_COOKIE_SAMESITE') or 'Lax').strip() or 'Lax'
-    flask_app.config['SESSION_COOKIE_PERMANENT'] = False
+    # cookie 是否持久化由 session.permanent 决定：登录页勾选「N 天内免登录」时置 True，
+    # 此时 Flask 用 PERMANENT_SESSION_LIFETIME 作为 cookie 的 Max-Age；不勾选则不发 Max-Age，
+    # 退化成关闭浏览器即失效的会话 cookie（改动前的一贯行为）。
+    # 注意这里必须 import 到常量本身：它定义在文件下方的模块级区域，create_app() 调用时已就绪。
+    flask_app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(
+        seconds=ADMIN_SESSION_REMEMBER_ME_MAX_AGE_SECONDS
+    )
     secure_cookie_flag = (os.environ.get('SESSION_COOKIE_SECURE') or '').strip().lower()
     if secure_cookie_flag in ('1', 'true', 'yes', 'on'):
         flask_app.config['SESSION_COOKIE_SECURE'] = True
@@ -442,6 +448,16 @@ ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS = _read_timeout_seconds(
     ('ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS',),
     86400,
 )
+
+# 「N 天内免登录」档位的时长（登录页勾选框）。下限取默认档的两个上限里较大的那个，
+# 保证免登录档在任何配置下都不会比默认档更短——否则勾了反而更容易掉线。
+# 改这个值时记得同步 admin/index.html 里勾选框的文案。
+ADMIN_SESSION_REMEMBER_ME_MAX_AGE_SECONDS = _read_timeout_seconds(
+    ('ADMIN_SESSION_REMEMBER_ME_MAX_AGE_SECONDS',),
+    30 * 86400,
+    minimum_value=max(ADMIN_SESSION_IDLE_TIMEOUT_SECONDS, ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS),
+)
+
 # Backward-compatible alias for existing imports and deployments.
 ADMIN_SESSION_MAX_AGE_SECONDS = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
 

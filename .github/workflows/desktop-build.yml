@@ -1,0 +1,78 @@
+name: Build Desktop Client
+
+# 桌面客户端（desktop/）的 Windows 安装包构建。
+#
+# 触发方式与标签约定：
+#   - 主站发布用 v4.9.0 这类标签，由 docker-publish.yml 处理；
+#   - 桌面客户端发布必须用 desktop-v0.1.0 这类标签，两个工作流靠标签前缀互不干扰。
+# 也支持手动触发，便于在正式发版前验证构建。
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build-desktop:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'desktop-v')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 从标签同步版本号
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          if (-not $tag) { $tag = "${{ github.ref_name }}" }
+          $version = $tag -replace '^desktop-v', ''
+
+          if ($version -notmatch '^\d+\.\d+\.\d+([-+][0-9A-Za-z.\-]+)?$') {
+            throw "标签必须是 desktop-v<major>.<minor>.<patch> 形式，当前为：$tag"
+          }
+
+          # tauri.conf.json 里 productName 是中文（决定安装包文件名与快捷方式名），
+          # 所以读写都显式走无 BOM 的 UTF-8，不吃 PowerShell 版本的默认编码差异
+          # （PS5 的 Get-Content 默认按 ANSI 读，会把中文读成乱码）。
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+
+          $confPath = 'desktop/src-tauri/tauri.conf.json'
+          $conf = [System.IO.File]::ReadAllText($confPath, $utf8)
+          # 用实例方法按 count 替换：静态 [regex]::Replace 的第四个位置参数是
+          # RegexOptions 而非 count，传 1 会被当成 IgnoreCase 并替换全部匹配。
+          $conf = ([regex]'"version":\s*"[^"]+"').Replace($conf, "`"version`": `"$version`"", 1)
+          [System.IO.File]::WriteAllText($confPath, $conf, $utf8)
+
+          $cargoPath = 'desktop/src-tauri/Cargo.toml'
+          $cargo = [System.IO.File]::ReadAllText($cargoPath, $utf8)
+          $cargo = ([regex]'(?m)^version = "[^"]+"').Replace($cargo, "version = `"$version`"", 1)
+          [System.IO.File]::WriteAllText($cargoPath, $cargo, $utf8)
+
+          Write-Host "桌面客户端版本已同步为 $version"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: 构建并上传安装包
+        if: github.event_name == 'release'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tagName: ${{ github.event.release.tag_name }}
+          releaseId: ${{ github.event.release.id }}
+
+      # 手动触发只做构建验证，不发布任何产物。
+      - name: 仅构建（手动触发）
+        if: github.event_name == 'workflow_dispatch'
+        uses: tauri-apps/tauri-action@v0
+        with:
+          projectPath: desktop

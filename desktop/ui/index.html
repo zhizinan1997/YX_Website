@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元芯传感管理后台</title>
+    <style>
+        :root {
+            --nav: #08192d;
+            --nav-elevated: #102845;
+            --primary: #123d71;
+            --accent: #27c7d9;
+            --text: #eef3f9;
+            --text-muted: #93a7c0;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 20% 20%, var(--nav-elevated), var(--nav) 60%);
+            color: var(--text);
+            font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .shell {
+            width: min(460px, calc(100% - 48px));
+            text-align: center;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .brand-mark {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: linear-gradient(160deg, var(--primary), var(--nav));
+            border: 1px solid rgba(39, 199, 217, 0.35);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-name {
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .stage {
+            min-height: 132px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+        }
+
+        .spinner {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid rgba(147, 167, 192, 0.25);
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-text {
+            margin: 0;
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        .status-text strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .address {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 13px;
+            color: var(--accent);
+            word-break: break-all;
+        }
+
+        .retry {
+            margin-top: 26px;
+            padding: 11px 34px;
+            border: 1px solid rgba(39, 199, 217, 0.45);
+            border-radius: 8px;
+            background: rgba(39, 199, 217, 0.12);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .retry:hover {
+            background: rgba(39, 199, 217, 0.22);
+            border-color: rgba(39, 199, 217, 0.75);
+        }
+
+        .retry:active { transform: translateY(1px); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">M</span>
+            <span class="brand-name">元芯传感管理后台</span>
+        </div>
+
+        <div class="stage">
+            <div id="spinner" class="spinner" role="status" aria-label="正在连接"></div>
+
+            <p id="connecting" class="status-text">
+                <strong>正在连接管理后台…</strong>
+                首次连接需要数秒，请稍候。
+            </p>
+
+            <p id="failed" class="status-text hidden">
+                <strong>无法连接到管理后台</strong>
+                请检查本机网络或代理设置，然后重试。
+                <br>
+                <span class="address" id="baseUrl"></span>
+            </p>
+        </div>
+
+        <button id="retry" type="button" class="retry hidden">重试</button>
+    </main>
+
+    <script>
+        (function () {
+            // 站点基址由 Rust 侧的注入脚本提供（scripts.rs），支持 YX_ADMIN_BASE_URL 覆盖。
+            var baseUrl = String(window.__YX_DESKTOP_BASE_URL__ || '').trim();
+            document.getElementById('baseUrl').textContent = baseUrl;
+
+            // 可达性探测在 Rust 侧的 on_page_load 里进行，探测通过会直接导航到线上后台。
+            // 所以这里只需要：等待若干秒仍未离开本页，就认为连接失败并给出重试入口。
+            var FAILURE_HINT_DELAY_MS = 6000;
+
+            setTimeout(function () {
+                document.getElementById('spinner').classList.add('hidden');
+                document.getElementById('connecting').classList.add('hidden');
+                document.getElementById('failed').classList.remove('hidden');
+                document.getElementById('retry').classList.remove('hidden');
+            }, FAILURE_HINT_DELAY_MS);
+
+            // 重试即重新加载本页，触发 Rust 侧再探测一次——整条链路不需要 IPC 命令。
+            document.getElementById('retry').addEventListener('click', function () {
+                window.location.reload();
+            });
+        })();
+    </script>
+</body>
+</html>

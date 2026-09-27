@@ -568,6 +568,27 @@
             await logout();
         }
 
+        async function logoutAllFromAccountMenu(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            closeAccountMenu();
+            await logoutAll();
+        }
+
+        // 「退出登录」只清掉当前这一份 cookie，其他设备（含桌面客户端）会继续
+        // 保持登录。要一次性收回全部设备用这个，它会让该账号所有既有会话立即失效。
+        async function logoutAll() {
+            if (!await showGlobalConfirm('确定要退出所有设备吗？桌面客户端和其他浏览器上的登录都会失效，需要重新登录。')) return;
+            if (adminSessionCheckTimer) {
+                clearInterval(adminSessionCheckTimer);
+                adminSessionCheckTimer = null;
+            }
+            await fetch('/admin/logout-all', { method: 'POST' });
+            location.reload();
+        }
+
         function getLoginSubmitButton() {
             return document.getElementById('loginSubmitBtn') || document.querySelector('#loginForm button[type="submit"]');
         }
@@ -932,6 +953,7 @@
             if (loginPage) loginPage.style.display = 'flex';
             if (loginError) loginError.textContent = '登录已过期，请重新登录。';
             resetLoginTurnstile();
+            resetRememberMeFlag();
         }
 
         const nativeFetch = window.fetch.bind(window);
@@ -1680,6 +1702,9 @@
                     document.getElementById('dashboard').style.display = 'none';
                     // 回到登录页时重置验证组件，确保拿到的是全新令牌。
                     resetLoginTurnstile();
+                    // 长期登录授权按次生效：回到登录页就清掉勾选，避免上一轮的
+                    // 选择被默默延续到下一次登录。
+                    resetRememberMeFlag();
                 }
             } catch (e) {
                 console.error(e);
@@ -1962,6 +1987,21 @@
             return String(document.getElementById('loginEmail')?.value || '').trim();
         }
 
+        // 登录页「N 天内免登录」勾选框。天数与 app/app_config.py 的
+        // ADMIN_SESSION_REMEMBER_ME_MAX_AGE_SECONDS 对应，改一处要改两处。
+        function getRememberMeFlag() {
+            const box = document.getElementById('loginRememberMe');
+            return !!(box && box.checked);
+        }
+
+        // 回到登录页时重置为未勾选：让每一次长期授权都是一次新的显式选择，
+        // 而不是上一轮勾过之后被默默延续。免登录会话不会因空闲掉线，所以实际只在
+        // 满 N 天、改密码被吊销、或用户主动登出时才会走到这里。
+        function resetRememberMeFlag() {
+            const box = document.getElementById('loginRememberMe');
+            if (box) box.checked = false;
+        }
+
         function getLoginDisplayName() {
             if (loginAuthMode === 'username_password' || loginAuthMode === 'account_password') {
                 return String(document.getElementById('username')?.value || '').trim();
@@ -1973,7 +2013,8 @@
             const payload = {
                 login_method: loginAuthMode,
                 password: document.getElementById('password')?.value || '',
-                turnstileToken: turnstileToken
+                turnstileToken: turnstileToken,
+                remember_me: getRememberMeFlag()
             };
             if (turnstilePublicConfig.provider === 'aliyun_esa') {
                 payload.captchaVerifyParam = turnstileToken;
@@ -2089,7 +2130,8 @@
                         body: JSON.stringify({
                             email,
                             turnstileToken: turnstileToken,
-                            captchaVerifyParam: turnstilePublicConfig.provider === 'aliyun_esa' ? turnstileToken : ''
+                            captchaVerifyParam: turnstilePublicConfig.provider === 'aliyun_esa' ? turnstileToken : '',
+                            remember_me: getRememberMeFlag()
                         })
                     });
                     const startData = await parseJsonSafe(startRes);

@@ -359,6 +359,35 @@
             font-size: 13px;
         }
 
+        /* 「N 天内免登录」勾选框。文案里的天数必须和 app/app_config.py 的
+           ADMIN_SESSION_REMEMBER_ME_MAX_AGE_SECONDS 保持一致。
+           选择器多带一层 .form-group 是为了盖过 .login-page .form-group label
+           的 display:block / margin-bottom:8px。 */
+        .login-page .form-group .login-remember-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0;
+            color: #1d1d1f;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .login-page .form-group .login-remember-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            flex: 0 0 auto;
+            accent-color: var(--login-blue);
+            cursor: pointer;
+        }
+
+        .login-page .login-remember-group {
+            margin-bottom: 0;
+        }
+
         .login-action-row {
             display: flex;
             flex-direction: column;

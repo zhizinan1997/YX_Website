@@ -12,6 +12,7 @@
         if (loginError) loginError.textContent = message || '登录已过期，请重新登录。';
         if (typeof window.closeAccountMenu === 'function') window.closeAccountMenu();
         if (typeof window.resetLoginTurnstile === 'function') window.resetLoginTurnstile();
+        if (typeof window.resetRememberMeFlag === 'function') window.resetRememberMeFlag();
     }
 
     window.Admin2Auth = {

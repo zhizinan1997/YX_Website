@@ -88,7 +88,11 @@
             const credential = await navigator.credentials.get({ publicKey: prepareOptions(start.options) });
             const result = await jsonFetch('/admin/passkey/login/verify', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ request_id: start.request_id, credential: serializeCredential(credential) })
+                body: JSON.stringify({
+                    request_id: start.request_id,
+                    credential: serializeCredential(credential),
+                    remember_me: typeof window.getRememberMeFlag === 'function' ? window.getRememberMeFlag() : false
+                })
             });
             setMessage('passkeyLoginMsg', '验证成功，正在进入后台…', false);
             if (typeof window.showLastLoginToast === 'function') {

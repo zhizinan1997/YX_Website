@@ -105,7 +105,12 @@ from app.admin_feature_unlocks import (
     get_admin_feature_unlocks,
     is_admin_feature_unlocked,
 )
-from app.admin_session import is_admin_session_expired, maybe_refresh_admin_session
+from app.admin_session import (
+    ADMIN_SESSION_PERSISTENT_KEY,
+    is_admin_session_expired,
+    maybe_refresh_admin_session,
+    session_ttls_for,
+)
 from app.rate_limit_store import check_and_record
 from app.app_config import (
     ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS,
@@ -938,6 +943,7 @@ def _clear_pending_login_session(sess):
         'admin_pending_username',
         'admin_pending_started_at',
         'admin_pending_ip',
+        'admin_pending_persistent',
     ):
         sess.pop(key, None)
 
@@ -954,6 +960,7 @@ def _clear_admin_session(sess):
         'admin_session_ttl',
         'admin_session_absolute_ttl',
         'admin_session_schema',
+        ADMIN_SESSION_PERSISTENT_KEY,
         'admin_binding_required',
         'admin_previous_login_at',
         'admin_previous_login_ip',
@@ -969,18 +976,23 @@ def _clear_admin_session(sess):
         CSRF_SESSION_KEY,
     ):
         sess.pop(key, None)
+    # 匿名会话不该带着长期 cookie：_permanent 是会话里的普通键，逐键 pop 清不掉它。
+    sess.permanent = False
     _clear_pending_login_session(sess)
 
 
-def _set_pending_login_session(sess, *, pending_login_id: str, username: str, ip_addr: str):
+def _set_pending_login_session(sess, *, pending_login_id: str, username: str, ip_addr: str, persistent: bool = False):
     _clear_admin_session(sess)
     sess['admin_pending_login_id'] = pending_login_id
     sess['admin_pending_username'] = username
     sess['admin_pending_started_at'] = int(time.time())
     sess['admin_pending_ip'] = ip_addr
+    # 密码登录是两段式的（密码 → 邮箱验证码），勾选状态要跨请求带到第二段，
+    # 由 verify-email-code 在真正建登录态时取出。
+    sess['admin_pending_persistent'] = bool(persistent)
 
 
-def _set_logged_in_session(sess, *, user, permissions, is_super_admin: bool, is_hidden_admin: bool, binding_required: bool = False):
+def _set_logged_in_session(sess, *, user, permissions, is_super_admin: bool, is_hidden_admin: bool, binding_required: bool = False, persistent: bool = False):
     _clear_pending_login_session(sess)
     sess['admin_logged_in'] = True
     sess['admin_username'] = _normalize_username((user or {}).get('username', ''))
@@ -990,11 +1002,30 @@ def _set_logged_in_session(sess, *, user, permissions, is_super_admin: bool, is_
     now_ts = int(time.time())
     sess['admin_login_at'] = now_ts
     sess['admin_last_active_at'] = now_ts
-    sess['admin_session_ttl'] = ADMIN_SESSION_IDLE_TIMEOUT_SECONDS
-    sess['admin_session_absolute_ttl'] = ADMIN_SESSION_ABSOLUTE_MAX_AGE_SECONDS
+    idle_ttl, absolute_ttl = session_ttls_for(persistent)
+    sess['admin_session_ttl'] = idle_ttl
+    sess['admin_session_absolute_ttl'] = absolute_ttl
+    sess[ADMIN_SESSION_PERSISTENT_KEY] = bool(persistent)
     sess['admin_session_schema'] = ADMIN_SESSION_SCHEMA_VERSION
     sess['admin_binding_required'] = bool(binding_required)
     sess[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
+    # cookie 落不落盘由 session.permanent 决定，必须显式写 True/False：
+    # Flask 把它存成会话里的 "_permanent" 键，_clear_admin_session 清不掉它，
+    # 不显式覆盖的话，上次勾选过的用户这次没勾也会拿到长期 cookie。
+    sess.permanent = bool(persistent)
+
+
+_REMEMBER_ME_TRUTHY = {'1', 'true', 'on', 'yes'}
+
+
+def _read_remember_me_flag(payload) -> bool:
+    """读取登录请求体里的「N 天内免登录」勾选状态；缺失或非法值一律按未勾选处理。"""
+    if not isinstance(payload, dict):
+        return False
+    value = payload.get('remember_me', payload.get('rememberMe'))
+    if isinstance(value, bool):
+        return value
+    return str(value or '').strip().lower() in _REMEMBER_ME_TRUTHY
 
 
 def _save_login_success(root: Path, get_config, update_config, username: str, ip_addr: str):
@@ -2988,7 +3019,7 @@ def register_admin_routes(
             return jsonify({'success': False, 'message': f'SMTP 测试失败：{exc}'}), 400
         return jsonify({'success': True, 'message': f'测试邮件已发送到 {target_email}'})
 
-    def _finalize_login_success(login_user, ip_addr: str, *, binding_required: bool = False, detail_suffix: str = ''):
+    def _finalize_login_success(login_user, ip_addr: str, *, binding_required: bool = False, detail_suffix: str = '', persistent: bool = False):
         is_hidden_admin = _is_hidden_admin_record(login_user)
         is_super_admin = bool((login_user or {}).get('role') == 'super_admin')
         permissions = _normalize_permissions((login_user or {}).get('permissions', []), is_super_admin=is_super_admin)
@@ -3000,6 +3031,7 @@ def register_admin_routes(
             is_super_admin=is_super_admin,
             is_hidden_admin=is_hidden_admin,
             binding_required=binding_required,
+            persistent=persistent,
         )
         prev_last_login_at, prev_last_login_ip, current_login_at = _save_login_success(
             root, get_config, update_config, login_username, ip_addr
@@ -3116,7 +3148,12 @@ def register_admin_routes(
                 _prune_login_attempts(attempts_state, int(time.time()))
                 _reset_login_attempts_for_ip(attempts_state, ip_addr)
                 _save_login_attempts(attempts_file, attempts_state)
-            return _finalize_login_success(login_user, ip_addr, detail_suffix='Passkey 验证通过')
+            return _finalize_login_success(
+                login_user,
+                ip_addr,
+                detail_suffix='Passkey 验证通过',
+                persistent=_read_remember_me_flag(data),
+            )
         except Exception as exc:
             with LOGIN_ATTEMPTS_LOCK:
                 attempts_file = _get_login_attempts_file(root)
@@ -3667,7 +3704,13 @@ def register_admin_routes(
 
         if email_verification_available and _has_verified_email(login_user):
             pending_login_id = _create_pending_login(root, login_username, ip_addr)
-            _set_pending_login_session(session, pending_login_id=pending_login_id, username=login_username, ip_addr=ip_addr)
+            _set_pending_login_session(
+                session,
+                pending_login_id=pending_login_id,
+                username=login_username,
+                ip_addr=ip_addr,
+                persistent=_read_remember_me_flag(data),
+            )
             return jsonify({
                 'success': True,
                 'requires_email_code': True,
@@ -3681,6 +3724,7 @@ def register_admin_routes(
             ip_addr,
             binding_required=bool(email_verification_available and not _has_verified_email(login_user)),
             detail_suffix='凭据校验通过；已进入后台' + ('；需绑定安全邮箱' if email_verification_available and not _has_verified_email(login_user) else ''),
+            persistent=_read_remember_me_flag(data),
         )
 
     @app.route('/admin/login/start', methods=['POST'])
@@ -3824,7 +3868,13 @@ def register_admin_routes(
 
         login_username = _normalize_username((login_user or {}).get('username', ''))
         pending_login_id = _create_pending_login(root, login_username, ip_addr)
-        _set_pending_login_session(session, pending_login_id=pending_login_id, username=login_username, ip_addr=ip_addr)
+        _set_pending_login_session(
+            session,
+            pending_login_id=pending_login_id,
+            username=login_username,
+            ip_addr=ip_addr,
+            persistent=_read_remember_me_flag(data),
+        )
         try:
             ok, message, payload = _send_pending_login_code(
                 root,
@@ -3956,8 +4006,14 @@ def register_admin_routes(
             _save_login_attempts(attempts_file, attempts_state)
 
         _delete_pending_login(root, pending_login_id)
+        # 勾选状态由第一段（密码登录 / 无密码快捷登录）写进 pending 会话，这里取出。
         # 审计记录使用本次请求的真实来源 IP，而非 pending 创建时的旧值。
-        return _finalize_login_success(login_user, ip_addr, detail_suffix='凭据校验通过；邮箱验证码通过')
+        return _finalize_login_success(
+            login_user,
+            ip_addr,
+            detail_suffix='凭据校验通过；邮箱验证码通过',
+            persistent=bool(session.get('admin_pending_persistent', False)),
+        )
 
     @app.route('/api/admin/account/email-binding', methods=['GET'])
     @login_required
@@ -4459,7 +4515,29 @@ def register_admin_routes(
                 detail='手动退出登录',
                 hidden_account=is_hidden,
             )
-            # 服务端会话吊销：登出后旧 cookie（含被窃取的副本）立即失效。
+        # 只清当前这一份 cookie，不吊销该账号的其他会话：桌面客户端和其他浏览器
+        # 会继续保持登录。这样「退出登录」不再能收回别的设备（含被盗的长期 cookie），
+        # 需要一次性收回全部设备请用 /admin/logout-all，或改密码（改密仍会吊销全部）。
+        _clear_admin_session(session)
+        return jsonify({'success': True})
+
+    @app.route('/admin/logout-all', methods=['POST'])
+    def admin_logout_all():
+        """退出该账号在所有设备上的登录：推进 min_session_at，使全部既有 cookie 立即失效。"""
+        # 与 /admin/logout 不同，这里没有「无副作用所以可以放宽」的余地——
+        # 被跨站触发就等于把管理员从所有设备上踢下线，因此严格要求同源。
+        if not _is_same_origin_request(request):
+            return jsonify({'success': False, 'message': '请求来源校验失败，请刷新页面后重试。'}), 403
+        username = session.get('admin_username') or ''
+        is_hidden = bool(session.get('admin_is_hidden', False))
+        if session.get('admin_logged_in'):
+            append_admin_login_log(
+                operation='admin_logout',
+                success=True,
+                username=username,
+                detail='退出所有设备',
+                hidden_account=is_hidden,
+            )
             try:
                 bump_user_min_session_at(root, username)
             except Exception:
