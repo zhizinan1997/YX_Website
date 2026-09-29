@@ -212,12 +212,18 @@ node desktop/tools/check_injection.js
 ## 发布流程
 
 1. 确认 `desktop/src-tauri/Cargo.toml` 与 `tauri.conf.json` 的版本号（CI 会按标签覆盖，本地改动只为一致性）。
-2. 建一个 **`desktop-v<major>.<minor>.<patch>`** 形式的标签并发 Release，例如 `desktop-v0.1.0`。
+2. 发版方式二选一：
+   - **随主站一起发（常规路径）**：正常发 `v<major>.<minor>.<patch>` 的 Release（例如
+     `v4.10.0`），`docker-publish.yml` 构建镜像的同时，`desktop-build.yml` 会构建 exe
+     安装包挂到同一个 Release，桌面端版本号跟随标签（`v4.10.0` → `4.10.0`）。
+   - **桌面端单独发版**：仅外壳自身改动时，建 **`desktop-v<major>.<minor>.<patch>`**
+     形式的标签并发 Release，例如 `desktop-v0.1.0`。
 3. `.github/workflows/desktop-build.yml` 自动在 `windows-latest` 上构建 NSIS 安装包，
    并把 `-setup.exe` 挂到该 Release。
 
-> **标签前缀必须区分**：主站发布用 `v4.9.0`（触发镜像构建），桌面端用 `desktop-v0.1.0`。
-> 两个工作流各自带前缀守卫，混用会让主站镜像被打成桌面版本号并覆盖 `latest`。
+> **标签前缀仍然必须区分**：`v*` 标签触发镜像 + 桌面双构建，`desktop-v*` 标签只构建
+> 桌面端。docker-publish.yml 只认 `v` 前缀，`desktop-v0.1.0` 不会把主站镜像打成桌面
+> 版本号并覆盖 `latest`。
 >
 > 桌面端版本日志**不要**写进 `update_logs/`——那里是站点版本号的来源，
 > 同时还是 Docker 健康检查探测的 `/api/changelog/latest` 的数据源。

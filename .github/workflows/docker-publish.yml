@@ -12,6 +12,7 @@ jobs:
   build-and-push:
     # 只处理主站发布（v4.9.0 这类）。桌面客户端用 desktop-v* 标签，必须排除，
     # 否则会把主站镜像打成桌面版本号并覆盖 latest 标签。
+    # v* Release 同时会由 desktop-build.yml 构建 exe 安装包，挂到同一个 Release。
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     permissions:

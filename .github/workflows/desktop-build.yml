@@ -3,8 +3,10 @@ name: Build Desktop Client
 # 桌面客户端（desktop/）的 Windows 安装包构建。
 #
 # 触发方式与标签约定：
-#   - 主站发布用 v4.9.0 这类标签，由 docker-publish.yml 处理；
-#   - 桌面客户端发布必须用 desktop-v0.1.0 这类标签，两个工作流靠标签前缀互不干扰。
+#   - 主站发布 v4.9.0 这类标签：docker-publish.yml 构建镜像，本工作流同时构建
+#     exe 安装包挂到同一个 Release，桌面端版本号跟随标签（v4.9.0 → 4.9.0）；
+#   - 仅桌面外壳自身改动时，可用 desktop-v0.1.0 这类标签单独发桌面版；
+#   - docker-publish.yml 只认 v 前缀，desktop-v* 标签不会触发镜像构建。
 # 也支持手动触发，便于在正式发版前验证构建。
 on:
   release:
@@ -13,7 +15,7 @@ on:
 
 jobs:
   build-desktop:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'desktop-v')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v') || startsWith(github.event.release.tag_name, 'desktop-v')
     runs-on: windows-latest
     permissions:
       contents: write
@@ -27,10 +29,16 @@ jobs:
         run: |
           $tag = "${{ github.event.release.tag_name }}"
           if (-not $tag) { $tag = "${{ github.ref_name }}" }
-          $version = $tag -replace '^desktop-v', ''
+          # v4.9.0 与 desktop-v0.1.0 两种前缀都支持，桌面端版本号跟随标签
+          $version = $tag -replace '^(desktop-)?v', ''
 
           if ($version -notmatch '^\d+\.\d+\.\d+([-+][0-9A-Za-z.\-]+)?$') {
-            throw "标签必须是 desktop-v<major>.<minor>.<patch> 形式，当前为：$tag"
+            # 从分支手动触发（发版前验证构建）没有版本号可同步，按仓库当前版本构建
+            if ("${{ github.event_name }}" -eq 'workflow_dispatch') {
+              Write-Host "引用 $tag 不是版本号，跳过版本号同步"
+              exit 0
+            }
+            throw "标签必须是 v 或 desktop-v 加 <major>.<minor>.<patch> 的形式，当前为：$tag"
           }
 
           # tauri.conf.json 里 productName 是中文（决定安装包文件名与快捷方式名），

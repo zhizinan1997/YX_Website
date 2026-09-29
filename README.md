@@ -289,8 +289,9 @@ docker run -d \
 另带托盘图标与未读留言角标。
 
 - 详细说明、构建方式与已知限制见 [`desktop/README.md`](desktop/README.md)
-- 发布用 `desktop-v0.1.0` 形式的标签，由独立的 GitHub Actions 工作流构建安装包；
-  **不要**与主站的 `v4.9.0` 标签混用
+- 发布 exe 安装包随主站 Release 自动进行：发 `v4.10.0` 这类标签的 Release 时，
+  Windows 安装包会挂到同一个 Release，版本号跟随标签；
+  仅桌面外壳改动时也可用 `desktop-v0.1.0` 形式的标签单独发桌面版
 - 桌面客户端不改动任何后端代码，也不引入新的接口
 
 ### 登录会话与「30 天内免登录」
