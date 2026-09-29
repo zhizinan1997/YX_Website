@@ -219,7 +219,8 @@ node desktop/tools/check_injection.js
    - **桌面端单独发版**：仅外壳自身改动时，建 **`desktop-v<major>.<minor>.<patch>`**
      形式的标签并发 Release，例如 `desktop-v0.1.0`。
 3. `.github/workflows/desktop-build.yml` 自动在 `windows-latest` 上构建 NSIS 安装包，
-   并把 `-setup.exe` 挂到该 Release。
+   并把 `-setup.exe` 挂到该 Release。GitHub 附件名只保留 ASCII，文件名里的中文
+   productName 会被清洗，CI 会自动把附件改名为 `YX-Admin_<版本>_x64-setup.exe`。
 
 > **标签前缀仍然必须区分**：`v*` 标签触发镜像 + 桌面双构建，`desktop-v*` 标签只构建
 > 桌面端。docker-publish.yml 只认 `v` 前缀，`desktop-v0.1.0` 不会把主站镜像打成桌面

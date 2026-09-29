@@ -41,6 +41,9 @@ jobs:
             throw "标签必须是 v 或 desktop-v 加 <major>.<minor>.<patch> 的形式，当前为：$tag"
           }
 
+          # 传给后续步骤：上传后按它把安装包附件改名为 YX-Admin_<version>_x64-setup.exe
+          "desktop_version=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
           # tauri.conf.json 里 productName 是中文（决定安装包文件名与快捷方式名），
           # 所以读写都显式走无 BOM 的 UTF-8，不吃 PowerShell 版本的默认编码差异
           # （PS5 的 Get-Content 默认按 ANSI 读，会把中文读成乱码）。
@@ -84,3 +87,26 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         with:
           projectPath: desktop
+
+      # GitHub 的 Release 附件名只保留 ASCII：安装包文件名里的 productName（中文）
+      # 会被清洗掉，附件变成 "_<version>_x64-setup.exe"，看不出是什么软件。
+      # 这里把附件统一改名为 YX-Admin_<version>_x64-setup.exe，只改元数据不重传文件；
+      # 已是目标名时跳过，重复执行安全。
+      - name: 规范安装包附件名
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $suffix = "_$env:desktop_version" + "_x64-setup.exe"
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/${{ github.event.release.id }}" | ConvertFrom-Json
+          $target = $release.assets |
+            Where-Object { $_.name.EndsWith($suffix) -and -not $_.name.StartsWith('YX-Admin_') } |
+            Select-Object -First 1
+          if (-not $target) {
+            Write-Host "未找到后缀为 $suffix 的安装包附件（或已改名），跳过"
+            exit 0
+          }
+          $newName = "YX-Admin_$env:desktop_version" + "_x64-setup.exe"
+          gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/assets/$($target.id)" -f "name=$newName" | Out-Null
+          Write-Host "安装包附件 $($target.name) 已改名为 $newName"
