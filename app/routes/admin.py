@@ -216,6 +216,9 @@ EMAIL_CODE_MAX_VERIFY_FAILURES = 5
 PENDING_LOGIN_EXPIRES_SECONDS = 600
 SMTP_PASSWORD_VALID_DAYS = 180
 SMTP_REMINDER_DAYS = (7, 3, 1)
+# 仅这些 SMTP 服务的凭据由邮箱服务商强制定期更换（如 163 授权码），启用 180 天到期提醒；
+# 其他服务（阿里云邮件推送、QQ、Gmail 等）的 SMTP 密码长期有效，默认不做到期提醒。
+SMTP_PASSWORD_ROTATION_HOSTS = {'smtp.163.com'}
 
 ADMIN_PERMISSION_CATALOG = [
     {'key': 'site-reports', 'label': '网站数据'},
@@ -562,6 +565,10 @@ def _to_iso_datetime(dt_value):
     return dt_value.astimezone(BEIJING_TZ).isoformat(timespec='seconds')
 
 
+def _smtp_password_rotation_required(host) -> bool:
+    return str(host or '').strip().lower() in SMTP_PASSWORD_ROTATION_HOSTS
+
+
 def _get_email_auth_settings(config):
     safe = config if isinstance(config, dict) else {}
     host = str(safe.get('smtp_host', '') or '').strip()
@@ -593,9 +600,13 @@ def _get_email_auth_settings(config):
         missing_fields.append('smtp_from_email')
 
     set_dt = _parse_iso_datetime(password_set_at)
-    expires_dt = _parse_iso_datetime(password_expires_at)
-    if expires_dt is None and set_dt is not None:
-        expires_dt = set_dt + timedelta(days=SMTP_PASSWORD_VALID_DAYS)
+    rotation_required = _smtp_password_rotation_required(host)
+    if rotation_required:
+        expires_dt = _parse_iso_datetime(password_expires_at)
+        if expires_dt is None and set_dt is not None:
+            expires_dt = set_dt + timedelta(days=SMTP_PASSWORD_VALID_DAYS)
+    else:
+        expires_dt = None
 
     now_dt = now_beijing()
     remaining_days = None
@@ -620,6 +631,7 @@ def _get_email_auth_settings(config):
         'smtp_password_set_at': password_set_at,
         'smtp_password_expires_at': _to_iso_datetime(expires_dt) if expires_dt else '',
         'smtp_password_masked': ('***' if password else ''),
+        'smtp_password_rotation_required': rotation_required,
         'configured': configured,
         'missing_fields': missing_fields,
         'expired': expired,
@@ -648,6 +660,7 @@ def _build_smtp_status_payload(config):
         'smtp_password_expires_at': settings['smtp_password_expires_at'],
         'smtp_password_remaining_days': settings['remaining_days'],
         'smtp_password_expired': settings['expired'],
+        'smtp_password_rotation_required': settings['smtp_password_rotation_required'],
         'smtp_configured': settings['configured'],
         'smtp_missing_fields': settings['missing_fields'],
     }
@@ -2184,6 +2197,8 @@ def _clear_smtp_notice_history(root: Path):
 def _maybe_send_smtp_expiry_notice(*, root: Path, get_config):
     config = get_config() or {}
     settings = _get_email_auth_settings(config)
+    if not settings.get('smtp_password_rotation_required'):
+        return
     notice_email = _normalize_email(settings.get('smtp_notice_email', ''))
     remaining_days = settings.get('remaining_days')
     if not notice_email or remaining_days is None or not settings.get('smtp_password_expires_at', ''):
@@ -2974,9 +2989,13 @@ def register_admin_routes(
             'smtp_notice_email': _normalize_email(data.get('smtp_notice_email', '')),
         }
         if password_input and not password_input.startswith('***'):
-            now_iso = now_beijing().isoformat(timespec='seconds')
-            updates['smtp_password_set_at'] = now_iso
-            updates['smtp_password_expires_at'] = (now_beijing() + timedelta(days=SMTP_PASSWORD_VALID_DAYS)).isoformat(timespec='seconds')
+            if _smtp_password_rotation_required(updates['smtp_host']):
+                now_iso = now_beijing().isoformat(timespec='seconds')
+                updates['smtp_password_set_at'] = now_iso
+                updates['smtp_password_expires_at'] = (now_beijing() + timedelta(days=SMTP_PASSWORD_VALID_DAYS)).isoformat(timespec='seconds')
+            else:
+                updates['smtp_password_set_at'] = ''
+                updates['smtp_password_expires_at'] = ''
 
         merged = dict(config)
         merged.update(updates)

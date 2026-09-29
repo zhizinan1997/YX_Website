@@ -17290,7 +17290,11 @@
                 statusEl.style.color = remaining <= 7 ? '#b45309' : '#2e7d32';
                 return;
             }
-            statusEl.textContent = '已配置，但尚未记录授权码到期时间。';
+            if (config.smtp_password_rotation_required) {
+                statusEl.textContent = '已配置，但尚未记录授权码到期时间。';
+            } else {
+                statusEl.textContent = '已配置。当前 SMTP 服务的密码长期有效，无到期提醒。';
+            }
             statusEl.style.color = '#666';
         }
 

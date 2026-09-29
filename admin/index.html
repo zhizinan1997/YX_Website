@@ -3380,13 +3380,13 @@
                                         <div class="form-group site-settings-field"><label for="smtpPassword">SMTP 授权码 / 密钥</label><input type="password" id="smtpPassword" class="form-control" placeholder="留空表示保持当前授权码不变"></div>
                                         <div class="form-group site-settings-field"><label for="smtpFromName">发件人名称</label><input type="text" id="smtpFromName" class="form-control" placeholder="管理后台"></div>
                                         <div class="form-group site-settings-field"><label for="smtpFromEmail">发件邮箱</label><input type="email" id="smtpFromEmail" class="form-control" placeholder="yourname@163.com"></div>
-                                        <div class="form-group site-settings-field"><label for="smtpNoticeEmail">SMTP 通知邮箱</label><input type="email" id="smtpNoticeEmail" class="form-control" placeholder="用于接收 7/3/1 天到期提醒"></div>
+                                        <div class="form-group site-settings-field"><label for="smtpNoticeEmail">SMTP 通知邮箱</label><input type="email" id="smtpNoticeEmail" class="form-control" placeholder="接收管理员通知；仅 163 授权码有 7/3/1 天到期提醒"></div>
                                         <div class="site-settings-connection-options"><div class="form-group site-settings-check"><label for="smtpUseSsl"><input type="checkbox" id="smtpUseSsl" checked><span>SSL 连接</span></label></div><div class="form-group site-settings-check"><label for="smtpUseTls"><input type="checkbox" id="smtpUseTls"><span>TLS STARTTLS</span></label></div></div>
                                     </div>
                                     <div class="site-settings-actions"><button type="submit" class="btn-primary">保存 SMTP 设置</button><button type="button" id="smtpTestBtn" class="site-settings-secondary-btn">发送测试邮件</button></div>
                                     <div id="emailAuthSettingsMsg" class="error-message" style="color:#28a745;"></div>
                                 </form>
-                                <details class="site-settings-help"><summary>使用说明</summary><p>SMTP 配置用于后台登录邮箱验证码、账号安全邮箱绑定和 163 授权码到期提醒。修改授权码后，可发送测试邮件验证配置。</p></details>
+                                <details class="site-settings-help"><summary>使用说明</summary><p>SMTP 配置用于后台登录邮箱验证码、账号安全邮箱绑定和管理员通知。仅 163 等授权码邮箱启用 180 天到期提醒，其他 SMTP 服务（如阿里云邮件推送）的密码长期有效。修改授权码后，可发送测试邮件验证配置。</p></details>
                             </div>
                         </details>
                     </div>
